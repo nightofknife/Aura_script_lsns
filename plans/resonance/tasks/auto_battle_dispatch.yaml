@@ -1,0 +1,1367 @@
+auto_battle_ct_tie_an_run_one:
+  meta:
+    title: Auto Battle CT TieAn Run One
+    description: Execute one CT tie_an job.
+    inputs:
+      - name: route_id
+        type: string
+        required: true
+      - name: city_name
+        type: string
+        required: true
+      - name: mission_type
+        type: string
+        required: true
+      - name: stage
+        type: number
+        required: false
+      - name: difficulty
+        type: number
+        required: false
+  steps:
+    select_city:
+      action: resonance.select_ordered_city
+      params:
+        target_city_name: "{{ inputs.city_name }}"
+        city_order:
+          - "\u4fee\u683c\u91cc\u57ce"
+          - "\u66fc\u5fb7\u77ff\u573a"
+          - "7\u53f7\u81ea\u7531\u6e2f"
+          - "\u6f84\u660e\u6570\u636e\u4e2d\u5fc3"
+          - "\u6d77\u89d2\u57ce"
+          - "\u963f\u59ae\u5854\u53d1\u5c04\u4e2d\u5fc3"
+          - "\u5c9a\u5fc3\u57ce"
+          - "\u8d21\u9732\u57ce"
+        region: [45, 80, 255, 550]
+        drag_up: [220, 560, 220, 260]
+        drag_down: [220, 260, 220, 560]
+        max_attempts: 15
+        drag_duration_sec: 0.5
+        after_drag_sec: 0.5
+        match_mode: "contains"
+
+    wait_after_select_city:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: select_city
+
+    click_expel_task:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u9a71\u9010\u4efb\u52a1"
+        region: [100, 650, 300, 40]
+        match_mode: "contains"
+      depends_on: wait_after_select_city
+      when: "{{ inputs.mission_type == 'expel' }}"
+
+    click_bounty_task:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u60ac\u8d4f\u4efb\u52a1"
+        region: [100, 650, 300, 40]
+        match_mode: "contains"
+      depends_on: wait_after_select_city
+      when: "{{ inputs.mission_type == 'bounty' }}"
+
+    assert_task_type_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ (inputs.mission_type == 'expel' and (nodes.click_expel_task.output | default(false))) or (inputs.mission_type == 'bounty' and (nodes.click_bounty_task.output | default(false))) }}"
+        message: "failed to select mission type"
+      depends_on:
+        all:
+          - click_expel_task: "success|failed|skipped"
+          - click_bounty_task: "success|failed|skipped"
+
+    wait_after_task_type:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: assert_task_type_clicked
+
+    click_stage_1:
+      action: plans/aura_base/click
+      params:
+        x: 630
+        y: 660
+      depends_on: wait_after_task_type
+      when: "{{ inputs.mission_type == 'expel' and inputs.stage == 1 }}"
+
+    click_stage_2:
+      action: plans/aura_base/click
+      params:
+        x: 900
+        y: 660
+      depends_on: wait_after_task_type
+      when: "{{ inputs.mission_type == 'expel' and inputs.stage == 2 }}"
+
+    click_stage_3:
+      action: plans/aura_base/click
+      params:
+        x: 1100
+        y: 660
+      depends_on: wait_after_task_type
+      when: "{{ inputs.mission_type == 'expel' and inputs.stage == 3 }}"
+
+    stage_selected_marker:
+      action: plans/aura_base/log
+      params:
+        message: "stage selected marker"
+      depends_on:
+        all:
+          - click_stage_1: "success|failed|skipped"
+          - click_stage_2: "success|failed|skipped"
+          - click_stage_3: "success|failed|skipped"
+          - wait_after_task_type: "success"
+
+    click_change_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u53d8\u66f4\u96be\u5ea6"
+        region: [660, 520, 140, 40]
+        match_mode: "contains"
+      depends_on: stage_selected_marker
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    wait_difficulty_menu:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on:
+        click_change_difficulty: "success|skipped"
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    resolve_difficulty_text:
+      action: resonance.resolve_difficulty_text
+      params:
+        difficulty: "{{ inputs.difficulty }}"
+      depends_on:
+        wait_difficulty_menu: "success|skipped"
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    click_difficulty_text:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "{{ nodes.resolve_difficulty_text.output.difficulty_text }}"
+        region: [240, 480, 860, 60]
+        match_mode: "contains"
+      depends_on: resolve_difficulty_text
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    click_confirm_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u786e\u8ba4"
+        region: [1100, 600, 100, 100]
+        match_mode: "contains"
+      depends_on: click_difficulty_text
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    click_go_combat_with_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u524d\u5f80\u4f5c\u6218"
+        region: [920, 520, 180, 50]
+        match_mode: "contains"
+      depends_on: click_confirm_difficulty
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    click_go_combat_without_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u524d\u5f80\u4f5c\u6218"
+        region: [730, 590, 130, 50]
+        match_mode: "contains"
+      depends_on: stage_selected_marker
+      when: "{{ inputs.mission_type == 'bounty' }}"
+
+    run_combat_after_go_combat_with_difficulty:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_combat.yaml:auto_battle_combat"
+      depends_on: click_go_combat_with_difficulty
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    run_combat_after_go_combat_without_difficulty:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_combat.yaml:auto_battle_combat"
+      depends_on: click_go_combat_without_difficulty
+      when: "{{ inputs.mission_type == 'bounty' }}"
+
+  returns:
+    success: true
+    route_id: "{{ inputs.route_id }}"
+    city_name: "{{ inputs.city_name }}"
+    mission_type: "{{ inputs.mission_type }}"
+
+
+auto_battle_ct_tie_an_batch:
+  meta:
+    title: Auto Battle CT TieAn Batch
+    description: Batch executor for CT tie_an jobs.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    run_tie_an_jobs:
+      action: aura.run_task
+      loop:
+        for_each: "{{ inputs.jobs }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_tie_an_run_one"
+        inputs:
+          route_id: "{{ loop.item.route_id }}"
+          city_name: "{{ loop.item.city_name }}"
+          mission_type: "{{ loop.item.mission_type }}"
+          stage: "{{ loop.item.stage }}"
+          difficulty: "{{ loop.item.difficulty }}"
+  returns:
+    success: true
+    sub_category: "tie_an"
+    job_count: "{{ inputs.jobs | length }}"
+
+
+auto_battle_ct_regional_ops_run_one:
+  meta:
+    title: Auto Battle CT RegionalOps Run One
+    description: Execute one CT regional_ops_center job.
+    inputs:
+      - name: route_id
+        type: string
+        required: true
+      - name: city_name
+        type: string
+        required: true
+      - name: threat_level
+        type: number
+        required: true
+      - name: difficulty
+        type: number
+        required: true
+  steps:
+    select_city:
+      action: resonance.select_ordered_city
+      params:
+        target_city_name: "{{ inputs.city_name }}"
+        city_order:
+          - "\u8352\u539f\u7ad9"
+          - "\u94c1\u76df\u54e8\u7ad9"
+          - "\u6dd8\u91d1\u4e50\u56ed"
+          - "\u963f\u59ae\u5854\u80fd\u6e90\u7814\u7a76\u6240"
+          - "\u963f\u59ae\u5854\u6218\u5907\u5de5\u5382"
+          - "\u4e91\u5cab\u6865\u57fa\u5730"
+          - "\u6816\u7fbd\u7ad9"
+          - "\u6c47\u6d41\u5854"
+          - "\u8fdc\u661f\u5927\u6865"
+          - "\u7ef4\u8482\u6797\u573a"
+        region: [45, 80, 255, 550]
+        drag_up: [220, 560, 220, 260]
+        drag_down: [220, 260, 220, 560]
+        max_attempts: 15
+        drag_duration_sec: 0.5
+        after_drag_sec: 0.5
+        match_mode: "contains"
+
+    wait_after_select_city:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: select_city
+
+    select_threat_level:
+      action: resonance.select_threat_level_numeric
+      params:
+        threat_level: "{{ inputs.threat_level }}"
+        region: [540, 200, 710, 70]
+        drag_increase: [990, 240, 840, 240]
+        drag_decrease: [840, 240, 990, 240]
+        max_attempts: 20
+        drag_duration_sec: 0.5
+        after_drag_sec: 0.5
+      depends_on: wait_after_select_city
+
+    click_change_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u53d8\u66f4\u96be\u5ea6"
+        region: [950, 420, 150, 50]
+        match_mode: "contains"
+      depends_on: select_threat_level
+
+    wait_difficulty_menu:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: click_change_difficulty
+
+    resolve_difficulty_text:
+      action: resonance.resolve_difficulty_text
+      params:
+        difficulty: "{{ inputs.difficulty }}"
+      depends_on: wait_difficulty_menu
+
+    click_difficulty_text:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "{{ nodes.resolve_difficulty_text.output.difficulty_text }}"
+        region: [240, 480, 860, 60]
+        match_mode: "contains"
+      depends_on: resolve_difficulty_text
+
+    click_confirm_difficulty:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u786e\u8ba4"
+        region: [1100, 600, 100, 100]
+        match_mode: "contains"
+      depends_on: click_difficulty_text
+
+    wait_go_combat_text:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "\u524d\u5f80\u4f5c\u6218"
+        timeout: 5.0
+        interval: 0.5
+        region: [1000, 560, 200, 60]
+        match_mode: "contains"
+      depends_on: click_confirm_difficulty
+
+    click_go_combat:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u524d\u5f80\u4f5c\u6218"
+        region: [1000, 560, 200, 60]
+        match_mode: "contains"
+      depends_on: wait_go_combat_text
+
+    run_combat_after_go_combat:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_combat.yaml:auto_battle_combat"
+      depends_on: click_go_combat
+
+  returns:
+    success: true
+    route_id: "{{ inputs.route_id }}"
+    city_name: "{{ inputs.city_name }}"
+    threat_level: "{{ inputs.threat_level }}"
+
+
+auto_battle_ct_regional_ops_batch:
+  meta:
+    title: Auto Battle CT RegionalOps Batch
+    description: Batch executor for CT regional_ops_center jobs.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    run_regional_ops_jobs:
+      action: aura.run_task
+      loop:
+        for_each: "{{ inputs.jobs }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_regional_ops_run_one"
+        inputs:
+          route_id: "{{ loop.item.route_id }}"
+          city_name: "{{ loop.item.city_name }}"
+          threat_level: "{{ loop.item.threat_level }}"
+          difficulty: "{{ loop.item.difficulty }}"
+  returns:
+    success: true
+    sub_category: "regional_ops_center"
+    job_count: "{{ inputs.jobs | length }}"
+
+
+auto_battle_ct_batch:
+  meta:
+    title: Auto Battle CT Batch
+    description: Group CT jobs by tie_an/regional_ops_center and dispatch in order.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    group_ct_jobs:
+      action: resonance.group_ct_jobs
+      params:
+        jobs: "{{ inputs.jobs }}"
+
+    assert_no_unknown_ct_jobs:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ (nodes.group_ct_jobs.output.unknown_jobs | length) == 0 }}"
+        message: "contains unsupported CT route_id"
+      depends_on: group_ct_jobs
+
+    prepare_ct_category_order:
+      action: plans/aura_base/log
+      params:
+        message: "prepare CT category order"
+      depends_on: assert_no_unknown_ct_jobs
+      outputs:
+        first_category: "{{ (nodes.group_ct_jobs.output.category_order | first) if (nodes.group_ct_jobs.output.category_order | length) > 0 else '' }}"
+        second_category: "{{ nodes.group_ct_jobs.output.category_order[1] if (nodes.group_ct_jobs.output.category_order | length) > 1 else '' }}"
+
+    switch_first_tie_an:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "\u94c1\u5b89\u5c40"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+        timeout: 3.0
+        interval: 0.5
+      depends_on: prepare_ct_category_order
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' }}"
+
+    click_first_tie_an:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u94c1\u5b89\u5c40"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+      depends_on: switch_first_tie_an
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' }}"
+
+    switch_first_regional_ops:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u533a\u57df\u4f5c\u6218\u4e2d\u5fc3"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+      depends_on: prepare_ct_category_order
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' }}"
+
+    wait_after_first_tie_an_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: click_first_tie_an
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' }}"
+
+    wait_after_first_regional_ops_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: switch_first_regional_ops
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' }}"
+
+    run_first_tie_an_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_tie_an_batch"
+        inputs:
+          jobs: "{{ nodes.group_ct_jobs.output.tie_an_jobs }}"
+      depends_on: wait_after_first_tie_an_switch
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' and (nodes.group_ct_jobs.output.tie_an_jobs | length) > 0 }}"
+
+    run_first_regional_ops_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_regional_ops_batch"
+        inputs:
+          jobs: "{{ nodes.group_ct_jobs.output.regional_ops_jobs }}"
+      depends_on: wait_after_first_regional_ops_switch
+      when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
+
+    click_back_after_first_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_first_tie_an_batch: "success|failed|skipped"
+          - run_first_regional_ops_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_ct_category_order.second_category != '' }}"
+
+    wait_after_back_first_batch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: click_back_after_first_batch
+      when: "{{ nodes.prepare_ct_category_order.second_category != '' }}"
+
+    switch_second_tie_an:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "\u94c1\u5b89\u5c40"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+        timeout: 3.0
+        interval: 0.5
+      depends_on: wait_after_back_first_batch
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
+
+    click_second_tie_an:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u94c1\u5b89\u5c40"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+      depends_on: switch_second_tie_an
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
+
+    switch_second_regional_ops:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u533a\u57df\u4f5c\u6218\u4e2d\u5fc3"
+        region: [670, 370, 530, 50]
+        match_mode: "contains"
+      depends_on: wait_after_back_first_batch
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' }}"
+
+    wait_after_second_tie_an_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: click_second_tie_an
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
+
+    wait_after_second_regional_ops_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: switch_second_regional_ops
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' }}"
+
+    run_second_tie_an_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_tie_an_batch"
+        inputs:
+          jobs: "{{ nodes.group_ct_jobs.output.tie_an_jobs }}"
+      depends_on: wait_after_second_tie_an_switch
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' and (nodes.group_ct_jobs.output.tie_an_jobs | length) > 0 }}"
+
+    run_second_regional_ops_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_regional_ops_batch"
+        inputs:
+          jobs: "{{ nodes.group_ct_jobs.output.regional_ops_jobs }}"
+      depends_on: wait_after_second_regional_ops_switch
+      when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
+
+    click_back_after_single_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_first_tie_an_batch: "success|failed|skipped"
+          - run_first_regional_ops_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_ct_category_order.first_category != '' and nodes.prepare_ct_category_order.second_category == '' }}"
+
+    click_back_after_second_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_second_tie_an_batch: "success|failed|skipped"
+          - run_second_regional_ops_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_ct_category_order.second_category != '' }}"
+
+  returns:
+    success: true
+    category: "ct"
+    sub_category_order: "{{ nodes.group_ct_jobs.output.category_order }}"
+    tie_an_job_count: "{{ nodes.group_ct_jobs.output.tie_an_jobs | length }}"
+    regional_ops_job_count: "{{ nodes.group_ct_jobs.output.regional_ops_jobs | length }}"
+
+
+auto_battle_gp_action_summary_run_difficulty:
+  meta:
+    title: Auto Battle GP ActionSummary Run Difficulty
+    description: Execute one action_summary difficulty inside an already opened stage.
+    inputs:
+      - name: route_id
+        type: string
+        required: true
+      - name: difficulty
+        type: number
+        required: true
+  steps:
+    click_difficulty_1:
+      action: plans/aura_base/click
+      params:
+        x: 215
+        y: 600
+      when: "{{ inputs.difficulty == 1 }}"
+
+    click_difficulty_2:
+      action: plans/aura_base/click
+      params:
+        x: 400
+        y: 600
+      when: "{{ inputs.difficulty == 2 }}"
+
+    click_difficulty_3:
+      action: plans/aura_base/click
+      params:
+        x: 585
+        y: 600
+      when: "{{ inputs.difficulty == 3 }}"
+
+    click_difficulty_4:
+      action: plans/aura_base/click
+      params:
+        x: 770
+        y: 600
+      when: "{{ inputs.difficulty == 4 }}"
+
+    click_difficulty_5:
+      action: plans/aura_base/click
+      params:
+        x: 950
+        y: 600
+      when: "{{ inputs.difficulty == 5 }}"
+
+    click_difficulty_6:
+      action: plans/aura_base/click
+      params:
+        x: 1140
+        y: 600
+      when: "{{ inputs.difficulty == 6 }}"
+
+    wait_after_difficulty:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on:
+        all:
+          - click_difficulty_1: "success|failed|skipped"
+          - click_difficulty_2: "success|failed|skipped"
+          - click_difficulty_3: "success|failed|skipped"
+          - click_difficulty_4: "success|failed|skipped"
+          - click_difficulty_5: "success|failed|skipped"
+          - click_difficulty_6: "success|failed|skipped"
+
+    click_start_battle:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u5f00\u59cb\u4f5c\u6218"
+        region: [890, 480, 150, 50]
+        match_mode: "contains"
+      depends_on: wait_after_difficulty
+
+    run_combat_after_start_battle:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_combat.yaml:auto_battle_combat"
+      depends_on: click_start_battle
+
+  returns:
+    success: true
+    route_id: "{{ inputs.route_id }}"
+    difficulty: "{{ inputs.difficulty }}"
+
+
+auto_battle_gp_action_summary_run_group:
+  meta:
+    title: Auto Battle GP ActionSummary Run Group
+    description: Execute one consecutive action_summary stage group.
+    inputs:
+      - name: route_id
+        type: string
+        required: true
+      - name: gp_group_name
+        type: string
+        required: true
+      - name: gp_stage_name
+        type: string
+        required: true
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    click_group_text:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "{{ inputs.gp_group_name }}"
+        region: [130, 100, 140, 250]
+        match_mode: "contains"
+
+    assert_group_text_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_group_text.output }}"
+        message: "failed to click action_summary group"
+      depends_on: click_group_text
+
+    wait_after_group_click:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: assert_group_text_clicked
+
+    select_stage_and_enter:
+      action: resonance.select_action_summary_stage
+      params:
+        route_id: "{{ inputs.route_id }}"
+        region: [450, 400, 750, 50]
+        drag_forward: [1100, 400, 700, 400]
+        drag_backward: [700, 400, 1100, 400]
+        max_attempts: 12
+        drag_duration_sec: 0.5
+        after_drag_sec: 0.5
+        click_offset_x: 0
+        click_offset_y: 180
+      depends_on: wait_after_group_click
+
+    wait_after_enter_challenge:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: select_stage_and_enter
+
+    run_group_jobs:
+      action: aura.run_task
+      loop:
+        for_each: "{{ inputs.jobs }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_action_summary_run_difficulty"
+        inputs:
+          route_id: "{{ loop.item.route_id }}"
+          difficulty: "{{ loop.item.difficulty }}"
+      depends_on: wait_after_enter_challenge
+
+    click_back_to_action_summary:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on: run_group_jobs
+
+    wait_after_back_to_action_summary:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: click_back_to_action_summary
+
+  returns:
+    success: true
+    route_id: "{{ inputs.route_id }}"
+    gp_group_name: "{{ inputs.gp_group_name }}"
+    gp_stage_name: "{{ inputs.gp_stage_name }}"
+    job_count: "{{ inputs.jobs | length }}"
+
+
+auto_battle_gp_action_summary_batch:
+  meta:
+    title: Auto Battle GP ActionSummary Batch
+    description: Execute grouped action_summary jobs.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    group_stage_jobs:
+      action: resonance.group_consecutive_jobs_by_route
+      params:
+        jobs: "{{ inputs.jobs }}"
+
+    run_stage_groups:
+      action: aura.run_task
+      loop:
+        for_each: "{{ nodes.group_stage_jobs.output.groups }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_action_summary_run_group"
+        inputs:
+          route_id: "{{ loop.item.route_id }}"
+          gp_group_name: "{{ loop.item.gp_group_name }}"
+          gp_stage_name: "{{ loop.item.gp_stage_name }}"
+          jobs: "{{ loop.item.jobs }}"
+      depends_on: group_stage_jobs
+
+  returns:
+    success: true
+    category: "action_summary"
+    group_count: "{{ nodes.group_stage_jobs.output.group_count }}"
+
+
+auto_battle_gp_structural_run_one:
+  meta:
+    title: Auto Battle GP Structural Run One
+    description: Execute one structural_exploration target.
+    inputs:
+      - name: route_id
+        type: string
+        required: true
+      - name: gp_stage_name
+        type: string
+        required: true
+      - name: sample_x
+        type: number
+        required: true
+      - name: sample_y
+        type: number
+        required: true
+  steps:
+    click_settings:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u8bbe\u7f6e"
+        region: [340, 610, 60, 50]
+        match_mode: "contains"
+
+    wait_after_settings:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: click_settings
+
+    reconcile_structural_selection:
+      action: resonance.reconcile_structural_selection
+      params:
+        route_id: "{{ inputs.route_id }}"
+        gp_stage_name: "{{ inputs.gp_stage_name }}"
+        region: [70, 360, 220, 270]
+        rgb_min: [60, 180, 160]
+        rgb_max: [130, 245, 225]
+        match_mode: "contains"
+      depends_on: wait_after_settings
+
+    assert_target_ready:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.reconcile_structural_selection.output.ok }}"
+        message: "failed to prepare structural target"
+      depends_on: reconcile_structural_selection
+
+    wait_after_target_ready:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: assert_target_ready
+
+    click_start_auto:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u5f00\u542f\u81ea\u52a8\u8ba8\u4f10"
+        region: [110, 620, 160, 40]
+        match_mode: "contains"
+      depends_on: wait_after_target_ready
+
+    wait_after_start_auto:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: click_start_auto
+
+    wait_global_scan:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "\u5168\u57df\u52d8\u6d4b"
+        timeout: 600.0
+        interval: 1.0
+        region: [1000, 560, 150, 40]
+        match_mode: "contains"
+      depends_on: wait_after_start_auto
+
+  returns:
+    success: true
+    route_id: "{{ inputs.route_id }}"
+    gp_stage_name: "{{ inputs.gp_stage_name }}"
+
+
+auto_battle_gp_structural_batch:
+  meta:
+    title: Auto Battle GP Structural Batch
+    description: Execute structural_exploration jobs in order.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    run_structural_jobs:
+      action: aura.run_task
+      loop:
+        for_each: "{{ inputs.jobs }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_structural_run_one"
+        inputs:
+          route_id: "{{ loop.item.route_id }}"
+          gp_stage_name: "{{ loop.item.gp_stage_name }}"
+          sample_x: "{{ loop.item.structural_sample_point[0] }}"
+          sample_y: "{{ loop.item.structural_sample_point[1] }}"
+
+  returns:
+    success: true
+    category: "structural_exploration"
+    job_count: "{{ inputs.jobs | length }}"
+
+
+auto_battle_gp_batch:
+  meta:
+    title: Auto Battle GP Batch
+    description: Group GP jobs by action_summary and structural_exploration, then dispatch in order.
+    inputs:
+      - name: jobs
+        type: list
+        required: true
+        min_items: 1
+  steps:
+    group_gp_jobs:
+      action: resonance.group_gp_jobs
+      params:
+        jobs: "{{ inputs.jobs }}"
+
+    assert_no_unknown_gp_jobs:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ (nodes.group_gp_jobs.output.unknown_jobs | length) == 0 }}"
+        message: "contains unsupported GP route_id"
+      depends_on: group_gp_jobs
+
+    prepare_gp_category_order:
+      action: plans/aura_base/log
+      params:
+        message: "prepare GP category order"
+      depends_on: assert_no_unknown_gp_jobs
+      outputs:
+        first_category: "{{ (nodes.group_gp_jobs.output.category_order | first) if (nodes.group_gp_jobs.output.category_order | length) > 0 else '' }}"
+        second_category: "{{ nodes.group_gp_jobs.output.category_order[1] if (nodes.group_gp_jobs.output.category_order | length) > 1 else '' }}"
+
+    switch_first_action_summary:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u884c\u52a8\u6c47\u603b"
+        region: [980, 270, 140, 290]
+        match_mode: "contains"
+      depends_on: prepare_gp_category_order
+      when: "{{ nodes.prepare_gp_category_order.first_category == 'action_summary' }}"
+
+    switch_first_structural:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u6784\u6790\u52d8\u63a2"
+        region: [980, 270, 140, 290]
+        match_mode: "contains"
+      depends_on: prepare_gp_category_order
+      when: "{{ nodes.prepare_gp_category_order.first_category == 'structural_exploration' }}"
+
+    wait_after_first_gp_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on:
+        all:
+          - switch_first_action_summary: "success|failed|skipped"
+          - switch_first_structural: "success|failed|skipped"
+      when: "{{ nodes.prepare_gp_category_order.first_category != '' }}"
+
+    run_first_action_summary_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_action_summary_batch"
+        inputs:
+          jobs: "{{ nodes.group_gp_jobs.output.action_summary_jobs }}"
+      depends_on: wait_after_first_gp_switch
+      when: "{{ nodes.prepare_gp_category_order.first_category == 'action_summary' and (nodes.group_gp_jobs.output.action_summary_jobs | length) > 0 }}"
+
+    run_first_structural_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_structural_batch"
+        inputs:
+          jobs: "{{ nodes.group_gp_jobs.output.structural_exploration_jobs }}"
+      depends_on: wait_after_first_gp_switch
+      when: "{{ nodes.prepare_gp_category_order.first_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
+
+    click_back_after_first_gp_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_first_action_summary_batch: "success|failed|skipped"
+          - run_first_structural_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_gp_category_order.second_category != '' }}"
+
+    wait_after_back_first_gp_batch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: click_back_after_first_gp_batch
+      when: "{{ nodes.prepare_gp_category_order.second_category != '' }}"
+
+    switch_second_action_summary:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u884c\u52a8\u6c47\u603b"
+        region: [980, 270, 140, 290]
+        match_mode: "contains"
+      depends_on: wait_after_back_first_gp_batch
+      when: "{{ nodes.prepare_gp_category_order.second_category == 'action_summary' }}"
+
+    switch_second_structural:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u6784\u6790\u52d8\u63a2"
+        region: [980, 270, 140, 290]
+        match_mode: "contains"
+      depends_on: wait_after_back_first_gp_batch
+      when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' }}"
+
+    wait_after_second_gp_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on:
+        all:
+          - switch_second_action_summary: "success|failed|skipped"
+          - switch_second_structural: "success|failed|skipped"
+      when: "{{ nodes.prepare_gp_category_order.second_category != '' }}"
+
+    run_second_action_summary_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_action_summary_batch"
+        inputs:
+          jobs: "{{ nodes.group_gp_jobs.output.action_summary_jobs }}"
+      depends_on: wait_after_second_gp_switch
+      when: "{{ nodes.prepare_gp_category_order.second_category == 'action_summary' and (nodes.group_gp_jobs.output.action_summary_jobs | length) > 0 }}"
+
+    run_second_structural_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_structural_batch"
+        inputs:
+          jobs: "{{ nodes.group_gp_jobs.output.structural_exploration_jobs }}"
+      depends_on: wait_after_second_gp_switch
+      when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
+
+    click_back_after_single_gp_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_first_action_summary_batch: "success|failed|skipped"
+          - run_first_structural_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_gp_category_order.first_category != '' and nodes.prepare_gp_category_order.second_category == '' }}"
+
+    click_back_after_second_gp_batch:
+      action: plans/aura_base/click
+      params:
+        x: 90
+        y: 40
+      depends_on:
+        all:
+          - run_second_action_summary_batch: "success|failed|skipped"
+          - run_second_structural_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_gp_category_order.second_category != '' }}"
+
+  returns:
+    success: true
+    category: "gp"
+    sub_category_order: "{{ nodes.group_gp_jobs.output.category_order }}"
+    action_summary_job_count: "{{ nodes.group_gp_jobs.output.action_summary_jobs | length }}"
+    structural_job_count: "{{ nodes.group_gp_jobs.output.structural_exploration_jobs | length }}"
+
+
+auto_battle_dispatch:
+  meta:
+    title: Auto Battle Dispatch
+    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category batch tasks.
+    entry_point: true
+    inputs:
+      - name: jobs
+        label: Battle Jobs
+        description: Ordered job list.
+        type: list
+        required: true
+        min_items: 1
+        max_items: 50
+        item:
+          name: job_item
+          label: Job Item
+          type: dict
+          required: true
+          properties:
+            route_id:
+              name: route_id
+              label: Route
+              type: string
+              required: true
+              enum:
+                - "ct.tie_an.shoggolith_city.expel"
+                - "ct.tie_an.shoggolith_city.bounty"
+                - "ct.tie_an.mander_mine.expel"
+                - "ct.tie_an.mander_mine.bounty"
+                - "ct.tie_an.freeport.expel"
+                - "ct.tie_an.freeport.bounty"
+                - "ct.tie_an.clarity_data_center.expel"
+                - "ct.tie_an.clarity_data_center.bounty"
+                - "ct.tie_an.seacorner_city.expel"
+                - "ct.tie_an.seacorner_city.bounty"
+                - "ct.tie_an.anita_launch_center.expel"
+                - "ct.tie_an.anita_launch_center.bounty"
+                - "ct.tie_an.lanxin_city.expel"
+                - "ct.tie_an.lanxin_city.bounty"
+                - "ct.tie_an.gonglu_city.expel"
+                - "ct.tie_an.gonglu_city.bounty"
+                - "ct.regional_ops_center.wilderness_station"
+                - "ct.regional_ops_center.brcl_outpost"
+                - "ct.regional_ops_center.onederland"
+                - "ct.regional_ops_center.anita_energy_research_institute"
+                - "ct.regional_ops_center.anita_weapon_research_institute"
+                - "ct.regional_ops_center.yunxiuqiao_base"
+                - "ct.regional_ops_center.qiyu_station"
+                - "ct.regional_ops_center.confluence_tower"
+                - "ct.regional_ops_center.farstar_bridge"
+                - "ct.regional_ops_center.vitilin_forest"
+                - "gp.action_summary.blade_encirclement.special_order"
+                - "gp.action_summary.blade_encirclement.blade_action"
+                - "gp.action_summary.blade_encirclement.read_by_lamp"
+                - "gp.action_summary.blade_encirclement.weapon_material_analysis"
+                - "gp.action_summary.blade_encirclement.knight_novel"
+                - "gp.action_summary.blade_encirclement.i_think_i_am"
+                - "gp.action_summary.blade_encirclement.what_i_know"
+                - "gp.action_summary.blade_encirclement.big_one"
+                - "gp.action_summary.blade_encirclement.total_encirclement"
+                - "gp.action_summary.global_supply.savior"
+                - "gp.action_summary.global_supply.standard"
+                - "gp.action_summary.global_supply.elegant"
+                - "gp.action_summary.global_supply.cutting_edge"
+                - "gp.action_summary.global_supply.chaos"
+                - "gp.action_summary.global_supply.magic"
+                - "gp.action_summary.smuggler_crackdown.blind_box"
+                - "gp.structural_exploration.disordered_roots"
+                - "gp.structural_exploration.hetero_branches"
+                - "gp.structural_exploration.echo_buoy"
+                - "gp.structural_exploration.birch_buoy"
+            difficulty:
+              name: difficulty
+              label: Difficulty
+              description: Used by tie_an expel, regional_ops, and gp action_summary routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              enum: [1, 2, 3, 4, 5, 6]
+            stage:
+              name: stage
+              label: Stage
+              description: Used only by tie_an expel routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              enum: [1, 2, 3]
+            threat_level:
+              name: threat_level
+              label: Threat Level
+              description: Used only by regional_ops routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              min: 1
+      - name: stop_on_failure
+        label: Stop On Failure
+        type: boolean
+        required: false
+        default: true
+
+  steps:
+    wait_battle_terminal_text:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "\u4f5c\u6218\u7ec8\u7aef"
+        timeout: 3.0
+        interval: 0.5
+        region: [1100, 380, 150, 120]
+        match_mode: "contains"
+
+    click_battle_terminal:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u4f5c\u6218\u7ec8\u7aef"
+        region: [1100, 380, 150, 120]
+        match_mode: "contains"
+      depends_on: wait_battle_terminal_text
+
+    assert_battle_terminal_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_battle_terminal.output }}"
+        message: "failed to click battle terminal"
+      depends_on: click_battle_terminal
+
+    wait_after_enter_battle:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: assert_battle_terminal_clicked
+
+    normalize_jobs:
+      action: resonance.normalize_battle_jobs
+      params:
+        jobs: "{{ inputs.jobs }}"
+      depends_on: wait_after_enter_battle
+
+    validate_jobs:
+      action: resonance.validate_battle_jobs
+      params:
+        jobs: "{{ nodes.normalize_jobs.output.normalized_jobs }}"
+      depends_on: normalize_jobs
+
+    group_jobs:
+      action: resonance.group_battle_jobs
+      params:
+        jobs: "{{ nodes.validate_jobs.output.normalized_jobs }}"
+      depends_on: validate_jobs
+
+    assert_no_unknown_jobs:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ (nodes.group_jobs.output.unknown_jobs | length) == 0 }}"
+        message: "contains unsupported route_id category"
+      depends_on: group_jobs
+
+    prepare_category_order:
+      action: plans/aura_base/log
+      params:
+        message: "prepare category order"
+      depends_on: assert_no_unknown_jobs
+      outputs:
+        first_category: "{{ (nodes.group_jobs.output.category_order | first) if (nodes.group_jobs.output.category_order | length) > 0 else '' }}"
+        second_category: "{{ nodes.group_jobs.output.category_order[1] if (nodes.group_jobs.output.category_order | length) > 1 else '' }}"
+
+    switch_first_ct:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u534f\u540c\u7ec8\u7aef"
+        region: [20, 200, 80, 140]
+        match_mode: "contains"
+      depends_on: prepare_category_order
+      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
+
+    switch_first_gp:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u5168\u57df\u6574\u5907"
+        region: [20, 200, 80, 140]
+        match_mode: "contains"
+      depends_on: prepare_category_order
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
+
+    wait_after_first_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on:
+        all:
+          - switch_first_ct: "success|failed|skipped"
+          - switch_first_gp: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.first_category != '' }}"
+
+    run_first_ct_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_batch"
+        inputs:
+          jobs: "{{ nodes.group_jobs.output.ct_jobs }}"
+      depends_on: wait_after_first_switch
+      when: "{{ nodes.prepare_category_order.first_category == 'ct' and (nodes.group_jobs.output.ct_jobs | length) > 0 }}"
+
+    run_first_gp_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_batch"
+        inputs:
+          jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
+      depends_on: wait_after_first_switch
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
+
+    recover_ct_menu_after_first_gp:
+      action: plans/aura_base/drag
+      params:
+        start_x: 117
+        start_y: 334
+        end_x: 117
+        end_y: 447
+        duration: 0.4
+      depends_on:
+        all:
+          - run_first_ct_batch: "success|failed|skipped"
+          - run_first_gp_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
+
+    wait_after_ct_menu_recovery:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on: recover_ct_menu_after_first_gp
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
+
+    switch_second_ct:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u534f\u540c\u7ec8\u7aef"
+        region: [20, 200, 80, 140]
+        match_mode: "contains"
+      depends_on: wait_after_ct_menu_recovery
+      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
+
+    switch_second_gp:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "\u5168\u57df\u6574\u5907"
+        region: [20, 200, 80, 140]
+        match_mode: "contains"
+      depends_on:
+        all:
+          - run_first_ct_batch: "success|failed|skipped"
+          - run_first_gp_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
+
+    wait_after_second_switch:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on:
+        all:
+          - switch_second_ct: "success|failed|skipped"
+          - switch_second_gp: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.second_category != '' }}"
+
+    run_second_ct_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_ct_batch"
+        inputs:
+          jobs: "{{ nodes.group_jobs.output.ct_jobs }}"
+      depends_on: wait_after_second_switch
+      when: "{{ nodes.prepare_category_order.second_category == 'ct' and (nodes.group_jobs.output.ct_jobs | length) > 0 }}"
+
+    run_second_gp_batch:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:auto_battle_dispatch.yaml:auto_battle_gp_batch"
+        inputs:
+          jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
+      depends_on: wait_after_second_switch
+      when: "{{ nodes.prepare_category_order.second_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
+
+  returns:
+    success: true
+    category_order: "{{ nodes.group_jobs.output.category_order }}"
+    ct_job_count: "{{ nodes.group_jobs.output.ct_jobs | length }}"
+    gp_job_count: "{{ nodes.group_jobs.output.gp_jobs | length }}"
+    validated_job_count: "{{ nodes.validate_jobs.output.job_count }}"

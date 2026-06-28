@@ -1,0 +1,618 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aura-automation.org/schemas/task.schema.json",
+  "title": "Aura Task Definition",
+  "description": "Schema for Aura task YAML files aligned with the current runtime implementation.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/SingleTaskFile"
+    },
+    {
+      "$ref": "#/$defs/TaskFileMap"
+    }
+  ],
+  "$defs": {
+    "SingleTaskFile": {
+      "$ref": "#/$defs/TaskDefinition"
+    },
+    "TaskFileMap": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "#/$defs/TaskDefinition"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "TaskDefinition": {
+      "type": "object",
+      "required": [
+        "meta",
+        "steps"
+      ],
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/TaskMetadata"
+        },
+        "steps": {
+          "$ref": "#/$defs/StepsMap"
+        },
+        "returns": {
+          "description": "Task-level return template rendered after successful execution as final user_data."
+        }
+      },
+      "additionalProperties": false
+    },
+    "TaskMetadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "entry_point": {
+          "type": "boolean",
+          "default": false
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InputParameter"
+          }
+        },
+        "concurrency": {
+          "$ref": "#/$defs/ConcurrencyConfig"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InputParameter": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "description": "Runtime-validated input type.",
+          "oneOf": [
+            {
+              "enum": [
+                "string",
+                "number",
+                "boolean",
+                "list",
+                "dict",
+                "enum"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^list<.+>$"
+            }
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {},
+        "enum": {
+          "type": "array",
+          "items": {}
+        },
+        "options": {
+          "type": "array",
+          "items": {}
+        },
+        "count": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "min_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "item": {
+          "$ref": "#/$defs/InputParameter"
+        },
+        "items": {
+          "$ref": "#/$defs/InputParameter"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/InputParameter"
+          }
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "StepsMap": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+          "$ref": "#/$defs/StepDefinition"
+        }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "StepDefinition": {
+      "type": "object",
+      "required": [
+        "action"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "step_note": {
+          "type": "string"
+        },
+        "depends_on": {
+          "$ref": "#/$defs/DependencySpec"
+        },
+        "when": {
+          "type": "string"
+        },
+        "outputs": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "loop": {
+          "$ref": "#/$defs/LoopConfig"
+        },
+        "retry": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "$ref": "#/$defs/RetryConfig"
+            }
+          ]
+        },
+        "retry_delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retry_on": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "retry_condition": {
+          "type": "string"
+        },
+        "on_exception": {
+          "$ref": "#/$defs/OnExceptionConfig"
+        },
+        "on_result": {
+          "$ref": "#/$defs/OnResultConfig"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "timeout_sec": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "not": {
+            "properties": {
+              "action": {
+                "const": "run_task"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "aura.run_task"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "params"
+            ],
+            "properties": {
+              "params": {
+                "type": "object",
+                "required": [
+                  "task_ref"
+                ],
+                "properties": {
+                  "task_ref": {
+                    "type": "string"
+                  }
+                },
+                "not": {
+                  "required": [
+                    "task_name"
+                  ]
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DependencySpec": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DependencySpec"
+          }
+        },
+        {
+          "type": "object",
+          "oneOf": [
+            {
+              "properties": {
+                "all": {
+                  "$ref": "#/$defs/DependencySpec"
+                }
+              },
+              "required": [
+                "all"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "properties": {
+                "any": {
+                  "$ref": "#/$defs/DependencySpec"
+                }
+              },
+              "required": [
+                "any"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "properties": {
+                "none": {
+                  "$ref": "#/$defs/DependencySpec"
+                }
+              },
+              "required": [
+                "none"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "patternProperties": {
+                "^[a-zA-Z_][a-zA-Z0-9_]*$": {
+                  "type": "string",
+                  "pattern": "^(success|failed|running|skipped)(\\s*\\|\\s*(success|failed|running|skipped))*$"
+                }
+              },
+              "additionalProperties": false,
+              "minProperties": 1,
+              "maxProperties": 1
+            }
+          ]
+        }
+      ]
+    },
+    "LoopConfig": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": [
+            "for_each"
+          ],
+          "properties": {
+            "for_each": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            },
+            "parallelism": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": [
+            "times"
+          ],
+          "properties": {
+            "times": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "parallelism": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": [
+            "while"
+          ],
+          "properties": {
+            "while": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "max_iterations": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1000
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "RetryConfig": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retry": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retry_delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "on_exception": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "retry_on": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "condition": {
+          "type": "string"
+        },
+        "retry_condition": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OnExceptionConfig": {
+      "type": "object",
+      "properties": {
+        "retry": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retry_on": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "on": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "OnResultConfig": {
+      "type": "object",
+      "properties": {
+        "retry": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retry_when": {
+          "type": "string"
+        },
+        "when": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConcurrencyConfig": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "exclusive",
+            "concurrent",
+            "shared"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "exclusive",
+                "concurrent",
+                "shared"
+              ]
+            },
+            "resources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mutex_group": {
+              "type": "string"
+            },
+            "max_instances": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

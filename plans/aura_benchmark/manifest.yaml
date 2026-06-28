@@ -1,0 +1,95 @@
+package:
+  name: '@plans/aura_benchmark'
+  version: 0.1.0
+  description: ''
+  license: MIT
+requires:
+  aura: '>=2.0.0'
+dependencies: {}
+pypi-dependencies: {}
+exports:
+  services:
+  - name: benchmark_probe
+    module: plans.aura_benchmark.src.services.benchmark_probe_service
+    class: BenchmarkProbeService
+    public: true
+    singleton: true
+    replace: null
+    description: Collects runtime concurrency and latency metrics for benchmark tasks.
+  actions:
+  - name: benchmark_reset
+    module: plans.aura_benchmark.src.actions.benchmark_actions
+    function: benchmark_reset
+    public: true
+    read_only: false
+    timeout: null
+    description: Reset metrics for one benchmark scenario.
+    parameters:
+    - name: scenario
+      type: Any
+      required: false
+      default: default
+  - name: benchmark_sleep
+    module: plans.aura_benchmark.src.actions.benchmark_actions
+    function: benchmark_sleep
+    public: true
+    read_only: false
+    timeout: null
+    description: Sleep for N ms and record concurrency metrics.
+    parameters:
+    - name: duration_ms
+      type: Any
+      required: false
+      default: 100
+    - name: scenario
+      type: Any
+      required: false
+      default: default
+    - name: label
+      type: Any
+      required: false
+      default: null
+    - name: payload
+      type: Any
+      required: false
+      default: null
+  - name: benchmark_snapshot
+    module: plans.aura_benchmark.src.actions.benchmark_actions
+    function: benchmark_snapshot
+    public: true
+    read_only: true
+    timeout: null
+    description: Return metrics snapshot for one benchmark scenario.
+    parameters:
+    - name: scenario
+      type: Any
+      required: false
+      default: default
+  tasks:
+  - id: parallel_sleep/parallel_sleep
+    title: Parallel benchmark branches
+    source: tasks/parallel_sleep.yaml
+    description: Three independent sleep steps to validate node-level concurrency.
+  - id: parallel_sleep
+    title: Parallel benchmark branches
+    source: tasks/parallel_sleep.yaml
+    description: Three independent sleep steps to validate node-level concurrency.
+  - id: serial_sleep/serial_sleep
+    title: Serial benchmark chain
+    source: tasks/serial_sleep.yaml
+    description: Three dependent sleep steps for serial execution validation.
+  - id: serial_sleep
+    title: Serial benchmark chain
+    source: tasks/serial_sleep.yaml
+    description: Three dependent sleep steps for serial execution validation.
+  - id: single_sleep/single_sleep
+    title: Single benchmark sleep
+    source: tasks/single_sleep.yaml
+    description: One benchmark action invocation.
+  - id: single_sleep
+    title: Single benchmark sleep
+    source: tasks/single_sleep.yaml
+    description: One benchmark action invocation.
+metadata:
+  generated_by: ManifestGenerator
+  generated_at: '2026-04-17T14:51:37Z'

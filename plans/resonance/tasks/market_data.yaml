@@ -1,0 +1,106 @@
+market_data_refresh:
+  meta:
+    title: Resonance Market Refresh
+    description: Fetch, normalize and cache latest market snapshot.
+    entry_point: true
+    inputs:
+      - name: force
+        type: boolean
+        required: false
+        default: false
+  steps:
+    refresh:
+      action: resonance.market_refresh
+      params:
+        force: "{{ inputs.force }}"
+  returns:
+    snapshot: "{{ nodes.refresh.output }}"
+
+market_data_sync_web_constants:
+  meta:
+    title: Resonance Web Constants Sync
+    description: Sync cities/fatigue constants from route webpage and optionally sync buy_lot.
+    inputs:
+      - name: sync_buy_lot
+        type: boolean
+        required: false
+        default: true
+  steps:
+    sync_constants:
+      action: resonance.market_sync_web_constants
+      params:
+        sync_buy_lot: "{{ inputs.sync_buy_lot }}"
+  returns:
+    result: "{{ nodes.sync_constants.output }}"
+
+market_data_get_latest:
+  meta:
+    title: Resonance Market Latest
+    description: Read latest cached market snapshot.
+    inputs: []
+  steps:
+    get_latest:
+      action: resonance.market_get_latest
+      params: {}
+  returns:
+    snapshot: "{{ nodes.get_latest.output }}"
+
+market_data_get_snapshot:
+  meta:
+    title: Resonance Market Snapshot
+    description: Read one snapshot by snapshot_id.
+    inputs:
+      - name: snapshot_id
+        type: string
+        required: true
+  steps:
+    get_snapshot:
+      action: resonance.market_get_snapshot
+      params:
+        snapshot_id: "{{ inputs.snapshot_id }}"
+  returns:
+    snapshot: "{{ nodes.get_snapshot.output }}"
+
+market_data_list_snapshots:
+  meta:
+    title: Resonance Market Snapshot Index
+    description: List historical snapshot metadata.
+    inputs:
+      - name: limit
+        type: number
+        required: false
+        default: 50
+  steps:
+    list_snapshots:
+      action: resonance.market_list_snapshots
+      params:
+        limit: "{{ inputs.limit }}"
+  returns:
+    snapshots: "{{ nodes.list_snapshots.output }}"
+
+market_data_query_products:
+  meta:
+    title: Resonance Market Product Query
+    description: Query normalized products from latest snapshot.
+    inputs:
+      - name: scope
+        type: string
+        required: false
+        default: null
+      - name: city_id
+        type: string
+        required: false
+        default: null
+      - name: side
+        type: string
+        required: false
+        default: null
+  steps:
+    query_products:
+      action: resonance.market_query_products
+      params:
+        scope: "{{ inputs.scope }}"
+        city_id: "{{ inputs.city_id }}"
+        side: "{{ inputs.side }}"
+  returns:
+    products: "{{ nodes.query_products.output }}"

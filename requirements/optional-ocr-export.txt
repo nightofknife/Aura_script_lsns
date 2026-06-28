@@ -1,0 +1,9 @@
+# OCR export is a build-time toolchain only. Do not install this file on deployment machines.
+paddleocr
+# Recommended on Linux/WSL export hosts. The Windows native wheel can fail to
+# load against current Paddle wheels; PP-OCRv5 export has been validated through WSL.
+paddle2onnx==2.1.0
+onnx
+onnxruntime
+# For GPU export validation, install Paddle's GPU package from the official CUDA index separately, for example:
+# python -m pip install paddlepaddle-gpu==3.3.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/

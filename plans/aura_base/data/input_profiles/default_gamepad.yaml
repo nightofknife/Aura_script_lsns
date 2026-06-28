@@ -1,0 +1,75 @@
+# Baseline logical bindings for plans that prefer a controller-first layout.
+# Individual game plans can override any action or axis sign convention.
+actions:
+  confirm:
+    type: gamepad_button
+    button: a
+  cancel:
+    type: gamepad_button
+    button: b
+  interact:
+    type: gamepad_button
+    button: x
+  jump:
+    type: gamepad_button
+    button: a
+  sprint:
+    type: gamepad_button
+    button: ls
+  dodge:
+    type: gamepad_button
+    button: b
+  open_menu:
+    type: gamepad_button
+    button: start
+  open_map:
+    type: gamepad_button
+    button: back
+  attack_primary:
+    type: trigger
+    side: right
+    value: 1.0
+  aim_hold:
+    type: trigger
+    side: left
+    value: 1.0
+  move_forward:
+    type: gamepad_stick
+    stick: left
+    x: 0.0
+    y: 1.0
+  move_backward:
+    type: gamepad_stick
+    stick: left
+    x: 0.0
+    y: -1.0
+  move_left:
+    type: gamepad_stick
+    stick: left
+    x: -1.0
+    y: 0.0
+  move_right:
+    type: gamepad_stick
+    stick: left
+    x: 1.0
+    y: 0.0
+  camera_left:
+    type: gamepad_stick
+    stick: right
+    x: -0.75
+    y: 0.0
+  camera_right:
+    type: gamepad_stick
+    stick: right
+    x: 0.75
+    y: 0.0
+  camera_up:
+    type: gamepad_stick
+    stick: right
+    x: 0.0
+    y: 0.75
+  camera_down:
+    type: gamepad_stick
+    stick: right
+    x: 0.0
+    y: -0.75

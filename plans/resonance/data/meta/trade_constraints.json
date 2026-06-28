@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "allowed_city_ids": [
+    "3",
+    "4",
+    "1",
+    "5",
+    "7",
+    "8",
+    "9",
+    "2"
+  ],
+  "city_id_to_key": {
+    "3": "freeport",
+    "4": "clarity_data_center_administration_bureau",
+    "1": "shoggolith_city",
+    "5": "anita_weapon_research_institute",
+    "7": "wilderness_station",
+    "8": "mander_mine",
+    "9": "onederland",
+    "2": "brcl_outpost"
+  }
+}

@@ -1,0 +1,199 @@
+execute_trade_leg:
+  meta:
+    title: Execute Trade Leg
+    description: "Execute one trade leg: sell, optional buy, back to main view, then travel."
+    inputs:
+      - name: to_city_id
+        type: string
+        required: true
+      - name: to_city_key
+        type: string
+        required: true
+      - name: buy_product_names
+        type: list
+        required: false
+        default: []
+  steps:
+    assert_allowed_destination:
+      action: resonance.trade_assert_allowed_city
+      params:
+        city_id: "{{ inputs.to_city_id }}"
+        city_key: "{{ inputs.to_city_key }}"
+
+    enter_exchange:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:city_shop.yaml:enter_city_shop"
+        inputs:
+          shop_type: "exchange"
+      depends_on: assert_allowed_destination
+
+    sell_all_goods:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:sell_goods.yaml:sell_all_goods"
+        inputs: {}
+      depends_on: enter_exchange
+
+    buy_goods_optional:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:buy_goods.yaml:buy_goods"
+        inputs:
+          product_list: "{{ inputs.buy_product_names }}"
+      depends_on: sell_all_goods
+      when: "{{ (inputs.buy_product_names | default([]) | length) > 0 }}"
+
+    trade_done_marker:
+      action: plans/aura_base/log
+      params:
+        message: "trade done, back to main view"
+      depends_on:
+        all:
+          - sell_all_goods: "success"
+          - buy_goods_optional: "success|skipped"
+
+    wait_before_back_main:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: trade_done_marker
+
+    click_back_main:
+      action: plans/aura_base/click
+      params:
+        x: 200
+        y: 40
+      depends_on: wait_before_back_main
+
+    wait_after_back_main:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: click_back_main
+
+    travel_to_next_city:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:city_travel.yaml:intercity_select_destination"
+        inputs:
+          to_city_name: "{{ inputs.to_city_key }}"
+          enter_station_timeout_seconds: 600
+      depends_on: wait_after_back_main
+
+  returns:
+    success: true
+    to_city_id: "{{ inputs.to_city_id }}"
+    to_city_key: "{{ inputs.to_city_key }}"
+    buy_count: "{{ inputs.buy_product_names | default([]) | length }}"
+
+execute_trade_cycle:
+  meta:
+    title: Execute Trade Cycle
+    description: Execute all legs in one planned cycle.
+    inputs:
+      - name: cycle_index
+        type: number
+        required: true
+      - name: legs
+        type: list
+        required: true
+  steps:
+    run_cycle_legs:
+      action: aura.run_task
+      loop:
+        for_each: "{{ inputs.legs }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_cycle_trade.yaml:execute_trade_leg"
+        inputs:
+          to_city_id: "{{ loop.item.to_city_id }}"
+          to_city_key: "{{ loop.item.to_city_key }}"
+          buy_product_names: "{{ loop.item.buy_product_names | default([]) }}"
+  returns:
+    success: true
+    cycle_index: "{{ inputs.cycle_index }}"
+    leg_count: "{{ inputs.legs | length }}"
+
+auto_cycle_trade:
+  meta:
+    title: Auto Cycle Trade
+    description: Auto trading with fixed whitelist cities and fatigue budget.
+    entry_point: true
+    inputs:
+      - name: fatigue_budget
+        type: number
+        required: true
+  steps:
+    get_current_city:
+      action: aura.run_task
+      params:
+        task_ref: "tasks:city_shop.yaml:get_city_name"
+        inputs: {}
+
+    wait_before_back_main_after_city_read:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: get_current_city
+
+    click_back_main_after_city_read:
+      action: plans/aura_base/click
+      params:
+        x: 200
+        y: 40
+      depends_on: wait_before_back_main_after_city_read
+
+    wait_after_back_main_after_city_read:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: click_back_main_after_city_read
+
+    validate_start_city:
+      action: resonance.trade_assert_allowed_city
+      params:
+        city_key: "{{ nodes.get_current_city.output.nodes.resolve_city.output.city_key }}"
+      depends_on: wait_after_back_main_after_city_read
+
+    refresh_market_before_plan:
+      action: resonance.market_refresh
+      params:
+        force: false
+      depends_on: validate_start_city
+
+    plan_cycles:
+      action: resonance.trade_plan_cycle_execution
+      params:
+        current_city_key: "{{ nodes.get_current_city.output.nodes.resolve_city.output.city_key }}"
+        fatigue_budget: "{{ inputs.fatigue_budget }}"
+      depends_on: refresh_market_before_plan
+
+    assert_plan_ready:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.plan_cycles.output.status == 'ok' and (nodes.plan_cycles.output.cycles | length) > 0 }}"
+        message: "no executable cycle plan under current fatigue budget"
+      depends_on: plan_cycles
+
+    run_cycles:
+      action: aura.run_task
+      loop:
+        for_each: "{{ nodes.plan_cycles.output.cycles }}"
+        parallelism: 1
+      params:
+        task_ref: "tasks:auto_cycle_trade.yaml:execute_trade_cycle"
+        inputs:
+          cycle_index: "{{ loop.item.cycle_index }}"
+          legs: "{{ loop.item.legs }}"
+      depends_on: assert_plan_ready
+
+  returns:
+    success: true
+    allowed_city_ids: "{{ nodes.plan_cycles.output.allowed_city_ids }}"
+    planned_cycles: "{{ nodes.plan_cycles.output.totals.planned_cycles }}"
+    fatigue_budget: "{{ nodes.plan_cycles.output.totals.fatigue_budget }}"
+    fatigue_used: "{{ nodes.plan_cycles.output.totals.fatigue_used }}"
+    fatigue_remaining: "{{ nodes.plan_cycles.output.totals.fatigue_remaining }}"
+    profit_estimate: "{{ nodes.plan_cycles.output.totals.profit_estimate }}"
+    last_city_key: "{{ nodes.plan_cycles.output.totals.last_city_key }}"

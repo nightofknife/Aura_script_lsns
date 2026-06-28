@@ -1,0 +1,32 @@
+runtime:
+  family: android_emulator
+  provider: mumu
+  target:
+    mode: auto
+    adb_serial: auto
+    connect_on_start: true
+  capture:
+    backend: scrcpy_stream
+    max_stale_ms: 250
+    mumu:
+      reconnect_backoff_ms: [500, 1000, 2000, 5000]
+  input:
+    backend: android_touch
+    mumu:
+      helper_path: C:/Tools/android_touch/android_touch
+      remote_dir: /data/local/tmp/aura
+      path_fps: 10
+      auto_push: true
+      healthcheck_interval_ms: 1000
+      key_input_provider: adb
+      text_input_provider: adb
+  rebind:
+    enabled: true
+    max_attempts: 2
+    retry_delay_ms: 200
+    error_codes:
+      - window_target_lost
+
+input:
+  profile: default_pc
+  actions: {}

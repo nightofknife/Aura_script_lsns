@@ -1,0 +1,38 @@
+parallel_sleep:
+  meta:
+    title: Parallel benchmark branches
+    description: Three independent sleep steps to validate node-level concurrency.
+    inputs:
+      - name: duration_ms
+        type: number
+        default: 100
+      - name: scenario
+        type: string
+        default: parallel_dag
+  steps:
+    first:
+      action: benchmark_sleep
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: first
+    second:
+      action: benchmark_sleep
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: second
+    third:
+      action: benchmark_sleep
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: third
+    collect:
+      action: benchmark_snapshot
+      depends_on:
+        all: [first, second, third]
+      params:
+        scenario: "{{ inputs.scenario }}"
+  returns:
+    snapshot: "{{ nodes.collect.output }}"

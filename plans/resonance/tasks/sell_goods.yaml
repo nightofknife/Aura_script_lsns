@@ -1,0 +1,108 @@
+sell_all_goods:
+  meta:
+    title: Sell All Goods
+    description: Sell current goods then exit sell dialog by waiting for exit hint.
+    entry_point: true
+  steps:
+    wait_i_want_sell_text:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "我要卖"
+        timeout: 3.0
+        interval: 0.5
+        region: [720, 280, 280, 420]
+        match_mode: "contains"
+    click_i_want_sell:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "我要卖"
+        region: [720, 280, 280, 420]
+        match_mode: "contains"
+      depends_on: wait_i_want_sell_text
+    assert_i_want_sell_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_i_want_sell.output }}"
+        message: "failed to click 我要卖"
+      depends_on: click_i_want_sell
+    wait_after_i_want_sell:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: assert_i_want_sell_clicked
+
+    wait_sell_all_text:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "全部卖出"
+        timeout: 3.0
+        interval: 0.5
+        region: [1140, 80, 110, 50]
+        match_mode: "contains"
+      depends_on: wait_after_i_want_sell
+    click_sell_all:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "全部卖出"
+        region: [1140, 80, 110, 50]
+        match_mode: "contains"
+      depends_on: wait_sell_all_text
+    assert_sell_all_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_sell_all.output }}"
+        message: "failed to click 全部卖出"
+      depends_on: click_sell_all
+
+    wait_sell_button_text:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "卖出"
+        timeout: 3.0
+        interval: 0.5
+        region: [1000, 630, 120, 40]
+        match_mode: "contains"
+      depends_on: assert_sell_all_clicked
+    click_sell_button:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "卖出"
+        region: [1000, 630, 120, 40]
+        match_mode: "contains"
+      depends_on: wait_sell_button_text
+    assert_sell_button_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_sell_button.output }}"
+        message: "failed to click 卖出"
+      depends_on: click_sell_button
+
+    wait_for_exit_hint:
+      action: plans/aura_base/wait_for_text
+      params:
+        text_to_find: "触碰空白区域退出"
+        timeout: 3.0
+        interval: 0.5
+        region: [440, 600, 460, 100]
+        match_mode: "contains"
+      depends_on: assert_sell_button_clicked
+    wait_after_exit_hint:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 1.0
+      depends_on: wait_for_exit_hint
+    click_exit_hint:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "触碰空白区域退出"
+        region: [440, 600, 460, 100]
+        match_mode: "contains"
+      depends_on: wait_after_exit_hint
+    assert_exit_hint_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_exit_hint.output }}"
+        message: "failed to click 触碰空白区域退出"
+      depends_on: click_exit_hint
+  returns:
+    success: true

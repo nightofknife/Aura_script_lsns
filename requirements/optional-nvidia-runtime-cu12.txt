@@ -1,0 +1,9 @@
+# Optional portable CUDA runtime overlay for onnxruntime-gpu wheels.
+# Install this only in the release build venv when generating
+# aura-release-gpu-onnx-nvidia-overlay.zip.
+nvidia-cuda-runtime-cu12
+nvidia-cuda-nvrtc-cu12
+nvidia-nvjitlink-cu12
+nvidia-cublas-cu12
+nvidia-cufft-cu12
+nvidia-cudnn-cu12

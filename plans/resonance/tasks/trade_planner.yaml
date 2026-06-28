@@ -1,0 +1,156 @@
+trade_plan_next:
+  meta:
+    title: Resonance Trade Plan Next
+    description: Plan one rolling next-step decision for trade route.
+    entry_point: true
+    inputs:
+      - name: start_city_id
+        type: string
+        required: true
+      - name: fatigue_budget
+        type: number
+        required: true
+      - name: book_budget
+        type: number
+        required: true
+      - name: cargo_capacity
+        type: number
+        required: true
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+      - name: available_city_ids
+        type: list
+        required: true
+      - name: station_product_whitelist
+        type: dict
+        required: false
+        default: null
+      - name: snapshot_id
+        type: string
+        required: false
+        default: null
+      - name: current_holdings
+        type: dict
+        required: false
+        default: null
+  steps:
+    plan_next:
+      action: resonance.trade_plan_next
+      params:
+        start_city_id: "{{ inputs.start_city_id }}"
+        fatigue_budget: "{{ inputs.fatigue_budget }}"
+        book_budget: "{{ inputs.book_budget }}"
+        cargo_capacity: "{{ inputs.cargo_capacity }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold }}"
+        available_city_ids: "{{ inputs.available_city_ids }}"
+        station_product_whitelist: "{{ inputs.station_product_whitelist }}"
+        snapshot_id: "{{ inputs.snapshot_id }}"
+        current_holdings: "{{ inputs.current_holdings }}"
+  returns:
+    plan: "{{ nodes.plan_next.output }}"
+
+trade_plan_best_cycle:
+  meta:
+    title: Resonance Trade Best Cycle
+    description: Compute one fixed best-profit trade cycle.
+    inputs:
+      - name: cargo_capacity
+        type: number
+        required: false
+        default: 120
+      - name: book_budget
+        type: number
+        required: false
+        default: 0
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+      - name: available_city_ids
+        type: list
+        required: false
+        default: null
+      - name: start_city_id
+        type: string
+        required: false
+        default: null
+      - name: max_cycle_hops
+        type: number
+        required: false
+        default: 6
+      - name: station_product_whitelist
+        type: dict
+        required: false
+        default: null
+      - name: snapshot_id
+        type: string
+        required: false
+        default: null
+  steps:
+    plan_cycle:
+      action: resonance.trade_plan_best_cycle
+      params:
+        cargo_capacity: "{{ inputs.cargo_capacity }}"
+        book_budget: "{{ inputs.book_budget }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold }}"
+        available_city_ids: "{{ inputs.available_city_ids }}"
+        start_city_id: "{{ inputs.start_city_id }}"
+        max_cycle_hops: "{{ inputs.max_cycle_hops }}"
+        station_product_whitelist: "{{ inputs.station_product_whitelist }}"
+        snapshot_id: "{{ inputs.snapshot_id }}"
+  returns:
+    cycle: "{{ nodes.plan_cycle.output }}"
+
+trade_simulate:
+  meta:
+    title: Resonance Trade Simulate
+    description: Simulate rolling trade until stop, with full trace output.
+    inputs:
+      - name: start_city_id
+        type: string
+        required: true
+      - name: fatigue_budget
+        type: number
+        required: true
+      - name: book_budget
+        type: number
+        required: true
+      - name: cargo_capacity
+        type: number
+        required: true
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+      - name: available_city_ids
+        type: list
+        required: true
+      - name: station_product_whitelist
+        type: dict
+        required: false
+        default: null
+      - name: snapshot_id
+        type: string
+        required: false
+        default: null
+      - name: max_iterations
+        type: number
+        required: false
+        default: 128
+  steps:
+    simulate:
+      action: resonance.trade_simulate
+      params:
+        start_city_id: "{{ inputs.start_city_id }}"
+        fatigue_budget: "{{ inputs.fatigue_budget }}"
+        book_budget: "{{ inputs.book_budget }}"
+        cargo_capacity: "{{ inputs.cargo_capacity }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold }}"
+        available_city_ids: "{{ inputs.available_city_ids }}"
+        station_product_whitelist: "{{ inputs.station_product_whitelist }}"
+        snapshot_id: "{{ inputs.snapshot_id }}"
+        max_iterations: "{{ inputs.max_iterations }}"
+  returns:
+    simulation: "{{ nodes.simulate.output }}"

@@ -1,0 +1,23 @@
+single_sleep:
+  meta:
+    title: Single benchmark sleep
+    description: One benchmark action invocation.
+    inputs:
+      - name: duration_ms
+        type: number
+        default: 100
+      - name: scenario
+        type: string
+        default: default
+      - name: label
+        type: string
+        default: single
+  steps:
+    run:
+      action: benchmark_sleep
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: "{{ inputs.label }}"
+  returns:
+    record: "{{ nodes.run.output }}"

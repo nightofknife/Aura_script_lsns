@@ -1,0 +1,10 @@
+opencv-python
+numpy
+screeninfo
+psutil
+pywin32
+dxcam
+av==17.0.0
+pydantic
+PyYAML
+python-dotenv

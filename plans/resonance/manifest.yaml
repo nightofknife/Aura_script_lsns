@@ -1,0 +1,885 @@
+package:
+  name: '@plans/resonance'
+  version: 0.1.0
+  description: ''
+  license: MIT
+requires:
+  aura: '>=2.0.0'
+dependencies:
+  '@plans/aura_base':
+    version: '>=0.1.0'
+    source: local
+    path: ../aura_base
+pypi-dependencies: {}
+exports:
+  services:
+  - name: resonance_market_data
+    module: plans.resonance.src.services.resonance_market_data_service
+    class: ResonanceMarketDataService
+    public: true
+    singleton: true
+    replace: null
+    description: Fetches and normalizes Resonance market snapshots with local cache.
+  - name: resonance_trade_planner
+    module: plans.resonance.src.services.resonance_trade_planner_service
+    class: ResonanceTradePlannerService
+    public: true
+    singleton: true
+    replace: null
+    description: Resonance rolling trade planner based on fatigue/book/cargo constraints.
+  actions:
+  - name: resonance.group_battle_jobs
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_group_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group auto battle jobs by top-level category and preserve first-seen
+      category order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.group_ct_jobs
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_group_ct_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group 閸楀繐鎮撶紒鍫㈩伂 jobs into 闁句焦顢嶇仦鈧?and 閸栧搫鐓欐担婊勫灛娑擃厼绺?buckets with
+      first-seen order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.group_gp_jobs
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_group_gp_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group GP jobs into action_summary and structural_exploration buckets
+      with first-seen order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.group_consecutive_jobs_by_route
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_group_consecutive_jobs_by_route
+    public: true
+    read_only: true
+    timeout: null
+    description: Group adjacent jobs with the same route_id while preserving order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.annotate_job_sequence
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_annotate_job_sequence
+    public: true
+    read_only: true
+    timeout: null
+    description: Attach sequence metadata to each job item while preserving original
+      fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.normalize_battle_jobs
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_normalize_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Normalize battle jobs by dropping route-incompatible residual fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.validate_battle_jobs
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_validate_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Validate jobs against battle catalog and normalize required fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance.resolve_difficulty_text
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_resolve_difficulty_text
+    public: true
+    read_only: true
+    timeout: null
+    description: Resolve difficulty text from numeric difficulty level.
+    parameters:
+    - name: difficulty
+      type: Any
+      required: true
+      default: null
+  - name: resonance.select_ordered_city
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_select_ordered_city
+    public: true
+    read_only: false
+    timeout: null
+    description: Select target city from ordered city list by OCR + directional drag.
+    parameters:
+    - name: target_city_name
+      type: Any
+      required: true
+      default: null
+    - name: city_order
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_up
+      type: Any
+      required: false
+      default: null
+    - name: drag_down
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance.select_threat_level_numeric
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_select_threat_level_numeric
+    public: true
+    read_only: false
+    timeout: null
+    description: Select threat level by OCR numeric scan and directional horizontal
+      drag.
+    parameters:
+    - name: threat_level
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_increase
+      type: Any
+      required: false
+      default: null
+    - name: drag_decrease
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 20
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+  - name: resonance.select_action_summary_stage
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_select_action_summary_stage
+    public: true
+    read_only: false
+    timeout: null
+    description: Select one action_summary stage by OCR + horizontal directional drag,
+      then click with offset.
+    parameters:
+    - name: route_id
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_forward
+      type: Any
+      required: false
+      default: null
+    - name: drag_backward
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 12
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: click_offset_x
+      type: Any
+      required: false
+      default: 0
+    - name: click_offset_y
+      type: Any
+      required: false
+      default: 180
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance.check_pixel_color_range
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_check_pixel_color_range
+    public: true
+    read_only: true
+    timeout: null
+    description: Check whether one pixel color is inside an inclusive RGB range.
+    parameters:
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+    - name: rgb_min
+      type: Any
+      required: true
+      default: null
+    - name: rgb_max
+      type: Any
+      required: true
+      default: null
+  - name: resonance.reconcile_structural_selection
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_reconcile_structural_selection
+    public: true
+    read_only: false
+    timeout: null
+    description: Reconcile all structural targets so only the current job target remains
+      selected.
+    parameters:
+    - name: route_id
+      type: Any
+      required: false
+      default: null
+    - name: gp_stage_name
+      type: Any
+      required: false
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: rgb_min
+      type: Any
+      required: false
+      default: null
+    - name: rgb_max
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.3
+  - name: resonance.wait_and_click_any_text
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_wait_and_click_any_text
+    public: true
+    read_only: false
+    timeout: null
+    description: Continuously OCR a region until any target text is found, then click
+      its center.
+    parameters:
+    - name: targets
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance.run_battle_resolution
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_run_battle_resolution
+    public: true
+    read_only: false
+    timeout: null
+    description: Resolve in-battle next-step/capture branch by OCR polling.
+    parameters:
+    - name: capture_count
+      type: Any
+      required: false
+      default: null
+    - name: battle_poll_region
+      type: Any
+      required: false
+      default: null
+    - name: confirm_region
+      type: Any
+      required: false
+      default: null
+    - name: exit_hint_region
+      type: Any
+      required: false
+      default: null
+    - name: confirm_click_point
+      type: Any
+      required: false
+      default: null
+    - name: poll_interval_sec
+      type: Any
+      required: false
+      default: 5.0
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 600.0
+    - name: confirm_timeout_sec
+      type: Any
+      required: false
+      default: 30.0
+    - name: exit_hint_timeout_sec
+      type: Any
+      required: false
+      default: 30.0
+    - name: short_interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance.resolve_city_shop_point
+    module: plans.resonance.src.actions.city_shop_actions
+    function: resonance_resolve_city_shop_point
+    public: true
+    read_only: true
+    timeout: null
+    description: Resolve city+shop point from OCR text and location.json.
+    parameters:
+    - name: ocr_city_text
+      type: Any
+      required: true
+      default: null
+    - name: shop_type
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: true
+      default: null
+  - name: resonance.select_intercity_destination
+    module: plans.resonance.src.actions.city_travel_actions
+    function: resonance_select_intercity_destination
+    public: true
+    read_only: false
+    timeout: null
+    description: Select destination city in intercity view via OCR + directional drag.
+    parameters:
+    - name: to_city_name
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location.json
+    - name: city_search_region
+      type: Any
+      required: false
+      default: null
+    - name: drag_center
+      type: Any
+      required: false
+      default: null
+    - name: drag_span_px
+      type: Any
+      required: false
+      default: 600
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: fallback_enabled
+      type: Any
+      required: false
+      default: true
+    - name: target_match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: click_y_offset
+      type: Any
+      required: false
+      default: -15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: drag_hold_sec
+      type: Any
+      required: false
+      default: 0.5
+  - name: resonance.market_refresh
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_refresh
+    public: true
+    read_only: false
+    timeout: null
+    description: Refresh Resonance market snapshot.
+    parameters:
+    - name: force
+      type: Any
+      required: false
+      default: false
+  - name: resonance.market_sync_web_constants
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_sync_web_constants
+    public: true
+    read_only: false
+    timeout: null
+    description: Sync route constants (cities/fatigue) from webpage and optionally
+      sync buy_lot.
+    parameters:
+    - name: sync_buy_lot
+      type: Any
+      required: false
+      default: true
+  - name: resonance.market_get_latest
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_get_latest
+    public: true
+    read_only: true
+    timeout: null
+    description: Get latest Resonance market snapshot.
+    parameters: []
+  - name: resonance.market_get_snapshot
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_get_snapshot
+    public: true
+    read_only: true
+    timeout: null
+    description: Get Resonance market snapshot by id.
+    parameters:
+    - name: snapshot_id
+      type: Any
+      required: true
+      default: null
+  - name: resonance.market_list_snapshots
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_list_snapshots
+    public: true
+    read_only: true
+    timeout: null
+    description: List cached Resonance market snapshots.
+    parameters:
+    - name: limit
+      type: Any
+      required: false
+      default: 50
+  - name: resonance.market_query_products
+    module: plans.resonance.src.actions.market_data_actions
+    function: resonance_market_query_products
+    public: true
+    read_only: true
+    timeout: null
+    description: Query normalized products from latest Resonance snapshot.
+    parameters:
+    - name: scope
+      type: Any
+      required: false
+      default: null
+    - name: city_id
+      type: Any
+      required: false
+      default: null
+    - name: side
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_plan_next
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_plan_next
+    public: true
+    read_only: true
+    timeout: null
+    description: Plan the next Resonance trade step with rolling horizon optimization.
+    parameters:
+    - name: start_city_id
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: book_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: true
+      default: null
+    - name: book_profit_threshold
+      type: Any
+      required: true
+      default: null
+    - name: available_city_ids
+      type: Any
+      required: true
+      default: null
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+    - name: current_holdings
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_plan_best_cycle
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_plan_best_cycle
+    public: true
+    read_only: true
+    timeout: null
+    description: Plan one fixed best-profit trade cycle.
+    parameters:
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 120
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: start_city_id
+      type: Any
+      required: false
+      default: null
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_plan_cycle_execution
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_plan_cycle_execution
+    public: true
+    read_only: true
+    timeout: null
+    description: Build executable auto-trade cycle plan under fatigue budget with
+      whitelist constraints.
+    parameters:
+    - name: current_city_key
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_assert_allowed_city
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_assert_allowed_city
+    public: true
+    read_only: true
+    timeout: null
+    description: Assert target city key is in configured trade constraints whitelist.
+    parameters:
+    - name: city_key
+      type: Any
+      required: false
+      default: null
+    - name: city_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_simulate
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_simulate
+    public: true
+    read_only: true
+    timeout: null
+    description: Simulate Resonance rolling trade until stop condition.
+    parameters:
+    - name: start_city_id
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: book_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: true
+      default: null
+    - name: book_profit_threshold
+      type: Any
+      required: true
+      default: null
+    - name: available_city_ids
+      type: Any
+      required: true
+      default: null
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+    - name: max_iterations
+      type: Any
+      required: false
+      default: 128
+  tasks:
+  - id: auto_battle_combat/auto_battle_combat
+    title: Auto Battle Combat
+    source: tasks/auto_battle_combat.yaml
+    description: Shared combat executor for CT and GP action_summary battle entries.
+  - id: auto_battle_combat
+    title: Auto Battle Combat
+    source: tasks/auto_battle_combat.yaml
+    description: Shared combat executor for CT and GP action_summary battle entries.
+  - id: auto_battle_dispatch/auto_battle_ct_tie_an_run_one
+    title: Auto Battle CT TieAn Run One
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute one CT tie_an job.
+  - id: auto_battle_dispatch/auto_battle_ct_tie_an_batch
+    title: Auto Battle CT TieAn Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Batch executor for CT tie_an jobs.
+  - id: auto_battle_dispatch/auto_battle_ct_regional_ops_run_one
+    title: Auto Battle CT RegionalOps Run One
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute one CT regional_ops_center job.
+  - id: auto_battle_dispatch/auto_battle_ct_regional_ops_batch
+    title: Auto Battle CT RegionalOps Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Batch executor for CT regional_ops_center jobs.
+  - id: auto_battle_dispatch/auto_battle_ct_batch
+    title: Auto Battle CT Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Group CT jobs by tie_an/regional_ops_center and dispatch in order.
+  - id: auto_battle_dispatch/auto_battle_gp_action_summary_run_difficulty
+    title: Auto Battle GP ActionSummary Run Difficulty
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute one action_summary difficulty inside an already opened stage.
+  - id: auto_battle_dispatch/auto_battle_gp_action_summary_run_group
+    title: Auto Battle GP ActionSummary Run Group
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute one consecutive action_summary stage group.
+  - id: auto_battle_dispatch/auto_battle_gp_action_summary_batch
+    title: Auto Battle GP ActionSummary Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute grouped action_summary jobs.
+  - id: auto_battle_dispatch/auto_battle_gp_structural_run_one
+    title: Auto Battle GP Structural Run One
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute one structural_exploration target.
+  - id: auto_battle_dispatch/auto_battle_gp_structural_batch
+    title: Auto Battle GP Structural Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Execute structural_exploration jobs in order.
+  - id: auto_battle_dispatch/auto_battle_gp_batch
+    title: Auto Battle GP Batch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Group GP jobs by action_summary and structural_exploration, then
+      dispatch in order.
+  - id: auto_battle_dispatch/auto_battle_dispatch
+    title: Auto Battle Dispatch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
+      batch tasks.
+  - id: auto_battle_dispatch
+    title: Auto Battle Dispatch
+    source: tasks/auto_battle_dispatch.yaml
+    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
+      batch tasks.
+  - id: auto_battle_input_preview/auto_battle_input_preview
+    title: Auto Battle Input Preview
+    source: tasks/auto_battle_input_preview.yaml
+    description: Preview-only task for validating constrained auto battle inputs.
+  - id: auto_battle_input_preview
+    title: Auto Battle Input Preview
+    source: tasks/auto_battle_input_preview.yaml
+    description: Preview-only task for validating constrained auto battle inputs.
+  - id: auto_cycle_trade/execute_trade_leg
+    title: Execute Trade Leg
+    source: tasks/auto_cycle_trade.yaml
+    description: 'Execute one trade leg: sell, optional buy, back to main view, then
+      travel.'
+  - id: auto_cycle_trade/execute_trade_cycle
+    title: Execute Trade Cycle
+    source: tasks/auto_cycle_trade.yaml
+    description: Execute all legs in one planned cycle.
+  - id: auto_cycle_trade/auto_cycle_trade
+    title: Auto Cycle Trade
+    source: tasks/auto_cycle_trade.yaml
+    description: Auto trading with fixed whitelist cities and fatigue budget.
+  - id: auto_cycle_trade
+    title: Auto Cycle Trade
+    source: tasks/auto_cycle_trade.yaml
+    description: Auto trading with fixed whitelist cities and fatigue budget.
+  - id: buy_goods/buy_goods
+    title: Buy Goods
+    source: tasks/buy_goods.yaml
+    description: Buy target goods by OCR scanning with up to 5 swipes.
+  - id: buy_goods
+    title: Buy Goods
+    source: tasks/buy_goods.yaml
+    description: Buy target goods by OCR scanning with up to 5 swipes.
+  - id: city_shop/get_city_name
+    title: Get Current City Name
+    source: tasks/city_shop.yaml
+    description: Click 访问城市/访问地区 and parse current city from OCR.
+  - id: city_shop/enter_city_shop
+    title: Enter City Shop
+    source: tasks/city_shop.yaml
+    description: Enter target shop in current city via OCR + location mapping.
+  - id: city_travel/intercity_select_destination
+    title: Intercity Select Destination
+    source: tasks/city_travel.yaml
+    description: 点击启程并选择目标城市，然后前往并进入站点。
+  - id: market_data/market_data_refresh
+    title: Resonance Market Refresh
+    source: tasks/market_data.yaml
+    description: Fetch, normalize and cache latest market snapshot.
+  - id: market_data/market_data_sync_web_constants
+    title: Resonance Web Constants Sync
+    source: tasks/market_data.yaml
+    description: Sync cities/fatigue constants from route webpage and optionally sync
+      buy_lot.
+  - id: market_data/market_data_get_latest
+    title: Resonance Market Latest
+    source: tasks/market_data.yaml
+    description: Read latest cached market snapshot.
+  - id: market_data/market_data_get_snapshot
+    title: Resonance Market Snapshot
+    source: tasks/market_data.yaml
+    description: Read one snapshot by snapshot_id.
+  - id: market_data/market_data_list_snapshots
+    title: Resonance Market Snapshot Index
+    source: tasks/market_data.yaml
+    description: List historical snapshot metadata.
+  - id: market_data/market_data_query_products
+    title: Resonance Market Product Query
+    source: tasks/market_data.yaml
+    description: Query normalized products from latest snapshot.
+  - id: sell_goods/sell_all_goods
+    title: Sell All Goods
+    source: tasks/sell_goods.yaml
+    description: Sell current goods then exit sell dialog by waiting for exit hint.
+  - id: trade_planner/trade_plan_next
+    title: Resonance Trade Plan Next
+    source: tasks/trade_planner.yaml
+    description: Plan one rolling next-step decision for trade route.
+  - id: trade_planner/trade_plan_best_cycle
+    title: Resonance Trade Best Cycle
+    source: tasks/trade_planner.yaml
+    description: Compute one fixed best-profit trade cycle.
+  - id: trade_planner/trade_simulate
+    title: Resonance Trade Simulate
+    source: tasks/trade_planner.yaml
+    description: Simulate rolling trade until stop, with full trace output.
+metadata:
+  generated_by: ManifestGenerator
+  generated_at: '2026-06-28T17:35:58Z'

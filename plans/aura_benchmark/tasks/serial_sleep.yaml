@@ -1,0 +1,39 @@
+serial_sleep:
+  meta:
+    title: Serial benchmark chain
+    description: Three dependent sleep steps for serial execution validation.
+    inputs:
+      - name: duration_ms
+        type: number
+        default: 100
+      - name: scenario
+        type: string
+        default: serial_dag
+  steps:
+    first:
+      action: benchmark_sleep
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: first
+    second:
+      action: benchmark_sleep
+      depends_on: first
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: second
+    third:
+      action: benchmark_sleep
+      depends_on: second
+      params:
+        duration_ms: "{{ inputs.duration_ms }}"
+        scenario: "{{ inputs.scenario }}"
+        label: third
+    collect:
+      action: benchmark_snapshot
+      depends_on: third
+      params:
+        scenario: "{{ inputs.scenario }}"
+  returns:
+    snapshot: "{{ nodes.collect.output }}"

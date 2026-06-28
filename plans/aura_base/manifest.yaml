@@ -1,0 +1,2652 @@
+package:
+  name: '@plans/aura_base'
+  version: 0.1.0
+  description: ''
+  license: MIT
+requires:
+  aura: '>=2.0.0'
+dependencies: {}
+pypi-dependencies: {}
+exports:
+  services:
+  - name: app
+    module: plans.aura_base.src.services.app_provider_service
+    class: AppProviderService
+    public: true
+    singleton: true
+    replace: null
+    description: High-level app interactor facade built on the runtime adapter.
+  - name: composite-interaction
+    module: plans.aura_base.src.services.composite_interaction_service
+    class: CompositeInteractionService
+    public: true
+    singleton: true
+    replace: null
+    description: 【异步升级版】提供高级、可复用的复合交互行为。
+  - name: controller
+    module: plans.aura_base.src.services.controller_service
+    class: ControllerService
+    public: true
+    singleton: true
+    replace: null
+    description: Runtime-backed input facade.
+  - name: gamepad
+    module: plans.aura_base.src.services.gamepad_service
+    class: GamepadService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
+  - name: input_mapping
+    module: plans.aura_base.src.services.input_mapping_service
+    class: InputMappingService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
+  - name: navigation
+    module: plans.aura_base.src.services.navigation_service
+    class: NavigationService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
+  - name: ocr
+    module: plans.aura_base.src.services.ocr_service
+    class: OcrService
+    public: true
+    singleton: true
+    replace: null
+    description: 【最终稳定版】一个高性能、资源可控的OCR服务。
+  - name: process_manager
+    module: plans.aura_base.src.services.process_manager_service
+    class: ProcessManagerService
+    public: true
+    singleton: true
+    replace: null
+    description: 进程管理 Server（无 UI、纯能力）。
+  - name: screen
+    module: plans.aura_base.src.services.screen_service
+    class: ScreenService
+    public: true
+    singleton: true
+    replace: null
+    description: Runtime-backed screen facade.
+  - name: target_runtime
+    module: plans.aura_base.src.services.target_runtime_service
+    class: TargetRuntimeService
+    public: false
+    singleton: true
+    replace: null
+    description: ''
+  - name: vision
+    module: plans.aura_base.src.services.vision_service
+    class: VisionService
+    public: true
+    singleton: true
+    replace: null
+    description: 【异步升级版】一个无状态的视觉服务。
+  - name: windows_diagnostics
+    module: plans.aura_base.src.services.windows_diagnostics_service
+    class: WindowsDiagnosticsService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
+  actions:
+  - name: register_template_library
+    module: plans.aura_base.src.actions.template_actions
+    function: register_template_library
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: name
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: true
+      default: null
+    - name: recursive
+      type: Any
+      required: false
+      default: false
+    - name: extensions
+      type: Any
+      required: false
+      default: null
+  - name: unregister_template_library
+    module: plans.aura_base.src.actions.template_actions
+    function: unregister_template_library
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: name
+      type: Any
+      required: true
+      default: null
+  - name: list_template_libraries
+    module: plans.aura_base.src.actions.template_actions
+    function: list_template_libraries
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: list_capture_backends
+    module: plans.aura_base.src.actions.template_actions
+    function: list_capture_backends
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: set_capture_backend
+    module: plans.aura_base.src.actions.template_actions
+    function: set_capture_backend
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: backend
+      type: Any
+      required: true
+      default: null
+  - name: screen_selfcheck
+    module: plans.aura_base.src.actions.template_actions
+    function: screen_selfcheck
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: find_image
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_image
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+    - name: mask
+      type: Any
+      required: false
+      default: null
+  - name: find_all_images
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_all_images
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_best_image
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_best_image
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_templates_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_templates_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_all_templates_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_all_templates_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: nms_threshold
+      type: Any
+      required: false
+      default: 0.5
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_unique_template_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_unique_template_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_best_template_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_best_template_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: list_templates_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: list_templates_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+  - name: assert_any_template_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: assert_any_template_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: message
+      type: Any
+      required: false
+      default: null
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: assert_all_templates_in_set
+    module: plans.aura_base.src.actions.vision_actions
+    function: assert_all_templates_in_set
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: message
+      type: Any
+      required: false
+      default: null
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: wait_for_any_template_in_set
+    module: plans.aura_base.src.actions.wait_actions
+    function: wait_for_any_template_in_set
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval
+      type: Any
+      required: false
+      default: 1.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: wait_for_templates_in_set_to_disappear
+    module: plans.aura_base.src.actions.wait_actions
+    function: wait_for_templates_in_set_to_disappear
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: templates_ref
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval
+      type: Any
+      required: false
+      default: 1.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_image_in_scrolling_area
+    module: plans.aura_base.src.actions.vision_actions
+    function: find_image_in_scrolling_area
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: scroll_area
+      type: Any
+      required: true
+      default: null
+    - name: scroll_direction
+      type: Any
+      required: false
+      default: down
+    - name: max_scrolls
+      type: Any
+      required: false
+      default: 5
+    - name: scroll_amount
+      type: Any
+      required: false
+      default: 200
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: delay_after_scroll
+      type: Any
+      required: false
+      default: 0.5
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: preload_ocr
+    module: plans.aura_base.src.actions.ocr_actions
+    function: preload_ocr
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: warmup
+      type: Any
+      required: false
+      default: false
+  - name: find_text
+    module: plans.aura_base.src.actions.ocr_actions
+    function: find_text
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: exact
+  - name: recognize_all_text
+    module: plans.aura_base.src.actions.ocr_actions
+    function: recognize_all_text
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: region
+      type: Any
+      required: false
+      default: null
+  - name: get_text_in_region
+    module: plans.aura_base.src.actions.ocr_actions
+    function: get_text_in_region
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: region
+      type: Any
+      required: true
+      default: null
+    - name: whitelist
+      type: Any
+      required: false
+      default: null
+    - name: join_with
+      type: Any
+      required: false
+      default: ' '
+  - name: check_text_exists
+    module: plans.aura_base.src.actions.ocr_actions
+    function: check_text_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: exact
+  - name: check_image_exists
+    module: plans.aura_base.src.actions.vision_actions
+    function: check_image_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+    - name: mask
+      type: Any
+      required: false
+      default: null
+  - name: assert_image_exists
+    module: plans.aura_base.src.actions.vision_actions
+    function: assert_image_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: message
+      type: Any
+      required: false
+      default: null
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+    - name: mask
+      type: Any
+      required: false
+      default: null
+  - name: assert_image_not_exists
+    module: plans.aura_base.src.actions.vision_actions
+    function: assert_image_not_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: message
+      type: Any
+      required: false
+      default: null
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: assert_text_exists
+    module: plans.aura_base.src.actions.ocr_actions
+    function: assert_text_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: message
+      type: Any
+      required: false
+      default: null
+  - name: assert_text_not_exists
+    module: plans.aura_base.src.actions.ocr_actions
+    function: assert_text_not_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: message
+      type: Any
+      required: false
+      default: null
+  - name: assert_text_equals
+    module: plans.aura_base.src.actions.ocr_actions
+    function: assert_text_equals
+    public: true
+    read_only: true
+    timeout: null
+    description: 断言找到的文本内容必须精确等于期望值。
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: expected_value
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: message
+      type: Any
+      required: false
+      default: null
+  - name: wait_for_text
+    module: plans.aura_base.src.actions.wait_actions
+    function: wait_for_text
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval
+      type: Any
+      required: false
+      default: 1.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: wait_for_text_to_disappear
+    module: plans.aura_base.src.actions.wait_actions
+    function: wait_for_text_to_disappear
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_monitor
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval
+      type: Any
+      required: false
+      default: 1.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: wait_for_image
+    module: plans.aura_base.src.actions.wait_actions
+    function: wait_for_image
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval
+      type: Any
+      required: false
+      default: 1.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: click
+    module: plans.aura_base.src.actions.input_actions
+    function: click
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: false
+      default: null
+    - name: y
+      type: Any
+      required: false
+      default: null
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: clicks
+      type: Any
+      required: false
+      default: 1
+    - name: interval
+      type: Any
+      required: false
+      default: 0.1
+  - name: double_click
+    module: plans.aura_base.src.actions.input_actions
+    function: double_click
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: false
+      default: null
+    - name: y
+      type: Any
+      required: false
+      default: null
+  - name: right_click
+    module: plans.aura_base.src.actions.input_actions
+    function: right_click
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: false
+      default: null
+    - name: y
+      type: Any
+      required: false
+      default: null
+  - name: move_to
+    module: plans.aura_base.src.actions.input_actions
+    function: move_to
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+    - name: duration
+      type: Any
+      required: false
+      default: 0.25
+  - name: drag
+    module: plans.aura_base.src.actions.input_actions
+    function: drag
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: start_x
+      type: Any
+      required: true
+      default: null
+    - name: start_y
+      type: Any
+      required: true
+      default: null
+    - name: end_x
+      type: Any
+      required: true
+      default: null
+    - name: end_y
+      type: Any
+      required: true
+      default: null
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: duration
+      type: Any
+      required: false
+      default: 0.5
+  - name: press_key
+    module: plans.aura_base.src.actions.input_actions
+    function: press_key
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: key
+      type: Any
+      required: true
+      default: null
+    - name: presses
+      type: Any
+      required: false
+      default: 1
+    - name: interval
+      type: Any
+      required: false
+      default: 0.1
+  - name: press_hotkey
+    module: plans.aura_base.src.actions.input_actions
+    function: press_hotkey
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: keys
+      type: Any
+      required: true
+      default: null
+  - name: type_text
+    module: plans.aura_base.src.actions.input_actions
+    function: type_text
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: text
+      type: Any
+      required: true
+      default: null
+    - name: interval
+      type: Any
+      required: false
+      default: 0.01
+  - name: scroll
+    module: plans.aura_base.src.actions.input_actions
+    function: scroll
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: direction
+      type: Any
+      required: true
+      default: null
+    - name: amount
+      type: Any
+      required: true
+      default: null
+  - name: get_pixel_color
+    module: plans.aura_base.src.actions.input_actions
+    function: get_pixel_color
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+  - name: mouse_move_relative
+    module: plans.aura_base.src.actions.input_actions
+    function: mouse_move_relative
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: dx
+      type: Any
+      required: true
+      default: null
+    - name: dy
+      type: Any
+      required: true
+      default: null
+    - name: duration
+      type: Any
+      required: false
+      default: 0.2
+  - name: look_delta
+    module: plans.aura_base.src.actions.input_actions
+    function: look_delta
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: dx
+      type: Any
+      required: true
+      default: null
+    - name: dy
+      type: Any
+      required: true
+      default: null
+  - name: look_hold
+    module: plans.aura_base.src.actions.input_actions
+    function: look_hold
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: vx
+      type: Any
+      required: true
+      default: null
+    - name: vy
+      type: Any
+      required: true
+      default: null
+    - name: duration_ms
+      type: Any
+      required: true
+      default: null
+    - name: tick_ms
+      type: Any
+      required: false
+      default: 16
+  - name: look_direction
+    module: plans.aura_base.src.actions.input_actions
+    function: look_direction
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: direction
+      type: Any
+      required: true
+      default: null
+    - name: strength
+      type: Any
+      required: false
+      default: 0.4
+    - name: duration_ms
+      type: Any
+      required: false
+      default: 200
+    - name: tick_ms
+      type: Any
+      required: false
+      default: 16
+  - name: look_sweep_horizontal
+    module: plans.aura_base.src.actions.input_actions
+    function: look_sweep_horizontal
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: total_dx
+      type: Any
+      required: true
+      default: null
+    - name: chunk_dx
+      type: Any
+      required: false
+      default: 24
+    - name: step_delay_ms
+      type: Any
+      required: false
+      default: 16
+  - name: key_down
+    module: plans.aura_base.src.actions.input_actions
+    function: key_down
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: key
+      type: Any
+      required: true
+      default: null
+  - name: key_up
+    module: plans.aura_base.src.actions.input_actions
+    function: key_up
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: key
+      type: Any
+      required: true
+      default: null
+  - name: mouse_down
+    module: plans.aura_base.src.actions.input_actions
+    function: mouse_down
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: button
+      type: Any
+      required: false
+      default: left
+  - name: mouse_up
+    module: plans.aura_base.src.actions.input_actions
+    function: mouse_up
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: button
+      type: Any
+      required: false
+      default: left
+  - name: sleep
+    module: plans.aura_base.src.actions.wait_actions
+    function: sleep
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: seconds
+      type: Any
+      required: true
+      default: null
+  - name: log
+    module: plans.aura_base.src.actions.data_actions
+    function: log
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: message
+      type: Any
+      required: true
+      default: null
+    - name: level
+      type: Any
+      required: false
+      default: info
+  - name: stop_task
+    module: plans.aura_base.src.actions.data_actions
+    function: stop_task
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: message
+      type: Any
+      required: false
+      default: 任务已停止
+    - name: success
+      type: Any
+      required: false
+      default: true
+  - name: assert_condition
+    module: plans.aura_base.src.actions.data_actions
+    function: assert_condition
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: condition
+      type: Any
+      required: true
+      default: null
+    - name: message
+      type: Any
+      required: false
+      default: 断言失败
+  - name: set_variable
+    module: plans.aura_base.src.actions.data_actions
+    function: set_variable
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: name
+      type: Any
+      required: true
+      default: null
+    - name: value
+      type: Any
+      required: true
+      default: null
+  - name: string_format
+    module: plans.aura_base.src.actions.data_actions
+    function: string_format
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+  - name: string_split
+    module: plans.aura_base.src.actions.data_actions
+    function: string_split
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text
+      type: Any
+      required: true
+      default: null
+    - name: separator
+      type: Any
+      required: true
+      default: null
+    - name: max_split
+      type: Any
+      required: false
+      default: -1
+  - name: string_join
+    module: plans.aura_base.src.actions.data_actions
+    function: string_join
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: items
+      type: Any
+      required: true
+      default: null
+    - name: separator
+      type: Any
+      required: true
+      default: null
+  - name: regex_search
+    module: plans.aura_base.src.actions.data_actions
+    function: regex_search
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: text
+      type: Any
+      required: true
+      default: null
+    - name: pattern
+      type: Any
+      required: true
+      default: null
+  - name: math_compute
+    module: plans.aura_base.src.actions.data_actions
+    function: math_compute
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: expression
+      type: Any
+      required: true
+      default: null
+  - name: publish_event
+    module: plans.aura_base.src.actions.system_actions
+    function: publish_event
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: name
+      type: Any
+      required: true
+      default: null
+    - name: payload
+      type: Any
+      required: false
+      default: null
+    - name: source
+      type: Any
+      required: false
+      default: null
+    - name: channel
+      type: Any
+      required: false
+      default: global
+  - name: get_window_size
+    module: plans.aura_base.src.actions.system_actions
+    function: get_window_size
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: focus_window
+    module: plans.aura_base.src.actions.system_actions
+    function: focus_window
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters: []
+  - name: focus_window_with_input
+    module: plans.aura_base.src.actions.system_actions
+    function: focus_window_with_input
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: click_delay
+      type: Any
+      required: false
+      default: 0.3
+  - name: file_read
+    module: plans.aura_base.src.actions.system_actions
+    function: file_read
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: file_path
+      type: Any
+      required: true
+      default: null
+  - name: file_write
+    module: plans.aura_base.src.actions.system_actions
+    function: file_write
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: file_path
+      type: Any
+      required: true
+      default: null
+    - name: content
+      type: Any
+      required: true
+      default: null
+    - name: append
+      type: Any
+      required: false
+      default: false
+  - name: find_image_and_click
+    module: plans.aura_base.src.actions.interaction_actions
+    function: find_image_and_click
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: move_duration
+      type: Any
+      required: false
+      default: 0.2
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: find_text_and_click
+    module: plans.aura_base.src.actions.interaction_actions
+    function: find_text_and_click
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: text_to_find
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: move_duration
+      type: Any
+      required: false
+      default: 0.2
+  - name: drag_to_find
+    module: plans.aura_base.src.actions.interaction_actions
+    function: drag_to_find
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: drag_from_template
+      type: Any
+      required: true
+      default: null
+    - name: drag_to_template
+      type: Any
+      required: true
+      default: null
+    - name: from_region
+      type: Any
+      required: false
+      default: null
+    - name: to_region
+      type: Any
+      required: false
+      default: null
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: duration
+      type: Any
+      required: false
+      default: 0.5
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: aura.run_task
+    module: plans.aura_base.src.actions.task_actions
+    function: run_task
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: task_ref
+      type: Any
+      required: true
+      default: null
+    - name: inputs
+      type: Any
+      required: false
+      default: null
+  - name: scan_and_find_best_match
+    module: plans.aura_base.src.actions.interaction_actions
+    function: scan_and_find_best_match
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: template
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: true
+      default: null
+    - name: priority
+      type: Any
+      required: false
+      default: top
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.8
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: match_method
+      type: Any
+      required: false
+      default: null
+    - name: preprocess
+      type: Any
+      required: false
+      default: none
+  - name: start_process
+    module: plans.aura_base.src.actions.process_actions
+    function: start_process
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: identifier
+      type: Any
+      required: true
+      default: null
+    - name: executable_path
+      type: Any
+      required: false
+      default: null
+    - name: args
+      type: Any
+      required: false
+      default: null
+    - name: cwd
+      type: Any
+      required: false
+      default: null
+    - name: env
+      type: Any
+      required: false
+      default: null
+  - name: stop_process
+    module: plans.aura_base.src.actions.process_actions
+    function: stop_process
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: identifier
+      type: Any
+      required: true
+      default: null
+    - name: force
+      type: Any
+      required: false
+      default: false
+    - name: timeout
+      type: Any
+      required: false
+      default: 5.0
+  - name: get_process_status
+    module: plans.aura_base.src.actions.process_actions
+    function: get_process_status
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: identifier
+      type: Any
+      required: true
+      default: null
+  - name: wait_for_process_exit
+    module: plans.aura_base.src.actions.process_actions
+    function: wait_for_process_exit
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: identifier
+      type: Any
+      required: true
+      default: null
+    - name: timeout
+      type: Any
+      required: false
+      default: 30.0
+  - name: gamepad.self_check
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_self_check
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: gamepad.press_button
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_press_button
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: button
+      type: Any
+      required: true
+      default: null
+  - name: gamepad.release_button
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_release_button
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: button
+      type: Any
+      required: true
+      default: null
+  - name: gamepad.tap_button
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_tap_button
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: button
+      type: Any
+      required: true
+      default: null
+    - name: duration_ms
+      type: Any
+      required: false
+      default: 0
+  - name: gamepad.tilt_stick
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_tilt_stick
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: stick
+      type: Any
+      required: true
+      default: null
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+    - name: duration_ms
+      type: Any
+      required: false
+      default: 0
+    - name: auto_center
+      type: Any
+      required: false
+      default: false
+  - name: gamepad.center_stick
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_center_stick
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: stick
+      type: Any
+      required: true
+      default: null
+  - name: gamepad.set_trigger
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_set_trigger
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: side
+      type: Any
+      required: true
+      default: null
+    - name: value
+      type: Any
+      required: true
+      default: null
+    - name: duration_ms
+      type: Any
+      required: false
+      default: 0
+    - name: auto_reset
+      type: Any
+      required: false
+      default: false
+  - name: gamepad.reset
+    module: plans.aura_base.src.actions.gamepad_actions
+    function: gamepad_reset
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters: []
+  - name: input.available_profiles
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_available_profiles
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: input.list_actions
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_list_actions
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: input.resolve_action
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_resolve_action
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: action_name
+      type: Any
+      required: true
+      default: null
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: input.press_action
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_press_action
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: action_name
+      type: Any
+      required: true
+      default: null
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: input.tap_action
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_tap_action
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: action_name
+      type: Any
+      required: true
+      default: null
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: input.hold_action
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_hold_action
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: action_name
+      type: Any
+      required: true
+      default: null
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: input.release_action
+    module: plans.aura_base.src.actions.input_mapping_actions
+    function: input_release_action
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: action_name
+      type: Any
+      required: true
+      default: null
+    - name: profile
+      type: Any
+      required: false
+      default: null
+  - name: windows.list_candidate_windows
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_list_candidate_windows
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: require_visible
+      type: Any
+      required: false
+      default: true
+    - name: include_children
+      type: Any
+      required: false
+      default: false
+    - name: include_empty_title
+      type: Any
+      required: false
+      default: false
+    - name: limit
+      type: Any
+      required: false
+      default: 50
+  - name: windows.describe_target_window
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_describe_target_window
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: hwnd
+      type: Any
+      required: true
+      default: null
+  - name: windows.resolve_target_preview
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_resolve_target_preview
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: target_overrides
+      type: Any
+      required: false
+      default: null
+  - name: windows.test_focus_activation
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_test_focus_activation
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters:
+    - name: mode
+      type: Any
+      required: false
+      default: null
+    - name: sleep_ms
+      type: Any
+      required: false
+      default: null
+    - name: click_point
+      type: Any
+      required: false
+      default: null
+    - name: click_button
+      type: Any
+      required: false
+      default: null
+  - name: windows.show_runtime_capabilities
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_show_runtime_capabilities
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: windows.show_dpi_info
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_show_dpi_info
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: windows.transform_reference_point
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_transform_reference_point
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+  - name: windows.transform_reference_rect
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_transform_reference_rect
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: rect
+      type: Any
+      required: true
+      default: null
+  - name: windows.probe_capture_backend
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_probe_capture_backend
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: backend
+      type: Any
+      required: false
+      default: null
+    - name: rect
+      type: Any
+      required: false
+      default: null
+  - name: windows.stress_capture_backend
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_stress_capture_backend
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: backend
+      type: Any
+      required: false
+      default: null
+    - name: iterations
+      type: Any
+      required: false
+      default: 100
+    - name: interval_ms
+      type: Any
+      required: false
+      default: 0
+    - name: settle_after_close_ms
+      type: Any
+      required: false
+      default: 500
+  - name: windows.probe_capture_candidates
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_probe_capture_candidates
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: windows.capture_preview
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_capture_preview
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters:
+    - name: backend
+      type: Any
+      required: false
+      default: null
+    - name: rect
+      type: Any
+      required: false
+      default: null
+  - name: windows.check_window_spec
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_check_window_spec
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: windows.ensure_window_spec
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_ensure_window_spec
+    public: true
+    read_only: false
+    timeout: null
+    description: ''
+    parameters: []
+  - name: windows.show_gamepad_info
+    module: plans.aura_base.src.actions.windows_diagnostics_actions
+    function: windows_show_gamepad_info
+    public: true
+    read_only: true
+    timeout: null
+    description: ''
+    parameters: []
+  - name: yolo_preload_model
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_preload_model
+    public: true
+    read_only: false
+    timeout: null
+    description: Preload a YOLO model by name or path.
+    parameters:
+    - name: model_name
+      type: Any
+      required: true
+      default: null
+  - name: yolo_set_active_model
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_set_active_model
+    public: true
+    read_only: false
+    timeout: null
+    description: Set current active YOLO model by name or path.
+    parameters:
+    - name: model_name
+      type: Any
+      required: true
+      default: null
+  - name: yolo_unload_model
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_unload_model
+    public: true
+    read_only: false
+    timeout: null
+    description: Unload a YOLO model from memory.
+    parameters:
+    - name: model_name
+      type: Any
+      required: true
+      default: null
+  - name: yolo_list_loaded_models
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_list_loaded_models
+    public: true
+    read_only: true
+    timeout: null
+    description: List currently loaded YOLO model keys.
+    parameters: []
+  - name: yolo_get_active_model
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_get_active_model
+    public: true
+    read_only: true
+    timeout: null
+    description: Get current active YOLO model key.
+    parameters: []
+  - name: yolo_get_class_names
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_get_class_names
+    public: true
+    read_only: true
+    timeout: null
+    description: Get class id -> label mapping from YOLO model.
+    parameters:
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+  - name: yolo_resolve_class_ids
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_resolve_class_ids
+    public: true
+    read_only: true
+    timeout: null
+    description: Resolve label names to class ids.
+    parameters:
+    - name: labels
+      type: Any
+      required: true
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+  - name: yolo_detect_on_screen
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_detect_on_screen
+    public: true
+    read_only: true
+    timeout: null
+    description: Run YOLO detection on current screen (or ROI).
+    parameters:
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+  - name: yolo_detect_image
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_detect_image
+    public: true
+    read_only: true
+    timeout: null
+    description: Run YOLO detection on a local image path.
+    parameters:
+    - name: image_path
+      type: Any
+      required: true
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+  - name: yolo_count_targets
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_count_targets
+    public: true
+    read_only: true
+    timeout: null
+    description: Count targets on screen, optionally filtered by labels and confidence.
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+  - name: yolo_find_target
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_find_target
+    public: true
+    read_only: true
+    timeout: null
+    description: Find a single target by composite strategy (filter + sort).
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: sort_mode
+      type: Any
+      required: false
+      default: highest_confidence
+    - name: anchor_point
+      type: Any
+      required: false
+      default: null
+  - name: yolo_wait_for_target
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_wait_for_target
+    public: true
+    read_only: true
+    timeout: null
+    description: Wait until target appears and return the selected detection.
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: poll_interval_sec
+      type: Any
+      required: false
+      default: 0.3
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: sort_mode
+      type: Any
+      required: false
+      default: highest_confidence
+    - name: anchor_point
+      type: Any
+      required: false
+      default: null
+  - name: yolo_wait_for_target_disappear
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_wait_for_target_disappear
+    public: true
+    read_only: true
+    timeout: null
+    description: Wait until target disappears from screen.
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: poll_interval_sec
+      type: Any
+      required: false
+      default: 0.3
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+  - name: yolo_find_and_click_target
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_find_and_click_target
+    public: true
+    read_only: false
+    timeout: null
+    description: Find a target and click it using global screen coordinates.
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: sort_mode
+      type: Any
+      required: false
+      default: highest_confidence
+    - name: anchor_point
+      type: Any
+      required: false
+      default: null
+    - name: click_offset
+      type: Any
+      required: false
+      default: null
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: clicks
+      type: Any
+      required: false
+      default: 1
+    - name: interval
+      type: Any
+      required: false
+      default: 0.1
+    - name: post_delay_sec
+      type: Any
+      required: false
+      default: 0.0
+  - name: yolo_click_all_targets
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_click_all_targets
+    public: true
+    read_only: false
+    timeout: null
+    description: Detect once and click all matched targets in sorted order.
+    parameters:
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: sort_mode
+      type: Any
+      required: false
+      default: left_to_right
+    - name: anchor_point
+      type: Any
+      required: false
+      default: null
+    - name: click_offset
+      type: Any
+      required: false
+      default: null
+    - name: button
+      type: Any
+      required: false
+      default: left
+    - name: clicks
+      type: Any
+      required: false
+      default: 1
+    - name: interval
+      type: Any
+      required: false
+      default: 0.08
+    - name: delay_between_clicks_sec
+      type: Any
+      required: false
+      default: 0.1
+    - name: max_clicks
+      type: Any
+      required: false
+      default: 10
+  - name: yolo_find_target_and_press_key
+    module: plans.aura_base.src.actions.yolo_actions
+    function: yolo_find_target_and_press_key
+    public: true
+    read_only: false
+    timeout: null
+    description: Find target first, then press key if found.
+    parameters:
+    - name: key
+      type: Any
+      required: true
+      default: null
+    - name: target_labels
+      type: Any
+      required: false
+      default: null
+    - name: roi
+      type: Any
+      required: false
+      default: null
+    - name: model_name
+      type: Any
+      required: false
+      default: null
+    - name: options
+      type: Any
+      required: false
+      default: null
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: sort_mode
+      type: Any
+      required: false
+      default: highest_confidence
+    - name: anchor_point
+      type: Any
+      required: false
+      default: null
+    - name: presses
+      type: Any
+      required: false
+      default: 1
+    - name: interval
+      type: Any
+      required: false
+      default: 0.1
+  tasks: []
+metadata:
+  generated_by: ManifestGenerator
+  generated_at: '2026-04-19T08:50:09Z'

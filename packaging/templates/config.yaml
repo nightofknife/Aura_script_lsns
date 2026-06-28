@@ -1,0 +1,11 @@
+package:
+  manifest_mode: hybrid
+  auto_sync_manifest_on_startup: true
+
+runtime:
+  startup_timeout_sec: 30
+
+ocr:
+  models_root: models/ocr
+  default_model: ppocrv5_server
+  execution_provider: auto

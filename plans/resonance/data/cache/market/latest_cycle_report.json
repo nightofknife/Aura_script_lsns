@@ -1,0 +1,729 @@
+{
+  "refresh": {
+    "snapshot_id": "20260316T152039Z_7ec82087d0",
+    "fetched_at": "2026-03-16T15:20:39.145518+00:00",
+    "stale": false,
+    "raw_payload_hash": "7ec82087d035b2d7ce9768194e71338e33c2b9ac444abee65e256315ddc1ede2"
+  },
+  "allowed_city_ids": [
+    "3",
+    "4",
+    "1",
+    "5",
+    "7",
+    "8",
+    "9",
+    "2"
+  ],
+  "status": "ok",
+  "cycle": {
+    "city_sequence": [
+      "3",
+      "9",
+      "5",
+      "7",
+      "4",
+      "8",
+      "3"
+    ],
+    "totals": {
+      "profit": 272522.0,
+      "fatigue": 198,
+      "profit_per_fatigue": 1376.3737373737374,
+      "books_budget": 0,
+      "books_used": 0,
+      "book_profit_threshold": 0.0
+    },
+    "steps": [
+      {
+        "step_index": 1,
+        "from_city_id": "3",
+        "from_city_name": "七号自由港",
+        "to_city_id": "9",
+        "to_city_name": "淘金乐园",
+        "fatigue_cost": 40,
+        "step_profit": 52556.0,
+        "buy_count": 8,
+        "buys": [
+          {
+            "product_id": "23",
+            "product_name": "桦石发财树",
+            "qty": 7,
+            "buy_price": 5084.0,
+            "sell_price": 5734.0,
+            "unit_profit": 650.0,
+            "total_profit": 4550.0
+          },
+          {
+            "product_id": "28",
+            "product_name": "斑节虾",
+            "qty": 35,
+            "buy_price": 635.0,
+            "sell_price": 1173.0,
+            "unit_profit": 538.0,
+            "total_profit": 18830.0
+          },
+          {
+            "product_id": "25",
+            "product_name": "人工晶花",
+            "qty": 14,
+            "buy_price": 2061.0,
+            "sell_price": 2554.0,
+            "unit_profit": 493.0,
+            "total_profit": 6902.0
+          },
+          {
+            "product_id": "26",
+            "product_name": "电子配件",
+            "qty": 21,
+            "buy_price": 1014.0,
+            "sell_price": 1462.0,
+            "unit_profit": 448.0,
+            "total_profit": 9408.0
+          },
+          {
+            "product_id": "24",
+            "product_name": "石墨烯",
+            "qty": 7,
+            "buy_price": 2281.0,
+            "sell_price": 2522.0,
+            "unit_profit": 241.0,
+            "total_profit": 1687.0
+          },
+          {
+            "product_id": "29",
+            "product_name": "纯棉T恤",
+            "qty": 35,
+            "buy_price": 419.0,
+            "sell_price": 574.0,
+            "unit_profit": 155.0,
+            "total_profit": 5425.0
+          },
+          {
+            "product_id": "30",
+            "product_name": "坚果",
+            "qty": 42,
+            "buy_price": 185.0,
+            "sell_price": 294.0,
+            "unit_profit": 109.0,
+            "total_profit": 4578.0
+          },
+          {
+            "product_id": "31",
+            "product_name": "啤酒",
+            "qty": 56,
+            "buy_price": 133.0,
+            "sell_price": 154.0,
+            "unit_profit": 21.0,
+            "total_profit": 1176.0
+          }
+        ]
+      },
+      {
+        "step_index": 2,
+        "from_city_id": "9",
+        "from_city_name": "淘金乐园",
+        "to_city_id": "5",
+        "to_city_name": "阿妮塔战备工厂",
+        "fatigue_cost": 37,
+        "step_profit": 50407.0,
+        "buy_count": 6,
+        "buys": [
+          {
+            "product_id": "80",
+            "product_name": "青金石",
+            "qty": 13,
+            "buy_price": 1421.0,
+            "sell_price": 2527.0,
+            "unit_profit": 1106.0,
+            "total_profit": 14378.0
+          },
+          {
+            "product_id": "81",
+            "product_name": "玛瑙",
+            "qty": 17,
+            "buy_price": 1348.0,
+            "sell_price": 2316.0,
+            "unit_profit": 968.0,
+            "total_profit": 16456.0
+          },
+          {
+            "product_id": "79",
+            "product_name": "沙金",
+            "qty": 11,
+            "buy_price": 2916.0,
+            "sell_price": 3570.0,
+            "unit_profit": 654.0,
+            "total_profit": 7194.0
+          },
+          {
+            "product_id": "82",
+            "product_name": "漆黑矿渣",
+            "qty": 37,
+            "buy_price": 527.0,
+            "sell_price": 762.0,
+            "unit_profit": 235.0,
+            "total_profit": 8695.0
+          },
+          {
+            "product_id": "83",
+            "product_name": "牛仔裤",
+            "qty": 10,
+            "buy_price": 476.0,
+            "sell_price": 553.0,
+            "unit_profit": 77.0,
+            "total_profit": 770.0
+          },
+          {
+            "product_id": "84",
+            "product_name": "石英砂",
+            "qty": 47,
+            "buy_price": 242.0,
+            "sell_price": 304.0,
+            "unit_profit": 62.0,
+            "total_profit": 2914.0
+          }
+        ]
+      },
+      {
+        "step_index": 3,
+        "from_city_id": "5",
+        "from_city_name": "阿妮塔战备工厂",
+        "to_city_id": "7",
+        "to_city_name": "荒原站",
+        "fatigue_cost": 31,
+        "step_profit": 41135.0,
+        "buy_count": 7,
+        "buys": [
+          {
+            "product_id": "46",
+            "product_name": "负片炮弹",
+            "qty": 4,
+            "buy_price": 4116.0,
+            "sell_price": 5523.0,
+            "unit_profit": 1407.0,
+            "total_profit": 5628.0
+          },
+          {
+            "product_id": "48",
+            "product_name": "抗污染防护服",
+            "qty": 11,
+            "buy_price": 2856.0,
+            "sell_price": 3634.0,
+            "unit_profit": 778.0,
+            "total_profit": 8558.0
+          },
+          {
+            "product_id": "49",
+            "product_name": "钛合金",
+            "qty": 11,
+            "buy_price": 2646.0,
+            "sell_price": 2985.0,
+            "unit_profit": 339.0,
+            "total_profit": 3729.0
+          },
+          {
+            "product_id": "52",
+            "product_name": "高导磁硅钢片",
+            "qty": 29,
+            "buy_price": 798.0,
+            "sell_price": 1121.0,
+            "unit_profit": 323.0,
+            "total_profit": 9367.0
+          },
+          {
+            "product_id": "50",
+            "product_name": "碳纤维",
+            "qty": 18,
+            "buy_price": 1261.0,
+            "sell_price": 1547.0,
+            "unit_profit": 286.0,
+            "total_profit": 5148.0
+          },
+          {
+            "product_id": "47",
+            "product_name": "阿妮塔202军用无人机",
+            "qty": 7,
+            "buy_price": 3815.0,
+            "sell_price": 4038.0,
+            "unit_profit": 223.0,
+            "total_profit": 1561.0
+          },
+          {
+            "product_id": "53",
+            "product_name": "黄铜线圈",
+            "qty": 47,
+            "buy_price": 637.0,
+            "sell_price": 789.0,
+            "unit_profit": 152.0,
+            "total_profit": 7144.0
+          }
+        ]
+      },
+      {
+        "step_index": 4,
+        "from_city_id": "7",
+        "from_city_name": "荒原站",
+        "to_city_id": "4",
+        "to_city_name": "澄明数据中心",
+        "fatigue_cost": 27,
+        "step_profit": 51761.0,
+        "buy_count": 6,
+        "buys": [
+          {
+            "product_id": "63",
+            "product_name": "孔雀石",
+            "qty": 17,
+            "buy_price": 842.0,
+            "sell_price": 2462.0,
+            "unit_profit": 1620.0,
+            "total_profit": 27540.0
+          },
+          {
+            "product_id": "64",
+            "product_name": "绿松石",
+            "qty": 19,
+            "buy_price": 1018.0,
+            "sell_price": 1579.0,
+            "unit_profit": 561.0,
+            "total_profit": 10659.0
+          },
+          {
+            "product_id": "65",
+            "product_name": "棉花",
+            "qty": 23,
+            "buy_price": 668.0,
+            "sell_price": 978.0,
+            "unit_profit": 310.0,
+            "total_profit": 7130.0
+          },
+          {
+            "product_id": "66",
+            "product_name": "铅矿石",
+            "qty": 29,
+            "buy_price": 597.0,
+            "sell_price": 680.0,
+            "unit_profit": 83.0,
+            "total_profit": 2407.0
+          },
+          {
+            "product_id": "67",
+            "product_name": "石墨",
+            "qty": 37,
+            "buy_price": 353.0,
+            "sell_price": 436.0,
+            "unit_profit": 83.0,
+            "total_profit": 3071.0
+          },
+          {
+            "product_id": "68",
+            "product_name": "土豆",
+            "qty": 53,
+            "buy_price": 56.0,
+            "sell_price": 74.0,
+            "unit_profit": 18.0,
+            "total_profit": 954.0
+          }
+        ]
+      },
+      {
+        "step_index": 5,
+        "from_city_id": "4",
+        "from_city_name": "澄明数据中心",
+        "to_city_id": "8",
+        "to_city_name": "曼德矿场",
+        "fatigue_cost": 28,
+        "step_profit": 36145.0,
+        "buy_count": 7,
+        "buys": [
+          {
+            "product_id": "33",
+            "product_name": "游戏机",
+            "qty": 10,
+            "buy_price": 2720.0,
+            "sell_price": 4232.0,
+            "unit_profit": 1512.0,
+            "total_profit": 15120.0
+          },
+          {
+            "product_id": "35",
+            "product_name": "花呢上衣",
+            "qty": 10,
+            "buy_price": 1505.0,
+            "sell_price": 2004.0,
+            "unit_profit": 499.0,
+            "total_profit": 4990.0
+          },
+          {
+            "product_id": "36",
+            "product_name": "扬声器",
+            "qty": 20,
+            "buy_price": 970.0,
+            "sell_price": 1259.0,
+            "unit_profit": 289.0,
+            "total_profit": 5780.0
+          },
+          {
+            "product_id": "38",
+            "product_name": "录像带",
+            "qty": 30,
+            "buy_price": 425.0,
+            "sell_price": 581.0,
+            "unit_profit": 156.0,
+            "total_profit": 4680.0
+          },
+          {
+            "product_id": "39",
+            "product_name": "荧光棒",
+            "qty": 35,
+            "buy_price": 437.0,
+            "sell_price": 550.0,
+            "unit_profit": 113.0,
+            "total_profit": 3955.0
+          },
+          {
+            "product_id": "40",
+            "product_name": "火车玩具",
+            "qty": 40,
+            "buy_price": 307.0,
+            "sell_price": 337.0,
+            "unit_profit": 30.0,
+            "total_profit": 1200.0
+          },
+          {
+            "product_id": "37",
+            "product_name": "游戏卡带",
+            "qty": 30,
+            "buy_price": 719.0,
+            "sell_price": 733.0,
+            "unit_profit": 14.0,
+            "total_profit": 420.0
+          }
+        ]
+      },
+      {
+        "step_index": 6,
+        "from_city_id": "8",
+        "from_city_name": "曼德矿场",
+        "to_city_id": "3",
+        "to_city_name": "七号自由港",
+        "fatigue_cost": 35,
+        "step_profit": 40518.0,
+        "buy_count": 7,
+        "buys": [
+          {
+            "product_id": "69",
+            "product_name": "图形加速卡",
+            "qty": 12,
+            "buy_price": 3195.0,
+            "sell_price": 3910.0,
+            "unit_profit": 715.0,
+            "total_profit": 8580.0
+          },
+          {
+            "product_id": "70",
+            "product_name": "钛矿石",
+            "qty": 15,
+            "buy_price": 1490.0,
+            "sell_price": 2021.0,
+            "unit_profit": 531.0,
+            "total_profit": 7965.0
+          },
+          {
+            "product_id": "71",
+            "product_name": "铁轨用特种钢材",
+            "qty": 24,
+            "buy_price": 961.0,
+            "sell_price": 1248.0,
+            "unit_profit": 287.0,
+            "total_profit": 6888.0
+          },
+          {
+            "product_id": "73",
+            "product_name": "黄铜",
+            "qty": 30,
+            "buy_price": 558.0,
+            "sell_price": 819.0,
+            "unit_profit": 261.0,
+            "total_profit": 7830.0
+          },
+          {
+            "product_id": "72",
+            "product_name": "曼德工具箱",
+            "qty": 27,
+            "buy_price": 924.0,
+            "sell_price": 1144.0,
+            "unit_profit": 220.0,
+            "total_profit": 5940.0
+          },
+          {
+            "product_id": "77",
+            "product_name": "石材",
+            "qty": 45,
+            "buy_price": 182.0,
+            "sell_price": 235.0,
+            "unit_profit": 53.0,
+            "total_profit": 2385.0
+          },
+          {
+            "product_id": "75",
+            "product_name": "建材",
+            "qty": 30,
+            "buy_price": 423.0,
+            "sell_price": 454.0,
+            "unit_profit": 31.0,
+            "total_profit": 930.0
+          }
+        ]
+      }
+    ],
+    "product_profit_summary": [
+      {
+        "product_id": "63",
+        "product_name": "孔雀石",
+        "total_qty": 17,
+        "total_profit": 27540.0
+      },
+      {
+        "product_id": "28",
+        "product_name": "斑节虾",
+        "total_qty": 35,
+        "total_profit": 18830.0
+      },
+      {
+        "product_id": "81",
+        "product_name": "玛瑙",
+        "total_qty": 17,
+        "total_profit": 16456.0
+      },
+      {
+        "product_id": "33",
+        "product_name": "游戏机",
+        "total_qty": 10,
+        "total_profit": 15120.0
+      },
+      {
+        "product_id": "80",
+        "product_name": "青金石",
+        "total_qty": 13,
+        "total_profit": 14378.0
+      },
+      {
+        "product_id": "64",
+        "product_name": "绿松石",
+        "total_qty": 19,
+        "total_profit": 10659.0
+      },
+      {
+        "product_id": "26",
+        "product_name": "电子配件",
+        "total_qty": 21,
+        "total_profit": 9408.0
+      },
+      {
+        "product_id": "52",
+        "product_name": "高导磁硅钢片",
+        "total_qty": 29,
+        "total_profit": 9367.0
+      },
+      {
+        "product_id": "82",
+        "product_name": "漆黑矿渣",
+        "total_qty": 37,
+        "total_profit": 8695.0
+      },
+      {
+        "product_id": "69",
+        "product_name": "图形加速卡",
+        "total_qty": 12,
+        "total_profit": 8580.0
+      },
+      {
+        "product_id": "48",
+        "product_name": "抗污染防护服",
+        "total_qty": 11,
+        "total_profit": 8558.0
+      },
+      {
+        "product_id": "70",
+        "product_name": "钛矿石",
+        "total_qty": 15,
+        "total_profit": 7965.0
+      },
+      {
+        "product_id": "73",
+        "product_name": "黄铜",
+        "total_qty": 30,
+        "total_profit": 7830.0
+      },
+      {
+        "product_id": "79",
+        "product_name": "沙金",
+        "total_qty": 11,
+        "total_profit": 7194.0
+      },
+      {
+        "product_id": "53",
+        "product_name": "黄铜线圈",
+        "total_qty": 47,
+        "total_profit": 7144.0
+      },
+      {
+        "product_id": "65",
+        "product_name": "棉花",
+        "total_qty": 23,
+        "total_profit": 7130.0
+      },
+      {
+        "product_id": "25",
+        "product_name": "人工晶花",
+        "total_qty": 14,
+        "total_profit": 6902.0
+      },
+      {
+        "product_id": "71",
+        "product_name": "铁轨用特种钢材",
+        "total_qty": 24,
+        "total_profit": 6888.0
+      },
+      {
+        "product_id": "72",
+        "product_name": "曼德工具箱",
+        "total_qty": 27,
+        "total_profit": 5940.0
+      },
+      {
+        "product_id": "36",
+        "product_name": "扬声器",
+        "total_qty": 20,
+        "total_profit": 5780.0
+      },
+      {
+        "product_id": "46",
+        "product_name": "负片炮弹",
+        "total_qty": 4,
+        "total_profit": 5628.0
+      },
+      {
+        "product_id": "29",
+        "product_name": "纯棉T恤",
+        "total_qty": 35,
+        "total_profit": 5425.0
+      },
+      {
+        "product_id": "50",
+        "product_name": "碳纤维",
+        "total_qty": 18,
+        "total_profit": 5148.0
+      },
+      {
+        "product_id": "35",
+        "product_name": "花呢上衣",
+        "total_qty": 10,
+        "total_profit": 4990.0
+      },
+      {
+        "product_id": "38",
+        "product_name": "录像带",
+        "total_qty": 30,
+        "total_profit": 4680.0
+      },
+      {
+        "product_id": "30",
+        "product_name": "坚果",
+        "total_qty": 42,
+        "total_profit": 4578.0
+      },
+      {
+        "product_id": "23",
+        "product_name": "桦石发财树",
+        "total_qty": 7,
+        "total_profit": 4550.0
+      },
+      {
+        "product_id": "39",
+        "product_name": "荧光棒",
+        "total_qty": 35,
+        "total_profit": 3955.0
+      },
+      {
+        "product_id": "49",
+        "product_name": "钛合金",
+        "total_qty": 11,
+        "total_profit": 3729.0
+      },
+      {
+        "product_id": "67",
+        "product_name": "石墨",
+        "total_qty": 37,
+        "total_profit": 3071.0
+      },
+      {
+        "product_id": "84",
+        "product_name": "石英砂",
+        "total_qty": 47,
+        "total_profit": 2914.0
+      },
+      {
+        "product_id": "66",
+        "product_name": "铅矿石",
+        "total_qty": 29,
+        "total_profit": 2407.0
+      },
+      {
+        "product_id": "77",
+        "product_name": "石材",
+        "total_qty": 45,
+        "total_profit": 2385.0
+      },
+      {
+        "product_id": "24",
+        "product_name": "石墨烯",
+        "total_qty": 7,
+        "total_profit": 1687.0
+      },
+      {
+        "product_id": "47",
+        "product_name": "阿妮塔202军用无人机",
+        "total_qty": 7,
+        "total_profit": 1561.0
+      },
+      {
+        "product_id": "40",
+        "product_name": "火车玩具",
+        "total_qty": 40,
+        "total_profit": 1200.0
+      },
+      {
+        "product_id": "31",
+        "product_name": "啤酒",
+        "total_qty": 56,
+        "total_profit": 1176.0
+      },
+      {
+        "product_id": "68",
+        "product_name": "土豆",
+        "total_qty": 53,
+        "total_profit": 954.0
+      },
+      {
+        "product_id": "75",
+        "product_name": "建材",
+        "total_qty": 30,
+        "total_profit": 930.0
+      },
+      {
+        "product_id": "83",
+        "product_name": "牛仔裤",
+        "total_qty": 10,
+        "total_profit": 770.0
+      },
+      {
+        "product_id": "37",
+        "product_name": "游戏卡带",
+        "total_qty": 30,
+        "total_profit": 420.0
+      }
+    ]
+  }
+}

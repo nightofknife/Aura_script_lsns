@@ -1,0 +1,81 @@
+actions:
+  confirm:
+    type: key
+    key: enter
+  cancel:
+    type: key
+    key: esc
+  interact:
+    type: key
+    key: f
+  jump:
+    type: key
+    key: space
+  sprint:
+    type: key
+    key: shift
+  crouch:
+    type: key
+    key: ctrl
+  dodge:
+    type: key
+    key: alt
+  move_forward:
+    type: key
+    key: w
+  move_backward:
+    type: key
+    key: s
+  move_left:
+    type: key
+    key: a
+  move_right:
+    type: key
+    key: d
+  attack_primary:
+    type: mouse_button
+    button: left
+  attack_secondary:
+    type: mouse_button
+    button: right
+  aim_hold:
+    type: mouse_button
+    button: right
+  open_map:
+    type: key
+    key: m
+  open_inventory:
+    type: key
+    key: tab
+  open_menu:
+    type: key
+    key: esc
+  open_chat:
+    type: key
+    key: enter
+  camera_left_small:
+    type: look
+    dx: -140
+    dy: 0
+  camera_right_small:
+    type: look
+    dx: 140
+    dy: 0
+  camera_up_small:
+    type: look
+    dx: 0
+    dy: -100
+  camera_down_small:
+    type: look
+    dx: 0
+    dy: 100
+  camera_left_hold:
+    type: look
+    direction: left
+    strength: 0.45
+    duration_ms: 250
+  camera_right_hold:
+    type: look
+    direction: right
+    strength: 0.45
+    duration_ms: 250

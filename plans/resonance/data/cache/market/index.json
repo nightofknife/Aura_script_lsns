@@ -1,0 +1,90 @@
+[
+  {
+    "snapshot_id": "20260319T160137Z_175bea21f0",
+    "fetched_at": "2026-03-19T16:01:37.451007+00:00",
+    "raw_payload_hash": "175bea21f00c663299540d4e248d189ee84c682cdb49d6264d0417fff8e0ebd5",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773936097
+  },
+  {
+    "snapshot_id": "20260319T155335Z_2f12151b77",
+    "fetched_at": "2026-03-19T15:53:35.249926+00:00",
+    "raw_payload_hash": "2f12151b776c4a13a125f5bde971dbf859f576b13bae8dc2dee8c48e3c51db8e",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773935615
+  },
+  {
+    "snapshot_id": "20260318T203818Z_6f41cb0653",
+    "fetched_at": "2026-03-18T20:38:18.496961+00:00",
+    "raw_payload_hash": "6f41cb06531ddf0d3e465b59da5b30c07f11c00f3277aed5a1fbd61a521627c8",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773866298
+  },
+  {
+    "snapshot_id": "20260318T165730Z_1a672c516e",
+    "fetched_at": "2026-03-18T16:57:30.966489+00:00",
+    "raw_payload_hash": "1a672c516e3b026d21638bfd95a92255ca7456193c11ea6808c1c7eda69abe50",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773853050
+  },
+  {
+    "snapshot_id": "20260317T160012Z_484f66f7a9",
+    "fetched_at": "2026-03-17T16:00:12.586745+00:00",
+    "raw_payload_hash": "484f66f7a96c9aed20e56397d83c5c54c397d8e749d0bfccb445172143707786",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773763212
+  },
+  {
+    "snapshot_id": "20260316T152039Z_7ec82087d0",
+    "fetched_at": "2026-03-16T15:20:39.145518+00:00",
+    "raw_payload_hash": "7ec82087d035b2d7ce9768194e71338e33c2b9ac444abee65e256315ddc1ede2",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773674439
+  },
+  {
+    "snapshot_id": "20260314T114432Z_a55ad5fe7e",
+    "fetched_at": "2026-03-14T11:44:32.179284+00:00",
+    "raw_payload_hash": "a55ad5fe7e191b283e7a05938d4a21773575d6834c56f1d32612d993799d3084",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773488672
+  },
+  {
+    "snapshot_id": "20260314T094144Z_765a8dfe2a",
+    "fetched_at": "2026-03-14T09:41:44.535216+00:00",
+    "raw_payload_hash": "765a8dfe2a19e0b385959416fe73496a702e474a0cbd0624ebf55ebad8303ba6",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773481304
+  },
+  {
+    "snapshot_id": "20260314T033120Z_99eb73944d",
+    "fetched_at": "2026-03-14T03:31:20.160647+00:00",
+    "raw_payload_hash": "99eb73944dfcfd8343e1cb0ed7d86b9fa3ce8b880a262ed3babd60bb92ecc81f",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773459080
+  },
+  {
+    "snapshot_id": "20260314T031616Z_7bb768d7e4",
+    "fetched_at": "2026-03-14T03:16:16.044578+00:00",
+    "raw_payload_hash": "7bb768d7e43a3e0b90b4469246fdf46dc119bccd8d38d5777525b7a1cf19dba9",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773458176
+  },
+  {
+    "snapshot_id": "20260313T191517Z_6a617b35f2",
+    "fetched_at": "2026-03-13T19:15:17.962766+00:00",
+    "raw_payload_hash": "6a617b35f219fd032abca80f101ea676a131554cf6c98e236938df444bcafbbc",
+    "product_count": 217,
+    "city_count": 20,
+    "created_at_epoch": 1773429317
+  }
+]
