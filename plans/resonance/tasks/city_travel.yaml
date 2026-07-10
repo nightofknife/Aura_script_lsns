@@ -10,39 +10,28 @@ intercity_select_destination:
       - name: enter_station_timeout_seconds
         type: number
         required: false
-        default: 600
+        default: 0
+      - name: use_fatigue_medicine
+        type: boolean
+        required: false
+        default: false
+      - name: allowed_fatigue_medicines
+        type: list
+        required: false
+        default: []
+      - name: fatigue_medicine_max_uses
+        type: number
+        required: false
+        default: 4
 
   steps:
-    wait_depart_text:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "启程"
-        timeout: 3.0
-        interval: 0.5
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-
-    click_depart:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "启程"
-        timeout: 3.0
-        interval: 0.5
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-      depends_on: wait_depart_text
-
-    wait_intercity_scene:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 1.0
-      depends_on: click_depart
-
-    select_destination:
-      action: resonance.select_intercity_destination
+    depart_and_wait:
+      action: resonance.intercity_depart_and_wait
       params:
         to_city_name: "{{ inputs.to_city_name }}"
-        location_file_path: "data/meta/location.json"
+        enter_station_timeout_seconds: "{{ inputs.enter_station_timeout_seconds }}"
+        # MuMu emulator coordinates live in location_mumu.json; keep location.json for PC.
+        location_file_path: "data/meta/location_mumu.json"
         city_search_region: [130, 70, 1000, 550]
         drag_center: [640, 360]
         drag_span_px: 450
@@ -52,58 +41,21 @@ intercity_select_destination:
         click_y_offset: -15
         drag_duration_sec: 1.0
         drag_hold_sec: 0.5
-      depends_on: wait_intercity_scene
-
-    wait_go_destination_text:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "前往目的地"
-        timeout: 3.0
-        interval: 0.5
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-      depends_on: select_destination
-
-    click_go_destination:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "前往目的地"
-        timeout: 3.0
-        interval: 0.5
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-      depends_on: wait_go_destination_text
-
-    wait_traveling:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 1.0
-      depends_on: click_go_destination
-
-    wait_enter_station_text:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "进入站点"
-        timeout: "{{ inputs.enter_station_timeout_seconds }}"
-        interval: 3.0
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-      depends_on: wait_traveling
-
-    click_enter_station:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "进入站点"
-        timeout: 3.0
-        interval: 0.5
-        region: [0, 0, 1280, 720]
-        match_mode: "contains"
-      depends_on: wait_enter_station_text
+        use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
+        allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
+        fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
 
   returns:
-    success: true
-    to_city_name: "{{ nodes.select_destination.output.to_city_name }}"
-    to_city_key: "{{ nodes.select_destination.output.to_city_key }}"
-    selected_point: "{{ nodes.select_destination.output.selected_point }}"
-    mode: "{{ nodes.select_destination.output.mode }}"
-    attempts_used: "{{ nodes.select_destination.output.attempts_used }}"
+    success: "{{ nodes.depart_and_wait.output.success }}"
+    status: "{{ nodes.depart_and_wait.output.status }}"
+    reason: "{{ nodes.depart_and_wait.output.reason }}"
+    blocked_at: "{{ nodes.depart_and_wait.output.blocked_at }}"
+    to_city_name: "{{ nodes.depart_and_wait.output.to_city_name }}"
+    to_city_key: "{{ nodes.depart_and_wait.output.to_city_key }}"
+    selected_point: "{{ nodes.depart_and_wait.output.selected_point }}"
+    mode: "{{ nodes.depart_and_wait.output.mode }}"
+    attempts_used: "{{ nodes.depart_and_wait.output.attempts_used }}"
+    arrival_status: "{{ nodes.depart_and_wait.output.arrival_status }}"
+    encounter_actions: "{{ nodes.depart_and_wait.output.encounter_actions }}"
+    fatigue_medicine_used: "{{ nodes.depart_and_wait.output.fatigue_medicine_used }}"
+    fatigue_medicine_use_count: "{{ nodes.depart_and_wait.output.fatigue_medicine_use_count }}"

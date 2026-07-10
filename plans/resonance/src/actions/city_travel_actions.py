@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.observability.logging.core_logger import logger
 
 
 class IntercityDestinationError(RuntimeError):
@@ -31,6 +32,55 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 
 _DEFAULT_CITY_SEARCH_REGION = [120, 80, 1100, 600]  # x,y,w,h
 _DEFAULT_DRAG_CENTER = [640, 360]  # x,y
+_DEFAULT_FULL_SCREEN_REGION = [0, 0, 1280, 720]
+
+_ARRIVAL_MARKERS = ("进入站点",)
+_ENCOUNTER_MARKERS = ("立即返航", "护卫队迎击", "敌方等级", "应对方式", "诱饵气球")
+_BALLOON_MARKERS = ("诱饵气球",)
+_RETURN_MARKERS = ("立即返航",)
+_FIGHT_MARKERS = ("护卫队迎击",)
+_UNAVAILABLE_MARKERS = ("暂不可用", "不可用")
+
+_DEPART_MARKERS = ("启程",)
+_DEPART_CONFIRM_MARKERS = ("立即出发",)
+
+_GO_DESTINATION_TEMPLATE = "templates/go_destination_button.png"
+_FATIGUE_PANEL_TEMPLATE = "templates/fatigue_recovery_panel_title.png"
+_FATIGUE_BACK_TEMPLATE = "templates/fatigue_recovery_back_button.png"
+_FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.png"
+
+_GO_DESTINATION_REGION = [900, 580, 340, 120]
+_DEPART_CONFIRM_REGION = [450, 360, 760, 220]
+_FATIGUE_PANEL_REGION = [70, 80, 520, 190]
+_FATIGUE_BACK_REGION = [0, 0, 260, 90]
+_FATIGUE_MEDICINE_CONFIRM_REGION = [620, 520, 660, 120]
+
+_WEEKLY_NOTICE_CHECKBOX = [890, 523]
+_DEPART_CONFIRM_POINT = [852, 447]
+_FATIGUE_BACK_FALLBACK_POINT = [82, 36]
+
+_FATIGUE_MEDICINE_ORDER: List[Dict[str, Any]] = [
+    {
+        "name": "提神棒棒糖",
+        "template": "templates/fatigue_medicine_stimulant_lollipop_button.png",
+        "region": [540, 310, 240, 90],
+    },
+    {
+        "name": "提神口香糖",
+        "template": "templates/fatigue_medicine_stimulant_gum_button.png",
+        "region": [780, 310, 240, 90],
+    },
+    {
+        "name": "仙人掌提神跳糖",
+        "template": "templates/fatigue_medicine_cactus_jump_candy_button.png",
+        "region": [540, 560, 240, 90],
+    },
+    {
+        "name": "桦石",
+        "template": "templates/fatigue_medicine_birch_stone_button.png",
+        "region": [780, 560, 240, 90],
+    },
+]
 
 _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
     "anita_energy_research_institute": "阿妮塔能源研究所",
@@ -281,6 +331,72 @@ def _capture_and_ocr_city_labels(
     return observed
 
 
+def _capture_and_ocr_text_items(
+    app: Any,
+    ocr: Any,
+    region: List[int],
+) -> List[Dict[str, Any]]:
+    capture = app.capture(rect=tuple(region))
+    if not capture.success:
+        _raise_error(
+            code="capture_failed",
+            message="Failed to capture screen region.",
+            detail={"region": region},
+        )
+    multi = ocr.recognize_all(source_image=capture.image)
+    observed: List[Dict[str, Any]] = []
+    for item in getattr(multi, "results", []) or []:
+        text = str(getattr(item, "text", "") or "")
+        if not text.strip():
+            continue
+        center = getattr(item, "center_point", None)
+        if not center or len(center) != 2:
+            continue
+        observed.append(
+            {
+                "text": text,
+                "norm_text": _normalize_text(text),
+                "center": [int(region[0] + int(center[0])), int(region[1] + int(center[1]))],
+                "confidence": float(getattr(item, "confidence", 0.0) or 0.0),
+            }
+        )
+    observed.sort(key=lambda x: x["confidence"], reverse=True)
+    return observed
+
+
+def _find_marker_hit(items: List[Dict[str, Any]], markers: Tuple[str, ...]) -> Optional[Dict[str, Any]]:
+    normalized_markers = [(_normalize_text(marker), marker) for marker in markers]
+    for item in items:
+        norm = str(item.get("norm_text") or "")
+        for normalized_marker, marker in normalized_markers:
+            if normalized_marker and normalized_marker in norm:
+                return {**item, "marker": marker}
+    return None
+
+
+def _collect_marker_hits(items: List[Dict[str, Any]], markers: Tuple[str, ...]) -> List[Dict[str, Any]]:
+    hits: List[Dict[str, Any]] = []
+    normalized_markers = [(_normalize_text(marker), marker) for marker in markers]
+    for item in items:
+        norm = str(item.get("norm_text") or "")
+        for normalized_marker, marker in normalized_markers:
+            if normalized_marker and normalized_marker in norm:
+                hits.append({**item, "marker": marker})
+                break
+    return hits
+
+
+def _looks_like_intercity_encounter(items: List[Dict[str, Any]]) -> bool:
+    markers = {str(hit.get("marker") or "") for hit in _collect_marker_hits(items, _ENCOUNTER_MARKERS)}
+    if "应对方式" in markers and len(markers) >= 2:
+        return True
+    if "立即返航" in markers and "护卫队迎击" in markers:
+        return True
+    if "敌方等级" in markers and ("护卫队迎击" in markers or "诱饵气球" in markers):
+        return True
+    return False
+
+
 def _find_target_hit(
     observed: List[Dict[str, Any]],
     target_alias_norms: set[str],
@@ -437,6 +553,314 @@ def _perform_drag_with_hold(
             controller.mouse_up("left")
 
 
+def _resolve_plan_template_path(template: str) -> str:
+    raw = Path(str(template or "").strip())
+    if raw.is_absolute():
+        return str(raw)
+    return str((_PLAN_ROOT / raw).resolve())
+
+
+def _match_template_in_region(
+    app: Any,
+    vision: Any,
+    template: str,
+    region: List[int],
+    threshold: float,
+    use_grayscale: bool = True,
+) -> Dict[str, Any]:
+    capture = app.capture(rect=tuple(region))
+    if not capture.success:
+        return {"found": False, "template": template, "region": list(region), "reason": "capture_failed"}
+    match = vision.find_template(
+        source_image=capture.image,
+        template_image=_resolve_plan_template_path(template),
+        threshold=float(threshold),
+        use_grayscale=bool(use_grayscale),
+    )
+    found = bool(getattr(match, "found", False))
+    center = getattr(match, "center_point", None)
+    rect = getattr(match, "rect", None)
+    result: Dict[str, Any] = {
+        "found": found,
+        "template": template,
+        "region": list(region),
+        "confidence": float(getattr(match, "confidence", 0.0) or 0.0),
+    }
+    if center and len(center) == 2:
+        result["center"] = [int(region[0] + int(center[0])), int(region[1] + int(center[1]))]
+    if rect and len(rect) == 4:
+        result["rect"] = [
+            int(region[0] + int(rect[0])),
+            int(region[1] + int(rect[1])),
+            int(rect[2]),
+            int(rect[3]),
+        ]
+    return result
+
+
+def _click_template_match(app: Any, match: Dict[str, Any]) -> bool:
+    center = match.get("center")
+    if not match.get("found") or not isinstance(center, list) or len(center) != 2:
+        return False
+    app.click(x=int(center[0]), y=int(center[1]))
+    return True
+
+
+def _wait_for_marker_hit(
+    app: Any,
+    ocr: Any,
+    markers: Tuple[str, ...],
+    *,
+    timeout_sec: float,
+    interval_sec: float,
+    region: Optional[List[int]] = None,
+) -> Optional[Dict[str, Any]]:
+    screen_region = _coerce_region(region, _DEFAULT_FULL_SCREEN_REGION)
+    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    interval = max(float(interval_sec), 0.1)
+    while time.monotonic() <= deadline:
+        items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=screen_region)
+        hit = _find_marker_hit(items, markers)
+        if hit is not None:
+            return hit
+        time.sleep(interval)
+    return None
+
+
+def _click_marker_hit(app: Any, hit: Dict[str, Any]) -> bool:
+    center = hit.get("center")
+    if not isinstance(center, list) or len(center) != 2:
+        return False
+    app.click(x=int(center[0]), y=int(center[1]))
+    return True
+
+
+def _normalize_allowed_fatigue_medicines(value: Any) -> set[str]:
+    if value is None:
+        return set()
+    raw_items: List[Any]
+    if isinstance(value, str):
+        raw_items = [item for item in re.split(r"[,，;；\n]+", value) if item.strip()]
+    elif isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = [value]
+    known_by_norm = {_normalize_text(item["name"]): item["name"] for item in _FATIGUE_MEDICINE_ORDER}
+    allowed: set[str] = set()
+    for raw in raw_items:
+        norm = _normalize_text(str(raw or ""))
+        if norm in known_by_norm:
+            allowed.add(known_by_norm[norm])
+    return allowed
+
+
+def _merge_medicine_usage(usage: Dict[str, int]) -> List[Dict[str, Any]]:
+    result: List[Dict[str, Any]] = []
+    for item in _FATIGUE_MEDICINE_ORDER:
+        name = item["name"]
+        count = int(usage.get(name) or 0)
+        if count > 0:
+            result.append({"name": name, "count": count})
+    return result
+
+
+def _find_allowed_fatigue_medicine(
+    app: Any,
+    vision: Any,
+    allowed_names: set[str],
+    *,
+    threshold: float,
+    excluded_names: Optional[set[str]] = None,
+) -> Optional[Dict[str, Any]]:
+    excluded = excluded_names or set()
+    for item in _FATIGUE_MEDICINE_ORDER:
+        name = str(item["name"])
+        if name not in allowed_names or name in excluded:
+            continue
+        match = _match_template_in_region(
+            app=app,
+            vision=vision,
+            template=str(item["template"]),
+            region=list(item["region"]),
+            threshold=float(threshold),
+            use_grayscale=True,
+        )
+        if match.get("found"):
+            return {**item, "match": match}
+    return None
+
+
+def _click_fatigue_back(app: Any, vision: Any, threshold: float = 0.95) -> Dict[str, Any]:
+    match = _match_template_in_region(
+        app=app,
+        vision=vision,
+        template=_FATIGUE_BACK_TEMPLATE,
+        region=_FATIGUE_BACK_REGION,
+        threshold=threshold,
+        use_grayscale=True,
+    )
+    if _click_template_match(app, match):
+        return {"clicked": True, "method": "template", "match": match}
+    app.click(x=int(_FATIGUE_BACK_FALLBACK_POINT[0]), y=int(_FATIGUE_BACK_FALLBACK_POINT[1]))
+    return {"clicked": True, "method": "fallback", "match": match}
+
+
+def _wait_and_click_fatigue_medicine_confirm(
+    app: Any,
+    vision: Any,
+    ocr: Any,
+    *,
+    threshold: float,
+    timeout_sec: float = 3.0,
+    interval_sec: float = 0.3,
+) -> Dict[str, Any]:
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    interval = max(float(interval_sec), 0.1)
+    last_match: Dict[str, Any] = {"found": False}
+    while time.monotonic() <= deadline:
+        match = _match_template_in_region(
+            app=app,
+            vision=vision,
+            template=_FATIGUE_MEDICINE_CONFIRM_TEMPLATE,
+            region=_FATIGUE_MEDICINE_CONFIRM_REGION,
+            threshold=float(threshold),
+            use_grayscale=True,
+        )
+        last_match = match
+        if _click_template_match(app, match):
+            return {"clicked": True, "method": "template", "match": match}
+        time.sleep(interval)
+
+    text_hit = _wait_for_marker_hit(
+        app=app,
+        ocr=ocr,
+        markers=("补充",),
+        timeout_sec=1.0,
+        interval_sec=0.3,
+        region=_FATIGUE_MEDICINE_CONFIRM_REGION,
+    )
+    if text_hit is not None and _click_marker_hit(app, text_hit):
+        return {"clicked": True, "method": "text", "text": text_hit, "match": last_match}
+    return {"clicked": False, "method": None, "match": last_match}
+
+
+def _blocked_departure_result(
+    *,
+    reason: str,
+    selected: Optional[Dict[str, Any]],
+    to_city_name: str,
+    medicine_usage: Dict[str, int],
+    medicine_limit: int,
+    back_result: Optional[Dict[str, Any]] = None,
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    selected = selected if isinstance(selected, dict) else {}
+    payload: Dict[str, Any] = {
+        "success": False,
+        "status": "blocked",
+        "reason": reason,
+        "blocked_at": "departure",
+        "to_city_name": selected.get("to_city_name") or to_city_name,
+        "to_city_key": selected.get("to_city_key"),
+        "selected_point": selected.get("selected_point"),
+        "mode": selected.get("mode"),
+        "attempts_used": selected.get("attempts_used"),
+        "arrival_status": None,
+        "encounter_actions": 0,
+        "fatigue_medicine_used": _merge_medicine_usage(medicine_usage),
+        "fatigue_medicine_use_count": sum(int(v) for v in medicine_usage.values()),
+        "fatigue_medicine_limit": int(medicine_limit),
+    }
+    if back_result is not None:
+        payload["fatigue_back"] = back_result
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def _wait_and_click_go_destination(
+    app: Any,
+    vision: Any,
+    ocr: Any,
+    *,
+    template_timeout_sec: float,
+    interval_sec: float,
+) -> Dict[str, Any]:
+    deadline = time.monotonic() + max(float(template_timeout_sec), 0.1)
+    template_match: Dict[str, Any] = {"found": False}
+    while time.monotonic() <= deadline:
+        template_match = _match_template_in_region(
+            app=app,
+            vision=vision,
+            template=_GO_DESTINATION_TEMPLATE,
+            region=_GO_DESTINATION_REGION,
+            threshold=0.82,
+            use_grayscale=True,
+        )
+        if _click_template_match(app, template_match):
+            return {"clicked": True, "method": "template", "match": template_match}
+        time.sleep(max(float(interval_sec), 0.1))
+
+    text_hit = _wait_for_marker_hit(
+        app=app,
+        ocr=ocr,
+        markers=("前往",),
+        timeout_sec=1.5,
+        interval_sec=0.5,
+        region=_GO_DESTINATION_REGION,
+    )
+    if text_hit is not None and _click_marker_hit(app, text_hit):
+        return {"clicked": True, "method": "text", "text": text_hit, "match": template_match}
+    return {"clicked": False, "method": None, "match": template_match}
+
+
+def _wait_departure_gate(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    *,
+    timeout_sec: float,
+    interval_sec: float,
+) -> Dict[str, Any]:
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    interval = max(float(interval_sec), 0.1)
+    last_panel_match: Dict[str, Any] = {"found": False}
+    last_confirm_hit: Optional[Dict[str, Any]] = None
+    while time.monotonic() <= deadline:
+        panel_match = _match_template_in_region(
+            app=app,
+            vision=vision,
+            template=_FATIGUE_PANEL_TEMPLATE,
+            region=_FATIGUE_PANEL_REGION,
+            threshold=0.90,
+            use_grayscale=True,
+        )
+        last_panel_match = panel_match
+        if panel_match.get("found"):
+            return {"state": "fatigue_panel", "panel_match": panel_match}
+
+        confirm_hit = _wait_for_marker_hit(
+            app=app,
+            ocr=ocr,
+            markers=_DEPART_CONFIRM_MARKERS,
+            timeout_sec=0.1,
+            interval_sec=0.1,
+            region=_DEPART_CONFIRM_REGION,
+        )
+        last_confirm_hit = confirm_hit
+        if confirm_hit is not None:
+            app.click(x=int(_WEEKLY_NOTICE_CHECKBOX[0]), y=int(_WEEKLY_NOTICE_CHECKBOX[1]))
+            time.sleep(0.2)
+            app.click(x=int(_DEPART_CONFIRM_POINT[0]), y=int(_DEPART_CONFIRM_POINT[1]))
+            return {"state": "confirm_clicked", "confirm_hit": confirm_hit}
+        time.sleep(interval)
+    return {
+        "state": "assume_traveling",
+        "panel_match": last_panel_match,
+        "confirm_hit": last_confirm_hit,
+    }
+
+
 @action_info(
     name="resonance.select_intercity_destination",
     public=True,
@@ -492,6 +916,22 @@ def resonance_select_intercity_destination(
     for step in range(max_steps):
         observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
         last_seen_texts = [str(item.get("text", "")) for item in observed[:20]]
+        observed_log = [
+            {
+                "text": str(item.get("text", "")),
+                "norm_text": str(item.get("norm_text", "")),
+                "center": item.get("center"),
+                "confidence": float(item.get("confidence", 0.0) or 0.0),
+            }
+            for item in observed[:20]
+        ]
+        logger.info(
+            "[IntercitySelectOCR] step=%s target=%s target_key=%s observed=%s",
+            step + 1,
+            to_city_name,
+            target_city_key,
+            json.dumps(observed_log, ensure_ascii=False),
+        )
 
         hit = _find_target_hit(observed=observed, target_alias_norms=target_alias_norms, match_mode=target_match_mode)
         if hit is not None:
@@ -501,6 +941,14 @@ def resonance_select_intercity_destination(
             app.click(x=click_x, y=click_y)
             selected_point = (click_x, click_y)
             selected_mode = "direct" if step == 0 else (selected_mode or "directional")
+            logger.info(
+                "[IntercitySelectHit] step=%s target=%s hit_text=%s click=(%s,%s)",
+                step + 1,
+                to_city_name,
+                hit.get("text"),
+                click_x,
+                click_y,
+            )
             return {
                 "success": True,
                 "to_city_key": target_city_key,
@@ -516,6 +964,16 @@ def resonance_select_intercity_destination(
             alias_lookup=alias_lookup,
             city_table=city_table,
         )
+        mappable_log = [
+            {
+                "city_key": str(item.get("city_key", "")),
+                "text": str(item.get("text", "")),
+                "screen": {"x": int(item.get("screen_x", 0)), "y": int(item.get("screen_y", 0))},
+                "map": {"x": int(item.get("map_x", 0)), "y": int(item.get("map_y", 0))},
+                "confidence": float(item.get("confidence", 0.0) or 0.0),
+            }
+            for item in mappable_points
+        ]
 
         if mappable_points:
             start, end, plan_debug = _plan_directional_drag(
@@ -527,15 +985,25 @@ def resonance_select_intercity_destination(
             )
             mode = "directional"
         else:
-            if not bool(fallback_enabled):
-                break
-            start, end, plan_debug = _plan_fallback_drag(
-                drag_center=center,
-                drag_span_px=span,
-                step_index=step,
-                window_size=(width, height),
+            selected_mode = "no_mappable"
+            attempts.append(
+                {
+                    "step": step + 1,
+                    "mode": "no_mappable",
+                    "observed_city_count": 0,
+                    "observed_text_count": len(observed),
+                    "observed": observed_log,
+                    "mappable": [],
+                    "plan": {"reason": "no_mappable_city_points", "fallback_drag_disabled": True},
+                }
             )
-            mode = "fallback"
+            logger.info(
+                "[IntercitySelectNoDrag] step=%s target=%s observed=%s",
+                step + 1,
+                to_city_name,
+                json.dumps(observed_log, ensure_ascii=False),
+            )
+            break
 
         selected_mode = mode
         attempts.append(
@@ -546,8 +1014,20 @@ def resonance_select_intercity_destination(
                 "end": {"x": int(end[0]), "y": int(end[1])},
                 "observed_city_count": len(mappable_points),
                 "observed_text_count": len(observed),
+                "observed": observed_log,
+                "mappable": mappable_log,
                 "plan": plan_debug,
             }
+        )
+        logger.info(
+            "[IntercitySelectDrag] step=%s target=%s mode=%s start=%s end=%s mappable=%s plan=%s",
+            step + 1,
+            to_city_name,
+            mode,
+            {"x": int(start[0]), "y": int(start[1])},
+            {"x": int(end[0]), "y": int(end[1])},
+            json.dumps(mappable_log, ensure_ascii=False),
+            json.dumps(plan_debug, ensure_ascii=False),
         )
         _perform_drag_with_hold(
             app=app,
@@ -569,5 +1049,460 @@ def resonance_select_intercity_destination(
             "attempt_trace": attempts,
             "selected_mode": selected_mode,
             "selected_point": selected_point,
+        },
+    )
+
+
+@action_info(
+    name="resonance.intercity_depart_and_wait",
+    public=True,
+    read_only=False,
+    description="Enter intercity view, select destination, handle fatigue recovery, depart and wait for arrival.",
+)
+@requires_services(
+    app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
+    vision="plans/aura_base/vision",
+    controller="plans/aura_base/controller",
+)
+def resonance_intercity_depart_and_wait(
+    to_city_name: str,
+    enter_station_timeout_seconds: float = 0,
+    location_file_path: str = "data/meta/location.json",
+    city_search_region: Optional[List[int]] = None,
+    drag_center: Optional[List[int]] = None,
+    drag_span_px: int = 600,
+    max_search_steps: int = 12,
+    fallback_enabled: bool = True,
+    target_match_mode: str = "contains",
+    click_y_offset: int = -15,
+    drag_duration_sec: float = 1.0,
+    drag_hold_sec: float = 0.5,
+    use_fatigue_medicine: bool = False,
+    allowed_fatigue_medicines: Optional[List[str]] = None,
+    fatigue_medicine_max_uses: int = 4,
+    medicine_button_threshold: float = 0.95,
+    app: Any = None,
+    ocr: Any = None,
+    vision: Any = None,
+    controller: Any = None,
+) -> Dict[str, Any]:
+    if app is None or ocr is None or vision is None or controller is None:
+        raise RuntimeError("app/ocr/vision/controller services are required for intercity_depart_and_wait.")
+
+    allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
+    medicine_limit = max(int(fatigue_medicine_max_uses), 0)
+    medicine_usage: Dict[str, int] = {}
+    selected: Optional[Dict[str, Any]] = None
+    ineffective_medicines: set[str] = set()
+    departure_attempts = 0
+
+    while True:
+        depart_hit = _wait_for_marker_hit(
+            app=app,
+            ocr=ocr,
+            markers=_DEPART_MARKERS,
+            timeout_sec=3.0,
+            interval_sec=0.5,
+            region=_DEFAULT_FULL_SCREEN_REGION,
+        )
+        if depart_hit is None:
+            _raise_error(
+                code="depart_button_not_found",
+                message="Unable to find 启程 before intercity departure.",
+                detail={"to_city_name": to_city_name, "departure_attempts": departure_attempts},
+            )
+        _click_marker_hit(app, depart_hit)
+        time.sleep(1.0)
+
+        selected = resonance_select_intercity_destination(
+            to_city_name=to_city_name,
+            location_file_path=location_file_path,
+            city_search_region=city_search_region,
+            drag_center=drag_center,
+            drag_span_px=drag_span_px,
+            max_search_steps=max_search_steps,
+            fallback_enabled=fallback_enabled,
+            target_match_mode=target_match_mode,
+            click_y_offset=click_y_offset,
+            drag_duration_sec=drag_duration_sec,
+            drag_hold_sec=drag_hold_sec,
+            app=app,
+            ocr=ocr,
+            controller=controller,
+        )
+
+        go_result = _wait_and_click_go_destination(
+            app=app,
+            vision=vision,
+            ocr=ocr,
+            template_timeout_sec=3.0,
+            interval_sec=0.5,
+        )
+        if not go_result.get("clicked"):
+            _raise_error(
+                code="go_destination_button_not_found",
+                message="Unable to click 前往目的地 after selecting destination.",
+                detail={"to_city_name": to_city_name, "selected": selected, "go_destination": go_result},
+            )
+        departure_attempts += 1
+
+        gate = _wait_departure_gate(
+            app=app,
+            ocr=ocr,
+            vision=vision,
+            timeout_sec=8.0,
+            interval_sec=0.5,
+        )
+        gate_state = str(gate.get("state") or "")
+        if gate_state in {"confirm_clicked", "assume_traveling"}:
+            arrival = resonance_wait_intercity_arrival(
+                timeout_sec=enter_station_timeout_seconds,
+                interval_sec=3.0,
+                region=_DEFAULT_FULL_SCREEN_REGION,
+                arrival_text="进入站点",
+                encounter_policy="fight",
+                max_encounter_actions=3,
+                post_action_sec=1.0,
+                app=app,
+                ocr=ocr,
+            )
+            return {
+                "success": True,
+                "status": "ok",
+                "reason": None,
+                "to_city_name": selected.get("to_city_name"),
+                "to_city_key": selected.get("to_city_key"),
+                "selected_point": selected.get("selected_point"),
+                "mode": selected.get("mode"),
+                "attempts_used": selected.get("attempts_used"),
+                "departure_attempts": departure_attempts,
+                "departure_gate": gate,
+                "arrival_status": arrival.get("status"),
+                "encounter_actions": int(arrival.get("encounter_actions") or 0),
+                "arrival": arrival,
+                "fatigue_medicine_used": _merge_medicine_usage(medicine_usage),
+                "fatigue_medicine_use_count": sum(int(v) for v in medicine_usage.values()),
+                "fatigue_medicine_limit": medicine_limit,
+            }
+
+        if gate_state != "fatigue_panel":
+            _raise_error(
+                code="departure_gate_unknown",
+                message="Unable to classify intercity departure state.",
+                detail={"to_city_name": to_city_name, "selected": selected, "gate": gate},
+            )
+
+        if not bool(use_fatigue_medicine):
+            back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
+            time.sleep(1.0)
+            return _blocked_departure_result(
+                reason="fatigue_recovery_required",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                back_result=back,
+                extra={"departure_attempts": departure_attempts, "departure_gate": gate},
+            )
+
+        if not allowed_names:
+            back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
+            time.sleep(1.0)
+            return _blocked_departure_result(
+                reason="fatigue_medicine_not_allowed",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                back_result=back,
+                extra={"departure_attempts": departure_attempts, "departure_gate": gate},
+            )
+
+        if sum(int(v) for v in medicine_usage.values()) >= medicine_limit:
+            back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
+            time.sleep(1.0)
+            return _blocked_departure_result(
+                reason="fatigue_medicine_limit_reached",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                back_result=back,
+                extra={"departure_attempts": departure_attempts, "departure_gate": gate},
+            )
+
+        medicine = _find_allowed_fatigue_medicine(
+            app=app,
+            vision=vision,
+            allowed_names=allowed_names,
+            threshold=medicine_button_threshold,
+            excluded_names=ineffective_medicines,
+        )
+        if medicine is None:
+            back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
+            time.sleep(1.0)
+            return _blocked_departure_result(
+                reason="fatigue_medicine_unavailable",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                back_result=back,
+                extra={"departure_attempts": departure_attempts, "departure_gate": gate},
+            )
+
+        medicine_name = str(medicine["name"])
+        match = medicine.get("match") if isinstance(medicine.get("match"), dict) else {}
+        if not _click_template_match(app, match):
+            ineffective_medicines.add(medicine_name)
+            continue
+        logger.info("[IntercityDeparture] selected fatigue medicine: %s", medicine_name)
+
+        time.sleep(0.5)
+        confirm = _wait_and_click_fatigue_medicine_confirm(
+            app=app,
+            vision=vision,
+            ocr=ocr,
+            threshold=medicine_button_threshold,
+        )
+        if not confirm.get("clicked"):
+            back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
+            time.sleep(1.0)
+            return _blocked_departure_result(
+                reason="fatigue_medicine_confirm_not_found",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                back_result=back,
+                extra={
+                    "departure_attempts": departure_attempts,
+                    "departure_gate": gate,
+                    "fatigue_medicine_name": medicine_name,
+                    "fatigue_medicine_confirm": confirm,
+                },
+            )
+        logger.info("[IntercityDeparture] confirmed fatigue medicine: %s", medicine_name)
+
+        # Confirming the default 1x use returns to the city main screen.
+        time.sleep(1.5)
+        main_hit = _wait_for_marker_hit(
+            app=app,
+            ocr=ocr,
+            markers=_DEPART_MARKERS,
+            timeout_sec=5.0,
+            interval_sec=0.5,
+            region=_DEFAULT_FULL_SCREEN_REGION,
+        )
+        if main_hit is None:
+            return _blocked_departure_result(
+                reason="fatigue_medicine_return_to_city_failed",
+                selected=selected,
+                to_city_name=to_city_name,
+                medicine_usage=medicine_usage,
+                medicine_limit=medicine_limit,
+                extra={
+                    "departure_attempts": departure_attempts,
+                    "departure_gate": gate,
+                    "fatigue_medicine_name": medicine_name,
+                    "fatigue_medicine_confirm": confirm,
+                },
+            )
+        medicine_usage[medicine_name] = int(medicine_usage.get(medicine_name) or 0) + 1
+        ineffective_medicines.clear()
+
+
+@action_info(
+    name="resonance.wait_intercity_arrival",
+    public=True,
+    read_only=False,
+    description="Wait for intercity arrival and handle trade-travel encounter screens within the travel task.",
+)
+@requires_services(
+    app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
+)
+def resonance_wait_intercity_arrival(
+    timeout_sec: float = 600.0,
+    interval_sec: float = 3.0,
+    region: Optional[List[int]] = None,
+    arrival_text: str = "进入站点",
+    encounter_policy: str = "fight",
+    max_encounter_actions: int = 3,
+    post_action_sec: float = 1.0,
+    app: Any = None,
+    ocr: Any = None,
+) -> Dict[str, Any]:
+    """Task-local wait loop for trade travel.
+
+    `timeout_sec <= 0` waits indefinitely. `encounter_policy` controls the task-local encounter action:
+    - fight: click escort/fight option and continue waiting.
+    - balloon_only: click available bait balloon, fail if only fight/return choices remain.
+    - return: click immediate return, then fail the travel leg explicitly.
+    - fail: never click encounter choices; fail immediately with OCR evidence.
+    """
+    if app is None or ocr is None:
+        raise RuntimeError("app/ocr services are required for wait_intercity_arrival.")
+
+    screen_region = _coerce_region(region, _DEFAULT_FULL_SCREEN_REGION)
+    raw_timeout = float(timeout_sec)
+    timeout = None if raw_timeout <= 0 else max(raw_timeout, 0.1)
+    interval = max(float(interval_sec), 0.1)
+    max_actions = max(int(max_encounter_actions), 0)
+    policy = str(encounter_policy or "fight").strip().lower()
+    arrival_markers = tuple([str(arrival_text or "进入站点")]) + _ARRIVAL_MARKERS
+
+    started = time.monotonic()
+    deadline = None if timeout is None else started + timeout
+    encounter_actions = 0
+    poll_count = 0
+    trace: List[Dict[str, Any]] = []
+    last_items: List[Dict[str, Any]] = []
+
+    while deadline is None or time.monotonic() <= deadline:
+        poll_count += 1
+        items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=screen_region)
+        last_items = items
+
+        arrival_hit = _find_marker_hit(items, arrival_markers)
+        if arrival_hit is not None:
+            x, y = arrival_hit["center"][:2]
+            app.click(x=int(x), y=int(y))
+            trace.append(
+                {
+                    "poll": poll_count,
+                    "action": "click_arrival",
+                    "text": arrival_hit.get("text"),
+                    "point": {"x": int(x), "y": int(y)},
+                }
+            )
+            logger.info("[IntercityArrival] clicked arrival text=%s at=(%s,%s)", arrival_hit.get("text"), x, y)
+            return {
+                "success": True,
+                "status": "arrived",
+                "poll_count": poll_count,
+                "elapsed_sec": round(time.monotonic() - started, 3),
+                "encounter_actions": encounter_actions,
+                "arrival_point": {"x": int(x), "y": int(y)},
+                "trace": trace[-20:],
+            }
+
+        if _looks_like_intercity_encounter(items):
+            marker_hits = _collect_marker_hits(items, _ENCOUNTER_MARKERS)
+            trace.append(
+                {
+                    "poll": poll_count,
+                    "action": "detect_encounter",
+                    "markers": [
+                        {
+                            "marker": hit.get("marker"),
+                            "text": hit.get("text"),
+                            "center": hit.get("center"),
+                        }
+                        for hit in marker_hits[:6]
+                    ],
+                }
+            )
+            logger.info(
+                "[IntercityArrival] encounter detected policy=%s markers=%s",
+                policy,
+                [hit.get("marker") for hit in marker_hits],
+            )
+
+            if encounter_actions >= max_actions:
+                _raise_error(
+                    code="travel_encounter_action_limit",
+                    message="Intercity encounter action limit reached before arrival.",
+                    detail={"policy": policy, "trace": trace[-20:]},
+                )
+
+            unavailable_hit = _find_marker_hit(items, _UNAVAILABLE_MARKERS)
+            balloon_hit = _find_marker_hit(items, _BALLOON_MARKERS)
+            if policy in {"balloon_only", "balloon", "safe"} and balloon_hit is not None and unavailable_hit is None:
+                x, y = balloon_hit["center"][:2]
+                app.click(x=int(x), y=int(y))
+                encounter_actions += 1
+                trace.append(
+                    {
+                        "poll": poll_count,
+                        "action": "click_bait_balloon",
+                        "text": balloon_hit.get("text"),
+                        "point": {"x": int(x), "y": int(y)},
+                    }
+                )
+                logger.info("[IntercityArrival] clicked bait balloon at=(%s,%s)", x, y)
+                time.sleep(max(float(post_action_sec), 0.0))
+                continue
+
+            if policy == "fight":
+                fight_hit = _find_marker_hit(items, _FIGHT_MARKERS)
+                if fight_hit is not None:
+                    x, y = fight_hit["center"][:2]
+                    app.click(x=int(x), y=int(y))
+                    encounter_actions += 1
+                    trace.append(
+                        {
+                            "poll": poll_count,
+                            "action": "click_fight",
+                            "text": fight_hit.get("text"),
+                            "point": {"x": int(x), "y": int(y)},
+                        }
+                    )
+                    logger.info("[IntercityArrival] clicked fight option at=(%s,%s)", x, y)
+                    time.sleep(max(float(post_action_sec), 0.0))
+                    continue
+
+            if policy == "return":
+                return_hit = _find_marker_hit(items, _RETURN_MARKERS)
+                if return_hit is not None:
+                    x, y = return_hit["center"][:2]
+                    app.click(x=int(x), y=int(y))
+                    encounter_actions += 1
+                    trace.append(
+                        {
+                            "poll": poll_count,
+                            "action": "click_return",
+                            "text": return_hit.get("text"),
+                            "point": {"x": int(x), "y": int(y)},
+                        }
+                    )
+                    logger.info("[IntercityArrival] clicked return option at=(%s,%s)", x, y)
+                    _raise_error(
+                        code="travel_returned_from_encounter",
+                        message="Intercity travel returned from encounter before arrival.",
+                        detail={"policy": policy, "trace": trace[-20:]},
+                    )
+
+            _raise_error(
+                code="travel_encounter_requires_manual_resolution",
+                message="Intercity encounter detected, but the configured travel policy cannot resolve it safely.",
+                detail={
+                    "policy": policy,
+                    "bait_balloon_found": balloon_hit is not None,
+                    "unavailable_found": unavailable_hit is not None,
+                    "markers": [
+                        {
+                            "marker": hit.get("marker"),
+                            "text": hit.get("text"),
+                            "center": hit.get("center"),
+                        }
+                        for hit in marker_hits[:10]
+                    ],
+                    "trace": trace[-20:],
+                },
+            )
+
+        time.sleep(interval)
+
+    _raise_error(
+        code="arrival_timeout",
+        message=f"Intercity arrival text was not found within {timeout:.1f}s.",
+        detail={
+            "arrival_text": arrival_text,
+            "poll_count": poll_count,
+            "encounter_actions": encounter_actions,
+            "last_seen_texts": [str(item.get("text") or "") for item in last_items[:20]],
+            "trace": trace[-20:],
         },
     )

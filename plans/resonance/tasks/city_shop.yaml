@@ -1,122 +1,102 @@
-get_city_name:
+open_city_panel_from_main:
   meta:
-    title: Get Current City Name
-    description: Click 访问城市/访问地区 and parse current city from OCR.
+    title: Open City Panel From Main
+    description: Thin wrapper for resonance.open_city_panel_from_main.
+    entry_point: true
     inputs: []
   steps:
-    wait_visit_city_text:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "访问城市"
-        timeout: 3.0
-        interval: 0.5
-        region: [1000, 450, 250, 70]
-        match_mode: "contains"
-    wait_visit_region_text:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "访问地区"
-        timeout: 3.0
-        interval: 0.5
-        region: [1000, 450, 250, 70]
-        match_mode: "contains"
-    click_visit_city:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "访问城市"
-        region: [1000, 450, 250, 70]
-        match_mode: "contains"
-      depends_on: wait_visit_city_text
-      when: "{{ nodes.wait_visit_city_text.output.found | default(false) }}"
-    click_visit_region_fallback:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "访问地区"
-        region: [1000, 450, 250, 70]
-        match_mode: "contains"
-      depends_on:
-        all:
-          - wait_visit_region_text: "success|failed|skipped"
-          - click_visit_city: "success|failed|skipped"
-      when: "{{ (not (nodes.click_visit_city.output | default(false))) and (nodes.wait_visit_region_text.output.found | default(false)) }}"
-    wait_after_click_visit_city:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on:
-        all:
-          - wait_visit_city_text: "success|failed|skipped"
-          - wait_visit_region_text: "success|failed|skipped"
-          - click_visit_city: "success|failed|skipped"
-          - click_visit_region_fallback: "success|failed|skipped"
-    assert_visit_clicked:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ (nodes.click_visit_city.output | default(false)) or (nodes.click_visit_region_fallback.output | default(false)) }}"
-        message: "failed to click 访问城市/访问地区"
-      depends_on: wait_after_click_visit_city
-    wait_city_scene:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: assert_visit_clicked
-    read_city_text:
-      action: plans/aura_base/get_text_in_region
-      params:
-        region: [170, 520, 400, 50]
-        join_with: " "
-      depends_on: wait_city_scene
-    wait_after_read_city_text:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: read_city_text
-    resolve_city:
-      action: resonance.resolve_city_shop_point
-      params:
-        ocr_city_text: "{{ nodes.read_city_text.output }}"
-        shop_type: "exchange"
-        location_file_path: "data/meta/location.json"
-      depends_on: wait_after_read_city_text
+    run:
+      action: resonance.open_city_panel_from_main
+      params: {}
   returns:
-    success: true
-    city_key: "{{ nodes.resolve_city.output.city_key }}"
-    city_name: "{{ nodes.resolve_city.output.city_name }}"
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
 
-enter_city_shop:
+tap_back_once:
   meta:
-    title: Enter City Shop
-    description: Enter target shop in current city via OCR + location mapping.
+    title: Tap Back Once
+    description: Thin wrapper for resonance.tap_back_once.
+    entry_point: true
+    inputs: []
+  steps:
+    run:
+      action: resonance.tap_back_once
+      params: {}
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
+
+go_city_main_direct:
+  meta:
+    title: Go City Main Direct
+    description: Thin wrapper for resonance.go_city_main_direct.
+    entry_point: true
+    inputs: []
+  steps:
+    run:
+      action: resonance.go_city_main_direct
+      params: {}
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
+
+read_city_name_on_city_panel:
+  meta:
+    title: Read City Name On City Panel
+    description: Thin wrapper for resonance.read_city_name_on_city_panel.
+    entry_point: true
+    inputs: []
+  steps:
+    run:
+      action: resonance.read_city_name_on_city_panel
+      params: {}
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
+    city_key: "{{ nodes.run.output.city_key }}"
+    city_name: "{{ nodes.run.output.city_name }}"
+    ocr_city_text: "{{ nodes.run.output.ocr_city_text }}"
+
+click_city_shop_by_name:
+  meta:
+    title: Click City Shop By Name
+    description: Thin wrapper for resonance.click_city_shop_by_name.
     entry_point: true
     inputs:
-      - name: shop_type
+      - name: city_name
+        type: string
+        required: true
+      - name: shop_name
         type: string
         required: true
   steps:
-    get_city_name_sub:
-      action: aura.run_task
+    run:
+      action: resonance.click_city_shop_by_name
       params:
-        task_ref: "tasks:city_shop.yaml:get_city_name"
-        inputs: {}
-    resolve_shop_point:
-      action: resonance.resolve_city_shop_point
-      params:
-        ocr_city_text: "{{ nodes.get_city_name_sub.output.nodes.resolve_city.output.city_key }}"
-        shop_type: "{{ inputs.shop_type }}"
-        location_file_path: "data/meta/location.json"
-      depends_on: get_city_name_sub
-    wait_after_resolve_shop_point:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: resolve_shop_point
-    click_shop:
-      action: plans/aura_base/click
-      params:
-        x: "{{ nodes.resolve_shop_point.output.x }}"
-        y: "{{ nodes.resolve_shop_point.output.y }}"
-      depends_on: wait_after_resolve_shop_point
+        city_name: "{{ inputs.city_name }}"
+        shop_name: "{{ inputs.shop_name }}"
   returns:
-    success: true
-    city_name: "{{ nodes.get_city_name_sub.output.nodes.resolve_city.output.city_name }}"
-    shop_type: "{{ inputs.shop_type }}"
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
+    click: "{{ nodes.run.output.click }}"
+
+click_shop_menu_node:
+  meta:
+    title: Click Shop Menu Node
+    description: Thin wrapper for resonance.click_shop_menu_node.
+    entry_point: true
+    inputs:
+      - name: node_index
+        type: number
+        required: true
+  steps:
+    run:
+      action: resonance.click_shop_menu_node
+      params:
+        node_index: "{{ inputs.node_index }}"
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    page_state: "{{ nodes.run.output.page_state }}"
+    node_index: "{{ nodes.run.output.node_index }}"
+    x: "{{ nodes.run.output.x }}"
+    y: "{{ nodes.run.output.y }}"
