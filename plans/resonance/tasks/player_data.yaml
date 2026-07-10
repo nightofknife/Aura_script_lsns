@@ -1,0 +1,40 @@
+player_data_refresh:
+  meta:
+    title: Resonance Player Data Refresh
+    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery options.
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: persist
+        type: boolean
+        required: false
+        default: true
+      - name: enter_main_first
+        type: boolean
+        required: false
+        default: true
+
+  steps:
+    refresh:
+      action: resonance.player_data_refresh
+      timeout_sec: 180
+      params:
+        persist: "{{ inputs.persist | default(true) }}"
+        enter_main_first: "{{ inputs.enter_main_first | default(true) }}"
+
+  returns:
+    player_data: "{{ nodes.refresh.output }}"
+
+player_data_get_latest:
+  meta:
+    title: Resonance Player Data Latest
+    description: Read latest cached player data.
+    inputs: []
+
+  steps:
+    get_latest:
+      action: resonance.player_data_get_latest
+      params: {}
+
+  returns:
+    player_data: "{{ nodes.get_latest.output }}"
