@@ -15,6 +15,10 @@ logs/
 plans/logs/
 tmp/
 tmp_*.png
+.tmp*
+artifacts/
+plans/resonance/data/cache/market/snapshots/
+plans/resonance/data/cache/player/
 AuraResonanceGui.spec
 python-runtime.local.ps1
 .env
