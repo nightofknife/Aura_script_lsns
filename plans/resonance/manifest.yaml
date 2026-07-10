@@ -13,6 +13,14 @@ dependencies:
 pypi-dependencies: {}
 exports:
   services:
+  - name: resonance_city_shop_data
+    module: plans.resonance.src.services.city_shop_data_service
+    class: CityShopDataService
+    public: true
+    singleton: true
+    replace: null
+    description: Resolve Resonance city names and city shop coordinates from static
+      data.
   - name: resonance_market_data
     module: plans.resonance.src.services.resonance_market_data_service
     class: ResonanceMarketDataService
@@ -47,8 +55,8 @@ exports:
     public: true
     read_only: true
     timeout: null
-    description: Group 閸楀繐鎮撶紒鍫㈩伂 jobs into 闁句焦顢嶇仦鈧?and 閸栧搫鐓欐担婊勫灛娑擃厼绺?buckets with
-      first-seen order.
+    description: Group CT jobs into tie_an and regional_ops_center buckets with first-seen
+      order.
     parameters:
     - name: jobs
       type: Any
@@ -420,6 +428,174 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance.open_city_panel_from_main
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_open_city_panel_from_main
+    public: true
+    read_only: false
+    timeout: null
+    description: Open the city panel from the city main screen by clicking 访问城市/访问地区.
+    parameters:
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 12.0
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 3.0
+  - name: resonance.tap_back_once
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_tap_back_once
+    public: true
+    read_only: false
+    timeout: null
+    description: Tap the top-left back button once.
+    parameters:
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance.go_city_main_direct
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_go_city_main_direct
+    public: true
+    read_only: false
+    timeout: null
+    description: Tap the top-left direct city-main button.
+    parameters:
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 2.0
+  - name: resonance.read_city_name_on_city_panel
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_read_city_name_on_city_panel
+    public: true
+    read_only: false
+    timeout: null
+    description: Read and resolve current city name on the city panel. This action
+      does not click.
+    parameters:
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_mumu.json
+  - name: resonance.click_city_shop_by_name
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_click_city_shop_by_name
+    public: true
+    read_only: false
+    timeout: null
+    description: Click a city shop by resolved city name and shop name from the city
+      panel.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: shop_name
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_mumu.json
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance.click_shop_menu_node
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_click_shop_menu_node
+    public: true
+    read_only: false
+    timeout: null
+    description: Click the Nth node in a shop page using fixed MuMu coordinates.
+    parameters:
+    - name: node_index
+      type: Any
+      required: true
+      default: null
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance.buy_goods_on_buy_page
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_buy_goods_on_buy_page
+    public: true
+    read_only: false
+    timeout: null
+    description: Complete the buy-goods flow from the 我要买 page and return to the shop
+      page.
+    parameters:
+    - name: product_list
+      type: Any
+      required: false
+      default: null
+    - name: books_used
+      type: Any
+      required: false
+      default: 0
+    - name: max_scan_rounds
+      type: Any
+      required: false
+      default: 6
+  - name: resonance.sell_goods_on_sell_page
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_sell_goods_on_sell_page
+    public: true
+    read_only: false
+    timeout: null
+    description: Complete the sell-all flow from the 我要卖 page and return to the shop
+      page.
+    parameters: []
+  - name: resonance.auto_cycle_trade_flow
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_auto_cycle_trade_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Run the full Resonance auto-cycle trade flow from city-main UI.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: max_rounds
+      type: Any
+      required: false
+      default: 64
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
   - name: resonance.select_intercity_destination
     module: plans.resonance.src.actions.city_travel_actions
     function: resonance_select_intercity_destination
@@ -472,6 +648,116 @@ exports:
       type: Any
       required: false
       default: 0.5
+  - name: resonance.intercity_depart_and_wait
+    module: plans.resonance.src.actions.city_travel_actions
+    function: resonance_intercity_depart_and_wait
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter intercity view, select destination, handle fatigue recovery,
+      depart and wait for arrival.
+    parameters:
+    - name: to_city_name
+      type: Any
+      required: true
+      default: null
+    - name: enter_station_timeout_seconds
+      type: Any
+      required: false
+      default: 0
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location.json
+    - name: city_search_region
+      type: Any
+      required: false
+      default: null
+    - name: drag_center
+      type: Any
+      required: false
+      default: null
+    - name: drag_span_px
+      type: Any
+      required: false
+      default: 600
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: fallback_enabled
+      type: Any
+      required: false
+      default: true
+    - name: target_match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: click_y_offset
+      type: Any
+      required: false
+      default: -15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: drag_hold_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
+    - name: medicine_button_threshold
+      type: Any
+      required: false
+      default: 0.95
+  - name: resonance.wait_intercity_arrival
+    module: plans.resonance.src.actions.city_travel_actions
+    function: resonance_wait_intercity_arrival
+    public: true
+    read_only: false
+    timeout: null
+    description: Wait for intercity arrival and handle trade-travel encounter screens
+      within the travel task.
+    parameters:
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 600.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: arrival_text
+      type: Any
+      required: false
+      default: 进入站点
+    - name: encounter_policy
+      type: Any
+      required: false
+      default: fight
+    - name: max_encounter_actions
+      type: Any
+      required: false
+      default: 3
+    - name: post_action_sec
+      type: Any
+      required: false
+      default: 1.0
   - name: resonance.market_refresh
     module: plans.resonance.src.actions.market_data_actions
     function: resonance_market_refresh
@@ -549,6 +835,145 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance.player_data_refresh
+    module: plans.resonance.src.actions.player_data_actions
+    function: resonance_player_data_refresh
+    public: true
+    read_only: false
+    timeout: 180
+    description: Refresh Resonance profile, currencies, clarity, fatigue, cargo and
+      recovery options.
+    parameters:
+    - name: persist
+      type: Any
+      required: false
+      default: true
+    - name: enter_main_first
+      type: Any
+      required: false
+      default: true
+  - name: resonance.player_data_get_latest
+    module: plans.resonance.src.actions.player_data_actions
+    function: resonance_player_data_get_latest
+    public: true
+    read_only: true
+    timeout: null
+    description: Get latest cached Resonance player data.
+    parameters: []
+  - name: resonance.use_purchase_books
+    module: plans.resonance.src.actions.purchase_book_actions
+    function: resonance_use_purchase_books
+    public: true
+    read_only: false
+    timeout: null
+    description: Use 进货采买书 before selecting products on the buy-goods page.
+    parameters:
+    - name: books_used
+      type: Any
+      required: true
+      default: null
+    - name: item_name
+      type: Any
+      required: false
+      default: 进货采买书
+    - name: max_books_per_purchase
+      type: Any
+      required: false
+      default: 10
+    - name: open_timeout_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: dialog_timeout_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: click_interval_sec
+      type: Any
+      required: false
+      default: 0.2
+  - name: resonance.detect_startup_state
+    module: plans.resonance.src.actions.startup_actions
+    function: resonance_detect_startup_state
+    public: true
+    read_only: true
+    timeout: null
+    description: Detect Resonance startup/main/title/interior state with one OCR pass.
+    parameters:
+    - name: region
+      type: Any
+      required: false
+      default: null
+  - name: resonance.enter_main
+    module: plans.resonance.src.actions.startup_actions
+    function: resonance_enter_main
+    public: true
+    read_only: false
+    timeout: 900
+    description: Launch or resume Resonance and settle on the main screen with an
+      internal polling loop.
+    parameters:
+    - name: launch_from_home
+      type: Any
+      required: false
+      default: true
+    - name: max_settle_rounds
+      type: Any
+      required: false
+      default: 300
+    - name: round_interval_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: main_stable_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: fail_if_login_required
+      type: Any
+      required: false
+      default: true
+    - name: android_package
+      type: Any
+      required: false
+      default: com.hermes.goda
+    - name: click_x
+      type: Any
+      required: false
+      default: 640
+    - name: click_y
+      type: Any
+      required: false
+      default: 560
+    - name: info_close_x
+      type: Any
+      required: false
+      default: 640
+    - name: info_close_y
+      type: Any
+      required: false
+      default: 675
+    - name: region
+      type: Any
+      required: false
+      default: null
+  - name: resonance.close_game
+    module: plans.resonance.src.actions.startup_actions
+    function: resonance_close_game
+    public: true
+    read_only: false
+    timeout: null
+    description: Force-stop the Resonance Android package through the active MuMu
+      ADB runtime.
+    parameters:
+    - name: android_package
+      type: Any
+      required: false
+      default: com.hermes.goda
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 10.0
   - name: resonance.trade_plan_next
     module: plans.resonance.src.actions.trade_planner_actions
     function: resonance_trade_plan_next
@@ -621,6 +1046,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
     - name: max_cycle_hops
       type: Any
       required: false
@@ -642,13 +1075,21 @@ exports:
     description: Build executable auto-trade cycle plan under fatigue budget with
       whitelist constraints.
     parameters:
-    - name: current_city_key
-      type: Any
-      required: true
-      default: null
     - name: fatigue_budget
       type: Any
       required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
       default: null
     - name: cargo_capacity
       type: Any
@@ -669,6 +1110,190 @@ exports:
     - name: snapshot_id
       type: Any
       required: false
+      default: null
+  - name: resonance.trade_plan_next_cycle_execution
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_plan_next_cycle_execution
+    public: true
+    read_only: true
+    timeout: null
+    description: Build the next executable trade cycle or final budgeted prefix.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_loop_init
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_loop_init
+    public: true
+    read_only: false
+    timeout: null
+    description: Initialize one auto-cycle trade loop state.
+    parameters:
+    - name: current_city
+      type: Any
+      required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+  - name: resonance.trade_route_execution_init
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_route_execution_init
+    public: true
+    read_only: false
+    timeout: null
+    description: Initialize sequential execution state for one planned trade route.
+    parameters:
+    - name: route
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_route_execution_update
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_route_execution_update
+    public: true
+    read_only: false
+    timeout: null
+    description: Update sequential route execution state after one trade leg.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+    - name: leg
+      type: Any
+      required: false
+      default: null
+    - name: travel_status
+      type: Any
+      required: false
+      default: null
+    - name: reason
+      type: Any
+      required: false
+      default: null
+    - name: blocked_at
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_used
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_use_count
+      type: Any
+      required: false
+      default: 0
+  - name: resonance.trade_route_execution_summary
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_route_execution_summary
+    public: true
+    read_only: true
+    timeout: null
+    description: Return sequential route execution state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance.trade_route_execution_cleanup
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_route_execution_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Remove sequential route execution state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance.trade_loop_update
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_loop_update
+    public: true
+    read_only: false
+    timeout: null
+    description: Accumulate one executed auto-cycle trade round into loop state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+    - name: plan
+      type: Any
+      required: false
+      default: null
+    - name: execution
+      type: Any
+      required: false
+      default: null
+  - name: resonance.trade_loop_summary
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_loop_summary
+    public: true
+    read_only: true
+    timeout: null
+    description: Return one auto-cycle trade loop summary.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance.trade_loop_cleanup
+    module: plans.resonance.src.actions.trade_planner_actions
+    function: resonance_trade_loop_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Remove one auto-cycle trade loop state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
       default: null
   - name: resonance.trade_assert_allowed_city
     module: plans.resonance.src.actions.trade_planner_actions
@@ -802,43 +1427,58 @@ exports:
     title: Auto Battle Input Preview
     source: tasks/auto_battle_input_preview.yaml
     description: Preview-only task for validating constrained auto battle inputs.
-  - id: auto_cycle_trade/execute_trade_leg
-    title: Execute Trade Leg
-    source: tasks/auto_cycle_trade.yaml
-    description: 'Execute one trade leg: sell, optional buy, back to main view, then
-      travel.'
-  - id: auto_cycle_trade/execute_trade_cycle
-    title: Execute Trade Cycle
-    source: tasks/auto_cycle_trade.yaml
-    description: Execute all legs in one planned cycle.
   - id: auto_cycle_trade/auto_cycle_trade
     title: Auto Cycle Trade
     source: tasks/auto_cycle_trade.yaml
-    description: Auto trading with fixed whitelist cities and fatigue budget.
+    description: Auto trading flow implemented by resonance.auto_cycle_trade_flow.
   - id: auto_cycle_trade
     title: Auto Cycle Trade
     source: tasks/auto_cycle_trade.yaml
-    description: Auto trading with fixed whitelist cities and fatigue budget.
+    description: Auto trading flow implemented by resonance.auto_cycle_trade_flow.
   - id: buy_goods/buy_goods
     title: Buy Goods
     source: tasks/buy_goods.yaml
-    description: Buy target goods by OCR scanning with up to 5 swipes.
+    description: Thin task wrapper for resonance.buy_goods_on_buy_page.
   - id: buy_goods
     title: Buy Goods
     source: tasks/buy_goods.yaml
-    description: Buy target goods by OCR scanning with up to 5 swipes.
-  - id: city_shop/get_city_name
-    title: Get Current City Name
+    description: Thin task wrapper for resonance.buy_goods_on_buy_page.
+  - id: city_shop/open_city_panel_from_main
+    title: Open City Panel From Main
     source: tasks/city_shop.yaml
-    description: Click 访问城市/访问地区 and parse current city from OCR.
-  - id: city_shop/enter_city_shop
-    title: Enter City Shop
+    description: Thin wrapper for resonance.open_city_panel_from_main.
+  - id: city_shop/tap_back_once
+    title: Tap Back Once
     source: tasks/city_shop.yaml
-    description: Enter target shop in current city via OCR + location mapping.
+    description: Thin wrapper for resonance.tap_back_once.
+  - id: city_shop/go_city_main_direct
+    title: Go City Main Direct
+    source: tasks/city_shop.yaml
+    description: Thin wrapper for resonance.go_city_main_direct.
+  - id: city_shop/read_city_name_on_city_panel
+    title: Read City Name On City Panel
+    source: tasks/city_shop.yaml
+    description: Thin wrapper for resonance.read_city_name_on_city_panel.
+  - id: city_shop/click_city_shop_by_name
+    title: Click City Shop By Name
+    source: tasks/city_shop.yaml
+    description: Thin wrapper for resonance.click_city_shop_by_name.
+  - id: city_shop/click_shop_menu_node
+    title: Click Shop Menu Node
+    source: tasks/city_shop.yaml
+    description: Thin wrapper for resonance.click_shop_menu_node.
   - id: city_travel/intercity_select_destination
     title: Intercity Select Destination
     source: tasks/city_travel.yaml
     description: 点击启程并选择目标城市，然后前往并进入站点。
+  - id: game_startup/enter_main
+    title: Enter Resonance Main Screen
+    source: tasks/game_startup.yaml
+    description: Launch or resume Resonance and settle on the main screen.
+  - id: game_startup/close_game
+    title: Close Resonance Game
+    source: tasks/game_startup.yaml
+    description: Force-stop the Resonance Android package in MuMu.
   - id: market_data/market_data_refresh
     title: Resonance Market Refresh
     source: tasks/market_data.yaml
@@ -864,10 +1504,19 @@ exports:
     title: Resonance Market Product Query
     source: tasks/market_data.yaml
     description: Query normalized products from latest snapshot.
+  - id: player_data/player_data_refresh
+    title: Resonance Player Data Refresh
+    source: tasks/player_data.yaml
+    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery
+      options.
+  - id: player_data/player_data_get_latest
+    title: Resonance Player Data Latest
+    source: tasks/player_data.yaml
+    description: Read latest cached player data.
   - id: sell_goods/sell_all_goods
     title: Sell All Goods
     source: tasks/sell_goods.yaml
-    description: Sell current goods then exit sell dialog by waiting for exit hint.
+    description: Thin task wrapper for resonance.sell_goods_on_sell_page.
   - id: trade_planner/trade_plan_next
     title: Resonance Trade Plan Next
     source: tasks/trade_planner.yaml
@@ -882,4 +1531,4 @@ exports:
     description: Simulate rolling trade until stop, with full trace output.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-06-28T17:35:58Z'
+  generated_at: '2026-07-08T07:47:47Z'
