@@ -130,7 +130,7 @@ def _load_catalog() -> Dict[str, Any]:
 
 
 def _normalize_text(text: str) -> str:
-    return re.sub(r"[\s\u3000\-_:閿涙熬绱?閵?!閿涗緤绱?()閿涘牞绱歕[\]{}<>]+", "", str(text or "")).lower()
+    return re.sub(r"[\s\u3000\|_\-:：,，。.!！?？()（）\[\]【】{}<>《》'\"`~]+", "", str(text or "")).lower()
 
 
 def _match_mode_hit(actual: str, target: str, match_mode: str) -> bool:
@@ -550,7 +550,7 @@ def resonance_group_battle_jobs(jobs: List[Dict[str, Any]]) -> Dict[str, Any]:
     name="resonance.group_ct_jobs",
     public=True,
     read_only=True,
-    description="Group 閸楀繐鎮撶紒鍫㈩伂 jobs into 闁句焦顢嶇仦鈧?and 閸栧搫鐓欐担婊勫灛娑擃厼绺?buckets with first-seen order.",
+    description="Group CT jobs into tie_an and regional_ops_center buckets with first-seen order.",
 )
 def resonance_group_ct_jobs(jobs: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not isinstance(jobs, list):
