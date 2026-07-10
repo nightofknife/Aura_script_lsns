@@ -1,0 +1,82 @@
+enter_main:
+  meta:
+    title: Enter Resonance Main Screen
+    description: Launch or resume Resonance and settle on the main screen.
+    entry_point: true
+    inputs:
+      - name: launch_from_home
+        type: boolean
+        required: false
+        default: true
+      - name: max_settle_rounds
+        type: number
+        required: false
+        default: 300
+      - name: round_interval_sec
+        type: number
+        required: false
+        default: 1.0
+      - name: fail_if_login_required
+        type: boolean
+        required: false
+        default: true
+      - name: android_package
+        type: string
+        required: false
+        default: com.hermes.goda
+      - name: click_x
+        type: number
+        required: false
+        default: 640
+      - name: click_y
+        type: number
+        required: false
+        default: 560
+
+  steps:
+    enter_main:
+      action: resonance.enter_main
+      timeout_sec: 900
+      params:
+        launch_from_home: "{{ inputs.launch_from_home | default(true) }}"
+        max_settle_rounds: "{{ inputs.max_settle_rounds | default(300) }}"
+        round_interval_sec: "{{ inputs.round_interval_sec | default(1.0) }}"
+        fail_if_login_required: "{{ inputs.fail_if_login_required | default(true) }}"
+        android_package: "{{ inputs.android_package | default('com.hermes.goda') }}"
+        click_x: "{{ inputs.click_x | default(640) }}"
+        click_y: "{{ inputs.click_y | default(560) }}"
+
+  returns:
+    initial_state: "{{ ((nodes.enter_main | default({})).output | default({}, true)).initial_state | default('unknown') }}"
+    final_state: "{{ ((nodes.enter_main | default({})).output | default({}, true)).final_state | default('unknown') }}"
+    launched: "{{ ((nodes.enter_main | default({})).output | default({}, true)).launched | default(false) }}"
+    reached_main: "{{ ((nodes.enter_main | default({})).output | default({}, true)).reached_main | default(false) }}"
+    rounds: "{{ ((nodes.enter_main | default({})).output | default({}, true)).rounds | default(0) }}"
+
+close_game:
+  meta:
+    title: Close Resonance Game
+    description: Force-stop the Resonance Android package in MuMu.
+    entry_point: true
+    inputs:
+      - name: android_package
+        type: string
+        required: false
+        default: com.hermes.goda
+      - name: timeout_sec
+        type: number
+        required: false
+        default: 10.0
+
+  steps:
+    close_game:
+      action: resonance.close_game
+      timeout_sec: 30
+      params:
+        android_package: "{{ inputs.android_package | default('com.hermes.goda') }}"
+        timeout_sec: "{{ inputs.timeout_sec | default(10.0) }}"
+
+  returns:
+    stopped: "{{ ((nodes.close_game | default({})).output | default({}, true)).stopped | default(false) }}"
+    package: "{{ ((nodes.close_game | default({})).output | default({}, true)).package | default('') }}"
+    method: "{{ ((nodes.close_game | default({})).output | default({}, true)).method | default('') }}"
