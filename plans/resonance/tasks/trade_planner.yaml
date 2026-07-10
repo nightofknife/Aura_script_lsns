@@ -76,6 +76,14 @@ trade_plan_best_cycle:
         type: string
         required: false
         default: null
+      - name: current_city_id
+        type: string
+        required: false
+        default: null
+      - name: current_city
+        type: string
+        required: false
+        default: null
       - name: max_cycle_hops
         type: number
         required: false
@@ -97,6 +105,8 @@ trade_plan_best_cycle:
         book_profit_threshold: "{{ inputs.book_profit_threshold }}"
         available_city_ids: "{{ inputs.available_city_ids }}"
         start_city_id: "{{ inputs.start_city_id }}"
+        current_city_id: "{{ inputs.current_city_id }}"
+        current_city: "{{ inputs.current_city }}"
         max_cycle_hops: "{{ inputs.max_cycle_hops }}"
         station_product_whitelist: "{{ inputs.station_product_whitelist }}"
         snapshot_id: "{{ inputs.snapshot_id }}"

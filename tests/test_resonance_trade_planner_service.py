@@ -75,6 +75,33 @@ def _fatigue_payload(cities: dict[str, str], costs: dict[str, dict[str, int]]) -
     return {"schema_version": "1.0.0", "cities": cities, "costs": costs}
 
 
+CYCLE_PLAN_KEYS = {
+    "status",
+    "reason",
+    "snapshot_id",
+    "expected_profit",
+    "fatigue_used",
+    "books_budget",
+    "books_used",
+    "entry_route_count",
+    "city_cycle",
+    "route",
+}
+NEXT_CYCLE_PLAN_KEYS = CYCLE_PLAN_KEYS | {"round_complete"}
+
+
+def _assert_simplified_cycle_shape(result: dict) -> None:
+    assert set(result.keys()) == CYCLE_PLAN_KEYS
+    for leg in result["route"]:
+        assert set(leg.keys()) == {"from_city", "to_city", "buy_products", "books_used"}
+
+
+def _assert_next_cycle_shape(result: dict) -> None:
+    assert set(result.keys()) == NEXT_CYCLE_PLAN_KEYS
+    for leg in result["route"]:
+        assert set(leg.keys()) == {"from_city", "to_city", "buy_products", "books_used"}
+
+
 def test_global_search_can_choose_hold_for_better_future(tmp_path: Path):
     snapshot = {
         "snapshot_id": "s-global",
@@ -336,12 +363,12 @@ def test_plan_best_cycle_selects_highest_profit_cycle(tmp_path: Path):
     snapshot = {
         "snapshot_id": "s-cycle",
         "products": {
-            "p12": {"market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
-            "p23": {"market": {"buy": {"2": {"price": 10}}, "sell": {"3": {"price": 19}}}},
-            "p31": {"market": {"buy": {"3": {"price": 10}}, "sell": {"1": {"price": 18}}}},
-            "p13": {"market": {"buy": {"1": {"price": 10}}, "sell": {"3": {"price": 13}}}},
-            "p32": {"market": {"buy": {"3": {"price": 10}}, "sell": {"2": {"price": 12}}}},
-            "p21": {"market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 11}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p23": {"name": "B-C", "market": {"buy": {"2": {"price": 10}}, "sell": {"3": {"price": 19}}}},
+            "p31": {"name": "C-A", "market": {"buy": {"3": {"price": 10}}, "sell": {"1": {"price": 18}}}},
+            "p13": {"name": "A-C", "market": {"buy": {"1": {"price": 10}}, "sell": {"3": {"price": 13}}}},
+            "p32": {"name": "C-B", "market": {"buy": {"3": {"price": 10}}, "sell": {"2": {"price": 12}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 11}}}},
         },
     }
     fatigue = _fatigue_payload(
@@ -369,17 +396,64 @@ def test_plan_best_cycle_selects_highest_profit_cycle(tmp_path: Path):
     )
 
     assert result["status"] == "ok"
-    assert result["cycle"]["city_sequence"] == ["1", "2", "3", "1"]
-    assert result["cycle"]["totals"]["profit"] == 27.0
-    assert result["cycle"]["totals"]["books_used"] == 0
+    _assert_simplified_cycle_shape(result)
+    assert result["reason"] is None
+    assert result["city_cycle"] == ["A", "B", "C", "A"]
+    assert result["expected_profit"] == 27.0
+    assert result["fatigue_used"] == 15
+    assert result["books_budget"] == 0
+    assert result["books_used"] == 0
+    assert result["entry_route_count"] == 0
+    assert result["route"] == [
+        {"from_city": "A", "to_city": "B", "buy_products": ["A-B"], "books_used": 0},
+        {"from_city": "B", "to_city": "C", "buy_products": ["B-C"], "books_used": 0},
+        {"from_city": "C", "to_city": "A", "buy_products": ["C-A"], "books_used": 0},
+    ]
+
+
+def test_plan_best_cycle_book_budgets_0_4_8(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-cycle-books",
+        "products": {
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 15}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B"},
+        {
+            "1": {"1": 0, "2": 5},
+            "2": {"1": 5, "2": 0},
+        },
+    )
+    service = _build_service(tmp_path, snapshot, fatigue, {"1": {"p12": 1}, "2": {"p21": 1}})
+
+    for books_budget in [0, 4, 8]:
+        result = service.plan_best_cycle(
+            start_city_id="1",
+            available_city_ids=["1", "2"],
+            cargo_capacity=20,
+            book_budget=books_budget,
+            book_profit_threshold=0,
+            max_cycle_hops=3,
+        )
+
+        _assert_simplified_cycle_shape(result)
+        assert result["status"] == "ok"
+        assert result["books_budget"] == books_budget
+        assert result["books_used"] == books_budget
+        assert result["entry_route_count"] == 0
+        assert result["expected_profit"] == 15.0 + (10.0 * books_budget)
+        assert result["route"][0]["books_used"] == books_budget
+        assert result["route"][1]["books_used"] == 0
 
 
 def test_plan_best_cycle_respects_book_threshold(tmp_path: Path):
     snapshot = {
         "snapshot_id": "s-cycle-threshold",
         "products": {
-            "p12": {"market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
-            "p21": {"market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 12}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 12}}}},
         },
     }
     fatigue = _fatigue_payload(
@@ -401,7 +475,9 @@ def test_plan_best_cycle_respects_book_threshold(tmp_path: Path):
         max_cycle_hops=3,
     )
     assert strict["status"] == "ok"
-    assert strict["cycle"]["totals"]["books_used"] == 0
+    _assert_simplified_cycle_shape(strict)
+    assert strict["books_used"] == 0
+    assert strict["entry_route_count"] == 0
 
     relaxed = service.plan_best_cycle(
         start_city_id="1",
@@ -412,9 +488,48 @@ def test_plan_best_cycle_respects_book_threshold(tmp_path: Path):
         max_cycle_hops=3,
     )
     assert relaxed["status"] == "ok"
-    assert relaxed["cycle"]["totals"]["books_used"] == 2
-    first_step = relaxed["cycle"]["steps"][0]
-    assert first_step["books_used"] == 2
+    _assert_simplified_cycle_shape(relaxed)
+    assert relaxed["books_used"] == 2
+    assert relaxed["entry_route_count"] == 0
+    assert relaxed["route"][0]["books_used"] == 2
+    assert relaxed["route"][1]["books_used"] == 0
+
+
+def test_plan_best_cycle_caps_goods_by_cargo_capacity_and_sorts_buy_products(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-cycle-cargo",
+        "products": {
+            "p_high": {"name": "High", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 60}}}},
+            "p_mid": {"name": "Mid", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 40}}}},
+            "p_low": {"name": "Low", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
+            "p_back": {"name": "Back", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 11}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B"},
+        {
+            "1": {"1": 0, "2": 5},
+            "2": {"1": 5, "2": 0},
+        },
+    )
+    buy_lot = {"1": {"p_high": 1, "p_mid": 3, "p_low": 3}, "2": {"p_back": 1}}
+    service = _build_service(tmp_path, snapshot, fatigue, buy_lot)
+
+    result = service.plan_best_cycle(
+        start_city_id="1",
+        available_city_ids=["1", "2"],
+        cargo_capacity=2,
+        book_budget=0,
+        book_profit_threshold=0,
+        max_cycle_hops=3,
+    )
+
+    _assert_simplified_cycle_shape(result)
+    assert result["status"] == "ok"
+    assert result["entry_route_count"] == 0
+    assert result["expected_profit"] == 81.0
+    assert result["route"][0]["buy_products"] == ["High", "Mid"]
+    assert "Low" not in result["route"][0]["buy_products"]
 
 
 def test_plan_cycle_execution_respects_trade_constraints_whitelist(tmp_path: Path):
@@ -450,11 +565,188 @@ def test_plan_cycle_execution_respects_trade_constraints_whitelist(tmp_path: Pat
     result = service.plan_cycle_execution(current_city_key="city_a", fatigue_budget=30, cargo_capacity=10)
 
     assert result["status"] == "ok"
-    assert result["allowed_city_ids"] == ["1", "2"]
-    for cycle in result["cycles"]:
-        for leg in cycle["legs"]:
-            assert leg["from_city_id"] in {"1", "2"}
-            assert leg["to_city_id"] in {"1", "2"}
+    _assert_simplified_cycle_shape(result)
+    assert result["entry_route_count"] == 0
+    assert result["city_cycle"][0] == result["city_cycle"][-1] == "A"
+    assert set(result["city_cycle"]) <= {"A", "B"}
+    for index, leg in enumerate(result["route"]):
+        assert leg["from_city"] == result["city_cycle"][index]
+        assert leg["to_city"] == result["city_cycle"][index + 1]
+
+
+def test_plan_best_cycle_adds_entry_leg_when_current_city_is_outside_cycle(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-entry",
+        "products": {
+            "p41": {"name": "X-A", "market": {"buy": {"4": {"price": 10}}, "sell": {"1": {"price": 13}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 15}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B", "4": "X"},
+        {
+            "1": {"1": 0, "2": 5, "4": 3},
+            "2": {"1": 5, "2": 0, "4": 7},
+            "4": {"1": 3, "2": 7, "4": 0},
+        },
+    )
+    service = _build_service(tmp_path, snapshot, fatigue, {"1": {"p12": 1}, "2": {"p21": 1}, "4": {"p41": 1}})
+
+    result = service.plan_best_cycle(
+        current_city_id="4",
+        available_city_ids=["1", "2"],
+        cargo_capacity=10,
+        book_budget=0,
+        book_profit_threshold=0,
+        max_cycle_hops=3,
+    )
+
+    _assert_simplified_cycle_shape(result)
+    assert result["status"] == "ok"
+    assert result["entry_route_count"] == 1
+    assert result["city_cycle"] == ["A", "B", "A"]
+    assert result["route"] == [
+        {"from_city": "X", "to_city": "A", "buy_products": ["X-A"], "books_used": 0},
+        {"from_city": "A", "to_city": "B", "buy_products": ["A-B"], "books_used": 0},
+        {"from_city": "B", "to_city": "A", "buy_products": ["B-A"], "books_used": 0},
+    ]
+    assert result["expected_profit"] == 18.0
+    assert result["fatigue_used"] == 13
+
+
+def test_plan_best_cycle_can_skip_current_city_as_stable_cycle_member(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-entry-current-allowed",
+        "products": {
+            "p31": {"name": "C-A", "market": {"buy": {"3": {"price": 10}}, "sell": {"1": {"price": 11}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 110}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 110}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B", "3": "C"},
+        {
+            "1": {"1": 0, "2": 5, "3": 5},
+            "2": {"1": 5, "2": 0, "3": 5},
+            "3": {"1": 5, "2": 5, "3": 0},
+        },
+    )
+    buy_lot = {"1": {"p12": 1}, "2": {"p21": 1}, "3": {"p31": 1}}
+    service = _build_service(tmp_path, snapshot, fatigue, buy_lot)
+
+    result = service.plan_best_cycle(
+        current_city_id="3",
+        available_city_ids=["1", "2", "3"],
+        cargo_capacity=10,
+        book_budget=0,
+        book_profit_threshold=0,
+        max_cycle_hops=3,
+    )
+
+    _assert_simplified_cycle_shape(result)
+    assert result["status"] == "ok"
+    assert result["entry_route_count"] == 1
+    assert result["city_cycle"] == ["A", "B", "A"]
+    assert result["route"][0] == {"from_city": "C", "to_city": "A", "buy_products": ["C-A"], "books_used": 0}
+    assert "C" not in result["city_cycle"]
+
+
+def test_entry_leg_competes_for_books_and_threshold(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-entry-books",
+        "products": {
+            "p41": {"name": "X-A", "market": {"buy": {"4": {"price": 10}}, "sell": {"1": {"price": 110}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 20}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B", "4": "X"},
+        {
+            "1": {"1": 0, "2": 5, "4": 3},
+            "2": {"1": 5, "2": 0, "4": 7},
+            "4": {"1": 3, "2": 7, "4": 0},
+        },
+    )
+    service = _build_service(tmp_path, snapshot, fatigue, {"1": {"p12": 1}, "2": {"p21": 1}, "4": {"p41": 1}})
+
+    relaxed = service.plan_best_cycle(
+        current_city_id="4",
+        available_city_ids=["1", "2"],
+        cargo_capacity=10,
+        book_budget=1,
+        book_profit_threshold=100,
+        max_cycle_hops=3,
+    )
+    assert relaxed["status"] == "ok"
+    assert relaxed["books_used"] == 1
+    assert relaxed["route"][0]["books_used"] == 1
+    assert relaxed["expected_profit"] == 220.0
+
+    strict = service.plan_best_cycle(
+        current_city_id="4",
+        available_city_ids=["1", "2"],
+        cargo_capacity=10,
+        book_budget=1,
+        book_profit_threshold=101,
+        max_cycle_hops=3,
+    )
+    assert strict["status"] == "ok"
+    assert strict["books_used"] == 0
+    assert strict["route"][0]["books_used"] == 0
+    assert strict["expected_profit"] == 120.0
+
+
+def test_plan_cycle_execution_allows_non_whitelist_current_city_and_blocks_by_total_fatigue(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-execution-entry",
+        "products": {
+            "p41": {"name": "X-A", "market": {"buy": {"4": {"price": 10}}, "sell": {"1": {"price": 13}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 15}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B", "4": "X"},
+        {
+            "1": {"1": 0, "2": 5, "4": 3},
+            "2": {"1": 5, "2": 0, "4": 7},
+            "4": {"1": 3, "2": 7, "4": 0},
+        },
+    )
+    service = _build_service(
+        tmp_path,
+        snapshot,
+        fatigue,
+        {"1": {"p12": 1}, "2": {"p21": 1}, "4": {"p41": 1}},
+        trade_constraints={
+            "allowed_city_ids": ["1", "2"],
+            "city_id_to_key": {"1": "city_a", "2": "city_b"},
+        },
+    )
+
+    ok = service.plan_cycle_execution(
+        current_city_key=None,
+        current_city_id="4",
+        fatigue_budget=13,
+        cargo_capacity=10,
+    )
+    assert ok["status"] == "ok"
+    assert ok["entry_route_count"] == 1
+    assert ok["route"][0]["from_city"] == "X"
+    assert ok["city_cycle"] == ["A", "B", "A"]
+
+    blocked = service.plan_cycle_execution(
+        current_city_key=None,
+        current_city_id="4",
+        fatigue_budget=12,
+        cargo_capacity=10,
+    )
+    _assert_simplified_cycle_shape(blocked)
+    assert blocked["status"] == "no_plan"
+    assert blocked["reason"] == "insufficient_fatigue_for_full_cycle"
+    assert blocked["entry_route_count"] == 0
 
 
 def test_plan_cycle_execution_fails_for_unsupported_start_city(tmp_path: Path):
@@ -486,46 +778,209 @@ def test_plan_cycle_execution_fails_for_unsupported_start_city(tmp_path: Path):
 
     try:
         service.plan_cycle_execution(current_city_key="city_x", fatigue_budget=30, cargo_capacity=10)
-        assert False, "expected unsupported_start_city error"
+        assert False, "expected current_city_not_resolved error"
     except Exception as exc:  # noqa: BLE001
         assert isinstance(exc, ResonanceTradePlannerError)
-        assert exc.code == "unsupported_start_city"
+        assert exc.code == "current_city_not_resolved"
 
 
-def test_plan_cycle_execution_adds_one_way_entry_when_outside_cycle(tmp_path: Path):
+def test_plan_cycle_execution_returns_no_plan_when_full_cycle_exceeds_fatigue(tmp_path: Path):
     snapshot = {
-        "snapshot_id": "s-one-way",
+        "snapshot_id": "s-fatigue-limit",
         "products": {
-            "p12": {"market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
-            "p23": {"market": {"buy": {"2": {"price": 10}}, "sell": {"3": {"price": 25}}}},
-            "p32": {"market": {"buy": {"3": {"price": 9}}, "sell": {"2": {"price": 20}}}},
-            "p42": {"market": {"buy": {"4": {"price": 8}}, "sell": {"2": {"price": 18}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 15}}}},
         },
     }
     fatigue = _fatigue_payload(
-        {"1": "A", "2": "B", "3": "C", "4": "D"},
+        {"1": "A", "2": "B"},
         {
-            "1": {"1": 0, "2": 4, "3": 8, "4": 9},
-            "2": {"1": 4, "2": 0, "3": 4, "4": 5},
-            "3": {"1": 8, "2": 4, "3": 0, "4": 9},
-            "4": {"1": 9, "2": 5, "3": 9, "4": 0},
+            "1": {"1": 0, "2": 5},
+            "2": {"1": 5, "2": 0},
         },
     )
-    buy_lot = {"1": {"p12": 3}, "2": {"p23": 3}, "3": {"p32": 3}, "4": {"p42": 3}}
+    buy_lot = {"1": {"p12": 3}, "2": {"p21": 3}}
     service = _build_service(
         tmp_path,
         snapshot,
         fatigue,
         buy_lot,
         trade_constraints={
-            "allowed_city_ids": ["1", "2", "3", "4"],
-            "city_id_to_key": {"1": "city_a", "2": "city_b", "3": "city_c", "4": "city_d"},
+            "allowed_city_ids": ["1", "2"],
+            "city_id_to_key": {"1": "city_a", "2": "city_b"},
         },
     )
 
-    result = service.plan_cycle_execution(current_city_key="city_d", fatigue_budget=24, cargo_capacity=10)
+    result = service.plan_cycle_execution(current_city_key="city_a", fatigue_budget=9, cargo_capacity=10)
 
+    _assert_simplified_cycle_shape(result)
+    assert result == {
+        "status": "no_plan",
+        "reason": "insufficient_fatigue_for_full_cycle",
+        "snapshot_id": "s-fatigue-limit",
+        "expected_profit": 0.0,
+        "fatigue_used": 0,
+        "books_budget": 0,
+        "books_used": 0,
+        "entry_route_count": 0,
+        "city_cycle": [],
+        "route": [],
+    }
+
+
+def test_plan_next_cycle_execution_returns_complete_round_with_per_round_books(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-next-full",
+        "products": {
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 20}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 20}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B"},
+        {"1": {"1": 0, "2": 5}, "2": {"1": 5, "2": 0}},
+    )
+    service = _build_service(
+        tmp_path,
+        snapshot,
+        fatigue,
+        {"1": {"p12": 1}, "2": {"p21": 1}},
+        trade_constraints={"allowed_city_ids": ["1", "2"], "city_id_to_key": {"1": "city_a", "2": "city_b"}},
+    )
+
+    result = service.plan_next_cycle_execution(
+        current_city_key="city_a",
+        fatigue_budget=20,
+        cargo_capacity=10,
+        book_budget=3,
+        book_profit_threshold=0,
+        snapshot_id="s-next-full",
+    )
+
+    _assert_next_cycle_shape(result)
     assert result["status"] == "ok"
-    first_leg = result["cycles"][0]["legs"][0]
-    assert first_leg["from_city_key"] == "city_d"
-    assert first_leg["phase"].startswith("one_way")
+    assert result["round_complete"] is True
+    assert result["fatigue_used"] == 10
+    assert result["books_budget"] == 3
+    assert result["books_used"] == 3
+    assert sum(int(leg["books_used"]) for leg in result["route"]) == 3
+    assert [(leg["from_city"], leg["to_city"], leg["buy_products"]) for leg in result["route"]] == [
+        ("A", "B", ["A-B"]),
+        ("B", "A", ["B-A"]),
+    ]
+
+
+def test_plan_next_cycle_execution_returns_final_prefix_when_full_round_exceeds_budget(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-next-prefix",
+        "products": {
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 20}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B"},
+        {"1": {"1": 0, "2": 5}, "2": {"1": 5, "2": 0}},
+    )
+    service = _build_service(
+        tmp_path,
+        snapshot,
+        fatigue,
+        {"1": {"p12": 1}, "2": {"p21": 1}},
+        trade_constraints={"allowed_city_ids": ["1", "2"], "city_id_to_key": {"1": "city_a", "2": "city_b"}},
+    )
+
+    result = service.plan_next_cycle_execution(
+        current_city_key="city_a",
+        fatigue_budget=5,
+        cargo_capacity=10,
+        book_budget=0,
+        book_profit_threshold=0,
+        snapshot_id="s-next-prefix",
+    )
+
+    _assert_next_cycle_shape(result)
+    assert result["status"] == "ok"
+    assert result["round_complete"] is False
+    assert result["fatigue_used"] == 5
+    assert result["expected_profit"] == 20.0
+    assert result["route"] == [
+        {"from_city": "A", "to_city": "B", "buy_products": ["A-B"], "books_used": 0}
+    ]
+
+
+def test_plan_next_cycle_execution_stops_when_no_positive_prefix_fits(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-next-none",
+        "products": {
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 20}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B"},
+        {"1": {"1": 0, "2": 5}, "2": {"1": 5, "2": 0}},
+    )
+    service = _build_service(
+        tmp_path,
+        snapshot,
+        fatigue,
+        {"1": {"p12": 1}, "2": {"p21": 1}},
+        trade_constraints={"allowed_city_ids": ["1", "2"], "city_id_to_key": {"1": "city_a", "2": "city_b"}},
+    )
+
+    result = service.plan_next_cycle_execution(
+        current_city_key="city_a",
+        fatigue_budget=4,
+        cargo_capacity=10,
+        book_budget=0,
+        book_profit_threshold=0,
+        snapshot_id="s-next-none",
+    )
+
+    _assert_next_cycle_shape(result)
+    assert result["status"] == "no_plan"
+    assert result["round_complete"] is False
+    assert result["reason"] == "insufficient_fatigue_for_positive_prefix"
+    assert result["route"] == []
+
+
+def test_plan_next_cycle_execution_allows_recomputed_entry_leg(tmp_path: Path):
+    snapshot = {
+        "snapshot_id": "s-next-entry",
+        "products": {
+            "p41": {"name": "X-A", "market": {"buy": {"4": {"price": 10}}, "sell": {"1": {"price": 15}}}},
+            "p12": {"name": "A-B", "market": {"buy": {"1": {"price": 10}}, "sell": {"2": {"price": 30}}}},
+            "p21": {"name": "B-A", "market": {"buy": {"2": {"price": 10}}, "sell": {"1": {"price": 20}}}},
+        },
+    }
+    fatigue = _fatigue_payload(
+        {"1": "A", "2": "B", "4": "X"},
+        {
+            "1": {"1": 0, "2": 5, "4": 3},
+            "2": {"1": 5, "2": 0, "4": 7},
+            "4": {"1": 3, "2": 7, "4": 0},
+        },
+    )
+    service = _build_service(
+        tmp_path,
+        snapshot,
+        fatigue,
+        {"1": {"p12": 1}, "2": {"p21": 1}, "4": {"p41": 1}},
+        trade_constraints={"allowed_city_ids": ["1", "2"], "city_id_to_key": {"1": "city_a", "2": "city_b"}},
+    )
+
+    result = service.plan_next_cycle_execution(
+        current_city_id="4",
+        fatigue_budget=13,
+        cargo_capacity=10,
+        book_budget=0,
+        book_profit_threshold=0,
+        snapshot_id="s-next-entry",
+    )
+
+    _assert_next_cycle_shape(result)
+    assert result["status"] == "ok"
+    assert result["round_complete"] is True
+    assert result["entry_route_count"] == 1
+    assert result["route"][0] == {"from_city": "X", "to_city": "A", "buy_products": ["X-A"], "books_used": 0}
