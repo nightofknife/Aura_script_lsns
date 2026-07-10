@@ -2,18 +2,20 @@ runtime:
   family: android_emulator
   provider: mumu
   target:
-    mode: auto
-    adb_serial: auto
+    mode: adb_serial
+    adb_serial: 127.0.0.1:16384
     connect_on_start: true
   capture:
     backend: scrcpy_stream
     max_stale_ms: 250
     mumu:
+      adb_executable: D:/software/mumu/MuMuPlayer/nx_device/12.0/shell/adb.exe
+      connection_timeout_ms: 10000
       reconnect_backoff_ms: [500, 1000, 2000, 5000]
   input:
     backend: android_touch
     mumu:
-      helper_path: C:/Tools/android_touch/android_touch
+      helper_path: builtin
       remote_dir: /data/local/tmp/aura
       path_fps: 10
       auto_push: true

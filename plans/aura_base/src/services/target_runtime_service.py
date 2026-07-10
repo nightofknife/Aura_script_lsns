@@ -151,6 +151,32 @@ class TargetRuntimeService:
         self._record_debug_input_event("press_key", {"key": key, "presses": presses, "interval": interval})
         return self._call_session("press_key", key, presses, interval)
 
+    def launch_app(
+        self,
+        package_name: str,
+        *,
+        activity: str | None = None,
+        timeout_sec: float | None = None,
+    ) -> dict[str, Any]:
+        resolved = self._resolve_runtime_config()
+        if resolved.provider != "mumu":
+            raise TargetRuntimeError(
+                "launch_app_provider_unsupported",
+                "launch_app is only supported for the MuMu Android runtime.",
+                {"provider": resolved.provider},
+        )
+        return dict(self._call_session("launch_app", package_name, activity=activity, timeout_sec=timeout_sec) or {})
+
+    def force_stop_app(self, package_name: str, *, timeout_sec: float | None = None) -> dict[str, Any]:
+        resolved = self._resolve_runtime_config()
+        if resolved.provider != "mumu":
+            raise TargetRuntimeError(
+                "force_stop_app_provider_unsupported",
+                "force_stop_app is only supported for the MuMu Android runtime.",
+                {"provider": resolved.provider},
+            )
+        return dict(self._call_session("force_stop_app", package_name, timeout_sec=timeout_sec) or {})
+
     def key_down(self, key: str):
         self._record_debug_input_event("key_down", {"key": key})
         return self._call_session("key_down", key)
@@ -338,7 +364,10 @@ class TargetRuntimeService:
 
     def _build_mumu_session(self, resolved: ResolvedRuntimeConfig) -> MuMuSession:
         preferred_serial = resolved.target.adb_serial if resolved.target.mode == "adb_serial" else "auto"
-        adb = AdbController(executable="adb", default_timeout_sec=15.0)
+        capture_cfg = resolved.capture.provider_options("mumu")
+        input_cfg = resolved.input.provider_options("mumu")
+        adb_executable = str(capture_cfg.get("adb_executable") or input_cfg.get("adb_executable") or "adb")
+        adb = AdbController(executable=adb_executable, default_timeout_sec=15.0)
         if preferred_serial != "auto" and resolved.target.connect_on_start and ":" in preferred_serial:
             adb.connect(preferred_serial)
 

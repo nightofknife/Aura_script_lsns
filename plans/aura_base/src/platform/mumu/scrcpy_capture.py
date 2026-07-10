@@ -44,7 +44,7 @@ class MuMuScrcpyCaptureBackend:
             elif self.frame_age_ms() > self.max_stale_ms:
                 should_restart = True
         if should_start:
-            self._start()
+            self._restart()
         elif should_restart:
             self._restart()
         with self._lock:

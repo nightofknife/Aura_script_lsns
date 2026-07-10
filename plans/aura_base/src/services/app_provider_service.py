@@ -181,3 +181,15 @@ class AppProviderService:
 
     def focus_with_input(self, click_delay: float = 0.3) -> bool:
         return self.target_runtime.focus_with_input(click_delay)
+
+    def launch_app(
+        self,
+        package_name: str,
+        *,
+        activity: str | None = None,
+        timeout_sec: float | None = None,
+    ) -> dict:
+        return self.target_runtime.launch_app(package_name, activity=activity, timeout_sec=timeout_sec)
+
+    def force_stop_app(self, package_name: str, *, timeout_sec: float | None = None) -> dict:
+        return self.target_runtime.force_stop_app(package_name, timeout_sec=timeout_sec)

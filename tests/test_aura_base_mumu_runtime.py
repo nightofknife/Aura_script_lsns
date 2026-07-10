@@ -19,6 +19,7 @@ from plans.aura_base.src.platform.mumu.android_touch_input import MuMuAndroidTou
 from plans.aura_base.src.platform.mumu.helper_manager import AndroidTouchHelperManager
 from plans.aura_base.src.platform.mumu.runtime_assets import resolve_android_touch_helper_path, resolve_scrcpy_server_jar_path
 from plans.aura_base.src.platform.mumu.scrcpy_capture import MuMuScrcpyCaptureBackend
+from plans.aura_base.src.platform.mumu.session import MuMuSession
 from plans.aura_base.src.platform.runtime_config import RuntimeCaptureConfig, RuntimeInputConfig, RuntimeTargetConfig
 from plans.aura_base.src.platform.runtime_service import TargetRuntimeService
 from plans.aura_base.src.platform.windows.capture_backends import WindowsGdiCaptureBackend
@@ -157,6 +158,59 @@ class _FakeAdbForHelper:
 
     def get_device_info(self, serial):
         return self.info
+
+
+class _FakeMumuCaptureBackend:
+    def ensure_ready(self):
+        return None
+
+    def is_healthy(self):
+        return True
+
+    def close(self):
+        return None
+
+    def self_check(self):
+        return {"ok": True}
+
+
+class _FakeMumuInputBackend:
+    def ensure_ready(self):
+        return None
+
+    def is_healthy(self):
+        return True
+
+    def capabilities(self):
+        return {"absolute_pointer": True, "keyboard": True}
+
+    def close(self):
+        return None
+
+    def self_check(self):
+        return {"ok": True}
+
+
+class _FakeAdbForLaunch:
+    def __init__(self, *, fail_monkey: bool = False):
+        self.fail_monkey = fail_monkey
+        self.calls = []
+        self.info = SimpleNamespace(manufacturer="MuMu", model="emulator", abi="x86_64")
+
+    def get_device_info(self, serial):
+        return self.info
+
+    def shell(self, serial, args, timeout_sec=None):
+        self.calls.append((serial, list(args), timeout_sec))
+        if args[:1] == ["monkey"] and self.fail_monkey:
+            raise TargetRuntimeError("adb_command_failed", "monkey failed")
+        if args[:1] == ["monkey"]:
+            return "Events injected: 1"
+        if args[:3] == ["cmd", "package", "resolve-activity"]:
+            return "priority=0 preferredOrder=0 match=0x108000\ncom.hermes.goda/.MainActivity"
+        if args[:2] == ["am", "start"]:
+            return "Status: ok"
+        return ""
 
 
 class _InspectableAdbController(AdbController):
@@ -398,6 +452,25 @@ class TestAuraBaseRuntime(unittest.TestCase):
         self.assertEqual(backend.module_name, "plans.aura_base.src.platform.mumu.scrcpy_compat")
         self.assertTrue(str(resolve_scrcpy_server_jar_path()).endswith("scrcpy-server-v1.24.jar"))
 
+    def test_scrcpy_capture_retries_initial_start(self):
+        backend = MuMuScrcpyCaptureBackend("serial-1", {"reconnect_backoff_ms": [0, 0]})
+        attempts = {"count": 0}
+
+        def fake_start():
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise TargetRuntimeError("scrcpy_stream_unavailable", "temporary EOF")
+            backend._client = object()
+            backend._frame = np.zeros((10, 10, 3), dtype=np.uint8)
+            backend._frame_ts = time.monotonic()
+
+        backend._start = fake_start
+
+        backend.ensure_ready()
+
+        self.assertEqual(attempts["count"], 2)
+        self.assertTrue(backend.is_healthy())
+
     def test_adb_shell_script_wraps_whole_script_as_single_shell_command(self):
         adb = _InspectableAdbController()
 
@@ -407,6 +480,38 @@ class TestAuraBaseRuntime(unittest.TestCase):
             adb.last_args,
             ["-s", "serial-1", "shell", "sh -c 'mkdir -p /data/local/tmp/aura'"],
         )
+
+    def test_mumu_launch_app_uses_monkey_by_default(self):
+        adb = _FakeAdbForLaunch()
+        session = MuMuSession("serial-1", adb, _FakeMumuCaptureBackend(), _FakeMumuInputBackend())
+
+        result = session.launch_app("com.hermes.goda")
+
+        self.assertEqual(result["method"], "monkey")
+        self.assertTrue(result["launched"])
+        self.assertEqual(adb.calls[-1][1], ["monkey", "-p", "com.hermes.goda", "-c", "android.intent.category.LAUNCHER", "1"])
+
+    def test_mumu_launch_app_falls_back_to_resolved_activity(self):
+        adb = _FakeAdbForLaunch(fail_monkey=True)
+        session = MuMuSession("serial-1", adb, _FakeMumuCaptureBackend(), _FakeMumuInputBackend())
+
+        result = session.launch_app("com.hermes.goda")
+
+        self.assertEqual(result["method"], "am_start")
+        self.assertEqual(result["activity"], "com.hermes.goda/.MainActivity")
+        self.assertIn(["cmd", "package", "resolve-activity", "--brief", "com.hermes.goda"], [call[1] for call in adb.calls])
+        self.assertIn(["am", "start", "-W", "-n", "com.hermes.goda/.MainActivity"], [call[1] for call in adb.calls])
+
+    def test_mumu_force_stop_app_uses_adb_am_force_stop(self):
+        adb = _FakeAdbForLaunch()
+        session = MuMuSession("serial-1", adb, _FakeMumuCaptureBackend(), _FakeMumuInputBackend())
+
+        result = session.force_stop_app("com.hermes.goda", timeout_sec=3)
+
+        self.assertTrue(result["stopped"])
+        self.assertEqual(result["method"], "am_force_stop")
+        self.assertEqual(result["package"], "com.hermes.goda")
+        self.assertEqual(adb.calls[-1], ("serial-1", ["am", "force-stop", "com.hermes.goda"], 3))
 
     def test_adb_display_info_parses_size_and_orientation(self):
         class _DisplayInfoAdb(AdbController):
