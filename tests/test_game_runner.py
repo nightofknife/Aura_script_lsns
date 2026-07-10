@@ -9,16 +9,13 @@ from unittest.mock import Mock, patch
 
 from packages.aura_core.scheduler.cancellation import clear_task_cancel, is_task_cancel_requested
 from packages.aura_core.scheduler.task_dispatcher import TaskDispatcher
-from packages.aura_core.runtime import AdminPrivilegeRequiredError
-from packages.aura_core.runtime.privilege import is_running_as_admin
 from packages.aura_game import EmbeddedGameRunner, SubprocessGameRunner
 from packages.aura_game import runner as runner_module
 
 
 class TestGameRunners(unittest.TestCase):
     def _skip_without_admin_on_windows(self):
-        if os.name == "nt" and not is_running_as_admin():
-            self.skipTest("Aura Scheduler startup requires administrator privileges on Windows")
+        return
 
     def test_embedded_runner_start_stop_lifecycle(self):
         self._skip_without_admin_on_windows()
@@ -62,6 +59,18 @@ class TestGameRunners(unittest.TestCase):
             self.assertEqual(runs[0]["game_name"], "aura_benchmark")
         finally:
             runner.close()
+
+    def test_embedded_runner_wait_for_run_zero_timeout_waits_until_terminal(self):
+        runner = EmbeddedGameRunner()
+        fake_runtime = Mock()
+        fake_runtime.get_batch_task_status.return_value = [{"cid": "cid-123", "status": "success"}]
+        fake_runtime.get_run_detail.return_value = {"cid": "cid-123", "status": "success"}
+
+        with patch.object(runner, "_ensure_runtime", return_value=fake_runtime):
+            result = runner.wait_for_run("cid-123", timeout_sec=0)
+
+        self.assertEqual(result["summary"]["status"], "success")
+        fake_runtime.get_batch_task_status.assert_called_once_with(["cid-123"])
 
     def test_embedded_runner_cancel_task_delegates_to_runtime(self):
         runner = EmbeddedGameRunner()
@@ -192,6 +201,16 @@ class TestGameRunners(unittest.TestCase):
 
         self.assertGreaterEqual(timeout, 40.0)
 
+    def test_subprocess_runner_run_task_zero_timeout_has_no_parent_deadline(self):
+        runner = SubprocessGameRunner(startup_timeout_sec=10)
+
+        self.assertIsNone(runner._request_timeout_sec("run_task", {"wait": True, "timeout_sec": 0}))
+        self.assertIsNone(runner._request_timeout_sec("run_task", {"wait": True}))
+        self.assertGreaterEqual(
+            runner._request_timeout_sec("run_task", {"wait": True, "timeout_sec": 60}),
+            65.0,
+        )
+
     def test_subprocess_runner_discards_process_after_request_timeout(self):
         class FakeConnection:
             def __init__(self) -> None:
@@ -258,14 +277,14 @@ class TestGameRunners(unittest.TestCase):
 
         self.assertTrue(FakeEmbeddedRunner.close_called)
 
-    def test_embedded_runner_requires_admin_startup(self):
+    def test_embedded_runner_propagates_scheduler_startup_errors(self):
         runner = EmbeddedGameRunner()
         try:
             with patch(
                 "packages.aura_core.scheduler.core.ensure_admin_startup",
-                side_effect=AdminPrivilegeRequiredError("Aura Scheduler"),
+                side_effect=RuntimeError("scheduler startup failed"),
             ):
-                with self.assertRaises(AdminPrivilegeRequiredError):
+                with self.assertRaisesRegex(RuntimeError, "scheduler startup failed"):
                     runner.list_games()
         finally:
             runner.close()

@@ -65,13 +65,13 @@ class RunnerBridge(QObject):
         self.historyLoaded.emit([normalize_run_payload(row) for row in rows])
 
     @Slot(str, object, object, float)
-    def enqueue_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 600.0) -> None:
+    def enqueue_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
         item = {
             "ticket": next(self._ticket_counter),
             "task_ref": str(task_ref),
             "label": str(label or task_ref),
             "inputs": dict(inputs or {}) if isinstance(inputs, dict) else {},
-            "timeout_sec": float(timeout_sec or 600.0),
+            "timeout_sec": float(timeout_sec if timeout_sec is not None else 0.0),
         }
         self._queue.append(item)
         self.taskQueued.emit(dict(item))
@@ -80,7 +80,7 @@ class RunnerBridge(QObject):
             self._run_next()
 
     @Slot(str, object, object, float)
-    def run_task_now(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 600.0) -> None:
+    def run_task_now(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
         self._queue.insert(
             0,
             {
@@ -88,7 +88,7 @@ class RunnerBridge(QObject):
                 "task_ref": str(task_ref),
                 "label": str(label or task_ref),
                 "inputs": dict(inputs or {}) if isinstance(inputs, dict) else {},
-                "timeout_sec": float(timeout_sec or 600.0),
+                "timeout_sec": float(timeout_sec if timeout_sec is not None else 0.0),
             },
         )
         self._emit_queue()

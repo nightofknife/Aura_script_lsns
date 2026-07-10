@@ -111,7 +111,13 @@ def tasks_command(game_name: str, runner_mode: str) -> None:
 @click.option("--inputs", "inputs_json", default="{}", show_default=True, help="Task inputs as JSON object.")
 @click.option("--inputs-file", type=click.Path(exists=True, dir_okay=False, path_type=Path), default=None, help="Read task inputs from a JSON file.")
 @click.option("--wait/--no-wait", default=True, show_default=True, help="Wait for the run to finish.")
-@click.option("--timeout-sec", default=600.0, show_default=True, type=float, help="Wait timeout in seconds.")
+@click.option(
+    "--timeout-sec",
+    default=0.0,
+    show_default=True,
+    type=float,
+    help="Wait timeout in seconds; <= 0 waits until the task reaches a terminal state.",
+)
 @click.option(
     "--runner",
     "runner_mode",

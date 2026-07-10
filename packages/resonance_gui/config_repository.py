@@ -10,7 +10,7 @@ from PySide6.QtCore import QSettings
 
 @dataclass(frozen=True)
 class GuiPreferences:
-    timeout_sec: float = 600.0
+    timeout_sec: float = 0.0
     history_limit: int = 50
     last_task_id: str = "market_latest"
 
@@ -21,7 +21,7 @@ class ResonanceConfigRepository:
 
     def load_preferences(self) -> GuiPreferences:
         return GuiPreferences(
-            timeout_sec=float(self.settings.value("runner/timeout_sec", 600.0)),
+            timeout_sec=float(self.settings.value("runner/timeout_sec", 0.0)),
             history_limit=int(self.settings.value("history/limit", 50)),
             last_task_id=str(self.settings.value("workbench/last_task_id", "market_latest") or "market_latest"),
         )

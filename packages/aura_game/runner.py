@@ -208,7 +208,7 @@ class EmbeddedGameRunner:
         task_ref: str,
         inputs: Optional[Dict[str, Any]] = None,
         wait: bool = False,
-        timeout_sec: float = 600.0,
+        timeout_sec: float = 0.0,
     ) -> Dict[str, Any]:
         runtime = self._ensure_runtime()
         if not self._is_running():
@@ -225,11 +225,12 @@ class EmbeddedGameRunner:
             }
         return dispatch
 
-    def wait_for_run(self, cid: str, *, timeout_sec: float = 600.0, poll_interval_sec: float = 0.1) -> Dict[str, Any]:
+    def wait_for_run(self, cid: str, *, timeout_sec: float = 0.0, poll_interval_sec: float = 0.1) -> Dict[str, Any]:
         runtime = self._ensure_runtime()
-        deadline = time.time() + max(float(timeout_sec), 1.0)
+        timeout = float(timeout_sec)
+        deadline = None if timeout <= 0 else time.time() + max(timeout, 1.0)
 
-        while time.time() < deadline:
+        while deadline is None or time.time() < deadline:
             rows = runtime.get_batch_task_status([cid])
             row = rows[0] if rows else {}
             status = str(row.get("status") or "").strip().lower()
@@ -465,14 +466,17 @@ class SubprocessGameRunner:
         self._parent_conn = parent_conn
         self._process = process
 
-    def _request_timeout_sec(self, op: str, kwargs: Mapping[str, Any]) -> float:
+    def _request_timeout_sec(self, op: str, kwargs: Mapping[str, Any]) -> Optional[float]:
         if op == "start":
             return max(
                 float(self.startup_timeout_sec) + _SUBPROCESS_START_MARGIN_SEC,
                 _SUBPROCESS_REQUEST_MIN_TIMEOUT_SEC,
             )
         if op == "run_task" and kwargs.get("wait"):
-            return max(float(kwargs.get("timeout_sec") or 600.0), self.startup_timeout_sec, 30.0) + 5.0
+            timeout = float(kwargs.get("timeout_sec", 0.0) or 0.0)
+            if timeout <= 0:
+                return None
+            return max(timeout, self.startup_timeout_sec, 30.0) + 5.0
         if op == "poll_events":
             return max(float(kwargs.get("timeout_sec") or 0.0), 5.0)
         return max(float(self.startup_timeout_sec), _SUBPROCESS_REQUEST_MIN_TIMEOUT_SEC)
@@ -506,7 +510,12 @@ class SubprocessGameRunner:
 
         self._parent_conn.send({"op": op, "kwargs": kwargs})
         timeout = self._request_timeout_sec(op, kwargs)
-        if not self._parent_conn.poll(timeout):
+        if timeout is None:
+            while not self._parent_conn.poll(1.0):
+                if self._process is not None and not self._process.is_alive():
+                    self._discard_process()
+                    raise RuntimeError(f"Subprocess runner exited before responding to request '{op}'.")
+        elif not self._parent_conn.poll(timeout):
             self._discard_process()
             raise TimeoutError(f"Subprocess runner request '{op}' timed out after {timeout:.1f}s.")
 
@@ -538,7 +547,7 @@ class SubprocessGameRunner:
         task_ref: str,
         inputs: Optional[Dict[str, Any]] = None,
         wait: bool = False,
-        timeout_sec: float = 600.0,
+        timeout_sec: float = 0.0,
     ) -> Dict[str, Any]:
         return self._request(
             "run_task",
