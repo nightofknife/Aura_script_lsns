@@ -68,6 +68,14 @@ class ResonanceTradePlannerService:
         "9": "onederland",
         "2": "brcl_outpost",
     }
+    KNOWN_CITY_KEY_TO_ID = {
+        **{value: key for key, value in DEFAULT_CITY_ID_TO_KEY.items()},
+        "anita_energy_research_institute": "6",
+        "anita_rocket_base": "10",
+        "cape_city": "11",
+        "confluence_tower": "13",
+        "gronru_city": "19",
+    }
 
     def __init__(
         self,
@@ -309,11 +317,128 @@ class ResonanceTradePlannerService:
         book_profit_threshold: float = 0,
         available_city_ids: Optional[List[str]] = None,
         start_city_id: Optional[str] = None,
+        current_city_id: Optional[str] = None,
+        current_city: Optional[str] = None,
         max_cycle_hops: int = DEFAULT_CYCLE_MAX_HOPS,
         station_product_whitelist: Optional[Dict[str, List[str]]] = None,
         snapshot_id: Optional[str] = None,
         cycle_beam_width: int = DEFAULT_CYCLE_BEAM_WIDTH,
         cycle_topk_next: int = DEFAULT_CYCLE_TOPK_NEXT,
+    ) -> Dict[str, Any]:
+        selected_payload = self._select_best_cycle_internal(
+            cargo_capacity=cargo_capacity,
+            book_budget=book_budget,
+            book_profit_threshold=book_profit_threshold,
+            available_city_ids=available_city_ids,
+            start_city_id=start_city_id,
+            current_city_id=current_city_id,
+            current_city=current_city,
+            max_cycle_hops=max_cycle_hops,
+            station_product_whitelist=station_product_whitelist,
+            snapshot_id=snapshot_id,
+            cycle_beam_width=cycle_beam_width,
+            cycle_topk_next=cycle_topk_next,
+        )
+        if "plan" in selected_payload:
+            return selected_payload["plan"]
+
+        return self._build_public_cycle_plan(
+            selected=selected_payload["selected"],
+            snapshot=selected_payload["snapshot"],
+            fatigue_payload=selected_payload["fatigue_payload"],
+            snapshot_id=selected_payload["snapshot"].get("snapshot_id"),
+            books_budget=selected_payload["books_budget"],
+        )
+
+    def plan_next_cycle_execution(
+        self,
+        *,
+        fatigue_budget: int,
+        current_city_key: Optional[str] = None,
+        current_city_id: Optional[str] = None,
+        current_city: Optional[str] = None,
+        cargo_capacity: int = 650,
+        book_budget: int = 0,
+        book_profit_threshold: float = 0,
+        max_cycle_hops: int = DEFAULT_CYCLE_MAX_HOPS,
+        snapshot_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        remaining_fatigue = self._coerce_non_negative_int("fatigue_budget", fatigue_budget)
+        selected_payload = self._select_best_cycle_internal(
+            cargo_capacity=cargo_capacity,
+            book_budget=book_budget,
+            book_profit_threshold=book_profit_threshold,
+            available_city_ids=None,
+            start_city_id=None,
+            current_city_id=current_city_id,
+            current_city_key=current_city_key,
+            current_city=current_city,
+            max_cycle_hops=max_cycle_hops,
+            station_product_whitelist=None,
+            snapshot_id=snapshot_id,
+            use_trade_constraints=True,
+        )
+        if "plan" in selected_payload:
+            plan = copy.deepcopy(selected_payload["plan"])
+            plan["round_complete"] = False
+            return plan
+
+        selected = selected_payload["selected"]
+        snapshot = selected_payload["snapshot"]
+        fatigue_payload = selected_payload["fatigue_payload"]
+        books_budget = int(selected_payload["books_budget"])
+        full_fatigue = int(selected.get("fatigue") or 0)
+        if full_fatigue <= remaining_fatigue:
+            plan = self._build_public_cycle_plan(
+                selected=selected,
+                snapshot=snapshot,
+                fatigue_payload=fatigue_payload,
+                snapshot_id=snapshot.get("snapshot_id"),
+                books_budget=books_budget,
+            )
+            plan["round_complete"] = True
+            return plan
+
+        prefix_selected = self._select_budgeted_cycle_prefix(
+            selected=selected,
+            fatigue_budget=remaining_fatigue,
+        )
+        if prefix_selected is None:
+            plan = self._empty_cycle_plan(
+                reason="insufficient_fatigue_for_positive_prefix",
+                snapshot_id=snapshot.get("snapshot_id"),
+                books_budget=books_budget,
+            )
+            plan["round_complete"] = False
+            return plan
+
+        plan = self._build_public_cycle_plan(
+            selected=prefix_selected,
+            snapshot=snapshot,
+            fatigue_payload=fatigue_payload,
+            snapshot_id=snapshot.get("snapshot_id"),
+            books_budget=books_budget,
+        )
+        plan["round_complete"] = False
+        return plan
+
+    def _select_best_cycle_internal(
+        self,
+        *,
+        cargo_capacity: int = 120,
+        book_budget: int = 0,
+        book_profit_threshold: float = 0,
+        available_city_ids: Optional[List[str]] = None,
+        start_city_id: Optional[str] = None,
+        current_city_id: Optional[str] = None,
+        current_city_key: Optional[str] = None,
+        current_city: Optional[str] = None,
+        max_cycle_hops: int = DEFAULT_CYCLE_MAX_HOPS,
+        station_product_whitelist: Optional[Dict[str, List[str]]] = None,
+        snapshot_id: Optional[str] = None,
+        cycle_beam_width: int = DEFAULT_CYCLE_BEAM_WIDTH,
+        cycle_topk_next: int = DEFAULT_CYCLE_TOPK_NEXT,
+        use_trade_constraints: bool = False,
     ) -> Dict[str, Any]:
         capacity = self._coerce_non_negative_int("cargo_capacity", cargo_capacity)
         if capacity <= 0:
@@ -331,8 +456,10 @@ class ResonanceTradePlannerService:
             ) from exc
 
         horizon = max(int(max_cycle_hops), 2)
-        beam_width = max(int(cycle_beam_width), 1)
-        topk_next = max(int(cycle_topk_next), 1)
+        del cycle_beam_width, cycle_topk_next
+        constraints: Optional[Dict[str, Any]] = None
+        if use_trade_constraints:
+            constraints = self._load_trade_constraints_payload()
 
         if snapshot_id:
             snapshot = self.market_data.get_snapshot(snapshot_id=str(snapshot_id))
@@ -353,20 +480,30 @@ class ResonanceTradePlannerService:
                 message="Travel fatigue payload must include costs object.",
             )
 
-        if available_city_ids is None:
+        if available_city_ids is None and constraints is not None:
+            city_ids = [city_id for city_id in constraints["allowed_city_ids"] if city_id in all_costs]
+        elif available_city_ids is None:
             city_ids = [str(item) for item in sorted([str(v) for v in all_costs.keys()], key=self._sort_key)]
         else:
             city_ids = self._normalize_city_list(available_city_ids, all_costs)
         if len(city_ids) < 2:
             return {
-                "status": "no_cycle",
-                "reason": "insufficient_city_count",
-                "snapshot_id": snapshot.get("snapshot_id"),
-                "cycle": None,
+                "plan": self._empty_cycle_plan(
+                    reason="insufficient_city_count",
+                    snapshot_id=snapshot.get("snapshot_id"),
+                    books_budget=max_books,
+                )
             }
 
+        normalized_current = self._resolve_current_city_id(
+            current_city_id=current_city_id,
+            current_city_key=current_city_key,
+            current_city=current_city,
+            fatigue_payload=fatigue_payload,
+            city_key_to_id=(constraints or {}).get("key_to_city_id") if constraints is not None else None,
+        )
         normalized_start = str(start_city_id).strip() if start_city_id is not None else None
-        if normalized_start:
+        if normalized_start and normalized_current is None:
             if normalized_start not in city_ids:
                 raise ResonanceTradePlannerError(
                     code="invalid_start_city_id",
@@ -376,88 +513,68 @@ class ResonanceTradePlannerService:
         else:
             start_candidates = list(city_ids)
 
+        planning_city_ids = list(city_ids)
+        if normalized_current is not None:
+            if normalized_current not in all_costs:
+                return {
+                    "plan": self._empty_cycle_plan(
+                        reason="current_city_not_in_fatigue_graph",
+                        snapshot_id=snapshot.get("snapshot_id"),
+                        books_budget=max_books,
+                    )
+                }
+            if normalized_current not in planning_city_ids:
+                planning_city_ids.append(normalized_current)
+        elif current_city_id or current_city_key or current_city:
+            raise ResonanceTradePlannerError(
+                code="current_city_not_resolved",
+                message="Unable to resolve current city.",
+                detail={
+                    "city_key": current_city_key,
+                    "current_city_id": current_city_id,
+                    "current_city": current_city,
+                },
+            )
+
         allowed_products = self._resolve_station_product_scope(
-            city_ids=city_ids,
+            city_ids=planning_city_ids,
             snapshot=snapshot,
             station_product_whitelist=station_product_whitelist,
         )
         edge_table = self._build_cycle_edge_table(
             snapshot=snapshot,
             fatigue_costs=all_costs,
-            allowed_city_ids=city_ids,
+            allowed_city_ids=planning_city_ids,
             allowed_products=allowed_products,
             capacity=capacity,
             max_books=max_books,
         )
 
-        candidate_cycles: Dict[Tuple[str, ...], Dict[str, Any]] = {}
-        for start in start_candidates:
-            for candidate in self._enumerate_cycle_candidates(
-                start_city_id=start,
-                allowed_city_ids=city_ids,
-                edge_table=edge_table,
-                max_cycle_hops=horizon,
-                beam_width=beam_width,
-                topk_next=topk_next,
-            ):
-                cycle_nodes = candidate["cycle_nodes"]
-                if len(cycle_nodes) < 3:
-                    continue
-                key = self._canonical_cycle_key(cycle_nodes[:-1])
-                existing = candidate_cycles.get(key)
-                if existing is None or float(candidate.get("base_profit") or 0.0) > float(existing.get("base_profit") or 0.0):
-                    candidate_cycles[key] = candidate
-
-        if not candidate_cycles:
+        selected = self._find_best_cycle_with_books(
+            snapshot=snapshot,
+            fatigue_payload=fatigue_payload,
+            start_candidates=start_candidates,
+            allowed_city_ids=city_ids,
+            edge_table=edge_table,
+            max_books=max_books,
+            book_profit_threshold=threshold,
+            max_cycle_hops=horizon,
+            current_city_id=normalized_current,
+        )
+        if selected is None:
             return {
-                "status": "no_cycle",
-                "reason": "no_profitable_cycle_found",
-                "snapshot_id": snapshot.get("snapshot_id"),
-                "cycle": None,
+                "plan": self._empty_cycle_plan(
+                    reason="no_profitable_cycle_found",
+                    snapshot_id=snapshot.get("snapshot_id"),
+                    books_budget=max_books,
+                )
             }
 
-        best_result = None
-        for candidate in candidate_cycles.values():
-            evaluated = self._evaluate_cycle_with_books(
-                cycle_nodes=candidate["cycle_nodes"],
-                edge_table=edge_table,
-                max_books=max_books,
-                book_profit_threshold=threshold,
-            )
-            if evaluated is None:
-                continue
-            rank_key = (
-                float(evaluated["profit"]),
-                float(evaluated["profit_per_fatigue"]),
-                -int(evaluated["fatigue"]),
-            )
-            if best_result is None or rank_key > best_result["rank_key"]:
-                best_result = {"rank_key": rank_key, "evaluated": evaluated}
-
-        if best_result is None:
-            return {
-                "status": "no_cycle",
-                "reason": "cycle_evaluation_failed",
-                "snapshot_id": snapshot.get("snapshot_id"),
-                "cycle": None,
-            }
-
-        selected = best_result["evaluated"]
         return {
-            "status": "ok",
-            "snapshot_id": snapshot.get("snapshot_id"),
-            "cycle": {
-                "city_sequence": selected["city_sequence"],
-                "steps": selected["steps"],
-                "totals": {
-                    "profit": selected["profit"],
-                    "fatigue": selected["fatigue"],
-                    "profit_per_fatigue": selected["profit_per_fatigue"],
-                    "books_budget": max_books,
-                    "books_used": selected["books_used"],
-                    "book_profit_threshold": threshold,
-                },
-            },
+            "selected": selected,
+            "snapshot": snapshot,
+            "fatigue_payload": fatigue_payload,
+            "books_budget": max_books,
         }
 
     def get_trade_constraints(self) -> Dict[str, Any]:
@@ -525,8 +642,10 @@ class ResonanceTradePlannerService:
     def plan_cycle_execution(
         self,
         *,
-        current_city_key: str,
         fatigue_budget: int,
+        current_city_key: Optional[str] = None,
+        current_city_id: Optional[str] = None,
+        current_city: Optional[str] = None,
         cargo_capacity: int = 650,
         book_budget: int = 0,
         book_profit_threshold: float = 0,
@@ -536,16 +655,6 @@ class ResonanceTradePlannerService:
         constraints = self._load_trade_constraints_payload()
         normalized_city_key = str(current_city_key or "").strip()
         fixed_snapshot_id = str(snapshot_id or "").strip()
-        if normalized_city_key not in constraints["allowed_city_keys"]:
-            raise ResonanceTradePlannerError(
-                code="unsupported_start_city",
-                message=f"Start city '{normalized_city_key}' is not allowed.",
-                detail={
-                    "city_key": normalized_city_key,
-                    "allowed_city_ids": constraints["allowed_city_ids"],
-                    "allowed_city_keys": constraints["allowed_city_keys"],
-                },
-            )
 
         budget = self._coerce_non_negative_int("fatigue_budget", fatigue_budget)
         capacity = self._coerce_non_negative_int("cargo_capacity", cargo_capacity)
@@ -577,159 +686,527 @@ class ResonanceTradePlannerService:
 
         allowed_city_ids = [city_id for city_id in constraints["allowed_city_ids"] if city_id in fatigue_costs]
         if len(allowed_city_ids) < 2:
-            raise ResonanceTradePlannerError(
-                code="invalid_trade_constraints",
-                message="Allowed cities in trade constraints are insufficient for cycle planning.",
-                detail={"allowed_city_ids": constraints["allowed_city_ids"]},
+            return self._empty_cycle_plan(
+                reason="insufficient_city_count",
+                snapshot_id=initial_snapshot.get("snapshot_id"),
+                books_budget=self._coerce_non_negative_int("book_budget", book_budget),
             )
 
-        current_city_id = constraints["key_to_city_id"][normalized_city_key]
-        if current_city_id not in allowed_city_ids:
+        resolved_current_city_id = self._resolve_current_city_id(
+            current_city_id=current_city_id,
+            current_city_key=normalized_city_key or None,
+            current_city=current_city,
+            fatigue_payload=fatigue_payload,
+            city_key_to_id=constraints["key_to_city_id"],
+        )
+        if resolved_current_city_id is None:
             raise ResonanceTradePlannerError(
-                code="unsupported_start_city",
-                message=f"Start city '{normalized_city_key}' is not available in fatigue graph.",
+                code="current_city_not_resolved",
+                message="Unable to resolve current city.",
                 detail={
                     "city_key": normalized_city_key,
-                    "city_id": current_city_id,
-                    "allowed_city_ids": allowed_city_ids,
+                    "current_city_id": current_city_id,
+                    "current_city": current_city,
                 },
             )
-
-        remaining_fatigue = budget
-        fatigue_used = 0
-        cycles: List[Dict[str, Any]] = []
-        stop_reason = "insufficient_fatigue_budget"
-        active_snapshot = initial_snapshot
-
-        while remaining_fatigue > 0:
-            if fixed_snapshot_id:
-                active_snapshot = initial_snapshot
-            else:
-                active_snapshot = self.market_data.refresh(force=False)
-            if not isinstance(active_snapshot, dict):
-                raise ResonanceTradePlannerError(
-                    code="invalid_snapshot",
-                    message="Market snapshot payload is invalid after refresh.",
-                )
-            self._build_max_sell_price_cache(active_snapshot)
-
-            cycle_result = self.plan_best_cycle(
-                cargo_capacity=capacity,
-                book_budget=book_budget,
-                book_profit_threshold=book_profit_threshold,
-                available_city_ids=allowed_city_ids,
-                start_city_id=None,
-                max_cycle_hops=max_cycle_hops,
-                snapshot_id=str(active_snapshot.get("snapshot_id") or ""),
+        if resolved_current_city_id not in fatigue_costs:
+            return self._empty_cycle_plan(
+                reason="current_city_not_in_fatigue_graph",
+                snapshot_id=initial_snapshot.get("snapshot_id"),
+                books_budget=self._coerce_non_negative_int("book_budget", book_budget),
             )
-            if cycle_result.get("status") != "ok":
-                stop_reason = str(cycle_result.get("reason") or "no_cycle")
+
+        max_books = self._coerce_non_negative_int("book_budget", book_budget)
+        if fixed_snapshot_id:
+            active_snapshot = initial_snapshot
+        else:
+            active_snapshot = self.market_data.refresh(force=False)
+        if not isinstance(active_snapshot, dict):
+            raise ResonanceTradePlannerError(
+                code="invalid_snapshot",
+                message="Market snapshot payload is invalid after refresh.",
+            )
+        self._build_max_sell_price_cache(active_snapshot)
+
+        cycle_result = self.plan_best_cycle(
+            cargo_capacity=capacity,
+            book_budget=max_books,
+            book_profit_threshold=book_profit_threshold,
+            available_city_ids=allowed_city_ids,
+            current_city_id=resolved_current_city_id,
+            current_city=current_city,
+            max_cycle_hops=max_cycle_hops,
+            snapshot_id=str(active_snapshot.get("snapshot_id") or ""),
+        )
+        if cycle_result.get("status") != "ok":
+            return cycle_result
+        if int(cycle_result.get("fatigue_used") or 0) > budget:
+            return self._empty_cycle_plan(
+                reason="insufficient_fatigue_for_full_cycle",
+                snapshot_id=cycle_result.get("snapshot_id") or active_snapshot.get("snapshot_id"),
+                books_budget=max_books,
+            )
+        return cycle_result
+
+    def _empty_cycle_plan(
+        self,
+        *,
+        reason: str,
+        snapshot_id: Any,
+        books_budget: int,
+    ) -> Dict[str, Any]:
+        return {
+            "status": "no_plan",
+            "reason": reason,
+            "snapshot_id": snapshot_id,
+            "expected_profit": 0.0,
+            "fatigue_used": 0,
+            "books_budget": int(books_budget),
+            "books_used": 0,
+            "entry_route_count": 0,
+            "city_cycle": [],
+            "route": [],
+        }
+
+    def _select_budgeted_cycle_prefix(
+        self,
+        *,
+        selected: Dict[str, Any],
+        fatigue_budget: int,
+    ) -> Optional[Dict[str, Any]]:
+        budget = self._coerce_non_negative_int("fatigue_budget", fatigue_budget)
+        steps = list(selected.get("steps") or [])
+        if budget <= 0 or not steps:
+            return None
+
+        best_count = 0
+        best_rank: Optional[Tuple[float, int, int]] = None
+        total_profit = 0.0
+        total_fatigue = 0
+        total_books = 0
+        running: List[Tuple[float, int, int]] = []
+        for step in steps:
+            step_fatigue = int((step or {}).get("fatigue_cost") or 0)
+            if step_fatigue <= 0:
                 break
-
-            cycle_payload = cycle_result.get("cycle") or {}
-            raw_steps = copy.deepcopy(cycle_payload.get("steps") or [])
-            if not raw_steps:
-                stop_reason = "empty_cycle_steps"
+            if total_fatigue + step_fatigue > budget:
                 break
+            total_profit += float((step or {}).get("profit_delta") or 0.0)
+            total_fatigue += step_fatigue
+            total_books += int((step or {}).get("books_used") or 0)
+            running.append((total_profit, total_fatigue, total_books))
+            rank = (float(total_profit), -int(total_fatigue), -int(total_books))
+            if total_profit > 0 and (best_rank is None or rank > best_rank):
+                best_rank = rank
+                best_count = len(running)
 
-            cycle_city_ids = [str(step.get("from_city_id") or "") for step in raw_steps]
-            entry_leg: Optional[Dict[str, Any]] = None
-            if current_city_id in cycle_city_ids:
-                aligned_steps = self._rotate_cycle_steps(raw_steps, current_city_id)
-            else:
-                entry_leg = self._plan_one_way_entry_leg(
-                    current_city_id=current_city_id,
-                    cycle_steps=raw_steps,
-                    snapshot=active_snapshot,
-                    fatigue_costs=fatigue_costs,
-                    cargo_capacity=capacity,
-                    city_id_to_key=constraints["city_id_to_key"],
-                )
-                aligned_steps = self._rotate_cycle_steps(raw_steps, str(entry_leg["to_city_id"]))
+        if best_count <= 0:
+            return None
 
-            if not aligned_steps:
-                stop_reason = "unable_to_align_cycle_steps"
-                break
+        prefix_steps = copy.deepcopy(steps[:best_count])
+        prefix_profit, prefix_fatigue, prefix_books = running[best_count - 1]
+        entry_route_count = int(selected.get("entry_route_count") or 0)
+        if entry_route_count > best_count:
+            entry_route_count = best_count
+        return {
+            "city_sequence": copy.deepcopy(selected.get("city_sequence") or []),
+            "steps": prefix_steps,
+            "profit": float(prefix_profit),
+            "fatigue": int(prefix_fatigue),
+            "books_used": int(prefix_books),
+            "entry_route_count": int(entry_route_count),
+        }
 
-            cycle_legs = [
-                self._build_cycle_leg(
-                    cycle_step=step,
-                    snapshot=active_snapshot,
-                    city_id_to_key=constraints["city_id_to_key"],
-                )
-                for step in aligned_steps
-            ]
-            legs: List[Dict[str, Any]] = []
-            if entry_leg is not None:
-                legs.append(entry_leg)
-            legs.extend(cycle_legs)
-
-            cycle_fatigue = sum(int(leg.get("fatigue_cost") or 0) for leg in legs)
-            if cycle_fatigue <= 0:
-                stop_reason = "invalid_cycle_fatigue"
-                break
-            if cycle_fatigue > remaining_fatigue:
-                stop_reason = "insufficient_fatigue_for_full_cycle"
-                break
-
-            cycle_profit = sum(float(leg.get("profit_estimate") or 0.0) for leg in legs)
-            cycle_index = len(cycles) + 1
-            city_sequence = [str(legs[0]["from_city_id"])] + [str(leg["to_city_id"]) for leg in legs]
-            cycle_record = {
-                "cycle_index": cycle_index,
-                "entry_mode": "one_way" if entry_leg is not None else "in_cycle",
-                "city_sequence": city_sequence,
-                "legs": legs,
-                "totals": {
-                    "fatigue": cycle_fatigue,
-                    "profit_estimate": cycle_profit,
-                    "profit_per_fatigue": self._safe_ratio(cycle_profit, cycle_fatigue),
-                },
-            }
-            cycles.append(cycle_record)
-
-            remaining_fatigue -= cycle_fatigue
-            fatigue_used += cycle_fatigue
-            current_city_id = str(legs[-1]["to_city_id"])
-
-        if not cycles:
-            return {
-                "status": "no_plan",
-                "reason": stop_reason,
-                "snapshot_id": active_snapshot.get("snapshot_id"),
-                "allowed_city_ids": allowed_city_ids,
-                "allowed_city_keys": constraints["allowed_city_keys"],
-                "current_city_key": normalized_city_key,
-                "cycles": [],
-                "totals": {
-                    "fatigue_budget": budget,
-                    "fatigue_used": 0,
-                    "fatigue_remaining": budget,
-                    "planned_cycles": 0,
-                },
-            }
-
-        last_city_id = str(cycles[-1]["legs"][-1]["to_city_id"])
-        last_city_key = constraints["city_id_to_key"].get(last_city_id, last_city_id)
-        total_profit = sum(float(cycle["totals"]["profit_estimate"]) for cycle in cycles)
+    def _build_public_cycle_plan(
+        self,
+        *,
+        selected: Dict[str, Any],
+        snapshot: Dict[str, Any],
+        fatigue_payload: Dict[str, Any],
+        snapshot_id: Any,
+        books_budget: int,
+    ) -> Dict[str, Any]:
+        city_ids = [str(item) for item in selected.get("city_sequence") or []]
+        city_cycle = [self._resolve_city_display_name(snapshot, fatigue_payload, city_id) for city_id in city_ids]
+        route: List[Dict[str, Any]] = []
+        for step in selected.get("steps") or []:
+            from_city_id = str(step.get("from_city_id") or "")
+            to_city_id = str(step.get("to_city_id") or "")
+            route.append(
+                {
+                    "from_city": self._resolve_city_display_name(snapshot, fatigue_payload, from_city_id),
+                    "to_city": self._resolve_city_display_name(snapshot, fatigue_payload, to_city_id),
+                    "buy_products": list(step.get("buy_product_names") or []),
+                    "books_used": int(step.get("books_used") or 0),
+                }
+            )
         return {
             "status": "ok",
-            "snapshot_id": active_snapshot.get("snapshot_id"),
-            "allowed_city_ids": allowed_city_ids,
-            "allowed_city_keys": constraints["allowed_city_keys"],
-            "start_city_key": normalized_city_key,
-            "cycles": cycles,
-            "totals": {
-                "fatigue_budget": budget,
-                "fatigue_used": fatigue_used,
-                "fatigue_remaining": remaining_fatigue,
-                "planned_cycles": len(cycles),
-                "profit_estimate": total_profit,
-                "profit_per_fatigue": self._safe_ratio(total_profit, fatigue_used),
-                "last_city_id": last_city_id,
-                "last_city_key": last_city_key,
-            },
+            "reason": None,
+            "snapshot_id": snapshot_id,
+            "expected_profit": float(selected.get("profit") or 0.0),
+            "fatigue_used": int(selected.get("fatigue") or 0),
+            "books_budget": int(books_budget),
+            "books_used": int(selected.get("books_used") or 0),
+            "entry_route_count": int(selected.get("entry_route_count") or 0),
+            "city_cycle": city_cycle,
+            "route": route,
         }
+
+    def _find_best_cycle_with_books(
+        self,
+        *,
+        snapshot: Dict[str, Any],
+        fatigue_payload: Dict[str, Any],
+        start_candidates: List[str],
+        allowed_city_ids: List[str],
+        edge_table: Dict[Tuple[str, str], Dict[str, Any]],
+        max_books: int,
+        book_profit_threshold: float,
+        max_cycle_hops: int,
+        current_city_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        del fatigue_payload
+        city_to_bit = {str(city_id): idx for idx, city_id in enumerate(allowed_city_ids)}
+        best_state: Optional[Dict[str, Any]] = None
+        best_rank: Optional[Tuple[float, int, int]] = None
+        normalized_current = str(current_city_id).strip() if current_city_id is not None else None
+        entry_candidates = list(allowed_city_ids) if normalized_current else list(start_candidates)
+
+        for raw_entry in entry_candidates:
+            entry_city = str(raw_entry)
+            if entry_city not in city_to_bit:
+                continue
+            entry_is_direct = normalized_current is None or normalized_current == entry_city
+            stable_city_ids = [
+                str(city_id)
+                for city_id in allowed_city_ids
+                if entry_is_direct or str(city_id) != normalized_current
+            ]
+            if entry_city not in stable_city_ids:
+                continue
+
+            start_mask = 1 << city_to_bit[entry_city]
+            states: Dict[Tuple[int, str, int], Dict[str, Any]] = {}
+            if entry_is_direct:
+                states[(start_mask, entry_city, 0)] = {
+                    "path": [entry_city],
+                    "edge_books": [],
+                    "profit": 0.0,
+                    "fatigue": 0,
+                    "entry_route_count": 0,
+                }
+            else:
+                entry_edge = edge_table.get((str(normalized_current), entry_city))
+                if entry_edge is None:
+                    continue
+                for entry_books in self._valid_book_counts_for_edge(
+                    entry_edge,
+                    max_books=max_books,
+                    book_profit_threshold=book_profit_threshold,
+                ):
+                    plans = entry_edge.get("plans") or []
+                    if entry_books >= len(plans):
+                        continue
+                    plan = plans[entry_books]
+                    states[(start_mask, entry_city, int(entry_books))] = {
+                        "path": [entry_city],
+                        "edge_books": [int(entry_books)],
+                        "profit": float((plan or {}).get("profit") or 0.0),
+                        "fatigue": int(entry_edge.get("fatigue") or 0),
+                        "entry_route_count": 1,
+                    }
+
+            for _depth in range(max_cycle_hops):
+                next_states: Dict[Tuple[int, str, int], Dict[str, Any]] = {}
+                for (mask, last_city, used_books), state in states.items():
+                    path = [str(item) for item in state.get("path") or []]
+                    if not path:
+                        continue
+                    path_edges = len(path) - 1
+                    if path_edges >= 1:
+                        return_edge = edge_table.get((last_city, entry_city))
+                        if return_edge is not None and path_edges + 1 <= max_cycle_hops:
+                            remaining_books = int(max_books) - int(used_books)
+                            for return_books in self._valid_book_counts_for_edge(
+                                return_edge,
+                                max_books=remaining_books,
+                                book_profit_threshold=book_profit_threshold,
+                            ):
+                                plans = return_edge.get("plans") or []
+                                if return_books >= len(plans):
+                                    continue
+                                return_plan = plans[return_books]
+                                profit_total = float(state.get("profit") or 0.0) + float(
+                                    (return_plan or {}).get("profit") or 0.0
+                                )
+                                if profit_total <= 0:
+                                    continue
+                                fatigue_total = int(state.get("fatigue") or 0) + int(return_edge.get("fatigue") or 0)
+                                books_total = int(used_books) + int(return_books)
+                                rank = (float(profit_total), -int(fatigue_total), -int(books_total))
+                                if best_rank is None or rank > best_rank:
+                                    entry_route_count = int(state.get("entry_route_count") or 0)
+                                    route_sequence = list(path) + [entry_city]
+                                    if entry_route_count:
+                                        route_sequence = [str(normalized_current)] + route_sequence
+                                    best_rank = rank
+                                    best_state = {
+                                        "city_sequence": path + [entry_city],
+                                        "route_sequence": route_sequence,
+                                        "edge_books": list(state.get("edge_books") or []) + [int(return_books)],
+                                        "profit": float(profit_total),
+                                        "fatigue": int(fatigue_total),
+                                        "books_used": int(books_total),
+                                        "entry_route_count": entry_route_count,
+                                    }
+
+                    if path_edges >= max_cycle_hops - 1:
+                        continue
+
+                    for next_city in stable_city_ids:
+                        next_city = str(next_city)
+                        bit = city_to_bit.get(next_city)
+                        if bit is None or (mask & (1 << bit)):
+                            continue
+                        edge = edge_table.get((last_city, next_city))
+                        if edge is None:
+                            continue
+                        remaining_books = int(max_books) - int(used_books)
+                        for books_on_edge in self._valid_book_counts_for_edge(
+                            edge,
+                            max_books=remaining_books,
+                            book_profit_threshold=book_profit_threshold,
+                        ):
+                            plans = edge.get("plans") or []
+                            if books_on_edge >= len(plans):
+                                continue
+                            plan = plans[books_on_edge]
+                            next_used = int(used_books) + int(books_on_edge)
+                            if next_used > max_books:
+                                continue
+                            next_mask = mask | (1 << bit)
+                            candidate = {
+                                "path": path + [next_city],
+                                "edge_books": list(state.get("edge_books") or []) + [int(books_on_edge)],
+                                "profit": float(state.get("profit") or 0.0)
+                                + float((plan or {}).get("profit") or 0.0),
+                                "fatigue": int(state.get("fatigue") or 0) + int(edge.get("fatigue") or 0),
+                                "entry_route_count": int(state.get("entry_route_count") or 0),
+                            }
+                            key = (next_mask, next_city, next_used)
+                            existing = next_states.get(key)
+                            if existing is None or self._cycle_state_is_better(candidate, existing):
+                                next_states[key] = candidate
+                if not next_states:
+                    break
+                states = next_states
+
+        if best_state is None:
+            return None
+
+        city_sequence = [str(item) for item in best_state.get("city_sequence") or []]
+        route_sequence = [str(item) for item in best_state.get("route_sequence") or city_sequence]
+        edge_books = [int(item) for item in best_state.get("edge_books") or []]
+        steps: List[Dict[str, Any]] = []
+        fatigue_total = 0
+        for idx in range(len(route_sequence) - 1):
+            from_city = route_sequence[idx]
+            to_city = route_sequence[idx + 1]
+            books_used = edge_books[idx] if idx < len(edge_books) else 0
+            edge = edge_table.get((from_city, to_city))
+            if edge is None:
+                return None
+            plans = edge.get("plans") or []
+            if books_used >= len(plans):
+                return None
+            plan = plans[books_used]
+            edge_fatigue = int(edge.get("fatigue") or 0)
+            fatigue_total += edge_fatigue
+            steps.append(
+                {
+                    "from_city_id": from_city,
+                    "to_city_id": to_city,
+                    "fatigue_cost": edge_fatigue,
+                    "books_used": int(books_used),
+                    "profit_delta": float((plan or {}).get("profit") or 0.0),
+                    "buy_product_names": self._buy_product_names_from_plan(snapshot, plan or {}),
+                }
+            )
+
+        return {
+            "city_sequence": city_sequence,
+            "steps": steps,
+            "profit": float(best_state.get("profit") or 0.0),
+            "fatigue": int(fatigue_total),
+            "books_used": int(best_state.get("books_used") or 0),
+            "entry_route_count": int(best_state.get("entry_route_count") or 0),
+        }
+
+    @staticmethod
+    def _cycle_state_is_better(candidate: Dict[str, Any], existing: Dict[str, Any]) -> bool:
+        candidate_profit = float(candidate.get("profit") or 0.0)
+        existing_profit = float(existing.get("profit") or 0.0)
+        if candidate_profit != existing_profit:
+            return candidate_profit > existing_profit
+        return int(candidate.get("fatigue") or 0) < int(existing.get("fatigue") or 0)
+
+    @staticmethod
+    def _valid_book_counts_for_edge(
+        edge: Dict[str, Any],
+        *,
+        max_books: int,
+        book_profit_threshold: float,
+    ) -> List[int]:
+        plans = edge.get("plans") or []
+        if not plans:
+            return []
+        allowed = [0]
+        marginals = edge.get("marginals") or []
+        limit = min(max(int(max_books), 0), len(plans) - 1)
+        for book_idx in range(1, limit + 1):
+            marginal = float(marginals[book_idx - 1]) if book_idx - 1 < len(marginals) else float("-inf")
+            if marginal >= float(book_profit_threshold):
+                allowed.append(book_idx)
+            else:
+                break
+        return allowed
+
+    def _buy_product_names_from_plan(self, snapshot: Dict[str, Any], plan: Dict[str, Any]) -> List[str]:
+        product_names: List[str] = []
+        seen_product_ids: set[str] = set()
+        for buy in plan.get("buys") or []:
+            product_id = str((buy or {}).get("product_id") or "").strip()
+            if not product_id or product_id in seen_product_ids:
+                continue
+            seen_product_ids.add(product_id)
+            product_names.append(self._resolve_product_name(snapshot, product_id))
+        return product_names
+
+    def _resolve_current_city_id(
+        self,
+        *,
+        current_city_id: Optional[str],
+        current_city_key: Optional[str],
+        current_city: Optional[str],
+        fatigue_payload: Dict[str, Any],
+        city_key_to_id: Optional[Dict[str, str]],
+    ) -> Optional[str]:
+        resolved: List[Tuple[str, str]] = []
+        provided: List[Tuple[str, str]] = []
+        for label, token in (
+            ("current_city_id", current_city_id),
+            ("current_city_key", current_city_key),
+            ("current_city", current_city),
+        ):
+            raw_value = str(token or "").strip()
+            if raw_value:
+                provided.append((label, raw_value))
+            city_id = self._resolve_city_id_token(
+                token,
+                fatigue_payload=fatigue_payload,
+                city_key_to_id=city_key_to_id,
+            )
+            if city_id is not None:
+                resolved.append((label, city_id))
+
+        if not resolved:
+            if provided:
+                raise ResonanceTradePlannerError(
+                    code="current_city_not_resolved",
+                    message="Unable to resolve current city.",
+                    detail={label: value for label, value in provided},
+                )
+            return None
+        first_city_id = resolved[0][1]
+        conflicts = [(label, city_id) for label, city_id in resolved if city_id != first_city_id]
+        if conflicts:
+            raise ResonanceTradePlannerError(
+                code="current_city_conflict",
+                message="Current city inputs do not resolve to the same city.",
+                detail={
+                    "resolved": [{"field": label, "city_id": city_id} for label, city_id in resolved],
+                },
+            )
+        return first_city_id
+
+    def _resolve_city_id_token(
+        self,
+        token: Optional[str],
+        *,
+        fatigue_payload: Dict[str, Any],
+        city_key_to_id: Optional[Dict[str, str]],
+    ) -> Optional[str]:
+        value = str(token or "").strip()
+        if not value:
+            return None
+
+        fatigue_costs = fatigue_payload.get("costs") or {}
+        if isinstance(fatigue_costs, dict) and value in fatigue_costs:
+            return value
+
+        key_maps: List[Dict[str, str]] = []
+        if isinstance(city_key_to_id, dict):
+            key_maps.append({str(k): str(v) for k, v in city_key_to_id.items()})
+        key_maps.append(self.KNOWN_CITY_KEY_TO_ID)
+        for key_map in key_maps:
+            city_id = key_map.get(value)
+            if city_id and (not isinstance(fatigue_costs, dict) or city_id in fatigue_costs):
+                return str(city_id)
+
+        city_names = fatigue_payload.get("cities") or {}
+        if isinstance(city_names, dict):
+            alias_payload = self._load_city_name_aliases()
+            aliases = {str(k): str(v) for k, v in alias_payload.items()}
+            lookup_values = [value]
+            if value in aliases:
+                lookup_values.append(aliases[value])
+
+            normalized_lookup = {self._normalize_city_lookup_text(item) for item in lookup_values}
+            for raw_city_id, raw_name in city_names.items():
+                city_id = str(raw_city_id)
+                city_name = str(raw_name or "").strip()
+                if not city_name:
+                    continue
+                if value == city_name or self._normalize_city_lookup_text(city_name) in normalized_lookup:
+                    return city_id
+        return None
+
+    def _load_city_name_aliases(self) -> Dict[str, str]:
+        alias_file = self.meta_dir / "city_aliases.json"
+        if not alias_file.is_file():
+            return {}
+        try:
+            payload = json.loads(alias_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return {str(k): str(v) for k, v in payload.items() if str(k).strip() and str(v).strip()}
+
+    @staticmethod
+    def _normalize_city_lookup_text(raw: Any) -> str:
+        return "".join(ch for ch in str(raw).lower() if ch.isalnum())
+
+    @staticmethod
+    def _resolve_city_display_name(snapshot: Dict[str, Any], fatigue_payload: Dict[str, Any], city_id: str) -> str:
+        city_key = str(city_id)
+        snapshot_cities = snapshot.get("cities") or {}
+        if isinstance(snapshot_cities, dict):
+            city_payload = snapshot_cities.get(city_key)
+            if isinstance(city_payload, dict):
+                name = str(city_payload.get("name") or "").strip()
+                if name:
+                    return name
+            elif isinstance(city_payload, str) and city_payload.strip():
+                return city_payload.strip()
+
+        fatigue_cities = fatigue_payload.get("cities") or {}
+        if isinstance(fatigue_cities, dict):
+            name = str(fatigue_cities.get(city_key) or "").strip()
+            if name:
+                return name
+        return city_key
 
     def _rotate_cycle_steps(self, steps: List[Dict[str, Any]], start_city_id: str) -> List[Dict[str, Any]]:
         target_city = str(start_city_id or "").strip()
@@ -897,7 +1374,7 @@ class ResonanceTradePlannerService:
             if unit_profit <= 0:
                 continue
             candidates.append((unit_profit, str(product_id), lot))
-        candidates.sort(key=lambda row: row[0], reverse=True)
+        candidates.sort(key=lambda row: (-row[0], self._sort_key(row[1])))
 
         free_capacity = int(cargo_capacity)
         total_profit = 0.0
@@ -1078,7 +1555,7 @@ class ResonanceTradePlannerService:
             if qty_max <= 0:
                 continue
             candidates.append((unit_profit, str(product_id), float(buy_price), float(sell_price), int(qty_max)))
-        candidates.sort(key=lambda row: row[0], reverse=True)
+        candidates.sort(key=lambda row: (-row[0], self._sort_key(row[1])))
 
         buys: List[Dict[str, Any]] = []
         sells: List[Dict[str, Any]] = []

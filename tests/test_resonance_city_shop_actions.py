@@ -64,6 +64,24 @@ def test_resolve_city_shop_point_relative_path_from_plan_root(tmp_path: Path, mo
     assert result["y"] == 470
 
 
+@pytest.mark.parametrize("ocr_text", ["7号直电港", "7号直由港"])
+def test_resolve_city_shop_point_freeport_ocr_alias(tmp_path: Path, ocr_text: str) -> None:
+    location_file = tmp_path / "location.json"
+    _write_location(
+        location_file,
+        {"city": {"freeport": {"exchange": [540, 250]}}},
+    )
+
+    result = resonance_resolve_city_shop_point(
+        ocr_city_text=ocr_text,
+        shop_type="exchange",
+        location_file_path=str(location_file),
+    )
+
+    assert result["city_key"] == "freeport"
+    assert result["city_name"] == "7号自由港"
+
+
 def test_resolve_city_shop_point_city_not_resolved(tmp_path: Path) -> None:
     location_file = tmp_path / "location.json"
     _write_location(

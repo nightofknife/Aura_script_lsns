@@ -36,7 +36,8 @@ class FakeRunner:
 
 def test_task_specs_cover_resonance_groups():
     assert GAME_NAME == "resonance"
-    assert set(CATEGORIES) == {"市场数据", "跑商规划", "自动跑商", "城市操作", "战斗调度"}
+    assert set(CATEGORIES) == {"启动", "用户数据", "市场数据", "跑商规划", "自动跑商", "城市操作", "战斗调度"}
+    assert TASKS_BY_ID["player_data_refresh"].task_ref == "tasks:player_data.yaml:player_data_refresh"
     assert TASKS_BY_ID["auto_cycle_trade"].task_ref == "tasks:auto_cycle_trade.yaml:auto_cycle_trade"
     assert TASKS_BY_ID["battle_dispatch"].task_ref == "tasks:auto_battle_dispatch.yaml:auto_battle_dispatch"
 
@@ -83,9 +84,25 @@ def test_runner_bridge_requests_resonance_task():
     assert run_call["wait"] is True
 
 
+def test_runner_bridge_preserves_zero_timeout_for_infinite_wait():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    finished: list[dict] = []
+    bridge.taskFinished.connect(finished.append)
+
+    bridge.initialize()
+    bridge.enqueue_task("tasks:auto_cycle_trade.yaml:auto_cycle_trade", {}, "cycle", 0.0)
+
+    assert finished
+    run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
+    assert run_call["timeout_sec"] == 0.0
+
+
 def test_config_repository_uses_resonance_settings(tmp_path):
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     repo = ResonanceConfigRepository(settings=settings)
+
+    assert repo.load_preferences().timeout_sec == 0.0
 
     repo.save_preferences(GuiPreferences(timeout_sec=42.0, history_limit=7, last_task_id="market_latest"))
     loaded = repo.load_preferences()

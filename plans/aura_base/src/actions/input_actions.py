@@ -71,6 +71,17 @@ def press_key(app: AppProviderService, key: str, presses: int = 1, interval: flo
     return True
 
 
+@action_info(name="launch_app", public=True)
+@requires_services(app="app")
+def launch_app(
+    app: AppProviderService,
+    package_name: str,
+    activity: str | None = None,
+    timeout_sec: float | None = None,
+) -> dict:
+    return app.launch_app(package_name, activity=activity, timeout_sec=timeout_sec)
+
+
 @action_info(name="press_hotkey", public=True)
 @requires_services(app="app")
 def press_hotkey(app: AppProviderService, keys: list[str]):

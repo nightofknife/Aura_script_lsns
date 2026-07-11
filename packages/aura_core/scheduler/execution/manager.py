@@ -392,7 +392,7 @@ class ExecutionManager:
         # ✅ 修改：使用命名参数传递，避免位置参数错误
         if not task_file_path:
             if not task_name_in_plan:
-                raise ValueError(f"鏃犳硶浠?tasklet 涓‘瀹?task ref: {tasklet}")
+                raise ValueError(f"无法从 tasklet 中确定 task ref: {tasklet}")
             resolved_task = TaskRefResolver.resolve(
                 task_name_in_plan,
                 default_package=plan_name,

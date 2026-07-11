@@ -1,199 +1,78 @@
-execute_trade_leg:
-  meta:
-    title: Execute Trade Leg
-    description: "Execute one trade leg: sell, optional buy, back to main view, then travel."
-    inputs:
-      - name: to_city_id
-        type: string
-        required: true
-      - name: to_city_key
-        type: string
-        required: true
-      - name: buy_product_names
-        type: list
-        required: false
-        default: []
-  steps:
-    assert_allowed_destination:
-      action: resonance.trade_assert_allowed_city
-      params:
-        city_id: "{{ inputs.to_city_id }}"
-        city_key: "{{ inputs.to_city_key }}"
-
-    enter_exchange:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:city_shop.yaml:enter_city_shop"
-        inputs:
-          shop_type: "exchange"
-      depends_on: assert_allowed_destination
-
-    sell_all_goods:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:sell_goods.yaml:sell_all_goods"
-        inputs: {}
-      depends_on: enter_exchange
-
-    buy_goods_optional:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:buy_goods.yaml:buy_goods"
-        inputs:
-          product_list: "{{ inputs.buy_product_names }}"
-      depends_on: sell_all_goods
-      when: "{{ (inputs.buy_product_names | default([]) | length) > 0 }}"
-
-    trade_done_marker:
-      action: plans/aura_base/log
-      params:
-        message: "trade done, back to main view"
-      depends_on:
-        all:
-          - sell_all_goods: "success"
-          - buy_goods_optional: "success|skipped"
-
-    wait_before_back_main:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: trade_done_marker
-
-    click_back_main:
-      action: plans/aura_base/click
-      params:
-        x: 200
-        y: 40
-      depends_on: wait_before_back_main
-
-    wait_after_back_main:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: click_back_main
-
-    travel_to_next_city:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:city_travel.yaml:intercity_select_destination"
-        inputs:
-          to_city_name: "{{ inputs.to_city_key }}"
-          enter_station_timeout_seconds: 600
-      depends_on: wait_after_back_main
-
-  returns:
-    success: true
-    to_city_id: "{{ inputs.to_city_id }}"
-    to_city_key: "{{ inputs.to_city_key }}"
-    buy_count: "{{ inputs.buy_product_names | default([]) | length }}"
-
-execute_trade_cycle:
-  meta:
-    title: Execute Trade Cycle
-    description: Execute all legs in one planned cycle.
-    inputs:
-      - name: cycle_index
-        type: number
-        required: true
-      - name: legs
-        type: list
-        required: true
-  steps:
-    run_cycle_legs:
-      action: aura.run_task
-      loop:
-        for_each: "{{ inputs.legs }}"
-        parallelism: 1
-      params:
-        task_ref: "tasks:auto_cycle_trade.yaml:execute_trade_leg"
-        inputs:
-          to_city_id: "{{ loop.item.to_city_id }}"
-          to_city_key: "{{ loop.item.to_city_key }}"
-          buy_product_names: "{{ loop.item.buy_product_names | default([]) }}"
-  returns:
-    success: true
-    cycle_index: "{{ inputs.cycle_index }}"
-    leg_count: "{{ inputs.legs | length }}"
-
 auto_cycle_trade:
   meta:
     title: Auto Cycle Trade
-    description: Auto trading with fixed whitelist cities and fatigue budget.
+    description: Auto trading flow implemented by resonance.auto_cycle_trade_flow.
     entry_point: true
     inputs:
       - name: fatigue_budget
         type: number
         required: true
+      - name: cargo_capacity
+        type: number
+        required: false
+        default: 650
+      - name: book_budget
+        type: number
+        required: false
+        default: 0
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+      - name: max_cycle_hops
+        type: number
+        required: false
+        default: 6
+      - name: max_rounds
+        type: number
+        required: false
+        default: 64
+      - name: use_fatigue_medicine
+        type: boolean
+        required: false
+        default: false
+      - name: allowed_fatigue_medicines
+        type: list
+        required: false
+        default: []
+      - name: fatigue_medicine_max_uses
+        type: number
+        required: false
+        default: 4
   steps:
-    get_current_city:
-      action: aura.run_task
+    run:
+      action: resonance.auto_cycle_trade_flow
       params:
-        task_ref: "tasks:city_shop.yaml:get_city_name"
-        inputs: {}
-
-    wait_before_back_main_after_city_read:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: get_current_city
-
-    click_back_main_after_city_read:
-      action: plans/aura_base/click
-      params:
-        x: 200
-        y: 40
-      depends_on: wait_before_back_main_after_city_read
-
-    wait_after_back_main_after_city_read:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: click_back_main_after_city_read
-
-    validate_start_city:
-      action: resonance.trade_assert_allowed_city
-      params:
-        city_key: "{{ nodes.get_current_city.output.nodes.resolve_city.output.city_key }}"
-      depends_on: wait_after_back_main_after_city_read
-
-    refresh_market_before_plan:
-      action: resonance.market_refresh
-      params:
-        force: false
-      depends_on: validate_start_city
-
-    plan_cycles:
-      action: resonance.trade_plan_cycle_execution
-      params:
-        current_city_key: "{{ nodes.get_current_city.output.nodes.resolve_city.output.city_key }}"
         fatigue_budget: "{{ inputs.fatigue_budget }}"
-      depends_on: refresh_market_before_plan
-
-    assert_plan_ready:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.plan_cycles.output.status == 'ok' and (nodes.plan_cycles.output.cycles | length) > 0 }}"
-        message: "no executable cycle plan under current fatigue budget"
-      depends_on: plan_cycles
-
-    run_cycles:
-      action: aura.run_task
-      loop:
-        for_each: "{{ nodes.plan_cycles.output.cycles }}"
-        parallelism: 1
-      params:
-        task_ref: "tasks:auto_cycle_trade.yaml:execute_trade_cycle"
-        inputs:
-          cycle_index: "{{ loop.item.cycle_index }}"
-          legs: "{{ loop.item.legs }}"
-      depends_on: assert_plan_ready
-
+        cargo_capacity: "{{ inputs.cargo_capacity }}"
+        book_budget: "{{ inputs.book_budget }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold }}"
+        max_cycle_hops: "{{ inputs.max_cycle_hops }}"
+        max_rounds: "{{ inputs.max_rounds }}"
+        use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
+        allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
+        fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
   returns:
-    success: true
-    allowed_city_ids: "{{ nodes.plan_cycles.output.allowed_city_ids }}"
-    planned_cycles: "{{ nodes.plan_cycles.output.totals.planned_cycles }}"
-    fatigue_budget: "{{ nodes.plan_cycles.output.totals.fatigue_budget }}"
-    fatigue_used: "{{ nodes.plan_cycles.output.totals.fatigue_used }}"
-    fatigue_remaining: "{{ nodes.plan_cycles.output.totals.fatigue_remaining }}"
-    profit_estimate: "{{ nodes.plan_cycles.output.totals.profit_estimate }}"
-    last_city_key: "{{ nodes.plan_cycles.output.totals.last_city_key }}"
+    success: "{{ nodes.run.output.success }}"
+    status: "{{ nodes.run.output.status }}"
+    reason: "{{ nodes.run.output.reason }}"
+    snapshot_id: "{{ nodes.run.output.snapshot_id }}"
+    snapshot_ids: "{{ nodes.run.output.snapshot_ids }}"
+    expected_profit: "{{ nodes.run.output.expected_profit }}"
+    fatigue_budget: "{{ nodes.run.output.fatigue_budget }}"
+    fatigue_used: "{{ nodes.run.output.fatigue_used }}"
+    remaining_fatigue: "{{ nodes.run.output.remaining_fatigue }}"
+    books_budget: "{{ nodes.run.output.books_budget }}"
+    books_used: "{{ nodes.run.output.books_used }}"
+    rounds_completed: "{{ nodes.run.output.rounds_completed }}"
+    entry_route_count: "{{ nodes.run.output.entry_route_count }}"
+    city_cycle: "{{ nodes.run.output.city_cycle }}"
+    rounds: "{{ nodes.run.output.rounds }}"
+    route: "{{ nodes.run.output.route }}"
+    blocked_at: "{{ nodes.run.output.blocked_at }}"
+    blocked_leg: "{{ nodes.run.output.blocked_leg }}"
+    fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"
+    fatigue_medicine_use_count: "{{ nodes.run.output.fatigue_medicine_use_count }}"
+    initial_city: "{{ nodes.run.output.initial_city }}"
+    rounds_run: "{{ nodes.run.output.rounds_run }}"
+    page_state: "{{ nodes.run.output.page_state }}"

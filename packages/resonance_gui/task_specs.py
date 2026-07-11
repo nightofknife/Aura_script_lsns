@@ -22,6 +22,47 @@ class TaskSpec:
 
 WORKBENCH_TASKS: tuple[TaskSpec, ...] = (
     TaskSpec(
+        task_id="game_startup_enter_main",
+        category="\u542f\u52a8",
+        title="\u8fdb\u5165\u4e3b\u754c\u9762",
+        task_ref="tasks:game_startup.yaml:enter_main",
+        description="\u4ece\u684c\u9762\u3001\u6807\u9898\u9875\u6216\u4e2d\u9014\u754c\u9762\u63a8\u8fdb\u5230\u96f7\u7d22\u7eb3\u65af\u4e3b\u754c\u9762\u3002",
+        default_inputs={
+            "launch_from_home": True,
+            "max_settle_rounds": 300,
+            "fail_if_login_required": True,
+        },
+        execution_mode=TASK_EXECUTION_INTERACTIVE,
+    ),
+    TaskSpec(
+        task_id="game_startup_close_game",
+        category="\u542f\u52a8",
+        title="\u5173\u95ed\u6e38\u620f",
+        task_ref="tasks:game_startup.yaml:close_game",
+        description="\u901a\u8fc7 ADB force-stop \u5173\u95ed\u96f7\u7d22\u7eb3\u65af\u6e38\u620f\u8fdb\u7a0b\u3002",
+        default_inputs={
+            "android_package": "com.hermes.goda",
+            "timeout_sec": 10.0,
+        },
+        execution_mode=TASK_EXECUTION_INTERACTIVE,
+    ),
+    TaskSpec(
+        task_id="player_data_refresh",
+        category="用户数据",
+        title="刷新用户数据",
+        task_ref="tasks:player_data.yaml:player_data_refresh",
+        description="安全读取账号、货币、位置、澄明度、疲劳值、货舱容量和恢复道具。",
+        default_inputs={"persist": True, "enter_main_first": True},
+        execution_mode=TASK_EXECUTION_INTERACTIVE,
+    ),
+    TaskSpec(
+        task_id="player_data_latest",
+        category="用户数据",
+        title="读取用户数据缓存",
+        task_ref="tasks:player_data.yaml:player_data_get_latest",
+        description="读取本地最新用户数据缓存。",
+    ),
+    TaskSpec(
         task_id="market_refresh",
         category="市场数据",
         title="刷新市场数据",
@@ -103,7 +144,17 @@ WORKBENCH_TASKS: tuple[TaskSpec, ...] = (
         title="自动循环跑商",
         task_ref="tasks:auto_cycle_trade.yaml:auto_cycle_trade",
         description="读取当前城市，规划循环并逐段执行。",
-        default_inputs={"fatigue_budget": 100},
+        default_inputs={
+            "fatigue_budget": 100,
+            "cargo_capacity": 120,
+            "book_budget": 0,
+            "book_profit_threshold": 0,
+            "max_cycle_hops": 6,
+            "max_rounds": 64,
+            "use_fatigue_medicine": False,
+            "allowed_fatigue_medicines": [],
+            "fatigue_medicine_max_uses": 4,
+        },
         execution_mode=TASK_EXECUTION_INTERACTIVE,
     ),
     TaskSpec(
@@ -112,7 +163,13 @@ WORKBENCH_TASKS: tuple[TaskSpec, ...] = (
         title="城市旅行",
         task_ref="tasks:city_travel.yaml:intercity_select_destination",
         description="选择目的城市并进入站点。",
-        default_inputs={"to_city_name": "", "enter_station_timeout_seconds": 600},
+        default_inputs={
+            "to_city_name": "",
+            "enter_station_timeout_seconds": 0,
+            "use_fatigue_medicine": False,
+            "allowed_fatigue_medicines": [],
+            "fatigue_medicine_max_uses": 4,
+        },
         execution_mode=TASK_EXECUTION_INTERACTIVE,
     ),
     TaskSpec(
@@ -130,7 +187,7 @@ WORKBENCH_TASKS: tuple[TaskSpec, ...] = (
         title="买货",
         task_ref="tasks:buy_goods.yaml:buy_goods",
         description="按商品名称列表执行购买。",
-        default_inputs={"product_list": []},
+        default_inputs={"product_list": [], "books_used": 0},
         execution_mode=TASK_EXECUTION_INTERACTIVE,
     ),
     TaskSpec(

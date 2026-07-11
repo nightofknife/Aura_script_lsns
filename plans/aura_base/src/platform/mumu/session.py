@@ -204,6 +204,53 @@ class MuMuSession:
             if index < max(int(presses), 1) - 1:
                 time.sleep(wait_interval)
 
+    def launch_app(
+        self,
+        package_name: str,
+        *,
+        activity: str | None = None,
+        timeout_sec: float | None = None,
+    ) -> Dict[str, Any]:
+        package = str(package_name or "").strip()
+        if not package:
+            raise TargetRuntimeError("android_package_invalid", "Android package name is empty.")
+
+        self.ensure_ready()
+        timeout = 10.0 if timeout_sec is None else max(float(timeout_sec), 1.0)
+        if activity:
+            component = _build_component_name(package, activity)
+            output = self.adb.shell(self.serial, ["am", "start", "-W", "-n", component], timeout_sec=timeout)
+            return {"launched": True, "method": "am_start", "package": package, "activity": component, "output": output}
+
+        try:
+            output = self.adb.shell(
+                self.serial,
+                ["monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"],
+                timeout_sec=timeout,
+            )
+            return {"launched": True, "method": "monkey", "package": package, "output": output}
+        except TargetRuntimeError as monkey_error:
+            component = _resolve_launch_activity(self.adb, self.serial, package, timeout)
+            output = self.adb.shell(self.serial, ["am", "start", "-W", "-n", component], timeout_sec=timeout)
+            return {
+                "launched": True,
+                "method": "am_start",
+                "package": package,
+                "activity": component,
+                "output": output,
+                "fallback_from": monkey_error.code,
+            }
+
+    def force_stop_app(self, package_name: str, *, timeout_sec: float | None = None) -> Dict[str, Any]:
+        package = str(package_name or "").strip()
+        if not package:
+            raise TargetRuntimeError("android_package_invalid", "Android package name is empty.")
+
+        self.ensure_ready()
+        timeout = 10.0 if timeout_sec is None else max(float(timeout_sec), 1.0)
+        output = self.adb.shell(self.serial, ["am", "force-stop", package], timeout_sec=timeout)
+        return {"stopped": True, "method": "am_force_stop", "package": package, "output": output}
+
     def key_down(self, key: str):
         if self.key_input_provider == "scrcpy":
             keycode = _resolve_android_keycode_int(key)
@@ -273,6 +320,30 @@ class MuMuSession:
                 "Runtime capture backend switching is unsupported; update config.yaml and rebuild the runtime.",
                 {"requested": backend, "configured": self.capture_backend_name},
             )
+
+
+def _build_component_name(package: str, activity: str) -> str:
+    normalized = str(activity or "").strip()
+    if not normalized:
+        raise TargetRuntimeError("android_activity_invalid", "Android activity name is empty.")
+    if "/" in normalized:
+        return normalized
+    if normalized.startswith("."):
+        return f"{package}/{normalized}"
+    return f"{package}/{normalized}"
+
+
+def _resolve_launch_activity(adb: AdbController, serial: str, package: str, timeout: float) -> str:
+    output = adb.shell(serial, ["cmd", "package", "resolve-activity", "--brief", package], timeout_sec=timeout)
+    for raw_line in reversed((output or "").splitlines()):
+        line = raw_line.strip()
+        if "/" in line and not line.startswith("priority="):
+            return line
+    raise TargetRuntimeError(
+        "android_launch_activity_not_found",
+        f"Unable to resolve launcher activity for package '{package}'.",
+        {"package": package, "output": output},
+    )
 
 
 def _resolve_android_keyevent_name(key: str) -> str:

@@ -72,17 +72,17 @@ logging.Logger.trace = trace
 # --- TRACE 配置结束 ---
 
 
-# ?? CID ??????????
+# 当前 CID 上下文变量
 _cid_context: ContextVar[str] = ContextVar("aura_cid", default="-")
 
 
 def set_cid(cid: Optional[str]):
-    """????????? CID ?????? token ????"""
+    """设置当前 CID，并返回 token 供恢复使用。"""
     return _cid_context.set(str(cid) if cid else "-")
 
 
 def reset_cid(token):
-    """????? CID ???"""
+    """恢复上一个 CID。"""
     try:
         _cid_context.reset(token)
     except Exception:
@@ -90,7 +90,7 @@ def reset_cid(token):
 
 
 def current_cid() -> str:
-    """????? CID ?"""
+    """获取当前 CID。"""
     try:
         return _cid_context.get()
     except Exception:
@@ -98,7 +98,7 @@ def current_cid() -> str:
 
 
 class CIDLogFilter(logging.Filter):
-    """????????? cid ????? formatter ??? key"""
+    """为日志记录补充 cid 字段，保证 formatter 有可用 key。"""
 
     def filter(self, record: logging.LogRecord) -> bool:
         try:

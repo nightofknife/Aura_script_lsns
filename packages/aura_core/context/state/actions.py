@@ -87,25 +87,25 @@ async def state_delete(params: StateDeleteParams, state_store: StateStoreService
 
 
 
-# ---- ?? demo action ----
+# ---- 示例 demo action ----
 class EchoParams(BaseModel):
-    """???? action ??"""
-    message: Any = Field(..., description="??????")
+    """echo action 参数"""
+    message: Any = Field(..., description="要返回的消息")
 
 
 @action_info(name="sample.echo")
 async def sample_echo(params: EchoParams):
-    """???????????? demo?"""
+    """返回输入消息的 demo。"""
     return params.message
 
 
 class SleepParams(BaseModel):
-    """???? action ??"""
-    seconds: float = Field(..., description="?????????")
+    """sleep action 参数"""
+    seconds: float = Field(..., description="等待秒数")
 
 
 @action_info(name="sample.sleep")
 async def sample_sleep(params: SleepParams):
-    """????????????"""
+    """等待指定秒数。"""
     await asyncio.sleep(max(0.0, float(params.seconds)))
     return {"slept": float(params.seconds)}

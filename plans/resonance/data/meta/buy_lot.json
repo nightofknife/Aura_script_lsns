@@ -2,8 +2,8 @@
   "schema_version": "1.0.0",
   "source": {
     "site": "https://www.resonance-columba.com/route",
-    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-baf9f1046bc6de04.js",
-    "extracted_at": "2026-03-19T16:04:21.656441+00:00"
+    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-72947dfcf8df4bcc.js",
+    "extracted_at": "2026-07-09T10:30:38.871389+00:00"
   },
   "default_lot": 0,
   "city_product_buy_lot": {
@@ -21,7 +21,7 @@
     },
     "2": {
       "4": 18,
-      "13": 10,
+      "15": 10,
       "17": 15,
       "18": 17,
       "19": 20,
@@ -135,12 +135,12 @@
       "114": 44,
       "115": 45,
       "116": 56,
-      "117": 17,
-      "120": 19,
+      "124": 17,
+      "130": 19,
       "133": 29
     },
     "13": {
-      "134": 8,
+      "138": 8,
       "146": 12,
       "147": 16,
       "148": 20,
@@ -229,7 +229,18 @@
     }
   },
   "unknown_product_names": [
-    "MuiToggleButton"
+    "MuiToggleButton",
+    "临安山核桃",
+    "叫化童鸡",
+    "家用机器人",
+    "明前龙井",
+    "杭白菊",
+    "武林丝绸",
+    "笋干",
+    "羽纸扇",
+    "西湖藕粉",
+    "西湖醋鱼",
+    "龙井茶"
   ],
   "remapped_city_names": [
     {

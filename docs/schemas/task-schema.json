@@ -444,8 +444,15 @@
               ]
             },
             "max_iterations": {
-              "type": "integer",
-              "minimum": 1,
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "string"
+                }
+              ],
               "default": 1000
             }
           },

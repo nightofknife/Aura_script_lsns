@@ -32,8 +32,10 @@ def is_running_as_admin() -> bool:
 
 
 def ensure_admin_startup(context: str = "Aura framework runtime") -> None:
-    """Fail fast when the framework is started without admin privileges on Windows."""
-    if os.name != "nt":
-        return
-    if not is_running_as_admin():
-        raise AdminPrivilegeRequiredError(context)
+    """Compatibility hook for startup privilege checks.
+
+    The runtime no longer requires administrator privileges globally. Backend
+    integrations that genuinely need elevation should enforce that locally.
+    """
+    del context
+    return

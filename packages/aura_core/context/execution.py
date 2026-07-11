@@ -50,7 +50,7 @@ class ExecutionContext:
             "inputs": inputs or {},
             "nodes": {},
             "loop": {},  # 用于存放循环变量 (item, index)
-            "cid": cid or None,  # ????? cid
+            "cid": cid or None,  # 当前任务 cid
             "task_services": task_services or {},
         }
 
