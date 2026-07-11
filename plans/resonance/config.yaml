@@ -9,7 +9,7 @@ runtime:
     backend: scrcpy_stream
     max_stale_ms: 250
     mumu:
-      adb_executable: D:/software/mumu/MuMuPlayer/nx_device/12.0/shell/adb.exe
+      adb_executable: C:/ruanjian/ADB/platform-tools/adb.exe
       connection_timeout_ms: 10000
       reconnect_backoff_ms: [500, 1000, 2000, 5000]
   input:
