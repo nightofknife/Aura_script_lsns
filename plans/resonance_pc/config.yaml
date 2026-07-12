@@ -1,0 +1,48 @@
+runtime:
+  family: windows_desktop
+  provider: windows
+  target:
+    mode: process
+    process_name: "雷索纳斯.exe"
+    title: "雷索纳斯"
+    title_exact: true
+    class_name: UnityWndClass
+    class_exact: true
+    require_visible: true
+    require_foreground: false
+    allow_borderless: true
+    prefer_largest_client_area: true
+    prefer_newest_process: true
+  capture:
+    backend: wgc
+    max_stale_ms: 250
+    crop_to_client: true
+    capture_cursor: false
+    windows:
+      module_name: windows_capture
+      frame_timeout_ms: 1000
+      minimum_update_interval_ms: 16
+      dirty_region: false
+      draw_border: false
+      secondary_window: false
+  input:
+    backend: sendinput
+    focus_before_input: true
+    mouse_move_duration_ms: 120
+    key_interval_ms: 40
+    click_post_delay_ms: 50
+    activation:
+      mode: focus_sleep
+      sleep_ms: 300
+  gamepad:
+    enabled: false
+  rebind:
+    enabled: true
+    max_attempts: 2
+    retry_delay_ms: 200
+    error_codes:
+      - window_target_lost
+
+input:
+  profile: default_pc
+  actions: {}

@@ -1,0 +1,890 @@
+package:
+  name: '@plans/resonance_pc'
+  version: 0.1.0
+  description: Isolated Resonance PC automation plan.
+  license: MIT
+requires:
+  aura: '>=2.0.0'
+dependencies:
+  '@plans/aura_base':
+    version: '>=0.1.0'
+    source: local
+    path: ../aura_base
+pypi-dependencies: {}
+exports:
+  services:
+  - name: resonance_pc_city_shop_data
+    module: plans.resonance_pc.src.services.city_shop_data_pc_service
+    class: ResonancePcCityShopDataService
+    public: true
+    singleton: true
+    replace: null
+    description: Resolve ResonancePc city names and city shop coordinates from static
+      data.
+  - name: resonance_pc_market_data
+    module: plans.resonance_pc.src.services.resonance_pc_market_data_service
+    class: ResonancePcMarketDataService
+    public: true
+    singleton: true
+    replace: null
+    description: Fetches and normalizes ResonancePc market snapshots with local cache.
+  - name: resonance_pc_trade_planner
+    module: plans.resonance_pc.src.services.resonance_pc_trade_planner_service
+    class: ResonancePcTradePlannerService
+    public: true
+    singleton: true
+    replace: null
+    description: ResonancePc rolling trade planner based on fatigue/book/cargo constraints.
+  actions:
+  - name: resonance_pc.open_city_panel_from_main
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_open_city_panel_from_main
+    public: true
+    read_only: false
+    timeout: null
+    description: Open the city panel from the city main screen by clicking 访问城市/访问地区.
+    parameters:
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 12.0
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 3.0
+  - name: resonance_pc.tap_back_once
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_tap_back_once
+    public: true
+    read_only: false
+    timeout: null
+    description: Tap the top-left back button once.
+    parameters:
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance_pc.go_city_main_direct
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_go_city_main_direct
+    public: true
+    read_only: false
+    timeout: null
+    description: Tap the top-left direct city-main button.
+    parameters:
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 2.0
+  - name: resonance_pc.read_city_name_on_city_panel
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_read_city_name_on_city_panel
+    public: true
+    read_only: false
+    timeout: null
+    description: Read and resolve current city name on the city panel. This action
+      does not click.
+    parameters:
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_pc.json
+  - name: resonance_pc.click_city_shop_by_name
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_click_city_shop_by_name
+    public: true
+    read_only: false
+    timeout: null
+    description: Click a city shop by resolved city name and shop name from the city
+      panel.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: shop_name
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_pc.json
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance_pc.click_shop_menu_node
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_click_shop_menu_node
+    public: true
+    read_only: false
+    timeout: null
+    description: Click the Nth node in a shop page using fixed MuMu coordinates.
+    parameters:
+    - name: node_index
+      type: Any
+      required: true
+      default: null
+    - name: wait_sec
+      type: Any
+      required: false
+      default: 1.0
+  - name: resonance_pc.buy_goods_on_buy_page
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_buy_goods_on_buy_page
+    public: true
+    read_only: false
+    timeout: null
+    description: Complete the buy-goods flow from the 我要买 page and return to the shop
+      page.
+    parameters:
+    - name: product_list
+      type: Any
+      required: false
+      default: null
+    - name: books_used
+      type: Any
+      required: false
+      default: 0
+    - name: max_scan_rounds
+      type: Any
+      required: false
+      default: 6
+  - name: resonance_pc.sell_goods_on_sell_page
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_sell_goods_on_sell_page
+    public: true
+    read_only: false
+    timeout: null
+    description: Complete the sell-all flow from the 我要卖 page and return to the shop
+      page.
+    parameters: []
+  - name: resonance_pc.auto_cycle_trade_flow
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_auto_cycle_trade_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Run the full ResonancePc auto-cycle trade flow from city-main UI.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: max_rounds
+      type: Any
+      required: false
+      default: 64
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
+  - name: resonance_pc.select_intercity_destination
+    module: plans.resonance_pc.src.actions.city_travel_pc_actions
+    function: resonance_pc_select_intercity_destination
+    public: true
+    read_only: false
+    timeout: null
+    description: Select destination city in intercity view via OCR + directional drag.
+    parameters:
+    - name: to_city_name
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_pc.json
+    - name: city_search_region
+      type: Any
+      required: false
+      default: null
+    - name: drag_center
+      type: Any
+      required: false
+      default: null
+    - name: drag_span_px
+      type: Any
+      required: false
+      default: 600
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: fallback_enabled
+      type: Any
+      required: false
+      default: true
+    - name: target_match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: click_y_offset
+      type: Any
+      required: false
+      default: -15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: drag_hold_sec
+      type: Any
+      required: false
+      default: 0.5
+  - name: resonance_pc.intercity_depart_and_wait
+    module: plans.resonance_pc.src.actions.city_travel_pc_actions
+    function: resonance_pc_intercity_depart_and_wait
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter intercity view, select destination, handle fatigue recovery,
+      depart and wait for arrival.
+    parameters:
+    - name: to_city_name
+      type: Any
+      required: true
+      default: null
+    - name: enter_station_timeout_seconds
+      type: Any
+      required: false
+      default: 0
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_pc.json
+    - name: city_search_region
+      type: Any
+      required: false
+      default: null
+    - name: drag_center
+      type: Any
+      required: false
+      default: null
+    - name: drag_span_px
+      type: Any
+      required: false
+      default: 600
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: fallback_enabled
+      type: Any
+      required: false
+      default: true
+    - name: target_match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: click_y_offset
+      type: Any
+      required: false
+      default: -15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: drag_hold_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
+    - name: medicine_button_threshold
+      type: Any
+      required: false
+      default: 0.95
+  - name: resonance_pc.wait_intercity_arrival
+    module: plans.resonance_pc.src.actions.city_travel_pc_actions
+    function: resonance_pc_wait_intercity_arrival
+    public: true
+    read_only: false
+    timeout: null
+    description: Wait for intercity arrival and handle trade-travel encounter screens
+      within the travel task.
+    parameters:
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 600.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: arrival_text
+      type: Any
+      required: false
+      default: 进入站点
+    - name: encounter_policy
+      type: Any
+      required: false
+      default: fight
+    - name: max_encounter_actions
+      type: Any
+      required: false
+      default: 3
+    - name: post_action_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: arrival_template
+      type: Any
+      required: false
+      default: null
+    - name: arrival_template_region
+      type: Any
+      required: false
+      default: null
+    - name: arrival_template_threshold
+      type: Any
+      required: false
+      default: 0.85
+    - name: arrival_click_max_attempts
+      type: Any
+      required: false
+      default: 5
+    - name: arrival_click_verify_interval_sec
+      type: Any
+      required: false
+      default: 0.8
+  - name: resonance_pc.market_refresh
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_refresh
+    public: true
+    read_only: false
+    timeout: null
+    description: Refresh ResonancePc market snapshot.
+    parameters:
+    - name: force
+      type: Any
+      required: false
+      default: false
+  - name: resonance_pc.market_sync_web_constants
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_sync_web_constants
+    public: true
+    read_only: false
+    timeout: null
+    description: Sync route constants (cities/fatigue) from webpage and optionally
+      sync buy_lot.
+    parameters:
+    - name: sync_buy_lot
+      type: Any
+      required: false
+      default: true
+  - name: resonance_pc.market_get_latest
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_get_latest
+    public: true
+    read_only: true
+    timeout: null
+    description: Get latest ResonancePc market snapshot.
+    parameters: []
+  - name: resonance_pc.market_get_snapshot
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_get_snapshot
+    public: true
+    read_only: true
+    timeout: null
+    description: Get ResonancePc market snapshot by id.
+    parameters:
+    - name: snapshot_id
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.market_list_snapshots
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_list_snapshots
+    public: true
+    read_only: true
+    timeout: null
+    description: List cached ResonancePc market snapshots.
+    parameters:
+    - name: limit
+      type: Any
+      required: false
+      default: 50
+  - name: resonance_pc.market_query_products
+    module: plans.resonance_pc.src.actions.market_data_pc_actions
+    function: resonance_pc_market_query_products
+    public: true
+    read_only: true
+    timeout: null
+    description: Query normalized products from latest ResonancePc snapshot.
+    parameters:
+    - name: scope
+      type: Any
+      required: false
+      default: null
+    - name: city_id
+      type: Any
+      required: false
+      default: null
+    - name: side
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.use_purchase_books
+    module: plans.resonance_pc.src.actions.purchase_book_pc_actions
+    function: resonance_pc_use_purchase_books
+    public: true
+    read_only: false
+    timeout: null
+    description: Use 进货采买书 before selecting products on the buy-goods page.
+    parameters:
+    - name: books_used
+      type: Any
+      required: true
+      default: null
+    - name: item_name
+      type: Any
+      required: false
+      default: 进货采买书
+    - name: max_books_per_purchase
+      type: Any
+      required: false
+      default: 10
+    - name: open_timeout_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: dialog_timeout_sec
+      type: Any
+      required: false
+      default: 3.0
+    - name: click_interval_sec
+      type: Any
+      required: false
+      default: 0.2
+  - name: resonance_pc.trade_plan_next
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_plan_next
+    public: true
+    read_only: true
+    timeout: null
+    description: Plan the next ResonancePc trade step with rolling horizon optimization.
+    parameters:
+    - name: start_city_id
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: book_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: true
+      default: null
+    - name: book_profit_threshold
+      type: Any
+      required: true
+      default: null
+    - name: available_city_ids
+      type: Any
+      required: true
+      default: null
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+    - name: current_holdings
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_plan_best_cycle
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_plan_best_cycle
+    public: true
+    read_only: true
+    timeout: null
+    description: Plan one fixed best-profit trade cycle.
+    parameters:
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 120
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: start_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_plan_cycle_execution
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_plan_cycle_execution
+    public: true
+    read_only: true
+    timeout: null
+    description: Build executable auto-trade cycle plan under fatigue budget with
+      whitelist constraints.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_plan_next_cycle_execution
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_plan_next_cycle_execution
+    public: true
+    read_only: true
+    timeout: null
+    description: Build the next executable trade cycle or final budgeted prefix.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: max_cycle_hops
+      type: Any
+      required: false
+      default: 6
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_loop_init
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_loop_init
+    public: true
+    read_only: false
+    timeout: null
+    description: Initialize one auto-cycle trade loop state.
+    parameters:
+    - name: current_city
+      type: Any
+      required: true
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+  - name: resonance_pc.trade_route_execution_init
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_route_execution_init
+    public: true
+    read_only: false
+    timeout: null
+    description: Initialize sequential execution state for one planned trade route.
+    parameters:
+    - name: route
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_route_execution_update
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_route_execution_update
+    public: true
+    read_only: false
+    timeout: null
+    description: Update sequential route execution state after one trade leg.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+    - name: leg
+      type: Any
+      required: false
+      default: null
+    - name: travel_status
+      type: Any
+      required: false
+      default: null
+    - name: reason
+      type: Any
+      required: false
+      default: null
+    - name: blocked_at
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_used
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_use_count
+      type: Any
+      required: false
+      default: 0
+  - name: resonance_pc.trade_route_execution_summary
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_route_execution_summary
+    public: true
+    read_only: true
+    timeout: null
+    description: Return sequential route execution state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.trade_route_execution_cleanup
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_route_execution_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Remove sequential route execution state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.trade_loop_update
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_loop_update
+    public: true
+    read_only: false
+    timeout: null
+    description: Accumulate one executed auto-cycle trade round into loop state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+    - name: plan
+      type: Any
+      required: false
+      default: null
+    - name: execution
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_loop_summary
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_loop_summary
+    public: true
+    read_only: true
+    timeout: null
+    description: Return one auto-cycle trade loop summary.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.trade_loop_cleanup
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_loop_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Remove one auto-cycle trade loop state.
+    parameters:
+    - name: run_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.trade_assert_allowed_city
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_assert_allowed_city
+    public: true
+    read_only: true
+    timeout: null
+    description: Assert target city key is in configured trade constraints whitelist.
+    parameters:
+    - name: city_key
+      type: Any
+      required: false
+      default: null
+    - name: city_id
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.trade_simulate
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_simulate
+    public: true
+    read_only: true
+    timeout: null
+    description: Simulate ResonancePc rolling trade until stop condition.
+    parameters:
+    - name: start_city_id
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: true
+      default: null
+    - name: book_budget
+      type: Any
+      required: true
+      default: null
+    - name: cargo_capacity
+      type: Any
+      required: true
+      default: null
+    - name: book_profit_threshold
+      type: Any
+      required: true
+      default: null
+    - name: available_city_ids
+      type: Any
+      required: true
+      default: null
+    - name: station_product_whitelist
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
+    - name: max_iterations
+      type: Any
+      required: false
+      default: 128
+  tasks:
+  - id: auto_cycle_trade_pc/auto_cycle_trade_pc
+    title: Auto Cycle Trade (PC)
+    source: tasks/auto_cycle_trade_pc.yaml
+    description: PC variant of the automatic cycle trade flow.
+  - id: auto_cycle_trade_pc
+    title: Auto Cycle Trade (PC)
+    source: tasks/auto_cycle_trade_pc.yaml
+    description: PC variant of the automatic cycle trade flow.
+metadata:
+  generated_by: ManifestGenerator
+  generated_at: '2026-07-12T12:06:15Z'
