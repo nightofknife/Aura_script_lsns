@@ -13,6 +13,11 @@ runtime:
     allow_borderless: true
     prefer_largest_client_area: true
     prefer_newest_process: true
+    visibility_recovery:
+      enabled: true
+      grace_period_ms: 1000
+      recovery_timeout_ms: 3000
+      poll_interval_ms: 100
   capture:
     backend: wgc
     max_stale_ms: 250

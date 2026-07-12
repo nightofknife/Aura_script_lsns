@@ -79,6 +79,12 @@ class TestRuntimeConfig(unittest.TestCase):
                             "mode": "title",
                             "title": "My Game",
                             "title_exact": True,
+                            "visibility_recovery": {
+                                "enabled": True,
+                                "grace_period_ms": 1200,
+                                "recovery_timeout_ms": 4200,
+                                "poll_interval_ms": 80,
+                            },
                         },
                         "capture": {
                             "backend": "printwindow",
@@ -145,6 +151,14 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertEqual(resolved.provider, "windows")
         self.assertEqual(resolved.target.mode, "title")
         self.assertEqual(resolved.target.title, "My Game")
+        self.assertTrue(resolved.target.visibility_recovery.enabled)
+        self.assertEqual(resolved.target.visibility_recovery.grace_period_ms, 1200)
+        self.assertEqual(resolved.target.visibility_recovery.recovery_timeout_ms, 4200)
+        self.assertEqual(resolved.target.visibility_recovery.poll_interval_ms, 80)
+        self.assertEqual(
+            resolved.to_dict()["target"]["visibility_recovery"]["recovery_timeout_ms"],
+            4200,
+        )
         self.assertEqual(resolved.capture.backend, "printwindow")
         self.assertEqual(
             resolved.capture.candidates,
@@ -183,6 +197,48 @@ class TestRuntimeConfig(unittest.TestCase):
         self.assertTrue(resolved.debug.dump_window_summary_on_error)
         self.assertEqual(resolved.debug.input_trace_size, 16)
         self.assertEqual(resolved.debug.artifact_dir, "logs/test_artifacts")
+
+    def test_visibility_recovery_defaults_to_disabled_and_clamps_intervals(self):
+        default = resolve_runtime_config(
+            _FakeConfig(
+                {
+                    "runtime": {
+                        "family": "windows_desktop",
+                        "provider": "windows",
+                        "target": {"mode": "title", "title": "My Game"},
+                        "capture": {"backend": "gdi"},
+                        "input": {"backend": "sendinput"},
+                    }
+                }
+            )
+        )
+        self.assertFalse(default.target.visibility_recovery.enabled)
+
+        clamped = resolve_runtime_config(
+            _FakeConfig(
+                {
+                    "runtime": {
+                        "family": "windows_desktop",
+                        "provider": "windows",
+                        "target": {
+                            "mode": "title",
+                            "title": "My Game",
+                            "visibility_recovery": {
+                                "enabled": True,
+                                "grace_period_ms": -1,
+                                "recovery_timeout_ms": -1,
+                                "poll_interval_ms": 0,
+                            },
+                        },
+                        "capture": {"backend": "gdi"},
+                        "input": {"backend": "sendinput"},
+                    }
+                }
+            )
+        )
+        self.assertEqual(clamped.target.visibility_recovery.grace_period_ms, 0)
+        self.assertEqual(clamped.target.visibility_recovery.recovery_timeout_ms, 0)
+        self.assertEqual(clamped.target.visibility_recovery.poll_interval_ms, 10)
 
     def test_unified_mumu_runtime_config_parses(self):
         resolved = resolve_runtime_config(

@@ -248,6 +248,7 @@ class TargetRuntimeService:
                 "health": session_check.get("input"),
                 "capabilities": session_check.get("capabilities") or self.input_capabilities(),
             },
+            "visibility_recovery": session_check.get("visibility_recovery"),
             "warnings": list(resolved.warnings),
             "session": session_check,
         }

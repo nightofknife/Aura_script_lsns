@@ -25,6 +25,12 @@ def test_resonance_pc_runtime_defaults_to_wgc_and_sendinput():
     assert runtime["provider"] == "windows"
     assert runtime["target"]["process_name"] == "雷索纳斯.exe"
     assert runtime["target"]["class_name"] == "UnityWndClass"
+    assert runtime["target"]["visibility_recovery"] == {
+        "enabled": True,
+        "grace_period_ms": 1000,
+        "recovery_timeout_ms": 3000,
+        "poll_interval_ms": 100,
+    }
     assert runtime["capture"]["backend"] == "wgc"
     assert runtime["capture"]["capture_cursor"] is False
     assert runtime["input"]["backend"] == "sendinput"
