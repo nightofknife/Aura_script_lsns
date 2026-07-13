@@ -6,7 +6,7 @@ import unittest
 import urllib.error
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import win32con
@@ -20,12 +20,17 @@ from plans.aura_base.src.platform.mumu.helper_manager import AndroidTouchHelperM
 from plans.aura_base.src.platform.mumu.runtime_assets import resolve_android_touch_helper_path, resolve_scrcpy_server_jar_path
 from plans.aura_base.src.platform.mumu.scrcpy_capture import MuMuScrcpyCaptureBackend
 from plans.aura_base.src.platform.mumu.session import MuMuSession
-from plans.aura_base.src.platform.runtime_config import RuntimeCaptureConfig, RuntimeInputConfig, RuntimeTargetConfig
+from plans.aura_base.src.platform.runtime_config import (
+    RuntimeCaptureConfig,
+    RuntimeInputConfig,
+    RuntimeTargetConfig,
+    RuntimeVisibilityRecoveryConfig,
+)
 from plans.aura_base.src.platform.runtime_service import TargetRuntimeService
 from plans.aura_base.src.platform.windows.capture_backends import WindowsGdiCaptureBackend
 from plans.aura_base.src.platform.windows.desktop_adapter import WindowsDesktopAdapter
 from plans.aura_base.src.platform.windows.input_backends import WindowsSendInputBackend, WindowsWindowMessageInputBackend
-from plans.aura_base.src.platform.windows.window_target import WindowTarget
+from plans.aura_base.src.platform.windows.window_target import WindowBinding, WindowRecoveryResult, WindowTarget
 
 
 class _FakeConfig:
@@ -551,6 +556,7 @@ class TestWindowsProvider(unittest.TestCase):
             patch.object(target_mod.win32gui, "ClientToScreen", return_value=(10, 20)),
             patch.object(target_mod.win32gui, "GetForegroundWindow", return_value=101),
             patch.object(target_mod.win32gui, "GetWindowLong", return_value=win32con.WS_CAPTION),
+            patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 5001)),
         ]
 
         for patcher in common_patches:
@@ -1223,6 +1229,314 @@ class TestWindowsProvider(unittest.TestCase):
 
         self.assertIn("runtime_target", result)
         self.assertEqual(result["runtime_target"]["provider"], "windows")
+
+
+class TestWindowsVisibilityRecovery(unittest.TestCase):
+    def _target(self) -> WindowTarget:
+        config = RuntimeTargetConfig(
+            mode="process",
+            process_name="game.exe",
+            visibility_recovery=RuntimeVisibilityRecoveryConfig(
+                enabled=True,
+                grace_period_ms=20,
+                recovery_timeout_ms=40,
+                poll_interval_ms=10,
+            ),
+        )
+        binding = WindowBinding(
+            hwnd=101,
+            mode="process",
+            pid=5001,
+            process_name="game.exe",
+            exe_path="C:/Games/game.exe",
+            title="Game",
+            class_name="UnityWndClass",
+        )
+        target = WindowTarget(config, binding)
+        return target
+
+    def test_window_recovers_naturally_without_showwindow(self):
+        from plans.aura_base.src.platform.windows import window_target as target_mod
+
+        target = self._target()
+        checks = {"count": 0}
+
+        def visible(_hwnd):
+            checks["count"] += 1
+            return checks["count"] >= 3
+
+        with (
+            patch.object(target_mod.win32gui, "IsWindow", return_value=True),
+            patch.object(target_mod.win32gui, "IsWindowVisible", side_effect=visible),
+            patch.object(target_mod.win32gui, "IsIconic", return_value=False),
+            patch.object(target_mod.win32gui, "GetClientRect", return_value=(0, 0, 1280, 720)),
+            patch.object(target_mod.win32gui, "ClientToScreen", return_value=(0, 0)),
+            patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 5001)),
+            patch.object(target_mod.time, "sleep"),
+            patch.object(target_mod.ctypes.windll.user32, "ShowWindowAsync") as show,
+        ):
+            result = target.ensure_available("capture")
+
+        self.assertTrue(result.recovered)
+        self.assertFalse(result.forced)
+        self.assertEqual(result.method, "natural")
+        show.assert_not_called()
+
+    def test_window_forces_showna_and_restore_for_hidden_states(self):
+        from plans.aura_base.src.platform.windows import window_target as target_mod
+
+        for iconic, expected_command, expected_method in (
+            (False, win32con.SW_SHOWNA, "sw_showna"),
+            (True, win32con.SW_RESTORE, "sw_restore"),
+        ):
+            with self.subTest(iconic=iconic):
+                target = self._target()
+                visible = {"value": False}
+
+                def show_window(_hwnd, command):
+                    visible["value"] = True
+                    return 1
+
+                with (
+                    patch.object(target_mod.win32gui, "IsWindow", return_value=True),
+                    patch.object(
+                        target_mod.win32gui,
+                        "IsWindowVisible",
+                        side_effect=lambda _hwnd: visible["value"],
+                    ),
+                    patch.object(target_mod.win32gui, "IsIconic", return_value=iconic),
+                    patch.object(target_mod.win32gui, "GetClientRect", return_value=(0, 0, 1280, 720)),
+                    patch.object(target_mod.win32gui, "ClientToScreen", return_value=(0, 0)),
+                    patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 5001)),
+                    patch.object(target_mod.time, "sleep"),
+                    patch.object(target_mod.ctypes.windll.user32, "ShowWindowAsync", side_effect=show_window) as show,
+                ):
+                    result = target.ensure_available("click")
+
+                self.assertTrue(result.forced)
+                self.assertEqual(result.method, expected_method)
+                show.assert_called_once_with(101, expected_command)
+
+    def test_window_recovery_rejects_pid_mismatch_without_showing(self):
+        from plans.aura_base.src.platform.windows import window_target as target_mod
+
+        target = self._target()
+        with (
+            patch.object(target_mod.win32gui, "IsWindow", return_value=True),
+            patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 9999)),
+            patch.object(target_mod.ctypes.windll.user32, "ShowWindowAsync") as show,
+            self.assertRaises(TargetRuntimeError) as cm,
+        ):
+            target.ensure_available("capture")
+
+        self.assertEqual(cm.exception.code, "window_target_lost")
+        show.assert_not_called()
+
+    def test_window_recovery_timeout_preserves_window_not_visible(self):
+        from plans.aura_base.src.platform.windows import window_target as target_mod
+
+        target = self._target()
+        target.config = RuntimeTargetConfig(
+            mode="process",
+            process_name="game.exe",
+            visibility_recovery=RuntimeVisibilityRecoveryConfig(
+                enabled=True,
+                grace_period_ms=0,
+                recovery_timeout_ms=0,
+                poll_interval_ms=10,
+            ),
+        )
+        with (
+            patch.object(target_mod.win32gui, "IsWindow", return_value=True),
+            patch.object(target_mod.win32gui, "IsWindowVisible", return_value=False),
+            patch.object(target_mod.win32gui, "IsIconic", return_value=False),
+            patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 5001)),
+            patch.object(target_mod.ctypes.windll.user32, "ShowWindowAsync", return_value=1),
+            self.assertRaises(TargetRuntimeError) as cm,
+        ):
+            target.ensure_available("capture")
+
+        self.assertEqual(cm.exception.code, "window_not_visible")
+        self.assertEqual(cm.exception.detail["visibility_recovery"]["operation"], "capture")
+
+    def test_window_create_falls_back_to_hidden_candidate_when_recovery_enabled(self):
+        from plans.aura_base.src.platform.windows import window_target as target_mod
+        from plans.aura_base.src.platform.windows.window_selector import WindowCandidate
+
+        config = RuntimeTargetConfig(
+            mode="process",
+            process_name="game.exe",
+            visibility_recovery=RuntimeVisibilityRecoveryConfig(
+                enabled=True,
+                grace_period_ms=0,
+                recovery_timeout_ms=20,
+                poll_interval_ms=10,
+            ),
+        )
+        candidate = WindowCandidate(
+            hwnd=101,
+            pid=5001,
+            process_name="game.exe",
+            exe_path="C:/Games/game.exe",
+            title="Game",
+            class_name="UnityWndClass",
+            visible=False,
+            enabled=True,
+            is_child=False,
+            parent_hwnd=None,
+            foreground=False,
+            client_rect=(0, 0, 1280, 720),
+            client_rect_screen=(0, 0, 1280, 720),
+            window_rect_screen=(0, 0, 1280, 720),
+            monitor_index=0,
+            process_create_time=1.0,
+        )
+        visible = {"value": False}
+
+        def show_window(_hwnd, _command):
+            visible["value"] = True
+            return 1
+
+        with (
+            patch.object(
+                target_mod,
+                "resolve_window_candidate",
+                side_effect=[TargetRuntimeError("window_not_found", "hidden"), candidate],
+            ) as resolve,
+            patch.object(target_mod.win32gui, "IsWindow", return_value=True),
+            patch.object(
+                target_mod.win32gui,
+                "IsWindowVisible",
+                side_effect=lambda _hwnd: visible["value"],
+            ),
+            patch.object(target_mod.win32gui, "IsIconic", return_value=False),
+            patch.object(target_mod.win32gui, "GetClientRect", return_value=(0, 0, 1280, 720)),
+            patch.object(target_mod.win32gui, "ClientToScreen", return_value=(0, 0)),
+            patch.object(target_mod.win32process, "GetWindowThreadProcessId", return_value=(7001, 5001)),
+            patch.object(target_mod.time, "sleep"),
+            patch.object(target_mod.ctypes.windll.user32, "ShowWindowAsync", side_effect=show_window),
+        ):
+            target = WindowTarget.create(config)
+
+        self.assertEqual(target.hwnd, 101)
+        self.assertEqual(resolve.call_count, 2)
+        self.assertFalse(resolve.call_args_list[1].args[0].require_visible)
+
+    def _build_adapter(self, target, capture_backend, input_backend):
+        with (
+            patch(
+                "plans.aura_base.src.platform.windows.desktop_adapter.WindowTarget.create",
+                return_value=target,
+            ),
+            patch(
+                "plans.aura_base.src.platform.windows.desktop_adapter.build_capture_backend",
+                return_value=capture_backend,
+            ),
+            patch(
+                "plans.aura_base.src.platform.windows.desktop_adapter.build_input_backend",
+                return_value=input_backend,
+            ),
+        ):
+            return WindowsDesktopAdapter(
+                target_config=RuntimeTargetConfig(
+                    mode="hwnd",
+                    hwnd=101,
+                    visibility_recovery=RuntimeVisibilityRecoveryConfig(enabled=True),
+                ),
+                capture_config=RuntimeCaptureConfig(backend="wgc"),
+                input_config=RuntimeInputConfig(backend="sendinput"),
+            )
+
+    def test_read_race_recovers_rebuilds_capture_and_retries_once(self):
+        recovery = WindowRecoveryResult(attempted=True, recovered=True, forced=True, method="sw_show", elapsed_ms=12)
+        target = SimpleNamespace(
+            last_recovery_result=WindowRecoveryResult(),
+            ensure_available=Mock(side_effect=[WindowRecoveryResult(), recovery]),
+        )
+        capture_result = SimpleNamespace(success=True)
+        capture_backend = SimpleNamespace(
+            capture=Mock(side_effect=[TargetRuntimeError("window_not_visible", "hidden"), capture_result]),
+            reset_after_target_recovery=Mock(),
+            close=Mock(),
+        )
+        input_backend = SimpleNamespace(close=Mock())
+        adapter = self._build_adapter(target, capture_backend, input_backend)
+
+        with patch(
+            "plans.aura_base.src.platform.windows.desktop_adapter.ensure_window_spec",
+            return_value=SimpleNamespace(to_dict=lambda: {}),
+        ):
+            result = adapter.capture()
+
+        self.assertIs(result, capture_result)
+        self.assertEqual(capture_backend.capture.call_count, 2)
+        capture_backend.reset_after_target_recovery.assert_called_once_with()
+        self.assertEqual(adapter._visibility_recovery_stats["successes"], 1)
+
+    def test_input_is_never_replayed_and_release_all_skips_recovery(self):
+        target = SimpleNamespace(
+            last_recovery_result=WindowRecoveryResult(),
+            ensure_available=Mock(return_value=WindowRecoveryResult()),
+        )
+        capture_backend = SimpleNamespace(close=Mock())
+        input_backend = SimpleNamespace(
+            click=Mock(side_effect=TargetRuntimeError("window_not_visible", "hidden after send")),
+            release_all=Mock(),
+            close=Mock(),
+        )
+        adapter = self._build_adapter(target, capture_backend, input_backend)
+
+        with (
+            patch(
+                "plans.aura_base.src.platform.windows.desktop_adapter.ensure_window_spec",
+                return_value=SimpleNamespace(to_dict=lambda: {}),
+            ),
+            self.assertRaises(TargetRuntimeError),
+        ):
+            adapter.click(10, 20)
+
+        input_backend.click.assert_called_once_with(x=10, y=20, button="left", clicks=1, interval=None)
+        before_release_checks = target.ensure_available.call_count
+        adapter.release_all()
+        input_backend.release_all.assert_called_once_with()
+        self.assertEqual(target.ensure_available.call_count, before_release_checks)
+
+    def test_runtime_self_check_exposes_visibility_recovery_summary(self):
+        runtime = TargetRuntimeService(
+            _FakeConfig(
+                {
+                    "runtime": {
+                        "family": "windows_desktop",
+                        "provider": "windows",
+                        "target": {"mode": "hwnd", "hwnd": 101},
+                        "capture": {"backend": "gdi"},
+                        "input": {"backend": "sendinput"},
+                    }
+                }
+            )
+        )
+        recovery = {
+            "enabled": True,
+            "attempts": 2,
+            "successes": 2,
+            "failures": 0,
+            "last_operation": "capture",
+        }
+        session = SimpleNamespace(
+            self_check=lambda: {
+                "ok": True,
+                "target": {"hwnd": 101},
+                "capture": {"ok": True},
+                "input": {"ok": True},
+                "capabilities": {"click": True},
+                "visibility_recovery": recovery,
+            }
+        )
+        runtime._get_or_create_session = lambda **_kwargs: session  # type: ignore[method-assign]
+
+        result = runtime.self_check()
+
+        self.assertEqual(result["visibility_recovery"], recovery)
 
 
 if __name__ == "__main__":

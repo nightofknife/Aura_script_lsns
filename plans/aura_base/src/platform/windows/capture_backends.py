@@ -28,6 +28,9 @@ class BaseWindowsCaptureBackend:
     def close(self) -> None:
         return None
 
+    def reset_after_target_recovery(self) -> None:
+        return None
+
     def focus(self) -> bool:
         return self.target.focus()
 
@@ -111,6 +114,9 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
                     self._session.close()
                 finally:
                     self._session = None
+
+    def reset_after_target_recovery(self) -> None:
+        self._rebuild_session()
 
     def capture(self, rect: tuple[int, int, int, int] | None = None) -> CaptureResult:
         self.target.ensure_valid()

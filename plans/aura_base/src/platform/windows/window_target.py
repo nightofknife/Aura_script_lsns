@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import ctypes
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import win32api
@@ -10,9 +11,15 @@ import win32con
 import win32gui
 import win32process
 
+from packages.aura_core.observability.logging.core_logger import logger
+
 from ..contracts import TargetRuntimeError
 from ..runtime_config import RuntimeTargetConfig
 from .window_selector import resolve_window_candidate
+
+
+_FORCED_SHOW_ESCALATION_MS = 500
+_POST_RECOVERY_SETTLE_SEC = 0.2
 
 
 @dataclass(frozen=True)
@@ -37,14 +44,40 @@ class WindowBinding:
         }
 
 
+@dataclass(frozen=True)
+class WindowRecoveryResult:
+    attempted: bool = False
+    recovered: bool = False
+    forced: bool = False
+    method: str | None = None
+    elapsed_ms: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "attempted": self.attempted,
+            "recovered": self.recovered,
+            "forced": self.forced,
+            "method": self.method,
+            "elapsed_ms": self.elapsed_ms,
+        }
+
+
 class WindowTarget:
     def __init__(self, config: RuntimeTargetConfig, binding: WindowBinding):
         self.config = config
         self.binding = binding
+        self.last_recovery_result = WindowRecoveryResult()
 
     @classmethod
     def create(cls, config: RuntimeTargetConfig) -> "WindowTarget":
-        candidate = resolve_window_candidate(config)
+        try:
+            candidate = resolve_window_candidate(config)
+        except TargetRuntimeError as exc:
+            recovery = config.visibility_recovery
+            if exc.code != "window_not_found" or not recovery.enabled or not config.require_visible:
+                raise
+            relaxed_config = replace(config, require_visible=False, require_foreground=False)
+            candidate = resolve_window_candidate(relaxed_config)
         binding = WindowBinding(
             hwnd=int(candidate.hwnd),
             mode=config.mode,
@@ -55,7 +88,7 @@ class WindowTarget:
             class_name=candidate.class_name,
         )
         target = cls(config=config, binding=binding)
-        target.ensure_valid()
+        target.ensure_available("runtime_start")
         return target
 
     @property
@@ -63,13 +96,8 @@ class WindowTarget:
         return int(self.binding.hwnd)
 
     def ensure_valid(self) -> None:
+        self.ensure_alive()
         hwnd = self.hwnd
-        if not win32gui.IsWindow(hwnd):
-            raise TargetRuntimeError(
-                "window_target_lost",
-                "The configured target window is no longer valid.",
-                {"hwnd": hwnd, "mode": self.binding.mode},
-            )
         if self.config.require_visible and not win32gui.IsWindowVisible(hwnd):
             raise TargetRuntimeError(
                 "window_not_visible",
@@ -96,6 +124,66 @@ class WindowTarget:
                 "The configured target window is not in the foreground.",
                 self.to_summary(),
             )
+
+    def ensure_available(self, operation: str = "runtime_operation") -> WindowRecoveryResult:
+        self.ensure_alive()
+        if not self.config.require_visible or win32gui.IsWindowVisible(self.hwnd):
+            self.ensure_valid()
+            return WindowRecoveryResult()
+
+        recovery = self.config.visibility_recovery
+        if not recovery.enabled:
+            self.ensure_valid()
+
+        started = time.monotonic()
+        initial_iconic = bool(win32gui.IsIconic(self.hwnd))
+        logger.warning(
+            "Window visibility recovery started: operation=%s hwnd=%s pid=%s visible=false iconic=%s",
+            operation,
+            self.hwnd,
+            self.binding.pid,
+            initial_iconic,
+        )
+
+        if self._wait_until_visible(recovery.grace_period_ms, recovery.poll_interval_ms):
+            return self._complete_recovery(started, operation, forced=False, method="natural")
+
+        forced_method = "sw_restore" if win32gui.IsIconic(self.hwnd) else "sw_showna"
+        forced_command = win32con.SW_RESTORE if forced_method == "sw_restore" else win32con.SW_SHOWNA
+        self._show_window_async(forced_command)
+
+        deadline = time.monotonic() + float(recovery.recovery_timeout_ms) / 1000.0
+        first_wait_ms = min(_FORCED_SHOW_ESCALATION_MS, self._remaining_ms(deadline))
+        if self._wait_until_visible(first_wait_ms, recovery.poll_interval_ms):
+            return self._complete_recovery(started, operation, forced=True, method=forced_method)
+
+        if self._remaining_ms(deadline) > 0:
+            forced_method = f"{forced_method}+sw_show"
+            self._show_window_async(win32con.SW_SHOW)
+            if self._wait_until_visible(self._remaining_ms(deadline), recovery.poll_interval_ms):
+                return self._complete_recovery(started, operation, forced=True, method=forced_method)
+
+        elapsed_ms = int((time.monotonic() - started) * 1000.0)
+        detail = self.to_summary()
+        detail["visibility_recovery"] = {
+            "operation": operation,
+            "elapsed_ms": elapsed_ms,
+            "forced": True,
+            "method": forced_method,
+        }
+        logger.error(
+            "Window visibility recovery failed: operation=%s hwnd=%s pid=%s elapsed_ms=%s method=%s",
+            operation,
+            self.hwnd,
+            self.binding.pid,
+            elapsed_ms,
+            forced_method,
+        )
+        raise TargetRuntimeError(
+            "window_not_visible",
+            "The configured target window is not visible after recovery.",
+            detail,
+        )
 
     def get_client_rect(self) -> tuple[int, int, int, int]:
         _, _, width, height = self.get_client_rect_screen()
@@ -168,8 +256,20 @@ class WindowTarget:
             raise TargetRuntimeError(
                 "window_target_lost",
                 "The configured target window is no longer available.",
-                self.to_summary(),
+                {"hwnd": self.hwnd, "mode": self.binding.mode, "pid": self.binding.pid},
             )
+        if self.binding.pid is not None:
+            _, current_pid = win32process.GetWindowThreadProcessId(self.hwnd)
+            if int(current_pid) != int(self.binding.pid):
+                raise TargetRuntimeError(
+                    "window_target_lost",
+                    "The configured hwnd now belongs to a different process.",
+                    {
+                        "hwnd": self.hwnd,
+                        "expected_pid": int(self.binding.pid),
+                        "actual_pid": int(current_pid),
+                    },
+                )
 
     def to_summary(self) -> dict[str, Any]:
         try:
@@ -190,8 +290,78 @@ class WindowTarget:
             "class_name": self.binding.class_name,
             "client_rect": client_rect,
             "client_rect_screen": client_rect_screen,
-            "foreground": self.is_foreground() if win32gui.IsWindow(self.hwnd) else False,
+            "foreground": self._foreground_or_false(),
         }
+
+    def _wait_until_visible(self, timeout_ms: int, poll_interval_ms: int) -> bool:
+        deadline = time.monotonic() + max(int(timeout_ms), 0) / 1000.0
+        while True:
+            self.ensure_alive()
+            if win32gui.IsWindowVisible(self.hwnd) and self._has_valid_client_area():
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            sleep_sec = min(max(int(poll_interval_ms), 10) / 1000.0, max(deadline - time.monotonic(), 0.0))
+            if sleep_sec > 0:
+                time.sleep(sleep_sec)
+
+    def _complete_recovery(
+        self,
+        started: float,
+        operation: str,
+        *,
+        forced: bool,
+        method: str,
+    ) -> WindowRecoveryResult:
+        time.sleep(_POST_RECOVERY_SETTLE_SEC)
+        self.ensure_valid()
+        elapsed_ms = int((time.monotonic() - started) * 1000.0)
+        logger.info(
+            "Window visibility recovery succeeded: operation=%s hwnd=%s pid=%s elapsed_ms=%s forced=%s method=%s",
+            operation,
+            self.hwnd,
+            self.binding.pid,
+            elapsed_ms,
+            forced,
+            method,
+        )
+        result = WindowRecoveryResult(
+            attempted=True,
+            recovered=True,
+            forced=forced,
+            method=method,
+            elapsed_ms=elapsed_ms,
+        )
+        self.last_recovery_result = result
+        return result
+
+    def _has_valid_client_area(self) -> bool:
+        try:
+            _, _, width, height = self.get_client_rect_screen()
+        except Exception:
+            return False
+        return width > 0 and height > 0
+
+    def _show_window_async(self, command: int) -> None:
+        try:
+            ctypes.windll.user32.ShowWindowAsync(int(self.hwnd), int(command))
+        except Exception as exc:
+            logger.warning(
+                "ShowWindowAsync failed during visibility recovery: hwnd=%s command=%s error=%s",
+                self.hwnd,
+                command,
+                exc,
+            )
+
+    @staticmethod
+    def _remaining_ms(deadline: float) -> int:
+        return max(int((deadline - time.monotonic()) * 1000.0), 0)
+
+    def _foreground_or_false(self) -> bool:
+        try:
+            return self.is_foreground()
+        except Exception:
+            return False
 
 
 def _is_borderless_window(hwnd: int) -> bool:

@@ -1,0 +1,192 @@
+{
+    "city": {
+        "mander_mine": {
+            "maploc": [
+                1097,
+                440
+            ],
+            "exchange": [
+                1000,
+                200
+            ],
+            "rest": [
+                580,
+                100
+            ],
+            "battle": [
+                550,
+                400
+            ],
+            "commerce": [
+                320,
+                150
+            ],
+            "is_main": true
+        },
+        "onederland": {
+            "maploc": [
+                1163,
+                630
+            ],
+            "exchange": [
+                800,
+                320
+            ],
+            "is_main": false
+        },
+        "wilderness_station": {
+            "maploc": [
+                1200,
+                307
+            ],
+            "exchange": [
+                980,
+                250
+            ],
+            "is_main": false
+        },
+        "anita_energy_research_institute": {
+            "maploc": [
+                410,
+                687
+            ],
+            "exchange": [
+                427,
+                200
+            ],
+            "is_main": false
+        },
+        "freeport": {
+            "maploc": [
+                443,
+                387
+            ],
+            "exchange": [
+                540,
+                250
+            ],
+            "rest": [
+                780,
+                120
+            ],
+            "battle": [
+                900,
+                350
+            ],
+            "commerce": [
+                75,
+                260
+            ],
+            "is_main": true
+        },
+        "brcl_outpost": {
+            "maploc": [
+                1030,
+                307
+            ],
+            "exchange": [
+                1000,
+                380
+            ],
+            "is_main": false
+        },
+        "shoggolith_city": {
+            "maploc": [
+                887,
+                307
+            ],
+            "exchange": [
+                1150,
+                340
+            ],
+            "battle": [
+                330,
+                430
+            ],
+            "commerce": [
+                230,
+                160
+            ],
+            "rest": [
+                400,
+                200
+            ],
+            "is_main": true
+        },
+        "clarity_data_center_administration_bureau": {
+            "maploc": [
+                697,
+                230
+            ],
+            "exchange": [
+                100,
+                420
+            ],
+            "battle": [
+                470,
+                120
+            ],
+            "commerce": [
+                1000,
+                300
+            ],
+            "rest": [
+                930,
+                160
+            ],
+            "is_main": true
+        },
+        "anita_weapon_research_institute": {
+            "maploc": [
+                553,
+                453
+            ],
+            "exchange": [
+                650,
+                160
+            ],
+            "is_main": false
+        },
+        "anita_rocket_base": {
+            "maploc": [
+                110,
+                663
+            ],
+            "exchange": [
+                333,
+                313
+            ],
+            "battle": [
+                213,
+                120
+            ],
+            "commerce": [
+                60,
+                183
+            ],
+            "is_main": true
+        },
+        "gronru_city": {
+            "maploc": [
+                777,
+                863
+            ]
+        },
+        "cape_city": {
+            "maploc": [
+                333,
+                1040
+            ],
+            "exchange": [
+                980,
+                280
+            ]
+        },
+        "confluence_tower": {
+            "maploc": [
+                153,
+                1040
+            ]
+        }
+    }
+}

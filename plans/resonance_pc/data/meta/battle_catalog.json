@@ -1,0 +1,325 @@
+{
+  "schema_version": "1.0.0",
+  "difficulty_text_map": {
+    "1": "简单",
+    "2": "困难",
+    "3": "艰巨",
+    "4": "激战",
+    "5": "苦战",
+    "6": "鏖战"
+  },
+  "city_orders": {
+    "tie_an": [
+      "修格里城",
+      "曼德矿场",
+      "7号自由港",
+      "澄明数据中心",
+      "海角城",
+      "阿妮塔发射中心",
+      "岚心城",
+      "贡露城"
+    ],
+    "regional_ops_center": [
+      "荒原站",
+      "铁盟哨站",
+      "淘金乐园",
+      "阿妮塔能源研究所",
+      "阿妮塔战备工厂",
+      "云岫桥基地",
+      "栖羽站",
+      "汇流塔",
+      "远星大桥",
+      "维蒂林场"
+    ]
+  },
+  "routes": [
+    {
+      "route_id": "ct.tie_an.shoggolith_city.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "shoggolith_city",
+      "city_name": "修格里城",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.shoggolith_city.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "shoggolith_city",
+      "city_name": "修格里城",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.mander_mine.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "mander_mine",
+      "city_name": "曼德矿场",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.mander_mine.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "mander_mine",
+      "city_name": "曼德矿场",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.freeport.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "freeport",
+      "city_name": "7号自由港",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.freeport.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "freeport",
+      "city_name": "7号自由港",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.clarity_data_center.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "clarity_data_center",
+      "city_name": "澄明数据中心",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.clarity_data_center.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "clarity_data_center",
+      "city_name": "澄明数据中心",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.seacorner_city.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "seacorner_city",
+      "city_name": "海角城",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.seacorner_city.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "seacorner_city",
+      "city_name": "海角城",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.anita_launch_center.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "anita_launch_center",
+      "city_name": "阿妮塔发射中心",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.anita_launch_center.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "anita_launch_center",
+      "city_name": "阿妮塔发射中心",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.lanxin_city.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "lanxin_city",
+      "city_name": "岚心城",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.lanxin_city.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "lanxin_city",
+      "city_name": "岚心城",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.tie_an.gonglu_city.expel",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "gonglu_city",
+      "city_name": "贡露城",
+      "mission_type": "expel"
+    },
+    {
+      "route_id": "ct.tie_an.gonglu_city.bounty",
+      "main_category": "ct",
+      "ct_subcategory": "tie_an",
+      "city_key": "gonglu_city",
+      "city_name": "贡露城",
+      "mission_type": "bounty"
+    },
+    {
+      "route_id": "ct.regional_ops_center.wilderness_station",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "wilderness_station",
+      "city_name": "荒原站",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.brcl_outpost",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "brcl_outpost",
+      "city_name": "铁盟哨站",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.onederland",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "onederland",
+      "city_name": "淘金乐园",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.anita_energy_research_institute",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "anita_energy_research_institute",
+      "city_name": "阿妮塔能源研究所",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.anita_weapon_research_institute",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "anita_weapon_research_institute",
+      "city_name": "阿妮塔战备工厂",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.yunxiuqiao_base",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "yunxiuqiao_base",
+      "city_name": "云岫桥基地",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.qiyu_station",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "qiyu_station",
+      "city_name": "栖羽站",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.confluence_tower",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "confluence_tower",
+      "city_name": "汇流塔",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.farstar_bridge",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "farstar_bridge",
+      "city_name": "远星大桥",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "ct.regional_ops_center.vitilin_forest",
+      "main_category": "ct",
+      "ct_subcategory": "regional_ops_center",
+      "city_key": "vitilin_forest",
+      "city_name": "维蒂林场",
+      "mission_type": "regional_ops"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.special_order",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.blade_action",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.read_by_lamp",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.weapon_material_analysis",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.knight_novel",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.i_think_i_am",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.what_i_know",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.big_one",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.blade_encirclement.total_encirclement",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.savior",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.standard",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.elegant",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.cutting_edge",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.chaos",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.global_supply.magic",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.action_summary.smuggler_crackdown.blind_box",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.structural_exploration.disordered_roots",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.structural_exploration.hetero_branches",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.structural_exploration.echo_buoy",
+      "main_category": "gp"
+    },
+    {
+      "route_id": "gp.structural_exploration.birch_buoy",
+      "main_category": "gp"
+    }
+  ]
+}

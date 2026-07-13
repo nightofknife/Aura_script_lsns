@@ -231,6 +231,19 @@ class TestWindowsWgcCaptureBackend(unittest.TestCase):
         self.assertEqual(_FakeWindowsCapture.instances[0].start_calls, 1)
         self.assertEqual(_FakeWindowsCapture.instances[1].start_calls, 1)
 
+    def test_reset_after_target_recovery_discards_old_session(self):
+        target = self._build_target()
+        backend = WindowsWgcCaptureBackend(target, {"frame_timeout_ms": 100, "max_stale_ms": 100})
+
+        backend.capture()
+        first_capture = _FakeWindowsCapture.instances[0]
+        backend.reset_after_target_recovery()
+        backend.capture()
+
+        self.assertTrue(first_capture.control.finished)
+        self.assertEqual(len(_FakeWindowsCapture.instances), 2)
+        self.assertEqual(_FakeWindowsCapture.instances[1].start_calls, 1)
+
 
 class TestWindowsCaptureDiagnostics(unittest.TestCase):
     def test_stress_capture_backend_collects_memory_samples(self):

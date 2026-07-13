@@ -32,6 +32,17 @@ DEFAULT_MUMU_INPUT_OPTIONS = {
 
 
 @dataclass(frozen=True)
+class RuntimeVisibilityRecoveryConfig:
+    enabled: bool = False
+    grace_period_ms: int = 1000
+    recovery_timeout_ms: int = 3000
+    poll_interval_ms: int = 100
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class RuntimeTargetConfig:
     mode: str
     hwnd: int | None = None
@@ -60,6 +71,9 @@ class RuntimeTargetConfig:
     exclude_titles: tuple[str, ...] = ()
     exclude_process_names: tuple[str, ...] = ()
     launcher_process_names: tuple[str, ...] = ()
+    visibility_recovery: RuntimeVisibilityRecoveryConfig = field(
+        default_factory=RuntimeVisibilityRecoveryConfig
+    )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -377,9 +391,23 @@ def _resolve_target_config(provider: str, target_data: Mapping[str, Any]) -> Run
         exclude_titles=_coerce_text_tuple(target_data.get("exclude_titles")),
         exclude_process_names=_coerce_text_tuple(target_data.get("exclude_process_names")),
         launcher_process_names=_coerce_text_tuple(target_data.get("launcher_process_names")),
+        visibility_recovery=_resolve_visibility_recovery_config(
+            _coerce_dict(target_data.get("visibility_recovery", {}))
+        ),
     )
     _validate_target_config(provider, target)
     return target
+
+
+def _resolve_visibility_recovery_config(
+    recovery_data: Mapping[str, Any],
+) -> RuntimeVisibilityRecoveryConfig:
+    return RuntimeVisibilityRecoveryConfig(
+        enabled=bool(recovery_data.get("enabled", False)),
+        grace_period_ms=max(_coerce_int(recovery_data.get("grace_period_ms"), 1000), 0),
+        recovery_timeout_ms=max(_coerce_int(recovery_data.get("recovery_timeout_ms"), 3000), 0),
+        poll_interval_ms=max(_coerce_int(recovery_data.get("poll_interval_ms"), 100), 10),
+    )
 
 
 def _resolve_capture_config(provider: str, capture_data: Mapping[str, Any]) -> RuntimeCaptureConfig:
