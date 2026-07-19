@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager, contextmanager
 from typing import Optional, Tuple
 
@@ -72,11 +73,17 @@ class AppProviderService:
         end_y: int,
         button: str = "left",
         duration: float | None = None,
+        hold_before_release_sec: float = 0.0,
     ):
         self.move_to(int(start_x), int(start_y), duration=0.0)
         self.controller.mouse_down(button)
-        self.controller.move_to(int(end_x), int(end_y), duration=duration)
-        self.controller.mouse_up(button)
+        try:
+            self.controller.move_to(int(end_x), int(end_y), duration=duration)
+            hold_sec = max(float(hold_before_release_sec), 0.0)
+            if hold_sec > 0:
+                time.sleep(hold_sec)
+        finally:
+            self.controller.mouse_up(button)
 
     async def drag_async(
         self,
@@ -86,11 +93,17 @@ class AppProviderService:
         end_y: int,
         button: str = "left",
         duration: float | None = None,
+        hold_before_release_sec: float = 0.0,
     ):
         await self.move_to_async(int(start_x), int(start_y), duration=0.0)
         await self.controller.mouse_down_async(button)
-        await self.controller.move_to_async(int(end_x), int(end_y), duration=duration)
-        await self.controller.mouse_up_async(button)
+        try:
+            await self.controller.move_to_async(int(end_x), int(end_y), duration=duration)
+            hold_sec = max(float(hold_before_release_sec), 0.0)
+            if hold_sec > 0:
+                await asyncio.sleep(hold_sec)
+        finally:
+            await self.controller.mouse_up_async(button)
 
     def look_delta(self, dx: int, dy: int):
         self.controller.look_delta(int(dx), int(dy))
