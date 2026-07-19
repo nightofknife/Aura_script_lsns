@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import asyncio
+from fractions import Fraction
 from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
@@ -12,16 +13,18 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
+from ..services.resonance_pc_trade_exact_solver import expected_fatigue_to_cap
 from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
+from .trade_negotiation_pc_actions import (
+    NegotiationExecutionError,
+    execute_bargain_to_cap,
+    execute_raise_to_cap,
+)
 from .trade_planner_pc_actions import (
-    resonance_pc_trade_loop_cleanup,
-    resonance_pc_trade_loop_init,
-    resonance_pc_trade_loop_summary,
-    resonance_pc_trade_loop_update,
-    resonance_pc_trade_plan_next_cycle_execution,
+    resonance_pc_trade_plan_optimal_route,
     resonance_pc_trade_route_execution_cleanup,
     resonance_pc_trade_route_execution_init,
     resonance_pc_trade_route_execution_summary,
@@ -79,6 +82,18 @@ _SELL_SETTLEMENT = {
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
     raise CityTradeFlowError(code=code, message=message, detail=detail)
+
+
+def _strict_integer(name: str, value: Any) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be an integer")
+    try:
+        normalized = Fraction(str(value).strip())
+    except (ValueError, ZeroDivisionError) as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if normalized.denominator != 1:
+        raise ValueError(f"{name} must be an integer")
+    return int(normalized)
 
 
 def _coerce_region(region: Any) -> Tuple[int, int, int, int]:
@@ -512,6 +527,7 @@ def resonance_pc_click_shop_menu_node(node_index: int, wait_sec: float = 1.0, ap
 def resonance_pc_buy_goods_on_buy_page(
     product_list: Optional[List[str]] = None,
     books_used: int = 0,
+    bargain_to_cap: bool = False,
     max_scan_rounds: int = 6,
     app: Any = None,
     ocr: Any = None,
@@ -522,6 +538,7 @@ def resonance_pc_buy_goods_on_buy_page(
         raise RuntimeError("app/ocr/vision/controller services are required")
 
     requested_products = [str(item).strip() for item in (product_list or []) if str(item).strip()]
+    negotiation = execute_bargain_to_cap(requested_to_cap=False, app=app, vision=vision)
     book_result: Dict[str, Any] = {"ok": True, "used": 0, "skipped": True}
     if int(books_used or 0) > 0:
         book_result = resonance_pc_use_purchase_books(
@@ -560,6 +577,21 @@ def resonance_pc_buy_goods_on_buy_page(
             break
         if round_index < rounds - 1:
             _drag_buy_list(app, controller)
+
+    if bool(bargain_to_cap) and not selected:
+        _raise_error(
+            "negotiation_without_selected_goods",
+            "Bargaining was requested, but no goods were selected for purchase.",
+            {"requested_products": requested_products, "missing_products": pending},
+        )
+    try:
+        negotiation = execute_bargain_to_cap(
+            requested_to_cap=bool(bargain_to_cap),
+            app=app,
+            vision=vision,
+        )
+    except NegotiationExecutionError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
 
     buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
     if buy_button_hit is None:
@@ -616,6 +648,7 @@ def resonance_pc_buy_goods_on_buy_page(
         "missing_products": pending,
         "books_requested": int(books_used or 0),
         "book_result": book_result,
+        "negotiation": negotiation,
         "buy_button": buy_button,
         "settlement": settlement,
         "confirm_panel_found": confirm_panel is not None,
@@ -634,6 +667,7 @@ def resonance_pc_buy_goods_on_buy_page(
 )
 @requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr", vision="plans/aura_base/vision")
 def resonance_pc_sell_goods_on_sell_page(
+    raise_to_cap: bool = False,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -651,8 +685,17 @@ def resonance_pc_sell_goods_on_sell_page(
     )
     sell_button_click = {"clicked": False, "reason": "sell_all_not_clicked"}
     settlement = {"closed": False, "found": False, "kind": "sell"}
+    negotiation = execute_raise_to_cap(requested_to_cap=False, app=app, vision=vision)
     if sell_all_click.get("clicked"):
         time.sleep(0.5)
+        try:
+            negotiation = execute_raise_to_cap(
+                requested_to_cap=bool(raise_to_cap),
+                app=app,
+                vision=vision,
+            )
+        except NegotiationExecutionError as exc:
+            _raise_error(exc.code, exc.message, exc.detail)
         sell_button_click = _wait_and_click_text(
             app,
             ocr,
@@ -664,6 +707,12 @@ def resonance_pc_sell_goods_on_sell_page(
         if sell_button_click.get("clicked"):
             time.sleep(0.5)
             settlement = _close_settlement(app, vision, "sell", timeout_sec=3.0)
+    elif bool(raise_to_cap):
+        _raise_error(
+            "negotiation_without_selected_goods",
+            "Raising was requested, but the sell-all selection could not be made.",
+            {"sell_all_click": sell_all_click},
+        )
 
     sold = bool(settlement.get("closed"))
     if sold:
@@ -680,6 +729,7 @@ def resonance_pc_sell_goods_on_sell_page(
         "sold_confirmed": sold,
         "sell_result": "sold" if sold else "empty_or_no_result",
         "sell_all_click": sell_all_click,
+        "negotiation": negotiation,
         "sell_button_click": sell_button_click,
         "settlement": settlement,
         "back": back,
@@ -691,12 +741,21 @@ def _execute_city_trade_inside_current_city(
     current_city: str,
     buy_products: Optional[List[str]],
     books_used: int,
+    sell_raise_to_cap: bool = False,
+    buy_bargain_to_cap: bool = False,
     app: Any,
     ocr: Any,
     vision: Any,
     controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
 ) -> Dict[str, Any]:
+    products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
+    if bool(buy_bargain_to_cap) and not products:
+        _raise_error(
+            "negotiation_without_selected_goods",
+            "Bargaining was requested for a route leg without buy products.",
+            {"current_city": current_city},
+        )
     enter_shop = resonance_pc_click_city_shop_by_name(
         city_name=current_city,
         shop_name="交易所",
@@ -705,14 +764,19 @@ def _execute_city_trade_inside_current_city(
         resonance_pc_city_shop_data=city_shop_data,
     )
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
-    sell = resonance_pc_sell_goods_on_sell_page(app=app, ocr=ocr, vision=vision)
+    sell = resonance_pc_sell_goods_on_sell_page(
+        raise_to_cap=bool(sell_raise_to_cap),
+        app=app,
+        ocr=ocr,
+        vision=vision,
+    )
     buy = None
-    products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
     if products:
         buy_node = resonance_pc_click_shop_menu_node(node_index=1, app=app)
         buy = resonance_pc_buy_goods_on_buy_page(
             product_list=products,
             books_used=int(books_used or 0),
+            bargain_to_cap=bool(buy_bargain_to_cap),
             app=app,
             ocr=ocr,
             vision=vision,
@@ -725,6 +789,8 @@ def _execute_city_trade_inside_current_city(
         "success": True,
         "page_state": "city_main",
         "current_city": current_city,
+        "sell_raise_to_cap": bool(sell_raise_to_cap),
+        "buy_bargain_to_cap": bool(buy_bargain_to_cap),
         "enter_shop": enter_shop,
         "sell_node": sell_node,
         "sell": sell,
@@ -751,54 +817,27 @@ async def _execute_route(
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
     route_run_key = str(route_state.get("run_key") or "")
     page_state = start_page_state
+    leg_results: List[Dict[str, Any]] = []
     try:
-        for leg in route:
-            if page_state == "city_main":
-                await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
-                page_state = "city_panel"
-            elif page_state != "city_panel":
-                _raise_error(
-                    "unexpected_page_state_before_city_trade",
-                    "Route execution expected city_panel or city_main.",
-                    {"page_state": page_state, "leg": leg},
-                )
-
-            city_trade = await asyncio.to_thread(
-                _execute_city_trade_inside_current_city,
-                current_city=str(leg.get("from_city") or ""),
-                buy_products=list(leg.get("buy_products") or []),
-                books_used=int(leg.get("books_used") or 0),
+        for index, leg in enumerate(route):
+            leg_result = await _execute_trade_leg(
+                index=index,
+                leg=leg,
+                sell_raise_to_cap=(
+                    bool(route[index - 1].get("raise_to_cap")) if index > 0 else False
+                ),
+                page_state=page_state,
+                use_fatigue_medicine=use_fatigue_medicine,
+                allowed_fatigue_medicines=allowed_fatigue_medicines,
+                fatigue_medicine_max_uses=fatigue_medicine_max_uses,
                 app=app,
                 ocr=ocr,
                 vision=vision,
                 controller=controller,
                 city_shop_data=city_shop_data,
             )
-            page_state = str(city_trade.get("page_state") or "city_main")
-
-            travel = await asyncio.to_thread(
-                resonance_pc_intercity_depart_and_wait,
-                to_city_name=str(leg.get("to_city") or ""),
-                enter_station_timeout_seconds=0,
-                location_file_path="data/meta/location_pc.json",
-                city_search_region=[130, 70, 1000, 550],
-                drag_center=[640, 360],
-                drag_span_px=450,
-                max_search_steps=12,
-                fallback_enabled=True,
-                target_match_mode="contains",
-                click_y_offset=-15,
-                drag_duration_sec=1.0,
-                drag_hold_sec=0.5,
-                use_fatigue_medicine=bool(use_fatigue_medicine),
-                allowed_fatigue_medicines=allowed_fatigue_medicines or [],
-                fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
-                app=app,
-                ocr=ocr,
-                vision=vision,
-                controller=controller,
-            )
-            page_state = "city_main"
+            page_state = str(leg_result.get("page_state") or "city_main")
+            travel = dict(leg_result.get("travel") or {})
             update = await resonance_pc_trade_route_execution_update(
                 run_key=route_run_key,
                 leg=leg,
@@ -809,22 +848,98 @@ async def _execute_route(
                 fatigue_medicine_use_count=int(travel.get("fatigue_medicine_use_count") or 0),
                 state_store=state_store,
             )
-            if str(update.get("status") or "").lower() == "blocked":
+            blocked = str(update.get("status") or "").lower() == "blocked"
+            leg_result["status"] = "blocked" if blocked else "completed"
+            leg_results.append(leg_result)
+            if blocked:
                 break
             await asyncio.sleep(2.0)
         summary = await resonance_pc_trade_route_execution_summary(route_run_key, state_store=state_store)
         summary["page_state"] = page_state
+        summary["leg_results"] = leg_results
         return summary
     finally:
         if route_run_key:
             await resonance_pc_trade_route_execution_cleanup(route_run_key, state_store=state_store)
 
 
+async def _execute_trade_leg(
+    *,
+    index: int,
+    leg: Dict[str, Any],
+    sell_raise_to_cap: bool,
+    page_state: str,
+    use_fatigue_medicine: bool,
+    allowed_fatigue_medicines: Optional[List[str]],
+    fatigue_medicine_max_uses: int,
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    controller: Any,
+    city_shop_data: ResonancePcCityShopDataService,
+) -> Dict[str, Any]:
+    if page_state == "city_main":
+        await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+        page_state = "city_panel"
+    elif page_state != "city_panel":
+        _raise_error(
+            "unexpected_page_state_before_city_trade",
+            "Route execution expected city_panel or city_main.",
+            {"page_state": page_state, "leg": leg},
+        )
+
+    city_trade = await asyncio.to_thread(
+        _execute_city_trade_inside_current_city,
+        current_city=str(leg.get("from_city") or ""),
+        buy_products=list(leg.get("buy_products") or []),
+        books_used=int(leg.get("books_used") or 0),
+        sell_raise_to_cap=bool(sell_raise_to_cap),
+        buy_bargain_to_cap=bool(leg.get("bargain_to_cap")),
+        app=app,
+        ocr=ocr,
+        vision=vision,
+        controller=controller,
+        city_shop_data=city_shop_data,
+    )
+    page_state = str(city_trade.get("page_state") or "city_main")
+
+    travel = await asyncio.to_thread(
+        resonance_pc_intercity_depart_and_wait,
+        to_city_name=str(leg.get("to_city") or ""),
+        enter_station_timeout_seconds=0,
+        location_file_path="data/meta/location_pc.json",
+        city_search_region=[130, 70, 1000, 550],
+        drag_center=[640, 360],
+        drag_span_px=450,
+        max_search_steps=12,
+        fallback_enabled=True,
+        target_match_mode="contains",
+        click_y_offset=-15,
+        drag_duration_sec=1.0,
+        drag_hold_sec=0.5,
+        use_fatigue_medicine=bool(use_fatigue_medicine),
+        allowed_fatigue_medicines=allowed_fatigue_medicines or [],
+        fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
+        app=app,
+        ocr=ocr,
+        vision=vision,
+        controller=controller,
+    )
+    return {
+        "index": int(index),
+        "status": "pending",
+        "leg": dict(leg),
+        "city_trade": city_trade,
+        "travel": travel,
+        "page_state": "city_main",
+    }
+
+
 @action_info(
     name="resonance_pc.auto_cycle_trade_flow",
     public=True,
     read_only=False,
-    description="Run the full ResonancePc auto-cycle trade flow from city-main UI.",
+    description="Plan and execute one exact full-budget ResonancePc trade route from city-main UI.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -837,12 +952,20 @@ async def _execute_route(
     state_store="core/state_store",
 )
 async def resonance_pc_auto_cycle_trade_flow(
-    fatigue_budget: int,
+    fatigue_budget: int = 100,
     cargo_capacity: int = 650,
     book_budget: int = 0,
     book_profit_threshold: float = 0,
-    max_cycle_hops: int = 6,
-    max_rounds: int = 64,
+    negotiation_budget: int = 0,
+    all_plan: int = 0,
+    bargain_success_rates_bps: Optional[List[Any]] = [5000],
+    bargain_step_bps: Optional[Any] = 1000,
+    raise_success_rates_bps: Optional[List[Any]] = [5000],
+    raise_step_bps: Optional[Any] = 1000,
+    trade_level: int = 20,
+    city_prestige: Optional[Dict[str, Any]] = None,
+    product_unlocks: Optional[Dict[str, Any]] = None,
+    active_events: Optional[List[Any]] = None,
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
@@ -855,6 +978,22 @@ async def resonance_pc_auto_cycle_trade_flow(
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     state_store: StateStoreService | None = None,
 ) -> Dict[str, Any]:
+    normalized_all_plan = _strict_integer("all_plan", all_plan)
+    if normalized_all_plan not in {0, 1}:
+        raise ValueError("all_plan must be 0 or 1")
+    normalized_negotiation_budget = _strict_integer("negotiation_budget", negotiation_budget)
+    if normalized_negotiation_budget < 0:
+        raise ValueError("negotiation_budget must be >= 0")
+    expected_fatigue_to_cap(
+        success_rates_bps=(
+            [5000] if bargain_success_rates_bps is None else bargain_success_rates_bps
+        ),
+        step_bps=1000 if bargain_step_bps is None else bargain_step_bps,
+    )
+    expected_fatigue_to_cap(
+        success_rates_bps=[5000] if raise_success_rates_bps is None else raise_success_rates_bps,
+        step_bps=1000 if raise_step_bps is None else raise_step_bps,
+    )
     if (
         app is None
         or ocr is None
@@ -867,6 +1006,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     ):
         raise RuntimeError("auto_cycle_trade_flow requires app/ocr/vision/controller/data/planner/state services")
 
+    # The only market refresh for this task happens after current-city recognition
+    # and before the exact full-route plan is built.
     await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
     current = await asyncio.to_thread(
         resonance_pc_read_city_name_on_city_panel,
@@ -876,98 +1017,122 @@ async def resonance_pc_auto_cycle_trade_flow(
     )
     page_state = "city_panel"
 
-    init = await resonance_pc_trade_loop_init(
+    refresh = await asyncio.to_thread(
+        resonance_pc_market_refresh,
+        force=True,
+        resonance_pc_market_data=resonance_pc_market_data,
+    )
+    plan = await asyncio.to_thread(
+        resonance_pc_trade_plan_optimal_route,
         current_city=str(current.get("city_name") or ""),
         current_city_key=str(current.get("city_key") or ""),
         fatigue_budget=int(fatigue_budget),
+        cargo_capacity=int(cargo_capacity),
         book_budget=int(book_budget),
-        state_store=state_store,
+        book_profit_threshold=book_profit_threshold,
+        negotiation_budget=normalized_negotiation_budget,
+        all_plan=normalized_all_plan,
+        bargain_success_rates_bps=bargain_success_rates_bps,
+        bargain_step_bps=bargain_step_bps,
+        raise_success_rates_bps=raise_success_rates_bps,
+        raise_step_bps=raise_step_bps,
+        trade_level=int(trade_level),
+        city_prestige=city_prestige or {"default": 20, "overrides": {}},
+        product_unlocks=product_unlocks or {"mode": "all", "product_ids": []},
+        active_events=active_events or [],
+        snapshot_id=refresh.get("snapshot_id"),
+        resonance_pc_trade_planner=resonance_pc_trade_planner,
     )
-    run_key = str(init.get("run_key") or "")
-    loop_state: Dict[str, Any] = init
-    rounds_run = 0
-    blocked = False
+    route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    execution: Dict[str, Any] = {
+        "status": "not_started",
+        "reason": plan.get("reason"),
+        "completed_leg_count": 0,
+        "completed_route": [],
+        "leg_results": [],
+        "blocked_at": None,
+        "blocked_leg": None,
+        "fatigue_medicine_used": [],
+        "fatigue_medicine_use_count": 0,
+    }
+    final_sale: Optional[Dict[str, Any]] = None
 
-    while bool(loop_state.get("should_continue")) and rounds_run < max(int(max_rounds), 0):
-        refresh = await asyncio.to_thread(
-            resonance_pc_market_refresh,
-            force=True,
-            resonance_pc_market_data=resonance_pc_market_data,
-        )
-        plan = await asyncio.to_thread(
-            resonance_pc_trade_plan_next_cycle_execution,
-            current_city=str(loop_state.get("current_city") or ""),
-            current_city_key=str(loop_state.get("current_city_key") or ""),
-            fatigue_budget=int(loop_state.get("remaining_fatigue") or 0),
-            cargo_capacity=int(cargo_capacity),
-            book_budget=int(book_budget),
-            book_profit_threshold=float(book_profit_threshold),
-            max_cycle_hops=int(max_cycle_hops),
-            snapshot_id=refresh.get("snapshot_id"),
-            resonance_pc_trade_planner=resonance_pc_trade_planner,
-        )
-
-        execution: Dict[str, Any] = {}
-        route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
-        if plan.get("status") == "ok" and route:
-            execution = await _execute_route(
-                route=route,
-                start_page_state=page_state,
-                use_fatigue_medicine=bool(use_fatigue_medicine),
-                allowed_fatigue_medicines=allowed_fatigue_medicines or [],
-                fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
-                app=app,
-                ocr=ocr,
-                vision=vision,
-                controller=controller,
-                city_shop_data=resonance_pc_city_shop_data,
-                state_store=state_store,
-            )
-            page_state = str(execution.get("page_state") or "city_main")
-            if str(execution.get("status") or "").lower() == "blocked":
-                blocked = True
-
-        loop_state = await resonance_pc_trade_loop_update(
-            run_key=run_key,
-            plan=plan,
-            execution=execution,
+    if plan.get("status") == "ok" and route:
+        execution = await _execute_route(
+            route=route,
+            start_page_state=page_state,
+            use_fatigue_medicine=bool(use_fatigue_medicine),
+            allowed_fatigue_medicines=allowed_fatigue_medicines or [],
+            fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
+            app=app,
+            ocr=ocr,
+            vision=vision,
+            controller=controller,
+            city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
         )
-        rounds_run += 1
-        if blocked:
-            break
-        if not route:
-            break
+        page_state = str(execution.get("page_state") or "city_main")
 
-    summary = await resonance_pc_trade_loop_summary(run_key, state_store=state_store)
-
-    if str(summary.get("status") or "").lower() != "blocked":
-        current_city = str(summary.get("current_city") or current.get("city_name") or "")
-        if page_state == "city_main":
-            await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
-            page_state = "city_panel"
-        if page_state == "city_panel" and current_city:
-            await asyncio.to_thread(
+        if str(execution.get("status") or "").lower() != "blocked":
+            if page_state == "city_main":
+                await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+                page_state = "city_panel"
+            endpoint_city = str(route[-1].get("to_city") or "")
+            final_sale = await asyncio.to_thread(
                 _execute_city_trade_inside_current_city,
-                current_city=current_city,
+                current_city=endpoint_city,
                 buy_products=[],
                 books_used=0,
+                sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
+                buy_bargain_to_cap=False,
                 app=app,
                 ocr=ocr,
                 vision=vision,
                 controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
             )
-            page_state = "city_main"
-        summary = await resonance_pc_trade_loop_summary(run_key, state_store=state_store)
+            page_state = str(final_sale.get("page_state") or "city_main")
+    elif page_state == "city_panel":
+        cleanup = await asyncio.to_thread(
+            resonance_pc_go_city_main_direct,
+            app=app,
+            vision=vision,
+        )
+        execution["page_cleanup"] = cleanup
+        page_state = str(cleanup.get("page_state") or "city_main")
 
-    await resonance_pc_trade_loop_cleanup(run_key, state_store=state_store)
-    summary["success"] = True
-    summary["initial_city"] = {
-        "city_name": current.get("city_name"),
-        "city_key": current.get("city_key"),
-        "ocr_city_text": current.get("ocr_city_text"),
-    }
-    summary["rounds_run"] = rounds_run
-    summary["page_state"] = page_state
-    return summary
+    execution_status = str(execution.get("status") or "not_started").lower()
+    if execution_status == "blocked":
+        status = "blocked"
+        reason = execution.get("reason") or "travel_blocked"
+        success = False
+    elif plan.get("status") == "ok" and route:
+        status = "completed"
+        reason = None
+        success = True
+    else:
+        status = str(plan.get("status") or "no_plan")
+        reason = plan.get("reason")
+        success = True
+
+    result = dict(plan)
+    result.update(
+        {
+            "success": success,
+            "status": status,
+            "reason": reason,
+            "execution": execution,
+            "final_sale": final_sale,
+            "blocked_at": execution.get("blocked_at"),
+            "blocked_leg": execution.get("blocked_leg"),
+            "fatigue_medicine_used": list(execution.get("fatigue_medicine_used") or []),
+            "fatigue_medicine_use_count": int(execution.get("fatigue_medicine_use_count") or 0),
+            "initial_city": {
+                "city_name": current.get("city_name"),
+                "city_key": current.get("city_key"),
+                "ocr_city_text": current.get("ocr_city_text"),
+            },
+            "page_state": page_state,
+        }
+    )
+    return result

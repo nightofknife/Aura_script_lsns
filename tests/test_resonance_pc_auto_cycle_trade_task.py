@@ -2,6 +2,9 @@ from pathlib import Path
 
 import yaml
 
+from packages.aura_core.config.validator import validate_task_definition
+from packages.aura_core.scheduler.validation import InputValidator
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ADB_PLAN_ROOT = REPO_ROOT / "plans" / "resonance"
@@ -37,17 +40,115 @@ def test_resonance_pc_runtime_defaults_to_wgc_and_sendinput():
     assert runtime["input"]["focus_before_input"] is True
 
 
-def test_resonance_pc_task_keeps_the_adb_contract_but_uses_an_isolated_action():
-    adb_task = _load_yaml(ADB_PLAN_ROOT / "tasks" / "auto_cycle_trade.yaml")["auto_cycle_trade"]
+def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     pc_data = _load_yaml(PC_PLAN_ROOT / "tasks" / "auto_cycle_trade_pc.yaml")
     pc_task = pc_data["auto_cycle_trade_pc"]
+    inputs = {item["name"]: item for item in pc_task["meta"]["inputs"]}
 
     assert set(pc_data) == {"auto_cycle_trade_pc"}
-    assert pc_task["meta"]["title"] == "Auto Cycle Trade (PC)"
-    assert pc_task["meta"]["inputs"] == adb_task["meta"]["inputs"]
-    assert pc_task["returns"] == adb_task["returns"]
+    assert pc_task["meta"]["title"] == "Exact Auto Trade (PC)"
+    assert "max_cycle_hops" not in inputs
+    assert "max_rounds" not in inputs
+    assert inputs["all_plan"]["default"] == 0
+    assert inputs["all_plan"]["enum"] == [0, 1]
+    assert inputs["fatigue_budget"]["default"] == 100
+    assert inputs["cargo_capacity"]["default"] == 650
+    assert inputs["negotiation_budget"]["default"] == 0
+    assert inputs["bargain_success_rates_bps"]["default"] == [5000]
+    assert inputs["bargain_step_bps"]["default"] == 1000
+    assert inputs["raise_success_rates_bps"]["default"] == [5000]
+    assert inputs["raise_step_bps"]["default"] == 1000
+    assert inputs["trade_level"]["default"] == 20
+    assert inputs["city_prestige"]["default"] == {"default": 20, "overrides": {}}
+    assert inputs["product_unlocks"]["default"] == {"mode": "all", "product_ids": []}
+    assert "rounds" not in pc_task["returns"]
+    assert "rounds_completed" not in pc_task["returns"]
+    assert "city_cycle" not in pc_task["returns"]
+    assert "entry_route_count" not in pc_task["returns"]
+    assert "city_path" in pc_task["returns"]
+    assert "expected_fatigue_used" in pc_task["returns"]
+    assert "full_negotiation_used" in pc_task["returns"]
+    assert "fatigue_used" not in pc_task["returns"]
+    assert "remaining_fatigue" not in pc_task["returns"]
+    assert "negotiation_used" not in pc_task["returns"]
+    assert "execution" in pc_task["returns"]
     assert pc_task["steps"]["run"]["action"] == "resonance_pc.auto_cycle_trade_flow"
     assert not (ADB_PLAN_ROOT / "tasks" / "auto_cycle_trade_pc.yaml").exists()
+
+
+def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides():
+    pc_data = _load_yaml(PC_PLAN_ROOT / "tasks" / "auto_cycle_trade_pc.yaml")
+    inputs_meta = pc_data["auto_cycle_trade_pc"]["meta"]["inputs"]
+    validator = InputValidator(None)
+
+    ok, defaults = validator.validate_inputs_against_meta(inputs_meta, {})
+
+    assert ok is True
+    assert defaults["city_prestige"] == {"default": 20, "overrides": {}}
+    assert defaults["product_unlocks"] == {"mode": "all", "product_ids": []}
+    assert defaults["all_plan"] == 0
+    assert defaults["bargain_success_rates_bps"] == [5000]
+    assert defaults["bargain_step_bps"] == 1000
+    assert defaults["raise_success_rates_bps"] == [5000]
+    assert defaults["raise_step_bps"] == 1000
+
+    ok, custom = validator.validate_inputs_against_meta(
+        inputs_meta,
+        {
+            "city_prestige": {"default": 15, "overrides": {"3": 12, "8": 10}},
+            "product_unlocks": {"mode": "only", "product_ids": ["101", "205"]},
+        },
+    )
+
+    assert ok is True
+    assert custom["city_prestige"] == {
+        "default": 15,
+        "overrides": {"3": 12, "8": 10},
+    }
+    assert custom["product_unlocks"] == {
+        "mode": "only",
+        "product_ids": ["101", "205"],
+    }
+
+    ok, error = validator.validate_inputs_against_meta(
+        inputs_meta,
+        {"city_prestige": {"default": 20, "overrides": {"6": 10}}},
+    )
+
+    assert ok is False
+    assert "city_prestige.overrides" in error
+    assert "unexpected fields: 6" in error
+
+    ok, custom_negotiation = validator.validate_inputs_against_meta(
+        inputs_meta,
+        {
+            "all_plan": 1,
+            "bargain_success_rates_bps": [6300, 5300],
+            "bargain_step_bps": 1170,
+            "raise_success_rates_bps": [5000],
+            "raise_step_bps": 1000,
+        },
+    )
+    assert ok is True
+    assert custom_negotiation["all_plan"] == 1
+    assert custom_negotiation["bargain_success_rates_bps"] == [6300, 5300]
+
+    for bad_inputs in (
+        {"all_plan": 2},
+        {"bargain_success_rates_bps": []},
+        {"bargain_success_rates_bps": [10001]},
+        {"raise_step_bps": 0},
+    ):
+        ok, _error = validator.validate_inputs_against_meta(inputs_meta, bad_inputs)
+        assert ok is False
+
+
+def test_resonance_pc_auto_cycle_trade_task_matches_formal_task_schema():
+    pc_data = _load_yaml(PC_PLAN_ROOT / "tasks" / "auto_cycle_trade_pc.yaml")
+
+    ok, error = validate_task_definition(pc_data)
+
+    assert ok is True, error
 
 
 def test_resonance_pc_business_sources_and_assets_are_physically_separate():
@@ -56,10 +157,12 @@ def test_resonance_pc_business_sources_and_assets_are_physically_separate():
         "src/actions/city_travel_pc_actions.py",
         "src/actions/market_data_pc_actions.py",
         "src/actions/purchase_book_pc_actions.py",
+        "src/actions/trade_negotiation_pc_actions.py",
         "src/actions/trade_planner_pc_actions.py",
         "src/services/city_shop_data_pc_service.py",
         "src/services/resonance_pc_market_data_service.py",
         "src/services/resonance_pc_trade_planner_service.py",
+        "src/services/resonance_pc_trade_exact_solver.py",
     ]
     for relative_path in source_files:
         source_path = PC_PLAN_ROOT / relative_path
@@ -84,6 +187,16 @@ def test_resonance_pc_business_sources_and_assets_are_physically_separate():
         assert adb_asset.resolve() != pc_asset.resolve()
         assert not pc_asset.is_symlink()
 
+    for filename in (
+        "trade_buy_bargain_button.png",
+        "trade_buy_cap20_digits.png",
+        "trade_sell_raise_button.png",
+        "trade_sell_cap20_digits.png",
+    ):
+        pc_asset = PC_PLAN_ROOT / "templates" / filename
+        assert pc_asset.is_file()
+        assert not pc_asset.is_symlink()
+
     assert (PC_PLAN_ROOT / "data" / "meta" / "location_pc.json").is_file()
     assert (PC_PLAN_ROOT / "data" / "cache" / "market").is_dir()
 
@@ -102,5 +215,30 @@ def test_resonance_pc_manifest_exports_only_pc_business_symbols():
     assert all(item["name"].startswith("resonance_pc.") for item in exports["actions"])
     assert all(item["module"].startswith("plans.resonance_pc.") for item in exports["actions"])
 
+    actions_by_name = {item["name"]: item for item in exports["actions"]}
+    expected_negotiation_parameters = {
+        "all_plan",
+        "bargain_success_rates_bps",
+        "bargain_step_bps",
+        "raise_success_rates_bps",
+        "raise_step_bps",
+    }
+    for action_name in (
+        "resonance_pc.trade_plan_optimal_route",
+        "resonance_pc.auto_cycle_trade_flow",
+    ):
+        parameters = {
+            parameter["name"]: parameter
+            for parameter in actions_by_name[action_name]["parameters"]
+        }
+        parameter_names = set(parameters)
+        assert expected_negotiation_parameters.issubset(parameter_names)
+        assert parameters["all_plan"]["default"] == 0
+        assert parameters["bargain_success_rates_bps"]["default"] == [5000]
+        assert parameters["bargain_step_bps"]["default"] == 1000
+        assert parameters["raise_success_rates_bps"]["default"] == [5000]
+        assert parameters["raise_step_bps"]["default"] == 1000
+
     task_ids = {item["id"] for item in exports["tasks"]}
     assert "auto_cycle_trade_pc" in task_ids
+    assert "auto_battle_dispatch_pc" in task_ids
