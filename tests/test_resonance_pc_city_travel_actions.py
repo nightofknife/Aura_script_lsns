@@ -126,37 +126,30 @@ class _SequencedArrivalVision:
 
 def test_wait_intercity_arrival_clicks_enter_station():
     app = _FakeApp()
-    ocr = _FakeOcr([])
     vision = _SequencedArrivalVision([True, False])
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=ocr,
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
-        post_action_sec=0,
         arrival_click_verify_interval_sec=0,
     )
 
     assert result["status"] == "arrived"
-    assert result["encounter_actions"] == 0
     assert result["arrival_click_attempts"] == 1
     assert app.clicks == [(810, 345)]
 
 
 def test_wait_intercity_arrival_retries_until_template_disappears():
     app = _FakeApp()
-    ocr = _FakeOcr([])
     vision = _SequencedArrivalVision([True, True, False])
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=ocr,
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
-        post_action_sec=0,
         arrival_click_verify_interval_sec=0,
     )
 
@@ -166,17 +159,14 @@ def test_wait_intercity_arrival_retries_until_template_disappears():
 
 def test_wait_intercity_arrival_fails_when_template_remains_visible():
     app = _FakeApp()
-    ocr = _FakeOcr([])
     vision = _SequencedArrivalVision([True, True, True, True])
 
     try:
         resonance_pc_wait_intercity_arrival(
             app=app,
-            ocr=ocr,
             vision=vision,
             timeout_sec=1,
             interval_sec=0.1,
-            post_action_sec=0,
             arrival_click_max_attempts=3,
             arrival_click_verify_interval_sec=0,
         )
@@ -189,106 +179,42 @@ def test_wait_intercity_arrival_fails_when_template_remains_visible():
     assert app.clicks == [(810, 345), (810, 345), (810, 345)]
 
 
-def test_wait_intercity_arrival_logs_each_capture_and_ocr_result(monkeypatch):
+def test_wait_intercity_arrival_does_not_run_full_screen_ocr(monkeypatch):
     app = _FakeApp()
-    ocr = _FakeOcr([["列车正在行驶"]])
     vision = _SequencedArrivalVision([False, True, False])
-    messages = []
 
-    def record_info(message, *args):
-        messages.append(message % args)
+    def fail_if_called(**_kwargs):
+        raise AssertionError("arrival wait must not run full-screen OCR")
 
-    monkeypatch.setattr(city_travel_pc_actions.logger, "info", record_info)
+    monkeypatch.setattr(city_travel_pc_actions, "_capture_and_ocr_text_items", fail_if_called)
 
-    resonance_pc_wait_intercity_arrival(
+    result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=ocr,
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
-        post_action_sec=0,
         arrival_click_verify_interval_sec=0,
     )
 
-    assert any("poll=1 phase=capture_start" in message for message in messages)
-    assert any("poll=1 phase=capture_done" in message for message in messages)
-    assert any("poll=1 phase=ocr_start" in message for message in messages)
-    result_log = next(message for message in messages if "poll=1 phase=ocr_result" in message)
-    assert '"text":"列车正在行驶"' in result_log
+    assert result["poll_count"] == 2
+    assert app.clicks == [(810, 345)]
 
 
 def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
     app = _FakeApp()
-    ocr = _FakeOcr([[]])
     vision = _SequencedArrivalVision([False, True, False])
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=ocr,
         vision=vision,
         timeout_sec=0,
         interval_sec=0.15,
-        post_action_sec=0,
         arrival_click_verify_interval_sec=0,
     )
 
     assert result["status"] == "arrived"
     assert result["poll_count"] == 2
     assert app.clicks == [(810, 345)]
-
-
-def test_wait_intercity_arrival_clicks_fight_even_when_bait_balloon_is_present():
-    app = _FakeApp()
-    ocr = _FakeOcr(
-        [
-            ["立即返航", "护卫队迎击", "敌方等级：10", "应对方式", "诱饵气球"],
-        ]
-    )
-    vision = _SequencedArrivalVision([False, True, False])
-
-    result = resonance_pc_wait_intercity_arrival(
-        app=app,
-        ocr=ocr,
-        vision=vision,
-        timeout_sec=1,
-        interval_sec=0.1,
-        post_action_sec=0,
-        arrival_click_verify_interval_sec=0,
-    )
-
-    assert result["status"] == "arrived"
-    assert result["encounter_actions"] == 1
-    assert result["trace"][1]["action"] == "click_fight"
-    assert app.clicks == [(101, 201), (810, 345)]
-
-
-def test_wait_intercity_arrival_can_be_configured_to_fail_without_clicking_encounter():
-    app = _FakeApp()
-    ocr = _FakeOcr(
-        [
-            ["立即返航", "护卫队迎击", "敌方等级：10", "应对方式", "暂不可用", "诱饵气球"],
-        ]
-    )
-    vision = _SequencedArrivalVision([False])
-
-    try:
-        resonance_pc_wait_intercity_arrival(
-            app=app,
-            ocr=ocr,
-            vision=vision,
-            encounter_policy="fail",
-            timeout_sec=1,
-            interval_sec=0.1,
-            post_action_sec=0,
-        )
-    except IntercityDestinationError as exc:
-        assert exc.code == "travel_encounter_requires_manual_resolution"
-        assert exc.detail["bait_balloon_found"] is True
-        assert exc.detail["unavailable_found"] is True
-    else:
-        raise AssertionError("expected IntercityDestinationError")
-
-    assert app.clicks == []
 
 
 def test_intercity_depart_and_wait_blocks_without_fatigue_medicine():
