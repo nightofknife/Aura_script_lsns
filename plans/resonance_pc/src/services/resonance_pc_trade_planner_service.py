@@ -14,6 +14,7 @@ from .resonance_pc_market_data_service import (
     ResonancePcMarketDataError,
     ResonancePcMarketDataService,
 )
+from .resonance_pc_trade_exact_solver import ResonancePcExactTradeSolver
 
 
 class ResonancePcTradePlannerError(RuntimeError):
@@ -45,12 +46,13 @@ class _SearchState:
     alias="resonance_pc_trade_planner",
     public=True,
     singleton=True,
-    description="ResonancePc rolling trade planner based on fatigue/book/cargo constraints.",
+    description="ResonancePc exact full-budget trade planner with legacy planning helpers.",
     deps={"resonance_pc_market_data": "resonance_pc_market_data"},
 )
 class ResonancePcTradePlannerService:
     BUY_LOT_SCHEMA_VERSION = "1.0.0"
     TRADE_CONSTRAINTS_SCHEMA_VERSION = "1.0.0"
+    TRADE_RULES_SCHEMA_VERSION = "2.0.0"
     MAX_ROLLING_WINDOW = 6
     DEFAULT_BEAM_WIDTH = 16
     MAX_SELL_BRANCH_PRODUCTS = 3
@@ -88,10 +90,105 @@ class ResonancePcTradePlannerService:
         self.meta_dir = self.plan_root / "data" / "meta"
         self.buy_lot_file = self.meta_dir / "buy_lot.json"
         self.trade_constraints_file = self.meta_dir / "trade_constraints.json"
+        self.trade_rules_file = self.meta_dir / "trade_rules.json"
         self.beam_width = max(int(beam_width), 1)
         self._buy_lot_payload: Optional[Dict[str, Any]] = None
         self._trade_constraints_payload: Optional[Dict[str, Any]] = None
+        self._trade_rules_payload: Optional[Dict[str, Any]] = None
         self._max_sell_price_cache: Dict[str, float] = {}
+
+    def plan_optimal_route(
+        self,
+        *,
+        fatigue_budget: int = 100,
+        cargo_capacity: int = 650,
+        book_budget: int = 0,
+        book_profit_threshold: Any = 0,
+        negotiation_budget: int = 0,
+        all_plan: int = 0,
+        bargain_success_rates_bps: Optional[List[Any]] = [5000],
+        bargain_step_bps: Optional[Any] = 1000,
+        raise_success_rates_bps: Optional[List[Any]] = [5000],
+        raise_step_bps: Optional[Any] = 1000,
+        trade_level: int = 20,
+        city_prestige: Optional[Dict[str, Any]] = None,
+        product_unlocks: Optional[Dict[str, Any]] = None,
+        active_events: Optional[List[Any]] = None,
+        current_city_key: Optional[str] = None,
+        current_city_id: Optional[str] = None,
+        current_city: Optional[str] = None,
+        snapshot_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return the exact best complete route for one frozen market snapshot."""
+
+        constraints = self._load_trade_constraints_payload()
+        if snapshot_id:
+            snapshot = self.market_data.get_snapshot(snapshot_id=str(snapshot_id))
+        else:
+            snapshot = self.market_data.get_latest()
+        if not isinstance(snapshot, dict):
+            raise ResonancePcTradePlannerError(
+                code="invalid_snapshot",
+                message="Market snapshot payload is invalid.",
+            )
+
+        fatigue_payload = self.market_data.get_all_travel_fatigue()
+        self._validate_fatigue_payload(fatigue_payload)
+        resolved_city_id = self._resolve_current_city_id(
+            current_city_id=current_city_id,
+            current_city_key=current_city_key,
+            current_city=current_city,
+            fatigue_payload=fatigue_payload,
+            city_key_to_id=constraints["key_to_city_id"],
+        )
+        if resolved_city_id is None:
+            raise ResonancePcTradePlannerError(
+                code="current_city_required",
+                message="One current city input is required for optimal route planning.",
+            )
+
+        allowed_city_ids = [
+            city_id
+            for city_id in constraints["allowed_city_ids"]
+            if city_id in (fatigue_payload.get("costs") or {})
+        ]
+        if resolved_city_id not in allowed_city_ids:
+            raise ResonancePcTradePlannerError(
+                code="unsupported_city",
+                message=f"Current city '{resolved_city_id}' is outside PC trade constraints.",
+                detail={"allowed_city_ids": allowed_city_ids},
+            )
+
+        solver = ResonancePcExactTradeSolver(
+            snapshot=snapshot,
+            fatigue_payload=fatigue_payload,
+            buy_lot=self._load_buy_lot_payload()["city_product_buy_lot"],
+            trade_rules=self._load_trade_rules_payload(),
+            allowed_city_ids=allowed_city_ids,
+        )
+        try:
+            return solver.solve(
+                start_city_id=resolved_city_id,
+                fatigue_budget=fatigue_budget,
+                cargo_capacity=cargo_capacity,
+                book_budget=book_budget,
+                book_profit_threshold=book_profit_threshold,
+                negotiation_budget=negotiation_budget,
+                all_plan=all_plan,
+                bargain_success_rates_bps=bargain_success_rates_bps,
+                bargain_step_bps=bargain_step_bps,
+                raise_success_rates_bps=raise_success_rates_bps,
+                raise_step_bps=raise_step_bps,
+                trade_level=trade_level,
+                city_prestige=city_prestige,
+                product_unlocks=product_unlocks,
+                active_events=active_events,
+            )
+        except (TypeError, ValueError) as exc:
+            raise ResonancePcTradePlannerError(
+                code="invalid_optimal_route_input",
+                message=str(exc),
+            ) from exc
 
     def plan_next_step(
         self,
@@ -1877,6 +1974,113 @@ class ResonancePcTradePlannerService:
             "city_product_buy_lot": normalized,
         }
         return self._buy_lot_payload
+
+    def _load_trade_rules_payload(self) -> Dict[str, Any]:
+        if self._trade_rules_payload is not None:
+            return self._trade_rules_payload
+        if not self.trade_rules_file.is_file():
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_missing",
+                message=f"trade rules metadata file not found: {self.trade_rules_file}",
+            )
+        try:
+            payload = json.loads(self.trade_rules_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules metadata is not valid JSON.",
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules payload must be an object.",
+            )
+        schema_version = str(payload.get("schema_version") or "").strip()
+        if schema_version != self.TRADE_RULES_SCHEMA_VERSION:
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message=(
+                    f"Unsupported trade rules schema_version '{schema_version}', "
+                    f"expected '{self.TRADE_RULES_SCHEMA_VERSION}'."
+                ),
+            )
+        prestige_levels = payload.get("prestige_levels")
+        if not isinstance(prestige_levels, dict) or set(prestige_levels) != {
+            str(level) for level in range(1, 21)
+        }:
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must define every prestige level from 1 through 20.",
+            )
+        negotiation = payload.get("negotiation")
+        if not isinstance(negotiation, dict):
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must define negotiation rules.",
+            )
+        if str(negotiation.get("model") or "") != "binary_to_cap_expected_fatigue":
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must use the binary_to_cap_expected_fatigue model.",
+            )
+        max_adjustment_bps = negotiation.get("max_adjustment_bps")
+        attempt_fatigue = negotiation.get("attempt_fatigue")
+        if (
+            isinstance(max_adjustment_bps, bool)
+            or not isinstance(max_adjustment_bps, int)
+            or max_adjustment_bps <= 0
+            or max_adjustment_bps > 10_000
+        ):
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must define max_adjustment_bps between 1 and 10000.",
+            )
+        if (
+            isinstance(attempt_fatigue, bool)
+            or not isinstance(attempt_fatigue, int)
+            or attempt_fatigue <= 0
+        ):
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must define a positive negotiation attempt fatigue cost.",
+            )
+        defaults = negotiation.get("defaults")
+        if not isinstance(defaults, dict):
+            raise ResonancePcTradePlannerError(
+                code="trade_rules_invalid",
+                message="trade rules must define negotiation defaults.",
+            )
+        for key in ("bargain_success_rates_bps", "raise_success_rates_bps"):
+            values = defaults.get(key)
+            if (
+                not isinstance(values, list)
+                or not values
+                or any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    or value > 10_000
+                    for value in values
+                )
+            ):
+                raise ResonancePcTradePlannerError(
+                    code="trade_rules_invalid",
+                    message=f"trade rules default '{key}' must be a non-empty 0..10000 integer list.",
+                )
+        for key in ("bargain_step_bps", "raise_step_bps"):
+            value = defaults.get(key)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value <= 0
+                or value > 2000
+            ):
+                raise ResonancePcTradePlannerError(
+                    code="trade_rules_invalid",
+                    message=f"trade rules default '{key}' must be between 1 and 2000.",
+                )
+        self._trade_rules_payload = payload
+        return self._trade_rules_payload
 
     def _load_trade_constraints_payload(self) -> Dict[str, Any]:
         if self._trade_constraints_payload is not None:
