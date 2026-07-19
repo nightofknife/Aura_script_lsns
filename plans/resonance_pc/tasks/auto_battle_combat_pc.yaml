@@ -1,0 +1,95 @@
+auto_battle_combat_pc:
+  meta:
+    title: Auto Battle PC Combat
+    description: Shared combat executor for CT and GP action_summary battle entries.
+    entry_point: true
+    inputs:
+      - name: formation_index
+        type: number
+        required: false
+      - name: capture_count
+        type: number
+        required: false
+  steps:
+    log_combat_job:
+      action: plans/aura_base/log
+      params:
+        message: "combat executor: formation={{ inputs.formation_index | default('n/a') }}, capture={{ inputs.capture_count | default('n/a') }}"
+
+    click_formation_1:
+      action: plans/aura_base/click
+      params:
+        x: 310
+        y: 40
+      depends_on: log_combat_job
+      when: "{{ inputs.formation_index == 1 }}"
+
+    click_formation_2:
+      action: plans/aura_base/click
+      params:
+        x: 490
+        y: 40
+      depends_on: log_combat_job
+      when: "{{ inputs.formation_index == 2 }}"
+
+    click_formation_3:
+      action: plans/aura_base/click
+      params:
+        x: 660
+        y: 40
+      depends_on: log_combat_job
+      when: "{{ inputs.formation_index == 3 }}"
+
+    click_formation_4:
+      action: plans/aura_base/click
+      params:
+        x: 840
+        y: 40
+      depends_on: log_combat_job
+      when: "{{ inputs.formation_index == 4 }}"
+
+    wait_after_formation:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on:
+        all:
+          - click_formation_1: "success|failed|skipped"
+          - click_formation_2: "success|failed|skipped"
+          - click_formation_3: "success|failed|skipped"
+          - click_formation_4: "success|failed|skipped"
+
+    click_start_entry:
+      action: resonance_pc.wait_and_click_any_text
+      params:
+        targets: ["\u5f00\u59cb", "\u4f5c\u6218", "START BATTLE"]
+        region: [1150, 300, 110, 150]
+        timeout_sec: 10.0
+        interval_sec: 0.5
+        match_mode: "contains"
+      depends_on: wait_after_formation
+
+    assert_start_battle_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_start_entry.output.found | default(false) }}"
+        message: "failed to click combat start entry"
+      depends_on: click_start_entry
+
+    resolve_battle_result:
+      action: resonance_pc.run_battle_resolution
+      params:
+        capture_count: "{{ inputs.capture_count | default(none) }}"
+        battle_poll_region: [1100, 330, 140, 360]
+        confirm_region: [900, 510, 150, 60]
+        exit_hint_region: [550, 660, 180, 50]
+        confirm_click_point: [830, 380]
+        poll_interval_sec: 5.0
+        timeout_sec: 600.0
+        confirm_timeout_sec: 30.0
+        exit_hint_timeout_sec: 30.0
+        short_interval_sec: 0.5
+      depends_on: assert_start_battle_clicked
+  returns:
+    success: true
+    branch: "{{ nodes.resolve_battle_result.output.branch }}"
