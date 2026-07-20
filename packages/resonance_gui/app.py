@@ -13,6 +13,7 @@ def launch_resonance_gui() -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("Aura Resonance GUI")
     app.setOrganizationName("Aura")
+    app.setStyle("Fusion")
     window = ResonanceMainWindow()
     window.show()
     return int(app.exec())
