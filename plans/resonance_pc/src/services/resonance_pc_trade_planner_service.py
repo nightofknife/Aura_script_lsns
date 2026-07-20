@@ -111,6 +111,7 @@ class ResonancePcTradePlannerService:
         raise_success_rates_bps: Optional[List[Any]] = [5000],
         raise_step_bps: Optional[Any] = 1000,
         trade_level: int = 20,
+        available_city_ids: Optional[List[str]] = None,
         city_prestige: Optional[Dict[str, Any]] = None,
         product_unlocks: Optional[Dict[str, Any]] = None,
         active_events: Optional[List[Any]] = None,
@@ -147,15 +148,55 @@ class ResonancePcTradePlannerService:
                 message="One current city input is required for optimal route planning.",
             )
 
-        allowed_city_ids = [
+        supported_city_ids = [
             city_id
             for city_id in constraints["allowed_city_ids"]
             if city_id in (fatigue_payload.get("costs") or {})
         ]
+        if available_city_ids is None:
+            allowed_city_ids = supported_city_ids
+        else:
+            if not isinstance(available_city_ids, list):
+                raise ResonancePcTradePlannerError(
+                    code="invalid_available_city_ids",
+                    message="available_city_ids must be a list.",
+                )
+            requested_city_ids = list(
+                dict.fromkeys(str(city_id).strip() for city_id in available_city_ids if str(city_id).strip())
+            )
+            unsupported_city_ids = [
+                city_id for city_id in requested_city_ids if city_id not in supported_city_ids
+            ]
+            if unsupported_city_ids:
+                raise ResonancePcTradePlannerError(
+                    code="unsupported_selected_cities",
+                    message="Some selected cities are outside PC trade constraints.",
+                    detail={
+                        "unsupported_city_ids": unsupported_city_ids,
+                        "supported_city_ids": supported_city_ids,
+                    },
+                )
+            allowed_city_ids = [
+                city_id for city_id in supported_city_ids if city_id in requested_city_ids
+            ]
+            if len(allowed_city_ids) < 2:
+                raise ResonancePcTradePlannerError(
+                    code="insufficient_selected_cities",
+                    message="At least two available_city_ids are required.",
+                    detail={"available_city_ids": allowed_city_ids},
+                )
         if resolved_city_id not in allowed_city_ids:
             raise ResonancePcTradePlannerError(
-                code="unsupported_city",
-                message=f"Current city '{resolved_city_id}' is outside PC trade constraints.",
+                code=(
+                    "current_city_not_selected"
+                    if resolved_city_id in supported_city_ids
+                    else "unsupported_city"
+                ),
+                message=(
+                    f"Current city '{resolved_city_id}' is not selected for planning."
+                    if resolved_city_id in supported_city_ids
+                    else f"Current city '{resolved_city_id}' is outside PC trade constraints."
+                ),
                 detail={"allowed_city_ids": allowed_city_ids},
             )
 

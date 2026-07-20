@@ -437,6 +437,7 @@ def test_public_read_only_action_integrates_profile_rules_and_city_resolution():
         cargo_capacity=1,
         negotiation_budget=0,
         all_plan=1,
+        available_city_ids=["3", "8"],
         resonance_pc_trade_planner=service,
     )
 

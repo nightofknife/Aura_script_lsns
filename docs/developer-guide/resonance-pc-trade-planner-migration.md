@@ -83,6 +83,7 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `raise_success_rates_bps` | list[int] | `[5000]` | 非空，每项 `0..10000` | 抬满所需期望疲劳 |
 | `raise_step_bps` | int | `1000` | `1..2000` | 每次抬价成功的幅度 |
 | `trade_level` | int | `20` | `1..20` | 兼容输入；不再影响议价 |
+| `available_city_ids` | list[str] | PC 支持的 8 城 | 至少 2 个、不重复 | 限制精确规划参与的城市；必须包含当前城市 |
 | `city_prestige` | object | 满 20 级 | 默认等级和城市 ID 覆盖 | 买卖税和购买数量 |
 | `product_unlocks` | object | 全部解锁 | `all` 或 `only` | 限制可购买商品 |
 | `active_events` | list | `[]` | 任意占位列表 | 当前忽略，非空时警告 |
@@ -428,36 +429,37 @@ raise_to_cap   作用于 to_city 的本段卖出
 
 ### 7.1 当前 GUI 状态
 
-当前 `packages/resonance_gui`：
-
-- `GAME_NAME` 固定为 `resonance`。
-- `TaskSpec` 中没有 `resonance_pc` 自动跑商任务。
-- 因此当前 GUI 不能通过只改 `task_ref` 来运行 PC 计划包。
-
-PC UI 接入时至少要确保 Runner 使用：
+`packages/resonance_gui` 已提供独立 PC 跑商页，固定使用：
 
 ```text
 game_name = resonance_pc
-task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
+preview_task_ref = tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc
+run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 ```
 
-如果 UI 需要在执行前仅预览路线，应调用公开只读动作：
+任务使用 `wait=false` 派发，GUI 保存 CID 后轮询运行详情，并通过现有 EventBus/UI queue
+消费 `task.resonance_pc_trade_progress`。独立预计算任务使用用户选择的 `start_city_id`，只刷新市场
+并调用同一精确规划器；它不依赖窗口、截图、OCR 或输入服务，也不执行任何游戏操作。刷新失败但
+存在本地快照时，结果以 `market_source=fallback_cache` 明确标记。正式运行仍会识别游戏实际城市、
+刷新行情并计算路线；GUI 在新的规划完成事件到达后用正式运行方案替换预计算方案。
 
-```text
-resonance_pc.trade_plan_optimal_route
-```
-
-现有 `SubprocessGameRunner.run_task` 只接受任务引用；如果 UI 只走该接口，需要新增一个只读任务包装上述动作。不能用自动执行任务冒充预览，因为自动任务会识别城市、刷新行情，并在无议价模式下直接开始执行路线。
+进度 payload 使用 `resonance_pc.trade_progress.v1`，稳定字段为
+`cid/sequence/stage/state`。GUI 必须按 CID 过滤，并按 sequence 去重，不能把进度事件当作最终任务结果。
 
 ### 7.2 UI 控件规则
 
 - `all_plan` 使用 0/1 选择控件。
+- `start_city_id` 使用常用参数区的单选城市控件，并且必须属于 `available_city_ids`。
 - `all_plan=1` 时禁用 `negotiation_budget`，或明确显示“该字段已忽略”。
 - 成功率应允许多阶段列表；UI 显示百分比，提交整数基点列表。
 - 幅度可显示带一位或两位小数的百分比，提交整数基点。
 - 普通展示使用数值疲劳字段，调试详情显示 `_exact` 分数字段。
+- 当前方案概览显示预计收益、预计疲劳、疲劳收益比、路线规模、剩余疲劳、书籍和协商次数。
+- 路线状态列只显示待执行、进行中、完成、阻断和失败图标，并通过 tooltip 提供文字说明。
 - `warnings` 必须展示给用户，特别是活动未实现和 0 成功率导致满议价不可用。
 - 自动任务执行结果中的议价失败必须作为业务失败展示，不能显示为普通无收益或路径计算失败。
+- 正常参数使用类型化控件；原始输入、进度事件和最终结果只在折叠调试区显示。
+- 取消操作必须在取得 CID 后立即可用，并继续等待任务进入真实终态。
 
 ## 8. 错误、限制与验收
 
@@ -468,6 +470,9 @@ resonance_pc.trade_plan_optimal_route
 | `status=ok` | 找到模型内正利润路线 |
 | `no_positive_profit_route` | 当前预算和模型下没有正利润终止状态 |
 | `invalid_optimal_route_input` | 输入类型、范围或成功率序列非法 |
+| `insufficient_selected_cities` | 参与规划城市少于两个 |
+| `unsupported_selected_cities` | 选择了 PC 操作链尚未支持的城市 |
+| `current_city_not_selected` | 当前所在城市不在参与规划城市中 |
 | `trade_rules_missing` | 版本化规则文件缺失 |
 | `trade_rules_invalid` | 规则 schema、模型或默认参数非法 |
 | `negotiation_button_not_found` | 交易页面未找到对应砍价或抬价按钮 |
@@ -496,8 +501,8 @@ resonance_pc.trade_plan_optimal_route
 python -m pytest tests/test_resonance_pc_trade_negotiation_actions.py tests/test_resonance_pc_trade_flow_execution.py tests/test_resonance_pc_auto_cycle_trade_flow.py tests/test_resonance_pc_auto_cycle_trade_task.py -q
 # 33 passed
 
-python -m pytest tests -q -k resonance_pc
-# 141 passed, 315 deselected
+python -m pytest tests -q -k "resonance_pc or resonance_gui"
+# 156 passed, 309 deselected
 
 python -m packages.aura_core.cli.package_cli sync plans/resonance_pc
 # Manifest synced
@@ -509,10 +514,10 @@ python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
 # Manifest validation passed
 
 python tools/plan_doctor.py --plan resonance_pc
-# errors=0 warnings=19 infos=0
+# errors=0 warnings=0 infos=0
 ```
 
-计划包合规检查最终结果为 `errors=21 warnings=19`。21 项均来自本次范围外、工作树中已有的 `auto_battle_dispatch_pc.yaml`：该文件使用 `aura.run_task`，但合规检查器把它报告为当前包未导出的本地动作。19 项警告均为测试运行生成的 `__pycache__` 和 `.pyc`；跑商任务、求解器、规则文件和本次迁移文档没有产生新的合规错误。
+计划包合规检查最终结果为 `errors=21 warnings=0`。21 项均来自本次范围外、工作树中已有的 `auto_battle_dispatch_pc.yaml`：该文件使用 `aura.run_task`，但合规检查器把它报告为当前包未导出的本地动作。跑商任务、GUI 进度事件、求解器、规则文件和本次迁移文档没有产生新的合规错误或警告。
 
 ### 8.4 执行器接入检查清单
 
@@ -525,9 +530,10 @@ python tools/plan_doctor.py --plan resonance_pc
 
 ### 8.5 UI 接入检查清单
 
-- [ ] Runner 使用 `game_name=resonance_pc`。
-- [ ] 自动任务使用规范 task ref。
-- [ ] 预览功能使用只读动作或专用只读任务。
-- [ ] 百分比正确转换为整数基点。
-- [ ] `all_plan=1` 时标记 `negotiation_budget` 已忽略。
-- [ ] 显示规划警告、精确疲劳详情和议价执行失败状态。
+- [x] Runner 使用 `game_name=resonance_pc`。
+- [x] 自动任务使用规范 task ref。
+- [x] 规划完成后通过任务进度事件展示冻结路线。
+- [x] 成功率以整数基点列表提交并校验范围。
+- [x] `all_plan=1` 时禁用 `negotiation_budget`。
+- [x] 显示规划警告、预计疲劳和议价执行失败状态，精确原始值保留在调试详情。
+- [x] Runner 非阻塞派发，取消请求不伪装成任务终态。

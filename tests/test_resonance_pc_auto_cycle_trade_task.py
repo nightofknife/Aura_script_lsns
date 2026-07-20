@@ -151,6 +151,22 @@ def test_resonance_pc_auto_cycle_trade_task_matches_formal_task_schema():
     assert ok is True, error
 
 
+def test_resonance_pc_preview_trade_plan_task_is_planning_only_and_valid():
+    pc_data = _load_yaml(PC_PLAN_ROOT / "tasks" / "preview_trade_plan_pc.yaml")
+    task = pc_data["preview_trade_plan_pc"]
+
+    ok, error = validate_task_definition(pc_data)
+
+    assert ok is True, error
+    assert list(task["steps"]) == ["run"]
+    assert task["steps"]["run"]["action"] == "resonance_pc.preview_trade_plan_flow"
+    inputs = {item["name"]: item for item in task["meta"]["inputs"]}
+    assert inputs["start_city_id"]["required"] is True
+    assert "refresh_market" not in inputs
+    assert "use_fatigue_medicine" not in {item["name"] for item in task["meta"]["inputs"]}
+    assert task["returns"]["preview"] == "{{ nodes.run.output.preview }}"
+
+
 def test_resonance_pc_business_sources_and_assets_are_physically_separate():
     source_files = [
         "src/actions/city_trade_flow_pc_actions.py",
@@ -225,6 +241,7 @@ def test_resonance_pc_manifest_exports_only_pc_business_symbols():
     }
     for action_name in (
         "resonance_pc.trade_plan_optimal_route",
+        "resonance_pc.preview_trade_plan_flow",
         "resonance_pc.auto_cycle_trade_flow",
     ):
         parameters = {
@@ -241,4 +258,5 @@ def test_resonance_pc_manifest_exports_only_pc_business_symbols():
 
     task_ids = {item["id"] for item in exports["tasks"]}
     assert "auto_cycle_trade_pc" in task_ids
+    assert "preview_trade_plan_pc" in task_ids
     assert "auto_battle_dispatch_pc" in task_ids

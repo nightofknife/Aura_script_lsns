@@ -4,6 +4,7 @@ import inspect
 import yaml
 import pytest
 
+from packages.aura_core.context.execution import ExecutionContext
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as actions
 
 
@@ -36,6 +37,7 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "raise_success_rates_bps",
         "raise_step_bps",
         "trade_level",
+        "available_city_ids",
         "city_prestige",
         "product_unlocks",
         "active_events",
@@ -106,3 +108,90 @@ def test_auto_flow_validates_binary_profile_before_services_or_ui():
                 bargain_success_rates_bps=[5000.5],
             )
         )
+
+
+def test_auto_flow_publishes_structured_failure_progress_with_current_cid():
+    import asyncio
+
+    class FakeEventBus:
+        def __init__(self):
+            self.events = []
+
+        async def publish(self, event):
+            self.events.append(event.to_dict())
+
+    event_bus = FakeEventBus()
+    context = ExecutionContext(cid="cid-progress")
+
+    with pytest.raises(RuntimeError, match="requires app/ocr/vision/controller"):
+        asyncio.run(
+            actions.resonance_pc_auto_cycle_trade_flow(
+                event_bus=event_bus,
+                context=context,
+            )
+        )
+
+    assert [event["payload"]["state"] for event in event_bus.events] == ["started", "failed"]
+    assert all(event["name"] == "task.resonance_pc_trade_progress" for event in event_bus.events)
+    assert all(event["payload"]["cid"] == "cid-progress" for event in event_bus.events)
+    assert [event["payload"]["sequence"] for event in event_bus.events] == [1, 2]
+
+
+def test_preview_flow_refreshes_and_plans_from_user_city_without_game_services(monkeypatch):
+    import asyncio
+
+    calls = []
+    monkeypatch.setattr(
+        actions,
+        "resonance_pc_market_refresh",
+        lambda **kwargs: calls.append("market")
+        or {
+            "snapshot_id": "snap-preview",
+            "fetched_at": "2026-07-21T00:00:00Z",
+            "stale": False,
+            "cities": {"3": {"name": "七号自由港"}},
+        },
+    )
+    monkeypatch.setattr(
+        actions,
+        "resonance_pc_trade_plan_optimal_route",
+        lambda **kwargs: calls.append(("plan", kwargs["current_city_id"]))
+        or {
+            "status": "ok",
+            "snapshot_id": "snap-preview",
+            "route": [{"from_city": "七号自由港", "to_city": "修格里城"}],
+            "expected_profit": 1200,
+            "expected_fatigue_used": 30,
+        },
+    )
+    monkeypatch.setattr(
+        actions,
+        "_execute_route",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("preview must not execute route")),
+    )
+
+    result = asyncio.run(
+        actions.resonance_pc_preview_trade_plan_flow(
+            start_city_id="3",
+            resonance_pc_market_data=object(),
+            resonance_pc_trade_planner=object(),
+        )
+    )
+
+    assert calls == ["market", ("plan", "3")]
+    assert result["preview"] is True
+    assert result["market_refreshed"] is True
+    assert result["market_source"] == "refresh"
+    assert result["initial_city"] == {
+        "city_id": "3",
+        "city_name": "七号自由港",
+        "source": "user_input",
+    }
+    assert result["page_state"] == "not_applicable"
+    assert result["expected_profit"] == 1200
+
+    source = inspect.getsource(actions.resonance_pc_preview_trade_plan_flow)
+    assert "resonance_pc_open_city_panel_from_main" not in source
+    assert "resonance_pc_read_city_name_on_city_panel" not in source
+    assert "resonance_pc_go_city_main_direct" not in source
+    assert "_execute_route" not in source

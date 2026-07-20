@@ -553,6 +553,81 @@ exports:
       type: Any
       required: false
       default: false
+  - name: resonance_pc.preview_trade_plan_flow
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_preview_trade_plan_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Refresh market data and calculate a PC trade route from a user-selected
+      start city.
+    parameters:
+    - name: start_city_id
+      type: Any
+      required: true
+      default: null
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 100
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: negotiation_budget
+      type: Any
+      required: false
+      default: 0
+    - name: all_plan
+      type: Any
+      required: false
+      default: 0
+    - name: bargain_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: bargain_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: raise_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: raise_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: trade_level
+      type: Any
+      required: false
+      default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: city_prestige
+      type: Any
+      required: false
+      default: null
+    - name: product_unlocks
+      type: Any
+      required: false
+      default: null
+    - name: active_events
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -608,6 +683,10 @@ exports:
       type: Any
       required: false
       default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
     - name: city_prestige
       type: Any
       required: false
@@ -957,6 +1036,10 @@ exports:
       type: Any
       required: false
       default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
     - name: city_prestige
       type: Any
       required: false
@@ -1448,6 +1531,16 @@ exports:
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
+  - id: preview_trade_plan_pc/preview_trade_plan_pc
+    title: Preview Exact Trade Plan (PC)
+    source: tasks/preview_trade_plan_pc.yaml
+    description: Refresh market data and calculate one exact route from a user-selected
+      start city.
+  - id: preview_trade_plan_pc
+    title: Preview Exact Trade Plan (PC)
+    source: tasks/preview_trade_plan_pc.yaml
+    description: Refresh market data and calculate one exact route from a user-selected
+      start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-19T18:06:14Z'
+  generated_at: '2026-07-20T16:26:34Z'
