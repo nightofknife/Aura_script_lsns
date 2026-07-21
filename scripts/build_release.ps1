@@ -409,7 +409,6 @@ function Assert-NvidiaRuntimeOverlayBundle {
         "cu13\bin\x86_64\cublas64_13.dll",
         "cu13\bin\x86_64\cublasLt64_13.dll",
         "cu13\bin\x86_64\cudart64_13.dll",
-        "cu13\bin\x86_64\cudnn64_9.dll",
         "cu13\bin\x86_64\cufft64_12.dll"
     )
 
@@ -419,6 +418,14 @@ function Assert-NvidiaRuntimeOverlayBundle {
         if (-not (Test-Path $candidate)) {
             $missingDlls += $relativePath
         }
+    }
+
+    # CUDA component wheels use the shared cu13 directory, while the cuDNN
+    # wheel keeps its DLLs in its own nvidia\cudnn tree on Windows.
+    $cudnnDll = Get-ChildItem -LiteralPath $NvidiaRoot -Recurse -File -Filter "cudnn64_9.dll" |
+        Select-Object -First 1
+    if (-not $cudnnDll) {
+        $missingDlls += "cudnn64_9.dll under the NVIDIA runtime root"
     }
 
     if ($missingDlls.Count -gt 0) {

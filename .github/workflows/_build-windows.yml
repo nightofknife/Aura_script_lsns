@@ -206,10 +206,13 @@ jobs:
           $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $env:ARTIFACT_PATH))
           try {
             $entryNames = @($archive.Entries | ForEach-Object FullName)
-            foreach ($dll in @("cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll", "cudnn64_9.dll")) {
+            foreach ($dll in @("cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll")) {
               if (-not ($entryNames | Where-Object { $_ -like "*/nvidia/cu13/bin/x86_64/$dll" })) {
                 throw "NVIDIA overlay is missing $dll."
               }
+            }
+            if (-not ($entryNames | Where-Object { $_ -like "*/nvidia/*/bin/*cudnn64_9.dll" })) {
+              throw "NVIDIA overlay is missing cudnn64_9.dll."
             }
           }
           finally {
