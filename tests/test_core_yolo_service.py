@@ -258,7 +258,7 @@ class TestCoreYoloService(unittest.TestCase):
 
         self.assertTrue(info["loaded"])
         self.assertEqual(info["family"], "yolo11")
-        self.assertEqual(Path(info["source"]), model_path)
+        self.assertEqual(Path(info["source"]).resolve(), model_path.resolve())
         self.assertTrue(result["ok"])
         self.assertEqual(result["model"], "yolo11n")
         self.assertEqual(result["backend"], "onnxruntime")
