@@ -1,748 +1,283 @@
-name: Release packages
+name: Package and release Aura Resonance
 
 on:
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: "Target GitHub Release tag, for example v0.02"
-        required: true
-        type: string
-      publish_release:
-        description: "Upload zip assets to the GitHub Release"
-        required: false
-        type: boolean
-        default: false
-      create_overlay:
-        description: "Build the optional NVIDIA runtime overlay"
-        required: false
-        type: boolean
-        default: true
-      run_gpu_smoke:
-        description: "Run CUDA smoke on a self-hosted Windows GPU runner"
-        required: false
-        type: boolean
-        default: false
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
     tags:
       - "v*"
+      - "plan-*"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Build scope
+        type: choice
+        options: [auto, full, plan]
+        default: auto
+      publish_release:
+        description: Publish artifacts to a GitHub Release
+        type: boolean
+        default: false
+      release_tag:
+        description: Release tag for a manually published run
+        type: string
+        required: false
+      run_gpu_smoke:
+        description: Run CUDA OCR smoke on a self-hosted Windows GPU runner
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-packages-${{ github.ref }}
-  cancel-in-progress: false
+  group: package-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 env:
-  PYINSTALLER_VERSION: "6.14.2"
   PYTHONUTF8: "1"
   PYTHONIOENCODING: utf-8
-  CPU_RELEASE_NAME: aura-release-cpu-onnx
-  GPU_RELEASE_NAME: aura-release-gpu-onnx
-  AURA_PYTHON_VERSION: ${{ vars.AURA_PYTHON_VERSION || '3.12' }}
-  AURA_OCR_MODEL_RELEASE_TAG: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
-  AURA_OCR_MODEL_ASSET: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
-  AURA_OCR_MODEL_SHA256_ASSET: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
+  OCR_MODEL_RELEASE_TAG: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
+  OCR_MODEL_ASSET: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
+  OCR_MODEL_CHECKSUM_ASSET: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
 
 jobs:
-  build-cpu:
-    name: Build CPU ONNX package
+  scope:
     runs-on: windows-2022
+    outputs:
+      scope: ${{ steps.classify.outputs.scope }}
+      release_label: ${{ steps.label.outputs.release_label }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
         with:
-          python-version: ${{ env.AURA_PYTHON_VERSION }}
+          fetch-depth: 0
 
-      - name: Install CPU release dependencies
-        shell: pwsh
-        run: |
-          python -m venv .venv-release-cpu-onnx
-          .\.venv-release-cpu-onnx\Scripts\python.exe -m pip install -U pip
-          .\.venv-release-cpu-onnx\Scripts\python.exe -m pip install `
-            -r requirements\gui.txt `
-            -r requirements\optional-vision-onnx-cpu.txt `
-            "pyinstaller==$env:PYINSTALLER_VERSION"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Download OCR model bundle
+      - name: Resolve release label
+        id: label
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          MANUAL_TAG: ${{ inputs.release_tag }}
         run: |
-          $assetDir = ".runtime-model-assets"
-          New-Item -ItemType Directory -Force -Path $assetDir | Out-Null
-
-          $release = gh release view $env:AURA_OCR_MODEL_RELEASE_TAG `
-            --repo $env:GITHUB_REPOSITORY `
-            --json assets | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or -not $release) {
-            throw "Failed to read OCR model release: $env:AURA_OCR_MODEL_RELEASE_TAG"
+          if ($env:GITHUB_REF -like "refs/tags/*") {
+            $label = $env:GITHUB_REF_NAME
+          } elseif ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch" -and $env:MANUAL_TAG) {
+            $label = $env:MANUAL_TAG
+          } else {
+            $label = $env:GITHUB_SHA.Substring(0, 7)
           }
+          $label = $label -replace '[^A-Za-z0-9._-]', '-'
+          "release_label=$label" >> $env:GITHUB_OUTPUT
 
-          function Save-ReleaseAsset {
-            param([string]$AssetName)
-
-            $asset = $release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
-            if (-not $asset) {
-              $available = ($release.assets | ForEach-Object { $_.name }) -join ", "
-              throw "Release asset not found: $AssetName. Available assets: $available"
-            }
-
-            $destination = Join-Path $assetDir $AssetName
-            Write-Host "Downloading OCR model release asset: $AssetName"
-            & curl.exe -L --fail --retry 5 --retry-delay 2 --output $destination $asset.url
-            if ($LASTEXITCODE -ne 0) {
-              throw "curl failed with exit code $LASTEXITCODE while downloading release asset: $AssetName"
-            }
-            if (-not (Test-Path $destination)) {
-              throw "Failed to download release asset: $AssetName"
-            }
-            if ((Get-Item -LiteralPath $destination).Length -lt 1) {
-              throw "Downloaded release asset is empty: $AssetName"
-            }
-          }
-
-          Save-ReleaseAsset -AssetName $env:AURA_OCR_MODEL_ASSET
-          Save-ReleaseAsset -AssetName $env:AURA_OCR_MODEL_SHA256_ASSET
-
-          $zipPath = Join-Path $assetDir $env:AURA_OCR_MODEL_ASSET
-          $shaPath = Join-Path $assetDir $env:AURA_OCR_MODEL_SHA256_ASSET
-          if (-not (Test-Path $zipPath)) { throw "Missing OCR model zip: $zipPath" }
-          if (-not (Test-Path $shaPath)) { throw "Missing OCR model sha256: $shaPath" }
-
-          $expectedText = (Get-Content -Raw -LiteralPath $shaPath).Trim()
-          if ($expectedText -notmatch "(?i)\b([a-f0-9]{64})\b") {
-            throw "Could not parse SHA256 from $shaPath"
-          }
-          $expectedHash = $Matches[1].ToLowerInvariant()
-          $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "OCR model hash mismatch. Expected $expectedHash but got $actualHash."
-          }
-
-          $extractRoot = Join-Path $assetDir "extract"
-          if (Test-Path $extractRoot) {
-            Remove-Item -LiteralPath $extractRoot -Recurse -Force
-          }
-          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
-          $bundleCandidates = @(Get-ChildItem -LiteralPath $extractRoot -Directory -Recurse -Filter "ppocrv5_server")
-          if ($bundleCandidates.Count -lt 1) {
-            throw "OCR model zip must contain a ppocrv5_server directory."
-          }
-
-          $sourceBundle = $bundleCandidates[0].FullName
-          $destinationBundle = "models\ocr\ppocrv5_server"
-          if (Test-Path $destinationBundle) {
-            Remove-Item -LiteralPath $destinationBundle -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destinationBundle) | Out-Null
-          & robocopy $sourceBundle $destinationBundle /E /NFL /NDL /NJH /NJS /NP | Out-Null
-          if ($LASTEXITCODE -ge 8) {
-            throw "Failed to copy OCR model bundle from $sourceBundle."
-          }
-          $global:LASTEXITCODE = 0
-
-          foreach ($fileName in @("ocr.meta.json", "det.onnx", "rec.onnx", "doc_orientation.onnx", "textline_orientation.onnx")) {
-            $candidate = Join-Path $destinationBundle $fileName
-            if (-not (Test-Path $candidate)) {
-              throw "OCR model bundle is incomplete. Missing $candidate"
-            }
-          }
-
-      - name: Build CPU release zip
-        shell: pwsh
-        run: |
-          powershell -NoProfile -ExecutionPolicy Bypass `
-            -File scripts\build_release.ps1 `
-            -VenvPython .venv-release-cpu-onnx\Scripts\python.exe `
-            -ReleaseName $env:CPU_RELEASE_NAME `
-            -RuntimeRoot .runtime-cpu `
-            -OnnxRuntimeProfile cpu `
-            -IncludeGui `
-            -CreateZip
-
-      - name: Validate CPU release
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-cpu\release" $env:CPU_RELEASE_NAME
-          $mustExist = @(
-            "models\ocr\ppocrv5_server\ocr.meta.json",
-            "models\ocr\ppocrv5_server\det.onnx",
-            "models\ocr\ppocrv5_server\rec.onnx",
-            "AuraYihuanGui.exe",
-            "runtime\aura.exe",
-            "runtime\AuraYihuanRuntime.exe",
-            "runtime\_internal\PySide6",
-            "run.ps1",
-            "config.yaml",
-            "BUILD-INFO.txt"
-          )
-          foreach ($relativePath in $mustExist) {
-            $path = Join-Path $release $relativePath
-            if (-not (Test-Path $path)) { throw "Missing required CPU release path: $path" }
-          }
-
-          $mustNotExist = @(
-            "runtime\_internal\onnxruntime\capi\onnxruntime_providers_cuda.dll",
-            "runtime\_internal\nvidia",
-            "runtime\_internal\paddle",
-            "runtime\_internal\paddleocr",
-            "runtime\_internal\paddlex",
-            "plans\aura_base\src\services\ocr_model"
-          )
-          foreach ($relativePath in $mustNotExist) {
-            $path = Join-Path $release $relativePath
-            if (Test-Path $path) { throw "CPU release unexpectedly contains: $path" }
-          }
-
-          $config = Get-Content -Raw -LiteralPath (Join-Path $release "config.yaml")
-          if ($config -notmatch "(?m)^\s*execution_provider:\s*cpu\s*$") {
-            throw "CPU release config.yaml must set ocr.execution_provider=cpu."
-          }
-          $buildInfo = Get-Content -LiteralPath (Join-Path $release "BUILD-INFO.txt")
-          if ($buildInfo -notcontains "release_profile=cpu") {
-            throw "CPU release BUILD-INFO.txt must contain release_profile=cpu."
-          }
-          if ($buildInfo -notcontains "onnxruntime_distribution=onnxruntime") {
-            throw "CPU release BUILD-INFO.txt must contain onnxruntime_distribution=onnxruntime."
-          }
-          if ($buildInfo -notcontains "gui=true") {
-            throw "CPU release BUILD-INFO.txt must contain gui=true."
-          }
-          if ($buildInfo -notcontains "gui_entrypoint=AuraYihuanGui.exe") {
-            throw "CPU release BUILD-INFO.txt must contain gui_entrypoint=AuraYihuanGui.exe."
-          }
-
-          $zipPath = ".runtime-cpu\release\aura-release-cpu-onnx.zip"
-          $maxBytes = [int64](700 * 1024 * 1024)
-          $actualBytes = (Get-Item -LiteralPath $zipPath).Length
-          if ($actualBytes -gt $maxBytes) {
-            throw "CPU release zip is too large: $actualBytes bytes > $maxBytes bytes."
-          }
-
-      - name: Smoke test CPU release CLI
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-cpu\release" $env:CPU_RELEASE_NAME
-          function Invoke-ReleaseCli {
-            param([string[]]$CliArgs)
-            & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $release "run.ps1") @CliArgs
-            if ($LASTEXITCODE -ne 0) {
-              throw "Release CLI smoke failed: $($CliArgs -join ' ')"
-            }
-          }
-          Invoke-ReleaseCli -CliArgs @("games", "--all")
-          Invoke-ReleaseCli -CliArgs @("tasks", "yihuan")
-          Invoke-ReleaseCli -CliArgs @("run", "yihuan", "tasks:checks:plan_loaded.yaml", "--timeout-sec", "120")
-
-      - name: Smoke test CPU GUI runtime
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-cpu\release" $env:CPU_RELEASE_NAME
-          $env:AURA_BASE_PATH = (Resolve-Path $release).Path
-          $env:PYTHONNOUSERSITE = "1"
-          $process = Start-Process `
-            -FilePath (Join-Path $release "runtime\AuraYihuanRuntime.exe") `
-            -ArgumentList "--self-check" `
-            -Wait `
-            -PassThru `
-            -NoNewWindow
-          if ($process.ExitCode -ne 0) {
-            throw "CPU GUI runtime self-check failed with exit code $($process.ExitCode)."
-          }
-
-      - name: Upload CPU package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aura-release-cpu-onnx
-          path: .runtime-cpu/release/aura-release-cpu-onnx.zip
-          if-no-files-found: error
-          retention-days: 3
-          compression-level: 0
-
-  build-gpu:
-    name: Build GPU+CPU ONNX package
-    runs-on: windows-2022
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.AURA_PYTHON_VERSION }}
-
-      - name: Install GPU release dependencies
-        shell: pwsh
-        run: |
-          python -m venv .venv-release-gpu-onnx
-          .\.venv-release-gpu-onnx\Scripts\python.exe -m pip install -U pip
-          .\.venv-release-gpu-onnx\Scripts\python.exe -m pip install `
-            -r requirements\gui.txt `
-            -r requirements\optional-vision-onnx-cuda.txt `
-            "pyinstaller==$env:PYINSTALLER_VERSION"
-
-      - name: Download OCR model bundle
+      - name: Detect release scope
+        id: classify
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          MANUAL_SCOPE: ${{ inputs.scope }}
         run: |
-          $assetDir = ".runtime-model-assets"
-          New-Item -ItemType Directory -Force -Path $assetDir | Out-Null
-
-          $release = gh release view $env:AURA_OCR_MODEL_RELEASE_TAG `
-            --repo $env:GITHUB_REPOSITORY `
-            --json assets | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or -not $release) {
-            throw "Failed to read OCR model release: $env:AURA_OCR_MODEL_RELEASE_TAG"
+          $base = ""
+          $forced = "auto"
+          if ($env:GITHUB_REF -like "refs/tags/v*") {
+            $forced = "full"
+          } elseif ($env:GITHUB_REF -like "refs/tags/plan-*") {
+            $forced = "plan"
+          } elseif ($env:GITHUB_EVENT_NAME -eq "pull_request") {
+            $base = $env:PR_BASE_SHA
+          } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
+            $base = $env:PUSH_BASE_SHA
+          } elseif ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+            if ($env:MANUAL_SCOPE) { $forced = $env:MANUAL_SCOPE }
+            $base = (git rev-parse HEAD^ 2>$null)
           }
-
-          function Save-ReleaseAsset {
-            param([string]$AssetName)
-
-            $asset = $release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
-            if (-not $asset) {
-              $available = ($release.assets | ForEach-Object { $_.name }) -join ", "
-              throw "Release asset not found: $AssetName. Available assets: $available"
-            }
-
-            $destination = Join-Path $assetDir $AssetName
-            Write-Host "Downloading OCR model release asset: $AssetName"
-            & curl.exe -L --fail --retry 5 --retry-delay 2 --output $destination $asset.url
-            if ($LASTEXITCODE -ne 0) {
-              throw "curl failed with exit code $LASTEXITCODE while downloading release asset: $AssetName"
-            }
-            if (-not (Test-Path $destination)) {
-              throw "Failed to download release asset: $AssetName"
-            }
-            if ((Get-Item -LiteralPath $destination).Length -lt 1) {
-              throw "Downloaded release asset is empty: $AssetName"
-            }
-          }
-
-          Save-ReleaseAsset -AssetName $env:AURA_OCR_MODEL_ASSET
-          Save-ReleaseAsset -AssetName $env:AURA_OCR_MODEL_SHA256_ASSET
-
-          $zipPath = Join-Path $assetDir $env:AURA_OCR_MODEL_ASSET
-          $shaPath = Join-Path $assetDir $env:AURA_OCR_MODEL_SHA256_ASSET
-          if (-not (Test-Path $zipPath)) { throw "Missing OCR model zip: $zipPath" }
-          if (-not (Test-Path $shaPath)) { throw "Missing OCR model sha256: $shaPath" }
-
-          $expectedText = (Get-Content -Raw -LiteralPath $shaPath).Trim()
-          if ($expectedText -notmatch "(?i)\b([a-f0-9]{64})\b") {
-            throw "Could not parse SHA256 from $shaPath"
-          }
-          $expectedHash = $Matches[1].ToLowerInvariant()
-          $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "OCR model hash mismatch. Expected $expectedHash but got $actualHash."
-          }
-
-          $extractRoot = Join-Path $assetDir "extract"
-          if (Test-Path $extractRoot) {
-            Remove-Item -LiteralPath $extractRoot -Recurse -Force
-          }
-          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
-          $bundleCandidates = @(Get-ChildItem -LiteralPath $extractRoot -Directory -Recurse -Filter "ppocrv5_server")
-          if ($bundleCandidates.Count -lt 1) {
-            throw "OCR model zip must contain a ppocrv5_server directory."
-          }
-
-          $sourceBundle = $bundleCandidates[0].FullName
-          $destinationBundle = "models\ocr\ppocrv5_server"
-          if (Test-Path $destinationBundle) {
-            Remove-Item -LiteralPath $destinationBundle -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destinationBundle) | Out-Null
-          & robocopy $sourceBundle $destinationBundle /E /NFL /NDL /NJH /NJS /NP | Out-Null
-          if ($LASTEXITCODE -ge 8) {
-            throw "Failed to copy OCR model bundle from $sourceBundle."
-          }
-          $global:LASTEXITCODE = 0
-
-          foreach ($fileName in @("ocr.meta.json", "det.onnx", "rec.onnx", "doc_orientation.onnx", "textline_orientation.onnx")) {
-            $candidate = Join-Path $destinationBundle $fileName
-            if (-not (Test-Path $candidate)) {
-              throw "OCR model bundle is incomplete. Missing $candidate"
-            }
-          }
-
-      - name: Build GPU+CPU release zip
-        shell: pwsh
-        run: |
-          powershell -NoProfile -ExecutionPolicy Bypass `
-            -File scripts\build_release.ps1 `
-            -VenvPython .venv-release-gpu-onnx\Scripts\python.exe `
-            -ReleaseName $env:GPU_RELEASE_NAME `
-            -RuntimeRoot .runtime-gpu `
-            -OnnxRuntimeProfile gpu `
-            -IncludeGui `
-            -CreateZip
-
-      - name: Validate GPU+CPU release
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-gpu\release" $env:GPU_RELEASE_NAME
-          $mustExist = @(
-            "models\ocr\ppocrv5_server\ocr.meta.json",
-            "models\ocr\ppocrv5_server\det.onnx",
-            "models\ocr\ppocrv5_server\rec.onnx",
-            "AuraYihuanGui.exe",
-            "runtime\aura.exe",
-            "runtime\AuraYihuanRuntime.exe",
-            "runtime\_internal\onnxruntime\capi\onnxruntime_providers_cuda.dll",
-            "runtime\_internal\PySide6",
-            "run.ps1",
-            "config.yaml",
-            "BUILD-INFO.txt"
+          $detectArgs = @(
+            "scripts\release\detect_release_scope.py",
+            "--head", $env:GITHUB_SHA,
+            "--force", $forced,
+            "--github-output", $env:GITHUB_OUTPUT
           )
-          foreach ($relativePath in $mustExist) {
-            $path = Join-Path $release $relativePath
-            if (-not (Test-Path $path)) { throw "Missing required GPU release path: $path" }
-          }
+          if ($base) { $detectArgs += @("--base", $base) }
+          python @detectArgs
 
-          $mustNotExist = @(
-            "runtime\_internal\nvidia",
-            "runtime\_internal\paddle",
-            "runtime\_internal\paddleocr",
-            "runtime\_internal\paddlex",
-            "plans\aura_base\src\services\ocr_model"
-          )
-          foreach ($relativePath in $mustNotExist) {
-            $path = Join-Path $release $relativePath
-            if (Test-Path $path) { throw "GPU release unexpectedly contains: $path" }
-          }
+  ci:
+    runs-on: windows-2022
+    needs: scope
+    steps:
+      - uses: actions/checkout@v4
 
-          $config = Get-Content -Raw -LiteralPath (Join-Path $release "config.yaml")
-          if ($config -notmatch "(?m)^\s*execution_provider:\s*auto\s*$") {
-            throw "GPU release config.yaml must set ocr.execution_provider=auto."
-          }
-          $buildInfo = Get-Content -LiteralPath (Join-Path $release "BUILD-INFO.txt")
-          if ($buildInfo -notcontains "release_profile=gpu") {
-            throw "GPU release BUILD-INFO.txt must contain release_profile=gpu."
-          }
-          if ($buildInfo -notcontains "onnxruntime_distribution=onnxruntime-gpu") {
-            throw "GPU release BUILD-INFO.txt must contain onnxruntime_distribution=onnxruntime-gpu."
-          }
-          if ($buildInfo -notcontains "gui=true") {
-            throw "GPU release BUILD-INFO.txt must contain gui=true."
-          }
-          if ($buildInfo -notcontains "gui_entrypoint=AuraYihuanGui.exe") {
-            throw "GPU release BUILD-INFO.txt must contain gui_entrypoint=AuraYihuanGui.exe."
-          }
-
-          $zipPath = ".runtime-gpu\release\aura-release-gpu-onnx.zip"
-          $maxBytes = [int64](1.1 * 1024 * 1024 * 1024)
-          $actualBytes = (Get-Item -LiteralPath $zipPath).Length
-          if ($actualBytes -gt $maxBytes) {
-            throw "GPU release zip is too large: $actualBytes bytes > $maxBytes bytes."
-          }
-
-      - name: Smoke test GPU+CPU release CLI
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-gpu\release" $env:GPU_RELEASE_NAME
-          function Invoke-ReleaseCli {
-            param([string[]]$CliArgs)
-            & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $release "run.ps1") @CliArgs
-            if ($LASTEXITCODE -ne 0) {
-              throw "Release CLI smoke failed: $($CliArgs -join ' ')"
-            }
-          }
-          Invoke-ReleaseCli -CliArgs @("games", "--all")
-          Invoke-ReleaseCli -CliArgs @("tasks", "yihuan")
-          Invoke-ReleaseCli -CliArgs @("run", "yihuan", "tasks:checks:plan_loaded.yaml", "--timeout-sec", "120")
-
-      - name: Smoke test GPU+CPU GUI runtime
-        shell: pwsh
-        run: |
-          $release = Join-Path ".runtime-gpu\release" $env:GPU_RELEASE_NAME
-          $env:AURA_BASE_PATH = (Resolve-Path $release).Path
-          $env:PYTHONNOUSERSITE = "1"
-          $process = Start-Process `
-            -FilePath (Join-Path $release "runtime\AuraYihuanRuntime.exe") `
-            -ArgumentList "--self-check" `
-            -Wait `
-            -PassThru `
-            -NoNewWindow
-          if ($process.ExitCode -ne 0) {
-            throw "GPU GUI runtime self-check failed with exit code $($process.ExitCode)."
-          }
-
-      - name: Upload GPU+CPU package artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: aura-release-gpu-onnx
-          path: .runtime-gpu/release/aura-release-gpu-onnx.zip
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+
+      - name: Install CI dependencies
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check -r requirements\ci.txt
+
+      - name: Validate Plan manifests
+        shell: pwsh
+        run: |
+          Get-ChildItem plans -Directory | Where-Object {
+            Test-Path (Join-Path $_.FullName "manifest.yaml")
+          } | ForEach-Object {
+            python -m packages.aura_core.cli.package_cli check $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Plan manifest is out of date: $($_.Name)" }
+            python -m packages.aura_core.cli.package_cli validate $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Plan manifest is invalid: $($_.Name)" }
+          }
+
+      - name: Run test suite
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests -q
+
+  build-plan:
+    runs-on: windows-2022
+    needs: [scope, ci]
+    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'plan' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch MuMu runtime assets
+        shell: pwsh
+        run: python scripts\fetch_mumu_runtime_assets.py
+
+      - name: Build complete filtered Plan replacement package
+        id: plan
+        shell: pwsh
+        env:
+          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+        run: |
+          $archive = ".runtime-plan\AuraResonance-plans-$env:RELEASE_LABEL.zip"
+          python scripts\release\build_plan_package.py --archive $archive
+          if ($LASTEXITCODE -ne 0) { throw "Plan package build failed." }
+          "artifact_path=$archive" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-plans
+          path: ${{ steps.plan.outputs.artifact_path }}
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 14
           compression-level: 0
 
-  build-nvidia-overlay:
-    name: Build NVIDIA runtime overlay
-    runs-on: windows-2022
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.create_overlay) }}
+  build-full:
+    needs: [scope, ci]
+    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'full' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [cpu, gpu]
+    uses: ./.github/workflows/_build-windows.yml
+    with:
+      profile: ${{ matrix.profile }}
+      release_label: ${{ needs.scope.outputs.release_label }}
+      ocr_model_release_tag: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
+      ocr_model_asset: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
+      ocr_model_checksum_asset: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
+
+  build-overlay:
+    needs: [scope, ci]
+    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'full' }}
+    uses: ./.github/workflows/_build-windows.yml
+    with:
+      profile: overlay
+      release_label: ${{ needs.scope.outputs.release_label }}
+      ocr_model_release_tag: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
+      ocr_model_asset: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
+      ocr_model_checksum_asset: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
+
+  gpu-smoke:
+    runs-on: [self-hosted, windows, gpu]
+    needs: [scope, build-full, build-overlay]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gpu_smoke && needs.scope.outputs.scope == 'full' }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/download-artifact@v4
         with:
-          python-version: ${{ env.AURA_PYTHON_VERSION }}
-
-      - name: Install GPU and NVIDIA runtime dependencies
-        shell: pwsh
-        run: |
-          python -m venv .venv-release-gpu-onnx
-          .\.venv-release-gpu-onnx\Scripts\python.exe -m pip install -U pip
-          .\.venv-release-gpu-onnx\Scripts\python.exe -m pip install `
-            -r requirements\runtime.txt `
-            -r requirements\optional-vision-onnx-cuda.txt `
-            -r requirements\optional-nvidia-runtime-cu12.txt `
-            "pyinstaller==$env:PYINSTALLER_VERSION"
-
-      - name: Build NVIDIA overlay zip
-        shell: pwsh
-        run: |
-          powershell -NoProfile -ExecutionPolicy Bypass `
-            -File scripts\build_release.ps1 `
-            -VenvPython .venv-release-gpu-onnx\Scripts\python.exe `
-            -ReleaseName $env:GPU_RELEASE_NAME `
-            -RuntimeRoot .runtime-gpu-overlay `
-            -OnnxRuntimeProfile gpu `
-            -SkipBuild `
-            -SkipAssemble `
-            -CreateNvidiaOverlay
-
-      - name: Validate NVIDIA overlay
-        shell: pwsh
-        run: |
-          $overlay = Join-Path ".runtime-gpu-overlay\release" "$env:GPU_RELEASE_NAME-nvidia-overlay\$env:GPU_RELEASE_NAME"
-          $mustExist = @(
-            "runtime\_internal\nvidia\cuda_runtime\bin\cudart64_12.dll",
-            "runtime\_internal\nvidia\cublas\bin\cublas64_12.dll",
-            "runtime\_internal\nvidia\cublas\bin\cublasLt64_12.dll",
-            "runtime\_internal\nvidia\cudnn\bin\cudnn64_9.dll",
-            "runtime\_internal\nvidia\cufft\bin\cufft64_11.dll",
-            "NVIDIA-RUNTIME-OVERLAY.txt"
-          )
-          foreach ($relativePath in $mustExist) {
-            $path = Join-Path $overlay $relativePath
-            if (-not (Test-Path $path)) { throw "Missing required NVIDIA overlay path: $path" }
-          }
-
-          $zipPath = ".runtime-gpu-overlay\release\aura-release-gpu-onnx-nvidia-overlay.zip"
-          $maxBytes = [int64](1.9 * 1024 * 1024 * 1024)
-          $actualBytes = (Get-Item -LiteralPath $zipPath).Length
-          if ($actualBytes -gt $maxBytes) {
-            throw "NVIDIA overlay zip is too large: $actualBytes bytes > $maxBytes bytes."
-          }
-
-      - name: Upload NVIDIA overlay artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aura-release-gpu-onnx-nvidia-overlay
-          path: .runtime-gpu-overlay/release/aura-release-gpu-onnx-nvidia-overlay.zip
-          if-no-files-found: error
-          retention-days: 3
-          compression-level: 0
-
-  publish-assets:
-    name: Publish release assets
-    runs-on: windows-2022
-    needs:
-      - build-cpu
-      - build-gpu
-      - build-nvidia-overlay
-    if: ${{ always() && needs.build-cpu.result == 'success' && needs.build-gpu.result == 'success' && (needs.build-nvidia-overlay.result == 'success' || needs.build-nvidia-overlay.result == 'skipped') }}
-    steps:
-      - name: Download package artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: aura-release-*
+          pattern: release-full-*
           path: .runtime-artifacts
           merge-multiple: true
 
-      - name: Generate SHA256SUMS.txt
+      - name: Verify CUDA OCR provider
+        shell: pwsh
+        env:
+          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+        run: |
+          $work = ".runtime-gpu-smoke"
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          $gpuZip = ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-gpu.zip"
+          $overlayZip = ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-nvidia-cu13-overlay.zip"
+          Expand-Archive -LiteralPath $gpuZip -DestinationPath $work -Force
+          Expand-Archive -LiteralPath $overlayZip -DestinationPath $work -Force
+          $release = Join-Path $work "AuraResonance-$env:RELEASE_LABEL-win-x64-gpu"
+          & pwsh -NoProfile -File (Join-Path $release "run.ps1") doctor --ocr --ocr-provider cuda
+          if ($LASTEXITCODE -ne 0) { throw "CUDA OCR smoke failed." }
+
+  publish:
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    needs: [scope, ci, build-plan, build-full, build-overlay]
+    if: >-
+      ${{
+        always() &&
+        needs.ci.result == 'success' &&
+        (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)) &&
+        (
+          (needs.scope.outputs.scope == 'plan' && needs.build-plan.result == 'success') ||
+          (needs.scope.outputs.scope == 'full' && needs.build-full.result == 'success' && needs.build-overlay.result == 'success')
+        )
+      }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: .runtime-artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
         shell: pwsh
         run: |
-          $artifactDir = ".runtime-artifacts"
-          $zipFiles = @(Get-ChildItem -LiteralPath $artifactDir -File -Filter "*.zip" | Sort-Object Name)
-          if ($zipFiles.Count -lt 2) {
-            throw "Expected at least CPU and GPU release zip artifacts."
-          }
-          $lines = foreach ($file in $zipFiles) {
+          $files = @(Get-ChildItem .runtime-artifacts -File -Filter "*.zip" | Sort-Object Name)
+          if ($files.Count -lt 1) { throw "No release archives were downloaded." }
+          $lines = foreach ($file in $files) {
             $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($file.Name)"
           }
-          $lines | Set-Content -Path (Join-Path $artifactDir "SHA256SUMS.txt") -Encoding ascii
-          Get-Content -LiteralPath (Join-Path $artifactDir "SHA256SUMS.txt")
+          $lines | Set-Content .runtime-artifacts\SHA256SUMS.txt -Encoding ascii
 
-      - name: Upload checksum artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aura-release-checksums
-          path: .runtime-artifacts/SHA256SUMS.txt
-          if-no-files-found: error
-          retention-days: 3
-
-      - name: Upload assets to GitHub Release
-        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_release) }}
+      - name: Publish GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+          MANUAL_TAG: ${{ inputs.release_tag }}
         run: |
-          function Get-NextReleaseTag {
-            $releaseJson = gh release list `
-              --repo $env:GITHUB_REPOSITORY `
-              --limit 1000 `
-              --json tagName
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to list existing GitHub Releases."
-            }
-
-            $highestMajor = 0
-            $highestMinor = -1
-            if ($releaseJson) {
-              foreach ($release in ($releaseJson | ConvertFrom-Json)) {
-                $tagName = [string]$release.tagName
-                if ($tagName -notmatch "^v(?<major>\d+)\.(?<minor>\d+)$") {
-                  continue
-                }
-
-                $major = [int]$Matches.major
-                $minor = [int]$Matches.minor
-                if ($major -gt $highestMajor -or ($major -eq $highestMajor -and $minor -gt $highestMinor)) {
-                  $highestMajor = $major
-                  $highestMinor = $minor
-                }
-              }
-            }
-
-            if ($highestMinor -lt 0) {
-              return "v0.1"
-            }
-            return "v$highestMajor.$($highestMinor + 1)"
-          }
-
-          $releaseTarget = $null
-          if ($env:GITHUB_EVENT_NAME -eq "push") {
-            if ($env:GITHUB_REF -like "refs/tags/*") {
-              $tag = $env:GITHUB_REF_NAME
-            }
-            else {
-              $tag = Get-NextReleaseTag
-              $releaseTarget = $env:GITHUB_SHA
-              Write-Host "Auto release tag for main push: $tag -> $releaseTarget"
-            }
-          }
-          else {
-            $tag = $env:RELEASE_TAG_INPUT
-          }
-          if (-not $tag) {
-            throw "Release tag is empty."
-          }
-
+          $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF_NAME } else { $env:MANUAL_TAG }
+          if (-not $tag) { throw "A release tag is required for publishing." }
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
-            $createArgs = @(
-              "release",
-              "create",
-              $tag,
-              "--repo",
-              $env:GITHUB_REPOSITORY,
-              "--title",
-              $tag,
-              "--notes",
-              "Automated Aura release package build for $tag."
-            )
-            if ($releaseTarget) {
-              $createArgs += @("--target", $releaseTarget)
-            }
-            & gh @createArgs
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to create GitHub Release $tag."
-            }
+            gh release create $tag `
+              --repo $env:GITHUB_REPOSITORY `
+              --target $env:GITHUB_SHA `
+              --title $tag `
+              --notes "Automated Aura Resonance package build for $tag."
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag." }
           }
-
-          $assets = @(Get-ChildItem -LiteralPath ".runtime-artifacts" -File | Where-Object {
+          $assets = @(Get-ChildItem .runtime-artifacts -File | Where-Object {
             $_.Extension -eq ".zip" -or $_.Name -eq "SHA256SUMS.txt"
-          } | Sort-Object Name)
+          })
           foreach ($asset in $assets) {
             gh release upload $tag $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to upload release asset: $($asset.FullName)"
-            }
-          }
-
-  gpu-smoke:
-    name: CUDA smoke on self-hosted GPU runner
-    runs-on: [self-hosted, windows, gpu]
-    needs:
-      - build-gpu
-      - build-nvidia-overlay
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gpu_smoke && inputs.create_overlay && needs.build-gpu.result == 'success' && needs.build-nvidia-overlay.result == 'success' }}
-    steps:
-      - name: Download GPU package artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: aura-release-gpu-onnx*
-          path: .runtime-artifacts
-          merge-multiple: true
-
-      - name: Force CUDA OCR preload smoke
-        shell: pwsh
-        run: |
-          $workDir = ".runtime-gpu-smoke"
-          if (Test-Path $workDir) {
-            Remove-Item -LiteralPath $workDir -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $workDir | Out-Null
-
-          Expand-Archive -LiteralPath ".runtime-artifacts\aura-release-gpu-onnx.zip" -DestinationPath $workDir -Force
-          $release = Join-Path $workDir "aura-release-gpu-onnx"
-          Expand-Archive -LiteralPath ".runtime-artifacts\aura-release-gpu-onnx-nvidia-overlay.zip" -DestinationPath $workDir -Force
-
-          $configPath = Join-Path $release "config.yaml"
-          $updatedConfig = Get-Content -LiteralPath $configPath | ForEach-Object {
-            if ($_ -match "^\s*execution_provider\s*:") {
-              "  execution_provider: cuda"
-            }
-            else {
-              $_
-            }
-          }
-          $updatedConfig | Set-Content -Path $configPath -Encoding UTF8
-
-          $taskDir = Join-Path $release "plans\yihuan\tasks\checks"
-          New-Item -ItemType Directory -Force -Path $taskDir | Out-Null
-          @'
-          ocr_preload_smoke:
-            meta:
-              title: OCR preload smoke
-              description: Temporary packaged-release smoke test for ONNX OCR session loading.
-            steps:
-              preload:
-                action: preload_ocr
-                params:
-                  warmup: false
-            returns: "{{ nodes.preload.output }}"
-          '@ | Set-Content -Path (Join-Path $taskDir "ocr_preload_smoke.yaml") -Encoding UTF8
-
-          $output = powershell -NoProfile -ExecutionPolicy Bypass `
-            -File (Join-Path $release "run.ps1") `
-            run yihuan tasks:checks:ocr_preload_smoke.yaml --timeout-sec 240 2>&1
-          $output | Write-Host
-          if ($LASTEXITCODE -ne 0) {
-            throw "GPU OCR preload smoke failed."
-          }
-          if (($output -join "`n") -notmatch "CUDAExecutionProvider") {
-            throw "GPU OCR preload smoke did not activate CUDAExecutionProvider."
+            if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($asset.Name)." }
           }

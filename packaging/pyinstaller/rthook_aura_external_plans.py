@@ -33,6 +33,7 @@ def _add_windows_dll_directory(path: Path) -> None:
 
 def _add_nvidia_runtime_directories(root: Path) -> None:
     for relative in (
+        "nvidia/cu13/bin/x86_64",
         "nvidia/cuda_runtime/bin",
         "nvidia/cuda_nvrtc/bin",
         "nvidia/nvjitlink/bin",
@@ -47,6 +48,8 @@ def _add_nvidia_runtime_directories(root: Path) -> None:
 
     nvidia_root = root / "nvidia"
     if nvidia_root.is_dir():
+        for architecture_dir in nvidia_root.glob("cu*/bin/*"):
+            _add_windows_dll_directory(architecture_dir)
         for child in nvidia_root.iterdir():
             if child.is_dir():
                 _add_windows_dll_directory(child / "bin")

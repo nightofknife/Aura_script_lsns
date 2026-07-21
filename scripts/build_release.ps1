@@ -175,13 +175,19 @@ print(
 }
 
 function Assert-OcrModelBundle {
-    param([string]$ModelsRoot)
+    param(
+        [string]$ModelsRoot,
+        [string]$PythonPath,
+        [string]$ValidatorPath
+    )
 
     $bundleDir = Join-Path $ModelsRoot "ppocrv5_server"
     Assert-PathExists -PathValue $bundleDir -Label "OCR ONNX model bundle"
 
-    foreach ($fileName in @("ocr.meta.json", "det.onnx", "rec.onnx", "doc_orientation.onnx", "textline_orientation.onnx")) {
-        Assert-PathExists -PathValue (Join-Path $bundleDir $fileName) -Label "OCR ONNX model file"
+    Assert-PathExists -PathValue $ValidatorPath -Label "OCR bundle validator"
+    & $PythonPath $ValidatorPath $bundleDir
+    if ($LASTEXITCODE -ne 0) {
+        throw "OCR ONNX model bundle validation failed with exit code $LASTEXITCODE."
     }
 }
 
@@ -274,15 +280,17 @@ function Write-ReleaseConfig {
 function Copy-OcrModels {
     param(
         [string]$Source,
-        [string]$Destination
+        [string]$Destination,
+        [string]$PythonPath,
+        [string]$ValidatorPath
     )
 
-    Assert-OcrModelBundle -ModelsRoot $Source
+    Assert-OcrModelBundle -ModelsRoot $Source -PythonPath $PythonPath -ValidatorPath $ValidatorPath
     Invoke-RobocopySafe `
         -Source $Source `
         -Destination $Destination `
         -ExtraArgs @("/XD", "__pycache__", ".pytest_cache", "/XF", "*.pyc", "*.pyo")
-    Assert-OcrModelBundle -ModelsRoot $Destination
+    Assert-OcrModelBundle -ModelsRoot $Destination -PythonPath $PythonPath -ValidatorPath $ValidatorPath
 }
 
 function Copy-YoloModels {
@@ -303,30 +311,17 @@ function Copy-YoloModels {
 
 function Copy-PlanPackages {
     param(
-        [string]$Source,
-        [string]$Destination
+        [string]$RepoRootPath,
+        [string]$Destination,
+        [string]$PythonPath,
+        [string]$PackagerPath
     )
 
-    Assert-PathExists -PathValue $Source -Label "Plans directory"
-    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-
-    Get-ChildItem -LiteralPath $Source -File -Filter "*.py" |
-        ForEach-Object {
-            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $Destination $_.Name) -Force
-        }
-
-    $excludedPlanDirectoryNames = @("logs", "__pycache__", ".pytest_cache")
-    $planPackages = Get-ChildItem -LiteralPath $Source -Directory |
-        Where-Object {
-            $excludedPlanDirectoryNames -notcontains $_.Name -and
-            (Test-Path (Join-Path $_.FullName "manifest.yaml"))
-        }
-
-    foreach ($planPackage in $planPackages) {
-        Invoke-RobocopySafe `
-            -Source $planPackage.FullName `
-            -Destination (Join-Path $Destination $planPackage.Name) `
-            -ExtraArgs @("/XD", "__pycache__", ".pytest_cache", "ocr_model", "/XF", "*.pyc", "*.pyo")
+    Assert-PathExists -PathValue (Join-Path $RepoRootPath "plans") -Label "Plans directory"
+    Assert-PathExists -PathValue $PackagerPath -Label "Plan package builder"
+    & $PythonPath $PackagerPath --repo-root $RepoRootPath --destination $Destination
+    if ($LASTEXITCODE -ne 0) {
+        throw "Filtered Plan tree assembly failed with exit code $LASTEXITCODE."
     }
 }
 
@@ -411,11 +406,11 @@ function Assert-NvidiaRuntimeOverlayBundle {
 
     Assert-PathExists -PathValue $NvidiaRoot -Label "NVIDIA Python runtime root"
     $requiredDlls = @(
-        "cublas\bin\cublas64_12.dll",
-        "cublas\bin\cublasLt64_12.dll",
-        "cuda_runtime\bin\cudart64_12.dll",
-        "cudnn\bin\cudnn64_9.dll",
-        "cufft\bin\cufft64_11.dll"
+        "cu13\bin\x86_64\cublas64_13.dll",
+        "cu13\bin\x86_64\cublasLt64_13.dll",
+        "cu13\bin\x86_64\cudart64_13.dll",
+        "cu13\bin\x86_64\cudnn64_9.dll",
+        "cu13\bin\x86_64\cufft64_12.dll"
     )
 
     $missingDlls = @()
@@ -430,7 +425,7 @@ function Assert-NvidiaRuntimeOverlayBundle {
         throw (
             "NVIDIA runtime overlay is incomplete. Missing: " +
             ($missingDlls -join ", ") +
-            ". Install requirements\\optional-nvidia-runtime-cu12.txt into the release venv before using -CreateNvidiaOverlay."
+            ". Install requirements\\release-nvidia-overlay.txt into the release venv before using -CreateNvidiaOverlay."
         )
     }
 }
@@ -537,6 +532,8 @@ $ConfigTemplate = Join-Path $RepoRoot "packaging\\templates\\config.yaml"
 $SourcePlansDir = Join-Path $RepoRoot "plans"
 $SourceOcrModelsDir = Join-Path $RepoRoot "models\\ocr"
 $SourceYoloModelsDir = Join-Path $RepoRoot "models\\yolo"
+$PlanPackager = Join-Path $RepoRoot "scripts\\release\\build_plan_package.py"
+$OcrBundleValidator = Join-Path $RepoRoot "scripts\\release\\validate_ocr_bundle.py"
 $SourceLicense = Join-Path $RepoRoot "LICENSE"
 $SourceReadme = Join-Path $RepoRoot "README.md"
 
@@ -554,6 +551,8 @@ Assert-PathExists -PathValue $SpecFilePath -Label "PyInstaller spec"
 Assert-PathExists -PathValue $RunTemplate -Label "Run script template"
 Assert-PathExists -PathValue $ConfigTemplate -Label "Config template"
 Assert-PathExists -PathValue $SourcePlansDir -Label "Plans directory"
+Assert-PathExists -PathValue $PlanPackager -Label "Plan package builder"
+Assert-PathExists -PathValue $OcrBundleValidator -Label "OCR bundle validator"
 
 $env:PYTHONNOUSERSITE = "1"
 $env:AURA_PKG_INCLUDE_NVIDIA = if ($IncludeNvidia) { "1" } else { "0" }
@@ -632,8 +631,16 @@ if (-not $SkipAssemble) {
         Copy-Item -LiteralPath $BuiltGuiLauncherExe -Destination (Join-Path $ReleaseRoot "AuraResonanceGui.exe") -Force
     }
     Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $ReleaseRuntimeDir
-    Copy-PlanPackages -Source $SourcePlansDir -Destination $ReleasePlansDir
-    Copy-OcrModels -Source $SourceOcrModelsDir -Destination $ReleaseOcrModelsDir
+    Copy-PlanPackages `
+        -RepoRootPath $RepoRoot `
+        -Destination $ReleasePlansDir `
+        -PythonPath $VenvPythonPath `
+        -PackagerPath $PlanPackager
+    Copy-OcrModels `
+        -Source $SourceOcrModelsDir `
+        -Destination $ReleaseOcrModelsDir `
+        -PythonPath $VenvPythonPath `
+        -ValidatorPath $OcrBundleValidator
     Copy-YoloModels -Source $SourceYoloModelsDir -Destination $ReleaseYoloModelsDir
 
     Copy-Item -LiteralPath $RunTemplate -Destination (Join-Path $ReleaseRoot "run.ps1") -Force

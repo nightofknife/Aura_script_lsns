@@ -59,7 +59,13 @@ class ResonanceMainWindow(QMainWindow):
     requestCancelCurrent = Signal()
     requestBridgeClose = Signal()
 
-    def __init__(self, *, bridge: RunnerBridge | None = None, settings: ResonanceConfigRepository | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        bridge: RunnerBridge | None = None,
+        settings: ResonanceConfigRepository | None = None,
+        initialize_on_startup: bool = True,
+    ) -> None:
         super().__init__()
         self._settings = settings or ResonanceConfigRepository()
         self._preferences = self._settings.load_preferences()
@@ -78,7 +84,8 @@ class ResonanceMainWindow(QMainWindow):
         self._build_ui()
         self._wire_bridge()
         self._select_task(self._current_task.task_id)
-        QTimer.singleShot(0, self.requestInitialize.emit)
+        if initialize_on_startup:
+            QTimer.singleShot(0, self.requestInitialize.emit)
 
     def _build_ui(self) -> None:
         root = QWidget(self)

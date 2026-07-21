@@ -169,6 +169,48 @@ class TestGameRunners(unittest.TestCase):
             self.assertTrue(result["ok"])
             request.assert_called_once_with("target_snapshot", game_name="resonance", backend="gdi")
 
+    def test_embedded_doctor_can_require_cpu_ocr(self):
+        runner = EmbeddedGameRunner()
+        fake_runtime = SimpleNamespace(
+            actions={},
+            get_all_services_for_api=lambda: [],
+        )
+        fake_screen = Mock()
+        fake_screen.self_check.return_value = {"ok": True}
+        fake_ocr = Mock()
+        fake_ocr.self_check.return_value = True
+        fake_ocr.get_backend.return_value = "onnxruntime"
+        fake_ocr.get_provider.return_value = "CPUExecutionProvider"
+        fake_ocr.get_model.return_value = "ppocrv5_server"
+
+        def get_service(name):
+            return {"screen": fake_screen, "ocr": fake_ocr}[name]
+
+        with (
+            patch.object(runner, "_ensure_runtime", return_value=fake_runtime),
+            patch.object(runner, "list_games", return_value=[{"game_name": "resonance", "kind": "game"}]),
+            patch.object(runner, "status", return_value={"ready": False}),
+            patch("packages.aura_game.runner.service_registry.get_service_instance", side_effect=get_service),
+        ):
+            result = runner.doctor(check_ocr=True, required_ocr_provider="cpu")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["ocr"]["provider"], "CPUExecutionProvider")
+        self.assertEqual(result["ocr"]["backend"], "onnxruntime")
+
+    def test_subprocess_doctor_forwards_ocr_options(self):
+        runner = SubprocessGameRunner()
+        with patch.object(runner, "_request", return_value={"ok": True}) as request:
+            result = runner.doctor(check_ocr=True, required_ocr_provider="cuda")
+
+        self.assertTrue(result["ok"])
+        request.assert_called_once_with(
+            "doctor",
+            include_shared=True,
+            check_ocr=True,
+            required_ocr_provider="cuda",
+        )
+
     def test_subprocess_runner_applies_env_overrides_only_while_starting_process(self):
         seen: dict[str, str | None] = {}
 

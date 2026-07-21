@@ -85,7 +85,7 @@ class OnnxRuntimeBackend:
         if provider_mode == "cuda" and active_provider != "CUDAExecutionProvider":
             raise RuntimeError(
                 "CUDAExecutionProvider was requested but ONNX Runtime fell back to "
-                f"{active_provider}. Check CUDA 12 runtime dependencies and cuDNN visibility."
+                f"{active_provider}. Check CUDA 13 runtime dependencies and cuDNN visibility."
             )
         if provider_mode == "auto" and providers[0] == "CUDAExecutionProvider" and active_provider != "CUDAExecutionProvider":
             logger.warning(
@@ -213,6 +213,7 @@ class OnnxRuntimeBackend:
 
         for site_root in site_roots:
             for relative in (
+                "nvidia/cu13/bin/x86_64",
                 "nvidia/cuda_runtime/bin",
                 "nvidia/cudnn/bin",
                 "nvidia/cublas/bin",

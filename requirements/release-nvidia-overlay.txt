@@ -1,0 +1,7 @@
+-r release-gpu.txt
+nvidia-cuda-runtime==13.0.96
+nvidia-cuda-nvrtc==13.0.88
+nvidia-nvjitlink==13.0.39
+nvidia-cublas==13.0.2.14
+nvidia-cufft==12.0.0.61
+nvidia-cudnn-cu13==9.24.0.43

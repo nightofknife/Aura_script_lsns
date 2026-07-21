@@ -1,0 +1,226 @@
+name: Reusable Windows release build
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: true
+        type: string
+      release_label:
+        required: true
+        type: string
+      ocr_model_release_tag:
+        required: true
+        type: string
+      ocr_model_asset:
+        required: true
+        type: string
+      ocr_model_checksum_asset:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+
+      - name: Install release dependencies
+        shell: pwsh
+        env:
+          BUILD_PROFILE: ${{ inputs.profile }}
+        run: |
+          $requirement = switch ($env:BUILD_PROFILE) {
+            "cpu" { "requirements\release-cpu.txt" }
+            "gpu" { "requirements\release-gpu.txt" }
+            "overlay" { "requirements\release-nvidia-overlay.txt" }
+            default { throw "Unsupported release profile: $env:BUILD_PROFILE" }
+          }
+          $venv = ".venv-release-$env:BUILD_PROFILE"
+          python -m venv $venv
+          $python = Join-Path $venv "Scripts\python.exe"
+          & $python -m pip install --disable-pip-version-check -r $requirement
+          if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }
+
+      - name: Fetch MuMu runtime assets
+        if: ${{ inputs.profile != 'overlay' }}
+        shell: pwsh
+        env:
+          BUILD_PROFILE: ${{ inputs.profile }}
+        run: |
+          $python = ".venv-release-$env:BUILD_PROFILE\Scripts\python.exe"
+          & $python scripts\fetch_mumu_runtime_assets.py
+          if ($LASTEXITCODE -ne 0) { throw "MuMu runtime asset download failed." }
+
+      - name: Download OCR model bundle
+        if: ${{ inputs.profile != 'overlay' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_PROFILE: ${{ inputs.profile }}
+        run: |
+          & pwsh -NoProfile -File scripts\release\download_ocr_models.ps1 `
+            -Repository $env:GITHUB_REPOSITORY `
+            -ReleaseTag "${{ inputs.ocr_model_release_tag }}" `
+            -ModelAsset "${{ inputs.ocr_model_asset }}" `
+            -ChecksumAsset "${{ inputs.ocr_model_checksum_asset }}" `
+            -PythonPath ".venv-release-$env:BUILD_PROFILE\Scripts\python.exe"
+          if ($LASTEXITCODE -ne 0) { throw "OCR model bundle download failed." }
+
+      - name: Build release package
+        id: package
+        shell: pwsh
+        env:
+          BUILD_PROFILE: ${{ inputs.profile }}
+          RELEASE_LABEL: ${{ inputs.release_label }}
+        run: |
+          if ($env:BUILD_PROFILE -eq "overlay") {
+            $releaseName = "AuraResonance-$env:RELEASE_LABEL-win-x64-gpu"
+            & pwsh -NoProfile -File scripts\build_release.ps1 `
+              -VenvPython ".venv-release-overlay\Scripts\python.exe" `
+              -ReleaseName $releaseName `
+              -RuntimeRoot ".runtime-overlay" `
+              -OnnxRuntimeProfile gpu `
+              -SkipBuild `
+              -SkipAssemble `
+              -CreateNvidiaOverlay
+            if ($LASTEXITCODE -ne 0) { throw "NVIDIA overlay build failed." }
+            $source = ".runtime-overlay\release\$releaseName-nvidia-overlay.zip"
+            $target = ".runtime-overlay\release\AuraResonance-$env:RELEASE_LABEL-nvidia-cu13-overlay.zip"
+            Move-Item -LiteralPath $source -Destination $target -Force
+            "artifact_path=$target" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          $releaseName = "AuraResonance-$env:RELEASE_LABEL-win-x64-$env:BUILD_PROFILE"
+          $runtimeRoot = ".runtime-$env:BUILD_PROFILE"
+          & pwsh -NoProfile -File scripts\build_release.ps1 `
+            -VenvPython ".venv-release-$env:BUILD_PROFILE\Scripts\python.exe" `
+            -ReleaseName $releaseName `
+            -RuntimeRoot $runtimeRoot `
+            -OnnxRuntimeProfile $env:BUILD_PROFILE `
+            -IncludeGui `
+            -CreateZip
+          if ($LASTEXITCODE -ne 0) { throw "Release build failed for $env:BUILD_PROFILE." }
+          "release_root=$runtimeRoot\release\$releaseName" >> $env:GITHUB_OUTPUT
+          "artifact_path=$runtimeRoot\release\$releaseName.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Validate full release
+        if: ${{ inputs.profile != 'overlay' }}
+        shell: pwsh
+        env:
+          BUILD_PROFILE: ${{ inputs.profile }}
+          RELEASE_ROOT: ${{ steps.package.outputs.release_root }}
+        run: |
+          $required = @(
+            "AuraResonanceGui.exe",
+            "runtime\aura.exe",
+            "runtime\AuraResonanceRuntime.exe",
+            "runtime\_internal\PySide6",
+            "models\ocr\ppocrv5_server\ocr.meta.json",
+            "models\ocr\ppocrv5_server\det.onnx",
+            "models\ocr\ppocrv5_server\rec.onnx",
+            "plans\aura_base\manifest.yaml",
+            "plans\resonance\manifest.yaml",
+            "plans\resonance_pc\manifest.yaml",
+            "run.ps1",
+            "config.yaml",
+            "BUILD-INFO.txt"
+          )
+          foreach ($relative in $required) {
+            $path = Join-Path $env:RELEASE_ROOT $relative
+            if (-not (Test-Path -LiteralPath $path)) { throw "Missing release path: $path" }
+          }
+
+          $forbidden = @(
+            "runtime\_internal\paddle",
+            "runtime\_internal\paddleocr",
+            "runtime\_internal\paddlex",
+            "plans\resonance\data\cache",
+            "plans\resonance_pc\data\cache"
+          )
+          foreach ($relative in $forbidden) {
+            $path = Join-Path $env:RELEASE_ROOT $relative
+            if (Test-Path -LiteralPath $path) { throw "Release unexpectedly contains: $path" }
+          }
+
+          $config = Get-Content -Raw -LiteralPath (Join-Path $env:RELEASE_ROOT "config.yaml")
+          $expectedProvider = if ($env:BUILD_PROFILE -eq "cpu") { "cpu" } else { "auto" }
+          if ($config -notmatch "(?m)^\s*execution_provider:\s*$expectedProvider\s*$") {
+            throw "Release config does not select OCR provider '$expectedProvider'."
+          }
+          if ($env:BUILD_PROFILE -eq "cpu" -and (Test-Path (Join-Path $env:RELEASE_ROOT "runtime\_internal\onnxruntime\capi\onnxruntime_providers_cuda.dll"))) {
+            throw "CPU release unexpectedly contains the CUDA provider."
+          }
+          if ($env:BUILD_PROFILE -eq "gpu" -and -not (Test-Path (Join-Path $env:RELEASE_ROOT "runtime\_internal\onnxruntime\capi\onnxruntime_providers_cuda.dll"))) {
+            throw "GPU release is missing the CUDA provider."
+          }
+
+          function Invoke-ReleaseCli([string[]]$CliArgs) {
+            $output = & pwsh -NoProfile -File (Join-Path $env:RELEASE_ROOT "run.ps1") @CliArgs 2>&1
+            $output | Write-Host
+            if ($LASTEXITCODE -ne 0) { throw "Release CLI failed: $($CliArgs -join ' ')" }
+            return ($output -join "`n")
+          }
+          $games = Invoke-ReleaseCli @("games", "--all")
+          if ($games -notmatch '"game_name":\s*"resonance"' -or $games -notmatch '"game_name":\s*"resonance_pc"') {
+            throw "Release CLI did not discover both Resonance plans."
+          }
+          Invoke-ReleaseCli @("tasks", "resonance") | Out-Null
+          Invoke-ReleaseCli @("tasks", "resonance_pc") | Out-Null
+          Invoke-ReleaseCli @("doctor", "--ocr", "--ocr-provider", "cpu") | Out-Null
+
+          $env:AURA_BASE_PATH = (Resolve-Path $env:RELEASE_ROOT).Path
+          $env:PYTHONNOUSERSITE = "1"
+          $env:QT_QPA_PLATFORM = "offscreen"
+          & (Join-Path $env:RELEASE_ROOT "runtime\AuraResonanceRuntime.exe") --self-check
+          if ($LASTEXITCODE -ne 0) { throw "Packaged GUI self-check failed." }
+
+      - name: Validate NVIDIA overlay
+        if: ${{ inputs.profile == 'overlay' }}
+        shell: pwsh
+        env:
+          ARTIFACT_PATH: ${{ steps.package.outputs.artifact_path }}
+        run: |
+          if (-not (Test-Path -LiteralPath $env:ARTIFACT_PATH)) { throw "Overlay archive is missing." }
+          $maxBytes = [int64](2 * 1024 * 1024 * 1024 - 1)
+          if ((Get-Item -LiteralPath $env:ARTIFACT_PATH).Length -gt $maxBytes) {
+            throw "NVIDIA overlay exceeds the GitHub Release per-asset limit."
+          }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $env:ARTIFACT_PATH))
+          try {
+            $entryNames = @($archive.Entries | ForEach-Object FullName)
+            foreach ($dll in @("cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll", "cudnn64_9.dll")) {
+              if (-not ($entryNames | Where-Object { $_ -like "*/nvidia/cu13/bin/x86_64/$dll" })) {
+                throw "NVIDIA overlay is missing $dll."
+              }
+            }
+          }
+          finally {
+            $archive.Dispose()
+          }
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-full-${{ inputs.profile }}
+          path: ${{ steps.package.outputs.artifact_path }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
