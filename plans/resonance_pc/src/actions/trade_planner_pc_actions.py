@@ -20,8 +20,60 @@ def _require_service(service: Optional[ResonancePcTradePlannerService]) -> Reson
 
 
 @action_info(
-    name="resonance_pc.trade_plan_next",
+    name="resonance_pc.trade_plan_optimal_route",
     public=True,
+    read_only=True,
+    description="Plan the exact binary-to-cap maximum expected after-tax profit route for one frozen market snapshot.",
+)
+@requires_services(resonance_pc_trade_planner="resonance_pc_trade_planner")
+def resonance_pc_trade_plan_optimal_route(
+    fatigue_budget: int = 100,
+    cargo_capacity: int = 650,
+    book_budget: int = 0,
+    book_profit_threshold: Any = 0,
+    negotiation_budget: int = 0,
+    all_plan: int = 0,
+    bargain_success_rates_bps: Optional[List[Any]] = [5000],
+    bargain_step_bps: Optional[Any] = 1000,
+    raise_success_rates_bps: Optional[List[Any]] = [5000],
+    raise_step_bps: Optional[Any] = 1000,
+    trade_level: int = 20,
+    available_city_ids: Optional[List[str]] = None,
+    city_prestige: Optional[Dict[str, Any]] = None,
+    product_unlocks: Optional[Dict[str, Any]] = None,
+    active_events: Optional[List[Any]] = None,
+    current_city_key: Optional[str] = None,
+    current_city_id: Optional[str] = None,
+    current_city: Optional[str] = None,
+    snapshot_id: Optional[str] = None,
+    resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
+) -> Dict[str, Any]:
+    return _require_service(resonance_pc_trade_planner).plan_optimal_route(
+        fatigue_budget=fatigue_budget,
+        cargo_capacity=cargo_capacity,
+        book_budget=book_budget,
+        book_profit_threshold=book_profit_threshold,
+        negotiation_budget=negotiation_budget,
+        all_plan=all_plan,
+        bargain_success_rates_bps=bargain_success_rates_bps,
+        bargain_step_bps=bargain_step_bps,
+        raise_success_rates_bps=raise_success_rates_bps,
+        raise_step_bps=raise_step_bps,
+        trade_level=trade_level,
+        available_city_ids=available_city_ids,
+        city_prestige=city_prestige,
+        product_unlocks=product_unlocks,
+        active_events=active_events,
+        current_city_key=current_city_key,
+        current_city_id=current_city_id,
+        current_city=current_city,
+        snapshot_id=snapshot_id,
+    )
+
+
+@action_info(
+    name="resonance_pc.trade_plan_next",
+    public=False,
     read_only=True,
     description="Plan the next ResonancePc trade step with rolling horizon optimization.",
 )
@@ -53,7 +105,7 @@ def resonance_pc_trade_plan_next(
 
 @action_info(
     name="resonance_pc.trade_plan_best_cycle",
-    public=True,
+    public=False,
     read_only=True,
     description="Plan one fixed best-profit trade cycle.",
 )
@@ -87,7 +139,7 @@ def resonance_pc_trade_plan_best_cycle(
 
 @action_info(
     name="resonance_pc.trade_plan_cycle_execution",
-    public=True,
+    public=False,
     read_only=True,
     description="Build executable auto-trade cycle plan under fatigue budget with whitelist constraints.",
 )
@@ -119,7 +171,7 @@ def resonance_pc_trade_plan_cycle_execution(
 
 @action_info(
     name="resonance_pc.trade_plan_next_cycle_execution",
-    public=True,
+    public=False,
     read_only=True,
     description="Build the next executable trade cycle or final budgeted prefix.",
 )
@@ -236,7 +288,7 @@ def _route_exec_summary(state: Dict[str, Any]) -> Dict[str, Any]:
 
 @action_info(
     name="resonance_pc.trade_loop_init",
-    public=True,
+    public=False,
     read_only=False,
     description="Initialize one auto-cycle trade loop state.",
 )
@@ -425,7 +477,7 @@ async def resonance_pc_trade_route_execution_cleanup(
 
 @action_info(
     name="resonance_pc.trade_loop_update",
-    public=True,
+    public=False,
     read_only=False,
     description="Accumulate one executed auto-cycle trade round into loop state.",
 )
@@ -560,7 +612,7 @@ async def resonance_pc_trade_loop_update(
 
 @action_info(
     name="resonance_pc.trade_loop_summary",
-    public=True,
+    public=False,
     read_only=True,
     description="Return one auto-cycle trade loop summary.",
 )
@@ -579,7 +631,7 @@ async def resonance_pc_trade_loop_summary(
 
 @action_info(
     name="resonance_pc.trade_loop_cleanup",
-    public=True,
+    public=False,
     read_only=False,
     description="Remove one auto-cycle trade loop state.",
 )
@@ -596,7 +648,7 @@ async def resonance_pc_trade_loop_cleanup(
 
 @action_info(
     name="resonance_pc.trade_assert_allowed_city",
-    public=True,
+    public=False,
     read_only=True,
     description="Assert target city key is in configured trade constraints whitelist.",
 )
@@ -614,7 +666,7 @@ def resonance_pc_trade_assert_allowed_city(
 
 @action_info(
     name="resonance_pc.trade_simulate",
-    public=True,
+    public=False,
     read_only=True,
     description="Simulate ResonancePc rolling trade until stop condition.",
 )

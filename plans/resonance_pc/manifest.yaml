@@ -34,8 +34,393 @@ exports:
     public: true
     singleton: true
     replace: null
-    description: ResonancePc rolling trade planner based on fatigue/book/cargo constraints.
+    description: ResonancePc exact full-budget trade planner with legacy planning
+      helpers.
   actions:
+  - name: resonance_pc.group_battle_jobs
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_group_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group auto battle jobs by top-level category and preserve first-seen
+      category order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.group_ct_jobs
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_group_ct_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group CT jobs into tie_an and regional_ops_center buckets with first-seen
+      order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.group_gp_jobs
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_group_gp_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Group GP jobs into action_summary and structural_exploration buckets
+      with first-seen order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.group_consecutive_jobs_by_route
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_group_consecutive_jobs_by_route
+    public: true
+    read_only: true
+    timeout: null
+    description: Group adjacent jobs with the same route_id while preserving order.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.annotate_job_sequence
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_annotate_job_sequence
+    public: true
+    read_only: true
+    timeout: null
+    description: Attach sequence metadata to each job item while preserving original
+      fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.normalize_battle_jobs
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_normalize_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Normalize battle jobs by dropping route-incompatible residual fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.validate_battle_jobs
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_validate_battle_jobs
+    public: true
+    read_only: true
+    timeout: null
+    description: Validate jobs against battle catalog and normalize required fields.
+    parameters:
+    - name: jobs
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.resolve_difficulty_text
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_resolve_difficulty_text
+    public: true
+    read_only: true
+    timeout: null
+    description: Resolve difficulty text from numeric difficulty level.
+    parameters:
+    - name: difficulty
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.select_ordered_city
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_select_ordered_city
+    public: true
+    read_only: false
+    timeout: null
+    description: Select target city from ordered city list by OCR + directional drag.
+    parameters:
+    - name: target_city_name
+      type: Any
+      required: true
+      default: null
+    - name: city_order
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_up
+      type: Any
+      required: false
+      default: null
+    - name: drag_down
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 15
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance_pc.select_threat_level_numeric
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_select_threat_level_numeric
+    public: true
+    read_only: false
+    timeout: null
+    description: Select threat level by OCR numeric scan and directional horizontal
+      drag.
+    parameters:
+    - name: threat_level
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_increase
+      type: Any
+      required: false
+      default: null
+    - name: drag_decrease
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 20
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+  - name: resonance_pc.select_action_summary_stage
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_select_action_summary_stage
+    public: true
+    read_only: false
+    timeout: null
+    description: Select one action_summary stage by OCR + horizontal directional drag,
+      then click with offset.
+    parameters:
+    - name: route_id
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_forward
+      type: Any
+      required: false
+      default: null
+    - name: drag_backward
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 12
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: click_offset_x
+      type: Any
+      required: false
+      default: 0
+    - name: click_offset_y
+      type: Any
+      required: false
+      default: 180
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance_pc.check_pixel_color_range
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_check_pixel_color_range
+    public: true
+    read_only: true
+    timeout: null
+    description: Check whether one pixel color is inside an inclusive RGB range.
+    parameters:
+    - name: x
+      type: Any
+      required: true
+      default: null
+    - name: y
+      type: Any
+      required: true
+      default: null
+    - name: rgb_min
+      type: Any
+      required: true
+      default: null
+    - name: rgb_max
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.reconcile_structural_selection
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_reconcile_structural_selection
+    public: true
+    read_only: false
+    timeout: null
+    description: Reconcile all structural targets so only the current job target remains
+      selected.
+    parameters:
+    - name: route_id
+      type: Any
+      required: false
+      default: null
+    - name: gp_stage_name
+      type: Any
+      required: false
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: rgb_min
+      type: Any
+      required: false
+      default: null
+    - name: rgb_max
+      type: Any
+      required: false
+      default: null
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.3
+  - name: resonance_pc.wait_and_click_any_text
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_wait_and_click_any_text
+    public: true
+    read_only: false
+    timeout: null
+    description: Continuously OCR a region until any target text is found, then click
+      its center.
+    parameters:
+    - name: targets
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance_pc.run_battle_resolution
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_run_battle_resolution
+    public: true
+    read_only: false
+    timeout: null
+    description: Resolve in-battle next-step/capture branch by OCR polling.
+    parameters:
+    - name: capture_count
+      type: Any
+      required: false
+      default: null
+    - name: battle_poll_region
+      type: Any
+      required: false
+      default: null
+    - name: confirm_region
+      type: Any
+      required: false
+      default: null
+    - name: exit_hint_region
+      type: Any
+      required: false
+      default: null
+    - name: confirm_click_point
+      type: Any
+      required: false
+      default: null
+    - name: poll_interval_sec
+      type: Any
+      required: false
+      default: 5.0
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 600.0
+    - name: confirm_timeout_sec
+      type: Any
+      required: false
+      default: 30.0
+    - name: exit_hint_timeout_sec
+      type: Any
+      required: false
+      default: 30.0
+    - name: short_interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
   - name: resonance_pc.open_city_panel_from_main
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_open_city_panel_from_main
@@ -147,6 +532,10 @@ exports:
       type: Any
       required: false
       default: 0
+    - name: bargain_to_cap
+      type: Any
+      required: false
+      default: false
     - name: max_scan_rounds
       type: Any
       required: false
@@ -159,19 +548,28 @@ exports:
     timeout: null
     description: Complete the sell-all flow from the 我要卖 page and return to the shop
       page.
-    parameters: []
-  - name: resonance_pc.auto_cycle_trade_flow
+    parameters:
+    - name: raise_to_cap
+      type: Any
+      required: false
+      default: false
+  - name: resonance_pc.preview_trade_plan_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
-    function: resonance_pc_auto_cycle_trade_flow
+    function: resonance_pc_preview_trade_plan_flow
     public: true
     read_only: false
     timeout: null
-    description: Run the full ResonancePc auto-cycle trade flow from city-main UI.
+    description: Refresh market data and calculate a PC trade route from a user-selected
+      start city.
     parameters:
-    - name: fatigue_budget
+    - name: start_city_id
       type: Any
       required: true
       default: null
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 100
     - name: cargo_capacity
       type: Any
       required: false
@@ -184,14 +582,123 @@ exports:
       type: Any
       required: false
       default: 0
-    - name: max_cycle_hops
+    - name: negotiation_budget
       type: Any
       required: false
-      default: 6
-    - name: max_rounds
+      default: 0
+    - name: all_plan
       type: Any
       required: false
-      default: 64
+      default: 0
+    - name: bargain_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: bargain_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: raise_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: raise_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: trade_level
+      type: Any
+      required: false
+      default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: city_prestige
+      type: Any
+      required: false
+      default: null
+    - name: product_unlocks
+      type: Any
+      required: false
+      default: null
+    - name: active_events
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.auto_cycle_trade_flow
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_auto_cycle_trade_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Plan and execute one exact full-budget ResonancePc trade route from
+      city-main UI.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 100
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: negotiation_budget
+      type: Any
+      required: false
+      default: 0
+    - name: all_plan
+      type: Any
+      required: false
+      default: 0
+    - name: bargain_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: bargain_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: raise_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: raise_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: trade_level
+      type: Any
+      required: false
+      default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: city_prestige
+      type: Any
+      required: false
+      default: null
+    - name: product_unlocks
+      type: Any
+      required: false
+      default: null
+    - name: active_events
+      type: Any
+      required: false
+      default: null
     - name: use_fatigue_medicine
       type: Any
       required: false
@@ -335,8 +842,7 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Wait for intercity arrival and handle trade-travel encounter screens
-      within the travel task.
+    description: Wait for intercity arrival using the enter-station button template.
     parameters:
     - name: timeout_sec
       type: Any
@@ -346,26 +852,6 @@ exports:
       type: Any
       required: false
       default: 3.0
-    - name: region
-      type: Any
-      required: false
-      default: null
-    - name: arrival_text
-      type: Any
-      required: false
-      default: 进入站点
-    - name: encounter_policy
-      type: Any
-      required: false
-      default: fight
-    - name: max_encounter_actions
-      type: Any
-      required: false
-      default: 3
-    - name: post_action_sec
-      type: Any
-      required: false
-      default: 1.0
     - name: arrival_template
       type: Any
       required: false
@@ -495,10 +981,97 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.trade_plan_optimal_route
+    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
+    function: resonance_pc_trade_plan_optimal_route
+    public: true
+    read_only: true
+    timeout: null
+    description: Plan the exact binary-to-cap maximum expected after-tax profit route
+      for one frozen market snapshot.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 100
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: negotiation_budget
+      type: Any
+      required: false
+      default: 0
+    - name: all_plan
+      type: Any
+      required: false
+      default: 0
+    - name: bargain_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: bargain_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: raise_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: raise_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: trade_level
+      type: Any
+      required: false
+      default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: city_prestige
+      type: Any
+      required: false
+      default: null
+    - name: product_unlocks
+      type: Any
+      required: false
+      default: null
+    - name: active_events
+      type: Any
+      required: false
+      default: null
+    - name: current_city_key
+      type: Any
+      required: false
+      default: null
+    - name: current_city_id
+      type: Any
+      required: false
+      default: null
+    - name: current_city
+      type: Any
+      required: false
+      default: null
+    - name: snapshot_id
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.trade_plan_next
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_next
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Plan the next ResonancePc trade step with rolling horizon optimization.
@@ -542,7 +1115,7 @@ exports:
   - name: resonance_pc.trade_plan_best_cycle
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_best_cycle
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Plan one fixed best-profit trade cycle.
@@ -590,7 +1163,7 @@ exports:
   - name: resonance_pc.trade_plan_cycle_execution
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_cycle_execution
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Build executable auto-trade cycle plan under fatigue budget with
@@ -635,7 +1208,7 @@ exports:
   - name: resonance_pc.trade_plan_next_cycle_execution
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_next_cycle_execution
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Build the next executable trade cycle or final budgeted prefix.
@@ -679,7 +1252,7 @@ exports:
   - name: resonance_pc.trade_loop_init
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_loop_init
-    public: true
+    public: false
     read_only: false
     timeout: null
     description: Initialize one auto-cycle trade loop state.
@@ -775,7 +1348,7 @@ exports:
   - name: resonance_pc.trade_loop_update
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_loop_update
-    public: true
+    public: false
     read_only: false
     timeout: null
     description: Accumulate one executed auto-cycle trade round into loop state.
@@ -795,7 +1368,7 @@ exports:
   - name: resonance_pc.trade_loop_summary
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_loop_summary
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Return one auto-cycle trade loop summary.
@@ -807,7 +1380,7 @@ exports:
   - name: resonance_pc.trade_loop_cleanup
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_loop_cleanup
-    public: true
+    public: false
     read_only: false
     timeout: null
     description: Remove one auto-cycle trade loop state.
@@ -819,7 +1392,7 @@ exports:
   - name: resonance_pc.trade_assert_allowed_city
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_assert_allowed_city
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Assert target city key is in configured trade constraints whitelist.
@@ -835,7 +1408,7 @@ exports:
   - name: resonance_pc.trade_simulate
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_simulate
-    public: true
+    public: false
     read_only: true
     timeout: null
     description: Simulate ResonancePc rolling trade until stop condition.
@@ -877,14 +1450,97 @@ exports:
       required: false
       default: 128
   tasks:
+  - id: auto_battle_combat_pc/auto_battle_combat_pc
+    title: Auto Battle PC Combat
+    source: tasks/auto_battle_combat_pc.yaml
+    description: Shared combat executor for CT and GP action_summary battle entries.
+  - id: auto_battle_combat_pc
+    title: Auto Battle PC Combat
+    source: tasks/auto_battle_combat_pc.yaml
+    description: Shared combat executor for CT and GP action_summary battle entries.
+  - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_run_one_pc
+    title: Auto Battle PC CT TieAn Run One
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute one CT tie_an job.
+  - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_batch_pc
+    title: Auto Battle PC CT TieAn Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Batch executor for CT tie_an jobs.
+  - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_run_one_pc
+    title: Auto Battle PC CT RegionalOps Run One
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute one CT regional_ops_center job.
+  - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_batch_pc
+    title: Auto Battle PC CT RegionalOps Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Batch executor for CT regional_ops_center jobs.
+  - id: auto_battle_dispatch_pc/auto_battle_ct_batch_pc
+    title: Auto Battle PC CT Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Group CT jobs by tie_an/regional_ops_center and dispatch in order.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_difficulty_pc
+    title: Auto Battle PC GP ActionSummary Run Difficulty
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute one action_summary difficulty inside an already opened stage.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_group_pc
+    title: Auto Battle PC GP ActionSummary Run Group
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute one consecutive action_summary stage group.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_batch_pc
+    title: Auto Battle PC GP ActionSummary Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute grouped action_summary jobs.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_structural_run_one_pc
+    title: Auto Battle PC GP Structural Run One
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute one structural_exploration target.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_structural_batch_pc
+    title: Auto Battle PC GP Structural Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Execute structural_exploration jobs in order.
+  - id: auto_battle_dispatch_pc/auto_battle_gp_batch_pc
+    title: Auto Battle PC GP Batch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Group GP jobs by action_summary and structural_exploration, then
+      dispatch in order.
+  - id: auto_battle_dispatch_pc/auto_battle_dispatch_pc
+    title: Auto Battle PC Dispatch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
+      batch tasks.
+  - id: auto_battle_dispatch_pc
+    title: Auto Battle PC Dispatch
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
+      batch tasks.
+  - id: auto_battle_input_preview_pc/auto_battle_input_preview_pc
+    title: Auto Battle PC Input Preview
+    source: tasks/auto_battle_input_preview_pc.yaml
+    description: Preview-only task for validating constrained auto battle inputs.
+  - id: auto_battle_input_preview_pc
+    title: Auto Battle PC Input Preview
+    source: tasks/auto_battle_input_preview_pc.yaml
+    description: Preview-only task for validating constrained auto battle inputs.
   - id: auto_cycle_trade_pc/auto_cycle_trade_pc
-    title: Auto Cycle Trade (PC)
+    title: Exact Auto Trade (PC)
     source: tasks/auto_cycle_trade_pc.yaml
-    description: PC variant of the automatic cycle trade flow.
+    description: Plan one exact full-budget route from a frozen market snapshot and
+      execute it once.
   - id: auto_cycle_trade_pc
-    title: Auto Cycle Trade (PC)
+    title: Exact Auto Trade (PC)
     source: tasks/auto_cycle_trade_pc.yaml
-    description: PC variant of the automatic cycle trade flow.
+    description: Plan one exact full-budget route from a frozen market snapshot and
+      execute it once.
+  - id: preview_trade_plan_pc/preview_trade_plan_pc
+    title: Preview Exact Trade Plan (PC)
+    source: tasks/preview_trade_plan_pc.yaml
+    description: Refresh market data and calculate one exact route from a user-selected
+      start city.
+  - id: preview_trade_plan_pc
+    title: Preview Exact Trade Plan (PC)
+    source: tasks/preview_trade_plan_pc.yaml
+    description: Refresh market data and calculate one exact route from a user-selected
+      start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-12T12:06:15Z'
+  generated_at: '2026-07-20T16:26:34Z'

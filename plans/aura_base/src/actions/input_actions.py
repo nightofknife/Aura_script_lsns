@@ -59,8 +59,17 @@ def drag(
     end_y: int,
     button: str = "left",
     duration: float = 0.5,
+    hold_before_release_sec: float = 0.0,
 ):
-    app.drag(start_x, start_y, end_x, end_y, button, duration)
+    app.drag(
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+        button=button,
+        duration=duration,
+        hold_before_release_sec=hold_before_release_sec,
+    )
     return True
 
 

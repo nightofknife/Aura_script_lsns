@@ -116,6 +116,10 @@ class TestOcrOnnxService(unittest.TestCase):
         self.assertEqual(result["provider"], "CPUExecutionProvider")
         self.assertEqual(result["model"], "ppocrv5_server")
 
+    def test_self_check_uses_temporary_loop_when_scheduler_is_not_running(self):
+        with patch.object(self.service, "_get_running_loop", side_effect=RuntimeError("no scheduler loop")):
+            self.assertTrue(self.service.self_check())
+
     def test_actions_apply_roi_offsets_and_whitelist(self):
         app = _FakeApp()
         region = (10, 20, 200, 80)

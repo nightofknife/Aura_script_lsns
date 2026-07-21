@@ -1,5 +1,29 @@
 [
   {
+    "snapshot_id": "20260718T162503Z_6b6fe857d5",
+    "fetched_at": "2026-07-18T16:25:03.340581+00:00",
+    "raw_payload_hash": "6b6fe857d5c49ebbb78bf014388f8edf3e941207c94760c92d2476cb48a35c10",
+    "product_count": 228,
+    "city_count": 21,
+    "created_at_epoch": 1784391903
+  },
+  {
+    "snapshot_id": "20260716T152843Z_2dee425e24",
+    "fetched_at": "2026-07-16T15:28:43.654968+00:00",
+    "raw_payload_hash": "2dee425e2448f3709a35c2aa2498d08289154c92c5a8943c59d550d61f97f9a3",
+    "product_count": 228,
+    "city_count": 21,
+    "created_at_epoch": 1784215723
+  },
+  {
+    "snapshot_id": "20260716T124453Z_bdbeb9bf32",
+    "fetched_at": "2026-07-16T12:44:53.504641+00:00",
+    "raw_payload_hash": "bdbeb9bf3229af3e680eb37588efa526d5d55d01fd1eebdc90991da74cea2a76",
+    "product_count": 228,
+    "city_count": 21,
+    "created_at_epoch": 1784205893
+  },
+  {
     "snapshot_id": "20260712T131919Z_93ddad6f1a",
     "fetched_at": "2026-07-12T13:19:19.033015+00:00",
     "raw_payload_hash": "93ddad6f1a1f55324363ce5a53549713348b91f4f95cea01c5256fa2a85c887f",

@@ -210,6 +210,13 @@ def run_detail_command(cid: str, runner_mode: str) -> None:
 
 @aura.command("doctor")
 @click.option("--all/--no-all", "include_shared", default=True, show_default=True)
+@click.option("--ocr/--no-ocr", "check_ocr", default=False, show_default=True, help="Preload and test OCR.")
+@click.option(
+    "--ocr-provider",
+    type=click.Choice(["cpu", "cuda"]),
+    default=None,
+    help="Require a specific OCR execution provider; implies --ocr.",
+)
 @click.option(
     "--runner",
     "runner_mode",
@@ -217,11 +224,23 @@ def run_detail_command(cid: str, runner_mode: str) -> None:
     default="embedded",
     show_default=True,
 )
-def doctor_command(include_shared: bool, runner_mode: str) -> None:
+def doctor_command(
+    include_shared: bool,
+    check_ocr: bool,
+    ocr_provider: str | None,
+    runner_mode: str,
+) -> None:
     """Show an environment and module summary."""
     runner = _make_runner(runner_mode)
     try:
-        _dump(runner.doctor(include_shared=include_shared))
+        result = runner.doctor(
+            include_shared=include_shared,
+            check_ocr=check_ocr or ocr_provider is not None,
+            required_ocr_provider=ocr_provider,
+        )
+        _dump(result)
+        if not bool(result.get("ok", True)):
+            raise click.exceptions.Exit(1)
     finally:
         if hasattr(runner, "close"):
             runner.close()

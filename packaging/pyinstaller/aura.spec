@@ -177,6 +177,16 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
+bundled_plan_modules = sorted(
+    name for name, *_ in a.pure if name == "plans" or name.startswith("plans.")
+)
+if bundled_plan_modules:
+    raise SystemExit(
+        "External Plan modules were unexpectedly bundled by PyInstaller: "
+        + ", ".join(bundled_plan_modules[:20])
+    )
+
 pyz = PYZ(a.pure)
 
 def _scripts_for(entrypoint: Path):

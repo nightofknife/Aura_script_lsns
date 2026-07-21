@@ -41,3 +41,18 @@ The Resonance release uses:
 - external editable plan packages under `plans\`
 
 Previous game-specific business assets are intentionally not part of this repository.
+
+## Using a Release
+
+Choose the CPU archive for a universal Windows build, or the GPU archive for a
+machine that may use NVIDIA CUDA acceleration. Extract the archive completely,
+then double-click `AuraResonanceGui.exe`; Python does not need to be installed.
+The GPU build falls back to CPU when CUDA is unavailable. To enable a bundled
+CUDA 13 runtime, extract the matching `nvidia-cu13-overlay.zip` over the GPU
+release directory and allow it to merge the `runtime` directory.
+
+Plans remain editable source files. To apply a Plan replacement archive, close
+Aura Resonance, back up the current `plans\` directory if desired, replace that
+directory with the complete `plans\` directory from the archive, and start the
+GUI again. Plan archives intentionally contain no installer, compatibility
+metadata, cache, logs, credentials, or bytecode.

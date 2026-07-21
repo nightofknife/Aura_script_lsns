@@ -1,5 +1,5 @@
-# PyPI default onnxruntime-gpu wheels use the CUDA 12 runtime line.
-# For portable release overlays, also install optional-nvidia-runtime-cu12.txt
+# onnxruntime-gpu 1.27.x uses the CUDA 13 runtime line.
+# For portable release overlays, also install optional-nvidia-runtime-cu13.txt
 # in the release build venv.
 numpy<2.4
 opencv-python

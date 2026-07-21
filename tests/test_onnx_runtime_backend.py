@@ -128,6 +128,24 @@ class TestOnnxRuntimeBackend(unittest.TestCase):
         register_dirs.assert_called_once_with(fake_ort)
         preload_torch.assert_called_once()
 
+    def test_cuda_13_wheel_directory_is_discovered(self):
+        backend = self._backend()
+        site_root = Path(self.temp_dir.name) / "site-packages"
+        cuda_bin = site_root / "nvidia" / "cu13" / "bin" / "x86_64"
+        cuda_bin.mkdir(parents=True)
+        fake_ort = SimpleNamespace(__file__=str(site_root / "onnxruntime" / "__init__.py"))
+
+        with patch(
+            "packages.aura_core.services.onnx_runtime_backend.site.getsitepackages",
+            return_value=[str(site_root)],
+        ), patch(
+            "packages.aura_core.services.onnx_runtime_backend.site.getusersitepackages",
+            return_value="",
+        ):
+            candidates = list(backend.candidate_windows_cuda_directories(fake_ort))
+
+        self.assertIn(cuda_bin.resolve(), [candidate.resolve() for candidate in candidates])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -34,13 +34,6 @@ _DEFAULT_CITY_SEARCH_REGION = [120, 80, 1100, 600]  # x,y,w,h
 _DEFAULT_DRAG_CENTER = [640, 360]  # x,y
 _DEFAULT_FULL_SCREEN_REGION = [0, 0, 1280, 720]
 
-_ARRIVAL_MARKERS = ("进入站点",)
-_ENCOUNTER_MARKERS = ("立即返航", "护卫队迎击", "敌方等级", "应对方式", "诱饵气球")
-_BALLOON_MARKERS = ("诱饵气球",)
-_RETURN_MARKERS = ("立即返航",)
-_FIGHT_MARKERS = ("护卫队迎击",)
-_UNAVAILABLE_MARKERS = ("暂不可用", "不可用")
-
 _DEPART_MARKERS = ("启程",)
 _DEPART_CONFIRM_MARKERS = ("立即出发",)
 
@@ -411,29 +404,6 @@ def _find_marker_hit(items: List[Dict[str, Any]], markers: Tuple[str, ...]) -> O
             if normalized_marker and normalized_marker in norm:
                 return {**item, "marker": marker}
     return None
-
-
-def _collect_marker_hits(items: List[Dict[str, Any]], markers: Tuple[str, ...]) -> List[Dict[str, Any]]:
-    hits: List[Dict[str, Any]] = []
-    normalized_markers = [(_normalize_text(marker), marker) for marker in markers]
-    for item in items:
-        norm = str(item.get("norm_text") or "")
-        for normalized_marker, marker in normalized_markers:
-            if normalized_marker and normalized_marker in norm:
-                hits.append({**item, "marker": marker})
-                break
-    return hits
-
-
-def _looks_like_intercity_encounter(items: List[Dict[str, Any]]) -> bool:
-    markers = {str(hit.get("marker") or "") for hit in _collect_marker_hits(items, _ENCOUNTER_MARKERS)}
-    if "应对方式" in markers and len(markers) >= 2:
-        return True
-    if "立即返航" in markers and "护卫队迎击" in markers:
-        return True
-    if "敌方等级" in markers and ("护卫队迎击" in markers or "诱饵气球" in markers):
-        return True
-    return False
 
 
 def _find_target_hit(
@@ -1296,13 +1266,7 @@ def resonance_pc_intercity_depart_and_wait(
             arrival = resonance_pc_wait_intercity_arrival(
                 timeout_sec=enter_station_timeout_seconds,
                 interval_sec=3.0,
-                region=_DEFAULT_FULL_SCREEN_REGION,
-                arrival_text="进入站点",
-                encounter_policy="fight",
-                max_encounter_actions=3,
-                post_action_sec=1.0,
                 app=app,
-                ocr=ocr,
                 vision=vision,
             )
             return {
@@ -1455,54 +1419,35 @@ def resonance_pc_intercity_depart_and_wait(
     name="resonance_pc.wait_intercity_arrival",
     public=True,
     read_only=False,
-    description="Wait for intercity arrival and handle trade-travel encounter screens within the travel task.",
+    description="Wait for intercity arrival using the enter-station button template.",
 )
 @requires_services(
     app="plans/aura_base/app",
-    ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
 )
 def resonance_pc_wait_intercity_arrival(
     timeout_sec: float = 600.0,
     interval_sec: float = 3.0,
-    region: Optional[List[int]] = None,
-    arrival_text: str = "进入站点",
-    encounter_policy: str = "fight",
-    max_encounter_actions: int = 3,
-    post_action_sec: float = 1.0,
     arrival_template: str = _ARRIVAL_BUTTON_TEMPLATE,
     arrival_template_region: Optional[List[int]] = None,
     arrival_template_threshold: float = 0.85,
     arrival_click_max_attempts: int = 5,
     arrival_click_verify_interval_sec: float = 0.8,
     app: Any = None,
-    ocr: Any = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
-    """Task-local wait loop for trade travel.
+    """Poll the enter-station template until arrival; travel encounters resolve in-game."""
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required for wait_intercity_arrival.")
 
-    `timeout_sec <= 0` waits indefinitely. `encounter_policy` controls the task-local encounter action:
-    - fight: click escort/fight option and continue waiting.
-    - balloon_only: click available bait balloon, fail if only fight/return choices remain.
-    - return: click immediate return, then fail the travel leg explicitly.
-    - fail: never click encounter choices; fail immediately with OCR evidence.
-    """
-    if app is None or ocr is None or vision is None:
-        raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
-
-    screen_region = _coerce_region(region, _DEFAULT_FULL_SCREEN_REGION)
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
     raw_timeout = float(timeout_sec)
     timeout = None if raw_timeout <= 0 else max(raw_timeout, 0.1)
     interval = max(float(interval_sec), 0.1)
-    max_actions = max(int(max_encounter_actions), 0)
-    policy = str(encounter_policy or "fight").strip().lower()
     started = time.monotonic()
     deadline = None if timeout is None else started + timeout
-    encounter_actions = 0
     poll_count = 0
     trace: List[Dict[str, Any]] = []
-    last_items: List[Dict[str, Any]] = []
 
     while deadline is None or time.monotonic() <= deadline:
         poll_count += 1
@@ -1534,136 +1479,18 @@ def resonance_pc_wait_intercity_arrival(
                 "status": "arrived",
                 "poll_count": poll_count,
                 "elapsed_sec": round(time.monotonic() - started, 3),
-                "encounter_actions": encounter_actions,
                 "arrival_point": arrival["arrival_point"],
                 "arrival_click_attempts": arrival["click_attempts"],
                 "trace": trace[-20:],
             }
 
-        items = _capture_and_ocr_text_items(
-            app=app,
-            ocr=ocr,
-            region=screen_region,
-            diagnostic_label="IntercityArrivalOCR",
-            diagnostic_poll=poll_count,
-        )
-        last_items = items
-
-        if _looks_like_intercity_encounter(items):
-            marker_hits = _collect_marker_hits(items, _ENCOUNTER_MARKERS)
-            trace.append(
-                {
-                    "poll": poll_count,
-                    "action": "detect_encounter",
-                    "markers": [
-                        {
-                            "marker": hit.get("marker"),
-                            "text": hit.get("text"),
-                            "center": hit.get("center"),
-                        }
-                        for hit in marker_hits[:6]
-                    ],
-                }
-            )
-            logger.info(
-                "[IntercityArrival] encounter detected policy=%s markers=%s",
-                policy,
-                [hit.get("marker") for hit in marker_hits],
-            )
-
-            if encounter_actions >= max_actions:
-                _raise_error(
-                    code="travel_encounter_action_limit",
-                    message="Intercity encounter action limit reached before arrival.",
-                    detail={"policy": policy, "trace": trace[-20:]},
-                )
-
-            unavailable_hit = _find_marker_hit(items, _UNAVAILABLE_MARKERS)
-            balloon_hit = _find_marker_hit(items, _BALLOON_MARKERS)
-            if policy in {"balloon_only", "balloon", "safe"} and balloon_hit is not None and unavailable_hit is None:
-                x, y = balloon_hit["center"][:2]
-                app.click(x=int(x), y=int(y))
-                encounter_actions += 1
-                trace.append(
-                    {
-                        "poll": poll_count,
-                        "action": "click_bait_balloon",
-                        "text": balloon_hit.get("text"),
-                        "point": {"x": int(x), "y": int(y)},
-                    }
-                )
-                logger.info("[IntercityArrival] clicked bait balloon at=(%s,%s)", x, y)
-                time.sleep(max(float(post_action_sec), 0.0))
-                continue
-
-            if policy == "fight":
-                fight_hit = _find_marker_hit(items, _FIGHT_MARKERS)
-                if fight_hit is not None:
-                    x, y = fight_hit["center"][:2]
-                    app.click(x=int(x), y=int(y))
-                    encounter_actions += 1
-                    trace.append(
-                        {
-                            "poll": poll_count,
-                            "action": "click_fight",
-                            "text": fight_hit.get("text"),
-                            "point": {"x": int(x), "y": int(y)},
-                        }
-                    )
-                    logger.info("[IntercityArrival] clicked fight option at=(%s,%s)", x, y)
-                    time.sleep(max(float(post_action_sec), 0.0))
-                    continue
-
-            if policy == "return":
-                return_hit = _find_marker_hit(items, _RETURN_MARKERS)
-                if return_hit is not None:
-                    x, y = return_hit["center"][:2]
-                    app.click(x=int(x), y=int(y))
-                    encounter_actions += 1
-                    trace.append(
-                        {
-                            "poll": poll_count,
-                            "action": "click_return",
-                            "text": return_hit.get("text"),
-                            "point": {"x": int(x), "y": int(y)},
-                        }
-                    )
-                    logger.info("[IntercityArrival] clicked return option at=(%s,%s)", x, y)
-                    _raise_error(
-                        code="travel_returned_from_encounter",
-                        message="Intercity travel returned from encounter before arrival.",
-                        detail={"policy": policy, "trace": trace[-20:]},
-                    )
-
-            _raise_error(
-                code="travel_encounter_requires_manual_resolution",
-                message="Intercity encounter detected, but the configured travel policy cannot resolve it safely.",
-                detail={
-                    "policy": policy,
-                    "bait_balloon_found": balloon_hit is not None,
-                    "unavailable_found": unavailable_hit is not None,
-                    "markers": [
-                        {
-                            "marker": hit.get("marker"),
-                            "text": hit.get("text"),
-                            "center": hit.get("center"),
-                        }
-                        for hit in marker_hits[:10]
-                    ],
-                    "trace": trace[-20:],
-                },
-            )
-
         time.sleep(interval)
 
     _raise_error(
         code="arrival_timeout",
-        message=f"Intercity arrival text was not found within {timeout:.1f}s.",
+        message=f"Intercity arrival template was not found within {timeout:.1f}s.",
         detail={
-            "arrival_text": arrival_text,
             "poll_count": poll_count,
-            "encounter_actions": encounter_actions,
-            "last_seen_texts": [str(item.get("text") or "") for item in last_items[:20]],
             "trace": trace[-20:],
         },
     )

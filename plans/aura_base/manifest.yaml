@@ -466,6 +466,10 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.0
   - name: press_key
     module: plans.aura_base.src.actions.input_actions
     function: press_key
@@ -2669,4 +2673,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-06-30T12:40:51Z'
+  generated_at: '2026-07-13T15:49:09Z'

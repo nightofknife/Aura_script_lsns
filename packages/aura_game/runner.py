@@ -343,7 +343,13 @@ class EmbeddedGameRunner:
                 items.append(_normalize_event_row(item))
         return items
 
-    def doctor(self, *, include_shared: bool = True) -> Dict[str, Any]:
+    def doctor(
+        self,
+        *,
+        include_shared: bool = True,
+        check_ocr: bool = False,
+        required_ocr_provider: Optional[str] = None,
+    ) -> Dict[str, Any]:
         runtime = self._ensure_runtime()
         games = self.list_games(include_shared=include_shared)
         runtime_target = None
@@ -355,7 +361,7 @@ class EmbeddedGameRunner:
                 "ok": False,
                 "message": str(exc),
             }
-        return {
+        result = {
             "framework": "Aura Game Framework",
             "profile": self.profile,
             "status": self.status(),
@@ -368,6 +374,38 @@ class EmbeddedGameRunner:
                 "service_count": len(runtime.get_all_services_for_api()),
             },
         }
+        if check_ocr:
+            expected_provider = {
+                "cpu": "CPUExecutionProvider",
+                "cuda": "CUDAExecutionProvider",
+            }.get(str(required_ocr_provider or "").strip().lower())
+            try:
+                ocr_service = service_registry.get_service_instance("ocr")
+                self_check_ok = bool(ocr_service.self_check())
+                active_provider = str(ocr_service.get_provider() or "")
+                provider_ok = expected_provider is None or active_provider == expected_provider
+                result["ocr"] = {
+                    "ok": self_check_ok and provider_ok,
+                    "backend": str(ocr_service.get_backend() or ""),
+                    "provider": active_provider,
+                    "model": ocr_service.get_model(),
+                    "required_provider": expected_provider,
+                }
+                if self_check_ok and not provider_ok:
+                    result["ocr"]["message"] = (
+                        f"Expected OCR provider {expected_provider}, got {active_provider or 'unknown'}."
+                    )
+            except Exception as exc:
+                result["ocr"] = {
+                    "ok": False,
+                    "provider": None,
+                    "required_provider": expected_provider,
+                    "message": str(exc),
+                }
+            result["ok"] = bool(result["ocr"].get("ok"))
+        else:
+            result["ok"] = True
+        return result
 
 
 def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> None:
@@ -589,8 +627,19 @@ class SubprocessGameRunner:
     def poll_events(self, *, limit: int = 100, timeout_sec: float = 0.0) -> List[Dict[str, Any]]:
         return self._request("poll_events", limit=limit, timeout_sec=timeout_sec)
 
-    def doctor(self, *, include_shared: bool = True) -> Dict[str, Any]:
-        return self._request("doctor", include_shared=include_shared)
+    def doctor(
+        self,
+        *,
+        include_shared: bool = True,
+        check_ocr: bool = False,
+        required_ocr_provider: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return self._request(
+            "doctor",
+            include_shared=include_shared,
+            check_ocr=check_ocr,
+            required_ocr_provider=required_ocr_provider,
+        )
 
     def close(self) -> None:
         if self._process is None:

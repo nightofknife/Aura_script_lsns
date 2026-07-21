@@ -1,0 +1,9 @@
+# Optional portable CUDA 13 runtime overlay for onnxruntime-gpu 1.27.x.
+# Prefer the fully pinned requirements/release-nvidia-overlay.txt file for
+# reproducible release builds.
+nvidia-cuda-runtime
+nvidia-cuda-nvrtc
+nvidia-nvjitlink
+nvidia-cublas
+nvidia-cufft
+nvidia-cudnn-cu13

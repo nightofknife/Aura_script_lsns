@@ -76,9 +76,15 @@ class OcrService:
 
     def self_check(self) -> bool:
         try:
-            self.initialize_engine()
-            test_image = np.zeros((32, 32, 3), dtype=np.uint8)
-            _ = self.recognize_all(test_image)
+            try:
+                loop = self._get_running_loop()
+            except RuntimeError:
+                # CLI diagnostics run before the scheduler owns an event loop.
+                # Keep initialization and inference on one temporary loop so
+                # asyncio primitives are never rebound between separate runs.
+                asyncio.run(self._self_check_async())
+            else:
+                self._submit_to_loop_and_wait(self._self_check_async(), loop=loop)
             logger.info(
                 "OCR self-check OK (backend=onnxruntime, provider=%s).",
                 self._engine_provider or "unknown",
@@ -87,6 +93,11 @@ class OcrService:
         except Exception as e:
             logger.error("OCR self-check failed: %s", e, exc_info=True)
             return False
+
+    async def _self_check_async(self) -> None:
+        await self._initialize_engine_async()
+        test_image = np.zeros((32, 32, 3), dtype=np.uint8)
+        await self._recognize_all_async(test_image)
 
     def get_backend(self) -> str:
         return "onnxruntime"
@@ -329,9 +340,14 @@ class OcrService:
                         raise RuntimeError("OcrService could not find a running asyncio event loop.")
             return self._loop
 
-    def _submit_to_loop_and_wait(self, coro: asyncio.Future) -> Any:
+    def _submit_to_loop_and_wait(
+        self,
+        coro: asyncio.Future,
+        *,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ) -> Any:
         try:
-            loop = self._get_running_loop()
+            loop = loop or self._get_running_loop()
         except Exception:
             if hasattr(coro, "close"):
                 coro.close()

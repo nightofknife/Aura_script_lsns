@@ -1,0 +1,135 @@
+auto_battle_input_preview_pc:
+  meta:
+    title: Auto Battle PC Input Preview
+    description: Preview-only task for validating constrained auto battle inputs.
+    entry_point: true
+    inputs:
+      - name: jobs
+        label: Battle Jobs
+        description: Ordered job list. Add multiple items to run sequentially.
+        type: list
+        required: true
+        min_items: 1
+        max_items: 50
+        item:
+          name: job_item
+          label: Job Item
+          type: dict
+          required: true
+          properties:
+            route_id:
+              name: route_id
+              label: Route
+              type: string
+              required: true
+              enum:
+                - "ct.tie_an.shoggolith_city.expel"
+                - "ct.tie_an.shoggolith_city.bounty"
+                - "ct.tie_an.mander_mine.expel"
+                - "ct.tie_an.mander_mine.bounty"
+                - "ct.tie_an.freeport.expel"
+                - "ct.tie_an.freeport.bounty"
+                - "ct.tie_an.clarity_data_center.expel"
+                - "ct.tie_an.clarity_data_center.bounty"
+                - "ct.tie_an.seacorner_city.expel"
+                - "ct.tie_an.seacorner_city.bounty"
+                - "ct.tie_an.anita_launch_center.expel"
+                - "ct.tie_an.anita_launch_center.bounty"
+                - "ct.tie_an.lanxin_city.expel"
+                - "ct.tie_an.lanxin_city.bounty"
+                - "ct.tie_an.gonglu_city.expel"
+                - "ct.tie_an.gonglu_city.bounty"
+                - "ct.regional_ops_center.wilderness_station"
+                - "ct.regional_ops_center.brcl_outpost"
+                - "ct.regional_ops_center.onederland"
+                - "ct.regional_ops_center.anita_energy_research_institute"
+                - "ct.regional_ops_center.anita_weapon_research_institute"
+                - "ct.regional_ops_center.yunxiuqiao_base"
+                - "ct.regional_ops_center.qiyu_station"
+                - "ct.regional_ops_center.confluence_tower"
+                - "ct.regional_ops_center.farstar_bridge"
+                - "ct.regional_ops_center.vitilin_forest"
+                - "gp.action_summary.blade_encirclement.special_order"
+                - "gp.action_summary.blade_encirclement.blade_action"
+                - "gp.action_summary.blade_encirclement.read_by_lamp"
+                - "gp.action_summary.blade_encirclement.weapon_material_analysis"
+                - "gp.action_summary.blade_encirclement.knight_novel"
+                - "gp.action_summary.blade_encirclement.i_think_i_am"
+                - "gp.action_summary.blade_encirclement.what_i_know"
+                - "gp.action_summary.blade_encirclement.big_one"
+                - "gp.action_summary.blade_encirclement.total_encirclement"
+                - "gp.action_summary.global_supply.savior"
+                - "gp.action_summary.global_supply.standard"
+                - "gp.action_summary.global_supply.elegant"
+                - "gp.action_summary.global_supply.cutting_edge"
+                - "gp.action_summary.global_supply.chaos"
+                - "gp.action_summary.global_supply.magic"
+                - "gp.action_summary.smuggler_crackdown.blind_box"
+                - "gp.structural_exploration.disordered_roots"
+                - "gp.structural_exploration.hetero_branches"
+                - "gp.structural_exploration.echo_buoy"
+                - "gp.structural_exploration.birch_buoy"
+            difficulty:
+              name: difficulty
+              label: Difficulty
+              description: Used by tie_an expel, regional_ops, and gp action_summary routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              enum: [1, 2, 3, 4, 5, 6]
+            stage:
+              name: stage
+              label: Stage
+              description: Used only by tie_an expel routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              enum: [1, 2, 3]
+            threat_level:
+              name: threat_level
+              label: Threat Level
+              description: Used only by regional_ops routes. Incompatible residual values are ignored before validation.
+              type: number
+              required: false
+              min: 1
+            formation_index:
+              name: formation_index
+              label: Formation
+              description: Optional combat formation slot used by CT and gp action_summary combat flows.
+              type: number
+              required: false
+              enum: [1, 2, 3, 4]
+            capture_count:
+              name: capture_count
+              label: Capture Count
+              description: Optional arrest click count used by CT and gp action_summary combat flows.
+              type: number
+              required: false
+              min: 1
+      - name: stop_on_failure
+        label: Stop On Failure
+        type: boolean
+        required: false
+        default: true
+
+  steps:
+    normalize_jobs:
+      action: resonance_pc.normalize_battle_jobs
+      params:
+        jobs: "{{ inputs.jobs }}"
+
+    validate_jobs:
+      action: resonance_pc.validate_battle_jobs
+      params:
+        jobs: "{{ nodes.normalize_jobs.output.normalized_jobs }}"
+      depends_on: normalize_jobs
+
+    preview_log:
+      action: plans/aura_base/log
+      params:
+        message: "auto_battle_input_preview_pc accepted."
+      depends_on: validate_jobs
+
+  returns:
+    success: true
+    job_count: "{{ nodes.validate_jobs.output.job_count }}"
+    normalized_jobs: "{{ nodes.validate_jobs.output.normalized_jobs }}"
+    stop_on_failure: "{{ inputs.stop_on_failure }}"
