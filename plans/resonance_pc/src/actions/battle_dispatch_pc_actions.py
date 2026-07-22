@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import cv2
+
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 
@@ -188,6 +190,57 @@ def _coerce_drag(value: Any, fallback: List[int]) -> Tuple[int, int, int, int]:
     except (TypeError, ValueError):
         sx, sy, ex, ey = base
     return (sx, sy, ex, ey)
+
+
+def _detect_back_button(image: Any) -> Optional[Dict[str, Any]]:
+    if image is None or not hasattr(image, "shape") or len(image.shape) < 2:
+        return None
+    if image.shape[0] < 20 or image.shape[1] < 40:
+        return None
+
+    if len(image.shape) == 2:
+        gray = image
+    elif image.shape[2] == 4:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+    else:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    bright_mask = cv2.inRange(gray, 180, 255)
+    bright_mask = cv2.morphologyEx(
+        bright_mask,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7)),
+    )
+    contours, _ = cv2.findContours(bright_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    candidates: List[Dict[str, Any]] = []
+    for contour in contours:
+        x, y, width, height = cv2.boundingRect(contour)
+        if not 100 <= width <= 150 or not 35 <= height <= 60:
+            continue
+        aspect_ratio = width / max(height, 1)
+        if not 2.0 <= aspect_ratio <= 4.2:
+            continue
+
+        box = gray[y : y + height, x : x + width]
+        bright_ratio = float((box >= 180).mean())
+        dark_ratio = float((box < 80).mean())
+        contour_fill = float(cv2.contourArea(contour)) / max(width * height, 1)
+        if bright_ratio < 0.75 or contour_fill < 0.75 or not 0.02 <= dark_ratio <= 0.2:
+            continue
+
+        confidence = min(1.0, (bright_ratio + contour_fill + min(dark_ratio / 0.05, 1.0)) / 3.0)
+        candidates.append(
+            {
+                "rect": [int(x), int(y), int(width), int(height)],
+                "center": [int(x + width // 2), int(y + height // 2)],
+                "confidence": confidence,
+                "bright_ratio": bright_ratio,
+                "dark_ratio": dark_ratio,
+                "contour_fill": contour_fill,
+            }
+        )
+
+    return max(candidates, key=lambda item: float(item["confidence"])) if candidates else None
 
 
 def _sanitize_battle_job_fields(
@@ -1654,6 +1707,225 @@ def resonance_pc_select_action_summary_stage(
             ],
         },
     )
+
+
+@action_info(
+    name="resonance_pc.try_select_action_summary_stage",
+    public=True,
+    read_only=False,
+    description="Attempt action_summary stage entry and return failures as data so task cleanup can run.",
+)
+@requires_services(
+    app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
+)
+def resonance_pc_try_select_action_summary_stage(
+    route_id: str,
+    region: Optional[List[int]] = None,
+    drag_forward: Optional[List[int]] = None,
+    drag_backward: Optional[List[int]] = None,
+    max_attempts: int = 12,
+    drag_duration_sec: float = 0.5,
+    drag_hold_before_release_sec: float = 0.5,
+    after_drag_sec: float = 0.5,
+    enter_button_text: str = "进入挑战",
+    button_region_left_offset: int = -128,
+    button_region_top_offset: int = 143,
+    button_region_width: int = 258,
+    button_region_height: int = 95,
+    button_min_confidence: float = 0.8,
+    button_timeout_sec: float = 2.0,
+    button_click_attempts: int = 3,
+    after_button_click_sec: float = 0.5,
+    transition_text: str = "开始作战",
+    transition_region: Optional[List[int]] = None,
+    transition_timeout_sec: float = 4.0,
+    transition_min_confidence: float = 0.7,
+    match_mode: str = "contains",
+    app: Any = None,
+    ocr: Any = None,
+) -> Dict[str, Any]:
+    try:
+        result = resonance_pc_select_action_summary_stage(
+            route_id=route_id,
+            region=region,
+            drag_forward=drag_forward,
+            drag_backward=drag_backward,
+            max_attempts=max_attempts,
+            drag_duration_sec=drag_duration_sec,
+            drag_hold_before_release_sec=drag_hold_before_release_sec,
+            after_drag_sec=after_drag_sec,
+            enter_button_text=enter_button_text,
+            button_region_left_offset=button_region_left_offset,
+            button_region_top_offset=button_region_top_offset,
+            button_region_width=button_region_width,
+            button_region_height=button_region_height,
+            button_min_confidence=button_min_confidence,
+            button_timeout_sec=button_timeout_sec,
+            button_click_attempts=button_click_attempts,
+            after_button_click_sec=after_button_click_sec,
+            transition_text=transition_text,
+            transition_region=transition_region,
+            transition_timeout_sec=transition_timeout_sec,
+            transition_min_confidence=transition_min_confidence,
+            match_mode=match_mode,
+            app=app,
+            ocr=ocr,
+        )
+        return {"success": True, "result": result, "error_code": None, "error_message": None}
+    except Exception as exc:
+        error_code = exc.code if isinstance(exc, ResonancePcBattleDispatchError) else type(exc).__name__
+        logger.exception(
+            "[BattleCleanup][ActionSummaryStage] route_id=%s entry_failed=true "
+            "error_code=%s error_message=%s; deferring failure until after UI cleanup",
+            route_id,
+            error_code,
+            exc,
+        )
+        return {
+            "success": False,
+            "result": None,
+            "error_code": error_code,
+            "error_message": str(exc),
+        }
+
+
+@action_info(
+    name="resonance_pc.wait_and_click_back_button",
+    public=True,
+    read_only=False,
+    description="Wait for the visual back-button control to stabilize, then click its detected center.",
+)
+@requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr")
+def resonance_pc_wait_and_click_back_button(
+    region: Optional[List[int]] = None,
+    timeout_sec: float = 8.0,
+    interval_sec: float = 0.2,
+    stable_scans: int = 2,
+    move_duration_sec: float = 0.1,
+    already_at_target_text: Optional[str] = None,
+    already_at_target_region: Optional[List[int]] = None,
+    already_at_target_min_confidence: float = 0.7,
+    app: Any = None,
+    ocr: Any = None,
+) -> Dict[str, Any]:
+    if app is None:
+        _raise_error("missing_service", "app service is required")
+
+    region_tuple = _coerce_region(region, [10, 5, 160, 70])
+    timeout = max(float(timeout_sec), 0.0)
+    interval = max(float(interval_sec), 0.01)
+    required_stable_scans = max(int(stable_scans), 1)
+    deadline = time.monotonic() + timeout
+    scan = 0
+    stable_count = 0
+    last_center: Optional[Tuple[int, int]] = None
+    last_detection: Optional[Dict[str, Any]] = None
+    target_text = _normalize_text(already_at_target_text or "")
+    target_region = (
+        _coerce_region(already_at_target_region, [1100, 380, 150, 120])
+        if target_text
+        else None
+    )
+    target_min_confidence = float(already_at_target_min_confidence)
+
+    if target_text and ocr is None:
+        _raise_error("missing_service", "ocr service is required when already_at_target_text is set")
+
+    while True:
+        scan += 1
+        capture = app.capture(rect=region_tuple)
+        detection = _detect_back_button(capture.image) if capture.success else None
+        if detection is not None:
+            local_center = tuple(int(value) for value in detection["center"])
+            if last_center is not None and all(abs(a - b) <= 2 for a, b in zip(local_center, last_center)):
+                stable_count += 1
+            else:
+                stable_count = 1
+            last_center = local_center
+            last_detection = detection
+        else:
+            stable_count = 0
+            last_center = None
+
+        logger.info(
+            "[BattleVision][BackButton] scan=%s region=%s capture_success=%s "
+            "detection=%s stable=%s/%s",
+            scan,
+            list(region_tuple),
+            bool(capture.success),
+            detection,
+            stable_count,
+            required_stable_scans,
+        )
+
+        if target_text and detection is None and target_region is not None:
+            target_items = _recognize_text_items(app=app, ocr=ocr, region=target_region)
+            target_hit = next(
+                (
+                    row
+                    for row in target_items
+                    if _match_mode_hit(row["normalized"], target_text, "contains")
+                    and float(row["confidence"]) >= target_min_confidence
+                ),
+                None,
+            )
+            logger.info(
+                "[BattleOCR][BackButtonTarget] scan=%s target=%s region=%s "
+                "recognized_texts=%s candidate=%s",
+                scan,
+                already_at_target_text,
+                list(target_region),
+                [
+                    {
+                        "text": row["text"],
+                        "center": list(row["center"]),
+                        "confidence": round(float(row["confidence"]), 4),
+                    }
+                    for row in target_items
+                ],
+                target_hit,
+            )
+            if target_hit is not None:
+                return {
+                    "found": False,
+                    "clicked": False,
+                    "already_at_target": True,
+                    "target_text": str(target_hit["text"]),
+                    "confidence": float(target_hit["confidence"]),
+                    "scans": scan,
+                }
+
+        if detection is not None and stable_count >= required_stable_scans:
+            click_x = int(region_tuple[0] + detection["center"][0])
+            click_y = int(region_tuple[1] + detection["center"][1])
+            app.move_to(click_x, click_y, duration=max(float(move_duration_sec), 0.0))
+            app.click(x=click_x, y=click_y)
+            logger.info(
+                "[BattleClick][BackButton] click=%s confidence=%.4f scans=%s",
+                [click_x, click_y],
+                float(detection["confidence"]),
+                scan,
+            )
+            return {
+                "found": True,
+                "clicked": True,
+                "click": [click_x, click_y],
+                "confidence": float(detection["confidence"]),
+                "scans": scan,
+            }
+
+        if time.monotonic() >= deadline:
+            _raise_error(
+                "back_button_not_found",
+                f"Failed to locate a stable back button within {timeout:.1f}s",
+                {
+                    "region": list(region_tuple),
+                    "scans": scan,
+                    "last_detection": last_detection,
+                },
+            )
+        time.sleep(min(interval, max(deadline - time.monotonic(), 0.0)))
 
 
 @action_info(

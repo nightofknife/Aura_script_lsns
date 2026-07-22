@@ -501,10 +501,12 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_first_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_first_tie_an_batch: "success|failed|skipped"
@@ -580,10 +582,12 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_single_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_first_tie_an_batch: "success|failed|skipped"
@@ -591,10 +595,12 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.first_category != '' and nodes.prepare_ct_category_order.second_category == '' }}"
 
     click_back_after_second_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_second_tie_an_batch: "success|failed|skipped"
@@ -756,7 +762,7 @@ auto_battle_gp_action_summary_run_group_pc:
       depends_on: assert_group_text_clicked
 
     select_stage_and_enter:
-      action: resonance_pc.select_action_summary_stage
+      action: resonance_pc.try_select_action_summary_stage
       params:
         route_id: "{{ inputs.route_id }}"
         region: [450, 400, 750, 50]
@@ -794,19 +800,32 @@ auto_battle_gp_action_summary_run_group_pc:
           formation_index: "{{ loop.item.formation_index | default(none) }}"
           capture_count: "{{ loop.item.capture_count | default(none) }}"
       depends_on: select_stage_and_enter
+      when: "{{ nodes.select_stage_and_enter.output.success }}"
 
     click_back_to_action_summary:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
-      depends_on: run_group_jobs
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
+      depends_on:
+        all:
+          - select_stage_and_enter: "success"
+          - run_group_jobs: "success|failed|skipped"
 
     wait_after_back_to_action_summary:
       action: plans/aura_base/sleep
       params:
         seconds: 1.0
       depends_on: click_back_to_action_summary
+
+    assert_stage_entry_succeeded:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.select_stage_and_enter.output.success }}"
+        message: "{{ nodes.select_stage_and_enter.output.error_message | default('failed to enter action_summary stage') }}"
+      depends_on: wait_after_back_to_action_summary
 
   returns:
     success: true
@@ -1043,10 +1062,12 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.first_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
 
     click_back_after_first_gp_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_first_action_summary_batch: "success|failed|skipped"
@@ -1107,10 +1128,12 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
 
     click_back_after_single_gp_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_first_action_summary_batch: "success|failed|skipped"
@@ -1118,10 +1141,12 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.first_category != '' and nodes.prepare_gp_category_order.second_category == '' }}"
 
     click_back_after_second_gp_batch:
-      action: plans/aura_base/click
+      action: resonance_pc.wait_and_click_back_button
       params:
-        x: 90
-        y: 40
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
       depends_on:
         all:
           - run_second_action_summary_batch: "success|failed|skipped"
@@ -1415,6 +1440,38 @@ auto_battle_dispatch_pc:
           jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
       depends_on: wait_after_second_switch
       when: "{{ nodes.prepare_category_order.second_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
+
+    click_back_to_initial_after_single_category:
+      action: resonance_pc.wait_and_click_back_button
+      params:
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
+        already_at_target_text: "作战终端"
+        already_at_target_region: [1100, 380, 150, 120]
+        already_at_target_min_confidence: 0.7
+      depends_on:
+        all:
+          - run_first_ct_batch: "success|failed|skipped"
+          - run_first_gp_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.first_category != '' and nodes.prepare_category_order.second_category == '' }}"
+
+    click_back_to_initial_after_second_category:
+      action: resonance_pc.wait_and_click_back_button
+      params:
+        region: [10, 5, 160, 70]
+        timeout_sec: 8.0
+        interval_sec: 0.2
+        stable_scans: 2
+        already_at_target_text: "作战终端"
+        already_at_target_region: [1100, 380, 150, 120]
+        already_at_target_min_confidence: 0.7
+      depends_on:
+        all:
+          - run_second_ct_batch: "success|failed|skipped"
+          - run_second_gp_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.second_category != '' }}"
 
   returns:
     success: true
