@@ -18,6 +18,12 @@ auto_battle_ct_tie_an_run_one_pc:
       - name: difficulty
         type: number
         required: false
+      - name: formation_index
+        type: number
+        required: false
+      - name: capture_count
+        type: number
+        required: false
   steps:
     select_city:
       action: resonance_pc.select_ordered_city
@@ -181,6 +187,9 @@ auto_battle_ct_tie_an_run_one_pc:
       action: aura.run_task
       params:
         task_ref: "tasks:auto_battle_combat_pc.yaml:auto_battle_combat_pc"
+        inputs:
+          formation_index: "{{ inputs.formation_index | default(none) }}"
+          capture_count: "{{ inputs.capture_count | default(none) }}"
       depends_on: click_go_combat_with_difficulty
       when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
 
@@ -188,6 +197,9 @@ auto_battle_ct_tie_an_run_one_pc:
       action: aura.run_task
       params:
         task_ref: "tasks:auto_battle_combat_pc.yaml:auto_battle_combat_pc"
+        inputs:
+          formation_index: "{{ inputs.formation_index | default(none) }}"
+          capture_count: "{{ inputs.capture_count | default(none) }}"
       depends_on: click_go_combat_without_difficulty
       when: "{{ inputs.mission_type == 'bounty' }}"
 
@@ -221,6 +233,8 @@ auto_battle_ct_tie_an_batch_pc:
           mission_type: "{{ loop.item.mission_type }}"
           stage: "{{ loop.item.stage }}"
           difficulty: "{{ loop.item.difficulty }}"
+          formation_index: "{{ loop.item.formation_index | default(none) }}"
+          capture_count: "{{ loop.item.capture_count | default(none) }}"
   returns:
     success: true
     sub_category: "tie_an"
@@ -244,6 +258,12 @@ auto_battle_ct_regional_ops_run_one_pc:
       - name: difficulty
         type: number
         required: true
+      - name: formation_index
+        type: number
+        required: false
+      - name: capture_count
+        type: number
+        required: false
   steps:
     select_city:
       action: resonance_pc.select_ordered_city
@@ -346,6 +366,9 @@ auto_battle_ct_regional_ops_run_one_pc:
       action: aura.run_task
       params:
         task_ref: "tasks:auto_battle_combat_pc.yaml:auto_battle_combat_pc"
+        inputs:
+          formation_index: "{{ inputs.formation_index | default(none) }}"
+          capture_count: "{{ inputs.capture_count | default(none) }}"
       depends_on: click_go_combat
 
   returns:
@@ -377,6 +400,8 @@ auto_battle_ct_regional_ops_batch_pc:
           city_name: "{{ loop.item.city_name }}"
           threat_level: "{{ loop.item.threat_level }}"
           difficulty: "{{ loop.item.difficulty }}"
+          formation_index: "{{ loop.item.formation_index | default(none) }}"
+          capture_count: "{{ loop.item.capture_count | default(none) }}"
   returns:
     success: true
     sub_category: "regional_ops_center"
@@ -595,6 +620,12 @@ auto_battle_gp_action_summary_run_difficulty_pc:
       - name: difficulty
         type: number
         required: true
+      - name: formation_index
+        type: number
+        required: false
+      - name: capture_count
+        type: number
+        required: false
   steps:
     click_difficulty_1:
       action: plans/aura_base/click
@@ -639,9 +670,13 @@ auto_battle_gp_action_summary_run_difficulty_pc:
       when: "{{ inputs.difficulty == 6 }}"
 
     wait_after_difficulty:
-      action: plans/aura_base/sleep
+      action: plans/aura_base/wait_for_text
       params:
-        seconds: 0.5
+        text_to_find: "\u5f00\u59cb\u4f5c\u6218"
+        timeout: 4.0
+        interval: 0.2
+        region: [790, 460, 430, 100]
+        match_mode: "contains"
       depends_on:
         all:
           - click_difficulty_1: "success|failed|skipped"
@@ -655,15 +690,25 @@ auto_battle_gp_action_summary_run_difficulty_pc:
       action: plans/aura_base/find_text_and_click
       params:
         text_to_find: "\u5f00\u59cb\u4f5c\u6218"
-        region: [890, 480, 150, 50]
+        region: [790, 460, 430, 100]
         match_mode: "contains"
       depends_on: wait_after_difficulty
+
+    assert_start_battle_clicked:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.click_start_battle.output | default(false) }}"
+        message: "failed to click start battle"
+      depends_on: click_start_battle
 
     run_combat_after_start_battle:
       action: aura.run_task
       params:
         task_ref: "tasks:auto_battle_combat_pc.yaml:auto_battle_combat_pc"
-      depends_on: click_start_battle
+        inputs:
+          formation_index: "{{ inputs.formation_index | default(none) }}"
+          capture_count: "{{ inputs.capture_count | default(none) }}"
+      depends_on: assert_start_battle_clicked
 
   returns:
     success: true
@@ -721,15 +766,20 @@ auto_battle_gp_action_summary_run_group_pc:
         drag_duration_sec: 0.5
         drag_hold_before_release_sec: 0.5
         after_drag_sec: 0.5
-        click_offset_x: 0
-        click_offset_y: 180
+        enter_button_text: "进入挑战"
+        button_region_left_offset: -128
+        button_region_top_offset: 143
+        button_region_width: 258
+        button_region_height: 95
+        button_min_confidence: 0.8
+        button_timeout_sec: 2.0
+        button_click_attempts: 3
+        after_button_click_sec: 0.5
+        transition_text: "开始作战"
+        transition_region: [790, 460, 430, 100]
+        transition_timeout_sec: 4.0
+        transition_min_confidence: 0.7
       depends_on: wait_after_group_click
-
-    wait_after_enter_challenge:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 0.5
-      depends_on: select_stage_and_enter
 
     run_group_jobs:
       action: aura.run_task
@@ -741,7 +791,9 @@ auto_battle_gp_action_summary_run_group_pc:
         inputs:
           route_id: "{{ loop.item.route_id }}"
           difficulty: "{{ loop.item.difficulty }}"
-      depends_on: wait_after_enter_challenge
+          formation_index: "{{ loop.item.formation_index | default(none) }}"
+          capture_count: "{{ loop.item.capture_count | default(none) }}"
+      depends_on: select_stage_and_enter
 
     click_back_to_action_summary:
       action: plans/aura_base/click

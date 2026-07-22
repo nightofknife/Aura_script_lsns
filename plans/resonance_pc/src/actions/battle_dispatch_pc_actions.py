@@ -39,6 +39,16 @@ _ACTION_SUMMARY_STAGE_TEXT: Dict[str, str] = {
     "blind_box": "\u7279\u4f9b\u00b7\u76f2\u76d2",
 }
 
+_ACTION_SUMMARY_STAGE_OCR_TEXT: Dict[str, str] = {
+    "elegant": "雅致",
+    "standard": "制式",
+    "savior": "救世",
+    "cutting_edge": "尖端",
+    "chaos": "混沌",
+    "magic": "魔力",
+    "blind_box": "盲盒",
+}
+
 _ACTION_SUMMARY_STAGE_ORDER: Dict[str, List[str]] = {
     "blade_encirclement": [
         "special_order",
@@ -76,6 +86,13 @@ _STRUCTURAL_SAMPLE_POINTS: Dict[str, Tuple[int, int]] = {
     "hetero_branches": (300, 440),
     "echo_buoy": (300, 500),
     "birch_buoy": (300, 560),
+}
+
+_BATTLE_FORMATION_POINTS: Dict[int, Tuple[int, int]] = {
+    1: (310, 40),
+    2: (490, 40),
+    3: (660, 40),
+    4: (840, 40),
 }
 
 _STRUCTURAL_STAGE_REGION: Tuple[int, int, int, int] = (70, 360, 220, 270)
@@ -130,7 +147,11 @@ def _load_catalog() -> Dict[str, Any]:
 
 
 def _normalize_text(text: str) -> str:
-    return re.sub(r"[\s\u3000\|_\-:：,，。.!！?？()（）\[\]【】{}<>《》'\"`~]+", "", str(text or "")).lower()
+    return re.sub(
+        r"[\s\u3000\|_\-:：,，。.!！?？·•()（）\[\]【】{}<>《》'\"“”‘’`~]+",
+        "",
+        str(text or ""),
+    ).lower()
 
 
 def _match_mode_hit(actual: str, target: str, match_mode: str) -> bool:
@@ -1243,7 +1264,7 @@ def resonance_pc_select_threat_level_numeric(
     name="resonance_pc.select_action_summary_stage",
     public=True,
     read_only=False,
-    description="Select one action_summary stage by OCR + horizontal directional drag, then click with offset.",
+    description="Select one action_summary stage, OCR its anchored enter button, and confirm the transition.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1258,8 +1279,19 @@ def resonance_pc_select_action_summary_stage(
     drag_duration_sec: float = 0.5,
     drag_hold_before_release_sec: float = 0.5,
     after_drag_sec: float = 0.5,
-    click_offset_x: int = 0,
-    click_offset_y: int = 180,
+    enter_button_text: str = "进入挑战",
+    button_region_left_offset: int = -128,
+    button_region_top_offset: int = 143,
+    button_region_width: int = 258,
+    button_region_height: int = 95,
+    button_min_confidence: float = 0.8,
+    button_timeout_sec: float = 2.0,
+    button_click_attempts: int = 3,
+    after_button_click_sec: float = 0.5,
+    transition_text: str = "开始作战",
+    transition_region: Optional[List[int]] = None,
+    transition_timeout_sec: float = 4.0,
+    transition_min_confidence: float = 0.7,
     match_mode: str = "contains",
     app: Any = None,
     ocr: Any = None,
@@ -1278,7 +1310,10 @@ def resonance_pc_select_action_summary_stage(
     if not stage_order or not stage_name:
         _raise_error("invalid_route_id", f"route '{route_id}' is not mapped in action_summary stage selector")
 
-    order_names = [_ACTION_SUMMARY_STAGE_TEXT[key] for key in stage_order]
+    order_names = [
+        _ACTION_SUMMARY_STAGE_OCR_TEXT.get(key, _ACTION_SUMMARY_STAGE_TEXT[key])
+        for key in stage_order
+    ]
     region_tuple = _coerce_region(region, [0, 0, 1280, 720])
     drag_forward_tuple = _coerce_drag(drag_forward, [700, 400, 1100, 400])
     drag_backward_tuple = _coerce_drag(drag_backward, [1100, 400, 700, 400])
@@ -1286,9 +1321,25 @@ def resonance_pc_select_action_summary_stage(
     after_drag = float(after_drag_sec)
     drag_duration = float(drag_duration_sec)
     drag_hold = max(float(drag_hold_before_release_sec), 0.0)
+    button_target = _normalize_text(enter_button_text)
+    if not button_target:
+        _raise_error("invalid_enter_button_text", "enter_button_text must not be empty")
+    button_width = max(int(button_region_width), 1)
+    button_height = max(int(button_region_height), 1)
+    button_confidence = min(max(float(button_min_confidence), 0.0), 1.0)
+    button_timeout = max(float(button_timeout_sec), 0.0)
+    click_attempts = max(int(button_click_attempts), 1)
+    click_wait = max(float(after_button_click_sec), 0.0)
+    transition_target = _normalize_text(transition_text)
+    if not transition_target:
+        _raise_error("invalid_transition_text", "transition_text must not be empty")
+    transition_region_tuple = _coerce_region(transition_region, [790, 460, 430, 100])
+    transition_timeout = max(float(transition_timeout_sec), 0.0)
+    transition_confidence = min(max(float(transition_min_confidence), 0.0), 1.0)
 
     target_idx = stage_order.index(stage_key)
-    target_norm = _normalize_text(stage_name)
+    target_ocr_text = _ACTION_SUMMARY_STAGE_OCR_TEXT.get(stage_key, stage_name)
+    target_norm = _normalize_text(target_ocr_text)
     last_direction = "forward"
     last_items: List[Dict[str, Any]] = []
     last_hits: List[Dict[str, Any]] = []
@@ -1302,11 +1353,12 @@ def resonance_pc_select_action_summary_stage(
         matched_target = [row for row in hits if _normalize_text(row["label_name"]) == target_norm]
         logger.info(
             "[BattleOCR][ActionSummaryStage] attempt=%s/%s route_id=%s target=%s "
-            "target_normalized=%s recognized_texts=%s matched_labels=%s",
+            "ocr_target=%s target_normalized=%s recognized_texts=%s matched_labels=%s",
             attempt,
             attempts,
             route_id,
             stage_name,
+            target_ocr_text,
             target_norm,
             [
                 {
@@ -1329,26 +1381,221 @@ def resonance_pc_select_action_summary_stage(
         )
         if matched_target:
             chosen = max(matched_target, key=lambda r: float(r["confidence"]))
-            x = int(chosen["center"][0]) + int(click_offset_x)
-            y = int(chosen["center"][1]) + int(click_offset_y)
+            title_x = int(chosen["center"][0])
+            title_y = int(chosen["center"][1])
+            button_x = max(title_x + int(button_region_left_offset), 0)
+            button_y = max(title_y + int(button_region_top_offset), 0)
+            button_region = (
+                button_x,
+                button_y,
+                min(button_width, max(1280 - button_x, 1)),
+                min(button_height, max(720 - button_y, 1)),
+            )
             logger.info(
                 "[BattleOCR][ActionSummaryStage] target_found route_id=%s attempt=%s "
-                "recognized_text=%s center=%s click=%s confidence=%.4f",
+                "recognized_text=%s center=%s button_region=%s confidence=%.4f",
                 route_id,
                 attempt,
                 chosen["text"],
                 list(chosen["center"]),
-                [x, y],
+                list(button_region),
                 float(chosen["confidence"]),
             )
-            app.click(x=x, y=y)
-            return {
-                "found": True,
-                "stage_name": chosen["label_name"],
-                "attempt": attempt,
-                "click_x": x,
-                "click_y": y,
-            }
+
+            deadline = time.monotonic() + button_timeout
+            button_items: List[Dict[str, Any]] = []
+            candidate: Optional[Dict[str, Any]] = None
+            button_scan = 0
+            while True:
+                button_scan += 1
+                button_items = _recognize_text_items(app=app, ocr=ocr, region=button_region)
+                candidates = [
+                    row
+                    for row in button_items
+                    if _match_mode_hit(row["normalized"], button_target, "contains")
+                    and float(row["confidence"]) >= button_confidence
+                ]
+                candidate = max(candidates, key=lambda r: float(r["confidence"])) if candidates else None
+                logger.info(
+                    "[BattleOCR][EnterChallenge] route_id=%s scan=%s title_center=%s region=%s "
+                    "target=%s recognized_texts=%s candidate=%s",
+                    route_id,
+                    button_scan,
+                    [title_x, title_y],
+                    list(button_region),
+                    enter_button_text,
+                    [
+                        {
+                            "text": row["text"],
+                            "center": list(row["center"]),
+                            "confidence": round(float(row["confidence"]), 4),
+                        }
+                        for row in button_items
+                    ],
+                    None
+                    if candidate is None
+                    else {
+                        "text": candidate["text"],
+                        "center": list(candidate["center"]),
+                        "confidence": round(float(candidate["confidence"]), 4),
+                    },
+                )
+                if candidate is not None:
+                    break
+                if any("开放" in row["normalized"] for row in button_items):
+                    _raise_error(
+                        "action_summary_stage_unavailable",
+                        f"Action-summary stage '{stage_name}' is not currently available",
+                        {"route_id": route_id, "button_region": list(button_region), "items": button_items},
+                    )
+                if time.monotonic() >= deadline:
+                    _raise_error(
+                        "action_summary_enter_button_not_found",
+                        f"Failed to locate '{enter_button_text}' below action-summary stage '{stage_name}'",
+                        {"route_id": route_id, "button_region": list(button_region), "items": button_items},
+                    )
+                time.sleep(min(0.2, max(deadline - time.monotonic(), 0.0)))
+
+            for click_attempt in range(1, click_attempts + 1):
+                click_x = int(candidate["center"][0])
+                click_y = int(candidate["center"][1])
+                delta_x = click_x - title_x
+                delta_y = click_y - title_y
+                if abs(delta_x) > 128 or not 120 <= delta_y <= 240:
+                    _raise_error(
+                        "action_summary_enter_button_geometry_invalid",
+                        "Recognized enter button is not geometrically associated with the target stage",
+                        {
+                            "route_id": route_id,
+                            "title_center": [title_x, title_y],
+                            "button_center": [click_x, click_y],
+                            "delta": [delta_x, delta_y],
+                        },
+                    )
+                logger.info(
+                    "[BattleClick][EnterChallenge] route_id=%s attempt=%s/%s click=%s confidence=%.4f",
+                    route_id,
+                    click_attempt,
+                    click_attempts,
+                    [click_x, click_y],
+                    float(candidate["confidence"]),
+                )
+                app.click(x=click_x, y=click_y)
+                time.sleep(click_wait)
+
+                transition_deadline = time.monotonic() + transition_timeout
+                transition_items: List[Dict[str, Any]] = []
+                transition_scan = 0
+                while True:
+                    transition_scan += 1
+                    transition_items = _recognize_text_items(
+                        app=app,
+                        ocr=ocr,
+                        region=transition_region_tuple,
+                    )
+                    transition_hits = [
+                        row
+                        for row in transition_items
+                        if _match_mode_hit(row["normalized"], transition_target, "contains")
+                        and float(row["confidence"]) >= transition_confidence
+                    ]
+                    transition_hit = (
+                        max(transition_hits, key=lambda r: float(r["confidence"]))
+                        if transition_hits
+                        else None
+                    )
+                    logger.info(
+                        "[BattleTransition][EnterChallenge] route_id=%s click_attempt=%s scan=%s "
+                        "region=%s target=%s recognized_texts=%s candidate=%s",
+                        route_id,
+                        click_attempt,
+                        transition_scan,
+                        list(transition_region_tuple),
+                        transition_text,
+                        [
+                            {
+                                "text": row["text"],
+                                "center": list(row["center"]),
+                                "confidence": round(float(row["confidence"]), 4),
+                            }
+                            for row in transition_items
+                        ],
+                        None
+                        if transition_hit is None
+                        else {
+                            "text": transition_hit["text"],
+                            "center": list(transition_hit["center"]),
+                            "confidence": round(float(transition_hit["confidence"]), 4),
+                        },
+                    )
+                    if transition_hit is not None:
+                        logger.info(
+                            "[BattleTransition][EnterChallenge] route_id=%s click_attempt=%s "
+                            "confirmed=true transition_text=%s center=%s confidence=%.4f",
+                            route_id,
+                            click_attempt,
+                            transition_hit["text"],
+                            list(transition_hit["center"]),
+                            float(transition_hit["confidence"]),
+                        )
+                        return {
+                            "found": True,
+                            "stage_name": stage_name,
+                            "attempt": attempt,
+                            "title_center": [title_x, title_y],
+                            "button_region": list(button_region),
+                            "button_text": candidate["text"],
+                            "button_confidence": float(candidate["confidence"]),
+                            "click_x": click_x,
+                            "click_y": click_y,
+                            "click_attempt": click_attempt,
+                            "transition_confirmed": True,
+                            "transition_text": transition_hit["text"],
+                            "transition_center": list(transition_hit["center"]),
+                        }
+                    if time.monotonic() >= transition_deadline:
+                        break
+                    time.sleep(min(0.2, max(transition_deadline - time.monotonic(), 0.0)))
+
+                refreshed_button_items = _recognize_text_items(app=app, ocr=ocr, region=button_region)
+                refreshed_candidates = [
+                    row
+                    for row in refreshed_button_items
+                    if _match_mode_hit(row["normalized"], button_target, "contains")
+                    and float(row["confidence"]) >= button_confidence
+                ]
+                if not refreshed_candidates:
+                    _raise_error(
+                        "action_summary_enter_transition_failed",
+                        f"Did not confirm '{transition_text}' and the original enter button is no longer visible",
+                        {
+                            "route_id": route_id,
+                            "transition_region": list(transition_region_tuple),
+                            "transition_items": transition_items,
+                            "button_region": list(button_region),
+                            "button_items": refreshed_button_items,
+                        },
+                    )
+                candidate = max(refreshed_candidates, key=lambda r: float(r["confidence"]))
+                logger.info(
+                    "[BattleTransition][EnterChallenge] route_id=%s click_attempt=%s confirmed=false "
+                    "button_present=true retry_center=%s confidence=%.4f",
+                    route_id,
+                    click_attempt,
+                    list(candidate["center"]),
+                    float(candidate["confidence"]),
+                )
+
+            _raise_error(
+                "action_summary_enter_transition_failed",
+                f"Failed to confirm '{transition_text}' after {click_attempts} click attempts",
+                {
+                    "route_id": route_id,
+                    "button_region": list(button_region),
+                    "transition_region": list(transition_region_tuple),
+                    "last_items": transition_items,
+                },
+            )
 
         hit_indexes = [int(row["label_index"]) for row in hits]
         direction = _direction_from_city_hits(target_idx=target_idx, hit_indexes=hit_indexes)
@@ -1385,6 +1632,7 @@ def resonance_pc_select_action_summary_stage(
             "last_direction": last_direction,
             "region": list(region_tuple),
             "target": stage_name,
+            "ocr_target": target_ocr_text,
             "target_normalized": target_norm,
             "last_recognized_items": [
                 {
@@ -1561,6 +1809,71 @@ def resonance_pc_reconcile_structural_selection(
         "operations": operations,
         "final_states": final_states,
     }
+
+
+@action_info(
+    name="resonance_pc.prepare_battle_formation",
+    public=True,
+    read_only=False,
+    description="Optionally select one battle formation and wait for the formation screen to stabilize.",
+)
+@requires_services(
+    app="plans/aura_base/app",
+)
+def resonance_pc_prepare_battle_formation(
+    formation_index: Optional[int] = None,
+    settle_sec: float = 0.5,
+    app: Any = None,
+) -> Dict[str, Any]:
+    if app is None:
+        _raise_error("missing_service", "app service is required")
+
+    try:
+        settle = float(settle_sec)
+    except (TypeError, ValueError) as exc:
+        _raise_error("invalid_settle_sec", "settle_sec must be a number", {"cause": str(exc)})
+    if settle < 0.0 or settle > 5.0:
+        _raise_error("invalid_settle_sec", "settle_sec must be in [0,5]")
+
+    selected_index: Optional[int]
+    if formation_index is None or formation_index == "":
+        selected_index = None
+    else:
+        try:
+            selected_index = int(formation_index)
+        except (TypeError, ValueError) as exc:
+            _raise_error(
+                "invalid_formation_index",
+                "formation_index must be an integer",
+                {"cause": str(exc)},
+            )
+        if selected_index not in _BATTLE_FORMATION_POINTS:
+            _raise_error("invalid_formation_index", "formation_index must be in [1,4]")
+
+    click_point: Optional[List[int]] = None
+    if selected_index is not None:
+        x, y = _BATTLE_FORMATION_POINTS[selected_index]
+        app.click(x=x, y=y)
+        click_point = [x, y]
+
+    if settle > 0.0:
+        time.sleep(settle)
+
+    result = {
+        "ok": True,
+        "formation_index": selected_index,
+        "selection_changed": selected_index is not None,
+        "click_point": click_point,
+        "settle_sec": settle,
+    }
+    logger.info(
+        "[BattleFormation] formation_index=%s changed=%s click_point=%s settle_sec=%.3f",
+        selected_index,
+        result["selection_changed"],
+        click_point,
+        settle,
+    )
+    return result
 
 
 @action_info(
