@@ -32,7 +32,6 @@ from PySide6.QtWidgets import (
 from .bridge import RunnerBridge
 from .config_repository import GuiPreferences, ResonanceConfigRepository
 from .logic import (
-    PC_GAME_NAME,
     extract_run_id,
     extract_status,
     parse_inputs_json,
@@ -51,9 +50,10 @@ class ResonanceMainWindow(QMainWindow):
     requestRefreshTasks = Signal()
     requestRefreshHistory = Signal()
     requestRefreshTarget = Signal()
+    requestTradeBackend = Signal(str)
     requestRunNow = Signal(str, object, object, float)
-    requestRunPcTrade = Signal(object, float)
-    requestPreviewPcTrade = Signal(object, float)
+    requestRunTrade = Signal(object, float)
+    requestPreviewTrade = Signal(object, float)
     requestEnqueueTask = Signal(str, object, object, float)
     requestClearQueue = Signal()
     requestCancelCurrent = Signal()
@@ -84,6 +84,7 @@ class ResonanceMainWindow(QMainWindow):
         self._build_ui()
         self._wire_bridge()
         self._select_task(self._current_task.task_id)
+        QTimer.singleShot(0, lambda: self.requestTradeBackend.emit(self.trade_page.selected_runtime_backend()))
         if initialize_on_startup:
             QTimer.singleShot(0, self.requestInitialize.emit)
 
@@ -108,8 +109,9 @@ class ResonanceMainWindow(QMainWindow):
         self.statusBar().showMessage("雷索纳斯 GUI 就绪")
         self._switch_page(0)
 
-        self.trade_page.startRequested.connect(self._run_pc_trade)
-        self.trade_page.previewRequested.connect(self._preview_pc_trade)
+        self.trade_page.startRequested.connect(self._run_trade)
+        self.trade_page.previewRequested.connect(self._preview_trade)
+        self.trade_page.backendChanged.connect(self.requestTradeBackend.emit)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.trade_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
 
@@ -289,9 +291,10 @@ class ResonanceMainWindow(QMainWindow):
         self.requestRefreshTasks.connect(self._bridge.refresh_tasks)
         self.requestRefreshHistory.connect(self._bridge.refresh_history)
         self.requestRefreshTarget.connect(self._bridge.refresh_target)
+        self.requestTradeBackend.connect(self._bridge.set_trade_backend)
         self.requestRunNow.connect(self._bridge.run_task_now)
-        self.requestRunPcTrade.connect(self._bridge.run_pc_trade)
-        self.requestPreviewPcTrade.connect(self._bridge.preview_pc_trade)
+        self.requestRunTrade.connect(self._bridge.run_trade)
+        self.requestPreviewTrade.connect(self._bridge.preview_trade)
         self.requestEnqueueTask.connect(self._bridge.enqueue_task)
         self.requestClearQueue.connect(self._bridge.clear_queue)
         self.requestCancelCurrent.connect(self._bridge.cancel_current)
@@ -342,11 +345,11 @@ class ResonanceMainWindow(QMainWindow):
             QMessageBox.warning(self, "参数错误", str(exc))
             return None
 
-    def _run_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestRunPcTrade.emit(inputs, float(self.timeout_spin.value()))
+    def _run_trade(self, inputs: object, _unused_timeout: float) -> None:
+        self.requestRunTrade.emit(inputs, float(self.timeout_spin.value()))
 
-    def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
+    def _preview_trade(self, inputs: object, _unused_timeout: float) -> None:
+        self.requestPreviewTrade.emit(inputs, float(self.timeout_spin.value()))
 
     def _run_selected_now(self) -> None:
         inputs = self._collect_inputs()
@@ -410,7 +413,7 @@ class ResonanceMainWindow(QMainWindow):
 
     def _on_task_dispatched(self, payload: dict[str, Any]) -> None:
         item = payload.get("item") if isinstance(payload.get("item"), dict) else {}
-        if item.get("game_name") == PC_GAME_NAME:
+        if item.get("kind") in {"trade_run", "trade_preview"}:
             if item.get("kind") == "trade_preview":
                 self.trade_page.begin_preview(payload)
             else:
@@ -420,12 +423,12 @@ class ResonanceMainWindow(QMainWindow):
             self.run_detail.show_text(pretty_json(payload))
 
     def _on_run_updated(self, payload: dict[str, Any]) -> None:
-        if self._active_game_name == PC_GAME_NAME:
+        if self._active_kind in {"trade_run", "trade_preview"}:
             self.trade_page.update_run(payload)
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage("任务执行结束")
-        if self._active_game_name == PC_GAME_NAME:
+        if self._active_kind in {"trade_run", "trade_preview"}:
             item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
             if item.get("kind") == "trade_preview" or self._active_kind == "trade_preview":
                 self.trade_page.finish_preview(payload)
@@ -435,7 +438,11 @@ class ResonanceMainWindow(QMainWindow):
 
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
-        if self._active_game_name == PC_GAME_NAME or payload.get("stage") in {"run_pc_trade", "preview_pc_trade"}:
+        if self._active_kind in {"trade_run", "trade_preview"} or payload.get("stage") in {
+            "run_trade",
+            "preview_trade",
+            "set_trade_backend",
+        }:
             self.trade_page.show_failure(payload)
         self.run_detail.show_text(pretty_json(payload))
 

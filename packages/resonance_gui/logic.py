@@ -10,8 +10,57 @@ GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
-TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
-TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
+EMULATOR_TRADE_TASK_REF = "tasks:auto_cycle_trade_exact.yaml:auto_cycle_trade_exact"
+EMULATOR_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan.yaml:preview_trade_plan"
+PC_TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
+PC_TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
+EMULATOR_TRADE_PROGRESS_EVENT = "task.resonance_trade_progress"
+EMULATOR_TRADE_PROGRESS_SCHEMA = "resonance.trade_progress.v1"
+
+# Backward-compatible aliases for existing consumers.
+TRADE_PROGRESS_EVENT = PC_TRADE_PROGRESS_EVENT
+TRADE_PROGRESS_SCHEMA = PC_TRADE_PROGRESS_SCHEMA
+
+
+@dataclass(frozen=True)
+class TradeBackendSpec:
+    key: str
+    label: str
+    game_name: str
+    run_task_ref: str
+    preview_task_ref: str
+    progress_event: str
+    progress_schema: str
+
+
+TRADE_BACKENDS = {
+    "pc": TradeBackendSpec(
+        key="pc",
+        label="PC",
+        game_name=PC_GAME_NAME,
+        run_task_ref=PC_TRADE_TASK_REF,
+        preview_task_ref=PC_TRADE_PREVIEW_TASK_REF,
+        progress_event=PC_TRADE_PROGRESS_EVENT,
+        progress_schema=PC_TRADE_PROGRESS_SCHEMA,
+    ),
+    "emulator": TradeBackendSpec(
+        key="emulator",
+        label="模拟器",
+        game_name=GAME_NAME,
+        run_task_ref=EMULATOR_TRADE_TASK_REF,
+        preview_task_ref=EMULATOR_TRADE_PREVIEW_TASK_REF,
+        progress_event=EMULATOR_TRADE_PROGRESS_EVENT,
+        progress_schema=EMULATOR_TRADE_PROGRESS_SCHEMA,
+    ),
+}
+DEFAULT_TRADE_BACKEND = "pc"
+
+
+def resolve_trade_backend(value: Any) -> TradeBackendSpec:
+    key = str(value or DEFAULT_TRADE_BACKEND).strip().lower()
+    if key not in TRADE_BACKENDS:
+        raise ValueError(f"未知运行端：{value}")
+    return TRADE_BACKENDS[key]
 
 TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 STATUS_LABELS = {
@@ -43,7 +92,7 @@ TRADE_STAGE_LABELS = {
 
 @dataclass
 class TradeProgressState:
-    """Reduced, presentation-ready state for one PC trade run."""
+    """Reduced, presentation-ready state for one trade run."""
 
     cid: str = ""
     sequence: int = -1
@@ -78,13 +127,16 @@ def reduce_trade_progress(
 
     state = current or TradeProgressState(cid=str(expected_cid or ""))
     envelope = dict(event or {})
-    if str(envelope.get("name") or "") != TRADE_PROGRESS_EVENT:
-        return state
+    event_name = str(envelope.get("name") or "")
     payload = envelope.get("payload")
     if not isinstance(payload, Mapping):
         return state
     payload = dict(payload)
-    if str(payload.get("schema") or "") != TRADE_PROGRESS_SCHEMA:
+    protocol = (event_name, str(payload.get("schema") or ""))
+    if protocol not in {
+        (PC_TRADE_PROGRESS_EVENT, PC_TRADE_PROGRESS_SCHEMA),
+        (EMULATOR_TRADE_PROGRESS_EVENT, EMULATOR_TRADE_PROGRESS_SCHEMA),
+    }:
         return state
     cid = str(payload.get("cid") or "")
     if expected_cid and cid != str(expected_cid):

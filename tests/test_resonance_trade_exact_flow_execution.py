@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from packages.aura_core.config.validator import validate_task_definition
+from packages.aura_core.context.execution import ExecutionContext
 from plans.resonance.src.actions import city_trade_flow_actions as actions
 
 
@@ -58,6 +59,60 @@ def test_exact_flow_validates_binary_profile_before_services():
 
     with pytest.raises(ValueError, match="must be an integer"):
         _run(actions.resonance_auto_cycle_trade_exact_flow(negotiation_budget=0.5))
+
+
+def test_emulator_preview_publishes_structured_progress(monkeypatch):
+    class FakeEventBus:
+        def __init__(self):
+            self.events = []
+
+        async def publish(self, event):
+            self.events.append(event.to_dict())
+
+    monkeypatch.setattr(
+        actions,
+        "resonance_market_refresh",
+        lambda **kwargs: {
+            "snapshot_id": "snap-emulator",
+            "stale": False,
+            "cities": {"3": {"name": "七号自由港"}},
+        },
+    )
+    monkeypatch.setattr(
+        actions,
+        "resonance_trade_plan_optimal_route",
+        lambda **kwargs: {
+            "status": "ok",
+            "route": [{"from_city": "七号自由港", "to_city": "修格里城"}],
+            "expected_profit": 100,
+        },
+    )
+    event_bus = FakeEventBus()
+
+    result = _run(
+        actions.resonance_preview_trade_plan_flow(
+            start_city_id="3",
+            resonance_market_data=object(),
+            resonance_trade_planner=object(),
+            event_bus=event_bus,
+            context=ExecutionContext(cid="cid-emulator"),
+        )
+    )
+
+    assert result["preview"] is True
+    assert [event["name"] for event in event_bus.events] == [
+        "task.resonance_trade_progress",
+    ] * 6
+    assert [event["payload"]["sequence"] for event in event_bus.events] == list(range(1, 7))
+    assert [event["payload"]["stage"] for event in event_bus.events] == [
+        "task",
+        "market",
+        "market",
+        "planning",
+        "planning",
+        "task",
+    ]
+    assert all(event["payload"]["schema"] == "resonance.trade_progress.v1" for event in event_bus.events)
 
 
 def test_exact_trade_leg_forwards_negotiation_flags_and_uses_emulator_travel(monkeypatch):

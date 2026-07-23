@@ -12,15 +12,12 @@ from packages.aura_game import SubprocessGameRunner
 
 from .logic import (
     GAME_NAME,
-    PC_GAME_NAME,
-    PC_TRADE_PREVIEW_TASK_REF,
-    PC_TRADE_TASK_REF,
+    DEFAULT_TRADE_BACKEND,
     TERMINAL_STATUSES,
-    TRADE_PROGRESS_EVENT,
-    TRADE_PROGRESS_SCHEMA,
     extract_run_id,
     extract_status,
     normalize_run_payload,
+    resolve_trade_backend,
 )
 
 RunnerFactory = Callable[[], Any]
@@ -56,6 +53,7 @@ class RunnerBridge(QObject):
         self._poll_error_count = 0
         self._ticket_counter = itertools.count(1)
         self._poll_timer: QTimer | None = None
+        self._trade_backend = DEFAULT_TRADE_BACKEND
 
     @property
     def current_cid(self) -> str:
@@ -64,6 +62,10 @@ class RunnerBridge(QObject):
     @property
     def busy(self) -> bool:
         return self._busy
+
+    @property
+    def trade_backend(self) -> str:
+        return self._trade_backend
 
     def _runner_instance(self) -> Any:
         if self._runner is None:
@@ -90,8 +92,9 @@ class RunnerBridge(QObject):
 
     @Slot()
     def refresh_history(self) -> None:
+        backend = resolve_trade_backend(self._trade_backend)
         try:
-            rows = list(self._runner_instance().list_runs(limit=50, game_name=PC_GAME_NAME))
+            rows = list(self._runner_instance().list_runs(limit=50, game_name=backend.game_name))
         except Exception as exc:  # noqa: BLE001
             self.taskFailed.emit({"stage": "list_runs", "error": str(exc)})
             return
@@ -99,11 +102,24 @@ class RunnerBridge(QObject):
 
     @Slot()
     def refresh_target(self) -> None:
+        backend = resolve_trade_backend(self._trade_backend)
         try:
-            payload = self._runner_instance().target_status(game_name=PC_GAME_NAME)
+            payload = self._runner_instance().target_status(game_name=backend.game_name)
         except Exception as exc:  # noqa: BLE001
-            payload = {"ok": False, "game_name": PC_GAME_NAME, "error": str(exc)}
+            payload = {"ok": False, "game_name": backend.game_name, "error": str(exc)}
+        payload = dict(payload or {})
+        payload["trade_backend"] = backend.key
         self.targetStatusChanged.emit(dict(payload or {}))
+
+    @Slot(str)
+    def set_trade_backend(self, backend_key: str) -> None:
+        backend = resolve_trade_backend(backend_key)
+        if self._busy:
+            self.taskFailed.emit({"stage": "set_trade_backend", "error": "任务运行期间不能切换运行端。"})
+            return
+        self._trade_backend = backend.key
+        self.refresh_history()
+        self.refresh_target()
 
     @Slot(str, object, object, float)
     def enqueue_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
@@ -121,24 +137,37 @@ class RunnerBridge(QObject):
             self._run_next()
 
     @Slot(object, float)
-    def run_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
+    def run_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
         if self._busy:
-            self.taskFailed.emit({"stage": "run_pc_trade", "error": "已有任务正在运行。"})
+            self.taskFailed.emit({"stage": "run_trade", "error": "已有任务正在运行。"})
             return
         run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        backend = resolve_trade_backend(run_inputs.pop("runtime_backend", self._trade_backend))
+        self._trade_backend = backend.key
         run_inputs.pop("start_city_id", None)
-        item = self._make_item(PC_GAME_NAME, PC_TRADE_TASK_REF, run_inputs, "PC 自动跑商", timeout_sec)
+        item = self._make_item(
+            backend.game_name,
+            backend.run_task_ref,
+            run_inputs,
+            f"{backend.label} 自动跑商",
+            timeout_sec,
+        )
         item["kind"] = "trade_run"
+        item["trade_backend"] = backend.key
+        item["progress_event"] = backend.progress_event
+        item["progress_schema"] = backend.progress_schema
         self._queue.insert(0, item)
         self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
-    def preview_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
+    def preview_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
         if self._busy:
-            self.taskFailed.emit({"stage": "preview_pc_trade", "error": "已有任务正在运行。"})
+            self.taskFailed.emit({"stage": "preview_trade", "error": "已有任务正在运行。"})
             return
         preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        backend = resolve_trade_backend(preview_inputs.pop("runtime_backend", self._trade_backend))
+        self._trade_backend = backend.key
         for key in (
             "use_fatigue_medicine",
             "allowed_fatigue_medicines",
@@ -146,16 +175,31 @@ class RunnerBridge(QObject):
         ):
             preview_inputs.pop(key, None)
         item = self._make_item(
-            PC_GAME_NAME,
-            PC_TRADE_PREVIEW_TASK_REF,
+            backend.game_name,
+            backend.preview_task_ref,
             preview_inputs,
-            "计算跑商方案",
+            f"计算{backend.label}跑商方案",
             timeout_sec,
         )
         item["kind"] = "trade_preview"
+        item["trade_backend"] = backend.key
+        item["progress_event"] = backend.progress_event
+        item["progress_schema"] = backend.progress_schema
         self._queue.insert(0, item)
         self._emit_queue()
         self._run_next()
+
+    @Slot(object, float)
+    def run_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        payload = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        payload["runtime_backend"] = "pc"
+        self.run_trade(payload, timeout_sec)
+
+    @Slot(object, float)
+    def preview_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        payload = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        payload["runtime_backend"] = "pc"
+        self.preview_trade(payload, timeout_sec)
 
     @Slot()
     def clear_queue(self) -> None:
@@ -288,13 +332,16 @@ class RunnerBridge(QObject):
             self._run_next()
 
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
+        current = self._current_item or {}
+        expected_event = str(current.get("progress_event") or "")
+        expected_schema = str(current.get("progress_schema") or "")
         for event in events:
-            if str(event.get("name") or "") != TRADE_PROGRESS_EVENT:
+            if str(event.get("name") or "") != expected_event:
                 continue
             payload = event.get("payload")
             if not isinstance(payload, dict):
                 continue
-            if str(payload.get("schema") or "") != TRADE_PROGRESS_SCHEMA:
+            if str(payload.get("schema") or "") != expected_schema:
                 continue
             if str(payload.get("cid") or "") != self._current_cid:
                 continue

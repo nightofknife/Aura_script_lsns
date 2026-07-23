@@ -51,6 +51,7 @@ from ..logic import (
 class TradePage(QWidget):
     startRequested = Signal(object, float)
     previewRequested = Signal(object, float)
+    backendChanged = Signal(str)
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
 
@@ -141,6 +142,14 @@ class TradePage(QWidget):
         form_stack = QVBoxLayout(content)
         form_stack.setContentsMargins(0, 8, 4, 8)
         form_stack.setSpacing(12)
+
+        runtime_form = QFormLayout()
+        self.runtime_backend = QComboBox(content)
+        self.runtime_backend.addItem("PC", "pc")
+        self.runtime_backend.addItem("模拟器", "emulator")
+        self.runtime_backend.currentIndexChanged.connect(self._runtime_backend_changed)
+        runtime_form.addRow("运行端", self.runtime_backend)
+        form_stack.addLayout(runtime_form)
 
         mode_label = QLabel("规划模式", content)
         mode_label.setProperty("caption", True)
@@ -462,6 +471,8 @@ class TradePage(QWidget):
 
     def set_inputs(self, inputs: Mapping[str, Any]) -> None:
         values = dict(inputs)
+        backend_index = self.runtime_backend.findData(str(values.get("runtime_backend") or "pc"))
+        self.runtime_backend.setCurrentIndex(max(backend_index, 0))
         (self.full_mode if int(values.get("all_plan", 0)) == 1 else self.budget_mode).setChecked(True)
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 100)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 650)))
@@ -517,6 +528,7 @@ class TradePage(QWidget):
             if self.city_prestige[city_id].value() > 0
         }
         return {
+            "runtime_backend": str(self.runtime_backend.currentData() or "pc"),
             "start_city_id": start_city_id,
             "all_plan": self.mode_group.checkedId(),
             "fatigue_budget": self.fatigue_budget.value(),
@@ -557,16 +569,42 @@ class TradePage(QWidget):
         self._last_inputs = inputs
         signal.emit(inputs, 0.0)
 
+    def selected_runtime_backend(self) -> str:
+        return str(self.runtime_backend.currentData() or "pc")
+
+    def _runtime_backend_changed(self, _index: int = -1) -> None:
+        backend = self.selected_runtime_backend()
+        self._target_ready = False
+        self.target_value.setText("检查中")
+        self.ready_hint.setText("正在检查模拟器目标" if backend == "emulator" else "正在检查 PC 目标")
+        self.backendChanged.emit(backend)
+        self._sync_actions()
+
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         data = dict(payload)
+        backend = str(data.get("trade_backend") or self.selected_runtime_backend())
+        if backend != self.selected_runtime_backend():
+            return
         target = data.get("target") if isinstance(data.get("target"), Mapping) else {}
         title = str(target.get("title") or target.get("window_title") or "")
         visible = target.get("visible")
-        self._target_ready = bool(data.get("ok")) and bool(title or target.get("hwnd")) and visible is not False
+        target_identity = (
+            title
+            or target.get("hwnd")
+            or target.get("serial")
+            or target.get("device")
+            or target.get("backend")
+            or target.get("provider")
+        )
+        self._target_ready = bool(data.get("ok")) and bool(target_identity or target) and visible is not False
         if self._target_ready:
-            self.target_value.setText(title or "已连接")
+            self.target_value.setText(title or str(target_identity) or "已连接")
             self.target_value.setProperty("status", "success")
-            self.ready_hint.setText("PC / WGC / SendInput")
+            self.ready_hint.setText(
+                "MuMu / scrcpy / AndroidTouch"
+                if backend == "emulator"
+                else "PC / WGC / SendInput"
+            )
         else:
             self.target_value.setText("未连接")
             self.target_value.setProperty("status", "error")
@@ -741,6 +779,7 @@ class TradePage(QWidget):
     def set_busy(self, busy: bool) -> None:
         self._busy = bool(busy)
         for widget in (
+            self.runtime_backend,
             self.budget_mode,
             self.full_mode,
             self.fatigue_budget,

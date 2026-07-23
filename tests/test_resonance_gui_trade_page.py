@@ -57,6 +57,7 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
 
         inputs = page.collect_inputs()
 
+        assert inputs["runtime_backend"] == "pc"
         assert inputs["all_plan"] == 1
         assert inputs["fatigue_budget"] == 300
         assert inputs["cargo_capacity"] == 650
@@ -70,6 +71,38 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         page._request_preview()
         assert requests[0][0]["start_city_id"] == "3"
         assert "refresh_market" not in requests[0][0]
+    finally:
+        page.close()
+
+
+def test_trade_page_switches_runtime_backend_and_accepts_emulator_target(tmp_path):
+    page = _page(tmp_path)
+    try:
+        changes = []
+        page.backendChanged.connect(changes.append)
+        page.runtime_backend.setCurrentIndex(page.runtime_backend.findData("emulator"))
+        page.set_target_status(
+            {
+                "ok": True,
+                "trade_backend": "emulator",
+                "target": {"serial": "127.0.0.1:16384", "backend": "scrcpy_stream"},
+            }
+        )
+
+        assert changes[-1] == "emulator"
+        assert page.selected_runtime_backend() == "emulator"
+        assert page.collect_inputs()["runtime_backend"] == "emulator"
+        assert page.start_button.isEnabled()
+        assert "MuMu" in page.ready_hint.text()
+
+        page.set_target_status(
+            {
+                "ok": True,
+                "trade_backend": "pc",
+                "target": {"hwnd": 1, "title": "PC target", "visible": True},
+            }
+        )
+        assert page.target_value.text() == "127.0.0.1:16384"
     finally:
         page.close()
 

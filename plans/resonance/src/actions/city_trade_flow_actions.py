@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import time
 import asyncio
+import contextvars
+import functools
+import threading
 from fractions import Fraction
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.context.persistence.store_service import StateStoreService
+from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 
 from ..services.city_shop_data_service import CityShopDataService
@@ -48,6 +53,75 @@ class CityTradeFlowError(RuntimeError):
 
     def to_dict(self) -> Dict[str, Any]:
         return {"code": self.code, "message": self.message, "detail": self.detail}
+
+
+_TRADE_PROGRESS_EVENT = "task.resonance_trade_progress"
+_TRADE_PROGRESS_SCHEMA = "resonance.trade_progress.v1"
+
+
+class _TradeProgressReporter:
+    def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop):
+        self._event_bus = event_bus
+        self._cid = str(cid)
+        self._loop = loop
+        self._sequence = 0
+        self._lock = threading.Lock()
+
+    async def emit(self, stage: str, state: str, **fields: Any) -> None:
+        with self._lock:
+            self._sequence += 1
+            sequence = self._sequence
+        payload = {
+            "schema": _TRADE_PROGRESS_SCHEMA,
+            "cid": self._cid,
+            "sequence": sequence,
+            "stage": str(stage),
+            "state": str(state),
+        }
+        payload.update({key: value for key, value in fields.items() if value is not None})
+        try:
+            await self._event_bus.publish(Event(name=_TRADE_PROGRESS_EVENT, payload=payload))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Emulator trade progress event could not be published: %s", exc)
+
+
+_ACTIVE_PROGRESS_REPORTER: contextvars.ContextVar[_TradeProgressReporter | None] = contextvars.ContextVar(
+    "resonance_trade_progress_reporter",
+    default=None,
+)
+
+
+def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        event_bus = kwargs.get("event_bus")
+        context = kwargs.get("context")
+        cid = ""
+        if isinstance(context, ExecutionContext):
+            cid = str(context.data.get("cid") or "")
+        reporter = None
+        if event_bus is not None and cid:
+            reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop())
+        token = _ACTIVE_PROGRESS_REPORTER.set(reporter)
+        try:
+            if reporter is not None:
+                await reporter.emit("task", "started")
+            result = await func(*args, **kwargs)
+            if reporter is not None:
+                await reporter.emit("task", "completed", data={"status": result.get("status")})
+            return result
+        except Exception as exc:
+            if reporter is not None:
+                await reporter.emit(
+                    "task",
+                    "failed",
+                    data={"error_type": type(exc).__name__, "message": str(exc)},
+                )
+            raise
+        finally:
+            _ACTIVE_PROGRESS_REPORTER.reset(token)
+
+    return wrapper
 
 
 _VISIT_BUTTON_REGION = [1000, 450, 250, 70]
@@ -906,6 +980,7 @@ async def _execute_exact_trade_leg(
     controller: Any,
     city_shop_data: CityShopDataService,
 ) -> Dict[str, Any]:
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
     if page_state == "city_main":
         await asyncio.to_thread(resonance_open_city_panel_from_main, app=app, ocr=ocr)
         page_state = "city_panel"
@@ -930,6 +1005,15 @@ async def _execute_exact_trade_leg(
         city_shop_data=city_shop_data,
     )
 
+    if reporter is not None:
+        await reporter.emit(
+            "travel",
+            "started",
+            leg_index=index,
+            from_city=str(leg.get("from_city") or ""),
+            to_city=str(leg.get("to_city") or ""),
+            current_city=str(leg.get("from_city") or ""),
+        )
     travel = await asyncio.to_thread(
         resonance_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
@@ -952,6 +1036,17 @@ async def _execute_exact_trade_leg(
         vision=vision,
         controller=controller,
     )
+    if reporter is not None:
+        travel_status = str(travel.get("status") or "ok").lower()
+        await reporter.emit(
+            "arrival",
+            "blocked" if travel_status == "blocked" else "completed",
+            leg_index=index,
+            from_city=str(leg.get("from_city") or ""),
+            to_city=str(leg.get("to_city") or ""),
+            current_city=str(leg.get("to_city") or ""),
+            data={"travel": dict(travel)},
+        )
     return {
         "index": int(index),
         "status": "pending",
@@ -976,12 +1071,22 @@ async def _execute_exact_route(
     city_shop_data: CityShopDataService,
     state_store: StateStoreService,
 ) -> Dict[str, Any]:
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_trade_route_execution_init(route=route, state_store=state_store)
     route_run_key = str(route_state.get("run_key") or "")
     page_state = start_page_state
     leg_results: List[Dict[str, Any]] = []
     try:
         for index, leg in enumerate(route):
+            progress_fields = {
+                "leg_index": index,
+                "leg_count": len(route),
+                "from_city": str(leg.get("from_city") or ""),
+                "to_city": str(leg.get("to_city") or ""),
+                "current_city": str(leg.get("from_city") or ""),
+            }
+            if reporter is not None:
+                await reporter.emit("leg", "started", **progress_fields, data={"leg": dict(leg)})
             leg_result = await _execute_exact_trade_leg(
                 index=index,
                 leg=leg,
@@ -1011,6 +1116,13 @@ async def _execute_exact_route(
             blocked = str(update.get("status") or "").lower() == "blocked"
             leg_result["status"] = "blocked" if blocked else "completed"
             leg_results.append(leg_result)
+            if reporter is not None:
+                await reporter.emit(
+                    "leg",
+                    "blocked" if blocked else "completed",
+                    **progress_fields,
+                    data={"travel": travel},
+                )
             if blocked:
                 break
             await asyncio.sleep(2.0)
@@ -1032,7 +1144,9 @@ async def _execute_exact_route(
 @requires_services(
     resonance_market_data="resonance_market_data",
     resonance_trade_planner="resonance_trade_planner",
+    event_bus="core/event_bus",
 )
+@_with_trade_progress
 async def resonance_preview_trade_plan_flow(
     start_city_id: str,
     fatigue_budget: int = 100,
@@ -1052,7 +1166,11 @@ async def resonance_preview_trade_plan_flow(
     active_events: Optional[List[Any]] = None,
     resonance_market_data: ResonanceMarketDataService | None = None,
     resonance_trade_planner: ResonanceTradePlannerService | None = None,
+    event_bus: EventBus | None = None,
+    context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
+    del event_bus, context
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
     normalized_all_plan = _strict_integer("all_plan", all_plan)
     if normalized_all_plan not in {0, 1}:
         raise ValueError("all_plan must be 0 or 1")
@@ -1073,6 +1191,13 @@ async def resonance_preview_trade_plan_flow(
     if resonance_market_data is None or resonance_trade_planner is None:
         raise RuntimeError("preview_trade_plan_flow requires market-data and planner services")
 
+    if reporter is not None:
+        await reporter.emit(
+            "market",
+            "started",
+            current_city=normalized_start_city_id,
+            data={"source": "refresh"},
+        )
     market = await asyncio.to_thread(
         resonance_market_refresh,
         force=True,
@@ -1087,6 +1212,20 @@ async def resonance_preview_trade_plan_flow(
         if isinstance(city_payload, dict)
         else normalized_start_city_id
     )
+    if reporter is not None:
+        await reporter.emit(
+            "market",
+            "completed",
+            current_city=start_city_name,
+            snapshot_id=str(market.get("snapshot_id") or ""),
+            data={"source": market_source, "stale_reason": market.get("stale_reason")},
+        )
+        await reporter.emit(
+            "planning",
+            "started",
+            current_city=start_city_name,
+            snapshot_id=str(market.get("snapshot_id") or ""),
+        )
     plan = await asyncio.to_thread(
         resonance_trade_plan_optimal_route,
         current_city_id=normalized_start_city_id,
@@ -1108,6 +1247,27 @@ async def resonance_preview_trade_plan_flow(
         snapshot_id=market.get("snapshot_id"),
         resonance_trade_planner=resonance_trade_planner,
     )
+    route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    if reporter is not None:
+        await reporter.emit(
+            "planning",
+            "completed",
+            leg_count=len(route),
+            current_city=start_city_name,
+            snapshot_id=str(market.get("snapshot_id") or ""),
+            data={
+                "route": route,
+                "summary": {
+                    "status": plan.get("status"),
+                    "expected_profit": plan.get("expected_profit"),
+                    "expected_fatigue_used": plan.get("expected_fatigue_used"),
+                    "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
+                    "books_used": plan.get("books_used"),
+                    "full_bargain_count": plan.get("full_bargain_count"),
+                    "full_raise_count": plan.get("full_raise_count"),
+                },
+            },
+        )
     result = dict(plan)
     result.update(
         {
@@ -1143,7 +1303,9 @@ async def resonance_preview_trade_plan_flow(
     resonance_market_data="resonance_market_data",
     resonance_trade_planner="resonance_trade_planner",
     state_store="core/state_store",
+    event_bus="core/event_bus",
 )
+@_with_trade_progress
 async def resonance_auto_cycle_trade_exact_flow(
     fatigue_budget: int = 100,
     cargo_capacity: int = 650,
@@ -1171,7 +1333,11 @@ async def resonance_auto_cycle_trade_exact_flow(
     resonance_market_data: ResonanceMarketDataService | None = None,
     resonance_trade_planner: ResonanceTradePlannerService | None = None,
     state_store: StateStoreService | None = None,
+    event_bus: EventBus | None = None,
+    context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
+    del event_bus, context
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
     normalized_all_plan = _strict_integer("all_plan", all_plan)
     if normalized_all_plan not in {0, 1}:
         raise ValueError("all_plan must be 0 or 1")
@@ -1209,11 +1375,40 @@ async def resonance_auto_cycle_trade_exact_flow(
     )
     page_state = "city_panel"
 
+    if reporter is not None:
+        await reporter.emit(
+            "city",
+            "completed",
+            current_city=str(current.get("city_name") or ""),
+        )
+        await reporter.emit(
+            "market",
+            "started",
+            current_city=str(current.get("city_name") or ""),
+            data={"source": "refresh"},
+        )
     refresh = await asyncio.to_thread(
         resonance_market_refresh,
         force=True,
         resonance_market_data=resonance_market_data,
     )
+    if reporter is not None:
+        await reporter.emit(
+            "market",
+            "completed",
+            current_city=str(current.get("city_name") or ""),
+            snapshot_id=str(refresh.get("snapshot_id") or ""),
+            data={
+                "source": "fallback_cache" if refresh.get("stale") else "refresh",
+                "stale_reason": refresh.get("stale_reason"),
+            },
+        )
+        await reporter.emit(
+            "planning",
+            "started",
+            current_city=str(current.get("city_name") or ""),
+            snapshot_id=str(refresh.get("snapshot_id") or ""),
+        )
     plan = await asyncio.to_thread(
         resonance_trade_plan_optimal_route,
         current_city=str(current.get("city_name") or ""),
@@ -1237,6 +1432,26 @@ async def resonance_auto_cycle_trade_exact_flow(
         resonance_trade_planner=resonance_trade_planner,
     )
     route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    if reporter is not None:
+        await reporter.emit(
+            "planning",
+            "completed",
+            leg_count=len(route),
+            current_city=str(current.get("city_name") or ""),
+            snapshot_id=str(refresh.get("snapshot_id") or ""),
+            data={
+                "route": route,
+                "summary": {
+                    "status": plan.get("status"),
+                    "expected_profit": plan.get("expected_profit"),
+                    "expected_fatigue_used": plan.get("expected_fatigue_used"),
+                    "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
+                    "books_used": plan.get("books_used"),
+                    "full_bargain_count": plan.get("full_bargain_count"),
+                    "full_raise_count": plan.get("full_raise_count"),
+                },
+            },
+        )
     execution: Dict[str, Any] = {
         "status": "not_started",
         "reason": plan.get("reason"),
@@ -1271,6 +1486,13 @@ async def resonance_auto_cycle_trade_exact_flow(
                 await asyncio.to_thread(resonance_open_city_panel_from_main, app=app, ocr=ocr)
                 page_state = "city_panel"
             endpoint_city = str(route[-1].get("to_city") or "")
+            if reporter is not None:
+                await reporter.emit(
+                    "final_sale",
+                    "started",
+                    current_city=endpoint_city,
+                    leg_count=len(route),
+                )
             final_sale = await asyncio.to_thread(
                 _execute_city_trade_inside_current_city,
                 current_city=endpoint_city,
@@ -1285,6 +1507,14 @@ async def resonance_auto_cycle_trade_exact_flow(
                 city_shop_data=resonance_city_shop_data,
             )
             page_state = str(final_sale.get("page_state") or "city_main")
+            if reporter is not None:
+                await reporter.emit(
+                    "final_sale",
+                    "completed",
+                    current_city=endpoint_city,
+                    leg_count=len(route),
+                    data={"final_sale": dict(final_sale)},
+                )
     elif page_state == "city_panel":
         cleanup = await asyncio.to_thread(
             resonance_go_city_main_direct,
