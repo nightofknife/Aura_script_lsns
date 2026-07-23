@@ -1,0 +1,271 @@
+auto_cycle_trade_exact:
+  meta:
+    title: Exact Auto Trade (Emulator)
+    description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
+    entry_point: true
+    inputs:
+      - name: all_plan
+        type: number
+        required: false
+        default: 0
+        enum:
+          - 0
+          - 1
+      - name: fatigue_budget
+        type: number
+        required: false
+        default: 100
+        min: 0
+      - name: cargo_capacity
+        type: number
+        required: false
+        default: 650
+        min: 1
+      - name: book_budget
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: negotiation_budget
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: bargain_success_rates_bps
+        type: list
+        required: false
+        default:
+          - 5000
+        min: 1
+        item:
+          name: bargain_success_rate_bps
+          type: number
+          required: true
+          min: 0
+          max: 10000
+      - name: bargain_step_bps
+        type: number
+        required: false
+        default: 1000
+        min: 1
+        max: 2000
+      - name: raise_success_rates_bps
+        type: list
+        required: false
+        default:
+          - 5000
+        min: 1
+        item:
+          name: raise_success_rate_bps
+          type: number
+          required: true
+          min: 0
+          max: 10000
+      - name: raise_step_bps
+        type: number
+        required: false
+        default: 1000
+        min: 1
+        max: 2000
+      - name: trade_level
+        type: number
+        required: false
+        default: 20
+        min: 1
+        max: 20
+      - name: available_city_ids
+        type: list
+        required: false
+        default:
+          - "3"
+          - "4"
+          - "1"
+          - "5"
+          - "7"
+          - "8"
+          - "9"
+          - "2"
+        min: 2
+        item:
+          name: available_city_id
+          type: string
+          required: true
+          enum:
+            - "3"
+            - "4"
+            - "1"
+            - "5"
+            - "7"
+            - "8"
+            - "9"
+            - "2"
+      - name: city_prestige
+        type: dict
+        required: false
+        default:
+          default: 20
+          overrides: {}
+        properties:
+          default:
+            name: default
+            type: number
+            required: false
+            default: 20
+            min: 1
+            max: 20
+          overrides:
+            name: overrides
+            type: dict
+            required: false
+            default: {}
+            properties:
+              "1":
+                name: city_1
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "2":
+                name: city_2
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "3":
+                name: city_3
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "4":
+                name: city_4
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "5":
+                name: city_5
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "7":
+                name: city_7
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "8":
+                name: city_8
+                type: number
+                required: false
+                min: 1
+                max: 20
+              "9":
+                name: city_9
+                type: number
+                required: false
+                min: 1
+                max: 20
+      - name: product_unlocks
+        type: dict
+        required: false
+        default:
+          mode: all
+          product_ids: []
+        properties:
+          mode:
+            name: mode
+            type: string
+            required: false
+            default: all
+            enum:
+              - all
+              - only
+          product_ids:
+            name: product_ids
+            type: list
+            required: false
+            default: []
+            item:
+              name: product_id
+              type: string
+              required: true
+      - name: active_events
+        type: list
+        required: false
+        default: []
+      - name: use_fatigue_medicine
+        type: boolean
+        required: false
+        default: false
+      - name: allowed_fatigue_medicines
+        type: list
+        required: false
+        default: []
+      - name: fatigue_medicine_max_uses
+        type: number
+        required: false
+        default: 4
+  steps:
+    run:
+      action: resonance.auto_cycle_trade_exact_flow
+      params:
+        all_plan: "{{ inputs.all_plan | default(0) }}"
+        fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
+        cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
+        book_budget: "{{ inputs.book_budget | default(0) }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold | default(0) }}"
+        negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
+        bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
+        bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
+        raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
+        raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
+        trade_level: "{{ inputs.trade_level | default(20) }}"
+        available_city_ids: "{{ inputs.available_city_ids | default(['3', '4', '1', '5', '7', '8', '9', '2']) }}"
+        city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
+        product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
+        active_events: "{{ inputs.active_events | default([]) }}"
+        use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
+        allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
+        fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    status: "{{ nodes.run.output.status }}"
+    reason: "{{ nodes.run.output.reason }}"
+    snapshot_id: "{{ nodes.run.output.snapshot_id }}"
+    all_plan: "{{ nodes.run.output.all_plan }}"
+    city_path: "{{ nodes.run.output.city_path }}"
+    city_path_ids: "{{ nodes.run.output.city_path_ids }}"
+    expected_profit: "{{ nodes.run.output.expected_profit }}"
+    expected_profit_exact: "{{ nodes.run.output.expected_profit_exact }}"
+    fatigue_budget: "{{ nodes.run.output.fatigue_budget }}"
+    expected_fatigue_used: "{{ nodes.run.output.expected_fatigue_used }}"
+    expected_fatigue_used_exact: "{{ nodes.run.output.expected_fatigue_used_exact }}"
+    remaining_expected_fatigue: "{{ nodes.run.output.remaining_expected_fatigue }}"
+    remaining_expected_fatigue_exact: "{{ nodes.run.output.remaining_expected_fatigue_exact }}"
+    books_budget: "{{ nodes.run.output.books_budget }}"
+    books_used: "{{ nodes.run.output.books_used }}"
+    remaining_books: "{{ nodes.run.output.remaining_books }}"
+    negotiation_budget: "{{ nodes.run.output.negotiation_budget }}"
+    negotiation_budget_ignored: "{{ nodes.run.output.negotiation_budget_ignored }}"
+    full_negotiation_used: "{{ nodes.run.output.full_negotiation_used }}"
+    full_bargain_count: "{{ nodes.run.output.full_bargain_count }}"
+    full_raise_count: "{{ nodes.run.output.full_raise_count }}"
+    remaining_negotiation: "{{ nodes.run.output.remaining_negotiation }}"
+    assumptions: "{{ nodes.run.output.assumptions }}"
+    warnings: "{{ nodes.run.output.warnings }}"
+    route: "{{ nodes.run.output.route }}"
+    execution: "{{ nodes.run.output.execution }}"
+    final_sale: "{{ nodes.run.output.final_sale }}"
+    blocked_at: "{{ nodes.run.output.blocked_at }}"
+    blocked_leg: "{{ nodes.run.output.blocked_leg }}"
+    fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"
+    fatigue_medicine_use_count: "{{ nodes.run.output.fatigue_medicine_use_count }}"
+    initial_city: "{{ nodes.run.output.initial_city }}"
+    page_state: "{{ nodes.run.output.page_state }}"
