@@ -1,0 +1,194 @@
+preview_trade_plan:
+  meta:
+    title: Preview Exact Trade Plan
+    description: Refresh market data and calculate one exact route from a user-selected start city.
+    entry_point: true
+    inputs:
+      - name: start_city_id
+        type: string
+        required: true
+        enum: ["3", "4", "1", "5", "7", "8", "9", "2"]
+      - name: all_plan
+        type: number
+        required: false
+        default: 0
+        enum: [0, 1]
+      - name: fatigue_budget
+        type: number
+        required: false
+        default: 100
+        min: 0
+      - name: cargo_capacity
+        type: number
+        required: false
+        default: 650
+        min: 1
+      - name: book_budget
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: book_profit_threshold
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: negotiation_budget
+        type: number
+        required: false
+        default: 0
+        min: 0
+      - name: bargain_success_rates_bps
+        type: list
+        required: false
+        default: [5000]
+        min: 1
+        item:
+          name: bargain_success_rate_bps
+          type: number
+          required: true
+          min: 0
+          max: 10000
+      - name: bargain_step_bps
+        type: number
+        required: false
+        default: 1000
+        min: 1
+        max: 2000
+      - name: raise_success_rates_bps
+        type: list
+        required: false
+        default: [5000]
+        min: 1
+        item:
+          name: raise_success_rate_bps
+          type: number
+          required: true
+          min: 0
+          max: 10000
+      - name: raise_step_bps
+        type: number
+        required: false
+        default: 1000
+        min: 1
+        max: 2000
+      - name: trade_level
+        type: number
+        required: false
+        default: 20
+        min: 1
+        max: 20
+      - name: available_city_ids
+        type: list
+        required: false
+        default: ["3", "4", "1", "5", "7", "8", "9", "2"]
+        min: 2
+        item:
+          name: available_city_id
+          type: string
+          required: true
+          enum: ["3", "4", "1", "5", "7", "8", "9", "2"]
+      - name: city_prestige
+        type: dict
+        required: false
+        default:
+          default: 20
+          overrides: {}
+        properties:
+          default:
+            name: default
+            type: number
+            required: false
+            default: 20
+            min: 1
+            max: 20
+          overrides:
+            name: overrides
+            type: dict
+            required: false
+            default: {}
+            properties:
+              "1": {name: city_1, type: number, required: false, min: 1, max: 20}
+              "2": {name: city_2, type: number, required: false, min: 1, max: 20}
+              "3": {name: city_3, type: number, required: false, min: 1, max: 20}
+              "4": {name: city_4, type: number, required: false, min: 1, max: 20}
+              "5": {name: city_5, type: number, required: false, min: 1, max: 20}
+              "7": {name: city_7, type: number, required: false, min: 1, max: 20}
+              "8": {name: city_8, type: number, required: false, min: 1, max: 20}
+              "9": {name: city_9, type: number, required: false, min: 1, max: 20}
+      - name: product_unlocks
+        type: dict
+        required: false
+        default:
+          mode: all
+          product_ids: []
+        properties:
+          mode:
+            name: mode
+            type: string
+            required: false
+            default: all
+            enum: [all, only]
+          product_ids:
+            name: product_ids
+            type: list
+            required: false
+            default: []
+            item:
+              name: product_id
+              type: string
+              required: true
+      - name: active_events
+        type: list
+        required: false
+        default: []
+  steps:
+    run:
+      action: resonance.preview_trade_plan_flow
+      params:
+        start_city_id: "{{ inputs.start_city_id }}"
+        all_plan: "{{ inputs.all_plan | default(0) }}"
+        fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
+        cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
+        book_budget: "{{ inputs.book_budget | default(0) }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold | default(0) }}"
+        negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
+        bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
+        bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
+        raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
+        raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
+        trade_level: "{{ inputs.trade_level | default(20) }}"
+        available_city_ids: "{{ inputs.available_city_ids | default(['3', '4', '1', '5', '7', '8', '9', '2']) }}"
+        city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
+        product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
+        active_events: "{{ inputs.active_events | default([]) }}"
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    preview: "{{ nodes.run.output.preview }}"
+    market_refreshed: "{{ nodes.run.output.market_refreshed }}"
+    market_source: "{{ nodes.run.output.market_source }}"
+    market_stale_reason: "{{ nodes.run.output.market_stale_reason }}"
+    market_fetched_at: "{{ nodes.run.output.market_fetched_at }}"
+    status: "{{ nodes.run.output.status }}"
+    reason: "{{ nodes.run.output.reason }}"
+    snapshot_id: "{{ nodes.run.output.snapshot_id }}"
+    city_path: "{{ nodes.run.output.city_path }}"
+    city_path_ids: "{{ nodes.run.output.city_path_ids }}"
+    route: "{{ nodes.run.output.route }}"
+    expected_profit: "{{ nodes.run.output.expected_profit }}"
+    expected_profit_exact: "{{ nodes.run.output.expected_profit_exact }}"
+    fatigue_budget: "{{ nodes.run.output.fatigue_budget }}"
+    expected_fatigue_used: "{{ nodes.run.output.expected_fatigue_used }}"
+    expected_fatigue_used_exact: "{{ nodes.run.output.expected_fatigue_used_exact }}"
+    remaining_expected_fatigue: "{{ nodes.run.output.remaining_expected_fatigue }}"
+    remaining_expected_fatigue_exact: "{{ nodes.run.output.remaining_expected_fatigue_exact }}"
+    books_budget: "{{ nodes.run.output.books_budget }}"
+    books_used: "{{ nodes.run.output.books_used }}"
+    remaining_books: "{{ nodes.run.output.remaining_books }}"
+    full_negotiation_used: "{{ nodes.run.output.full_negotiation_used }}"
+    full_bargain_count: "{{ nodes.run.output.full_bargain_count }}"
+    full_raise_count: "{{ nodes.run.output.full_raise_count }}"
+    assumptions: "{{ nodes.run.output.assumptions }}"
+    warnings: "{{ nodes.run.output.warnings }}"
+    initial_city: "{{ nodes.run.output.initial_city }}"
+    page_state: "{{ nodes.run.output.page_state }}"

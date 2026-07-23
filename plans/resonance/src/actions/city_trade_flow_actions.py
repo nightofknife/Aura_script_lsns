@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import asyncio
+from fractions import Fraction
 from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
@@ -12,6 +13,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from ..services.city_shop_data_service import CityShopDataService
 from ..services.resonance_market_data_service import ResonanceMarketDataService
+from ..services.resonance_trade_exact_solver import expected_fatigue_to_cap
 from ..services.resonance_trade_planner_service import ResonanceTradePlannerService
 from .city_travel_actions import resonance_intercity_depart_and_wait
 from .market_data_actions import resonance_market_refresh
@@ -21,6 +23,7 @@ from .trade_planner_actions import (
     resonance_trade_loop_init,
     resonance_trade_loop_summary,
     resonance_trade_loop_update,
+    resonance_trade_plan_optimal_route,
     resonance_trade_plan_next_cycle_execution,
     resonance_trade_route_execution_cleanup,
     resonance_trade_route_execution_init,
@@ -79,6 +82,18 @@ _SELL_SETTLEMENT = {
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
     raise CityTradeFlowError(code=code, message=message, detail=detail)
+
+
+def _strict_integer(name: str, value: Any) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be an integer")
+    try:
+        normalized = Fraction(str(value).strip())
+    except (ValueError, ZeroDivisionError) as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if normalized.denominator != 1:
+        raise ValueError(f"{name} must be an integer")
+    return int(normalized)
 
 
 def _coerce_region(region: Any) -> Tuple[int, int, int, int]:
@@ -818,6 +833,111 @@ async def _execute_route(
     finally:
         if route_run_key:
             await resonance_trade_route_execution_cleanup(route_run_key, state_store=state_store)
+
+
+@action_info(
+    name="resonance.preview_trade_plan_flow",
+    public=True,
+    read_only=False,
+    description="Refresh market data and calculate an emulator trade route from a user-selected start city.",
+)
+@requires_services(
+    resonance_market_data="resonance_market_data",
+    resonance_trade_planner="resonance_trade_planner",
+)
+async def resonance_preview_trade_plan_flow(
+    start_city_id: str,
+    fatigue_budget: int = 100,
+    cargo_capacity: int = 650,
+    book_budget: int = 0,
+    book_profit_threshold: float = 0,
+    negotiation_budget: int = 0,
+    all_plan: int = 0,
+    bargain_success_rates_bps: Optional[List[Any]] = [5000],
+    bargain_step_bps: Optional[Any] = 1000,
+    raise_success_rates_bps: Optional[List[Any]] = [5000],
+    raise_step_bps: Optional[Any] = 1000,
+    trade_level: int = 20,
+    available_city_ids: Optional[List[str]] = None,
+    city_prestige: Optional[Dict[str, Any]] = None,
+    product_unlocks: Optional[Dict[str, Any]] = None,
+    active_events: Optional[List[Any]] = None,
+    resonance_market_data: ResonanceMarketDataService | None = None,
+    resonance_trade_planner: ResonanceTradePlannerService | None = None,
+) -> Dict[str, Any]:
+    normalized_all_plan = _strict_integer("all_plan", all_plan)
+    if normalized_all_plan not in {0, 1}:
+        raise ValueError("all_plan must be 0 or 1")
+    normalized_negotiation_budget = _strict_integer("negotiation_budget", negotiation_budget)
+    if normalized_negotiation_budget < 0:
+        raise ValueError("negotiation_budget must be >= 0")
+    normalized_start_city_id = str(start_city_id or "").strip()
+    if not normalized_start_city_id:
+        raise ValueError("start_city_id is required")
+    expected_fatigue_to_cap(
+        success_rates_bps=[5000] if bargain_success_rates_bps is None else bargain_success_rates_bps,
+        step_bps=1000 if bargain_step_bps is None else bargain_step_bps,
+    )
+    expected_fatigue_to_cap(
+        success_rates_bps=[5000] if raise_success_rates_bps is None else raise_success_rates_bps,
+        step_bps=1000 if raise_step_bps is None else raise_step_bps,
+    )
+    if resonance_market_data is None or resonance_trade_planner is None:
+        raise RuntimeError("preview_trade_plan_flow requires market-data and planner services")
+
+    market = await asyncio.to_thread(
+        resonance_market_refresh,
+        force=True,
+        resonance_market_data=resonance_market_data,
+    )
+    stale = bool(market.get("stale"))
+    market_source = "fallback_cache" if stale else "refresh"
+    cities = market.get("cities") if isinstance(market.get("cities"), dict) else {}
+    city_payload = cities.get(normalized_start_city_id)
+    start_city_name = (
+        str(city_payload.get("name") or normalized_start_city_id)
+        if isinstance(city_payload, dict)
+        else normalized_start_city_id
+    )
+    plan = await asyncio.to_thread(
+        resonance_trade_plan_optimal_route,
+        current_city_id=normalized_start_city_id,
+        fatigue_budget=int(fatigue_budget),
+        cargo_capacity=int(cargo_capacity),
+        book_budget=int(book_budget),
+        book_profit_threshold=book_profit_threshold,
+        negotiation_budget=normalized_negotiation_budget,
+        all_plan=normalized_all_plan,
+        bargain_success_rates_bps=bargain_success_rates_bps,
+        bargain_step_bps=bargain_step_bps,
+        raise_success_rates_bps=raise_success_rates_bps,
+        raise_step_bps=raise_step_bps,
+        trade_level=int(trade_level),
+        available_city_ids=available_city_ids,
+        city_prestige=city_prestige or {"default": 20, "overrides": {}},
+        product_unlocks=product_unlocks or {"mode": "all", "product_ids": []},
+        active_events=active_events or [],
+        snapshot_id=market.get("snapshot_id"),
+        resonance_trade_planner=resonance_trade_planner,
+    )
+    result = dict(plan)
+    result.update(
+        {
+            "success": True,
+            "preview": True,
+            "market_refreshed": not stale,
+            "market_source": market_source,
+            "market_stale_reason": market.get("stale_reason"),
+            "market_fetched_at": market.get("fetched_at"),
+            "initial_city": {
+                "city_id": normalized_start_city_id,
+                "city_name": start_city_name,
+                "source": "user_input",
+            },
+            "page_state": "not_applicable",
+        }
+    )
+    return result
 
 
 @action_info(

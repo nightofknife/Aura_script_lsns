@@ -1,0 +1,59 @@
+{
+  "schema_version": "2.0.0",
+  "model_version": "resonance_trade_binary_to_cap_2026_07_19",
+  "source": {
+    "reference_site": "https://www.resonance-columba.com/",
+    "verification_status": "requires_game_sample_validation"
+  },
+  "rounding": {
+    "mode": "half_toward_positive_infinity",
+    "price_stage": true,
+    "taxed_unit_profit_stage": true,
+    "purchase_quantity_stage": true
+  },
+  "trade_level": {
+    "min": 1,
+    "max": 20,
+    "default": 20
+  },
+  "tax": {
+    "special_city_ids": [
+      "3",
+      "6"
+    ],
+    "special_city_delta_bps": -300
+  },
+  "prestige_levels": {
+    "1": {"general_tax_bps": 1000, "extra_buy_bps": 1000},
+    "2": {"general_tax_bps": 950, "extra_buy_bps": 2000},
+    "3": {"general_tax_bps": 950, "extra_buy_bps": 3000},
+    "4": {"general_tax_bps": 900, "extra_buy_bps": 4000},
+    "5": {"general_tax_bps": 900, "extra_buy_bps": 5000},
+    "6": {"general_tax_bps": 850, "extra_buy_bps": 6000},
+    "7": {"general_tax_bps": 850, "extra_buy_bps": 7000},
+    "8": {"general_tax_bps": 800, "extra_buy_bps": 8000},
+    "9": {"general_tax_bps": 800, "extra_buy_bps": 9000},
+    "10": {"general_tax_bps": 750, "extra_buy_bps": 10000},
+    "11": {"general_tax_bps": 750, "extra_buy_bps": 11000},
+    "12": {"general_tax_bps": 700, "extra_buy_bps": 12000},
+    "13": {"general_tax_bps": 700, "extra_buy_bps": 13000},
+    "14": {"general_tax_bps": 650, "extra_buy_bps": 14000},
+    "15": {"general_tax_bps": 650, "extra_buy_bps": 15000},
+    "16": {"general_tax_bps": 600, "extra_buy_bps": 16000},
+    "17": {"general_tax_bps": 600, "extra_buy_bps": 17000},
+    "18": {"general_tax_bps": 550, "extra_buy_bps": 18000},
+    "19": {"general_tax_bps": 550, "extra_buy_bps": 19000},
+    "20": {"general_tax_bps": 500, "extra_buy_bps": 20000}
+  },
+  "negotiation": {
+    "model": "binary_to_cap_expected_fatigue",
+    "max_adjustment_bps": 2000,
+    "attempt_fatigue": 8,
+    "defaults": {
+      "bargain_success_rates_bps": [5000],
+      "bargain_step_bps": 1000,
+      "raise_success_rates_bps": [5000],
+      "raise_step_bps": 1000
+    }
+  }
+}
