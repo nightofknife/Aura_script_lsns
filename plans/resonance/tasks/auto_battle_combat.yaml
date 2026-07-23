@@ -16,48 +16,12 @@ auto_battle_combat:
       params:
         message: "combat executor: formation={{ inputs.formation_index | default('n/a') }}, capture={{ inputs.capture_count | default('n/a') }}"
 
-    click_formation_1:
-      action: plans/aura_base/click
+    prepare_formation:
+      action: resonance.prepare_battle_formation
       params:
-        x: 310
-        y: 40
+        formation_index: "{{ inputs.formation_index | default(none) }}"
+        settle_sec: 0.5
       depends_on: log_combat_job
-      when: "{{ inputs.formation_index == 1 }}"
-
-    click_formation_2:
-      action: plans/aura_base/click
-      params:
-        x: 490
-        y: 40
-      depends_on: log_combat_job
-      when: "{{ inputs.formation_index == 2 }}"
-
-    click_formation_3:
-      action: plans/aura_base/click
-      params:
-        x: 660
-        y: 40
-      depends_on: log_combat_job
-      when: "{{ inputs.formation_index == 3 }}"
-
-    click_formation_4:
-      action: plans/aura_base/click
-      params:
-        x: 840
-        y: 40
-      depends_on: log_combat_job
-      when: "{{ inputs.formation_index == 4 }}"
-
-    wait_after_formation:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 0.5
-      depends_on:
-        all:
-          - click_formation_1: "success|failed|skipped"
-          - click_formation_2: "success|failed|skipped"
-          - click_formation_3: "success|failed|skipped"
-          - click_formation_4: "success|failed|skipped"
 
     click_start_entry:
       action: resonance.wait_and_click_any_text
@@ -67,7 +31,7 @@ auto_battle_combat:
         timeout_sec: 10.0
         interval_sec: 0.5
         match_mode: "contains"
-      depends_on: wait_after_formation
+      depends_on: prepare_formation
 
     assert_start_battle_clicked:
       action: plans/aura_base/assert_condition
