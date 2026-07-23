@@ -5,6 +5,10 @@ from PySide6.QtCore import QSettings
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import GuiPreferences, ResonanceConfigRepository
 from packages.resonance_gui.logic import (
+    EMULATOR_TRADE_PREVIEW_TASK_REF,
+    EMULATOR_TRADE_PROGRESS_EVENT,
+    EMULATOR_TRADE_PROGRESS_SCHEMA,
+    EMULATOR_TRADE_TASK_REF,
     GAME_NAME,
     PC_GAME_NAME,
     PC_TRADE_PREVIEW_TASK_REF,
@@ -15,6 +19,7 @@ from packages.resonance_gui.logic import (
     parse_inputs_json,
     reduce_trade_progress,
     render_result_text,
+    resolve_trade_backend,
     route_product_lines,
     trade_result_summary,
 )
@@ -184,6 +189,65 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
     assert run_call["inputs"] == {"fatigue_budget": 300}
 
 
+def test_trade_backend_specs_map_emulator_and_pc_tasks():
+    emulator = resolve_trade_backend("emulator")
+    pc = resolve_trade_backend("pc")
+
+    assert emulator.game_name == GAME_NAME
+    assert emulator.run_task_ref == EMULATOR_TRADE_TASK_REF
+    assert emulator.preview_task_ref == EMULATOR_TRADE_PREVIEW_TASK_REF
+    assert pc.game_name == PC_GAME_NAME
+
+
+def test_runner_bridge_dispatches_emulator_trade_and_refreshes_emulator_context():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    bridge.set_trade_backend("emulator")
+    bridge.run_trade(
+        {
+            "runtime_backend": "emulator",
+            "fatigue_budget": 300,
+            "start_city_id": "3",
+        },
+        0.0,
+    )
+
+    run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
+    assert run_call["game_name"] == GAME_NAME
+    assert run_call["task_ref"] == EMULATOR_TRADE_TASK_REF
+    assert run_call["inputs"] == {"fatigue_budget": 300}
+    assert any(
+        call[0] == "list_runs" and call[1]["game_name"] == GAME_NAME
+        for call in fake.calls
+    )
+    assert any(
+        call[0] == "target_status" and call[1]["game_name"] == GAME_NAME
+        for call in fake.calls
+    )
+
+
+def test_runner_bridge_filters_emulator_progress_protocol():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    received = []
+    bridge.tradeProgress.connect(received.append)
+    bridge.run_trade({"runtime_backend": "emulator"}, 0.0)
+    fake.events = [
+        {
+            "name": TRADE_PROGRESS_EVENT,
+            "payload": {"schema": TRADE_PROGRESS_SCHEMA, "cid": "cid-1", "sequence": 1},
+        },
+        {
+            "name": EMULATOR_TRADE_PROGRESS_EVENT,
+            "payload": {"schema": EMULATOR_TRADE_PROGRESS_SCHEMA, "cid": "cid-1", "sequence": 2},
+        },
+    ]
+
+    bridge.poll_current()
+
+    assert [event["payload"]["sequence"] for event in received] == [2]
+
+
 def test_runner_bridge_filters_pc_trade_progress_by_cid():
     fake = FakeRunner()
     bridge = RunnerBridge(runner_factory=lambda: fake)
@@ -242,6 +306,7 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert loaded.last_task_id == "market_latest"
 
     trade_inputs = repo.load_trade_inputs()
+    assert trade_inputs["runtime_backend"] == "pc"
     assert trade_inputs["cargo_capacity"] == 650
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["available_city_ids"] == ["3", "4", "1", "5", "7", "8", "9", "2"]
@@ -280,6 +345,18 @@ def test_trade_progress_reducer_rejects_foreign_and_stale_events():
     assert reduced.route[0]["to_city"] == "B"
     assert reduced.summary["expected_profit"] == 9
     assert reduce_trade_progress(reduced, planning, expected_cid="cid-1").sequence == 4
+
+    emulator_planning = {
+        "name": EMULATOR_TRADE_PROGRESS_EVENT,
+        "payload": {
+            "schema": EMULATOR_TRADE_PROGRESS_SCHEMA,
+            "cid": "cid-1",
+            "sequence": 5,
+            "stage": "planning",
+            "state": "completed",
+        },
+    }
+    assert reduce_trade_progress(reduced, emulator_planning, expected_cid="cid-1").sequence == 5
 
 
 def test_trade_result_summary_and_route_products_support_new_and_old_shapes():

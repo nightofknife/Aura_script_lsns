@@ -30,6 +30,7 @@ class GuiPreferences:
 
 
 DEFAULT_TRADE_INPUTS: dict[str, Any] = {
+    "runtime_backend": "pc",
     "start_city_id": "",
     "all_plan": 0,
     "fatigue_budget": 100,
