@@ -612,6 +612,10 @@ exports:
       type: Any
       required: false
       default: 0
+    - name: bargain_to_cap
+      type: Any
+      required: false
+      default: false
     - name: max_scan_rounds
       type: Any
       required: false
@@ -624,7 +628,11 @@ exports:
     timeout: null
     description: Complete the sell-all flow from the 我要卖 page and return to the shop
       page.
-    parameters: []
+    parameters:
+    - name: raise_to_cap
+      type: Any
+      required: false
+      default: false
   - name: resonance.preview_trade_plan_flow
     module: plans.resonance.src.actions.city_trade_flow_actions
     function: resonance_preview_trade_plan_flow
@@ -700,6 +708,89 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance.auto_cycle_trade_exact_flow
+    module: plans.resonance.src.actions.city_trade_flow_actions
+    function: resonance_auto_cycle_trade_exact_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Plan and execute one exact full-budget Resonance emulator trade route
+      from city-main UI.
+    parameters:
+    - name: fatigue_budget
+      type: Any
+      required: false
+      default: 100
+    - name: cargo_capacity
+      type: Any
+      required: false
+      default: 650
+    - name: book_budget
+      type: Any
+      required: false
+      default: 0
+    - name: book_profit_threshold
+      type: Any
+      required: false
+      default: 0
+    - name: negotiation_budget
+      type: Any
+      required: false
+      default: 0
+    - name: all_plan
+      type: Any
+      required: false
+      default: 0
+    - name: bargain_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: bargain_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: raise_success_rates_bps
+      type: Any
+      required: false
+      default:
+      - 5000
+    - name: raise_step_bps
+      type: Any
+      required: false
+      default: 1000
+    - name: trade_level
+      type: Any
+      required: false
+      default: 20
+    - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: city_prestige
+      type: Any
+      required: false
+      default: null
+    - name: product_unlocks
+      type: Any
+      required: false
+      default: null
+    - name: active_events
+      type: Any
+      required: false
+      default: null
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
   - name: resonance.auto_cycle_trade_flow
     module: plans.resonance.src.actions.city_trade_flow_actions
     function: resonance_auto_cycle_trade_flow
@@ -1670,6 +1761,16 @@ exports:
     title: Auto Cycle Trade
     source: tasks/auto_cycle_trade.yaml
     description: Auto trading flow implemented by resonance.auto_cycle_trade_flow.
+  - id: auto_cycle_trade_exact/auto_cycle_trade_exact
+    title: Exact Auto Trade (Emulator)
+    source: tasks/auto_cycle_trade_exact.yaml
+    description: Plan one exact full-budget route from a frozen market snapshot and
+      execute it once.
+  - id: auto_cycle_trade_exact
+    title: Exact Auto Trade (Emulator)
+    source: tasks/auto_cycle_trade_exact.yaml
+    description: Plan one exact full-budget route from a frozen market snapshot and
+      execute it once.
   - id: buy_goods/buy_goods
     title: Buy Goods
     source: tasks/buy_goods.yaml
@@ -1776,4 +1877,4 @@ exports:
     description: Simulate rolling trade until stop, with full trace output.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-23T03:11:35Z'
+  generated_at: '2026-07-23T03:19:08Z'
