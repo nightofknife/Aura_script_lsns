@@ -20,6 +20,58 @@ def _require_service(service: Optional[ResonanceTradePlannerService]) -> Resonan
 
 
 @action_info(
+    name="resonance.trade_plan_optimal_route",
+    public=True,
+    read_only=True,
+    description="Plan the exact binary-to-cap maximum expected after-tax profit route for one frozen market snapshot.",
+)
+@requires_services(resonance_trade_planner="resonance_trade_planner")
+def resonance_trade_plan_optimal_route(
+    fatigue_budget: int = 100,
+    cargo_capacity: int = 650,
+    book_budget: int = 0,
+    book_profit_threshold: Any = 0,
+    negotiation_budget: int = 0,
+    all_plan: int = 0,
+    bargain_success_rates_bps: Optional[List[Any]] = [5000],
+    bargain_step_bps: Optional[Any] = 1000,
+    raise_success_rates_bps: Optional[List[Any]] = [5000],
+    raise_step_bps: Optional[Any] = 1000,
+    trade_level: int = 20,
+    available_city_ids: Optional[List[str]] = None,
+    city_prestige: Optional[Dict[str, Any]] = None,
+    product_unlocks: Optional[Dict[str, Any]] = None,
+    active_events: Optional[List[Any]] = None,
+    current_city_key: Optional[str] = None,
+    current_city_id: Optional[str] = None,
+    current_city: Optional[str] = None,
+    snapshot_id: Optional[str] = None,
+    resonance_trade_planner: ResonanceTradePlannerService | None = None,
+) -> Dict[str, Any]:
+    return _require_service(resonance_trade_planner).plan_optimal_route(
+        fatigue_budget=fatigue_budget,
+        cargo_capacity=cargo_capacity,
+        book_budget=book_budget,
+        book_profit_threshold=book_profit_threshold,
+        negotiation_budget=negotiation_budget,
+        all_plan=all_plan,
+        bargain_success_rates_bps=bargain_success_rates_bps,
+        bargain_step_bps=bargain_step_bps,
+        raise_success_rates_bps=raise_success_rates_bps,
+        raise_step_bps=raise_step_bps,
+        trade_level=trade_level,
+        available_city_ids=available_city_ids,
+        city_prestige=city_prestige,
+        product_unlocks=product_unlocks,
+        active_events=active_events,
+        current_city_key=current_city_key,
+        current_city_id=current_city_id,
+        current_city=current_city,
+        snapshot_id=snapshot_id,
+    )
+
+
+@action_info(
     name="resonance.trade_plan_next",
     public=True,
     read_only=True,
