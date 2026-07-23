@@ -172,6 +172,10 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
     - name: after_drag_sec
       type: Any
       required: false
@@ -213,6 +217,10 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
     - name: after_drag_sec
       type: Any
       required: false
@@ -223,8 +231,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Select one action_summary stage by OCR + horizontal directional drag,
-      then click with offset.
+    description: Select one action_summary stage, OCR its anchored enter button, and
+      confirm the transition.
     parameters:
     - name: route_id
       type: Any
@@ -250,18 +258,66 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
     - name: after_drag_sec
       type: Any
       required: false
       default: 0.5
-    - name: click_offset_x
+    - name: enter_button_text
       type: Any
       required: false
-      default: 0
-    - name: click_offset_y
+      default: 进入挑战
+    - name: button_region_left_offset
       type: Any
       required: false
-      default: 180
+      default: -128
+    - name: button_region_top_offset
+      type: Any
+      required: false
+      default: 143
+    - name: button_region_width
+      type: Any
+      required: false
+      default: 258
+    - name: button_region_height
+      type: Any
+      required: false
+      default: 95
+    - name: button_min_confidence
+      type: Any
+      required: false
+      default: 0.8
+    - name: button_timeout_sec
+      type: Any
+      required: false
+      default: 2.0
+    - name: button_click_attempts
+      type: Any
+      required: false
+      default: 3
+    - name: after_button_click_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: transition_text
+      type: Any
+      required: false
+      default: 开始作战
+    - name: transition_region
+      type: Any
+      required: false
+      default: null
+    - name: transition_timeout_sec
+      type: Any
+      required: false
+      default: 4.0
+    - name: transition_min_confidence
+      type: Any
+      required: false
+      default: 0.7
     - name: match_mode
       type: Any
       required: false
@@ -327,6 +383,23 @@ exports:
       type: Any
       required: false
       default: 0.3
+  - name: resonance.prepare_battle_formation
+    module: plans.resonance.src.actions.battle_dispatch_actions
+    function: resonance_prepare_battle_formation
+    public: true
+    read_only: false
+    timeout: null
+    description: Optionally select one battle formation and wait for the formation
+      screen to stabilize.
+    parameters:
+    - name: formation_index
+      type: Any
+      required: false
+      default: null
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance.wait_and_click_any_text
     module: plans.resonance.src.actions.battle_dispatch_actions
     function: resonance_wait_and_click_any_text
@@ -1531,4 +1604,4 @@ exports:
     description: Simulate rolling trade until stop, with full trace output.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-08T07:47:47Z'
+  generated_at: '2026-07-23T03:01:57Z'
