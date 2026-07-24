@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -59,6 +62,7 @@ class ResonancePcTradePlannerService:
     DEFAULT_CYCLE_MAX_HOPS = 6
     DEFAULT_CYCLE_BEAM_WIDTH = 64
     DEFAULT_CYCLE_TOPK_NEXT = 6
+    OPTIMAL_ROUTE_CACHE_SIZE = 8
     DEFAULT_ALLOWED_CITY_IDS = ["3", "4", "1", "5", "7", "8", "9", "2"]
     DEFAULT_CITY_ID_TO_KEY = {
         "3": "freeport",
@@ -96,6 +100,10 @@ class ResonancePcTradePlannerService:
         self._trade_constraints_payload: Optional[Dict[str, Any]] = None
         self._trade_rules_payload: Optional[Dict[str, Any]] = None
         self._max_sell_price_cache: Dict[str, float] = {}
+        self._optimal_route_cache: OrderedDict[str, Dict[str, Any]] = (
+            OrderedDict()
+        )
+        self._optimal_route_cache_lock = threading.RLock()
 
     def plan_optimal_route(
         self,
@@ -200,15 +208,45 @@ class ResonancePcTradePlannerService:
                 detail={"allowed_city_ids": allowed_city_ids},
             )
 
+        buy_lot_payload = self._load_buy_lot_payload()
+        trade_rules_payload = self._load_trade_rules_payload()
+        cache_key = self._optimal_route_cache_key(
+            snapshot=snapshot,
+            fatigue_payload=fatigue_payload,
+            buy_lot_payload=buy_lot_payload,
+            trade_rules_payload=trade_rules_payload,
+            start_city_id=resolved_city_id,
+            allowed_city_ids=allowed_city_ids,
+            fatigue_budget=fatigue_budget,
+            cargo_capacity=cargo_capacity,
+            book_budget=book_budget,
+            book_profit_threshold=book_profit_threshold,
+            negotiation_budget=negotiation_budget,
+            all_plan=all_plan,
+            bargain_success_rates_bps=bargain_success_rates_bps,
+            bargain_step_bps=bargain_step_bps,
+            raise_success_rates_bps=raise_success_rates_bps,
+            raise_step_bps=raise_step_bps,
+            trade_level=trade_level,
+            city_prestige=city_prestige,
+            product_unlocks=product_unlocks,
+            active_events=active_events,
+        )
+        with self._optimal_route_cache_lock:
+            cached = self._optimal_route_cache.get(cache_key)
+            if cached is not None:
+                self._optimal_route_cache.move_to_end(cache_key)
+                return copy.deepcopy(cached)
+
         solver = ResonancePcExactTradeSolver(
             snapshot=snapshot,
             fatigue_payload=fatigue_payload,
-            buy_lot=self._load_buy_lot_payload()["city_product_buy_lot"],
-            trade_rules=self._load_trade_rules_payload(),
+            buy_lot=buy_lot_payload["city_product_buy_lot"],
+            trade_rules=trade_rules_payload,
             allowed_city_ids=allowed_city_ids,
         )
         try:
-            return solver.solve(
+            result = solver.solve(
                 start_city_id=resolved_city_id,
                 fatigue_budget=fatigue_budget,
                 cargo_capacity=cargo_capacity,
@@ -230,6 +268,70 @@ class ResonancePcTradePlannerService:
                 code="invalid_optimal_route_input",
                 message=str(exc),
             ) from exc
+        with self._optimal_route_cache_lock:
+            self._optimal_route_cache[cache_key] = copy.deepcopy(result)
+            self._optimal_route_cache.move_to_end(cache_key)
+            while (
+                len(self._optimal_route_cache)
+                > self.OPTIMAL_ROUTE_CACHE_SIZE
+            ):
+                self._optimal_route_cache.popitem(last=False)
+        return result
+
+    @staticmethod
+    def _optimal_route_cache_key(
+        *,
+        snapshot: Dict[str, Any],
+        fatigue_payload: Dict[str, Any],
+        buy_lot_payload: Dict[str, Any],
+        trade_rules_payload: Dict[str, Any],
+        start_city_id: str,
+        allowed_city_ids: List[str],
+        fatigue_budget: Any,
+        cargo_capacity: Any,
+        book_budget: Any,
+        book_profit_threshold: Any,
+        negotiation_budget: Any,
+        all_plan: Any,
+        bargain_success_rates_bps: Any,
+        bargain_step_bps: Any,
+        raise_success_rates_bps: Any,
+        raise_step_bps: Any,
+        trade_level: Any,
+        city_prestige: Any,
+        product_unlocks: Any,
+        active_events: Any,
+    ) -> str:
+        payload = {
+            "snapshot": snapshot,
+            "fatigue_payload": fatigue_payload,
+            "buy_lot_payload": buy_lot_payload,
+            "trade_rules_payload": trade_rules_payload,
+            "start_city_id": start_city_id,
+            "allowed_city_ids": list(allowed_city_ids),
+            "fatigue_budget": fatigue_budget,
+            "cargo_capacity": cargo_capacity,
+            "book_budget": book_budget,
+            "book_profit_threshold": str(book_profit_threshold),
+            "negotiation_budget": negotiation_budget,
+            "all_plan": all_plan,
+            "bargain_success_rates_bps": bargain_success_rates_bps,
+            "bargain_step_bps": bargain_step_bps,
+            "raise_success_rates_bps": raise_success_rates_bps,
+            "raise_step_bps": raise_step_bps,
+            "trade_level": trade_level,
+            "city_prestige": city_prestige,
+            "product_unlocks": product_unlocks,
+            "active_events": active_events,
+        }
+        serialized = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        ).encode("utf-8")
+        return hashlib.sha256(serialized).hexdigest()
 
     def plan_next_step(
         self,
