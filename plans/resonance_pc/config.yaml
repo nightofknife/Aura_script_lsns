@@ -25,6 +25,8 @@ runtime:
     capture_cursor: false
     windows:
       module_name: windows_capture
+      profile: performance
+      fallback_profile: compatible
       frame_timeout_ms: 1000
       minimum_update_interval_ms: 16
       dirty_region: false

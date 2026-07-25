@@ -254,10 +254,17 @@ class EmbeddedGameRunner:
         try:
             target_runtime = service_registry.get_service_instance("target_runtime")
             summary = target_runtime.target_summary()
+            runtime_health = target_runtime.self_check()
+            capture = (
+                dict(runtime_health.get("capture") or {})
+                if isinstance(runtime_health, Mapping)
+                else {}
+            )
             return {
                 "ok": True,
                 "game_name": game_name,
                 "target": summary,
+                "capture": capture,
             }
         finally:
             current_plan_name.reset(token)

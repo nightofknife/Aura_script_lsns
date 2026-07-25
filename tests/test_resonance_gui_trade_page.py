@@ -74,6 +74,29 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         page.close()
 
 
+def test_trade_page_shows_effective_pc_capture_profile(tmp_path):
+    page = _page(tmp_path)
+    try:
+        page.set_target_status(
+            {
+                "ok": True,
+                "trade_backend": "pc",
+                "target": {"hwnd": 1, "title": "PC target", "visible": True},
+                "capture": {
+                    "backend": "wgc",
+                    "health": {
+                        "health": {
+                            "capture_profile_effective": "compatible",
+                        }
+                    },
+                },
+            }
+        )
+
+        assert "WGC 兼容模式" in page.ready_hint.text()
+    finally:
+        page.close()
+
 def test_trade_page_collects_city_multiselect_and_selected_prestige_only(tmp_path):
     page = _page(tmp_path)
     try:

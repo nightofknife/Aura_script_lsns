@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 import importlib
+import sys
 import threading
 from typing import Any
 
@@ -13,9 +14,66 @@ import win32con
 import win32gui
 import win32ui
 
+from packages.aura_core.observability.logging.core_logger import logger
+
 from ..contracts import CaptureResult, TargetRuntimeError
 from .window_target import WindowTarget
 from .wgc_session import PersistentWgcSession
+
+
+WGC_CAPTURE_PROFILES = ("performance", "compatible")
+WGC_PERFORMANCE_MIN_WINDOWS_BUILD = 26100
+
+
+def _windows_build_number() -> int | None:
+    try:
+        return int(sys.getwindowsversion().build)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _normalize_wgc_profile(value: Any, *, field: str, default: str) -> str:
+    profile = str(value or default).strip().lower()
+    if profile not in WGC_CAPTURE_PROFILES:
+        raise TargetRuntimeError(
+            "windows_capture_profile_invalid",
+            f"Unsupported WGC capture profile '{profile}'.",
+            {
+                "field": field,
+                "profile": profile,
+                "supported": list(WGC_CAPTURE_PROFILES),
+            },
+        )
+    return profile
+
+
+def _is_optional_wgc_feature_unsupported(exc: BaseException) -> bool:
+    messages: list[str] = []
+    current: BaseException | None = exc
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        messages.append(str(current).lower())
+        if isinstance(current, TargetRuntimeError):
+            messages.append(str(current.detail.get("error") or "").lower())
+        current = current.__cause__ or current.__context__
+    combined = " ".join(messages)
+    return (
+        "not supported by the graphics capture api on this platform" in combined
+        or (
+            "graphics capture" in combined
+            and "not supported" in combined
+            and any(
+                feature in combined
+                for feature in (
+                    "capture border",
+                    "secondary window",
+                    "dirty region",
+                    "minimum update interval",
+                )
+            )
+        )
+    )
 
 
 class BaseWindowsCaptureBackend:
@@ -103,6 +161,46 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
         self.draw_border = bool(self.config.get("draw_border", False))
         self.secondary_window = bool(self.config.get("secondary_window", False))
         self.max_stale_ms = max(int(self.config.get("max_stale_ms") or 100), 0)
+        self.requested_profile = _normalize_wgc_profile(
+            self.config.get("profile"),
+            field="runtime.capture.windows.profile",
+            default="performance",
+        )
+        self.fallback_profile = _normalize_wgc_profile(
+            self.config.get("fallback_profile"),
+            field="runtime.capture.windows.fallback_profile",
+            default="compatible",
+        )
+        if self.fallback_profile != "compatible":
+            raise TargetRuntimeError(
+                "windows_capture_profile_invalid",
+                "The WGC fallback profile must be 'compatible'.",
+                {
+                    "field": "runtime.capture.windows.fallback_profile",
+                    "profile": self.fallback_profile,
+                    "supported": ["compatible"],
+                },
+            )
+        self.windows_build = _windows_build_number()
+        self.effective_profile = self.requested_profile
+        self.compatibility_fallback_used = False
+        self.compatibility_fallback_reason: str | None = None
+        if (
+            self.requested_profile == "performance"
+            and self.windows_build is not None
+            and self.windows_build < WGC_PERFORMANCE_MIN_WINDOWS_BUILD
+        ):
+            self.effective_profile = "compatible"
+            self.compatibility_fallback_used = True
+            self.compatibility_fallback_reason = (
+                f"windows_build_{self.windows_build}_below_"
+                f"{WGC_PERFORMANCE_MIN_WINDOWS_BUILD}"
+            )
+            logger.warning(
+                "WGC performance profile is unsupported on Windows build %s; "
+                "using the compatible profile with the system-default capture border.",
+                self.windows_build,
+            )
 
         self._session_lock = threading.RLock()
         self._session = self._create_session(int(self.target.hwnd))
@@ -149,7 +247,18 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
 
     def _snapshot_client_frame(self) -> np.ndarray:
         session = self._ensure_session_matches_target()
-        session.start_if_needed()
+        try:
+            session.start_if_needed()
+        except TargetRuntimeError as exc:
+            if (
+                self.effective_profile != "performance"
+                or self.fallback_profile != "compatible"
+                or not _is_optional_wgc_feature_unsupported(exc)
+            ):
+                raise
+            self._activate_compatible_profile(reason=str(exc))
+            session = self._ensure_session_matches_target()
+            session.start_if_needed()
         session.wait_for_fresh_frame(self.max_stale_ms, self.frame_timeout_ms)
         frame = session.snapshot_full_frame()
         rgb = _coerce_rgb_frame(frame, backend=self.backend_name)
@@ -198,6 +307,11 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
         payload["secondary_window"] = self.secondary_window
         payload["frame_timeout_ms"] = int(self.frame_timeout_ms)
         payload["max_stale_ms"] = int(self.max_stale_ms)
+        payload["capture_profile_requested"] = self.requested_profile
+        payload["capture_profile_effective"] = self.effective_profile
+        payload["compatibility_fallback_used"] = self.compatibility_fallback_used
+        payload["compatibility_fallback_reason"] = self.compatibility_fallback_reason
+        payload["windows_build"] = self.windows_build
         return payload
 
     def _ensure_session_matches_target(self) -> PersistentWgcSession:
@@ -216,15 +330,33 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
                 self._session.close()
             self._session = self._create_session(current_hwnd)
 
+    def _activate_compatible_profile(self, *, reason: str) -> None:
+        with self._session_lock:
+            if self.effective_profile == "compatible":
+                return
+            self.effective_profile = "compatible"
+            self.compatibility_fallback_used = True
+            self.compatibility_fallback_reason = str(reason)
+            current_hwnd = int(self.target.hwnd)
+            if self._session is not None:
+                self._session.close()
+            self._session = self._create_session(current_hwnd)
+        logger.warning(
+            "WGC performance profile could not start; retrying once with the "
+            "compatible profile and system-default capture border. reason=%s",
+            reason,
+        )
+
     def _create_session(self, hwnd: int) -> PersistentWgcSession:
+        compatible = self.effective_profile == "compatible"
         return PersistentWgcSession(
             hwnd=int(hwnd),
             module_name=self.module_name,
             capture_cursor=self.capture_cursor,
-            draw_border=self.draw_border,
-            secondary_window=self.secondary_window,
-            minimum_update_interval_ms=self.minimum_update_interval_ms,
-            dirty_region=self.dirty_region,
+            draw_border=None if compatible else self.draw_border,
+            secondary_window=None if compatible else self.secondary_window,
+            minimum_update_interval_ms=None if compatible else self.minimum_update_interval_ms,
+            dirty_region=None if compatible else self.dirty_region,
         )
 
     @staticmethod

@@ -86,6 +86,12 @@ class TestGameRunners(unittest.TestCase):
         runner = EmbeddedGameRunner()
         fake_service = Mock()
         fake_service.target_summary.return_value = {"title": "Resonance", "client_rect_screen": [1, 2, 3, 4]}
+        fake_service.self_check.return_value = {
+            "capture": {
+                "backend": "wgc",
+                "health": {"capture_profile_effective": "compatible"},
+            }
+        }
         with (
             patch.object(runner, "_ensure_running_runtime", return_value=object()),
             patch("packages.aura_game.runner.service_registry.get_service_instance", return_value=fake_service) as get_service,
@@ -95,6 +101,10 @@ class TestGameRunners(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["game_name"], "resonance")
         self.assertEqual(result["target"]["title"], "Resonance")
+        self.assertEqual(
+            result["capture"]["health"]["capture_profile_effective"],
+            "compatible",
+        )
         get_service.assert_called_once_with("target_runtime")
 
     def test_embedded_runner_target_snapshot_serializes_runtime_capture(self):

@@ -52,6 +52,26 @@ function Invoke-RobocopySafe {
     $global:LASTEXITCODE = 0
 }
 
+function Remove-UnusedQtQmlRuntime {
+    param([string]$RuntimeDir)
+
+    $runtimeRoot = [System.IO.Path]::GetFullPath($RuntimeDir).TrimEnd(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    )
+    $qmlPath = [System.IO.Path]::GetFullPath(
+        (Join-Path $runtimeRoot "_internal\\PySide6\\qml")
+    )
+    $runtimePrefix = $runtimeRoot + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $qmlPath.StartsWith($runtimePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to remove Qt QML runtime outside the assembled release: $qmlPath"
+    }
+    if (Test-Path -LiteralPath $qmlPath) {
+        Write-Host "Removing unused PySide6 QML runtime to keep Windows paths short ..."
+        Remove-Item -LiteralPath $qmlPath -Recurse -Force
+    }
+}
+
 function Test-PythonModuleAvailable {
     param(
         [string]$PythonPath,
@@ -698,6 +718,7 @@ if (-not $SkipAssemble) {
 
     Write-Host "Assembling release root ..."
     Invoke-RobocopySafe -Source $BuiltRuntimeDir -Destination $ReleaseRuntimeDir
+    Remove-UnusedQtQmlRuntime -RuntimeDir $ReleaseRuntimeDir
     if ($IncludeGui) {
         Copy-Item -LiteralPath $BuiltGuiLauncherExe -Destination (Join-Path $ReleaseRoot "AuraResonanceGui.exe") -Force
     }
