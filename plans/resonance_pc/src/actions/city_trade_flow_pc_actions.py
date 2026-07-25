@@ -159,6 +159,12 @@ _CITY_MAIN_BUTTON_TEMPLATE = "templates/nav_city_main_button.png"
 _BACK_BUTTON_REGION = [0, 0, 170, 80]
 _CITY_MAIN_BUTTON_REGION = [140, 0, 130, 80]
 _NAV_BUTTON_THRESHOLD = 0.86
+_SHOP_MENU_READY_TEMPLATE = "templates/trade_shop_menu_ready.png"
+_SHOP_MENU_READY_REGION = [720, 350, 220, 120]
+_SHOP_MENU_READY_THRESHOLD = 0.86
+_SHOP_MENU_READY_TIMEOUT_SEC = 15.0
+_SHOP_MENU_READY_INTERVAL_SEC = 0.3
+_SHOP_MENU_READY_STABLE_MATCHES = 2
 _SHOP_NODE_X = 1160
 _SHOP_NODE_FIRST_Y = 324
 _SHOP_NODE_GAP_Y = 83
@@ -355,6 +361,73 @@ def _wait_template(
             return last
         if time.monotonic() >= deadline:
             return last
+        time.sleep(max(float(interval_sec), 0.05))
+
+
+def _wait_for_shop_menu_ready(
+    app: Any,
+    vision: Any,
+    *,
+    timeout_sec: float = _SHOP_MENU_READY_TIMEOUT_SEC,
+    interval_sec: float = _SHOP_MENU_READY_INTERVAL_SEC,
+    stable_matches: int = _SHOP_MENU_READY_STABLE_MATCHES,
+) -> Dict[str, Any]:
+    required_stable_matches = max(int(stable_matches), 1)
+    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    consecutive_matches = 0
+    poll = 0
+    last_match: Dict[str, Any] = {
+        "found": False,
+        "template": _SHOP_MENU_READY_TEMPLATE,
+        "region": list(_SHOP_MENU_READY_REGION),
+    }
+    while True:
+        poll += 1
+        last_match = _match_template(
+            app,
+            vision,
+            _SHOP_MENU_READY_TEMPLATE,
+            _SHOP_MENU_READY_REGION,
+            _SHOP_MENU_READY_THRESHOLD,
+        )
+        if last_match.get("found"):
+            consecutive_matches += 1
+        else:
+            consecutive_matches = 0
+        logger.info(
+            "[TradeShopMenuReady] poll=%s found=%s confidence=%.4f stable=%s/%s",
+            poll,
+            bool(last_match.get("found")),
+            float(last_match.get("confidence") or 0.0),
+            consecutive_matches,
+            required_stable_matches,
+        )
+        if consecutive_matches >= required_stable_matches:
+            return {
+                "success": True,
+                "page_state": "shop_page",
+                "polls": poll,
+                "stable_matches": consecutive_matches,
+                "template": _SHOP_MENU_READY_TEMPLATE,
+                "region": list(_SHOP_MENU_READY_REGION),
+                "threshold": _SHOP_MENU_READY_THRESHOLD,
+                "match": last_match,
+            }
+        if time.monotonic() >= deadline:
+            _raise_error(
+                "shop_menu_not_ready",
+                "trade shop menu template was not detected stably before timeout",
+                {
+                    "polls": poll,
+                    "stable_matches": consecutive_matches,
+                    "required_stable_matches": required_stable_matches,
+                    "timeout_sec": max(float(timeout_sec), 0.0),
+                    "template": _SHOP_MENU_READY_TEMPLATE,
+                    "region": list(_SHOP_MENU_READY_REGION),
+                    "threshold": _SHOP_MENU_READY_THRESHOLD,
+                    "last_match": last_match,
+                },
+            )
         time.sleep(max(float(interval_sec), 0.05))
 
 
@@ -930,6 +1003,7 @@ def _execute_city_trade_inside_current_city_scoped(
         app=app,
         resonance_pc_city_shop_data=city_shop_data,
     )
+    shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
@@ -959,6 +1033,7 @@ def _execute_city_trade_inside_current_city_scoped(
         "sell_raise_to_cap": bool(sell_raise_to_cap),
         "buy_bargain_to_cap": bool(buy_bargain_to_cap),
         "enter_shop": enter_shop,
+        "shop_menu_ready": shop_menu_ready,
         "sell_node": sell_node,
         "sell": sell,
         "buy_node": buy_node,
@@ -1097,7 +1172,7 @@ async def _execute_trade_leg(
     travel = await asyncio.to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
-        enter_station_timeout_seconds=0,
+        enter_station_timeout_seconds=900,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 70, 1000, 550],
         drag_center=[640, 360],

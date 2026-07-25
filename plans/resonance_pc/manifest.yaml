@@ -978,7 +978,7 @@ exports:
     - name: enter_station_timeout_seconds
       type: Any
       required: false
-      default: 0
+      default: 900.0
     - name: location_file_path
       type: Any
       required: false
@@ -1041,12 +1041,13 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Wait for intercity arrival using the enter-station button template.
+    description: Wait for intercity arrival using the station button or destination
+      city-main marker.
     parameters:
     - name: timeout_sec
       type: Any
       required: false
-      default: 600.0
+      default: 900.0
     - name: interval_sec
       type: Any
       required: false

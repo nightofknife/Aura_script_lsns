@@ -253,6 +253,11 @@ def test_empty_buy_products_skips_buy_page(monkeypatch):
     )
     monkeypatch.setattr(
         actions,
+        "_wait_for_shop_menu_ready",
+        lambda *_args, **_kwargs: {"success": True, "page_state": "shop_page"},
+    )
+    monkeypatch.setattr(
+        actions,
         "resonance_pc_click_shop_menu_node",
         lambda node_index, **_kwargs: menu_nodes.append(node_index) or {"success": True},
     )
@@ -285,9 +290,54 @@ def test_empty_buy_products_skips_buy_page(monkeypatch):
 
     assert menu_nodes == [2]
     assert result["success"] is True
+    assert result["shop_menu_ready"]["success"] is True
     assert result["buy_node"] is None
     assert result["buy"] is None
     assert result["page_state"] == "city_main"
+
+
+def test_shop_menu_ready_requires_consecutive_template_matches(monkeypatch):
+    matches = iter(
+        [
+            {"found": True, "confidence": 0.91},
+            {"found": False, "confidence": 0.40},
+            {"found": True, "confidence": 0.92},
+            {"found": True, "confidence": 0.93},
+        ]
+    )
+    monkeypatch.setattr(actions, "_match_template", lambda *_args, **_kwargs: next(matches))
+    monkeypatch.setattr(actions.time, "sleep", lambda _seconds: None)
+
+    result = actions._wait_for_shop_menu_ready(
+        app=object(),
+        vision=object(),
+        timeout_sec=1.0,
+        stable_matches=2,
+    )
+
+    assert result["success"] is True
+    assert result["page_state"] == "shop_page"
+    assert result["polls"] == 4
+    assert result["stable_matches"] == 2
+    assert result["template"] == "templates/trade_shop_menu_ready.png"
+
+
+def test_shop_menu_ready_timeout_blocks_followup_click(monkeypatch):
+    monkeypatch.setattr(
+        actions,
+        "_match_template",
+        lambda *_args, **_kwargs: {"found": False, "confidence": 0.25},
+    )
+
+    with pytest.raises(actions.CityTradeFlowError) as exc_info:
+        actions._wait_for_shop_menu_ready(
+            app=object(),
+            vision=object(),
+            timeout_sec=0.0,
+        )
+
+    assert exc_info.value.code == "shop_menu_not_ready"
+    assert exc_info.value.detail["template"] == "templates/trade_shop_menu_ready.png"
 
 
 def test_bargain_request_without_buy_products_fails_before_shop_input(monkeypatch):

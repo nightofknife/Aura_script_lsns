@@ -69,7 +69,7 @@ def test_route_execution_reuses_existing_travel_action_and_handles_blocked():
 
     assert "resonance_pc_intercity_depart_and_wait" in leg_source
     assert 'location_file_path="data/meta/location_pc.json"' in leg_source
-    assert "enter_station_timeout_seconds=0" in leg_source
+    assert "enter_station_timeout_seconds=900" in leg_source
     assert "use_fatigue_medicine=bool(use_fatigue_medicine)" in leg_source
     assert "resonance_pc_trade_route_execution_update" in route_source
     assert "blocked" in route_source
