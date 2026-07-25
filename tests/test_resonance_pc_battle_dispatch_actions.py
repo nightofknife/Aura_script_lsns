@@ -5,6 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import cv2
+import numpy as np
 import yaml
 
 from plans.resonance_pc.src.actions import battle_dispatch_pc_actions
@@ -14,7 +16,9 @@ from plans.resonance_pc.src.actions.battle_dispatch_pc_actions import (
     resonance_pc_group_gp_jobs,
     resonance_pc_prepare_battle_formation,
     resonance_pc_select_action_summary_stage,
+    resonance_pc_try_select_action_summary_stage,
     resonance_pc_validate_battle_jobs,
+    resonance_pc_wait_and_click_back_button,
 )
 
 
@@ -510,6 +514,169 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         self.assertNotIn("wait_after_enter_challenge", steps)
         self.assertEqual(steps["run_group_jobs"]["depends_on"], "select_stage_and_enter")
 
+    def test_action_summary_stage_cleanup_runs_after_enter_attempt(self):
+        steps = self.task_data["auto_battle_gp_action_summary_run_group_pc"]["steps"]
+        self.assertEqual(
+            steps["select_stage_and_enter"]["action"],
+            "resonance_pc.try_select_action_summary_stage",
+        )
+        self.assertEqual(
+            steps["run_group_jobs"]["when"],
+            "{{ nodes.select_stage_and_enter.output.success }}",
+        )
+        self.assertEqual(
+            steps["click_back_to_action_summary"]["depends_on"],
+            {
+                "all": [
+                    {"select_stage_and_enter": "success"},
+                    {"run_group_jobs": "success|failed|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            steps["wait_after_back_to_action_summary"]["depends_on"],
+            "click_back_to_action_summary",
+        )
+        self.assertEqual(
+            steps["assert_stage_entry_succeeded"]["depends_on"],
+            "wait_after_back_to_action_summary",
+        )
+        self.assertEqual(
+            steps["click_back_to_action_summary"]["action"],
+            "resonance_pc.wait_and_click_back_button",
+        )
+
+    def test_try_action_summary_stage_returns_expected_failure_as_data(self):
+        error = ResonancePcBattleDispatchError(
+            code="action_summary_stage_unavailable",
+            message="stage is closed",
+        )
+        with patch.object(
+            battle_dispatch_pc_actions,
+            "resonance_pc_select_action_summary_stage",
+            side_effect=error,
+        ):
+            out = resonance_pc_try_select_action_summary_stage(
+                route_id="gp.action_summary.global_supply.standard",
+                app=Mock(),
+                ocr=Mock(),
+            )
+
+        self.assertFalse(out["success"])
+        self.assertEqual(out["error_code"], "action_summary_stage_unavailable")
+        self.assertIn("stage is closed", out["error_message"])
+
+    def test_visual_back_button_is_detected_before_click(self):
+        image = np.zeros((70, 160, 3), dtype=np.uint8)
+        cv2.rectangle(image, (14, 8), (146, 54), (245, 245, 245), thickness=-1)
+        cv2.arrowedLine(image, (106, 31), (55, 31), (20, 20, 20), thickness=7, tipLength=0.35)
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(success=True, image=image)
+
+        out = resonance_pc_wait_and_click_back_button(
+            region=[10, 5, 160, 70],
+            timeout_sec=0.1,
+            interval_sec=0.01,
+            stable_scans=2,
+            move_duration_sec=0.0,
+            app=app,
+        )
+
+        self.assertTrue(out["found"])
+        self.assertTrue(out["clicked"])
+        self.assertEqual(out["scans"], 2)
+        self.assertEqual(out["click"], [90, 36])
+        app.click.assert_called_once_with(x=90, y=36)
+
+    @patch.object(battle_dispatch_pc_actions, "_recognize_text_items")
+    def test_visual_back_button_accepts_already_reached_initial_screen(self, recognize_text_items):
+        image = np.zeros((70, 160, 3), dtype=np.uint8)
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(success=True, image=image)
+        recognize_text_items.return_value = [
+            {
+                "text": "作战终端",
+                "normalized": "作战终端",
+                "center": (1170, 440),
+                "rect": None,
+                "confidence": 0.99,
+            }
+        ]
+
+        out = resonance_pc_wait_and_click_back_button(
+            region=[10, 5, 160, 70],
+            timeout_sec=0.1,
+            interval_sec=0.01,
+            stable_scans=2,
+            already_at_target_text="作战终端",
+            already_at_target_region=[1100, 380, 150, 120],
+            app=app,
+            ocr=Mock(),
+        )
+
+        self.assertTrue(out["already_at_target"])
+        self.assertFalse(out["clicked"])
+        app.click.assert_not_called()
+
+    def test_all_battle_return_steps_use_visual_back_button_detection(self):
+        return_steps = {
+            "auto_battle_ct_batch_pc": [
+                "click_back_after_first_batch",
+                "click_back_after_single_batch",
+                "click_back_after_second_batch",
+            ],
+            "auto_battle_gp_action_summary_run_group_pc": ["click_back_to_action_summary"],
+            "auto_battle_gp_batch_pc": [
+                "click_back_after_first_gp_batch",
+                "click_back_after_single_gp_batch",
+                "click_back_after_second_gp_batch",
+            ],
+            "auto_battle_dispatch_pc": [
+                "click_back_to_initial_after_single_category",
+                "click_back_to_initial_after_second_category",
+            ],
+        }
+        for task_name, step_names in return_steps.items():
+            steps = self.task_data[task_name]["steps"]
+            for step_name in step_names:
+                step = steps[step_name]
+                self.assertEqual(step["action"], "resonance_pc.wait_and_click_back_button")
+                self.assertEqual(step["params"]["region"], [10, 5, 160, 70])
+                self.assertEqual(step["params"]["stable_scans"], 2)
+
+        dispatch_steps = self.task_data["auto_battle_dispatch_pc"]["steps"]
+        final_back = dispatch_steps["click_back_to_initial_after_single_category"]
+        self.assertEqual(
+            final_back["depends_on"],
+            {
+                "all": [
+                    {"run_first_ct_batch": "success|failed|skipped"},
+                    {"run_first_gp_batch": "success|failed|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            final_back["when"],
+            "{{ nodes.prepare_category_order.first_category != '' and nodes.prepare_category_order.second_category == '' }}",
+        )
+        self.assertEqual(final_back["params"]["already_at_target_text"], "作战终端")
+
+        final_back = dispatch_steps["click_back_to_initial_after_second_category"]
+        self.assertEqual(
+            final_back["depends_on"],
+            {
+                "all": [
+                    {"run_second_ct_batch": "success|failed|skipped"},
+                    {"run_second_gp_batch": "success|failed|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            final_back["when"],
+            "{{ nodes.prepare_category_order.second_category != '' }}",
+        )
+        self.assertEqual(final_back["params"]["already_at_target_text"], "作战终端")
+
     def test_action_summary_difficulty_requires_start_battle_business_success(self):
         steps = self.task_data["auto_battle_gp_action_summary_run_difficulty_pc"]["steps"]
         wait_step = steps["wait_after_difficulty"]
@@ -527,7 +694,7 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         expected_custom_actions = {
             "resonance_pc.select_ordered_city": 2,
             "resonance_pc.select_threat_level_numeric": 1,
-            "resonance_pc.select_action_summary_stage": 1,
+            "resonance_pc.try_select_action_summary_stage": 1,
         }
         observed_custom_actions = {name: 0 for name in expected_custom_actions}
         direct_drag_count = 0

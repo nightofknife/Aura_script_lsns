@@ -323,6 +323,144 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.try_select_action_summary_stage
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_try_select_action_summary_stage
+    public: true
+    read_only: false
+    timeout: null
+    description: Attempt action_summary stage entry and return failures as data so
+      task cleanup can run.
+    parameters:
+    - name: route_id
+      type: Any
+      required: true
+      default: null
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: drag_forward
+      type: Any
+      required: false
+      default: null
+    - name: drag_backward
+      type: Any
+      required: false
+      default: null
+    - name: max_attempts
+      type: Any
+      required: false
+      default: 12
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: drag_hold_before_release_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_drag_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: enter_button_text
+      type: Any
+      required: false
+      default: 进入挑战
+    - name: button_region_left_offset
+      type: Any
+      required: false
+      default: -128
+    - name: button_region_top_offset
+      type: Any
+      required: false
+      default: 143
+    - name: button_region_width
+      type: Any
+      required: false
+      default: 258
+    - name: button_region_height
+      type: Any
+      required: false
+      default: 95
+    - name: button_min_confidence
+      type: Any
+      required: false
+      default: 0.8
+    - name: button_timeout_sec
+      type: Any
+      required: false
+      default: 2.0
+    - name: button_click_attempts
+      type: Any
+      required: false
+      default: 3
+    - name: after_button_click_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: transition_text
+      type: Any
+      required: false
+      default: 开始作战
+    - name: transition_region
+      type: Any
+      required: false
+      default: null
+    - name: transition_timeout_sec
+      type: Any
+      required: false
+      default: 4.0
+    - name: transition_min_confidence
+      type: Any
+      required: false
+      default: 0.7
+    - name: match_mode
+      type: Any
+      required: false
+      default: contains
+  - name: resonance_pc.wait_and_click_back_button
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_wait_and_click_back_button
+    public: true
+    read_only: false
+    timeout: null
+    description: Wait for the visual back-button control to stabilize, then click
+      its detected center.
+    parameters:
+    - name: region
+      type: Any
+      required: false
+      default: null
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 8.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.2
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 2
+    - name: move_duration_sec
+      type: Any
+      required: false
+      default: 0.1
+    - name: already_at_target_text
+      type: Any
+      required: false
+      default: null
+    - name: already_at_target_region
+      type: Any
+      required: false
+      default: null
+    - name: already_at_target_min_confidence
+      type: Any
+      required: false
+      default: 0.7
   - name: resonance_pc.check_pixel_color_range
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_check_pixel_color_range
@@ -1604,4 +1742,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-21T14:57:14Z'
+  generated_at: '2026-07-22T16:02:26Z'

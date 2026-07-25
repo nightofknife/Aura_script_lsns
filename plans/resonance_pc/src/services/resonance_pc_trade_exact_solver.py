@@ -16,11 +16,15 @@ it does not use beam search, top-k filtering, sampling, or heuristic pruning.
 
 from __future__ import annotations
 
-import heapq
-import itertools
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from .resonance_pc_trade_solver_common import (
+    prepare_search,
+    solve_prepared_search,
+    trade_solver_progress,
+)
 
 
 def _fraction(value: Any) -> Fraction:
@@ -155,19 +159,8 @@ class TradeEdgeOption:
         )
 
 
-@dataclass(frozen=True)
-class _Label:
-    city_id: str
-    expected_fatigue_used: Fraction
-    books_used: int
-    full_negotiation_used: int
-    expected_profit: Fraction
-    city_path: Tuple[str, ...]
-    route: Tuple[TradeEdgeOption, ...]
-
-
 class ResonancePcExactTradeSolver:
-    """Exact label solver for one frozen market snapshot."""
+    """Exact route solver for one frozen market snapshot."""
 
     def __init__(
         self,
@@ -219,6 +212,7 @@ class ResonancePcExactTradeSolver:
         city_prestige: Optional[Mapping[str, Any]] = None,
         product_unlocks: Optional[Mapping[str, Any]] = None,
         active_events: Optional[Sequence[Any]] = None,
+        _backend: Optional[str] = None,
     ) -> Dict[str, Any]:
         fatigue_limit = _as_non_negative_int("fatigue_budget", fatigue_budget)
         capacity = _as_non_negative_int("cargo_capacity", cargo_capacity)
@@ -294,80 +288,21 @@ class ResonancePcExactTradeSolver:
             unlocked_products=unlocked_products,
         )
 
-        initial = _Label(
-            city_id=start,
-            expected_fatigue_used=Fraction(0, 1),
-            books_used=0,
-            full_negotiation_used=0,
-            expected_profit=Fraction(0, 1),
-            city_path=(start,),
-            route=(),
-        )
-        frontiers: Dict[str, List[_Label]] = {start: [initial]}
-        active_label_ids = {id(initial)}
-        queue_counter = itertools.count()
-        queue: List[Tuple[Fraction, int, int, Tuple[int, Any], int, _Label]] = []
-        heapq.heappush(
-            queue,
-            (
-                initial.expected_fatigue_used,
-                initial.books_used,
-                initial.full_negotiation_used,
-                self._sort_key(initial.city_id),
-                next(queue_counter),
-                initial,
-            ),
-        )
-        best: Optional[_Label] = None
         fatigue_limit_fraction = Fraction(fatigue_limit, 1)
-
-        while queue:
-            *_, label = heapq.heappop(queue)
-            if id(label) not in active_label_ids:
-                continue
-            if label.route and label.expected_profit > 0:
-                if best is None or self._is_better_final(label, best):
-                    best = label
-            for to_city in planning_cities:
-                if to_city == label.city_id:
-                    continue
-                for option in edge_options.get((label.city_id, to_city), ()):
-                    next_fatigue = label.expected_fatigue_used + option.expected_fatigue_cost
-                    next_books = label.books_used + option.books_used
-                    next_negotiation = (
-                        label.full_negotiation_used + option.full_negotiation_used
-                    )
-                    if next_fatigue > fatigue_limit_fraction or next_books > books_limit:
-                        continue
-                    if plan_mode == 0 and next_negotiation > negotiation_limit:
-                        continue
-                    candidate = _Label(
-                        city_id=to_city,
-                        expected_fatigue_used=next_fatigue,
-                        books_used=next_books,
-                        full_negotiation_used=next_negotiation,
-                        expected_profit=label.expected_profit + option.expected_profit,
-                        city_path=label.city_path + (to_city,),
-                        route=label.route + (option,),
-                    )
-                    if not self._accept_label(
-                        candidate,
-                        frontiers=frontiers,
-                        active_label_ids=active_label_ids,
-                        all_plan=plan_mode,
-                    ):
-                        continue
-                    heapq.heappush(
-                        queue,
-                        (
-                            candidate.expected_fatigue_used,
-                            candidate.books_used,
-                            candidate.full_negotiation_used,
-                            self._sort_key(candidate.city_id),
-                            next(queue_counter),
-                            candidate,
-                        ),
-                    )
+        prepared = prepare_search(
+            city_ids=planning_cities,
+            start_city_id=start,
+            edge_options=edge_options,
+            fatigue_budget=fatigue_limit,
+            book_budget=books_limit,
+            negotiation_budget=negotiation_limit,
+            all_plan=plan_mode,
+        )
+        search_result = (
+            None
+            if prepared is None
+            else solve_prepared_search(prepared, backend=_backend)
+        )
 
         assumptions = self._build_assumptions(
             all_plan=plan_mode,
@@ -375,7 +310,7 @@ class ResonancePcExactTradeSolver:
             bargain_profile=bargain_profile,
             raise_profile=raise_profile,
         )
-        if best is None or best.expected_profit <= 0:
+        if search_result is None or search_result.expected_profit <= 0:
             return self._empty_result(
                 start=start,
                 fatigue_limit=fatigue_limit,
@@ -386,37 +321,57 @@ class ResonancePcExactTradeSolver:
                 warnings=warnings,
             )
 
-        route = [self._serialize_option(option) for option in best.route]
-        remaining_fatigue = fatigue_limit_fraction - best.expected_fatigue_used
-        full_bargain_count = sum(int(option.bargain_to_cap) for option in best.route)
-        full_raise_count = sum(int(option.raise_to_cap) for option in best.route)
+        route = [
+            self._serialize_option(option) for option in search_result.route
+        ]
+        remaining_fatigue = (
+            fatigue_limit_fraction - search_result.expected_fatigue_used
+        )
+        full_bargain_count = sum(
+            int(option.bargain_to_cap) for option in search_result.route
+        )
+        full_raise_count = sum(
+            int(option.raise_to_cap) for option in search_result.route
+        )
         return {
             "status": "ok",
             "reason": None,
             "snapshot_id": self.snapshot.get("snapshot_id"),
             "all_plan": plan_mode,
-            "expected_profit": float(best.expected_profit),
-            "expected_profit_exact": self._fraction_text(best.expected_profit),
+            "expected_profit": float(search_result.expected_profit),
+            "expected_profit_exact": self._fraction_text(
+                search_result.expected_profit
+            ),
             "fatigue_budget": fatigue_limit,
-            "expected_fatigue_used": float(best.expected_fatigue_used),
-            "expected_fatigue_used_exact": self._fraction_text(best.expected_fatigue_used),
+            "expected_fatigue_used": float(
+                search_result.expected_fatigue_used
+            ),
+            "expected_fatigue_used_exact": self._fraction_text(
+                search_result.expected_fatigue_used
+            ),
             "remaining_expected_fatigue": float(remaining_fatigue),
             "remaining_expected_fatigue_exact": self._fraction_text(remaining_fatigue),
             "books_budget": books_limit,
-            "books_used": int(best.books_used),
-            "remaining_books": books_limit - int(best.books_used),
+            "books_used": int(search_result.books_used),
+            "remaining_books": books_limit - int(search_result.books_used),
             "negotiation_budget": negotiation_limit,
             "negotiation_budget_ignored": plan_mode == 1,
-            "full_negotiation_used": int(best.full_negotiation_used),
+            "full_negotiation_used": int(
+                search_result.full_negotiation_used
+            ),
             "full_bargain_count": full_bargain_count,
             "full_raise_count": full_raise_count,
             "remaining_negotiation": (
                 None
                 if plan_mode == 1
-                else negotiation_limit - int(best.full_negotiation_used)
+                else negotiation_limit
+                - int(search_result.full_negotiation_used)
             ),
-            "city_path": [self._city_name(city_id) for city_id in best.city_path],
-            "city_path_ids": list(best.city_path),
+            "city_path": [
+                self._city_name(city_id)
+                for city_id in search_result.city_path
+            ],
+            "city_path_ids": list(search_result.city_path),
             "route": route,
             "assumptions": assumptions,
             "warnings": warnings,
@@ -497,30 +452,31 @@ class ResonancePcExactTradeSolver:
                         full_used = int(bargain_to_cap) + int(raise_to_cap)
                         if all_plan == 0 and full_used > negotiation_budget:
                             continue
+                        family = self._build_edge_option_family(
+                            from_city=from_city,
+                            to_city=to_city,
+                            book_budget=book_budget,
+                            bargain_to_cap=bargain_to_cap,
+                            raise_to_cap=raise_to_cap,
+                            travel_fatigue=travel_fatigue,
+                            expected_bargain_fatigue=(
+                                bargain_profile.expected_fatigue
+                                if bargain_to_cap
+                                else Fraction(0, 1)
+                            ),
+                            expected_raise_fatigue=(
+                                raise_profile.expected_fatigue
+                                if raise_to_cap
+                                else Fraction(0, 1)
+                            ),
+                            cargo_capacity=cargo_capacity,
+                            prestige_by_city=prestige_by_city,
+                            unlocked_products=unlocked_products,
+                        )
                         previous_profit: Optional[Fraction] = None
                         threshold_prefix_valid = True
-                        for books_used in range(book_budget + 1):
-                            option = self._build_edge_option(
-                                from_city=from_city,
-                                to_city=to_city,
-                                books_used=books_used,
-                                bargain_to_cap=bargain_to_cap,
-                                raise_to_cap=raise_to_cap,
-                                travel_fatigue=travel_fatigue,
-                                expected_bargain_fatigue=(
-                                    bargain_profile.expected_fatigue
-                                    if bargain_to_cap
-                                    else Fraction(0, 1)
-                                ),
-                                expected_raise_fatigue=(
-                                    raise_profile.expected_fatigue
-                                    if raise_to_cap
-                                    else Fraction(0, 1)
-                                ),
-                                cargo_capacity=cargo_capacity,
-                                prestige_by_city=prestige_by_city,
-                                unlocked_products=unlocked_products,
-                            )
+                        for option in family:
+                            books_used = option.books_used
                             if previous_profit is not None:
                                 marginal = option.expected_profit - previous_profit
                                 if marginal < book_profit_threshold:
@@ -539,6 +495,140 @@ class ResonancePcExactTradeSolver:
                     )
                 )
         return table
+
+    def _build_edge_option_family(
+        self,
+        *,
+        from_city: str,
+        to_city: str,
+        book_budget: int,
+        bargain_to_cap: bool,
+        raise_to_cap: bool,
+        travel_fatigue: int,
+        expected_bargain_fatigue: Fraction,
+        expected_raise_fatigue: Fraction,
+        cargo_capacity: int,
+        prestige_by_city: Mapping[str, int],
+        unlocked_products: Optional[set[str]],
+    ) -> Tuple[TradeEdgeOption, ...]:
+        """Build every book count after pricing and sorting products once."""
+
+        from_prestige = prestige_by_city[from_city]
+        to_prestige = prestige_by_city[to_city]
+        buy_tax_bps = self._tax_bps(from_city, from_prestige)
+        sell_tax_bps = self._tax_bps(to_city, to_prestige)
+        extra_buy_bps = self._prestige_rule(from_prestige)["extra_buy_bps"]
+        max_adjustment_bps = int(
+            (self.rules.get("negotiation") or {}).get(
+                "max_adjustment_bps", 2000
+            )
+        )
+        candidates: List[Tuple[Fraction, str, str, int]] = []
+        city_lots = self.buy_lot.get(from_city) or {}
+        for product_id in sorted(city_lots, key=self._sort_key):
+            product_id = str(product_id)
+            if (
+                unlocked_products is not None
+                and product_id not in unlocked_products
+            ):
+                continue
+            base_lot = int(city_lots.get(product_id, 0))
+            if base_lot <= 0:
+                continue
+            buy_price = self._market_price(product_id, "buy", from_city)
+            sell_price = self._market_price(product_id, "sell", to_city)
+            if buy_price is None or sell_price is None:
+                continue
+            buy_factor_bps = 10_000 - (
+                max_adjustment_bps if bargain_to_cap else 0
+            )
+            sell_factor_bps = 10_000 + (
+                max_adjustment_bps if raise_to_cap else 0
+            )
+            adjusted_buy = js_round(
+                buy_price * Fraction(buy_factor_bps, 10_000)
+            )
+            adjusted_sell = js_round(
+                sell_price * Fraction(sell_factor_bps, 10_000)
+            )
+            net_profit = (
+                Fraction(
+                    adjusted_sell * (10_000 - sell_tax_bps),
+                    10_000,
+                )
+                - Fraction(
+                    adjusted_buy * (10_000 + buy_tax_bps),
+                    10_000,
+                )
+            )
+            unit_profit = Fraction(js_round(net_profit), 1)
+            if unit_profit <= 0:
+                continue
+            prestige_lot = js_round(
+                Fraction(
+                    base_lot * (10_000 + extra_buy_bps),
+                    10_000,
+                )
+            )
+            if prestige_lot <= 0:
+                continue
+            candidates.append(
+                (
+                    unit_profit,
+                    product_id,
+                    self._product_name(product_id),
+                    prestige_lot,
+                )
+            )
+
+        candidates.sort(
+            key=lambda row: (-row[0], self._sort_key(row[1]))
+        )
+        family = []
+        for books_used in range(int(book_budget) + 1):
+            free_capacity = int(cargo_capacity)
+            expected_profit = Fraction(0, 1)
+            buys: List[Tuple[str, str, int, Fraction]] = []
+            quantity_multiplier = books_used + 1
+            for (
+                unit_profit,
+                product_id,
+                product_name,
+                prestige_lot,
+            ) in candidates:
+                if free_capacity <= 0:
+                    break
+                max_quantity = prestige_lot * quantity_multiplier
+                quantity = min(max_quantity, free_capacity)
+                if quantity <= 0:
+                    continue
+                buys.append(
+                    (
+                        product_id,
+                        product_name,
+                        quantity,
+                        unit_profit,
+                    )
+                )
+                expected_profit += unit_profit * quantity
+                free_capacity -= quantity
+            family.append(
+                TradeEdgeOption(
+                    from_city_id=from_city,
+                    to_city_id=to_city,
+                    books_used=books_used,
+                    bargain_to_cap=bool(bargain_to_cap),
+                    raise_to_cap=bool(raise_to_cap),
+                    travel_fatigue=int(travel_fatigue),
+                    expected_bargain_fatigue=expected_bargain_fatigue,
+                    expected_raise_fatigue=expected_raise_fatigue,
+                    expected_profit=expected_profit,
+                    buy_product_ids=tuple(item[0] for item in buys),
+                    buy_product_names=tuple(item[1] for item in buys),
+                    buys=tuple(buys),
+                )
+            )
+        return tuple(family)
 
     def _build_edge_option(
         self,
@@ -672,51 +762,6 @@ class ResonancePcExactTradeSolver:
             existing.full_negotiation_used,
             existing.stable_signature,
         )
-
-    def _accept_label(
-        self,
-        candidate: _Label,
-        *,
-        frontiers: Dict[str, List[_Label]],
-        active_label_ids: set[int],
-        all_plan: int,
-    ) -> bool:
-        frontier = frontiers.setdefault(candidate.city_id, [])
-        if any(self._label_dominates(existing, candidate, all_plan=all_plan) for existing in frontier):
-            return False
-        survivors: List[_Label] = []
-        for existing in frontier:
-            if self._label_dominates(candidate, existing, all_plan=all_plan):
-                active_label_ids.discard(id(existing))
-            else:
-                survivors.append(existing)
-        survivors.append(candidate)
-        frontiers[candidate.city_id] = survivors
-        active_label_ids.add(id(candidate))
-        return True
-
-    @classmethod
-    def _label_dominates(cls, candidate: _Label, existing: _Label, *, all_plan: int) -> bool:
-        if candidate.expected_fatigue_used > existing.expected_fatigue_used:
-            return False
-        if candidate.books_used > existing.books_used:
-            return False
-        if all_plan == 0 and candidate.full_negotiation_used > existing.full_negotiation_used:
-            return False
-        if candidate.expected_profit < existing.expected_profit:
-            return False
-        strictly_better = (
-            candidate.expected_fatigue_used < existing.expected_fatigue_used
-            or candidate.books_used < existing.books_used
-            or candidate.expected_profit > existing.expected_profit
-            or (
-                all_plan == 0
-                and candidate.full_negotiation_used < existing.full_negotiation_used
-            )
-        )
-        if strictly_better:
-            return True
-        return cls._label_tie_signature(candidate) <= cls._label_tie_signature(existing)
 
     def _normalize_city_prestige(self, payload: Optional[Mapping[str, Any]]) -> Dict[str, int]:
         raw = dict(payload or {})
@@ -948,39 +993,10 @@ class ResonancePcExactTradeSolver:
             option.stable_signature,
         )
 
-    @classmethod
-    def _label_tie_signature(cls, label: _Label) -> Tuple[Any, ...]:
-        return (
-            label.full_negotiation_used,
-            len(label.route),
-            label.city_path,
-            tuple(option.stable_signature for option in label.route),
-        )
-
-    @classmethod
-    def _is_better_final(cls, candidate: _Label, existing: _Label) -> bool:
-        if candidate.expected_profit != existing.expected_profit:
-            return candidate.expected_profit > existing.expected_profit
-        return (
-            candidate.expected_fatigue_used,
-            candidate.books_used,
-            candidate.full_negotiation_used,
-            len(candidate.route),
-            candidate.city_path,
-            tuple(option.stable_signature for option in candidate.route),
-        ) < (
-            existing.expected_fatigue_used,
-            existing.books_used,
-            existing.full_negotiation_used,
-            len(existing.route),
-            existing.city_path,
-            tuple(option.stable_signature for option in existing.route),
-        )
-
-
 __all__ = [
     "ResonancePcExactTradeSolver",
     "TradeEdgeOption",
     "expected_fatigue_to_cap",
     "js_round",
+    "trade_solver_progress",
 ]

@@ -44,20 +44,44 @@ negotiation.model = binary_to_cap_expected_fatigue
 - 砍满时买价按 80% 计算，抬满时卖价按 120% 计算，然后继续使用原有游戏取整和买卖税规则。
 - 成功率和幅度不再参与利润概率分布，只参与期望疲劳计算。
 - 疲劳由整数变为 `Fraction` 有理数，预算比较不提前取整。
-- 全局搜索由整数疲劳分层改为精确标签搜索，仅使用严格支配剪枝。
+- 边方案会先完成一次商品定价和单位利润排序，再批量生成不同进货书数量的方案。
+- 全局搜索使用下述双后端精确动态规划；后端选择不会改变目标函数、平局规则或返回契约。
 - 继续支持重复城市、开放终点、空载迁移和整条路线共享进货书预算。
 
-### 2.3 服务、动作和任务
+### 2.3 精确求解器性能架构
+
+2026-07-25 起，求解器内部使用统一的预编译层和两个可互换的精确后端：
+
+1. 将所有边的 `Fraction` 期望疲劳取分母最小公倍数，再以全体边疲劳的最大公约数约分，得到无误差的整数疲劳 tick。转换过程不进行浮点取整。
+2. 常规规模使用 NumPy 稠密后端。状态为 `(疲劳 tick, 城市, 进货书)`；`all_plan=0` 时再增加完整议价次数维度。所有同层边转移通过 max-plus 批量数组运算和 `maximum.reduceat` 合并，不逐标签执行 Python 支配比较。
+3. 如果分数分母导致 tick 轴过长，或估算内存/转移表超过安全阈值，则自动切换到稀疏后端。稀疏后端使用整数 tick、有序疲劳层、精确状态去重和前缀/Fenwick 严格支配查询。
+4. 两个后端都完整枚举可行边，不使用 Beam、Top-K、抽样、近似舍入或启发式剪枝。最终路径仍按“利润、疲劳、进货书、完整议价次数、路径长度、稳定字典序”选择。
+5. 稠密后端的当前自动使用条件为：预算 tick 不超过 50,000、理论最大路线深度不超过 750、展开转移不超过 2,000,000 行、保守内存估算不超过 256 MiB。任一条件不满足即无损回退稀疏后端。
+
+这里采用的是单进程 NumPy 批量矩阵计算，没有引入多进程并行。8 城场景的单次状态转移计算量小而重复次数多，进程间复制行情、边表和 DP 状态的成本高于收益；NumPy 批处理已经把主要循环移出 Python，同时避免了并行归并对确定性平局规则的额外复杂度。
+
+求解期间会发出节流后的 `planning/progress` 事件，其中包含 `solver_backend`、`current`、`total`、`percent` 和 `elapsed_ms`。稠密后端每 16 个疲劳层、稀疏后端每个实际存在的疲劳层检查任务取消；取消会抛出标准 `asyncio.CancelledError`，不会返回一条不完整路线。
+
+### 2.4 服务、动作和任务
 
 - 公开只读动作 `resonance_pc.trade_plan_optimal_route` 已支持两种 `all_plan` 模式和四项账号议价参数。
 - `auto_cycle_trade_pc.yaml` 已公开新输入并返回新的期望疲劳及完整议价计数字段。
 - 旧的尝试次数字段和整数疲劳使用量字段已从新契约删除，没有兼容别名。
+- 规划服务保存最多 8 条已完成结果的进程内 LRU 缓存。缓存键覆盖冻结行情、疲劳表、规则数据、进货量数据、当前/可用城市和全部规划输入；返回深拷贝，调用方修改结果不会污染缓存。
+- 行情、规则、疲劳、进货量或任一规划参数变化都会产生新缓存键。取消、异常和仍在计算的结果不会写入缓存。
 - 自动 UI 尚未实现满砍价/满抬价。自动任务收到 `all_plan=1` 或非零 `negotiation_budget` 时，会在任何游戏 UI 操作和行情刷新前安全拒绝。
 - `all_plan=0` 且 `negotiation_budget=0` 的无议价自动路线继续使用原有执行流程。
 
-### 2.4 Manifest 和测试
+### 2.5 Manifest 和测试
 
 `plans/resonance_pc/manifest.yaml` 由包同步工具生成，保留了工作树中已有的 PC 战斗动作与任务导出。测试已迁移到新契约，并增加了两种模式的小图暴力对拍。
+
+性能改造额外覆盖：
+
+- 稠密/稀疏后端在 `all_plan=0/1` 下完整结果逐字段一致。
+- 非整数期望疲劳的精确 tick 转换和大分母自动稀疏回退。
+- 进度事件终态、合作式取消和缓存深拷贝隔离。
+- 原有小图暴力枚举对拍继续证明正式求解器返回同一最优利润、资源使用和稳定路径。
 
 本次没有实现：
 
@@ -495,7 +519,7 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 
 ### 8.3 当前验证记录
 
-实施时执行了：
+二值满议价迁移实施时执行了：
 
 ```powershell
 python -m pytest tests/test_resonance_pc_trade_negotiation_actions.py tests/test_resonance_pc_trade_flow_execution.py tests/test_resonance_pc_auto_cycle_trade_flow.py tests/test_resonance_pc_auto_cycle_trade_task.py -q
@@ -518,6 +542,40 @@ python tools/plan_doctor.py --plan resonance_pc
 ```
 
 计划包合规检查最终结果为 `errors=21 warnings=0`。21 项均来自本次范围外、工作树中已有的 `auto_battle_dispatch_pc.yaml`：该文件使用 `aura.run_task`，但合规检查器把它报告为当前包未导出的本地动作。跑商任务、GUI 进度事件、求解器、规则文件和本次迁移文档没有产生新的合规错误或警告。
+
+2026-07-25 性能改造的定向验证：
+
+```powershell
+python -m pytest tests/test_resonance_pc_trade_exact_solver.py -q
+# 51 passed
+
+python -m pytest tests -q -k "resonance_pc"
+# 176 passed, 346 deselected, 11 subtests passed
+
+python -m packages.aura_core.cli.package_cli check plans/resonance_pc
+# Manifest is up to date
+
+python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
+# Manifest validation passed
+
+python tools/plan_doctor.py --plan resonance_pc
+# errors=0 warnings=0 infos=0
+```
+
+使用当前本地冻结行情、起点城市 `3`、8 城、800 疲劳、650 货舱、20 本进货书、默认 50%/10% 议价参数和 `all_plan=1` 实测：
+
+```text
+冷启动：1.1733 秒
+同键缓存命中：0.053616 秒
+最优税后利润：6,226,574
+期望疲劳：798
+进货书：20
+完整议价：15
+路线段数：9
+城市 ID 路径：3 → 8 → 3 → 8 → 3 → 9 → 5 → 9 → 5 → 2
+```
+
+该数据是开发机单次实测，不是跨机器性能 SLA。缓存命中仍需读取并哈希当前输入数据，以保证行情或规则变化不会错误复用旧方案。
 
 ### 8.4 执行器接入检查清单
 

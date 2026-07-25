@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 from fractions import Fraction
@@ -14,9 +15,15 @@ from plans.resonance_pc.src.services.resonance_pc_trade_exact_solver import (
     ResonancePcExactTradeSolver,
     expected_fatigue_to_cap,
     js_round,
+    trade_solver_progress,
 )
 from plans.resonance_pc.src.services.resonance_pc_trade_planner_service import (
     ResonancePcTradePlannerService,
+)
+from packages.aura_core.observability.logging.core_logger import reset_cid, set_cid
+from packages.aura_core.scheduler.cancellation import (
+    clear_task_cancel,
+    request_task_cancel,
 )
 
 
@@ -400,7 +407,9 @@ def test_new_contract_removes_attempt_and_legacy_resource_fields():
     }.isdisjoint(leg)
 
 
-def test_public_read_only_action_integrates_profile_rules_and_city_resolution():
+def test_public_read_only_action_integrates_profile_rules_city_resolution_and_cache(
+    monkeypatch,
+):
     buy_lot_payload = json.loads(
         (REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta" / "buy_lot.json").read_text(
             encoding="utf-8"
@@ -430,15 +439,18 @@ def test_public_read_only_action_integrates_profile_rules_and_city_resolution():
         plan_root=REPO_ROOT / "plans" / "resonance_pc",
     )
 
+    action_inputs = {
+        "current_city_key": "freeport",
+        "snapshot_id": "frozen-test",
+        "fatigue_budget": 41,
+        "cargo_capacity": 1,
+        "negotiation_budget": 0,
+        "all_plan": 1,
+        "available_city_ids": ["3", "8"],
+        "resonance_pc_trade_planner": service,
+    }
     result = resonance_pc_trade_plan_optimal_route(
-        current_city_key="freeport",
-        snapshot_id="frozen-test",
-        fatigue_budget=41,
-        cargo_capacity=1,
-        negotiation_budget=0,
-        all_plan=1,
-        available_city_ids=["3", "8"],
-        resonance_pc_trade_planner=service,
+        **action_inputs,
     )
 
     assert result["status"] == "ok"
@@ -449,6 +461,15 @@ def test_public_read_only_action_integrates_profile_rules_and_city_resolution():
     assert result["assumptions"]["rule_model_version"] == (
         "resonance_pc_trade_binary_to_cap_2026_07_19"
     )
+    result["route"].clear()
+    monkeypatch.setattr(
+        ResonancePcExactTradeSolver,
+        "solve",
+        lambda *_args, **_kwargs: pytest.fail("completed plan was not cached"),
+    )
+    cached = resonance_pc_trade_plan_optimal_route(**action_inputs)
+    assert cached["route"]
+    assert len(service._optimal_route_cache) == 1
 
 
 def _raw_edge_options(
@@ -581,7 +602,12 @@ def _brute_force_best(
 
 @pytest.mark.parametrize("all_plan", [0, 1])
 @pytest.mark.parametrize("seed", range(6))
-def test_exact_label_solver_matches_complete_brute_force(all_plan: int, seed: int):
+@pytest.mark.parametrize("backend", ["dense", "sparse"])
+def test_exact_solver_backends_match_complete_brute_force(
+    all_plan: int,
+    seed: int,
+    backend: str,
+):
     random_source = random.Random(seed)
     city_count = random_source.randint(2, 3)
     cities = [str(index + 1) for index in range(city_count)]
@@ -622,6 +648,7 @@ def test_exact_label_solver_matches_complete_brute_force(all_plan: int, seed: in
         bargain_step_bps=2000,
         raise_success_rates_bps=[10000],
         raise_step_bps=2000,
+        _backend=backend,
     )
     brute = _brute_force_best(
         solver,
@@ -684,3 +711,111 @@ def test_invalid_all_plan_is_rejected_without_integer_coercion():
         _solve(solver, all_plan=0.5)
     with pytest.raises(ValueError, match="all_plan must be <= 1"):
         _solve(solver, all_plan=2)
+
+
+@pytest.mark.parametrize("all_plan", [0, 1])
+def test_dense_and_sparse_backends_return_identical_complete_result(all_plan: int):
+    solver = _solver(
+        cities=["1", "2", "3"],
+        costs={
+            "1": {"2": 2, "3": 3},
+            "2": {"1": 2, "3": 2},
+            "3": {"1": 3, "2": 2},
+        },
+        buy_lot={
+            "1": {"p1": 1},
+            "2": {"p2": 1},
+            "3": {"p3": 1},
+        },
+        prices={
+            "p1": {
+                "buy": {"1": 100},
+                "sell": {"2": 180, "3": 150},
+            },
+            "p2": {
+                "buy": {"2": 90},
+                "sell": {"1": 140, "3": 210},
+            },
+            "p3": {
+                "buy": {"3": 110},
+                "sell": {"1": 220, "2": 160},
+            },
+        },
+    )
+    inputs = {
+        "fatigue_budget": 20,
+        "cargo_capacity": 3,
+        "book_budget": 2,
+        "negotiation_budget": 2,
+        "all_plan": all_plan,
+        "bargain_success_rates_bps": [6000],
+        "bargain_step_bps": 2000,
+        "raise_success_rates_bps": [6000],
+        "raise_step_bps": 2000,
+    }
+
+    dense = _solve(solver, _backend="dense", **inputs)
+    sparse = _solve(solver, _backend="sparse", **inputs)
+
+    assert dense == sparse
+
+
+def test_auto_backend_uses_sparse_integer_ticks_for_large_fraction_denominator():
+    solver = _solver(
+        cities=["1", "2"],
+        costs={"1": {"2": 1}, "2": {"1": 1}},
+        buy_lot={"1": {"p": 1}, "2": {}},
+        prices={"p": {"buy": {"1": 100}, "sell": {"2": 200}}},
+    )
+    progress = []
+
+    with trade_solver_progress(progress.append):
+        result = _solve(
+            solver,
+            fatigue_budget=20,
+            all_plan=1,
+            bargain_success_rates_bps=[9999],
+            bargain_step_bps=1999,
+            raise_success_rates_bps=[0],
+            raise_step_bps=1999,
+        )
+
+    assert result["status"] == "ok"
+    assert progress
+    assert {item["solver_backend"] for item in progress} == {"sparse"}
+
+
+def test_dense_backend_emits_bounded_progress_updates():
+    solver = _solver(
+        cities=["1", "2"],
+        costs={"1": {"2": 1}, "2": {"1": 1}},
+        buy_lot={"1": {"p": 1}, "2": {}},
+        prices={"p": {"buy": {"1": 100}, "sell": {"2": 200}}},
+    )
+    progress = []
+
+    with trade_solver_progress(progress.append):
+        result = _solve(solver, fatigue_budget=10)
+
+    assert result["status"] == "ok"
+    assert progress[0]["solver_backend"] == "dense"
+    assert progress[-1]["percent"] == 100.0
+    assert len(progress) <= 12
+
+
+def test_solver_honors_cooperative_cancellation_before_search_expands():
+    solver = _solver(
+        cities=["1", "2"],
+        costs={"1": {"2": 1}, "2": {"1": 1}},
+        buy_lot={"1": {"p": 1}, "2": {}},
+        prices={"p": {"buy": {"1": 100}, "sell": {"2": 200}}},
+    )
+    cid = "trade-solver-cancel-test"
+    token = set_cid(cid)
+    request_task_cancel(cid)
+    try:
+        with pytest.raises(asyncio.CancelledError):
+            _solve(solver, fatigue_budget=100)
+    finally:
+        clear_task_cancel(cid)
+        reset_cid(token)

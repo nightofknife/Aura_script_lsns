@@ -18,7 +18,10 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
-from ..services.resonance_pc_trade_exact_solver import expected_fatigue_to_cap
+from ..services.resonance_pc_trade_exact_solver import (
+    expected_fatigue_to_cap,
+    trade_solver_progress,
+)
 from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from .market_data_pc_actions import resonance_pc_market_refresh
@@ -1225,27 +1228,39 @@ async def resonance_pc_preview_trade_plan_flow(
             current_city=start_city_name,
             snapshot_id=snapshot_id,
         )
-    plan = await asyncio.to_thread(
-        resonance_pc_trade_plan_optimal_route,
-        current_city_id=normalized_start_city_id,
-        fatigue_budget=int(fatigue_budget),
-        cargo_capacity=int(cargo_capacity),
-        book_budget=int(book_budget),
-        book_profit_threshold=book_profit_threshold,
-        negotiation_budget=normalized_negotiation_budget,
-        all_plan=normalized_all_plan,
-        bargain_success_rates_bps=bargain_success_rates_bps,
-        bargain_step_bps=bargain_step_bps,
-        raise_success_rates_bps=raise_success_rates_bps,
-        raise_step_bps=raise_step_bps,
-        trade_level=int(trade_level),
-        available_city_ids=available_city_ids,
-        city_prestige=city_prestige or {"default": 20, "overrides": {}},
-        product_unlocks=product_unlocks or {"mode": "all", "product_ids": []},
-        active_events=active_events or [],
-        snapshot_id=market.get("snapshot_id"),
-        resonance_pc_trade_planner=resonance_pc_trade_planner,
+    solver_progress_callback = (
+        None
+        if reporter is None
+        else lambda payload: reporter.emit_from_worker(
+            "planning",
+            "progress",
+            data=payload,
+        )
     )
+    with trade_solver_progress(solver_progress_callback):
+        plan = await asyncio.to_thread(
+            resonance_pc_trade_plan_optimal_route,
+            current_city_id=normalized_start_city_id,
+            fatigue_budget=int(fatigue_budget),
+            cargo_capacity=int(cargo_capacity),
+            book_budget=int(book_budget),
+            book_profit_threshold=book_profit_threshold,
+            negotiation_budget=normalized_negotiation_budget,
+            all_plan=normalized_all_plan,
+            bargain_success_rates_bps=bargain_success_rates_bps,
+            bargain_step_bps=bargain_step_bps,
+            raise_success_rates_bps=raise_success_rates_bps,
+            raise_step_bps=raise_step_bps,
+            trade_level=int(trade_level),
+            available_city_ids=available_city_ids,
+            city_prestige=city_prestige
+            or {"default": 20, "overrides": {}},
+            product_unlocks=product_unlocks
+            or {"mode": "all", "product_ids": []},
+            active_events=active_events or [],
+            snapshot_id=market.get("snapshot_id"),
+            resonance_pc_trade_planner=resonance_pc_trade_planner,
+        )
     route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
     if reporter is not None:
         await reporter.emit(
@@ -1402,28 +1417,40 @@ async def resonance_pc_auto_cycle_trade_flow(
             snapshot_id=str(refresh.get("snapshot_id") or ""),
         )
         await reporter.emit("planning", "started", snapshot_id=str(refresh.get("snapshot_id") or ""))
-    plan = await asyncio.to_thread(
-        resonance_pc_trade_plan_optimal_route,
-        current_city=str(current.get("city_name") or ""),
-        current_city_key=str(current.get("city_key") or ""),
-        fatigue_budget=int(fatigue_budget),
-        cargo_capacity=int(cargo_capacity),
-        book_budget=int(book_budget),
-        book_profit_threshold=book_profit_threshold,
-        negotiation_budget=normalized_negotiation_budget,
-        all_plan=normalized_all_plan,
-        bargain_success_rates_bps=bargain_success_rates_bps,
-        bargain_step_bps=bargain_step_bps,
-        raise_success_rates_bps=raise_success_rates_bps,
-        raise_step_bps=raise_step_bps,
-        trade_level=int(trade_level),
-        available_city_ids=available_city_ids,
-        city_prestige=city_prestige or {"default": 20, "overrides": {}},
-        product_unlocks=product_unlocks or {"mode": "all", "product_ids": []},
-        active_events=active_events or [],
-        snapshot_id=refresh.get("snapshot_id"),
-        resonance_pc_trade_planner=resonance_pc_trade_planner,
+    solver_progress_callback = (
+        None
+        if reporter is None
+        else lambda payload: reporter.emit_from_worker(
+            "planning",
+            "progress",
+            data=payload,
+        )
     )
+    with trade_solver_progress(solver_progress_callback):
+        plan = await asyncio.to_thread(
+            resonance_pc_trade_plan_optimal_route,
+            current_city=str(current.get("city_name") or ""),
+            current_city_key=str(current.get("city_key") or ""),
+            fatigue_budget=int(fatigue_budget),
+            cargo_capacity=int(cargo_capacity),
+            book_budget=int(book_budget),
+            book_profit_threshold=book_profit_threshold,
+            negotiation_budget=normalized_negotiation_budget,
+            all_plan=normalized_all_plan,
+            bargain_success_rates_bps=bargain_success_rates_bps,
+            bargain_step_bps=bargain_step_bps,
+            raise_success_rates_bps=raise_success_rates_bps,
+            raise_step_bps=raise_step_bps,
+            trade_level=int(trade_level),
+            available_city_ids=available_city_ids,
+            city_prestige=city_prestige
+            or {"default": 20, "overrides": {}},
+            product_unlocks=product_unlocks
+            or {"mode": "all", "product_ids": []},
+            active_events=active_events or [],
+            snapshot_id=refresh.get("snapshot_id"),
+            resonance_pc_trade_planner=resonance_pc_trade_planner,
+        )
     route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
     if reporter is not None:
         await reporter.emit(
