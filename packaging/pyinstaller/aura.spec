@@ -99,20 +99,23 @@ optional_packages = [
     "onnxruntime",
     "numpy",
     "cv2",
+    # Loaded dynamically by the Windows WGC backend via importlib.
+    "windows_capture",
     "dxcam",
     "screeninfo",
     "av",
     "dotenv",
     "yaml",
 ]
-if INCLUDE_GUI:
-    optional_packages += [
-        "PySide6",
-        "shiboken6",
-    ]
 
 for optional_pkg in optional_packages:
     _collect_optional_package(optional_pkg)
+
+# Do not collect_all("PySide6") or collect_all("shiboken6") here. Analysis of
+# the GUI entrypoint and its hidden imports activates PyInstaller's standard
+# Qt hooks for the QtCore/QtGui/QtWidgets modules that this application uses.
+# collect_all would also bundle unrelated QML, WebEngine, examples, and Qt
+# build intermediates, including paths that Windows Explorer cannot extract.
 
 if INCLUDE_NVIDIA:
     binaries += collect_dynamic_libs("nvidia")

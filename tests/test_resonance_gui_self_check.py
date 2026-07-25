@@ -25,8 +25,21 @@ class _FakeRunner:
         self.closed = True
 
 
-def test_gui_self_check_builds_window_without_starting_runtime_bridge():
+def test_gui_self_check_builds_window_and_verifies_subprocess_runner():
     runner = _FakeRunner()
-    with patch("packages.resonance_gui.app.EmbeddedGameRunner", return_value=runner):
+    with patch("packages.resonance_gui.app.SubprocessGameRunner", return_value=runner):
         assert self_check_resonance_gui() == 0
     assert runner.closed
+
+
+def test_gui_self_check_requires_windows_capture():
+    with patch(
+        "packages.resonance_gui.app._import_required_wgc_module",
+        side_effect=ModuleNotFoundError("No module named 'windows_capture'"),
+    ):
+        try:
+            self_check_resonance_gui()
+        except RuntimeError as exc:
+            assert "windows_capture" in str(exc)
+        else:
+            raise AssertionError("self-check should fail when windows_capture is unavailable")

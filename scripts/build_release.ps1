@@ -381,6 +381,67 @@ function Build-GuiRootLauncher {
     }
 }
 
+function Invoke-GuiRuntimeSelfCheck {
+    param(
+        [string]$ExecutablePath,
+        [string]$ReleaseRootPath,
+        [int]$TimeoutSec = 30
+    )
+
+    Assert-PathExists -PathValue $ExecutablePath -Label "Resonance GUI runtime self-check executable"
+
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $ExecutablePath
+    $startInfo.Arguments = "--self-check"
+    $startInfo.WorkingDirectory = $ReleaseRootPath
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.EnvironmentVariables["AURA_BASE_PATH"] = $ReleaseRootPath
+    $startInfo.EnvironmentVariables["PYTHONNOUSERSITE"] = "1"
+
+    Write-Host "Running frozen Resonance GUI subprocess self-check ..."
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    try {
+        if (-not $process.WaitForExit($TimeoutSec * 1000)) {
+            & taskkill.exe /PID $process.Id /T /F *> $null
+            $global:LASTEXITCODE = 0
+            throw "Resonance GUI runtime self-check timed out after $TimeoutSec seconds."
+        }
+        if ($process.ExitCode -ne 0) {
+            throw "Resonance GUI runtime self-check failed with exit code $($process.ExitCode)."
+        }
+    }
+    finally {
+        $process.Dispose()
+    }
+}
+
+function Assert-ReleaseArchivePathLengths {
+    param(
+        [string]$ReleaseRootPath,
+        [int]$MaxEntryLength = 180
+    )
+
+    $releaseParent = Split-Path -Parent $ReleaseRootPath
+    $tooLong = @(
+        Get-ChildItem -LiteralPath $ReleaseRootPath -Recurse -File | ForEach-Object {
+            $entryPath = $_.FullName.Substring($releaseParent.Length).TrimStart("\", "/")
+            if ($entryPath.Length -gt $MaxEntryLength) {
+                [pscustomobject]@{
+                    Length = $entryPath.Length
+                    Path = $entryPath
+                }
+            }
+        }
+    )
+    if ($tooLong.Count -gt 0) {
+        $examples = ($tooLong | Sort-Object Length -Descending | Select-Object -First 5 | ForEach-Object {
+            "$($_.Length): $($_.Path)"
+        }) -join [Environment]::NewLine
+        throw "Release contains archive paths longer than $MaxEntryLength characters:$([Environment]::NewLine)$examples"
+    }
+}
+
 function Get-NvidiaPackageRoot {
     param([string]$PythonPath)
 
@@ -584,6 +645,9 @@ if ((-not $SkipBuild) -or $CreateNvidiaOverlay) {
     }
 
     Assert-PythonModulesAbsent -PythonPath $VenvPythonPath -ModuleNames $forbiddenModules
+    if (-not $isOverlayOnly) {
+        Assert-PythonModulesPresent -PythonPath $VenvPythonPath -ModuleNames @("windows_capture")
+    }
     if ($IncludeGui -and (-not $SkipBuild)) {
         Assert-PythonModulesPresent -PythonPath $VenvPythonPath -ModuleNames @("PySide6", "shiboken6")
     }
@@ -699,11 +763,18 @@ if (-not $SkipAssemble) {
     }
     $summaryLines | Set-Content -Path $summaryPath -Encoding UTF8
 
+    if ($IncludeGui) {
+        Invoke-GuiRuntimeSelfCheck `
+            -ExecutablePath (Join-Path $ReleaseRuntimeDir "AuraResonanceRuntime.exe") `
+            -ReleaseRootPath $ReleaseRoot
+    }
+
     Write-Host "Release assembled at: $ReleaseRoot"
 }
 
 if ($CreateZip) {
     Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $ReleaseRuntimeDir
+    Assert-ReleaseArchivePathLengths -ReleaseRootPath $ReleaseRoot
     New-ZipArchive `
         -SourcePath $ReleaseRoot `
         -DestinationPath (Join-Path $RuntimeRootPath "release\\$ReleaseName.zip")
