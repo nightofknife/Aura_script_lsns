@@ -19,19 +19,23 @@ class PersistentWgcSession:
         *,
         hwnd: int,
         module_name: str = "windows_capture",
-        capture_cursor: bool = False,
-        draw_border: bool = False,
-        secondary_window: bool = False,
-        minimum_update_interval_ms: int = 16,
-        dirty_region: bool = True,
+        capture_cursor: bool | None = False,
+        draw_border: bool | None = False,
+        secondary_window: bool | None = False,
+        minimum_update_interval_ms: int | None = 16,
+        dirty_region: bool | None = True,
     ) -> None:
         self.hwnd = int(hwnd)
         self.module_name = str(module_name or "windows_capture").strip() or "windows_capture"
-        self.capture_cursor = bool(capture_cursor)
-        self.draw_border = bool(draw_border)
-        self.secondary_window = bool(secondary_window)
-        self.minimum_update_interval_ms = max(int(minimum_update_interval_ms), 0)
-        self.dirty_region = bool(dirty_region)
+        self.capture_cursor = None if capture_cursor is None else bool(capture_cursor)
+        self.draw_border = None if draw_border is None else bool(draw_border)
+        self.secondary_window = None if secondary_window is None else bool(secondary_window)
+        self.minimum_update_interval_ms = (
+            None
+            if minimum_update_interval_ms is None
+            else max(int(minimum_update_interval_ms), 0)
+        )
+        self.dirty_region = None if dirty_region is None else bool(dirty_region)
 
         self._lock = threading.RLock()
         self._frame_event = threading.Event()
@@ -111,7 +115,11 @@ class PersistentWgcSession:
                 raise TargetRuntimeError(
                     "windows_capture_init_failed",
                     f"Failed to start the persistent WGC session: {exc}",
-                    {"module_name": self.module_name, "hwnd": self.hwnd},
+                    {
+                        "module_name": self.module_name,
+                        "hwnd": self.hwnd,
+                        "error": str(exc),
+                    },
                 ) from exc
 
     def wait_for_fresh_frame(self, max_stale_ms: int, timeout_ms: int) -> None:
@@ -207,6 +215,11 @@ class PersistentWgcSession:
                 "generation": int(self._generation),
                 "closed": bool(self._closed),
                 "last_error": dict(self._last_error or {}),
+                "capture_cursor": self.capture_cursor,
+                "draw_border": self.draw_border,
+                "secondary_window": self.secondary_window,
+                "minimum_update_interval_ms": self.minimum_update_interval_ms,
+                "dirty_region": self.dirty_region,
             }
 
     def _create_capturer(self) -> Any:

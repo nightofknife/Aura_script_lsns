@@ -566,7 +566,13 @@ class TradePage(QWidget):
         if self._target_ready:
             self.target_value.setText(title or "已连接")
             self.target_value.setProperty("status", "success")
-            self.ready_hint.setText("PC / WGC / SendInput")
+            capture = data.get("capture") if isinstance(data.get("capture"), Mapping) else {}
+            profile = self._find_capture_profile(capture)
+            profile_label = {
+                "performance": "高性能",
+                "compatible": "兼容",
+            }.get(profile, "自动")
+            self.ready_hint.setText(f"PC / WGC {profile_label}模式 / SendInput")
         else:
             self.target_value.setText("未连接")
             self.target_value.setProperty("status", "error")
@@ -574,6 +580,18 @@ class TradePage(QWidget):
         self.target_value.style().unpolish(self.target_value)
         self.target_value.style().polish(self.target_value)
         self._sync_actions()
+
+    @staticmethod
+    def _find_capture_profile(payload: Mapping[str, Any]) -> str:
+        current: Any = payload
+        for _ in range(4):
+            if not isinstance(current, Mapping):
+                break
+            value = str(current.get("capture_profile_effective") or "").strip().lower()
+            if value:
+                return value
+            current = current.get("health")
+        return ""
 
     def begin_run(self, payload: Mapping[str, Any]) -> None:
         self._active_mode = "run"
