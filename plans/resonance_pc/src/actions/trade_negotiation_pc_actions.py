@@ -19,6 +19,9 @@ _TOTAL_TIMEOUT_SEC = 180.0
 _BUTTON_WAIT_TIMEOUT_SEC = 3.0
 _ANIMATION_START_TIMEOUT_SEC = 3.0
 _ANIMATION_FINISH_TIMEOUT_SEC = 15.0
+DEFAULT_NEGOTIATION_MAX_ATTEMPTS = 5
+MAX_NEGOTIATION_MAX_ATTEMPTS = 6
+NEGOTIATION_ATTEMPT_FATIGUE = 8
 
 _NEGOTIATION_CONFIG: Mapping[str, Mapping[str, str]] = {
     "bargain": {
@@ -144,10 +147,37 @@ def _confirm_cap(
     }
 
 
-def _result(*, requested: bool, completed: bool, confidence: float, started_at: float) -> Dict[str, Any]:
+def _normalize_max_attempts(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("negotiation_max_attempts must be an integer")
+    normalized = int(value)
+    if not 1 <= normalized <= MAX_NEGOTIATION_MAX_ATTEMPTS:
+        raise ValueError(
+            f"negotiation_max_attempts must be between 1 and {MAX_NEGOTIATION_MAX_ATTEMPTS}"
+        )
+    return normalized
+
+
+def _result(
+    *,
+    requested: bool,
+    completed: bool,
+    confidence: float,
+    started_at: float,
+    attempts_used: int,
+    max_attempts: int,
+    stop_reason: str,
+) -> Dict[str, Any]:
+    degraded = bool(requested) and not bool(completed) and stop_reason == "attempt_limit_reached"
     return {
         "requested_to_cap": bool(requested),
         "completed_to_cap": bool(completed),
+        "attempts_used": int(attempts_used),
+        "max_attempts": int(max_attempts),
+        "stop_reason": str(stop_reason),
+        "degraded": degraded,
+        "attempt_fatigue": NEGOTIATION_ATTEMPT_FATIGUE,
+        "actual_fatigue_used": int(attempts_used) * NEGOTIATION_ATTEMPT_FATIGUE,
         "detection_method": "template",
         "cap_confidence": float(confidence),
         "elapsed_ms": max(int((time.monotonic() - started_at) * 1000), 0),
@@ -167,10 +197,20 @@ def _execute_negotiation_to_cap(
     animation_finish_timeout_sec: float = _ANIMATION_FINISH_TIMEOUT_SEC,
     poll_interval_sec: float = _POLL_INTERVAL_SEC,
     cap_confirmation_interval_sec: float = _CAP_CONFIRMATION_INTERVAL_SEC,
+    max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
 ) -> Dict[str, Any]:
     started_at = time.monotonic()
+    normalized_max_attempts = _normalize_max_attempts(max_attempts)
     if not requested_to_cap:
-        return _result(requested=False, completed=False, confidence=0.0, started_at=started_at)
+        return _result(
+            requested=False,
+            completed=False,
+            confidence=0.0,
+            started_at=started_at,
+            attempts_used=0,
+            max_attempts=normalized_max_attempts,
+            stop_reason="not_requested",
+        )
     if app is None or vision is None:
         raise RuntimeError("app/vision services are required")
     config = _NEGOTIATION_CONFIG.get(str(kind))
@@ -183,6 +223,7 @@ def _execute_negotiation_to_cap(
     last_cap: Dict[str, Any] = {"confirmed": False, "confidence": 0.0}
     last_button: Dict[str, Any] = {"found": False, "confidence": 0.0}
     no_animation_since: float | None = None
+    attempts_used = 0
 
     while time.monotonic() < deadline:
         last_cap = _confirm_cap(
@@ -203,9 +244,22 @@ def _execute_negotiation_to_cap(
                 completed=True,
                 confidence=float(last_cap.get("confidence") or 0.0),
                 started_at=started_at,
+                attempts_used=attempts_used,
+                max_attempts=normalized_max_attempts,
+                stop_reason="cap_reached",
             )
         if time.monotonic() >= deadline:
             break
+        if attempts_used >= normalized_max_attempts:
+            return _result(
+                requested=True,
+                completed=False,
+                confidence=float(last_cap.get("confidence") or 0.0),
+                started_at=started_at,
+                attempts_used=attempts_used,
+                max_attempts=normalized_max_attempts,
+                stop_reason="attempt_limit_reached",
+            )
 
         remaining = max(deadline - time.monotonic(), 0.0)
         last_button = _wait_for_template_state(
@@ -237,9 +291,12 @@ def _execute_negotiation_to_cap(
             break
 
         app.click(x=int(center[0]), y=int(center[1]))
+        attempts_used += 1
         logger.info(
-            "resonance_pc negotiation button_clicked kind=%s confidence=%.4f",
+            "resonance_pc negotiation button_clicked kind=%s attempt=%d/%d confidence=%.4f",
             kind,
+            attempts_used,
+            normalized_max_attempts,
             float(last_button.get("confidence") or 0.0),
         )
         remaining = max(deadline - time.monotonic(), 0.0)
@@ -266,6 +323,9 @@ def _execute_negotiation_to_cap(
                     completed=True,
                     confidence=float(last_cap.get("confidence") or 0.0),
                     started_at=started_at,
+                    attempts_used=attempts_used,
+                    max_attempts=normalized_max_attempts,
+                    stop_reason="cap_reached",
                 )
             now = time.monotonic()
             if no_animation_since is None:
@@ -274,7 +334,25 @@ def _execute_negotiation_to_cap(
                 raise NegotiationExecutionError(
                     "negotiation_animation_start_timeout",
                     "Negotiation button clicks did not start the animation.",
-                    {"kind": kind, "last_cap": last_cap, "last_button": animation_start},
+                    {
+                        "kind": kind,
+                        "attempts_used": attempts_used,
+                        "max_attempts": normalized_max_attempts,
+                        "last_cap": last_cap,
+                        "last_button": animation_start,
+                    },
+                )
+            if attempts_used >= normalized_max_attempts:
+                raise NegotiationExecutionError(
+                    "negotiation_animation_start_timeout",
+                    "Negotiation button clicks did not start the animation.",
+                    {
+                        "kind": kind,
+                        "attempts_used": attempts_used,
+                        "max_attempts": normalized_max_attempts,
+                        "last_cap": last_cap,
+                        "last_button": animation_start,
+                    },
                 )
             continue
 
@@ -303,6 +381,9 @@ def _execute_negotiation_to_cap(
                     completed=True,
                     confidence=float(last_cap.get("confidence") or 0.0),
                     started_at=started_at,
+                    attempts_used=attempts_used,
+                    max_attempts=normalized_max_attempts,
+                    stop_reason="cap_reached",
                 )
             raise NegotiationExecutionError(
                 "negotiation_animation_finish_timeout",
@@ -314,35 +395,91 @@ def _execute_negotiation_to_cap(
             kind,
             float(animation_finish.get("confidence") or 0.0),
         )
+        last_cap = _confirm_cap(
+            app=app,
+            vision=vision,
+            cap_template=cap_template,
+            confirmation_interval_sec=cap_confirmation_interval_sec,
+        )
+        if last_cap.get("confirmed"):
+            return _result(
+                requested=True,
+                completed=True,
+                confidence=float(last_cap.get("confidence") or 0.0),
+                started_at=started_at,
+                attempts_used=attempts_used,
+                max_attempts=normalized_max_attempts,
+                stop_reason="cap_reached",
+            )
+        if attempts_used >= normalized_max_attempts:
+            logger.warning(
+                "resonance_pc negotiation attempt_limit_reached kind=%s attempts=%d",
+                kind,
+                attempts_used,
+            )
+            return _result(
+                requested=True,
+                completed=False,
+                confidence=float(last_cap.get("confidence") or 0.0),
+                started_at=started_at,
+                attempts_used=attempts_used,
+                max_attempts=normalized_max_attempts,
+                stop_reason="attempt_limit_reached",
+            )
 
     raise NegotiationExecutionError(
         "negotiation_cap_detection_timeout",
         "Negotiation did not reach the 20.0% cap before the total timeout.",
-        {"kind": kind, "last_cap": last_cap, "last_button": last_button},
+        {
+            "kind": kind,
+            "attempts_used": attempts_used,
+            "max_attempts": normalized_max_attempts,
+            "last_cap": last_cap,
+            "last_button": last_button,
+        },
     )
 
 
-def execute_bargain_to_cap(*, requested_to_cap: bool, app: Any, vision: Any, **kwargs: Any) -> Dict[str, Any]:
+def execute_bargain_to_cap(
+    *,
+    requested_to_cap: bool,
+    app: Any,
+    vision: Any,
+    max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
+    **kwargs: Any,
+) -> Dict[str, Any]:
     return _execute_negotiation_to_cap(
         kind="bargain",
         requested_to_cap=requested_to_cap,
         app=app,
         vision=vision,
+        max_attempts=max_attempts,
         **kwargs,
     )
 
 
-def execute_raise_to_cap(*, requested_to_cap: bool, app: Any, vision: Any, **kwargs: Any) -> Dict[str, Any]:
+def execute_raise_to_cap(
+    *,
+    requested_to_cap: bool,
+    app: Any,
+    vision: Any,
+    max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
+    **kwargs: Any,
+) -> Dict[str, Any]:
     return _execute_negotiation_to_cap(
         kind="raise",
         requested_to_cap=requested_to_cap,
         app=app,
         vision=vision,
+        max_attempts=max_attempts,
         **kwargs,
     )
 
 
 __all__ = [
+    "DEFAULT_NEGOTIATION_MAX_ATTEMPTS",
+    "MAX_NEGOTIATION_MAX_ATTEMPTS",
+    "NEGOTIATION_ATTEMPT_FATIGUE",
     "NegotiationExecutionError",
     "execute_bargain_to_cap",
     "execute_raise_to_cap",

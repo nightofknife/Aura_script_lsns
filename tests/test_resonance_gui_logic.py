@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from PySide6.QtCore import QSettings
 
 from packages.resonance_gui.bridge import RunnerBridge
-from packages.resonance_gui.config_repository import GuiPreferences, ResonanceConfigRepository
+from packages.resonance_gui.config_repository import (
+    DEFAULT_PC_TRADE_CITY_IDS,
+    PC_TRADE_CITY_OPTIONS,
+    GuiPreferences,
+    ResonanceConfigRepository,
+)
 from packages.resonance_gui.logic import (
     GAME_NAME,
     PC_GAME_NAME,
@@ -19,6 +27,9 @@ from packages.resonance_gui.logic import (
     trade_result_summary,
 )
 from packages.resonance_gui.task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeRunner:
@@ -160,6 +171,7 @@ def test_runner_bridge_dispatches_preview_without_execution_only_inputs():
         {
             "fatigue_budget": 300,
             "start_city_id": "3",
+            "negotiation_max_attempts": 6,
             "use_fatigue_medicine": True,
             "allowed_fatigue_medicines": ["药"],
             "fatigue_medicine_max_uses": 4,
@@ -178,10 +190,20 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
     fake = FakeRunner()
     bridge = RunnerBridge(runner_factory=lambda: fake)
 
-    bridge.run_pc_trade({"fatigue_budget": 300, "start_city_id": "3"}, 0.0)
+    bridge.run_pc_trade(
+        {
+            "fatigue_budget": 300,
+            "start_city_id": "3",
+            "negotiation_max_attempts": 6,
+        },
+        0.0,
+    )
 
     run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
-    assert run_call["inputs"] == {"fatigue_budget": 300}
+    assert run_call["inputs"] == {
+        "fatigue_budget": 300,
+        "negotiation_max_attempts": 6,
+    }
 
 
 def test_runner_bridge_filters_pc_trade_progress_by_cid():
@@ -244,7 +266,11 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     trade_inputs = repo.load_trade_inputs()
     assert trade_inputs["cargo_capacity"] == 650
     assert trade_inputs["start_city_id"] == ""
-    assert trade_inputs["available_city_ids"] == ["3", "4", "1", "5", "7", "8", "9", "2"]
+    assert trade_inputs["negotiation_max_attempts"] == 5
+    assert trade_inputs["available_city_ids"] == [
+        "1", "2", "3", "4", "5", "6", "7", "8", "9",
+        "10", "11", "12", "13", "15", "16", "18", "20",
+    ]
     trade_inputs["fatigue_budget"] = 300
     trade_inputs["all_plan"] = 1
     trade_inputs["available_city_ids"] = ["3", "1"]
@@ -254,6 +280,42 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert repo.load_trade_inputs()["all_plan"] == 1
     assert repo.load_trade_inputs()["available_city_ids"] == ["3", "1"]
     assert repo.load_trade_inputs()["start_city_id"] == "3"
+
+
+def test_config_repository_migrates_legacy_default_city_selection(tmp_path):
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    settings.setValue(
+        "trade/inputs_json",
+        json.dumps(
+            {
+                "available_city_ids": ["3", "4", "1", "5", "7", "8", "9", "2"],
+            },
+            ensure_ascii=False,
+        ),
+    )
+    repo = ResonanceConfigRepository(settings=settings)
+
+    assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == DEFAULT_PC_TRADE_CITY_IDS
+    assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+
+
+def test_gui_trade_city_options_match_complete_location_data():
+    plan_meta = REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta"
+    constraints = json.loads(
+        (plan_meta / "trade_constraints.json").read_text(encoding="utf-8")
+    )
+    locations = json.loads(
+        (plan_meta / "location_pc.json").read_text(encoding="utf-8")
+    )["city"]
+    complete_city_ids = [
+        city_id
+        for city_id in constraints["allowed_city_ids"]
+        if "maploc" in locations[constraints["city_id_to_key"][city_id]]
+        and "exchange" in locations[constraints["city_id_to_key"][city_id]]
+    ]
+
+    assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == complete_city_ids
+    assert DEFAULT_PC_TRADE_CITY_IDS == complete_city_ids
 
 
 def test_trade_progress_reducer_rejects_foreign_and_stale_events():

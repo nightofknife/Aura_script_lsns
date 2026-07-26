@@ -210,6 +210,10 @@ class TradePage(QWidget):
         self.book_profit_threshold.setRange(0, 1_000_000_000)
         self.book_profit_threshold.setDecimals(2)
         self.negotiation_budget = self._spin(0, 100000)
+        self.negotiation_max_attempts = self._spin(1, 6)
+        self.negotiation_max_attempts.setToolTip(
+            "每次买入砍价或卖出抬价分别计数；达到上限仍未满 20% 时按当前价格继续成交"
+        )
         self.bargain_rates = QLineEdit(panel)
         self.bargain_rates.setPlaceholderText("5000, 5000")
         self.bargain_step = self._spin(1, 2000)
@@ -228,6 +232,7 @@ class TradePage(QWidget):
         self.active_events.setPlaceholderText("活动 ID，使用逗号分隔")
         form.addRow("进货书收益阈值", self.book_profit_threshold)
         form.addRow("协商预算", self.negotiation_budget)
+        form.addRow("单次协商最大尝试次数", self.negotiation_max_attempts)
         form.addRow("砍价成功率(bps)", self.bargain_rates)
         form.addRow("砍价幅度(bps)", self.bargain_step)
         form.addRow("抬价成功率(bps)", self.raise_rates)
@@ -272,7 +277,7 @@ class TradePage(QWidget):
         actions.setSpacing(6)
         select_all = QPushButton("全选", selector)
         clear_all = QPushButton("清空", selector)
-        select_all.setToolTip("选择全部受 PC 跑商支持的城市")
+        select_all.setToolTip("选择全部已配置地图和交易所坐标的城市")
         clear_all.setToolTip("清空城市选择")
         select_all.clicked.connect(lambda: self._set_all_cities(True))
         clear_all.clicked.connect(lambda: self._set_all_cities(False))
@@ -468,6 +473,7 @@ class TradePage(QWidget):
         self.book_budget.setValue(int(values.get("book_budget", 0)))
         self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 0)))
         self.negotiation_budget.setValue(int(values.get("negotiation_budget", 0)))
+        self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))
         self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
         self.bargain_step.setValue(int(values.get("bargain_step_bps", 1000)))
         self.raise_rates.setText(self._join_values(values.get("raise_success_rates_bps", [5000])))
@@ -524,6 +530,7 @@ class TradePage(QWidget):
             "book_budget": self.book_budget.value(),
             "book_profit_threshold": self.book_profit_threshold.value(),
             "negotiation_budget": self.negotiation_budget.value(),
+            "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
             "raise_success_rates_bps": raise_rates,

@@ -166,6 +166,128 @@
             ],
             "is_main": true
         },
+        "black_moon_amusement_park": {
+            "maploc": [
+                486,
+                64
+            ],
+            "administration": [
+                500,
+                80
+            ],
+            "clothing": [
+                680,
+                460
+            ],
+            "exchange": [
+                1100,
+                500
+            ]
+        },
+        "qiyu_station": {
+            "maploc": [
+                1931,
+                7
+            ],
+            "train_maintenance": [
+                310,
+                190
+            ],
+            "exchange": [
+                640,
+                350
+            ],
+            "administration": [
+                780,
+                100
+            ]
+        },
+        "lanxin_city": {
+            "maploc": [
+                2198,
+                7
+            ],
+            "battle": [
+                290,
+                150
+            ],
+            "city_hall": [
+                590,
+                80
+            ],
+            "rest": [
+                670,
+                240
+            ],
+            "commerce": [
+                460,
+                350
+            ],
+            "exchange": [
+                900,
+                350
+            ],
+            "sushi_restaurant": [
+                1030,
+                130
+            ]
+        },
+        "vitilin_forest": {
+            "maploc": [
+                984,
+                775
+            ],
+            "luosai": [
+                210,
+                460
+            ],
+            "exchange": [
+                760,
+                540
+            ],
+            "administration": [
+                970,
+                200
+            ]
+        },
+        "yunxiuqiao_base": {
+            "maploc": [
+                1465,
+                218
+            ],
+            "black_moon_clothing_orders": [
+                360,
+                180
+            ],
+            "bridge_administration": [
+                540,
+                140
+            ],
+            "armory": [
+                700,
+                270
+            ],
+            "reforming_center": [
+                940,
+                190
+            ],
+            "exchange": [
+                440,
+                490
+            ]
+        },
+        "farstar_bridge": {
+            "maploc": [
+                644,
+                863
+            ]
+        },
+        "tatu_station": {
+            "maploc": [
+                1530,
+                797
+            ]
+        },
         "gronru_city": {
             "maploc": [
                 777,
@@ -177,15 +299,51 @@
                 333,
                 1040
             ],
+            "city_hall": [
+                110,
+                110
+            ],
+            "aquarium": [
+                250,
+                240
+            ],
+            "battle": [
+                540,
+                220
+            ],
+            "commerce": [
+                740,
+                130
+            ],
             "exchange": [
-                980,
-                280
+                990,
+                270
+            ],
+            "rest": [
+                620,
+                400
+            ],
+            "ramen_restaurant": [
+                1090,
+                420
             ]
         },
         "confluence_tower": {
             "maploc": [
                 153,
                 1040
+            ],
+            "ideation_construction_room": [
+                240,
+                200
+            ],
+            "confluence_hub": [
+                600,
+                180
+            ],
+            "exchange": [
+                920,
+                320
             ]
         }
     }

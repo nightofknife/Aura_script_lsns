@@ -2,8 +2,8 @@
   "schema_version": "1.0.0",
   "source": {
     "site": "https://www.resonance-columba.com/route",
-    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-3c6031ad34b3649f.js",
-    "extracted_at": "2026-07-20T16:50:07.750140+00:00"
+    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-b94b89c840aa0034.js",
+    "extracted_at": "2026-07-25T22:48:13.876800+00:00"
   },
   "default_lot": 0,
   "city_product_buy_lot": {

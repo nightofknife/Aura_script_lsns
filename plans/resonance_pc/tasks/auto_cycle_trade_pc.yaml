@@ -36,6 +36,12 @@ auto_cycle_trade_pc:
         required: false
         default: 0
         min: 0
+      - name: negotiation_max_attempts
+        type: number
+        required: false
+        default: 5
+        min: 1
+        max: 6
       - name: bargain_success_rates_bps
         type: list
         required: false
@@ -82,28 +88,49 @@ auto_cycle_trade_pc:
         type: list
         required: false
         default:
+          - "1"
+          - "2"
           - "3"
           - "4"
-          - "1"
           - "5"
+          - "6"
           - "7"
           - "8"
           - "9"
-          - "2"
+          - "10"
+          - "11"
+          - "12"
+          - "13"
+          - "15"
+          - "16"
+          - "18"
+          - "20"
         min: 2
         item:
           name: available_city_id
           type: string
           required: true
           enum:
+            - "1"
+            - "2"
             - "3"
             - "4"
-            - "1"
             - "5"
+            - "6"
             - "7"
             - "8"
             - "9"
-            - "2"
+            - "10"
+            - "11"
+            - "12"
+            - "13"
+            - "14"
+            - "15"
+            - "16"
+            - "17"
+            - "18"
+            - "19"
+            - "20"
       - name: city_prestige
         type: dict
         required: false
@@ -124,54 +151,26 @@ auto_cycle_trade_pc:
             required: false
             default: {}
             properties:
-              "1":
-                name: city_1
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "2":
-                name: city_2
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "3":
-                name: city_3
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "4":
-                name: city_4
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "5":
-                name: city_5
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "7":
-                name: city_7
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "8":
-                name: city_8
-                type: number
-                required: false
-                min: 1
-                max: 20
-              "9":
-                name: city_9
-                type: number
-                required: false
-                min: 1
-                max: 20
+              "1": {name: city_1, type: number, required: false, min: 1, max: 20}
+              "2": {name: city_2, type: number, required: false, min: 1, max: 20}
+              "3": {name: city_3, type: number, required: false, min: 1, max: 20}
+              "4": {name: city_4, type: number, required: false, min: 1, max: 20}
+              "5": {name: city_5, type: number, required: false, min: 1, max: 20}
+              "6": {name: city_6, type: number, required: false, min: 1, max: 20}
+              "7": {name: city_7, type: number, required: false, min: 1, max: 20}
+              "8": {name: city_8, type: number, required: false, min: 1, max: 20}
+              "9": {name: city_9, type: number, required: false, min: 1, max: 20}
+              "10": {name: city_10, type: number, required: false, min: 1, max: 20}
+              "11": {name: city_11, type: number, required: false, min: 1, max: 20}
+              "12": {name: city_12, type: number, required: false, min: 1, max: 20}
+              "13": {name: city_13, type: number, required: false, min: 1, max: 20}
+              "14": {name: city_14, type: number, required: false, min: 1, max: 20}
+              "15": {name: city_15, type: number, required: false, min: 1, max: 20}
+              "16": {name: city_16, type: number, required: false, min: 1, max: 20}
+              "17": {name: city_17, type: number, required: false, min: 1, max: 20}
+              "18": {name: city_18, type: number, required: false, min: 1, max: 20}
+              "19": {name: city_19, type: number, required: false, min: 1, max: 20}
+              "20": {name: city_20, type: number, required: false, min: 1, max: 20}
       - name: product_unlocks
         type: dict
         required: false
@@ -222,12 +221,13 @@ auto_cycle_trade_pc:
         book_budget: "{{ inputs.book_budget | default(0) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(0) }}"
         negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
+        negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
         trade_level: "{{ inputs.trade_level | default(20) }}"
-        available_city_ids: "{{ inputs.available_city_ids | default(['3', '4', '1', '5', '7', '8', '9', '2']) }}"
+        available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '15', '16', '18', '20']) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         active_events: "{{ inputs.active_events | default([]) }}"
@@ -253,6 +253,7 @@ auto_cycle_trade_pc:
     books_used: "{{ nodes.run.output.books_used }}"
     remaining_books: "{{ nodes.run.output.remaining_books }}"
     negotiation_budget: "{{ nodes.run.output.negotiation_budget }}"
+    negotiation_max_attempts: "{{ nodes.run.output.negotiation_max_attempts }}"
     negotiation_budget_ignored: "{{ nodes.run.output.negotiation_budget_ignored }}"
     full_negotiation_used: "{{ nodes.run.output.full_negotiation_used }}"
     full_bargain_count: "{{ nodes.run.output.full_bargain_count }}"

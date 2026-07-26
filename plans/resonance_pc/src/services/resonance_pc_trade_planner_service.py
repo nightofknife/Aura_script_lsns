@@ -63,24 +63,54 @@ class ResonancePcTradePlannerService:
     DEFAULT_CYCLE_BEAM_WIDTH = 64
     DEFAULT_CYCLE_TOPK_NEXT = 6
     OPTIMAL_ROUTE_CACHE_SIZE = 8
-    DEFAULT_ALLOWED_CITY_IDS = ["3", "4", "1", "5", "7", "8", "9", "2"]
+    DEFAULT_ALLOWED_CITY_IDS = [str(city_id) for city_id in range(1, 21)]
+    DEFAULT_AVAILABLE_CITY_IDS = [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "15",
+        "16",
+        "18",
+        "20",
+    ]
     DEFAULT_CITY_ID_TO_KEY = {
+        "1": "shoggolith_city",
+        "2": "brcl_outpost",
         "3": "freeport",
         "4": "clarity_data_center_administration_bureau",
-        "1": "shoggolith_city",
         "5": "anita_weapon_research_institute",
+        "6": "anita_energy_research_institute",
         "7": "wilderness_station",
         "8": "mander_mine",
         "9": "onederland",
-        "2": "brcl_outpost",
+        "10": "anita_rocket_base",
+        "11": "cape_city",
+        "12": "yunxiuqiao_base",
+        "13": "confluence_tower",
+        "14": "farstar_bridge",
+        "15": "lanxin_city",
+        "16": "qiyu_station",
+        "17": "tatu_station",
+        "18": "black_moon_amusement_park",
+        "19": "gronru_city",
+        "20": "vitilin_forest",
     }
     KNOWN_CITY_KEY_TO_ID = {
         **{value: key for key, value in DEFAULT_CITY_ID_TO_KEY.items()},
-        "anita_energy_research_institute": "6",
-        "anita_rocket_base": "10",
-        "cape_city": "11",
-        "confluence_tower": "13",
-        "gronru_city": "19",
+        "clarity_data_center": "4",
+        "anita_launch_center": "10",
+        "seacorner_city": "11",
+        "gonglu_city": "19",
     }
 
     def __init__(
@@ -156,13 +186,19 @@ class ResonancePcTradePlannerService:
                 message="One current city input is required for optimal route planning.",
             )
 
+        fatigue_costs = fatigue_payload.get("costs") or {}
         supported_city_ids = [
-            city_id
-            for city_id in constraints["allowed_city_ids"]
-            if city_id in (fatigue_payload.get("costs") or {})
+            str(city_id)
+            for city_id in fatigue_costs
+            if str(city_id).strip()
         ]
         if available_city_ids is None:
-            allowed_city_ids = supported_city_ids
+            default_available_city_ids = constraints["default_available_city_ids"]
+            allowed_city_ids = [
+                city_id
+                for city_id in supported_city_ids
+                if city_id in default_available_city_ids
+            ]
         else:
             if not isinstance(available_city_ids, list):
                 raise ResonancePcTradePlannerError(
@@ -178,7 +214,7 @@ class ResonancePcTradePlannerService:
             if unsupported_city_ids:
                 raise ResonancePcTradePlannerError(
                     code="unsupported_selected_cities",
-                    message="Some selected cities are outside PC trade constraints.",
+                    message="Some selected cities are outside the travel-fatigue graph.",
                     detail={
                         "unsupported_city_ids": unsupported_city_ids,
                         "supported_city_ids": supported_city_ids,
@@ -203,7 +239,7 @@ class ResonancePcTradePlannerService:
                 message=(
                     f"Current city '{resolved_city_id}' is not selected for planning."
                     if resolved_city_id in supported_city_ids
-                    else f"Current city '{resolved_city_id}' is outside PC trade constraints."
+                    else f"Current city '{resolved_city_id}' is outside the travel-fatigue graph."
                 ),
                 detail={"allowed_city_ids": allowed_city_ids},
             )
@@ -2246,15 +2282,25 @@ class ResonancePcTradePlannerService:
                     ),
                 )
             raw_allowed_ids = payload.get("allowed_city_ids")
+            raw_default_available_ids = payload.get(
+                "default_available_city_ids",
+                raw_allowed_ids,
+            )
             raw_city_id_to_key = payload.get("city_id_to_key")
         else:
             raw_allowed_ids = list(self.DEFAULT_ALLOWED_CITY_IDS)
+            raw_default_available_ids = list(self.DEFAULT_AVAILABLE_CITY_IDS)
             raw_city_id_to_key = dict(self.DEFAULT_CITY_ID_TO_KEY)
 
         if not isinstance(raw_allowed_ids, list):
             raise ResonancePcTradePlannerError(
                 code="trade_constraints_invalid",
                 message="trade_constraints.allowed_city_ids must be a list.",
+            )
+        if not isinstance(raw_default_available_ids, list):
+            raise ResonancePcTradePlannerError(
+                code="trade_constraints_invalid",
+                message="trade_constraints.default_available_city_ids must be a list.",
             )
         if not isinstance(raw_city_id_to_key, dict):
             raise ResonancePcTradePlannerError(
@@ -2299,9 +2345,35 @@ class ResonancePcTradePlannerService:
                 message="trade_constraints must include at least two allowed_city_ids.",
             )
 
+        default_available_city_ids: List[str] = []
+        seen_default_ids: set[str] = set()
+        for raw_city_id in raw_default_available_ids:
+            city_id = str(raw_city_id).strip()
+            if not city_id or city_id in seen_default_ids:
+                continue
+            if city_id not in city_id_to_key:
+                raise ResonancePcTradePlannerError(
+                    code="trade_constraints_invalid",
+                    message=(
+                        "trade_constraints.default_available_city_ids must be "
+                        f"a subset of allowed_city_ids; unexpected city_id '{city_id}'."
+                    ),
+                )
+            seen_default_ids.add(city_id)
+            default_available_city_ids.append(city_id)
+        if len(default_available_city_ids) < 2:
+            raise ResonancePcTradePlannerError(
+                code="trade_constraints_invalid",
+                message=(
+                    "trade_constraints must include at least two "
+                    "default_available_city_ids."
+                ),
+            )
+
         self._trade_constraints_payload = {
             "schema_version": self.TRADE_CONSTRAINTS_SCHEMA_VERSION,
             "allowed_city_ids": allowed_city_ids,
+            "default_available_city_ids": default_available_city_ids,
             "allowed_city_keys": [city_id_to_key[city_id] for city_id in allowed_city_ids],
             "city_id_to_key": city_id_to_key,
             "key_to_city_id": key_to_city_id,

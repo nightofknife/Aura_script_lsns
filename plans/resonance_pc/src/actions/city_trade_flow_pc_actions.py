@@ -27,6 +27,8 @@ from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
 from .trade_negotiation_pc_actions import (
+    DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
+    MAX_NEGOTIATION_MAX_ATTEMPTS,
     NegotiationExecutionError,
     execute_bargain_to_cap,
     execute_raise_to_cap,
@@ -698,6 +700,7 @@ def resonance_pc_buy_goods_on_buy_page(
     product_list: Optional[List[str]] = None,
     books_used: int = 0,
     bargain_to_cap: bool = False,
+    negotiation_max_attempts: int = 5,
     max_scan_rounds: int = 6,
     app: Any = None,
     ocr: Any = None,
@@ -713,7 +716,12 @@ def resonance_pc_buy_goods_on_buy_page(
         "started",
         data={"products": requested_products, "books_used": int(books_used or 0)},
     )
-    negotiation = execute_bargain_to_cap(requested_to_cap=False, app=app, vision=vision)
+    negotiation = execute_bargain_to_cap(
+        requested_to_cap=False,
+        app=app,
+        vision=vision,
+        max_attempts=negotiation_max_attempts,
+    )
     book_result: Dict[str, Any] = {"ok": True, "used": 0, "skipped": True}
     if int(books_used or 0) > 0:
         book_result = resonance_pc_use_purchase_books(
@@ -766,6 +774,7 @@ def resonance_pc_buy_goods_on_buy_page(
             requested_to_cap=bool(bargain_to_cap),
             app=app,
             vision=vision,
+            max_attempts=negotiation_max_attempts,
         )
         if bool(bargain_to_cap):
             _report_worker("negotiation", "completed", operation="bargain", data=dict(negotiation))
@@ -863,6 +872,7 @@ def resonance_pc_buy_goods_on_buy_page(
 @requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr", vision="plans/aura_base/vision")
 def resonance_pc_sell_goods_on_sell_page(
     raise_to_cap: bool = False,
+    negotiation_max_attempts: int = 5,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -881,7 +891,12 @@ def resonance_pc_sell_goods_on_sell_page(
     )
     sell_button_click = {"clicked": False, "reason": "sell_all_not_clicked"}
     settlement = {"closed": False, "found": False, "kind": "sell"}
-    negotiation = execute_raise_to_cap(requested_to_cap=False, app=app, vision=vision)
+    negotiation = execute_raise_to_cap(
+        requested_to_cap=False,
+        app=app,
+        vision=vision,
+        max_attempts=negotiation_max_attempts,
+    )
     if sell_all_click.get("clicked"):
         time.sleep(0.5)
         try:
@@ -891,6 +906,7 @@ def resonance_pc_sell_goods_on_sell_page(
                 requested_to_cap=bool(raise_to_cap),
                 app=app,
                 vision=vision,
+                max_attempts=negotiation_max_attempts,
             )
             if bool(raise_to_cap):
                 _report_worker("negotiation", "completed", operation="raise", data=dict(negotiation))
@@ -951,6 +967,7 @@ def _execute_city_trade_inside_current_city(
     books_used: int,
     sell_raise_to_cap: bool = False,
     buy_bargain_to_cap: bool = False,
+    negotiation_max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -966,6 +983,7 @@ def _execute_city_trade_inside_current_city(
             books_used=books_used,
             sell_raise_to_cap=sell_raise_to_cap,
             buy_bargain_to_cap=buy_bargain_to_cap,
+            negotiation_max_attempts=negotiation_max_attempts,
             app=app,
             ocr=ocr,
             vision=vision,
@@ -983,6 +1001,7 @@ def _execute_city_trade_inside_current_city_scoped(
     books_used: int,
     sell_raise_to_cap: bool,
     buy_bargain_to_cap: bool,
+    negotiation_max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1007,6 +1026,7 @@ def _execute_city_trade_inside_current_city_scoped(
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
+        negotiation_max_attempts=negotiation_max_attempts,
         app=app,
         ocr=ocr,
         vision=vision,
@@ -1018,6 +1038,7 @@ def _execute_city_trade_inside_current_city_scoped(
             product_list=products,
             books_used=int(books_used or 0),
             bargain_to_cap=bool(buy_bargain_to_cap),
+            negotiation_max_attempts=negotiation_max_attempts,
             app=app,
             ocr=ocr,
             vision=vision,
@@ -1049,6 +1070,7 @@ async def _execute_route(
     use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
+    negotiation_max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1082,6 +1104,7 @@ async def _execute_route(
                 use_fatigue_medicine=use_fatigue_medicine,
                 allowed_fatigue_medicines=allowed_fatigue_medicines,
                 fatigue_medicine_max_uses=fatigue_medicine_max_uses,
+                negotiation_max_attempts=negotiation_max_attempts,
                 app=app,
                 ocr=ocr,
                 vision=vision,
@@ -1132,6 +1155,7 @@ async def _execute_trade_leg(
     use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
+    negotiation_max_attempts: int,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1158,6 +1182,7 @@ async def _execute_trade_leg(
         books_used=int(leg.get("books_used") or 0),
         sell_raise_to_cap=bool(sell_raise_to_cap),
         buy_bargain_to_cap=bool(leg.get("bargain_to_cap")),
+        negotiation_max_attempts=negotiation_max_attempts,
         app=app,
         ocr=ocr,
         vision=vision,
@@ -1208,6 +1233,64 @@ async def _execute_trade_leg(
         "city_trade": city_trade,
         "travel": travel,
         "page_state": "city_main",
+    }
+
+
+def _summarize_negotiation_execution(
+    execution: Dict[str, Any],
+    final_sale: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    entries: List[Dict[str, Any]] = []
+
+    def append_city_trade(city_trade: Any) -> None:
+        if not isinstance(city_trade, dict):
+            return
+        city = str(city_trade.get("current_city") or "")
+        for result_key, operation in (("sell", "raise"), ("buy", "bargain")):
+            operation_result = city_trade.get(result_key)
+            if not isinstance(operation_result, dict):
+                continue
+            negotiation = operation_result.get("negotiation")
+            if not isinstance(negotiation, dict):
+                continue
+            entries.append(
+                {
+                    "city": city,
+                    "operation": operation,
+                    **dict(negotiation),
+                }
+            )
+
+    for leg_result in execution.get("leg_results") or []:
+        if isinstance(leg_result, dict):
+            append_city_trade(leg_result.get("city_trade"))
+    append_city_trade(final_sale)
+
+    degraded_entries = [
+        entry
+        for entry in entries
+        if bool(entry.get("requested_to_cap"))
+        and str(entry.get("stop_reason") or "") == "attempt_limit_reached"
+    ]
+    warnings = []
+    for entry in degraded_entries:
+        operation_name = "买入砍价" if entry.get("operation") == "bargain" else "卖出抬价"
+        city_prefix = f"{entry.get('city')} " if entry.get("city") else ""
+        warnings.append(
+            f"{city_prefix}{operation_name}尝试 {int(entry.get('attempts_used') or 0)} 次仍未达到 20%，"
+            "已按当前价格继续成交。"
+        )
+    return {
+        "negotiation_results": entries,
+        "negotiation_attempts_used_total": sum(
+            int(entry.get("attempts_used") or 0) for entry in entries
+        ),
+        "negotiation_actual_fatigue_used": sum(
+            int(entry.get("actual_fatigue_used") or 0) for entry in entries
+        ),
+        "negotiation_cap_miss_count": len(degraded_entries),
+        "negotiation_degraded": bool(degraded_entries),
+        "warnings": warnings,
     }
 
 
@@ -1401,6 +1484,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     book_budget: int = 0,
     book_profit_threshold: float = 0,
     negotiation_budget: int = 0,
+    negotiation_max_attempts: int = 5,
     all_plan: int = 0,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
@@ -1433,6 +1517,16 @@ async def resonance_pc_auto_cycle_trade_flow(
     normalized_negotiation_budget = _strict_integer("negotiation_budget", negotiation_budget)
     if normalized_negotiation_budget < 0:
         raise ValueError("negotiation_budget must be >= 0")
+    if isinstance(negotiation_max_attempts, bool) or not isinstance(
+        negotiation_max_attempts,
+        int,
+    ):
+        raise ValueError("negotiation_max_attempts must be an integer")
+    normalized_negotiation_max_attempts = int(negotiation_max_attempts)
+    if not 1 <= normalized_negotiation_max_attempts <= MAX_NEGOTIATION_MAX_ATTEMPTS:
+        raise ValueError(
+            f"negotiation_max_attempts must be between 1 and {MAX_NEGOTIATION_MAX_ATTEMPTS}"
+        )
     expected_fatigue_to_cap(
         success_rates_bps=(
             [5000] if bargain_success_rates_bps is None else bargain_success_rates_bps
@@ -1550,6 +1644,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     execution: Dict[str, Any] = {
         "status": "not_started",
         "reason": plan.get("reason"),
+        "negotiation_max_attempts": normalized_negotiation_max_attempts,
         "completed_leg_count": 0,
         "completed_route": [],
         "leg_results": [],
@@ -1567,6 +1662,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             use_fatigue_medicine=bool(use_fatigue_medicine),
             allowed_fatigue_medicines=allowed_fatigue_medicines or [],
             fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
+            negotiation_max_attempts=normalized_negotiation_max_attempts,
             app=app,
             ocr=ocr,
             vision=vision,
@@ -1596,6 +1692,7 @@ async def resonance_pc_auto_cycle_trade_flow(
                 books_used=0,
                 sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
                 buy_bargain_to_cap=False,
+                negotiation_max_attempts=normalized_negotiation_max_attempts,
                 app=app,
                 ocr=ocr,
                 vision=vision,
@@ -1627,6 +1724,9 @@ async def resonance_pc_auto_cycle_trade_flow(
         execution["page_cleanup"] = cleanup
         page_state = str(cleanup.get("page_state") or "city_main")
 
+    negotiation_execution = _summarize_negotiation_execution(execution, final_sale)
+    execution.update(negotiation_execution)
+    execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts
     execution_status = str(execution.get("status") or "not_started").lower()
     if execution_status == "blocked":
         status = "blocked"
@@ -1642,11 +1742,15 @@ async def resonance_pc_auto_cycle_trade_flow(
         success = True
 
     result = dict(plan)
+    result_warnings = list(result.get("warnings") or [])
+    result_warnings.extend(negotiation_execution["warnings"])
     result.update(
         {
             "success": success,
             "status": status,
             "reason": reason,
+            "negotiation_max_attempts": normalized_negotiation_max_attempts,
+            "warnings": result_warnings,
             "execution": execution,
             "final_sale": final_sale,
             "blocked_at": execution.get("blocked_at"),

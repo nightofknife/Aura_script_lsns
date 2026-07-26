@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -17,6 +19,53 @@ from plans.resonance_pc.src.actions.city_travel_pc_actions import (
     resonance_pc_select_intercity_destination,
     resonance_pc_wait_intercity_arrival,
 )
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize(
+    ("city_name", "city_key", "expected_maploc"),
+    [
+        ("云岫桥基地", "yunxiuqiao_base", [1465, 218]),
+        ("远星大桥", "farstar_bridge", [644, 863]),
+        ("岚心城", "lanxin_city", [2198, 7]),
+        ("栖羽站", "qiyu_station", [1931, 7]),
+        ("塔图站", "tatu_station", [1530, 797]),
+        ("黑月游乐城", "black_moon_amusement_park", [486, 64]),
+        ("维蒂林场", "vitilin_forest", [984, 775]),
+    ],
+)
+def test_relative_map_screenshots_complete_missing_city_coordinates(
+    city_name,
+    city_key,
+    expected_maploc,
+):
+    location_path = _REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta" / "location_pc.json"
+    city_table = json.loads(location_path.read_text(encoding="utf-8"))["city"]
+
+    assert city_table[city_key]["maploc"] == expected_maploc
+    alias_lookup = city_travel_pc_actions._build_alias_lookup(city_table)
+    assert city_travel_pc_actions._resolve_city_key_from_name(city_name, city_table, alias_lookup) == city_key
+
+
+def test_all_trade_cities_have_intercity_map_coordinates():
+    plan_meta = _REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta"
+    constraints = json.loads((plan_meta / "trade_constraints.json").read_text(encoding="utf-8"))
+    city_table = json.loads((plan_meta / "location_pc.json").read_text(encoding="utf-8"))["city"]
+
+    missing = []
+    for city_id in constraints["allowed_city_ids"]:
+        city_key = constraints["city_id_to_key"][city_id]
+        maploc = city_table.get(city_key, {}).get("maploc")
+        if (
+            not isinstance(maploc, list)
+            or len(maploc) != 2
+            or not all(isinstance(value, int) for value in maploc)
+        ):
+            missing.append(city_key)
+
+    assert missing == []
 
 
 class _FakeApp:

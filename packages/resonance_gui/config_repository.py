@@ -10,16 +10,29 @@ from PySide6.QtCore import QSettings
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
+    ("1", "修格里城"),
+    ("2", "铁盟哨站"),
     ("3", "七号自由港"),
     ("4", "澄明数据中心"),
-    ("1", "修格里城"),
     ("5", "阿妮塔战备工厂"),
+    ("6", "阿妮塔能源研究所"),
     ("7", "荒原站"),
     ("8", "曼德矿场"),
     ("9", "淘金乐园"),
-    ("2", "铁盟哨站"),
+    ("10", "阿妮塔发射中心"),
+    ("11", "海角城"),
+    ("12", "云岫桥基地"),
+    ("13", "汇流塔"),
+    ("15", "岚心城"),
+    ("16", "栖羽站"),
+    ("18", "黑月游乐城"),
+    ("20", "维蒂林场"),
 )
 DEFAULT_PC_TRADE_CITY_IDS = [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS]
+_LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
+    frozenset(("3", "4", "1", "5", "7", "8", "9", "2")),
+    frozenset(str(city_id) for city_id in range(1, 21)),
+)
 
 
 @dataclass(frozen=True)
@@ -37,6 +50,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "book_budget": 0,
     "book_profit_threshold": 0,
     "negotiation_budget": 0,
+    "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
     "bargain_step_bps": 1000,
     "raise_success_rates_bps": [5000],
@@ -95,4 +109,22 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    raw_city_ids = merged.get("available_city_ids")
+    normalized_city_ids = list(
+        dict.fromkeys(
+            str(city_id)
+            for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
+            if str(city_id) in DEFAULT_PC_TRADE_CITY_IDS
+        )
+    )
+    raw_city_id_set = frozenset(
+        str(city_id)
+        for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
+    )
+    if (
+        len(normalized_city_ids) < 2
+        or raw_city_id_set in _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS
+    ):
+        normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
+    merged["available_city_ids"] = normalized_city_ids
     return merged

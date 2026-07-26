@@ -58,19 +58,20 @@ negotiation.model = binary_to_cap_expected_fatigue
 4. 两个后端都完整枚举可行边，不使用 Beam、Top-K、抽样、近似舍入或启发式剪枝。最终路径仍按“利润、疲劳、进货书、完整议价次数、路径长度、稳定字典序”选择。
 5. 稠密后端的当前自动使用条件为：预算 tick 不超过 50,000、理论最大路线深度不超过 750、展开转移不超过 2,000,000 行、保守内存估算不超过 256 MiB。任一条件不满足即无损回退稀疏后端。
 
-这里采用的是单进程 NumPy 批量矩阵计算，没有引入多进程并行。8 城场景的单次状态转移计算量小而重复次数多，进程间复制行情、边表和 DP 状态的成本高于收益；NumPy 批处理已经把主要循环移出 Python，同时避免了并行归并对确定性平局规则的额外复杂度。
+这里采用的是单进程 NumPy 批量矩阵计算，没有引入多进程并行。当前城市规模下的单次状态转移计算量小而重复次数多，进程间复制行情、边表和 DP 状态的成本高于收益；NumPy 批处理已经把主要循环移出 Python，同时避免了并行归并对确定性平局规则的额外复杂度。
 
 求解期间会发出节流后的 `planning/progress` 事件，其中包含 `solver_backend`、`current`、`total`、`percent` 和 `elapsed_ms`。稠密后端每 16 个疲劳层、稀疏后端每个实际存在的疲劳层检查任务取消；取消会抛出标准 `asyncio.CancelledError`，不会返回一条不完整路线。
 
 ### 2.4 服务、动作和任务
 
 - 公开只读动作 `resonance_pc.trade_plan_optimal_route` 已支持两种 `all_plan` 模式和四项账号议价参数。
+- 未传 `available_city_ids` 时，精确规划器默认使用已配置交易所坐标的城市；当前为 17 城，默认排除只有地图坐标的远星大桥（14）、塔图站（17）和贡露城（19）。20 城仍全部允许显式选择。
 - `auto_cycle_trade_pc.yaml` 已公开新输入并返回新的期望疲劳及完整议价计数字段。
 - 旧的尝试次数字段和整数疲劳使用量字段已从新契约删除，没有兼容别名。
 - 规划服务保存最多 8 条已完成结果的进程内 LRU 缓存。缓存键覆盖冻结行情、疲劳表、规则数据、进货量数据、当前/可用城市和全部规划输入；返回深拷贝，调用方修改结果不会污染缓存。
 - 行情、规则、疲劳、进货量或任一规划参数变化都会产生新缓存键。取消、异常和仍在计算的结果不会写入缓存。
-- 自动 UI 尚未实现满砍价/满抬价。自动任务收到 `all_plan=1` 或非零 `negotiation_budget` 时，会在任何游戏 UI 操作和行情刷新前安全拒绝。
-- `all_plan=0` 且 `negotiation_budget=0` 的无议价自动路线继续使用原有执行流程。
+- 自动执行已支持路线中的满砍价/满抬价布尔意图。每次操作使用独立的尝试计数，默认最多点击 5 次。
+- 达到尝试上限仍未确认 20% 时，执行器停止议价并按当前页面价格继续成交；页面丢失、按钮缺失和动画异常仍按业务错误中止。
 
 ### 2.5 Manifest 和测试
 
@@ -83,12 +84,10 @@ negotiation.model = binary_to_cap_expected_fatigue
 - 进度事件终态、合作式取消和缓存深拷贝隔离。
 - 原有小图暴力枚举对拍继续证明正式求解器返回同一最优利润、资源使用和稳定路径。
 
-本次没有实现：
+当前仍未实现：
 
-- 砍价/抬价按钮点击。
-- 成功或达到 20% 的视觉识别。
-- 实际重试次数、停止条件和真实疲劳记录。
-- PC GUI 的任务入口和参数表单。
+- 把有限尝试次数内未达到 20% 的概率纳入精确规划利润。
+- 根据实际议价疲劳和降级成交结果在途中重新规划路线。
 
 ## 3. 输入契约
 
@@ -102,12 +101,13 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `book_budget` | int | `0` | `>=0` | 整条路线共享的进货书数量 |
 | `book_profit_threshold` | number | `0` | `>=0` | 第 N 本书相对第 N-1 本书的最低税后边际收益 |
 | `negotiation_budget` | int | `0` | `>=0` | `all_plan=0` 时允许的满砍价/满抬价总次数 |
+| `negotiation_max_attempts` | int | `5` | `1..6` | 自动执行时每次砍价或抬价最多点击次数；每次操作独立重新计数，不影响规划 |
 | `bargain_success_rates_bps` | list[int] | `[5000]` | 非空，每项 `0..10000` | 砍满所需期望疲劳 |
 | `bargain_step_bps` | int | `1000` | `1..2000` | 每次砍价成功的幅度 |
 | `raise_success_rates_bps` | list[int] | `[5000]` | 非空，每项 `0..10000` | 抬满所需期望疲劳 |
 | `raise_step_bps` | int | `1000` | `1..2000` | 每次抬价成功的幅度 |
 | `trade_level` | int | `20` | `1..20` | 兼容输入；不再影响议价 |
-| `available_city_ids` | list[str] | PC 支持的 8 城 | 至少 2 个、不重复 | 限制精确规划参与的城市；必须包含当前城市 |
+| `available_city_ids` | list[str] | 有交易所坐标的 17 城 | 至少 2 个、不重复，且存在于疲劳图 | 限制精确规划参与的城市；必须包含当前城市；14、17、19 默认关闭但可手动启用 |
 | `city_prestige` | object | 满 20 级 | 默认等级和城市 ID 覆盖 | 买卖税和购买数量 |
 | `product_unlocks` | object | 全部解锁 | `all` 或 `only` | 限制可购买商品 |
 | `active_events` | list | `[]` | 任意占位列表 | 当前忽略，非空时警告 |
@@ -159,6 +159,10 @@ bargain_success_rates_bps: [6300, 5300]
 | `all_plan=1` | 忽略 `negotiation_budget` | 始终生效 |
 
 预算只是上限，求解器不要求用完。
+
+`negotiation_budget` 与 `negotiation_max_attempts` 含义不同：前者限制规划器可以选择多少次
+完整议价操作，后者只限制执行器为某一次已选择操作最多点击多少次。`all_plan=1` 只忽略前者，
+不会忽略执行上限。
 
 ## 4. 期望疲劳与利润计算
 
@@ -393,7 +397,9 @@ expected_fatigue_used_exact 用于调试和比较，例如 "1473680/53001"
 
 自动任务已支持 `all_plan=1` 和非零 `negotiation_budget` 产生的完整议价路线，不再使用
 `negotiation_execution_not_implemented` 提前拒绝。执行器只消费路线中的两个布尔意图，
-使用独立的买入/卖出 `20.0%` 模板确认是否到顶；议价失败会抛出明确业务错误，且不会继续成交或旅行。
+使用独立的买入/卖出 `20.0%` 模板确认是否到顶。每次买入砍价和卖出抬价分别从 0 开始计数；
+达到 `negotiation_max_attempts` 后仍未到顶时按当前价格继续成交，并在最终结果中返回降级警告。
+页面、按钮或动画状态异常仍会抛出明确业务错误，且不会继续成交或旅行。
 
 ## 6. 执行器对接契约
 
@@ -431,23 +437,33 @@ raise_to_cap   作用于 to_city 的本段卖出
 
 - 打开正确的砍价或抬价界面。
 - 使用页面专属模板判断是否已经达到 20%。
-- 在总超时内重复点击并等待议价动画结束。
-- 在没有执行议价或没有达到执行器目标时返回明确业务失败，不能静默当作成功。
+- 每次点击后等待议价动画完整结束，并记录一次实际尝试和 8 点实际疲劳。
+- 第 `negotiation_max_attempts` 次动画结束后必须再做一次双帧到顶确认；仍未到顶时停止点击，按当前价格继续成交。
+- 页面丢失、按钮缺失或动画异常返回明确业务失败；达到次数上限属于可观察的降级成交，不属于执行错误。
 
 推荐为实际执行结果增加独立字段，但不要覆盖规划字段：
 
 ```json
 {
   "requested_to_cap": true,
-  "completed_to_cap": true,
+  "completed_to_cap": false,
+  "attempts_used": 5,
+  "max_attempts": 5,
+  "stop_reason": "attempt_limit_reached",
+  "degraded": true,
+  "attempt_fatigue": 8,
+  "actual_fatigue_used": 40,
   "detection_method": "template",
-  "cap_confidence": 0.97,
+  "cap_confidence": 0.41,
   "elapsed_ms": 12000,
   "failure_reason": null
 }
 ```
 
-规划器不会根据实际执行数据中途重算路线。若未来需要实际疲劳偏差后的重规划，应设计新的任务模式，不能在当前冻结行情契约中静默加入。
+自动任务会在 `execution` 中汇总 `negotiation_attempts_used_total`、
+`negotiation_actual_fatigue_used`、`negotiation_cap_miss_count` 和
+`negotiation_degraded`，并把降级说明追加到顶层 `warnings`。规划器不会根据实际执行数据
+中途重算路线。规划利润仍是假设所选操作最终达到 20% 的模型值，降级成交后的实际收益可能较低。
 
 ## 7. UI 对接说明
 
@@ -474,14 +490,16 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 
 - `all_plan` 使用 0/1 选择控件。
 - `start_city_id` 使用常用参数区的单选城市控件，并且必须属于 `available_city_ids`。
+- GUI 城市选择器只展示同时配置 `maploc` 和交易所坐标的 17 城，并默认全部勾选；远星大桥、塔图站和贡露城不显示在自动跑商 GUI 中，但只读规划 API 仍允许显式传入。
 - `all_plan=1` 时禁用 `negotiation_budget`，或明确显示“该字段已忽略”。
+- `negotiation_max_attempts` 使用 `1..6` 的整数控件，默认 5；两种 `all_plan` 模式下都保持可用。
 - 成功率应允许多阶段列表；UI 显示百分比，提交整数基点列表。
 - 幅度可显示带一位或两位小数的百分比，提交整数基点。
 - 普通展示使用数值疲劳字段，调试详情显示 `_exact` 分数字段。
 - 当前方案概览显示预计收益、预计疲劳、疲劳收益比、路线规模、剩余疲劳、书籍和协商次数。
 - 路线状态列只显示待执行、进行中、完成、阻断和失败图标，并通过 tooltip 提供文字说明。
 - `warnings` 必须展示给用户，特别是活动未实现和 0 成功率导致满议价不可用。
-- 自动任务执行结果中的议价失败必须作为业务失败展示，不能显示为普通无收益或路径计算失败。
+- 页面或动画异常导致的议价失败必须作为业务失败展示；达到尝试上限则显示降级警告，不能显示为普通规划失败。
 - 正常参数使用类型化控件；原始输入、进度事件和最终结果只在折叠调试区显示。
 - 取消操作必须在取得 CID 后立即可用，并继续等待任务进入真实终态。
 
@@ -495,7 +513,7 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 | `no_positive_profit_route` | 当前预算和模型下没有正利润终止状态 |
 | `invalid_optimal_route_input` | 输入类型、范围或成功率序列非法 |
 | `insufficient_selected_cities` | 参与规划城市少于两个 |
-| `unsupported_selected_cities` | 选择了 PC 操作链尚未支持的城市 |
+| `unsupported_selected_cities` | 选择了旅行疲劳图中不存在的城市 |
 | `current_city_not_selected` | 当前所在城市不在参与规划城市中 |
 | `trade_rules_missing` | 版本化规则文件缺失 |
 | `trade_rules_invalid` | 规则 schema、模型或默认参数非法 |
@@ -504,6 +522,7 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 | `negotiation_animation_finish_timeout` | 议价动画未在时限内返回交易页面 |
 | `negotiation_page_lost` | 议价期间目标交易页面无法截图 |
 | `negotiation_cap_detection_timeout` | 总超时内未确认达到 20.0% |
+| `stop_reason=attempt_limit_reached` | 非错误；已达到本次点击上限，按当前价格继续成交并产生警告 |
 
 `active_events` 非空和必要成功阶段为 0 不会让整个规划调用失败，而是通过 `warnings` 明确说明被忽略或对应选项不可用。
 
@@ -514,7 +533,7 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 - 玩家本金。
 - 商品不同货舱占用。
 - 途中行情变化。
-- 实际重试次数和真实疲劳随机波动。
+- 有限尝试次数内达到 20% 的概率及其对规划利润的影响；执行器只记录实际次数和实际议价疲劳。
 - 中途根据实际执行结果重新规划。
 
 ### 8.3 当前验证记录
@@ -542,6 +561,28 @@ python tools/plan_doctor.py --plan resonance_pc
 ```
 
 计划包合规检查最终结果为 `errors=21 warnings=0`。21 项均来自本次范围外、工作树中已有的 `auto_battle_dispatch_pc.yaml`：该文件使用 `aura.run_task`，但合规检查器把它报告为当前包未导出的本地动作。跑商任务、GUI 进度事件、求解器、规则文件和本次迁移文档没有产生新的合规错误或警告。
+
+2026-07-26 可配置议价尝试上限改造验证：
+
+```powershell
+python -m pytest tests/test_resonance_pc_trade_negotiation_actions.py tests/test_resonance_pc_trade_flow_execution.py tests/test_resonance_pc_auto_cycle_trade_flow.py tests/test_resonance_pc_auto_cycle_trade_task.py tests/test_resonance_gui_logic.py tests/test_resonance_gui_trade_page.py -q
+# 76 passed
+
+python -m pytest tests -q -k "resonance_pc or resonance_gui"
+# 待发布索引快照：240 passed, 326 deselected, 11 subtests passed
+
+python -m packages.aura_core.cli.package_cli check plans/resonance_pc
+# Manifest is up to date
+
+python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
+# Manifest validation passed
+
+python tools/plan_doctor.py --plan resonance_pc
+# errors=0 warnings=0 infos=0
+
+python C:\Users\356\.codex\skills\aura-game-plan-authoring\scripts\check_plan_compliance.py --plan resonance_pc --json
+# errors=21 warnings=0 infos=0；21 项均为上述既有 PC 战斗任务 aura.run_task 报告
+```
 
 2026-07-25 性能改造的定向验证：
 
@@ -577,13 +618,41 @@ python tools/plan_doctor.py --plan resonance_pc
 
 该数据是开发机单次实测，不是跨机器性能 SLA。缓存命中仍需读取并哈希当前输入数据，以保证行情或规则变化不会错误复用旧方案。
 
+2026-07-26 后端可选规划城市由原 8 城扩展为疲劳图中的全部 20 城。自动跑商 GUI 根据执行数据完备性只展示并默认开放已同时配置地图和交易所坐标的 17 城；远星大桥（14）、塔图站（17）和贡露城（19）保留在任务枚举和声望覆盖项中，但不显示在 GUI。显式调用只读规划接口时仍保留任意合法子集的规划语义。
+
+规划输入、行情、疲劳和进货量模型覆盖全部 20 城。自动执行某座城市仍要求 `location_pc.json` 已配置该城市交易所坐标；手动启用 14、17 或 19 时，规划器可以计算路线，但执行器会按既有错误契约明确拒绝缺少交易所坐标的城市。
+
+```powershell
+python -m pytest tests/test_resonance_pc_trade_exact_solver.py tests/test_resonance_pc_trade_planner_service.py tests/test_resonance_pc_auto_cycle_trade_task.py -q
+# 81 passed
+
+python -m pytest tests/test_resonance_gui_logic.py tests/test_resonance_gui_trade_page.py -q
+# 22 passed
+
+python -m pytest tests -q -k "resonance_pc or resonance_gui"
+# 217 passed, 326 deselected, 11 subtests passed
+```
+
+同一开发机使用 20 城、起点城市 `3`、800 疲劳、650 货舱、20 本进货书、默认 50%/10% 议价参数和 `all_plan=1` 实测：
+
+```text
+冷启动：8.3202 秒
+求解后端：dense
+最优税后利润：8,641,801
+期望疲劳：799
+进货书：20
+路线段数：9
+城市 ID 路径：3 → 1 → 15 → 19 → 15 → 19 → 15 → 19 → 15 → 18
+```
+
 ### 8.4 执行器接入检查清单
 
 - [x] 买入砍价使用当前边 `bargain_to_cap`。
 - [x] 卖出抬价使用上一条已完成旅行边的 `raise_to_cap`。
 - [x] 终点清仓使用最后一条边的 `raise_to_cap`。
-- [x] 未执行或未达到目标时不静默成功。
-- [x] 执行结果记录模板确认状态和耗时，不覆盖规划期望值。
+- [x] 默认每次最多尝试 5 次，允许配置为 1..6，砍价和抬价分别计数。
+- [x] 最后一次动画结束后再次确认到顶；仍未到顶时不再点击并按当前价格成交。
+- [x] 执行结果记录模板确认、实际次数、实际疲劳和降级原因，不覆盖规划期望值。
 - [x] 无议价路线保持原有行为。
 
 ### 8.5 UI 接入检查清单
@@ -593,5 +662,6 @@ python tools/plan_doctor.py --plan resonance_pc
 - [x] 规划完成后通过任务进度事件展示冻结路线。
 - [x] 成功率以整数基点列表提交并校验范围。
 - [x] `all_plan=1` 时禁用 `negotiation_budget`。
-- [x] 显示规划警告、预计疲劳和议价执行失败状态，精确原始值保留在调试详情。
+- [x] `negotiation_max_attempts` 默认 5、范围 1..6，并在两种规划模式下保持可用。
+- [x] 显示规划警告、预计疲劳、议价降级警告和真实执行失败状态，精确原始值保留在调试详情。
 - [x] Runner 非阻塞派发，取消请求不伪装成任务终态。

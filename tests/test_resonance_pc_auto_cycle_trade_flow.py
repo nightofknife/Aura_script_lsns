@@ -32,6 +32,7 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "book_budget",
         "book_profit_threshold",
         "negotiation_budget",
+        "negotiation_max_attempts",
         "bargain_success_rates_bps",
         "bargain_step_bps",
         "raise_success_rates_bps",
@@ -46,6 +47,9 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "fatigue_medicine_max_uses",
     }.issubset(input_names)
     assert task["returns"]["route"] == "{{ nodes.run.output.route }}"
+    assert task["returns"]["negotiation_max_attempts"] == (
+        "{{ nodes.run.output.negotiation_max_attempts }}"
+    )
     assert task["returns"]["blocked_leg"] == "{{ nodes.run.output.blocked_leg }}"
     assert task["returns"]["fatigue_medicine_used"] == "{{ nodes.run.output.fatigue_medicine_used }}"
 
@@ -106,6 +110,20 @@ def test_auto_flow_validates_binary_profile_before_services_or_ui():
             actions.resonance_pc_auto_cycle_trade_flow(
                 all_plan=1,
                 bargain_success_rates_bps=[5000.5],
+            )
+        )
+
+
+@pytest.mark.parametrize("negotiation_max_attempts", [0, 7, True, 5.0])
+def test_auto_flow_validates_negotiation_attempt_limit_before_services_or_ui(
+    negotiation_max_attempts,
+):
+    import asyncio
+
+    with pytest.raises(ValueError, match="negotiation_max_attempts"):
+        asyncio.run(
+            actions.resonance_pc_auto_cycle_trade_flow(
+                negotiation_max_attempts=negotiation_max_attempts,
             )
         )
 

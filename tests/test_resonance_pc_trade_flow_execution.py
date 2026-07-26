@@ -125,13 +125,14 @@ def _patch_planning(monkeypatch, events: list, plan: dict) -> None:
     monkeypatch.setattr(actions, "resonance_pc_trade_plan_optimal_route", planner)
 
 
-def _run_flow(state_store: _MemoryStateStore):
+def _run_flow(state_store: _MemoryStateStore, **flow_inputs):
     service = object()
     return asyncio.run(
         actions.resonance_pc_auto_cycle_trade_flow(
             fatigue_budget=600,
             cargo_capacity=650,
             book_budget=4,
+            **flow_inputs,
             app=service,
             ocr=service,
             vision=service,
@@ -179,6 +180,82 @@ def test_full_multi_leg_flow_trades_travels_and_sells_at_endpoint(monkeypatch):
     assert result["execution"]["leg_results"][0]["city_trade"]["success"] is False
     assert result["execution"]["leg_results"][0]["status"] == "completed"
     assert result["final_sale"]["current_city"] == "C"
+
+
+def test_custom_negotiation_limit_reaches_every_trade_and_degraded_sales_complete(monkeypatch):
+    events: list[tuple] = []
+    plan = {
+        "status": "ok",
+        "reason": None,
+        "warnings": [],
+        "snapshot_id": "snapshot-1",
+        "route": _route(),
+    }
+    _patch_planning(monkeypatch, events, plan)
+    _patch_route_ui(monkeypatch, events)
+    calls: list[tuple[str, int]] = []
+
+    def city_trade(
+        *,
+        current_city,
+        buy_products,
+        sell_raise_to_cap=False,
+        buy_bargain_to_cap=False,
+        negotiation_max_attempts,
+        **_kwargs,
+    ):
+        calls.append((current_city, negotiation_max_attempts))
+
+        def negotiation(requested, operation):
+            if not requested:
+                return {
+                    "requested_to_cap": False,
+                    "completed_to_cap": False,
+                    "attempts_used": 0,
+                    "actual_fatigue_used": 0,
+                    "stop_reason": "not_requested",
+                    "degraded": False,
+                }
+            degraded = current_city in {"A", "C"}
+            attempts = negotiation_max_attempts if degraded else 2
+            return {
+                "requested_to_cap": True,
+                "completed_to_cap": not degraded,
+                "attempts_used": attempts,
+                "actual_fatigue_used": attempts * 8,
+                "stop_reason": "attempt_limit_reached" if degraded else "cap_reached",
+                "degraded": degraded,
+                "operation": operation,
+            }
+
+        return {
+            "success": True,
+            "page_state": "city_main",
+            "current_city": current_city,
+            "sell": {
+                "negotiation": negotiation(bool(sell_raise_to_cap), "raise"),
+            },
+            "buy": (
+                {"negotiation": negotiation(bool(buy_bargain_to_cap), "bargain")}
+                if buy_products
+                else None
+            ),
+        }
+
+    monkeypatch.setattr(actions, "_execute_city_trade_inside_current_city", city_trade)
+
+    result = _run_flow(_MemoryStateStore(), negotiation_max_attempts=4)
+
+    assert calls == [("A", 4), ("B", 4), ("C", 4)]
+    assert result["status"] == "completed"
+    assert result["negotiation_max_attempts"] == 4
+    assert result["execution"]["negotiation_max_attempts"] == 4
+    assert result["execution"]["negotiation_attempts_used_total"] == 10
+    assert result["execution"]["negotiation_actual_fatigue_used"] == 80
+    assert result["execution"]["negotiation_cap_miss_count"] == 2
+    assert result["execution"]["negotiation_degraded"] is True
+    assert len(result["warnings"]) == 2
+    assert all("已按当前价格继续成交" in warning for warning in result["warnings"])
 
 
 def test_route_block_records_leg_result_and_stops_before_later_city(monkeypatch):
@@ -423,7 +500,9 @@ def test_buy_negotiates_after_selection_and_before_buy(monkeypatch):
     monkeypatch.setattr(
         actions,
         "execute_bargain_to_cap",
-        lambda **kwargs: events.append(("bargain", kwargs["requested_to_cap"]))
+        lambda **kwargs: events.append(
+            ("bargain", kwargs["requested_to_cap"], kwargs["max_attempts"])
+        )
         or {"requested_to_cap": True, "completed_to_cap": True},
     )
     monkeypatch.setattr(
@@ -447,9 +526,9 @@ def test_buy_negotiates_after_selection_and_before_buy(monkeypatch):
     )
 
     assert events == [
-        ("bargain", False),
+        ("bargain", False, 5),
         ("click", "product"),
-        ("bargain", True),
+        ("bargain", True, 5),
         ("click", "buy"),
     ]
     assert result["negotiation"]["completed_to_cap"] is True
@@ -489,6 +568,52 @@ def test_buy_does_not_confirm_after_negotiation_failure(monkeypatch):
     assert exc_info.value.code == "negotiation_page_lost"
 
 
+def test_buy_confirms_after_attempt_limit_degradation(monkeypatch):
+    events: list[tuple] = []
+    monkeypatch.setattr(actions.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(
+        actions,
+        "_capture_text_items",
+        lambda *_args, **_kwargs: [{"text": "A1", "norm_text": "a1", "kind": "product"}],
+    )
+    monkeypatch.setattr(
+        actions,
+        "_click_hit",
+        lambda _app, hit: events.append(("click", hit["kind"])) or {"clicked": True},
+    )
+
+    def bargain(**kwargs):
+        events.append(("bargain", kwargs["requested_to_cap"], kwargs["max_attempts"]))
+        if not kwargs["requested_to_cap"]:
+            return {"requested_to_cap": False, "completed_to_cap": False}
+        return {
+            "requested_to_cap": True,
+            "completed_to_cap": False,
+            "attempts_used": 3,
+            "max_attempts": 3,
+            "stop_reason": "attempt_limit_reached",
+            "degraded": True,
+        }
+
+    monkeypatch.setattr(actions, "execute_bargain_to_cap", bargain)
+    monkeypatch.setattr(actions, "_wait_for_text_hit", lambda *_args, **_kwargs: {"kind": "buy"})
+    monkeypatch.setattr(actions, "_close_settlement", lambda *_args, **_kwargs: {"closed": True})
+
+    result = actions.resonance_pc_buy_goods_on_buy_page(
+        product_list=["A1"],
+        bargain_to_cap=True,
+        negotiation_max_attempts=3,
+        app=object(),
+        ocr=object(),
+        vision=object(),
+        controller=object(),
+    )
+
+    assert result["success"] is True
+    assert result["negotiation"]["degraded"] is True
+    assert events[-1] == ("click", "buy")
+
+
 def test_sell_negotiates_after_sell_all_and_before_sell(monkeypatch):
     events: list[tuple] = []
     monkeypatch.setattr(actions.time, "sleep", lambda _seconds: None)
@@ -502,7 +627,9 @@ def test_sell_negotiates_after_sell_all_and_before_sell(monkeypatch):
     monkeypatch.setattr(
         actions,
         "execute_raise_to_cap",
-        lambda **kwargs: events.append(("raise", kwargs["requested_to_cap"]))
+        lambda **kwargs: events.append(
+            ("raise", kwargs["requested_to_cap"], kwargs["max_attempts"])
+        )
         or {"requested_to_cap": True, "completed_to_cap": True},
     )
     monkeypatch.setattr(
@@ -520,11 +647,50 @@ def test_sell_negotiates_after_sell_all_and_before_sell(monkeypatch):
 
     assert events == [
         ("click", "sell_all"),
-        ("raise", False),
-        ("raise", True),
+        ("raise", False, 5),
+        ("raise", True, 5),
         ("click", "sell"),
     ]
     assert result["negotiation"]["completed_to_cap"] is True
+
+
+def test_sell_confirms_after_attempt_limit_degradation(monkeypatch):
+    events: list[tuple] = []
+    monkeypatch.setattr(actions.time, "sleep", lambda _seconds: None)
+
+    def click_text(_app, _ocr, texts, _region, **_kwargs):
+        event = "sell_all" if "全部卖出" in texts else "sell"
+        events.append(("click", event))
+        return {"clicked": True}
+
+    def raise_price(**kwargs):
+        events.append(("raise", kwargs["requested_to_cap"], kwargs["max_attempts"]))
+        if not kwargs["requested_to_cap"]:
+            return {"requested_to_cap": False, "completed_to_cap": False}
+        return {
+            "requested_to_cap": True,
+            "completed_to_cap": False,
+            "attempts_used": 2,
+            "max_attempts": 2,
+            "stop_reason": "attempt_limit_reached",
+            "degraded": True,
+        }
+
+    monkeypatch.setattr(actions, "_wait_and_click_text", click_text)
+    monkeypatch.setattr(actions, "execute_raise_to_cap", raise_price)
+    monkeypatch.setattr(actions, "_close_settlement", lambda *_args, **_kwargs: {"closed": True})
+
+    result = actions.resonance_pc_sell_goods_on_sell_page(
+        raise_to_cap=True,
+        negotiation_max_attempts=2,
+        app=object(),
+        ocr=object(),
+        vision=object(),
+    )
+
+    assert result["success"] is True
+    assert result["negotiation"]["degraded"] is True
+    assert events[-1] == ("click", "sell")
 
 
 def test_sell_does_not_confirm_after_negotiation_failure(monkeypatch):

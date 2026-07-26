@@ -472,6 +472,88 @@ def test_public_read_only_action_integrates_profile_rules_city_resolution_and_ca
     assert len(service._optimal_route_cache) == 1
 
 
+def test_optimal_route_defaults_to_enabled_cities_and_accepts_explicit_subset():
+    buy_lot_payload = json.loads(
+        (
+            REPO_ROOT
+            / "plans"
+            / "resonance_pc"
+            / "data"
+            / "meta"
+            / "buy_lot.json"
+        ).read_text(encoding="utf-8")
+    )
+    product_id = next(
+        iter(buy_lot_payload["city_product_buy_lot"]["3"])
+    )
+    snapshot = _snapshot(
+        {
+            product_id: {
+                "buy": {"3": 100},
+                "sell": {"8": 150, "19": 500, "20": 300},
+            }
+        }
+    )
+    fatigue = {
+        "schema_version": "1.0.0",
+        "cities": {
+            "3": "七号自由港",
+            "8": "曼德矿场",
+            "19": "贡露城",
+            "20": "维蒂林场",
+        },
+        "costs": {
+            "3": {"8": 9, "19": 9, "20": 9},
+            "8": {"3": 100, "19": 100, "20": 100},
+            "19": {"3": 100, "8": 100, "20": 100},
+            "20": {"3": 100, "8": 100, "19": 100},
+        },
+    }
+
+    class FakeMarketData:
+        def get_latest(self):
+            return snapshot
+
+        def get_snapshot(self, snapshot_id: str):
+            assert snapshot_id == "frozen-test"
+            return snapshot
+
+        def get_all_travel_fatigue(self):
+            return fatigue
+
+    service = ResonancePcTradePlannerService(
+        FakeMarketData(),
+        plan_root=REPO_ROOT / "plans" / "resonance_pc",
+    )
+
+    result = resonance_pc_trade_plan_optimal_route(
+        current_city_id="3",
+        snapshot_id="frozen-test",
+        fatigue_budget=9,
+        cargo_capacity=1,
+        negotiation_budget=0,
+        all_plan=0,
+        resonance_pc_trade_planner=service,
+    )
+
+    assert result["status"] == "ok"
+    assert result["city_path_ids"] == ["3", "20"]
+
+    subset_result = resonance_pc_trade_plan_optimal_route(
+        current_city_id="3",
+        snapshot_id="frozen-test",
+        fatigue_budget=9,
+        cargo_capacity=1,
+        negotiation_budget=0,
+        all_plan=0,
+        available_city_ids=["3", "19"],
+        resonance_pc_trade_planner=service,
+    )
+
+    assert subset_result["status"] == "ok"
+    assert subset_result["city_path_ids"] == ["3", "19"]
+
+
 def _raw_edge_options(
     solver: ResonancePcExactTradeSolver,
     *,

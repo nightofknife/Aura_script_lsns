@@ -9,6 +9,10 @@ from packages.aura_core.scheduler.validation import InputValidator
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ADB_PLAN_ROOT = REPO_ROOT / "plans" / "resonance"
 PC_PLAN_ROOT = REPO_ROOT / "plans" / "resonance_pc"
+ALL_CITY_IDS = [str(city_id) for city_id in range(1, 21)]
+DEFAULT_AVAILABLE_CITY_IDS = [
+    city_id for city_id in ALL_CITY_IDS if city_id not in {"14", "17", "19"}
+]
 
 
 def _load_yaml(path: Path):
@@ -42,6 +46,12 @@ def test_resonance_pc_runtime_defaults_to_wgc_and_sendinput():
 
 def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     pc_data = _load_yaml(PC_PLAN_ROOT / "tasks" / "auto_cycle_trade_pc.yaml")
+    constraints = _load_yaml(
+        PC_PLAN_ROOT / "data" / "meta" / "trade_constraints.json"
+    )
+    locations = _load_yaml(
+        PC_PLAN_ROOT / "data" / "meta" / "location_pc.json"
+    )
     pc_task = pc_data["auto_cycle_trade_pc"]
     inputs = {item["name"]: item for item in pc_task["meta"]["inputs"]}
 
@@ -54,13 +64,31 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert inputs["fatigue_budget"]["default"] == 100
     assert inputs["cargo_capacity"]["default"] == 650
     assert inputs["negotiation_budget"]["default"] == 0
+    assert inputs["negotiation_max_attempts"]["default"] == 5
+    assert inputs["negotiation_max_attempts"]["min"] == 1
+    assert inputs["negotiation_max_attempts"]["max"] == 6
     assert inputs["bargain_success_rates_bps"]["default"] == [5000]
     assert inputs["bargain_step_bps"]["default"] == 1000
     assert inputs["raise_success_rates_bps"]["default"] == [5000]
     assert inputs["raise_step_bps"]["default"] == 1000
     assert inputs["trade_level"]["default"] == 20
+    assert inputs["available_city_ids"]["default"] == DEFAULT_AVAILABLE_CITY_IDS
+    assert inputs["available_city_ids"]["item"]["enum"] == ALL_CITY_IDS
     assert inputs["city_prestige"]["default"] == {"default": 20, "overrides": {}}
+    assert list(
+        inputs["city_prestige"]["properties"]["overrides"]["properties"]
+    ) == ALL_CITY_IDS
     assert inputs["product_unlocks"]["default"] == {"mode": "all", "product_ids": []}
+    assert constraints["allowed_city_ids"] == ALL_CITY_IDS
+    assert constraints["default_available_city_ids"] == DEFAULT_AVAILABLE_CITY_IDS
+    assert list(constraints["city_id_to_key"]) == ALL_CITY_IDS
+    cities_with_exchange_coordinates = [
+        city_id
+        for city_id in ALL_CITY_IDS
+        if "exchange"
+        in locations["city"][constraints["city_id_to_key"][city_id]]
+    ]
+    assert cities_with_exchange_coordinates == DEFAULT_AVAILABLE_CITY_IDS
     assert "rounds" not in pc_task["returns"]
     assert "rounds_completed" not in pc_task["returns"]
     assert "city_cycle" not in pc_task["returns"]
@@ -68,6 +96,7 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert "city_path" in pc_task["returns"]
     assert "expected_fatigue_used" in pc_task["returns"]
     assert "full_negotiation_used" in pc_task["returns"]
+    assert "negotiation_max_attempts" in pc_task["returns"]
     assert "fatigue_used" not in pc_task["returns"]
     assert "remaining_fatigue" not in pc_task["returns"]
     assert "negotiation_used" not in pc_task["returns"]
@@ -87,10 +116,12 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
     assert defaults["city_prestige"] == {"default": 20, "overrides": {}}
     assert defaults["product_unlocks"] == {"mode": "all", "product_ids": []}
     assert defaults["all_plan"] == 0
+    assert defaults["negotiation_max_attempts"] == 5
     assert defaults["bargain_success_rates_bps"] == [5000]
     assert defaults["bargain_step_bps"] == 1000
     assert defaults["raise_success_rates_bps"] == [5000]
     assert defaults["raise_step_bps"] == 1000
+    assert defaults["available_city_ids"] == DEFAULT_AVAILABLE_CITY_IDS
 
     ok, custom = validator.validate_inputs_against_meta(
         inputs_meta,
@@ -110,14 +141,25 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
         "product_ids": ["101", "205"],
     }
 
+    ok, all_city_override = validator.validate_inputs_against_meta(
+        inputs_meta,
+        {"city_prestige": {"default": 20, "overrides": {"6": 10, "20": 12}}},
+    )
+
+    assert ok is True
+    assert all_city_override["city_prestige"]["overrides"] == {
+        "6": 10,
+        "20": 12,
+    }
+
     ok, error = validator.validate_inputs_against_meta(
         inputs_meta,
-        {"city_prestige": {"default": 20, "overrides": {"6": 10}}},
+        {"city_prestige": {"default": 20, "overrides": {"21": 10}}},
     )
 
     assert ok is False
     assert "city_prestige.overrides" in error
-    assert "unexpected fields: 6" in error
+    assert "unexpected fields: 21" in error
 
     ok, custom_negotiation = validator.validate_inputs_against_meta(
         inputs_meta,
@@ -135,6 +177,8 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
 
     for bad_inputs in (
         {"all_plan": 2},
+        {"negotiation_max_attempts": 0},
+        {"negotiation_max_attempts": 7},
         {"bargain_success_rates_bps": []},
         {"bargain_success_rates_bps": [10001]},
         {"raise_step_bps": 0},
@@ -162,6 +206,12 @@ def test_resonance_pc_preview_trade_plan_task_is_planning_only_and_valid():
     assert task["steps"]["run"]["action"] == "resonance_pc.preview_trade_plan_flow"
     inputs = {item["name"]: item for item in task["meta"]["inputs"]}
     assert inputs["start_city_id"]["required"] is True
+    assert inputs["start_city_id"]["enum"] == ALL_CITY_IDS
+    assert inputs["available_city_ids"]["default"] == DEFAULT_AVAILABLE_CITY_IDS
+    assert inputs["available_city_ids"]["item"]["enum"] == ALL_CITY_IDS
+    assert list(
+        inputs["city_prestige"]["properties"]["overrides"]["properties"]
+    ) == ALL_CITY_IDS
     assert "refresh_market" not in inputs
     assert "use_fatigue_medicine" not in {item["name"] for item in task["meta"]["inputs"]}
     assert task["returns"]["preview"] == "{{ nodes.run.output.preview }}"
@@ -255,6 +305,27 @@ def test_resonance_pc_manifest_exports_only_pc_business_symbols():
         assert parameters["bargain_step_bps"]["default"] == 1000
         assert parameters["raise_success_rates_bps"]["default"] == [5000]
         assert parameters["raise_step_bps"]["default"] == 1000
+
+    for action_name in (
+        "resonance_pc.auto_cycle_trade_flow",
+        "resonance_pc.buy_goods_on_buy_page",
+        "resonance_pc.sell_goods_on_sell_page",
+    ):
+        parameters = {
+            parameter["name"]: parameter
+            for parameter in actions_by_name[action_name]["parameters"]
+        }
+        assert parameters["negotiation_max_attempts"]["default"] == 5
+
+    for action_name in (
+        "resonance_pc.trade_plan_optimal_route",
+        "resonance_pc.preview_trade_plan_flow",
+    ):
+        parameter_names = {
+            parameter["name"]
+            for parameter in actions_by_name[action_name]["parameters"]
+        }
+        assert "negotiation_max_attempts" not in parameter_names
 
     task_ids = {item["id"] for item in exports["tasks"]}
     assert "auto_cycle_trade_pc" in task_ids

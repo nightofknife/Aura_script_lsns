@@ -140,6 +140,7 @@ class RunnerBridge(QObject):
             return
         preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
         for key in (
+            "negotiation_max_attempts",
             "use_fatigue_medicine",
             "allowed_fatigue_medicines",
             "fatigue_medicine_max_uses",

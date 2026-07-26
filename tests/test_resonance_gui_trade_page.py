@@ -52,6 +52,7 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         page.fatigue_budget.setValue(300)
         page.cargo_capacity.setValue(650)
         page.book_budget.setValue(0)
+        page.negotiation_max_attempts.setValue(6)
         page.bargain_rates.setText("5000, 6000")
         page.raise_rates.setText("5000")
 
@@ -60,10 +61,17 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         assert inputs["all_plan"] == 1
         assert inputs["fatigue_budget"] == 300
         assert inputs["cargo_capacity"] == 650
+        assert inputs["negotiation_max_attempts"] == 6
         assert inputs["bargain_success_rates_bps"] == [5000, 6000]
-        assert inputs["available_city_ids"] == ["3", "4", "1", "5", "7", "8", "9", "2"]
+        assert inputs["available_city_ids"] == [
+            "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "10", "11", "12", "13", "15", "16", "18", "20",
+        ]
         assert inputs["start_city_id"] == "3"
         assert not page.negotiation_budget.isEnabled()
+        assert page.negotiation_max_attempts.isEnabled()
+        assert set(page.city_checks) == set(inputs["available_city_ids"])
+        assert {"14", "17", "19"}.isdisjoint(page.city_checks)
 
         requests = []
         page.previewRequested.connect(lambda payload, timeout: requests.append((payload, timeout)))
@@ -109,7 +117,7 @@ def test_trade_page_collects_city_multiselect_and_selected_prestige_only(tmp_pat
 
         inputs = page.collect_inputs()
 
-        assert inputs["available_city_ids"] == ["3", "1"]
+        assert inputs["available_city_ids"] == ["1", "3"]
         assert inputs["start_city_id"] == "3"
         assert inputs["city_prestige"]["overrides"] == {"3": 16}
         assert not page.city_prestige["3"].isHidden()

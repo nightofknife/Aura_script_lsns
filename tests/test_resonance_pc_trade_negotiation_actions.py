@@ -211,3 +211,91 @@ def test_zero_total_timeout_is_reported_as_cap_detection_timeout():
         )
 
     assert exc_info.value.code == "negotiation_cap_detection_timeout"
+
+
+def _patch_completed_animation_cycles(monkeypatch, app, *, cap_after_clicks: int | None = None):
+    monkeypatch.setattr(
+        negotiation,
+        "_confirm_cap",
+        lambda **_kwargs: {
+            "confirmed": cap_after_clicks is not None and len(app.clicks) >= cap_after_clicks,
+            "confidence": 0.96 if cap_after_clicks is not None and len(app.clicks) >= cap_after_clicks else 0.4,
+        },
+    )
+
+    def wait_state(*, expected_found, **_kwargs):
+        if expected_found:
+            return {
+                "found": True,
+                "confidence": 0.95,
+                "center": [1160, 460],
+            }
+        return {"found": False, "confidence": 0.2}
+
+    monkeypatch.setattr(negotiation, "_wait_for_template_state", wait_state)
+
+
+@pytest.mark.parametrize(
+    ("runner", "kind"),
+    [
+        (negotiation.execute_bargain_to_cap, "bargain"),
+        (negotiation.execute_raise_to_cap, "raise"),
+    ],
+)
+def test_attempt_limit_returns_degraded_result_without_sixth_click(monkeypatch, runner, kind):
+    app = _FakeApp()
+    _patch_completed_animation_cycles(monkeypatch, app)
+
+    result = runner(
+        requested_to_cap=True,
+        app=app,
+        vision=object(),
+        max_attempts=5,
+    )
+
+    assert len(app.clicks) == 5
+    assert result == {
+        "requested_to_cap": True,
+        "completed_to_cap": False,
+        "attempts_used": 5,
+        "max_attempts": 5,
+        "stop_reason": "attempt_limit_reached",
+        "degraded": True,
+        "attempt_fatigue": 8,
+        "actual_fatigue_used": 40,
+        "detection_method": "template",
+        "cap_confidence": pytest.approx(0.4),
+        "elapsed_ms": pytest.approx(result["elapsed_ms"]),
+        "failure_reason": None,
+    }
+    assert kind in {"bargain", "raise"}
+
+
+def test_fifth_attempt_can_still_reach_cap(monkeypatch):
+    app = _FakeApp()
+    _patch_completed_animation_cycles(monkeypatch, app, cap_after_clicks=5)
+
+    result = negotiation.execute_bargain_to_cap(
+        requested_to_cap=True,
+        app=app,
+        vision=object(),
+        max_attempts=5,
+    )
+
+    assert len(app.clicks) == 5
+    assert result["completed_to_cap"] is True
+    assert result["degraded"] is False
+    assert result["stop_reason"] == "cap_reached"
+    assert result["attempts_used"] == 5
+    assert result["actual_fatigue_used"] == 40
+
+
+@pytest.mark.parametrize("value", [0, 7, True, 5.0])
+def test_attempt_limit_validation_is_strict(value):
+    with pytest.raises(ValueError, match="negotiation_max_attempts"):
+        negotiation.execute_raise_to_cap(
+            requested_to_cap=False,
+            app=object(),
+            vision=object(),
+            max_attempts=value,
+        )
