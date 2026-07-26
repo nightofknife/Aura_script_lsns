@@ -7,6 +7,7 @@ from PySide6.QtCore import QSettings
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import (
+    DEFAULT_BATTLE_INPUTS,
     DEFAULT_PC_TRADE_CITY_IDS,
     PC_TRADE_CITY_OPTIONS,
     GuiPreferences,
@@ -14,6 +15,8 @@ from packages.resonance_gui.config_repository import (
 )
 from packages.resonance_gui.logic import (
     GAME_NAME,
+    PC_BATTLE_PREVIEW_TASK_REF,
+    PC_BATTLE_TASK_REF,
     PC_GAME_NAME,
     PC_TRADE_PREVIEW_TASK_REF,
     TRADE_PROGRESS_EVENT,
@@ -206,6 +209,44 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
     }
 
 
+def test_runner_bridge_dispatches_pc_battle_to_dedicated_plan():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    dispatched: list[dict] = []
+    bridge.taskDispatched.connect(dispatched.append)
+    inputs = {
+        "jobs": [{"route_id": "gp.action_summary.global_supply.magic", "difficulty": 4}],
+        "stop_on_failure": True,
+    }
+
+    bridge.run_pc_battle(inputs, 0.0)
+
+    run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
+    assert run_call["game_name"] == PC_GAME_NAME
+    assert run_call["task_ref"] == PC_BATTLE_TASK_REF
+    assert run_call["inputs"] == inputs
+    assert dispatched[0]["item"]["kind"] == "battle_run"
+
+
+def test_runner_bridge_dispatches_battle_validation_without_game_actions():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    dispatched: list[dict] = []
+    bridge.taskDispatched.connect(dispatched.append)
+    inputs = {
+        "jobs": [{"route_id": "gp.structural_exploration.disordered_roots"}],
+        "stop_on_failure": False,
+    }
+
+    bridge.validate_pc_battle(inputs, 0.0)
+
+    run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
+    assert run_call["game_name"] == PC_GAME_NAME
+    assert run_call["task_ref"] == PC_BATTLE_PREVIEW_TASK_REF
+    assert run_call["inputs"] == inputs
+    assert dispatched[0]["item"]["kind"] == "battle_preview"
+
+
 def test_runner_bridge_filters_pc_trade_progress_by_cid():
     fake = FakeRunner()
     bridge = RunnerBridge(runner_factory=lambda: fake)
@@ -280,6 +321,20 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert repo.load_trade_inputs()["all_plan"] == 1
     assert repo.load_trade_inputs()["available_city_ids"] == ["3", "1"]
     assert repo.load_trade_inputs()["start_city_id"] == "3"
+
+    assert repo.load_battle_inputs() == DEFAULT_BATTLE_INPUTS
+    battle_inputs = {
+        "jobs": [
+            {
+                "route_id": "ct.regional_ops_center.wilderness_station",
+                "difficulty": 3,
+                "threat_level": 101,
+            }
+        ],
+        "stop_on_failure": False,
+    }
+    repo.save_battle_inputs(battle_inputs)
+    assert repo.load_battle_inputs() == battle_inputs
 
 
 def test_config_repository_migrates_legacy_default_city_selection(tmp_path):

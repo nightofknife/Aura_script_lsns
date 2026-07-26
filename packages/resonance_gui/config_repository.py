@@ -65,6 +65,11 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_medicine_max_uses": 4,
 }
 
+DEFAULT_BATTLE_INPUTS: dict[str, Any] = {
+    "jobs": [],
+    "stop_on_failure": True,
+}
+
 
 class ResonanceConfigRepository:
     def __init__(self, settings: QSettings | None = None) -> None:
@@ -103,6 +108,21 @@ class ResonanceConfigRepository:
         normalized = _merge_trade_inputs(inputs)
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
 
+    def load_battle_inputs(self) -> dict[str, Any]:
+        raw = self.settings.value("battle/inputs_json", "")
+        if raw:
+            try:
+                parsed = json.loads(str(raw))
+                if isinstance(parsed, dict):
+                    return _merge_battle_inputs(parsed)
+            except (TypeError, ValueError):
+                pass
+        return _merge_battle_inputs({})
+
+    def save_battle_inputs(self, inputs: dict[str, Any]) -> None:
+        normalized = _merge_battle_inputs(inputs)
+        self.settings.setValue("battle/inputs_json", json.dumps(normalized, ensure_ascii=False))
+
 
 def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged = json.loads(json.dumps(DEFAULT_TRADE_INPUTS, ensure_ascii=False))
@@ -128,3 +148,16 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
     merged["available_city_ids"] = normalized_city_ids
     return merged
+
+
+def _merge_battle_inputs(values: dict[str, Any]) -> dict[str, Any]:
+    raw_jobs = values.get("jobs")
+    jobs = [
+        dict(job)
+        for job in (raw_jobs if isinstance(raw_jobs, list) else [])
+        if isinstance(job, dict) and str(job.get("route_id") or "").strip()
+    ][:50]
+    return {
+        "jobs": jobs,
+        "stop_on_failure": bool(values.get("stop_on_failure", True)),
+    }

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QButtonGroup,
+    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QFrame,
@@ -42,7 +43,7 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
-from .widgets import TradePage
+from .widgets import BattlePage, TradePage
 from .widgets.run_detail import RunDetailView
 
 
@@ -54,6 +55,8 @@ class ResonanceMainWindow(QMainWindow):
     requestRunNow = Signal(str, object, object, float)
     requestRunPcTrade = Signal(object, float)
     requestPreviewPcTrade = Signal(object, float)
+    requestRunPcBattle = Signal(object, float)
+    requestValidatePcBattle = Signal(object, float)
     requestEnqueueTask = Signal(str, object, object, float)
     requestClearQueue = Signal()
     requestCancelCurrent = Signal()
@@ -98,10 +101,17 @@ class ResonanceMainWindow(QMainWindow):
 
         self.page_stack = QStackedWidget(root)
         self.trade_page = TradePage(self._settings, self.page_stack)
+        self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
         self.settings_page = self._build_settings_page()
-        for page in (self.trade_page, self.workbench_page, self.history_page, self.settings_page):
+        for page in (
+            self.trade_page,
+            self.battle_page,
+            self.workbench_page,
+            self.history_page,
+            self.settings_page,
+        ):
             self.page_stack.addWidget(page)
         layout.addWidget(self.page_stack, 1)
         self.setCentralWidget(root)
@@ -112,6 +122,10 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.previewRequested.connect(self._preview_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.trade_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
+        self.battle_page.startRequested.connect(self._run_pc_battle)
+        self.battle_page.validateRequested.connect(self._validate_pc_battle)
+        self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
+        self.battle_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
 
     def _build_navigation(self) -> QWidget:
         nav = QFrame(self)
@@ -131,7 +145,7 @@ class ResonanceMainWindow(QMainWindow):
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
-        for index, text in enumerate(("跑商", "任务工具", "历史", "设置")):
+        for index, text in enumerate(("跑商", "战斗", "任务工具", "历史", "设置")):
             button = QPushButton(text, nav)
             button.setCheckable(True)
             button.setProperty("nav", True)
@@ -149,7 +163,7 @@ class ResonanceMainWindow(QMainWindow):
         self.page_stack.setCurrentIndex(index)
         if 0 <= index < len(self.nav_buttons):
             self.nav_buttons[index].setChecked(True)
-        if index == 2:
+        if index == 3:
             self.requestRefreshHistory.emit()
 
     def _build_workbench_page(self) -> QWidget:
@@ -221,17 +235,25 @@ class ResonanceMainWindow(QMainWindow):
         layout = QVBoxLayout(root)
         layout.setContentsMargins(18, 14, 18, 12)
         top = QHBoxLayout()
-        title = QLabel("PC 跑商历史", root)
+        title = QLabel("运行历史", root)
         title.setObjectName("pageTitle")
         top.addWidget(title)
         top.addStretch(1)
+        self.history_filter = QComboBox(root)
+        self.history_filter.addItem("全部类型", "all")
+        self.history_filter.addItem("跑商", "trade")
+        self.history_filter.addItem("战斗", "battle")
+        self.history_filter.currentIndexChanged.connect(self._render_history)
+        top.addWidget(self.history_filter)
         refresh = QPushButton("刷新历史", root)
         refresh.clicked.connect(self.requestRefreshHistory.emit)
         top.addWidget(refresh)
         layout.addLayout(top)
 
         self.history_table = QTableWidget(0, 7, root)
-        self.history_table.setHorizontalHeaderLabels(["CID", "状态", "城市路线", "预计收益", "开始时间", "时长", "任务"])
+        self.history_table.setHorizontalHeaderLabels(
+            ["CID", "状态", "类型 / 摘要", "结果", "开始时间", "时长", "任务"]
+        )
         header = self.history_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -241,7 +263,7 @@ class ResonanceMainWindow(QMainWindow):
         self.history_table.setAlternatingRowColors(True)
         self.history_table.cellDoubleClicked.connect(self._open_history_row)
         layout.addWidget(self.history_table, 1)
-        hint = QLabel("双击记录可在跑商页打开只读结果", root)
+        hint = QLabel("双击记录可在对应功能页打开只读结果", root)
         hint.setProperty("caption", True)
         layout.addWidget(hint)
         return root
@@ -292,6 +314,8 @@ class ResonanceMainWindow(QMainWindow):
         self.requestRunNow.connect(self._bridge.run_task_now)
         self.requestRunPcTrade.connect(self._bridge.run_pc_trade)
         self.requestPreviewPcTrade.connect(self._bridge.preview_pc_trade)
+        self.requestRunPcBattle.connect(self._bridge.run_pc_battle)
+        self.requestValidatePcBattle.connect(self._bridge.validate_pc_battle)
         self.requestEnqueueTask.connect(self._bridge.enqueue_task)
         self.requestClearQueue.connect(self._bridge.clear_queue)
         self.requestCancelCurrent.connect(self._bridge.cancel_current)
@@ -305,7 +329,9 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self.trade_page.apply_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
+        self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
         self._bridge.cancelRequested.connect(self.trade_page.cancel_requested)
+        self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
         self._bridge.busyChanged.connect(self._on_busy_changed)
@@ -348,6 +374,12 @@ class ResonanceMainWindow(QMainWindow):
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
 
+    def _run_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
+        self.requestRunPcBattle.emit(inputs, float(self.timeout_spin.value()))
+
+    def _validate_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
+        self.requestValidatePcBattle.emit(inputs, float(self.timeout_spin.value()))
+
     def _run_selected_now(self) -> None:
         inputs = self._collect_inputs()
         if inputs is not None:
@@ -369,18 +401,41 @@ class ResonanceMainWindow(QMainWindow):
 
     def _on_history_loaded(self, rows: list[dict[str, Any]]) -> None:
         self._history_rows = list(rows[: int(self._preferences.history_limit)])
+        self._render_history()
+
+    def _render_history(self, *_args: object) -> None:
+        selected_kind = (
+            str(self.history_filter.currentData() or "all")
+            if hasattr(self, "history_filter")
+            else "all"
+        )
+        visible_rows = [
+            row
+            for row in self._history_rows
+            if selected_kind == "all" or self._history_kind(row) == selected_kind
+        ]
+        self._visible_history_rows = visible_rows
         self.history_table.setRowCount(0)
-        for row in self._history_rows:
-            summary = trade_result_summary(row)
+        for row in visible_rows:
+            kind = self._history_kind(row)
             index = self.history_table.rowCount()
             self.history_table.insertRow(index)
-            city_path = summary.get("city_path") or []
             duration_ms = row.get("duration_ms")
+            if kind == "battle":
+                summary_text = "战斗任务单"
+                result_text = "查看执行详情"
+                type_label = "战斗"
+            else:
+                summary = trade_result_summary(row)
+                city_path = summary.get("city_path") or []
+                summary_text = " -> ".join(str(city) for city in city_path) or "跑商任务"
+                result_text = str(summary.get("expected_profit") or "--")
+                type_label = "跑商"
             values = [
                 extract_run_id(row),
                 extract_status(row),
-                " -> ".join(str(city) for city in city_path),
-                str(summary.get("expected_profit") or "--"),
+                f"{type_label} · {summary_text}",
+                result_text,
                 str(row.get("started_at") or row.get("created_at") or ""),
                 self._format_duration(duration_ms),
                 str(row.get("task_name") or row.get("task_ref") or ""),
@@ -389,9 +444,23 @@ class ResonanceMainWindow(QMainWindow):
                 self.history_table.setItem(index, col, QTableWidgetItem(value))
     def _open_history_row(self, row: int, column: int) -> None:
         del column
-        if 0 <= row < len(self._history_rows):
-            self.trade_page.show_history_result(self._history_rows[row])
-            self._switch_page(0)
+        visible_rows = getattr(self, "_visible_history_rows", self._history_rows)
+        if 0 <= row < len(visible_rows):
+            payload = visible_rows[row]
+            if self._history_kind(payload) == "battle":
+                self.battle_page.show_history_result(payload)
+                self._switch_page(1)
+            else:
+                self.trade_page.show_history_result(payload)
+                self._switch_page(0)
+
+    @staticmethod
+    def _history_kind(row: dict[str, Any]) -> str:
+        task_identity = " ".join(
+            str(row.get(key) or "")
+            for key in ("task_name", "task_ref", "task_id")
+        ).lower()
+        return "battle" if "battle" in task_identity else "trade"
 
     def _on_queue_changed(self, rows: list[dict[str, Any]]) -> None:
         if not rows:
@@ -411,31 +480,61 @@ class ResonanceMainWindow(QMainWindow):
     def _on_task_dispatched(self, payload: dict[str, Any]) -> None:
         item = payload.get("item") if isinstance(payload.get("item"), dict) else {}
         if item.get("game_name") == PC_GAME_NAME:
-            if item.get("kind") == "trade_preview":
+            kind = str(item.get("kind") or "")
+            if kind == "trade_preview":
                 self.trade_page.begin_preview(payload)
-            else:
+                self._switch_page(0)
+            elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
-            self._switch_page(0)
+                self._switch_page(0)
+            elif kind == "battle_preview":
+                self.battle_page.begin_validation(payload)
+                self._switch_page(1)
+            elif kind == "battle_run":
+                self.battle_page.begin_run(payload)
+                self._switch_page(1)
+            else:
+                self.run_detail.show_text(pretty_json(payload))
         else:
             self.run_detail.show_text(pretty_json(payload))
 
     def _on_run_updated(self, payload: dict[str, Any]) -> None:
-        if self._active_game_name == PC_GAME_NAME:
+        if self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             self.trade_page.update_run(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("battle_"):
+            self.battle_page.update_run(payload)
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage("任务执行结束")
         if self._active_game_name == PC_GAME_NAME:
             item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
-            if item.get("kind") == "trade_preview" or self._active_kind == "trade_preview":
+            kind = str(item.get("kind") or self._active_kind)
+            if kind == "trade_preview":
                 self.trade_page.finish_preview(payload)
-            else:
+            elif kind == "trade_run":
                 self.trade_page.finish_run(payload)
+            elif kind == "battle_preview":
+                self.battle_page.finish_validation(payload)
+            elif kind == "battle_run":
+                self.battle_page.finish_run(payload)
         self.run_detail.show_text(render_result_text(payload))
 
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
-        if self._active_game_name == PC_GAME_NAME or payload.get("stage") in {"run_pc_trade", "preview_pc_trade"}:
+        stage = str(payload.get("stage") or "")
+        if stage in {"run_pc_battle", "validate_pc_battle"}:
+            self.battle_page.show_failure(payload)
+        elif stage in {"run_pc_trade", "preview_pc_trade"}:
+            self.trade_page.show_failure(payload)
+        elif (
+            self._active_game_name == PC_GAME_NAME
+            and self._active_kind.startswith("battle_")
+        ):
+            self.battle_page.show_failure(payload)
+        elif (
+            self._active_game_name == PC_GAME_NAME
+            and self._active_kind.startswith("trade_")
+        ):
             self.trade_page.show_failure(payload)
         self.run_detail.show_text(pretty_json(payload))
 
@@ -445,6 +544,7 @@ class ResonanceMainWindow(QMainWindow):
             self._active_game_name = ""
             self._active_kind = ""
         self.trade_page.set_busy(busy)
+        self.battle_page.set_busy(busy)
         self.run_button.setEnabled(not busy)
         self.enqueue_button.setEnabled(True)
         self.cancel_button.setEnabled(busy)

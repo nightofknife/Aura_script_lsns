@@ -12,6 +12,8 @@ from packages.aura_game import SubprocessGameRunner
 
 from .logic import (
     GAME_NAME,
+    PC_BATTLE_PREVIEW_TASK_REF,
+    PC_BATTLE_TASK_REF,
     PC_GAME_NAME,
     PC_TRADE_PREVIEW_TASK_REF,
     PC_TRADE_TASK_REF,
@@ -154,6 +156,42 @@ class RunnerBridge(QObject):
             timeout_sec,
         )
         item["kind"] = "trade_preview"
+        self._queue.insert(0, item)
+        self._emit_queue()
+        self._run_next()
+
+    @Slot(object, float)
+    def run_pc_battle(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        if self._busy:
+            self.taskFailed.emit({"stage": "run_pc_battle", "error": "已有任务正在运行。"})
+            return
+        run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        item = self._make_item(
+            PC_GAME_NAME,
+            PC_BATTLE_TASK_REF,
+            run_inputs,
+            "PC 自动战斗",
+            timeout_sec,
+        )
+        item["kind"] = "battle_run"
+        self._queue.insert(0, item)
+        self._emit_queue()
+        self._run_next()
+
+    @Slot(object, float)
+    def validate_pc_battle(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        if self._busy:
+            self.taskFailed.emit({"stage": "validate_pc_battle", "error": "已有任务正在运行。"})
+            return
+        preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        item = self._make_item(
+            PC_GAME_NAME,
+            PC_BATTLE_PREVIEW_TASK_REF,
+            preview_inputs,
+            "校验战斗任务单",
+            timeout_sec,
+        )
+        item["kind"] = "battle_preview"
         self._queue.insert(0, item)
         self._emit_queue()
         self._run_next()

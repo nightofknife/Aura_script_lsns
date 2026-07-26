@@ -10,6 +10,10 @@ GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
+PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
+PC_BATTLE_PREVIEW_TASK_REF = (
+    "tasks:auto_battle_input_preview_pc.yaml:auto_battle_input_preview_pc"
+)
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 
