@@ -390,7 +390,6 @@ function Build-GuiRootLauncher {
         --clean `
         --onefile `
         --windowed `
-        --uac-admin `
         --name AuraResonanceGui `
         --distpath $DistPath `
         --workpath $WorkPath `
@@ -622,6 +621,7 @@ $SourceOcrModelsDir = Join-Path $RepoRoot "models\\ocr"
 $SourceYoloModelsDir = Join-Path $RepoRoot "models\\yolo"
 $PlanPackager = Join-Path $RepoRoot "scripts\\release\\build_plan_package.py"
 $OcrBundleValidator = Join-Path $RepoRoot "scripts\\release\\validate_ocr_bundle.py"
+$ExecutionLevelValidator = Join-Path $RepoRoot "scripts\\release\\validate_windows_execution_level.py"
 $SourceLicense = Join-Path $RepoRoot "LICENSE"
 $SourceReadme = Join-Path $RepoRoot "README.md"
 
@@ -641,6 +641,7 @@ Assert-PathExists -PathValue $ConfigTemplate -Label "Config template"
 Assert-PathExists -PathValue $SourcePlansDir -Label "Plans directory"
 Assert-PathExists -PathValue $PlanPackager -Label "Plan package builder"
 Assert-PathExists -PathValue $OcrBundleValidator -Label "OCR bundle validator"
+Assert-PathExists -PathValue $ExecutionLevelValidator -Label "Windows execution level validator"
 
 $env:PYTHONNOUSERSITE = "1"
 $env:AURA_PKG_INCLUDE_NVIDIA = if ($IncludeNvidia) { "1" } else { "0" }
@@ -698,6 +699,17 @@ if (-not $SkipBuild) {
             -DistPath $LauncherDistPath `
             -WorkPath $LauncherWorkPath
         Assert-PathExists -PathValue $BuiltGuiLauncherExe -Label "Built AuraResonanceGui root launcher executable"
+    }
+
+    $builtExecutables = @((Join-Path $BuiltRuntimeDir "aura.exe"))
+    if ($IncludeGui) {
+        $builtExecutables += @($BuiltGuiRuntimeExe, $BuiltGuiLauncherExe)
+    }
+    & $VenvPythonPath $ExecutionLevelValidator `
+        --expected-level asInvoker `
+        @builtExecutables
+    if ($LASTEXITCODE -ne 0) {
+        throw "Packaged executable execution-level validation failed."
     }
 }
 

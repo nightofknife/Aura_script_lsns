@@ -9,6 +9,7 @@ import pytest
 from scripts.release.build_plan_package import collect_plan_files, create_archive, validate_selected_files
 from scripts.release.detect_release_scope import classify_paths
 from scripts.release.validate_ocr_bundle import validate_bundle
+from scripts.release.validate_windows_execution_level import parse_execution_level
 
 
 @pytest.mark.parametrize(
@@ -95,3 +96,27 @@ def test_ocr_bundle_requires_enabled_doc_orientation(tmp_path):
 
     with pytest.raises(ValueError, match="doc_orientation"):
         validate_bundle(bundle)
+
+
+def test_windows_manifest_uses_as_invoker():
+    manifest = b"""<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>
+"""
+
+    assert parse_execution_level(manifest) == "asInvoker"
+
+
+def test_release_builder_does_not_force_administrator_startup():
+    repo_root = Path(__file__).resolve().parents[1]
+    build_script = (repo_root / "scripts" / "build_release.ps1").read_text(encoding="utf-8")
+
+    assert "--uac-admin" not in build_script
+    assert "validate_windows_execution_level.py" in build_script
