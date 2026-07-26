@@ -147,6 +147,13 @@ jobs:
             if (-not (Test-Path -LiteralPath $path)) { throw "Missing release path: $path" }
           }
 
+          $python = ".venv-release-$env:BUILD_PROFILE\Scripts\python.exe"
+          & $python scripts\release\prune_release_payload.py `
+            --check-only `
+            --runtime-dir (Join-Path $env:RELEASE_ROOT "runtime") `
+            --release-root $env:RELEASE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "Release payload contains excluded files." }
+
           $forbidden = @(
             "runtime\_internal\paddle",
             "runtime\_internal\paddleocr",
@@ -213,6 +220,14 @@ jobs:
             }
             if (-not ($entryNames | Where-Object { $_ -like "*/nvidia/*/bin/*cudnn64_9.dll" })) {
               throw "NVIDIA overlay is missing cudnn64_9.dll."
+            }
+            $developmentEntries = @($entryNames | Where-Object {
+              $normalized = $_.Replace("\", "/").ToLowerInvariant()
+              $normalized -match "/include/" -or
+                $normalized -match "\.(h|hpp|lib|a|exp|pdb)$"
+            })
+            if ($developmentEntries.Count -gt 0) {
+              throw "NVIDIA overlay contains development-only files: $($developmentEntries[0])"
             }
           }
           finally {

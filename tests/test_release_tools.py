@@ -8,6 +8,13 @@ import pytest
 
 from scripts.release.build_plan_package import collect_plan_files, create_archive, validate_selected_files
 from scripts.release.detect_release_scope import classify_paths
+from scripts.release.prune_release_payload import (
+    classify_nvidia_file,
+    classify_runtime_file,
+    prune_files,
+    reset_release_runtime_data,
+)
+from scripts.release.pyinstaller_filters import excluded_data_globs, should_collect_submodule
 from scripts.release.validate_ocr_bundle import validate_bundle
 from scripts.release.validate_windows_execution_level import parse_execution_level
 
@@ -120,3 +127,112 @@ def test_release_builder_does_not_force_administrator_startup():
 
     assert "--uac-admin" not in build_script
     assert "validate_windows_execution_level.py" in build_script
+
+
+@pytest.mark.parametrize(
+    ("package_name", "module_name", "expected"),
+    [
+        ("numpy", "numpy._core.tests.test_numeric", False),
+        ("numpy", "numpy.f2py", False),
+        ("numpy", "numpy._core.numeric", True),
+        ("onnxruntime", "onnxruntime.backend", False),
+        ("onnxruntime", "onnxruntime.tools.convert_onnx_models_to_ort", False),
+        ("onnxruntime", "onnxruntime.capi._pybind_state", True),
+        ("av", "av.datasets", False),
+        ("av", "av.codec", True),
+        ("screeninfo", "screeninfo.__main__", False),
+        ("dotenv", "dotenv.main", True),
+    ],
+)
+def test_pyinstaller_submodule_filter(package_name, module_name, expected):
+    assert should_collect_submodule(package_name, module_name) is expected
+
+
+def test_pyinstaller_data_filter_excludes_dependency_tests():
+    assert "**/tests/**" in excluded_data_globs("numpy")
+    assert "**/*.pyi" in excluded_data_globs("cv2")
+
+
+def test_runtime_payload_pruning_is_precise(tmp_path):
+    runtime = tmp_path / "runtime"
+    removable = [
+        runtime / "_internal" / "numpy" / "_core" / "tests" / "test_numeric.py",
+        runtime / "_internal" / "PySide6" / "translations" / "qtbase_de.qm",
+        runtime / "_internal" / "PySide6" / "Qt6Qml.dll",
+        runtime
+        / "_internal"
+        / "PySide6"
+        / "plugins"
+        / "platforminputcontexts"
+        / "qtvirtualkeyboardplugin.dll",
+        runtime / "_internal" / "PySide6" / "plugins" / "imageformats" / "qpdf.dll",
+        runtime / "_internal" / "PIL" / "_avif.cp312-win_amd64.pyd",
+        runtime / "_internal" / "opencv_videoio_ffmpeg4130_64.dll",
+        runtime / "_internal" / "cv2" / "typing" / "__init__.pyi",
+        runtime / "_internal" / "numpy" / "_core" / "include" / "numpy" / "arrayobject.h",
+        runtime / "_internal" / "numpy" / "_core" / "_multiarray_tests.cp312-win_amd64.pyd",
+        runtime / "_internal" / "numpy" / "random" / "lib" / "npyrandom.lib",
+        runtime / "_internal" / "onnxruntime" / "tools" / "mobile_helpers" / "ops.md",
+    ]
+    retained = [
+        runtime / "_internal" / "PySide6" / "Qt6Widgets.dll",
+        runtime / "_internal" / "PySide6" / "plugins" / "platforms" / "qwindows.dll",
+        runtime / "_internal" / "av.libs" / "avcodec-62.dll",
+        runtime / "_internal" / "onnxruntime" / "capi" / "onnxruntime.dll",
+    ]
+    for path in removable + retained:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"runtime")
+
+    with pytest.raises(ValueError, match="excluded files"):
+        prune_files(runtime, classify_runtime_file, check_only=True)
+
+    report = prune_files(runtime, classify_runtime_file)
+
+    assert report["removed_files"] == len(removable)
+    assert all(not path.exists() for path in removable)
+    assert all(path.is_file() for path in retained)
+    assert prune_files(runtime, classify_runtime_file, check_only=True)["removed_files"] == 0
+
+
+def test_nvidia_payload_pruning_keeps_runtime_dlls(tmp_path):
+    nvidia = tmp_path / "nvidia"
+    header = nvidia / "cu13" / "include" / "cuda.h"
+    import_library = nvidia / "cu13" / "lib" / "x64" / "cublas.lib"
+    runtime_dll = nvidia / "cu13" / "bin" / "x86_64" / "cublas64_13.dll"
+    for path in (header, import_library, runtime_dll):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"nvidia")
+
+    report = prune_files(nvidia, classify_nvidia_file)
+
+    assert report["removed_files"] == 2
+    assert not header.exists()
+    assert not import_library.exists()
+    assert runtime_dll.is_file()
+
+
+def test_release_runtime_data_is_cleared_after_self_check(tmp_path):
+    release = tmp_path / "release"
+    session_log = release / "logs" / "aura_session.log"
+    run_store = release / "logs" / "runs" / "run_store.sqlite3"
+    for path in (session_log, run_store):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"generated")
+
+    report = reset_release_runtime_data(release)
+
+    assert report["removed_files"] == 2
+    assert (release / "logs").is_dir()
+    assert not any((release / "logs").rglob("*"))
+
+
+def test_overlay_requirements_only_install_nvidia_runtime_packages():
+    repo_root = Path(__file__).resolve().parents[1]
+    requirements = (
+        repo_root / "requirements" / "release-nvidia-overlay.txt"
+    ).read_text(encoding="utf-8")
+
+    assert "-r release-gpu.txt" not in requirements
+    assert "nvidia-cuda-runtime" in requirements
+    assert "onnxruntime-gpu" not in requirements

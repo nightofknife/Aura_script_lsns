@@ -52,26 +52,6 @@ function Invoke-RobocopySafe {
     $global:LASTEXITCODE = 0
 }
 
-function Remove-UnusedQtQmlRuntime {
-    param([string]$RuntimeDir)
-
-    $runtimeRoot = [System.IO.Path]::GetFullPath($RuntimeDir).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar
-    )
-    $qmlPath = [System.IO.Path]::GetFullPath(
-        (Join-Path $runtimeRoot "_internal\\PySide6\\qml")
-    )
-    $runtimePrefix = $runtimeRoot + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $qmlPath.StartsWith($runtimePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Refusing to remove Qt QML runtime outside the assembled release: $qmlPath"
-    }
-    if (Test-Path -LiteralPath $qmlPath) {
-        Write-Host "Removing unused PySide6 QML runtime to keep Windows paths short ..."
-        Remove-Item -LiteralPath $qmlPath -Recurse -Force
-    }
-}
-
 function Test-PythonModuleAvailable {
     param(
         [string]$PythonPath,
@@ -393,6 +373,7 @@ function Build-GuiRootLauncher {
         --name AuraResonanceGui `
         --distpath $DistPath `
         --workpath $WorkPath `
+        --specpath $WorkPath `
         $LauncherSource
 
     if ($LASTEXITCODE -ne 0) {
@@ -557,7 +538,8 @@ function New-NvidiaRuntimeOverlay {
     param(
         [string]$PythonPath,
         [string]$RuntimeRootPath,
-        [string]$ReleaseName
+        [string]$ReleaseName,
+        [string]$PayloadPrunerPath
     )
 
     $nvidiaSource = Get-NvidiaPackageRoot -PythonPath $PythonPath
@@ -579,6 +561,10 @@ function New-NvidiaRuntimeOverlay {
         -Source $nvidiaSource `
         -Destination $overlayNvidiaDir `
         -ExtraArgs @("/XD", "__pycache__", ".pytest_cache", "/XF", "*.pyc", "*.pyo")
+    & $PythonPath $PayloadPrunerPath --nvidia-dir $overlayNvidiaDir
+    if ($LASTEXITCODE -ne 0) {
+        throw "NVIDIA runtime overlay payload pruning failed."
+    }
 
     @(
         "NVIDIA runtime overlay for $ReleaseName"
@@ -622,6 +608,7 @@ $SourceYoloModelsDir = Join-Path $RepoRoot "models\\yolo"
 $PlanPackager = Join-Path $RepoRoot "scripts\\release\\build_plan_package.py"
 $OcrBundleValidator = Join-Path $RepoRoot "scripts\\release\\validate_ocr_bundle.py"
 $ExecutionLevelValidator = Join-Path $RepoRoot "scripts\\release\\validate_windows_execution_level.py"
+$PayloadPruner = Join-Path $RepoRoot "scripts\\release\\prune_release_payload.py"
 $SourceLicense = Join-Path $RepoRoot "LICENSE"
 $SourceReadme = Join-Path $RepoRoot "README.md"
 
@@ -642,6 +629,7 @@ Assert-PathExists -PathValue $SourcePlansDir -Label "Plans directory"
 Assert-PathExists -PathValue $PlanPackager -Label "Plan package builder"
 Assert-PathExists -PathValue $OcrBundleValidator -Label "OCR bundle validator"
 Assert-PathExists -PathValue $ExecutionLevelValidator -Label "Windows execution level validator"
+Assert-PathExists -PathValue $PayloadPruner -Label "Release payload pruner"
 
 $env:PYTHONNOUSERSITE = "1"
 $env:AURA_PKG_INCLUDE_NVIDIA = if ($IncludeNvidia) { "1" } else { "0" }
@@ -672,7 +660,9 @@ if ((-not $SkipBuild) -or $CreateNvidiaOverlay) {
     if ($IncludeGui -and (-not $SkipBuild)) {
         Assert-PythonModulesPresent -PythonPath $VenvPythonPath -ModuleNames @("PySide6", "shiboken6")
     }
-    Assert-OnnxRuntimeEnvironment -PythonPath $VenvPythonPath -Profile $OnnxRuntimeProfile
+    if (-not $isOverlayOnly) {
+        Assert-OnnxRuntimeEnvironment -PythonPath $VenvPythonPath -Profile $OnnxRuntimeProfile
+    }
 }
 
 if (-not $SkipBuild) {
@@ -730,7 +720,10 @@ if (-not $SkipAssemble) {
 
     Write-Host "Assembling release root ..."
     Invoke-RobocopySafe -Source $BuiltRuntimeDir -Destination $ReleaseRuntimeDir
-    Remove-UnusedQtQmlRuntime -RuntimeDir $ReleaseRuntimeDir
+    & $VenvPythonPath $PayloadPruner --runtime-dir $ReleaseRuntimeDir
+    if ($LASTEXITCODE -ne 0) {
+        throw "Release runtime payload pruning failed."
+    }
     if ($IncludeGui) {
         Copy-Item -LiteralPath $BuiltGuiLauncherExe -Destination (Join-Path $ReleaseRoot "AuraResonanceGui.exe") -Force
     }
@@ -801,6 +794,10 @@ if (-not $SkipAssemble) {
             -ExecutablePath (Join-Path $ReleaseRuntimeDir "AuraResonanceRuntime.exe") `
             -ReleaseRootPath $ReleaseRoot
     }
+    & $VenvPythonPath $PayloadPruner --release-root $ReleaseRoot
+    if ($LASTEXITCODE -ne 0) {
+        throw "Generated release runtime data cleanup failed."
+    }
 
     Write-Host "Release assembled at: $ReleaseRoot"
 }
@@ -817,7 +814,8 @@ if ($CreateNvidiaOverlay) {
     New-NvidiaRuntimeOverlay `
         -PythonPath $VenvPythonPath `
         -RuntimeRootPath $RuntimeRootPath `
-        -ReleaseName $ReleaseName
+        -ReleaseName $ReleaseName `
+        -PayloadPrunerPath $PayloadPruner
 }
 
 if ($CreateZip -or $CreateNvidiaOverlay) {

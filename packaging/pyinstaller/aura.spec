@@ -19,6 +19,8 @@ from PyInstaller.utils.hooks import (
     copy_metadata,
 )
 
+from scripts.release.pyinstaller_filters import excluded_data_globs, should_collect_submodule
+
 
 # PyInstaller executes spec files via `exec`, so `__file__` is not guaranteed.
 # The build wrapper runs PyInstaller from the repository root.
@@ -87,7 +89,12 @@ if INCLUDE_GUI:
 def _collect_optional_package(name: str) -> None:
     global datas, binaries, hiddenimports
     try:
-        pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(name)
+        pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(
+            name,
+            include_py_files=False,
+            filter_submodules=lambda module_name: should_collect_submodule(name, module_name),
+            exclude_datas=list(excluded_data_globs(name)),
+        )
     except Exception:
         return
     datas += pkg_datas
