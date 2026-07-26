@@ -153,7 +153,8 @@ auto_battle_ct_tie_an_run_one_pc:
         text_to_find: "{{ nodes.resolve_difficulty_text.output.difficulty_text }}"
         region: [240, 480, 860, 60]
         match_mode: "contains"
-      depends_on: resolve_difficulty_text
+      depends_on:
+        resolve_difficulty_text: "success|skipped"
       when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
 
     click_confirm_difficulty:
@@ -162,7 +163,16 @@ auto_battle_ct_tie_an_run_one_pc:
         text_to_find: "\u786e\u8ba4"
         region: [1100, 600, 100, 100]
         match_mode: "contains"
-      depends_on: click_difficulty_text
+      depends_on:
+        click_difficulty_text: "success|skipped"
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    wait_after_confirm_difficulty:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 0.5
+      depends_on:
+        click_confirm_difficulty: "success|skipped"
       when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
 
     click_go_combat_with_difficulty:
@@ -171,7 +181,8 @@ auto_battle_ct_tie_an_run_one_pc:
         text_to_find: "\u524d\u5f80\u4f5c\u6218"
         region: [920, 520, 180, 50]
         match_mode: "contains"
-      depends_on: click_confirm_difficulty
+      depends_on:
+        wait_after_confirm_difficulty: "success|skipped"
       when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
 
     click_go_combat_without_difficulty:
@@ -183,6 +194,24 @@ auto_battle_ct_tie_an_run_one_pc:
       depends_on: stage_selected_marker
       when: "{{ inputs.mission_type == 'bounty' }}"
 
+    detect_stamina_after_go_combat_with_difficulty:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        timeout_sec: 2.0
+        interval_sec: 0.2
+      depends_on:
+        click_go_combat_with_difficulty: "success|skipped"
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+
+    detect_stamina_after_go_combat_without_difficulty:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        timeout_sec: 2.0
+        interval_sec: 0.2
+      depends_on:
+        click_go_combat_without_difficulty: "success|skipped"
+      when: "{{ inputs.mission_type == 'bounty' }}"
+
     run_combat_after_go_combat_with_difficulty:
       action: aura.run_task
       params:
@@ -190,8 +219,9 @@ auto_battle_ct_tie_an_run_one_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: click_go_combat_with_difficulty
-      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+      depends_on:
+        detect_stamina_after_go_combat_with_difficulty: "success|skipped"
+      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none and not nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina }}"
 
     run_combat_after_go_combat_without_difficulty:
       action: aura.run_task
@@ -200,8 +230,9 @@ auto_battle_ct_tie_an_run_one_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: click_go_combat_without_difficulty
-      when: "{{ inputs.mission_type == 'bounty' }}"
+      depends_on:
+        detect_stamina_after_go_combat_without_difficulty: "success|skipped"
+      when: "{{ inputs.mission_type == 'bounty' and not nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina }}"
 
   returns:
     success: true
@@ -362,6 +393,13 @@ auto_battle_ct_regional_ops_run_one_pc:
         match_mode: "contains"
       depends_on: wait_go_combat_text
 
+    detect_stamina_after_go_combat:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        timeout_sec: 2.0
+        interval_sec: 0.2
+      depends_on: click_go_combat
+
     run_combat_after_go_combat:
       action: aura.run_task
       params:
@@ -369,7 +407,8 @@ auto_battle_ct_regional_ops_run_one_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: click_go_combat
+      depends_on: detect_stamina_after_go_combat
+      when: "{{ not nodes.detect_stamina_after_go_combat.output.insufficient_stamina }}"
 
   returns:
     success: true
@@ -456,7 +495,8 @@ auto_battle_ct_batch_pc:
         text_to_find: "\u94c1\u5b89\u5c40"
         region: [670, 370, 530, 50]
         match_mode: "contains"
-      depends_on: switch_first_tie_an
+      depends_on:
+        switch_first_tie_an: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' }}"
 
     switch_first_regional_ops:
@@ -468,19 +508,15 @@ auto_battle_ct_batch_pc:
       depends_on: prepare_ct_category_order
       when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' }}"
 
-    wait_after_first_tie_an_switch:
+    wait_after_first_ct_switch:
       action: plans/aura_base/sleep
       params:
         seconds: 2.0
-      depends_on: click_first_tie_an
-      when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' }}"
-
-    wait_after_first_regional_ops_switch:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: switch_first_regional_ops
-      when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' }}"
+      depends_on:
+        all:
+          - click_first_tie_an: "success|failed|skipped"
+          - switch_first_regional_ops: "success|failed|skipped"
+      when: "{{ nodes.prepare_ct_category_order.first_category != '' }}"
 
     run_first_tie_an_batch:
       action: aura.run_task
@@ -488,7 +524,7 @@ auto_battle_ct_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_tie_an_batch_pc"
         inputs:
           jobs: "{{ nodes.group_ct_jobs.output.tie_an_jobs }}"
-      depends_on: wait_after_first_tie_an_switch
+      depends_on: wait_after_first_ct_switch
       when: "{{ nodes.prepare_ct_category_order.first_category == 'tie_an' and (nodes.group_ct_jobs.output.tie_an_jobs | length) > 0 }}"
 
     run_first_regional_ops_batch:
@@ -497,13 +533,17 @@ auto_battle_ct_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_regional_ops_batch_pc"
         inputs:
           jobs: "{{ nodes.group_ct_jobs.output.regional_ops_jobs }}"
-      depends_on: wait_after_first_regional_ops_switch
+      depends_on: wait_after_first_ct_switch
       when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_first_batch:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -517,7 +557,8 @@ auto_battle_ct_batch_pc:
       action: plans/aura_base/sleep
       params:
         seconds: 1.0
-      depends_on: click_back_after_first_batch
+      depends_on:
+        click_back_after_first_batch: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category != '' }}"
 
     switch_second_tie_an:
@@ -528,7 +569,8 @@ auto_battle_ct_batch_pc:
         match_mode: "contains"
         timeout: 3.0
         interval: 0.5
-      depends_on: wait_after_back_first_batch
+      depends_on:
+        wait_after_back_first_batch: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
 
     click_second_tie_an:
@@ -537,7 +579,8 @@ auto_battle_ct_batch_pc:
         text_to_find: "\u94c1\u5b89\u5c40"
         region: [670, 370, 530, 50]
         match_mode: "contains"
-      depends_on: switch_second_tie_an
+      depends_on:
+        switch_second_tie_an: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
 
     switch_second_regional_ops:
@@ -546,22 +589,19 @@ auto_battle_ct_batch_pc:
         text_to_find: "\u533a\u57df\u4f5c\u6218\u4e2d\u5fc3"
         region: [670, 370, 530, 50]
         match_mode: "contains"
-      depends_on: wait_after_back_first_batch
+      depends_on:
+        wait_after_back_first_batch: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' }}"
 
-    wait_after_second_tie_an_switch:
+    wait_after_second_ct_switch:
       action: plans/aura_base/sleep
       params:
         seconds: 2.0
-      depends_on: click_second_tie_an
-      when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' }}"
-
-    wait_after_second_regional_ops_switch:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on: switch_second_regional_ops
-      when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' }}"
+      depends_on:
+        all:
+          - click_second_tie_an: "success|failed|skipped"
+          - switch_second_regional_ops: "success|failed|skipped"
+      when: "{{ nodes.prepare_ct_category_order.second_category != '' }}"
 
     run_second_tie_an_batch:
       action: aura.run_task
@@ -569,7 +609,8 @@ auto_battle_ct_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_tie_an_batch_pc"
         inputs:
           jobs: "{{ nodes.group_ct_jobs.output.tie_an_jobs }}"
-      depends_on: wait_after_second_tie_an_switch
+      depends_on:
+        wait_after_second_ct_switch: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category == 'tie_an' and (nodes.group_ct_jobs.output.tie_an_jobs | length) > 0 }}"
 
     run_second_regional_ops_batch:
@@ -578,13 +619,18 @@ auto_battle_ct_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_regional_ops_batch_pc"
         inputs:
           jobs: "{{ nodes.group_ct_jobs.output.regional_ops_jobs }}"
-      depends_on: wait_after_second_regional_ops_switch
+      depends_on:
+        wait_after_second_ct_switch: "success|skipped"
       when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_single_batch:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -598,6 +644,10 @@ auto_battle_ct_batch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -707,6 +757,13 @@ auto_battle_gp_action_summary_run_difficulty_pc:
         message: "failed to click start battle"
       depends_on: click_start_battle
 
+    detect_stamina_after_start_battle:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        timeout_sec: 2.0
+        interval_sec: 0.2
+      depends_on: assert_start_battle_clicked
+
     run_combat_after_start_battle:
       action: aura.run_task
       params:
@@ -714,7 +771,8 @@ auto_battle_gp_action_summary_run_difficulty_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: assert_start_battle_clicked
+      depends_on: detect_stamina_after_start_battle
+      when: "{{ not nodes.detect_stamina_after_start_battle.output.insufficient_stamina }}"
 
   returns:
     success: true
@@ -806,6 +864,10 @@ auto_battle_gp_action_summary_run_group_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -933,11 +995,19 @@ auto_battle_gp_structural_run_one_pc:
         match_mode: "contains"
       depends_on: wait_after_target_ready
 
+    detect_stamina_after_start_auto:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        timeout_sec: 2.0
+        interval_sec: 0.2
+      depends_on: click_start_auto
+
     wait_after_start_auto:
       action: plans/aura_base/sleep
       params:
         seconds: 1.0
-      depends_on: click_start_auto
+      depends_on: detect_stamina_after_start_auto
+      when: "{{ not nodes.detect_stamina_after_start_auto.output.insufficient_stamina }}"
 
     wait_global_scan:
       action: plans/aura_base/wait_for_text
@@ -947,7 +1017,9 @@ auto_battle_gp_structural_run_one_pc:
         interval: 1.0
         region: [1000, 560, 150, 40]
         match_mode: "contains"
-      depends_on: wait_after_start_auto
+      depends_on:
+        wait_after_start_auto: "success|skipped"
+      when: "{{ not nodes.detect_stamina_after_start_auto.output.insufficient_stamina }}"
 
   returns:
     success: true
@@ -1065,6 +1137,10 @@ auto_battle_gp_batch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -1078,7 +1154,8 @@ auto_battle_gp_batch_pc:
       action: plans/aura_base/sleep
       params:
         seconds: 1.0
-      depends_on: click_back_after_first_gp_batch
+      depends_on:
+        click_back_after_first_gp_batch: "success|skipped"
       when: "{{ nodes.prepare_gp_category_order.second_category != '' }}"
 
     switch_second_action_summary:
@@ -1087,7 +1164,8 @@ auto_battle_gp_batch_pc:
         text_to_find: "\u884c\u52a8\u6c47\u603b"
         region: [980, 270, 140, 290]
         match_mode: "contains"
-      depends_on: wait_after_back_first_gp_batch
+      depends_on:
+        wait_after_back_first_gp_batch: "success|skipped"
       when: "{{ nodes.prepare_gp_category_order.second_category == 'action_summary' }}"
 
     switch_second_structural:
@@ -1096,7 +1174,8 @@ auto_battle_gp_batch_pc:
         text_to_find: "\u6784\u6790\u52d8\u63a2"
         region: [980, 270, 140, 290]
         match_mode: "contains"
-      depends_on: wait_after_back_first_gp_batch
+      depends_on:
+        wait_after_back_first_gp_batch: "success|skipped"
       when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' }}"
 
     wait_after_second_gp_switch:
@@ -1115,7 +1194,8 @@ auto_battle_gp_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_action_summary_batch_pc"
         inputs:
           jobs: "{{ nodes.group_gp_jobs.output.action_summary_jobs }}"
-      depends_on: wait_after_second_gp_switch
+      depends_on:
+        wait_after_second_gp_switch: "success|skipped"
       when: "{{ nodes.prepare_gp_category_order.second_category == 'action_summary' and (nodes.group_gp_jobs.output.action_summary_jobs | length) > 0 }}"
 
     run_second_structural_batch:
@@ -1124,13 +1204,18 @@ auto_battle_gp_batch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_structural_batch_pc"
         inputs:
           jobs: "{{ nodes.group_gp_jobs.output.structural_exploration_jobs }}"
-      depends_on: wait_after_second_gp_switch
+      depends_on:
+        wait_after_second_gp_switch: "success|skipped"
       when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
 
     click_back_after_single_gp_batch:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -1144,6 +1229,10 @@ auto_battle_gp_batch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
         timeout_sec: 8.0
         interval_sec: 0.2
         stable_scans: 2
@@ -1324,22 +1413,68 @@ auto_battle_dispatch_pc:
         first_category: "{{ (nodes.group_jobs.output.category_order | first) if (nodes.group_jobs.output.category_order | length) > 0 else '' }}"
         second_category: "{{ nodes.group_jobs.output.category_order[1] if (nodes.group_jobs.output.category_order | length) > 1 else '' }}"
 
-    switch_first_ct:
-      action: plans/aura_base/find_text_and_click
+    wait_first_ct_category_template:
+      action: plans/aura_base/wait_for_image
       params:
-        text_to_find: "\u534f\u540c\u7ec8\u7aef"
-        region: [20, 200, 80, 140]
-        match_mode: "contains"
+        template: "templates/battle_category_ct.png"
+        timeout: 8.0
+        interval: 0.2
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
       depends_on: prepare_category_order
       when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
 
-    switch_first_gp:
-      action: plans/aura_base/find_text_and_click
+    switch_first_ct:
+      action: plans/aura_base/find_image_and_click
       params:
-        text_to_find: "\u5168\u57df\u6574\u5907"
-        region: [20, 200, 80, 140]
-        match_mode: "contains"
+        template: "templates/battle_category_ct.png"
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
+      depends_on:
+        wait_first_ct_category_template: "success|skipped"
+      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
+
+    assert_first_ct_switched:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.switch_first_ct.output }}"
+        message: "failed to click collaboration terminal category template"
+      depends_on:
+        switch_first_ct: "success|skipped"
+      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
+
+    wait_first_gp_category_template:
+      action: plans/aura_base/wait_for_image
+      params:
+        template: "templates/battle_category_gp.png"
+        timeout: 8.0
+        interval: 0.2
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
       depends_on: prepare_category_order
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
+
+    switch_first_gp:
+      action: plans/aura_base/find_image_and_click
+      params:
+        template: "templates/battle_category_gp.png"
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
+      depends_on:
+        wait_first_gp_category_template: "success|skipped"
+      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
+
+    assert_first_gp_switched:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.switch_first_gp.output }}"
+        message: "failed to click global preparation category template"
+      depends_on:
+        switch_first_gp: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
 
     wait_after_first_switch:
@@ -1348,8 +1483,8 @@ auto_battle_dispatch_pc:
         seconds: 2.0
       depends_on:
         all:
-          - switch_first_ct: "success|failed|skipped"
-          - switch_first_gp: "success|failed|skipped"
+          - assert_first_ct_switched: "success|skipped"
+          - assert_first_gp_switched: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category != '' }}"
 
     run_first_ct_batch:
@@ -1389,28 +1524,76 @@ auto_battle_dispatch_pc:
       action: plans/aura_base/sleep
       params:
         seconds: 0.5
-      depends_on: recover_ct_menu_after_first_gp
+      depends_on:
+        recover_ct_menu_after_first_gp: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
 
-    switch_second_ct:
-      action: plans/aura_base/find_text_and_click
+    wait_second_ct_category_template:
+      action: plans/aura_base/wait_for_image
       params:
-        text_to_find: "\u534f\u540c\u7ec8\u7aef"
-        region: [20, 200, 80, 140]
-        match_mode: "contains"
-      depends_on: wait_after_ct_menu_recovery
+        template: "templates/battle_category_ct.png"
+        timeout: 8.0
+        interval: 0.2
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
+      depends_on:
+        wait_after_ct_menu_recovery: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
 
-    switch_second_gp:
-      action: plans/aura_base/find_text_and_click
+    switch_second_ct:
+      action: plans/aura_base/find_image_and_click
       params:
-        text_to_find: "\u5168\u57df\u6574\u5907"
-        region: [20, 200, 80, 140]
-        match_mode: "contains"
+        template: "templates/battle_category_ct.png"
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
+      depends_on:
+        wait_second_ct_category_template: "success|skipped"
+      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
+
+    assert_second_ct_switched:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.switch_second_ct.output }}"
+        message: "failed to click collaboration terminal category template"
+      depends_on:
+        switch_second_ct: "success|skipped"
+      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
+
+    wait_second_gp_category_template:
+      action: plans/aura_base/wait_for_image
+      params:
+        template: "templates/battle_category_gp.png"
+        timeout: 8.0
+        interval: 0.2
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
       depends_on:
         all:
           - run_first_ct_batch: "success|failed|skipped"
           - run_first_gp_batch: "success|failed|skipped"
+      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
+
+    switch_second_gp:
+      action: plans/aura_base/find_image_and_click
+      params:
+        template: "templates/battle_category_gp.png"
+        region: [20, 180, 200, 160]
+        threshold: 0.95
+        use_grayscale: true
+      depends_on:
+        wait_second_gp_category_template: "success|skipped"
+      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
+
+    assert_second_gp_switched:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ nodes.switch_second_gp.output }}"
+        message: "failed to click global preparation category template"
+      depends_on:
+        switch_second_gp: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
 
     wait_after_second_switch:
@@ -1419,8 +1602,8 @@ auto_battle_dispatch_pc:
         seconds: 2.0
       depends_on:
         all:
-          - switch_second_ct: "success|failed|skipped"
-          - switch_second_gp: "success|failed|skipped"
+          - assert_second_ct_switched: "success|skipped"
+          - assert_second_gp_switched: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category != '' }}"
 
     run_second_ct_batch:
@@ -1429,7 +1612,8 @@ auto_battle_dispatch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_batch_pc"
         inputs:
           jobs: "{{ nodes.group_jobs.output.ct_jobs }}"
-      depends_on: wait_after_second_switch
+      depends_on:
+        wait_after_second_switch: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'ct' and (nodes.group_jobs.output.ct_jobs | length) > 0 }}"
 
     run_second_gp_batch:
@@ -1438,19 +1622,28 @@ auto_battle_dispatch_pc:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_batch_pc"
         inputs:
           jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
-      depends_on: wait_after_second_switch
+      depends_on:
+        wait_after_second_switch: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
 
     click_back_to_initial_after_single_category:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
-        timeout_sec: 8.0
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
+        timeout_sec: 20.0
         interval_sec: 0.2
         stable_scans: 2
-        already_at_target_text: "作战终端"
-        already_at_target_region: [1100, 380, 150, 120]
-        already_at_target_min_confidence: 0.7
+        already_at_target_template: "templates/battle_main_terminal_marker.png"
+        already_at_target_region: [1080, 375, 190, 80]
+        already_at_target_threshold: 0.95
+        already_at_target_use_grayscale: true
+        repeat_until_target: true
+        max_clicks: 4
+        target_stable_scans: 2
       depends_on:
         all:
           - run_first_ct_batch: "success|failed|skipped"
@@ -1461,12 +1654,20 @@ auto_battle_dispatch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
-        timeout_sec: 8.0
+        template: "templates/battle_back_button.png"
+        threshold: 0.9
+        use_grayscale: true
+        after_click_sec: 1.0
+        timeout_sec: 20.0
         interval_sec: 0.2
         stable_scans: 2
-        already_at_target_text: "作战终端"
-        already_at_target_region: [1100, 380, 150, 120]
-        already_at_target_min_confidence: 0.7
+        already_at_target_template: "templates/battle_main_terminal_marker.png"
+        already_at_target_region: [1080, 375, 190, 80]
+        already_at_target_threshold: 0.95
+        already_at_target_use_grayscale: true
+        repeat_until_target: true
+        max_clicks: 4
+        target_stable_scans: 2
       depends_on:
         all:
           - run_second_ct_batch: "success|failed|skipped"

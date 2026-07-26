@@ -15,6 +15,8 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _BATTLE_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "battle_catalog.json"
+_THREAT_LEVEL_WHITE_MIN_VALUE = 130
+_THREAT_LEVEL_WHITE_MAX_SATURATION = 110
 
 _ACTION_SUMMARY_GROUP_TEXT: Dict[str, str] = {
     "blade_encirclement": "\u5229\u5203\u56f4\u527f",
@@ -192,57 +194,6 @@ def _coerce_drag(value: Any, fallback: List[int]) -> Tuple[int, int, int, int]:
     return (sx, sy, ex, ey)
 
 
-def _detect_back_button(image: Any) -> Optional[Dict[str, Any]]:
-    if image is None or not hasattr(image, "shape") or len(image.shape) < 2:
-        return None
-    if image.shape[0] < 20 or image.shape[1] < 40:
-        return None
-
-    if len(image.shape) == 2:
-        gray = image
-    elif image.shape[2] == 4:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
-    else:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    bright_mask = cv2.inRange(gray, 180, 255)
-    bright_mask = cv2.morphologyEx(
-        bright_mask,
-        cv2.MORPH_CLOSE,
-        cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7)),
-    )
-    contours, _ = cv2.findContours(bright_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    candidates: List[Dict[str, Any]] = []
-    for contour in contours:
-        x, y, width, height = cv2.boundingRect(contour)
-        if not 100 <= width <= 150 or not 35 <= height <= 60:
-            continue
-        aspect_ratio = width / max(height, 1)
-        if not 2.0 <= aspect_ratio <= 4.2:
-            continue
-
-        box = gray[y : y + height, x : x + width]
-        bright_ratio = float((box >= 180).mean())
-        dark_ratio = float((box < 80).mean())
-        contour_fill = float(cv2.contourArea(contour)) / max(width * height, 1)
-        if bright_ratio < 0.75 or contour_fill < 0.75 or not 0.02 <= dark_ratio <= 0.2:
-            continue
-
-        confidence = min(1.0, (bright_ratio + contour_fill + min(dark_ratio / 0.05, 1.0)) / 3.0)
-        candidates.append(
-            {
-                "rect": [int(x), int(y), int(width), int(height)],
-                "center": [int(x + width // 2), int(y + height // 2)],
-                "confidence": confidence,
-                "bright_ratio": bright_ratio,
-                "dark_ratio": dark_ratio,
-                "contour_fill": contour_fill,
-            }
-        )
-
-    return max(candidates, key=lambda item: float(item["confidence"])) if candidates else None
-
-
 def _sanitize_battle_job_fields(
     raw: Dict[str, Any],
     path: str,
@@ -343,6 +294,95 @@ def _recognize_text_items(
             {
                 "text": row["text"],
                 "normalized": row["normalized"],
+                "center": list(row["center"]),
+                "rect": list(row["rect"]) if row["rect"] is not None else None,
+                "confidence": round(float(row["confidence"]), 4),
+            }
+            for row in items
+        ],
+    )
+    return items
+
+
+def _preprocess_threat_level_image(image: Any) -> Any:
+    if image is None or not hasattr(image, "shape") or len(image.shape) < 2:
+        _raise_error("invalid_capture", "Threat-level capture image is invalid")
+
+    if len(image.shape) == 2:
+        gray = image
+        white_mask = cv2.inRange(gray, _THREAT_LEVEL_WHITE_MIN_VALUE, 255)
+    else:
+        if image.shape[2] == 4:
+            bgr = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        else:
+            bgr = image
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        low_saturation_mask = cv2.inRange(
+            hsv,
+            (0, 0, _THREAT_LEVEL_WHITE_MIN_VALUE),
+            (179, _THREAT_LEVEL_WHITE_MAX_SATURATION, 255),
+        )
+        bright_mask = cv2.inRange(gray, _THREAT_LEVEL_WHITE_MIN_VALUE, 255)
+        white_mask = cv2.bitwise_and(low_saturation_mask, bright_mask)
+
+    white_mask = cv2.morphologyEx(
+        white_mask,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)),
+    )
+    return cv2.cvtColor(white_mask, cv2.COLOR_GRAY2BGR)
+
+
+def _recognize_threat_level_items(
+    app: Any,
+    ocr: Any,
+    region: Tuple[int, int, int, int],
+) -> List[Dict[str, Any]]:
+    capture = app.capture(rect=region)
+    if not capture.success:
+        _raise_error("capture_failed", "Failed to capture threat-level region.", {"region": list(region)})
+
+    processed = _preprocess_threat_level_image(capture.image)
+    result = ocr.recognize_all(processed)
+    items: List[Dict[str, Any]] = []
+    for row in result.results:
+        if not row.center_point:
+            continue
+        cx = int(row.center_point[0]) + region[0]
+        cy = int(row.center_point[1]) + region[1]
+        abs_rect = None
+        if isinstance(getattr(row, "rect", None), (list, tuple)) and len(row.rect) == 4:
+            try:
+                rx, ry, rw, rh = [int(v) for v in row.rect]
+                abs_rect = (
+                    rx + region[0],
+                    ry + region[1],
+                    rw,
+                    rh,
+                )
+            except (TypeError, ValueError):
+                abs_rect = None
+        txt = str(row.text or "")
+        items.append(
+            {
+                "text": txt,
+                "normalized": _normalize_text(txt),
+                "center": (cx, cy),
+                "rect": abs_rect,
+                "confidence": float(row.confidence),
+            }
+        )
+    logger.debug(
+        "[ThreatLevelOCR] region=%s preprocessing=white_text_on_black "
+        "source_shape=%s processed_shape=%s count=%s items=%s",
+        list(region),
+        list(capture.image.shape),
+        list(processed.shape),
+        len(items),
+        [
+            {
+                "text": row["text"],
                 "center": list(row["center"]),
                 "rect": list(row["rect"]) if row["rect"] is not None else None,
                 "confidence": round(float(row["confidence"]), 4),
@@ -1171,7 +1211,7 @@ def resonance_pc_select_ordered_city(
     name="resonance_pc.select_threat_level_numeric",
     public=True,
     read_only=False,
-    description="Select threat level by OCR numeric scan and directional horizontal drag.",
+    description="Select threat level by white-text preprocessed OCR and directional horizontal drag.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1209,7 +1249,7 @@ def resonance_pc_select_threat_level_numeric(
 
     last_direction = "increase"
     for attempt in range(1, attempts + 1):
-        items = _recognize_text_items(app=app, ocr=ocr, region=region_tuple)
+        items = _recognize_threat_level_items(app=app, ocr=ocr, region=region_tuple)
         levels = _levels_from_ocr(items)
         target_text = str(target)
         exact_candidates_debug: List[Dict[str, Any]] = []
@@ -1794,25 +1834,55 @@ def resonance_pc_try_select_action_summary_stage(
     name="resonance_pc.wait_and_click_back_button",
     public=True,
     read_only=False,
-    description="Wait for the visual back-button control to stabilize, then click its detected center.",
+    description=(
+        "Wait for the configured back-button image template to stabilize and click it, "
+        "optionally repeating until the target screen is stably confirmed."
+    ),
 )
-@requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr")
+@requires_services(
+    app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
+    vision="plans/aura_base/vision",
+)
 def resonance_pc_wait_and_click_back_button(
     region: Optional[List[int]] = None,
+    template: str = "templates/battle_back_button.png",
+    threshold: float = 0.9,
+    use_grayscale: bool = True,
     timeout_sec: float = 8.0,
     interval_sec: float = 0.2,
     stable_scans: int = 2,
     move_duration_sec: float = 0.1,
+    after_click_sec: float = 1.0,
     already_at_target_text: Optional[str] = None,
+    already_at_target_template: Optional[str] = None,
     already_at_target_region: Optional[List[int]] = None,
     already_at_target_min_confidence: float = 0.7,
+    already_at_target_threshold: float = 0.9,
+    already_at_target_use_grayscale: bool = True,
+    repeat_until_target: bool = False,
+    max_clicks: int = 3,
+    target_stable_scans: int = 2,
     app: Any = None,
     ocr: Any = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
     if app is None:
         _raise_error("missing_service", "app service is required")
+    if vision is None:
+        _raise_error("missing_service", "vision service is required")
 
     region_tuple = _coerce_region(region, [10, 5, 160, 70])
+    template_path = Path(str(template or "").strip())
+    if not template_path.is_absolute():
+        template_path = (_PLAN_ROOT / template_path).resolve()
+    if not template_path.is_file():
+        _raise_error(
+            "back_button_template_not_found",
+            "Configured back-button template does not exist",
+            {"template": str(template_path)},
+        )
+    match_threshold = float(threshold)
     timeout = max(float(timeout_sec), 0.0)
     interval = max(float(interval_sec), 0.01)
     required_stable_scans = max(int(stable_scans), 1)
@@ -1822,20 +1892,69 @@ def resonance_pc_wait_and_click_back_button(
     last_center: Optional[Tuple[int, int]] = None
     last_detection: Optional[Dict[str, Any]] = None
     target_text = _normalize_text(already_at_target_text or "")
+    target_template_path: Optional[Path] = None
+    target_template_value = str(already_at_target_template or "").strip()
+    if target_template_value:
+        target_template_path = Path(target_template_value)
+        if not target_template_path.is_absolute():
+            target_template_path = (_PLAN_ROOT / target_template_path).resolve()
+        if not target_template_path.is_file():
+            _raise_error(
+                "target_template_not_found",
+                "Configured target-screen template does not exist",
+                {"template": str(target_template_path)},
+            )
+    target_enabled = target_template_path is not None or bool(target_text)
     target_region = (
         _coerce_region(already_at_target_region, [1100, 380, 150, 120])
-        if target_text
+        if target_enabled
         else None
     )
     target_min_confidence = float(already_at_target_min_confidence)
+    target_match_threshold = float(already_at_target_threshold)
+    repeat_mode = bool(repeat_until_target)
+    allowed_clicks = max(int(max_clicks), 1)
+    required_target_stable_scans = (
+        max(int(target_stable_scans), 1)
+        if repeat_mode
+        else 1
+    )
+    target_stable_count = 0
+    click_events: List[Dict[str, Any]] = []
 
-    if target_text and ocr is None:
+    if target_text and target_template_path is None and ocr is None:
         _raise_error("missing_service", "ocr service is required when already_at_target_text is set")
+    if repeat_mode and not target_enabled:
+        _raise_error(
+            "missing_target_detector",
+            "already_at_target_template or already_at_target_text is required "
+            "when repeat_until_target is enabled",
+        )
 
     while True:
         scan += 1
         capture = app.capture(rect=region_tuple)
-        detection = _detect_back_button(capture.image) if capture.success else None
+        detection: Optional[Dict[str, Any]] = None
+        if capture.success:
+            template_match = vision.find_template(
+                source_image=capture.image,
+                template_image=str(template_path),
+                threshold=match_threshold,
+                use_grayscale=bool(use_grayscale),
+            )
+            if bool(getattr(template_match, "found", False)):
+                match_center = getattr(template_match, "center_point", None)
+                match_rect = getattr(template_match, "rect", None)
+                if isinstance(match_center, (list, tuple)) and len(match_center) == 2:
+                    detection = {
+                        "center": [int(match_center[0]), int(match_center[1])],
+                        "rect": (
+                            [int(value) for value in match_rect]
+                            if isinstance(match_rect, (list, tuple)) and len(match_rect) == 4
+                            else None
+                        ),
+                        "confidence": float(getattr(template_match, "confidence", 0.0) or 0.0),
+                    }
         if detection is not None:
             local_center = tuple(int(value) for value in detection["center"])
             if last_center is not None and all(abs(a - b) <= 2 for a, b in zip(local_center, last_center)):
@@ -1849,9 +1968,11 @@ def resonance_pc_wait_and_click_back_button(
             last_center = None
 
         logger.info(
-            "[BattleVision][BackButton] scan=%s region=%s capture_success=%s "
-            "detection=%s stable=%s/%s",
+            "[BattleVision][BackButtonTemplate] scan=%s template=%s threshold=%.3f "
+            "region=%s capture_success=%s match=%s stable=%s/%s",
             scan,
+            str(template_path),
+            match_threshold,
             list(region_tuple),
             bool(capture.success),
             detection,
@@ -1859,68 +1980,180 @@ def resonance_pc_wait_and_click_back_button(
             required_stable_scans,
         )
 
-        if target_text and detection is None and target_region is not None:
-            target_items = _recognize_text_items(app=app, ocr=ocr, region=target_region)
-            target_hit = next(
-                (
-                    row
-                    for row in target_items
-                    if _match_mode_hit(row["normalized"], target_text, "contains")
-                    and float(row["confidence"]) >= target_min_confidence
-                ),
-                None,
-            )
-            logger.info(
-                "[BattleOCR][BackButtonTarget] scan=%s target=%s region=%s "
-                "recognized_texts=%s candidate=%s",
-                scan,
-                already_at_target_text,
-                list(target_region),
-                [
-                    {
-                        "text": row["text"],
-                        "center": list(row["center"]),
-                        "confidence": round(float(row["confidence"]), 4),
-                    }
-                    for row in target_items
-                ],
-                target_hit,
-            )
+        if target_enabled and detection is None and target_region is not None:
+            target_hit: Optional[Dict[str, Any]] = None
+            if target_template_path is not None:
+                target_capture = app.capture(rect=target_region)
+                target_template_match = None
+                if target_capture.success:
+                    target_template_match = vision.find_template(
+                        source_image=target_capture.image,
+                        template_image=str(target_template_path),
+                        threshold=target_match_threshold,
+                        use_grayscale=bool(already_at_target_use_grayscale),
+                    )
+                    if bool(getattr(target_template_match, "found", False)):
+                        target_hit = {
+                            "template": str(target_template_path),
+                            "confidence": float(
+                                getattr(target_template_match, "confidence", 0.0) or 0.0
+                            ),
+                        }
+                logger.info(
+                    "[BattleVision][BackButtonTargetTemplate] scan=%s template=%s "
+                    "threshold=%.3f region=%s capture_success=%s candidate=%s",
+                    scan,
+                    str(target_template_path),
+                    target_match_threshold,
+                    list(target_region),
+                    bool(target_capture.success),
+                    target_hit,
+                )
+            else:
+                target_items = _recognize_text_items(app=app, ocr=ocr, region=target_region)
+                target_hit = next(
+                    (
+                        row
+                        for row in target_items
+                        if _match_mode_hit(row["normalized"], target_text, "contains")
+                        and float(row["confidence"]) >= target_min_confidence
+                    ),
+                    None,
+                )
+                logger.info(
+                    "[BattleOCR][BackButtonTarget] scan=%s target=%s region=%s "
+                    "recognized_texts=%s candidate=%s",
+                    scan,
+                    already_at_target_text,
+                    list(target_region),
+                    [
+                        {
+                            "text": row["text"],
+                            "center": list(row["center"]),
+                            "confidence": round(float(row["confidence"]), 4),
+                        }
+                        for row in target_items
+                    ],
+                    target_hit,
+                )
             if target_hit is not None:
+                target_stable_count += 1
+            else:
+                target_stable_count = 0
+            logger.info(
+                "[BattleVision][BackButtonTargetStable] scan=%s detector=%s target=%s "
+                "stable=%s/%s repeat_until_target=%s click_count=%s",
+                scan,
+                "template" if target_template_path is not None else "ocr",
+                str(target_template_path or already_at_target_text),
+                target_stable_count,
+                required_target_stable_scans,
+                repeat_mode,
+                len(click_events),
+            )
+            if target_hit is not None and target_stable_count >= required_target_stable_scans:
                 return {
                     "found": False,
-                    "clicked": False,
+                    "clicked": bool(click_events),
                     "already_at_target": True,
-                    "target_text": str(target_hit["text"]),
+                    "target_detection": (
+                        "template" if target_template_path is not None else "ocr"
+                    ),
+                    "target_text": (
+                        str(target_hit["text"]) if "text" in target_hit else None
+                    ),
+                    "target_template": (
+                        str(target_template_path)
+                        if target_template_path is not None
+                        else None
+                    ),
                     "confidence": float(target_hit["confidence"]),
                     "scans": scan,
+                    "click_count": len(click_events),
+                    "clicks": click_events,
+                    "repeat_until_target": repeat_mode,
                 }
+        elif target_enabled:
+            target_stable_count = 0
 
-        if detection is not None and stable_count >= required_stable_scans:
+        if (
+            detection is not None
+            and stable_count >= required_stable_scans
+            and (not repeat_mode or len(click_events) < allowed_clicks)
+        ):
             click_x = int(region_tuple[0] + detection["center"][0])
             click_y = int(region_tuple[1] + detection["center"][1])
             app.move_to(click_x, click_y, duration=max(float(move_duration_sec), 0.0))
             app.click(x=click_x, y=click_y)
+            click_event = {
+                "click": [click_x, click_y],
+                "confidence": float(detection["confidence"]),
+                "scan": scan,
+            }
+            click_events.append(click_event)
+            click_wait = max(float(after_click_sec), 0.0)
+            if click_wait > 0:
+                time.sleep(click_wait)
             logger.info(
-                "[BattleClick][BackButton] click=%s confidence=%.4f scans=%s",
+                "[BattleClick][BackButtonTemplate] click=%s confidence=%.4f scans=%s "
+                "template=%s after_click_sec=%.3f click_count=%s repeat_until_target=%s",
                 [click_x, click_y],
                 float(detection["confidence"]),
                 scan,
+                str(template_path),
+                click_wait,
+                len(click_events),
+                repeat_mode,
             )
-            return {
-                "found": True,
-                "clicked": True,
-                "click": [click_x, click_y],
-                "confidence": float(detection["confidence"]),
-                "scans": scan,
-            }
+            if not repeat_mode:
+                return {
+                    "found": True,
+                    "clicked": True,
+                    "click": [click_x, click_y],
+                    "confidence": float(detection["confidence"]),
+                    "scans": scan,
+                    "template": str(template_path),
+                    "after_click_sec": click_wait,
+                    "click_count": 1,
+                    "clicks": click_events,
+                    "repeat_until_target": False,
+                }
+            stable_count = 0
+            last_center = None
+            last_detection = None
+            target_stable_count = 0
 
         if time.monotonic() >= deadline:
+            if repeat_mode:
+                _raise_error(
+                    "back_button_target_not_reached",
+                    f"Failed to confirm target screen within {timeout:.1f}s",
+                    {
+                        "region": list(region_tuple),
+                        "template": str(template_path),
+                        "threshold": match_threshold,
+                        "target_text": already_at_target_text,
+                        "target_template": (
+                            str(target_template_path)
+                            if target_template_path is not None
+                            else None
+                        ),
+                        "target_threshold": target_match_threshold,
+                        "target_region": list(target_region or []),
+                        "scans": scan,
+                        "click_count": len(click_events),
+                        "max_clicks": allowed_clicks,
+                        "clicks": click_events,
+                        "last_detection": last_detection,
+                    },
+                )
             _raise_error(
                 "back_button_not_found",
                 f"Failed to locate a stable back button within {timeout:.1f}s",
                 {
                     "region": list(region_tuple),
+                    "template": str(template_path),
+                    "threshold": match_threshold,
                     "scans": scan,
                     "last_detection": last_detection,
                 },
@@ -2225,6 +2458,247 @@ def resonance_pc_wait_and_click_any_text(
         "attempts": poll_index,
         "elapsed_sec": round(time.time() - start_time, 3),
     }
+
+
+@action_info(
+    name="resonance_pc.detect_and_cancel_insufficient_stamina",
+    public=True,
+    read_only=False,
+    description=(
+        "Continuously match the insufficient-stamina dialog for a short post-click "
+        "window and cancel it by template when present."
+    ),
+)
+@requires_services(
+    app="plans/aura_base/app",
+    vision="plans/aura_base/vision",
+)
+def resonance_pc_detect_and_cancel_insufficient_stamina(
+    dialog_region: Optional[List[int]] = None,
+    dialog_template: str = "templates/battle_insufficient_stamina_dialog.png",
+    dialog_threshold: float = 0.9,
+    cancel_region: Optional[List[int]] = None,
+    cancel_template: str = "templates/battle_insufficient_stamina_cancel.png",
+    cancel_threshold: float = 0.9,
+    timeout_sec: float = 2.0,
+    interval_sec: float = 0.2,
+    stable_scans: int = 2,
+    dismiss_timeout_sec: float = 1.0,
+    dismiss_stable_scans: int = 2,
+    move_duration_sec: float = 0.1,
+    after_click_sec: float = 0.2,
+    use_grayscale: bool = True,
+    app: Any = None,
+    vision: Any = None,
+) -> Dict[str, Any]:
+    if app is None:
+        _raise_error("missing_service", "app service is required")
+    if vision is None:
+        _raise_error("missing_service", "vision service is required")
+
+    dialog_region_tuple = _coerce_region(dialog_region, [430, 300, 500, 120])
+    cancel_region_tuple = _coerce_region(cancel_region, [240, 450, 220, 110])
+
+    def _template_path(raw_path: str, *, error_code: str) -> Path:
+        path = Path(str(raw_path or "").strip())
+        if not path.is_absolute():
+            path = (_PLAN_ROOT / path).resolve()
+        if not path.is_file():
+            _raise_error(
+                error_code,
+                "Configured stamina-dialog template does not exist",
+                {"template": str(path)},
+            )
+        return path
+
+    dialog_template_path = _template_path(
+        dialog_template,
+        error_code="stamina_dialog_template_not_found",
+    )
+    cancel_template_path = _template_path(
+        cancel_template,
+        error_code="stamina_cancel_template_not_found",
+    )
+    dialog_match_threshold = float(dialog_threshold)
+    cancel_match_threshold = float(cancel_threshold)
+    timeout = max(float(timeout_sec), 0.0)
+    interval = max(float(interval_sec), 0.01)
+    required_stable_scans = max(int(stable_scans), 1)
+    required_dismiss_stable_scans = max(int(dismiss_stable_scans), 1)
+
+    def _match(region: Tuple[int, int, int, int], template_path: Path, threshold: float) -> Tuple[Any, Optional[Dict[str, Any]]]:
+        capture = app.capture(rect=region)
+        detection: Optional[Dict[str, Any]] = None
+        if capture.success:
+            template_match = vision.find_template(
+                source_image=capture.image,
+                template_image=str(template_path),
+                threshold=threshold,
+                use_grayscale=bool(use_grayscale),
+            )
+            if bool(getattr(template_match, "found", False)):
+                match_center = getattr(template_match, "center_point", None)
+                match_rect = getattr(template_match, "rect", None)
+                if isinstance(match_center, (list, tuple)) and len(match_center) == 2:
+                    detection = {
+                        "center": [int(match_center[0]), int(match_center[1])],
+                        "rect": (
+                            [int(value) for value in match_rect]
+                            if isinstance(match_rect, (list, tuple)) and len(match_rect) == 4
+                            else None
+                        ),
+                        "confidence": float(getattr(template_match, "confidence", 0.0) or 0.0),
+                    }
+        return capture, detection
+
+    deadline = time.monotonic() + timeout
+    scan = 0
+    stable_count = 0
+    last_center: Optional[Tuple[int, int]] = None
+    last_dialog_detection: Optional[Dict[str, Any]] = None
+
+    while True:
+        scan += 1
+        dialog_capture, dialog_detection = _match(
+            dialog_region_tuple,
+            dialog_template_path,
+            dialog_match_threshold,
+        )
+        if dialog_detection is not None:
+            current_center = tuple(int(value) for value in dialog_detection["center"])
+            if last_center is not None and all(abs(a - b) <= 2 for a, b in zip(current_center, last_center)):
+                stable_count += 1
+            else:
+                stable_count = 1
+            last_center = current_center
+            last_dialog_detection = dialog_detection
+        else:
+            stable_count = 0
+            last_center = None
+
+        logger.info(
+            "[BattleVision][InsufficientStaminaDialog] scan=%s template=%s threshold=%.3f "
+            "region=%s capture_success=%s match=%s stable=%s/%s timeout_sec=%.3f",
+            scan,
+            str(dialog_template_path),
+            dialog_match_threshold,
+            list(dialog_region_tuple),
+            bool(dialog_capture.success),
+            dialog_detection,
+            stable_count,
+            required_stable_scans,
+            timeout,
+        )
+
+        if dialog_detection is not None and stable_count >= required_stable_scans:
+            cancel_deadline = time.monotonic() + max(float(dismiss_timeout_sec), interval)
+            cancel_scan = 0
+            cancel_detection: Optional[Dict[str, Any]] = None
+            while time.monotonic() <= cancel_deadline:
+                cancel_scan += 1
+                cancel_capture, cancel_detection = _match(
+                    cancel_region_tuple,
+                    cancel_template_path,
+                    cancel_match_threshold,
+                )
+                logger.info(
+                    "[BattleVision][InsufficientStaminaCancel] scan=%s template=%s threshold=%.3f "
+                    "region=%s capture_success=%s match=%s",
+                    cancel_scan,
+                    str(cancel_template_path),
+                    cancel_match_threshold,
+                    list(cancel_region_tuple),
+                    bool(cancel_capture.success),
+                    cancel_detection,
+                )
+                if cancel_detection is not None:
+                    break
+                time.sleep(interval)
+            if cancel_detection is None:
+                _raise_error(
+                    "stamina_cancel_template_not_found",
+                    "Insufficient-stamina dialog was found but its cancel button was not",
+                    {
+                        "dialog_detection": last_dialog_detection,
+                        "cancel_region": list(cancel_region_tuple),
+                        "cancel_template": str(cancel_template_path),
+                        "cancel_threshold": cancel_match_threshold,
+                    },
+                )
+
+            click_x = int(cancel_region_tuple[0] + cancel_detection["center"][0])
+            click_y = int(cancel_region_tuple[1] + cancel_detection["center"][1])
+            app.move_to(click_x, click_y, duration=max(float(move_duration_sec), 0.0))
+            app.click(x=click_x, y=click_y)
+            click_wait = max(float(after_click_sec), 0.0)
+            if click_wait > 0:
+                time.sleep(click_wait)
+            logger.info(
+                "[BattleClick][InsufficientStaminaCancel] click=%s confidence=%.4f "
+                "dialog_confidence=%.4f",
+                [click_x, click_y],
+                float(cancel_detection["confidence"]),
+                float(dialog_detection["confidence"]),
+            )
+
+            dismiss_deadline = time.monotonic() + max(float(dismiss_timeout_sec), 0.0)
+            dismiss_scan = 0
+            absent_stable_count = 0
+            while True:
+                dismiss_scan += 1
+                dismiss_capture, remaining_dialog = _match(
+                    dialog_region_tuple,
+                    dialog_template_path,
+                    dialog_match_threshold,
+                )
+                if remaining_dialog is None:
+                    absent_stable_count += 1
+                else:
+                    absent_stable_count = 0
+                logger.info(
+                    "[BattleVision][InsufficientStaminaDismissed] scan=%s capture_success=%s "
+                    "match=%s absent_stable=%s/%s",
+                    dismiss_scan,
+                    bool(dismiss_capture.success),
+                    remaining_dialog,
+                    absent_stable_count,
+                    required_dismiss_stable_scans,
+                )
+                if absent_stable_count >= required_dismiss_stable_scans:
+                    return {
+                        "outcome": "insufficient_stamina",
+                        "insufficient_stamina": True,
+                        "dialog_detected": True,
+                        "cancel_clicked": True,
+                        "dialog_closed": True,
+                        "dialog_confidence": float(dialog_detection["confidence"]),
+                        "cancel_confidence": float(cancel_detection["confidence"]),
+                        "click": [click_x, click_y],
+                        "scans": scan,
+                    }
+                if time.monotonic() >= dismiss_deadline:
+                    _raise_error(
+                        "stamina_dialog_dismiss_timeout",
+                        "Cancel was clicked but the insufficient-stamina dialog did not disappear",
+                        {
+                            "click": [click_x, click_y],
+                            "dismiss_scans": dismiss_scan,
+                            "last_detection": remaining_dialog,
+                        },
+                    )
+                time.sleep(interval)
+
+        if time.monotonic() >= deadline:
+            return {
+                "outcome": "normal",
+                "insufficient_stamina": False,
+                "dialog_detected": False,
+                "cancel_clicked": False,
+                "dialog_closed": True,
+                "scans": scan,
+                "elapsed_sec": round(timeout, 3),
+            }
+        time.sleep(interval)
 
 
 @action_info(

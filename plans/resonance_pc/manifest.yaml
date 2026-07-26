@@ -191,8 +191,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Select threat level by OCR numeric scan and directional horizontal
-      drag.
+    description: Select threat level by white-text preprocessed OCR and directional
+      horizontal drag.
     parameters:
     - name: threat_level
       type: Any
@@ -426,13 +426,25 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Wait for the visual back-button control to stabilize, then click
-      its detected center.
+    description: Wait for the configured back-button image template to stabilize and
+      click it, optionally repeating until the target screen is stably confirmed.
     parameters:
     - name: region
       type: Any
       required: false
       default: null
+    - name: template
+      type: Any
+      required: false
+      default: templates/battle_back_button.png
+    - name: threshold
+      type: Any
+      required: false
+      default: 0.9
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
     - name: timeout_sec
       type: Any
       required: false
@@ -449,7 +461,15 @@ exports:
       type: Any
       required: false
       default: 0.1
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 1.0
     - name: already_at_target_text
+      type: Any
+      required: false
+      default: null
+    - name: already_at_target_template
       type: Any
       required: false
       default: null
@@ -461,6 +481,26 @@ exports:
       type: Any
       required: false
       default: 0.7
+    - name: already_at_target_threshold
+      type: Any
+      required: false
+      default: 0.9
+    - name: already_at_target_use_grayscale
+      type: Any
+      required: false
+      default: true
+    - name: repeat_until_target
+      type: Any
+      required: false
+      default: false
+    - name: max_clicks
+      type: Any
+      required: false
+      default: 3
+    - name: target_stable_scans
+      type: Any
+      required: false
+      default: 2
   - name: resonance_pc.check_pixel_color_range
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_check_pixel_color_range
@@ -568,6 +608,71 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.detect_and_cancel_insufficient_stamina
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_detect_and_cancel_insufficient_stamina
+    public: true
+    read_only: false
+    timeout: null
+    description: Continuously match the insufficient-stamina dialog for a short post-click
+      window and cancel it by template when present.
+    parameters:
+    - name: dialog_region
+      type: Any
+      required: false
+      default: null
+    - name: dialog_template
+      type: Any
+      required: false
+      default: templates/battle_insufficient_stamina_dialog.png
+    - name: dialog_threshold
+      type: Any
+      required: false
+      default: 0.9
+    - name: cancel_region
+      type: Any
+      required: false
+      default: null
+    - name: cancel_template
+      type: Any
+      required: false
+      default: templates/battle_insufficient_stamina_cancel.png
+    - name: cancel_threshold
+      type: Any
+      required: false
+      default: 0.9
+    - name: timeout_sec
+      type: Any
+      required: false
+      default: 2.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.2
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 2
+    - name: dismiss_timeout_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: dismiss_stable_scans
+      type: Any
+      required: false
+      default: 2
+    - name: move_duration_sec
+      type: Any
+      required: false
+      default: 0.1
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.2
+    - name: use_grayscale
+      type: Any
+      required: false
+      default: true
   - name: resonance_pc.run_battle_resolution
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_run_battle_resolution
@@ -1755,4 +1860,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-26T08:39:15Z'
+  generated_at: '2026-07-26T10:08:54Z'

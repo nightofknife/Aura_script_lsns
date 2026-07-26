@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,13 +10,18 @@ import cv2
 import numpy as np
 import yaml
 
+from packages.aura_core.context.execution import ExecutionContext
+from packages.aura_core.engine.execution_engine import ExecutionEngine, StepState
+from packages.aura_core.engine.node_executor import NodeExecutor
 from plans.resonance_pc.src.actions import battle_dispatch_pc_actions
 from plans.resonance_pc.src.actions.battle_dispatch_pc_actions import (
     ResonancePcBattleDispatchError,
+    resonance_pc_detect_and_cancel_insufficient_stamina,
     resonance_pc_group_consecutive_jobs_by_route,
     resonance_pc_group_gp_jobs,
     resonance_pc_prepare_battle_formation,
     resonance_pc_select_action_summary_stage,
+    resonance_pc_select_threat_level_numeric,
     resonance_pc_try_select_action_summary_stage,
     resonance_pc_validate_battle_jobs,
     resonance_pc_wait_and_click_back_button,
@@ -39,6 +45,75 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         self.assertEqual(battle_dispatch_pc_actions._ACTION_SUMMARY_STAGE_OCR_TEXT["savior"], "救世")
         self.assertEqual(battle_dispatch_pc_actions._ACTION_SUMMARY_STAGE_OCR_TEXT["standard"], "制式")
         self.assertEqual(battle_dispatch_pc_actions._ACTION_SUMMARY_STAGE_OCR_TEXT["elegant"], "雅致")
+
+    def test_threat_level_preprocessing_removes_blue_and_red_card_backgrounds(self):
+        blue_card = np.full((70, 220, 3), (150, 70, 20), dtype=np.uint8)
+        red_card = np.full((70, 220, 3), (25, 25, 150), dtype=np.uint8)
+        for image in (blue_card, red_card):
+            cv2.putText(
+                image,
+                "101",
+                (20, 55),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.8,
+                (230, 230, 230),
+                4,
+                cv2.LINE_AA,
+            )
+
+        blue_processed = battle_dispatch_pc_actions._preprocess_threat_level_image(blue_card)
+        red_processed = battle_dispatch_pc_actions._preprocess_threat_level_image(red_card)
+
+        self.assertEqual(blue_processed.shape, (70, 220, 3))
+        self.assertEqual(int(blue_processed[0, 0, 0]), 0)
+        self.assertEqual(int(red_processed[0, 0, 0]), 0)
+        blue_foreground = int(np.count_nonzero(blue_processed[:, :, 0] > 192))
+        red_foreground = int(np.count_nonzero(red_processed[:, :, 0] > 192))
+        self.assertGreater(blue_foreground, 100)
+        self.assertLessEqual(abs(blue_foreground - red_foreground), 10)
+
+    def test_threat_level_selector_ocr_uses_preprocessed_image_and_restores_coordinates(self):
+        image = np.full((70, 710, 3), (150, 70, 20), dtype=np.uint8)
+        cv2.putText(
+            image,
+            "1",
+            (125, 58),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            2.0,
+            (230, 230, 230),
+            5,
+            cv2.LINE_AA,
+        )
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(success=True, image=image)
+        ocr = Mock()
+        ocr.recognize_all.return_value = SimpleNamespace(
+            results=[
+                SimpleNamespace(
+                    text="1",
+                    center_point=(150, 30),
+                    rect=(135, 10, 30, 40),
+                    confidence=0.99,
+                )
+            ]
+        )
+
+        out = resonance_pc_select_threat_level_numeric(
+            threat_level=1,
+            region=[540, 200, 710, 70],
+            max_attempts=1,
+            after_drag_sec=0.0,
+            app=app,
+            ocr=ocr,
+        )
+
+        self.assertTrue(out["found"])
+        self.assertEqual(out["click_x"], 690)
+        self.assertEqual(out["click_y"], 230)
+        app.click.assert_called_once_with(x=690, y=230)
+        processed = ocr.recognize_all.call_args.args[0]
+        self.assertEqual(processed.shape, (70, 710, 3))
+        self.assertEqual(int(processed[0, 0, 0]), 0)
 
     def test_tie_an_expel_missing_stage_fails(self):
         jobs = [
@@ -566,20 +641,29 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         self.assertEqual(out["error_code"], "action_summary_stage_unavailable")
         self.assertIn("stage is closed", out["error_message"])
 
-    def test_visual_back_button_is_detected_before_click(self):
+    def test_back_button_template_is_matched_before_click(self):
         image = np.zeros((70, 160, 3), dtype=np.uint8)
-        cv2.rectangle(image, (14, 8), (146, 54), (245, 245, 245), thickness=-1)
-        cv2.arrowedLine(image, (106, 31), (55, 31), (20, 20, 20), thickness=7, tipLength=0.35)
         app = Mock()
         app.capture.return_value = SimpleNamespace(success=True, image=image)
+        vision = Mock()
+        vision.find_template.return_value = SimpleNamespace(
+            found=True,
+            center_point=(80, 31),
+            rect=(14, 8, 133, 47),
+            confidence=0.99,
+        )
 
         out = resonance_pc_wait_and_click_back_button(
             region=[10, 5, 160, 70],
+            template="templates/battle_back_button.png",
+            threshold=0.9,
             timeout_sec=0.1,
             interval_sec=0.01,
             stable_scans=2,
             move_duration_sec=0.0,
+            after_click_sec=0.0,
             app=app,
+            vision=vision,
         )
 
         self.assertTrue(out["found"])
@@ -587,36 +671,260 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         self.assertEqual(out["scans"], 2)
         self.assertEqual(out["click"], [90, 36])
         app.click.assert_called_once_with(x=90, y=36)
+        self.assertTrue(vision.find_template.call_args.kwargs["template_image"].endswith("battle_back_button.png"))
+        self.assertEqual(vision.find_template.call_args.kwargs["threshold"], 0.9)
+
+    def test_battle_back_button_template_asset_is_real_screenshot_crop(self):
+        template_path = Path("plans/resonance_pc/templates/battle_back_button.png")
+        template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+        self.assertIsNotNone(template)
+        self.assertEqual(template.shape, (47, 133))
+        self.assertGreater(float(template.std()), 20.0)
+
+    def test_battle_main_terminal_marker_is_real_screenshot_crop(self):
+        template_path = Path("plans/resonance_pc/templates/battle_main_terminal_marker.png")
+        template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+        self.assertIsNotNone(template)
+        self.assertEqual(template.shape, (60, 160))
+        self.assertGreater(float(template.std()), 20.0)
+
+    def test_stamina_dialog_templates_are_real_screenshot_crops(self):
+        expected_shapes = {
+            "battle_insufficient_stamina_dialog.png": (52, 455),
+            "battle_insufficient_stamina_cancel.png": (66, 135),
+        }
+        for filename, expected_shape in expected_shapes.items():
+            with self.subTest(filename=filename):
+                template_path = Path("plans/resonance_pc/templates") / filename
+                template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+                self.assertIsNotNone(template)
+                self.assertEqual(template.shape, expected_shape)
+                self.assertGreater(float(template.std()), 20.0)
+
+    def test_stamina_dialog_is_cancelled_by_templates(self):
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(
+            success=True,
+            image=np.zeros((120, 500, 3), dtype=np.uint8),
+        )
+        dialog_found = SimpleNamespace(
+            found=True,
+            center_point=(250, 60),
+            rect=(23, 34, 455, 52),
+            confidence=0.98,
+        )
+        cancel_found = SimpleNamespace(
+            found=True,
+            center_point=(95, 55),
+            rect=(28, 22, 135, 66),
+            confidence=0.97,
+        )
+        missing = SimpleNamespace(
+            found=False,
+            center_point=None,
+            rect=None,
+            confidence=0.0,
+        )
+        vision = Mock()
+        vision.find_template.side_effect = [
+            dialog_found,
+            cancel_found,
+            missing,
+            missing,
+        ]
+
+        out = resonance_pc_detect_and_cancel_insufficient_stamina(
+            timeout_sec=2.0,
+            interval_sec=0.01,
+            stable_scans=1,
+            dismiss_timeout_sec=0.2,
+            dismiss_stable_scans=2,
+            move_duration_sec=0.0,
+            after_click_sec=0.0,
+            app=app,
+            vision=vision,
+        )
+
+        self.assertEqual(out["outcome"], "insufficient_stamina")
+        self.assertTrue(out["insufficient_stamina"])
+        self.assertTrue(out["cancel_clicked"])
+        self.assertTrue(out["dialog_closed"])
+        app.click.assert_called_once_with(x=335, y=505)
+        template_paths = [
+            Path(call.kwargs["template_image"]).name
+            for call in vision.find_template.call_args_list
+        ]
+        self.assertEqual(
+            template_paths,
+            [
+                "battle_insufficient_stamina_dialog.png",
+                "battle_insufficient_stamina_cancel.png",
+                "battle_insufficient_stamina_dialog.png",
+                "battle_insufficient_stamina_dialog.png",
+            ],
+        )
+
+    def test_stamina_dialog_absence_is_normal_business_outcome(self):
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(
+            success=True,
+            image=np.zeros((120, 500, 3), dtype=np.uint8),
+        )
+        vision = Mock()
+        vision.find_template.return_value = SimpleNamespace(
+            found=False,
+            center_point=None,
+            rect=None,
+            confidence=0.0,
+        )
+
+        out = resonance_pc_detect_and_cancel_insufficient_stamina(
+            timeout_sec=0.0,
+            interval_sec=0.01,
+            app=app,
+            vision=vision,
+        )
+
+        self.assertEqual(out["outcome"], "normal")
+        self.assertFalse(out["insufficient_stamina"])
+        app.click.assert_not_called()
+
+    def test_every_battle_trigger_has_two_second_stamina_template_guard(self):
+        combat_steps = self.combat_task_data["auto_battle_combat_pc"]["steps"]
+        self.assertEqual(
+            combat_steps["detect_stamina_after_start"]["depends_on"],
+            "assert_start_battle_clicked",
+        )
+        self.assertEqual(
+            combat_steps["resolve_battle_result"]["when"],
+            "{{ not nodes.detect_stamina_after_start.output.insufficient_stamina }}",
+        )
+
+        dispatch_guards = {
+            "auto_battle_ct_tie_an_run_one_pc": [
+                "detect_stamina_after_go_combat_with_difficulty",
+                "detect_stamina_after_go_combat_without_difficulty",
+            ],
+            "auto_battle_ct_regional_ops_run_one_pc": [
+                "detect_stamina_after_go_combat",
+            ],
+            "auto_battle_gp_action_summary_run_difficulty_pc": [
+                "detect_stamina_after_start_battle",
+            ],
+            "auto_battle_gp_structural_run_one_pc": [
+                "detect_stamina_after_start_auto",
+            ],
+        }
+        for task_name, guard_names in dispatch_guards.items():
+            steps = self.task_data[task_name]["steps"]
+            for guard_name in guard_names:
+                with self.subTest(task_name=task_name, guard_name=guard_name):
+                    guard = steps[guard_name]
+                    self.assertEqual(
+                        guard["action"],
+                        "resonance_pc.detect_and_cancel_insufficient_stamina",
+                    )
+                    self.assertEqual(guard["params"]["timeout_sec"], 2.0)
+                    self.assertEqual(guard["params"]["interval_sec"], 0.2)
 
     @patch.object(battle_dispatch_pc_actions, "_recognize_text_items")
     def test_visual_back_button_accepts_already_reached_initial_screen(self, recognize_text_items):
         image = np.zeros((70, 160, 3), dtype=np.uint8)
         app = Mock()
         app.capture.return_value = SimpleNamespace(success=True, image=image)
-        recognize_text_items.return_value = [
-            {
-                "text": "作战终端",
-                "normalized": "作战终端",
-                "center": (1170, 440),
-                "rect": None,
-                "confidence": 0.99,
-            }
-        ]
+        vision = Mock()
+        missing = SimpleNamespace(
+            found=False,
+            center_point=None,
+            rect=None,
+            confidence=0.0,
+        )
+        target_found = SimpleNamespace(
+            found=True,
+            center_point=(80, 30),
+            rect=(0, 0, 160, 60),
+            confidence=0.99,
+        )
+        vision.find_template.side_effect = [missing, target_found]
 
         out = resonance_pc_wait_and_click_back_button(
             region=[10, 5, 160, 70],
             timeout_sec=0.1,
             interval_sec=0.01,
             stable_scans=2,
-            already_at_target_text="作战终端",
-            already_at_target_region=[1100, 380, 150, 120],
+            already_at_target_template="templates/battle_main_terminal_marker.png",
+            already_at_target_region=[1080, 375, 190, 80],
+            already_at_target_threshold=0.95,
             app=app,
-            ocr=Mock(),
+            vision=vision,
         )
 
         self.assertTrue(out["already_at_target"])
         self.assertFalse(out["clicked"])
+        self.assertEqual(out["target_detection"], "template")
+        self.assertEqual(out["confidence"], 0.99)
+        recognize_text_items.assert_not_called()
         app.click.assert_not_called()
+
+    @patch.object(battle_dispatch_pc_actions, "_recognize_text_items")
+    def test_final_back_retries_until_initial_screen_is_stably_confirmed(self, recognize_text_items):
+        image = np.zeros((70, 160, 3), dtype=np.uint8)
+        app = Mock()
+        app.capture.return_value = SimpleNamespace(success=True, image=image)
+        found = SimpleNamespace(
+            found=True,
+            center_point=(80, 31),
+            rect=(14, 8, 133, 47),
+            confidence=0.99,
+        )
+        missing = SimpleNamespace(
+            found=False,
+            center_point=None,
+            rect=None,
+            confidence=0.0,
+        )
+        target_found = SimpleNamespace(
+            found=True,
+            center_point=(80, 30),
+            rect=(0, 0, 160, 60),
+            confidence=0.99,
+        )
+        vision = Mock()
+        vision.find_template.side_effect = [
+            found,
+            found,
+            found,
+            found,
+            missing,
+            target_found,
+            missing,
+            target_found,
+        ]
+
+        out = resonance_pc_wait_and_click_back_button(
+            region=[10, 5, 160, 70],
+            timeout_sec=0.2,
+            interval_sec=0.01,
+            stable_scans=2,
+            move_duration_sec=0.0,
+            after_click_sec=0.0,
+            already_at_target_template="templates/battle_main_terminal_marker.png",
+            already_at_target_region=[1080, 375, 190, 80],
+            already_at_target_threshold=0.95,
+            repeat_until_target=True,
+            max_clicks=4,
+            target_stable_scans=2,
+            app=app,
+            vision=vision,
+        )
+
+        self.assertTrue(out["already_at_target"])
+        self.assertTrue(out["clicked"])
+        self.assertEqual(out["click_count"], 2)
+        self.assertEqual(len(out["clicks"]), 2)
+        self.assertEqual(out["target_detection"], "template")
+        self.assertEqual(app.click.call_count, 2)
+        recognize_text_items.assert_not_called()
 
     def test_all_battle_return_steps_use_visual_back_button_detection(self):
         return_steps = {
@@ -642,7 +950,13 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
                 step = steps[step_name]
                 self.assertEqual(step["action"], "resonance_pc.wait_and_click_back_button")
                 self.assertEqual(step["params"]["region"], [10, 5, 160, 70])
+                self.assertEqual(step["params"]["template"], "templates/battle_back_button.png")
+                self.assertEqual(step["params"]["threshold"], 0.9)
+                self.assertTrue(step["params"]["use_grayscale"])
+                self.assertEqual(step["params"]["after_click_sec"], 1.0)
                 self.assertEqual(step["params"]["stable_scans"], 2)
+                if task_name != "auto_battle_dispatch_pc":
+                    self.assertFalse(step["params"].get("repeat_until_target", False))
 
         dispatch_steps = self.task_data["auto_battle_dispatch_pc"]["steps"]
         final_back = dispatch_steps["click_back_to_initial_after_single_category"]
@@ -659,7 +973,18 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
             final_back["when"],
             "{{ nodes.prepare_category_order.first_category != '' and nodes.prepare_category_order.second_category == '' }}",
         )
-        self.assertEqual(final_back["params"]["already_at_target_text"], "作战终端")
+        self.assertNotIn("already_at_target_text", final_back["params"])
+        self.assertEqual(
+            final_back["params"]["already_at_target_template"],
+            "templates/battle_main_terminal_marker.png",
+        )
+        self.assertEqual(final_back["params"]["already_at_target_region"], [1080, 375, 190, 80])
+        self.assertEqual(final_back["params"]["already_at_target_threshold"], 0.95)
+        self.assertTrue(final_back["params"]["already_at_target_use_grayscale"])
+        self.assertTrue(final_back["params"]["repeat_until_target"])
+        self.assertEqual(final_back["params"]["max_clicks"], 4)
+        self.assertEqual(final_back["params"]["target_stable_scans"], 2)
+        self.assertEqual(final_back["params"]["timeout_sec"], 20.0)
 
         final_back = dispatch_steps["click_back_to_initial_after_second_category"]
         self.assertEqual(
@@ -675,7 +1000,247 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
             final_back["when"],
             "{{ nodes.prepare_category_order.second_category != '' }}",
         )
-        self.assertEqual(final_back["params"]["already_at_target_text"], "作战终端")
+        self.assertNotIn("already_at_target_text", final_back["params"])
+        self.assertEqual(
+            final_back["params"]["already_at_target_template"],
+            "templates/battle_main_terminal_marker.png",
+        )
+        self.assertEqual(final_back["params"]["already_at_target_region"], [1080, 375, 190, 80])
+        self.assertEqual(final_back["params"]["already_at_target_threshold"], 0.95)
+        self.assertTrue(final_back["params"]["already_at_target_use_grayscale"])
+        self.assertTrue(final_back["params"]["repeat_until_target"])
+        self.assertEqual(final_back["params"]["max_clicks"], 4)
+        self.assertEqual(final_back["params"]["target_stable_scans"], 2)
+        self.assertEqual(final_back["params"]["timeout_sec"], 20.0)
+
+    def test_ct_subcategory_branches_reach_shared_terminal_barriers(self):
+        steps = self.task_data["auto_battle_ct_batch_pc"]["steps"]
+
+        self.assertNotIn("wait_after_first_tie_an_switch", steps)
+        self.assertNotIn("wait_after_first_regional_ops_switch", steps)
+        self.assertEqual(
+            steps["click_first_tie_an"]["depends_on"],
+            {"switch_first_tie_an": "success|skipped"},
+        )
+        self.assertEqual(
+            steps["wait_after_first_ct_switch"]["depends_on"],
+            {
+                "all": [
+                    {"click_first_tie_an": "success|failed|skipped"},
+                    {"switch_first_regional_ops": "success|failed|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            steps["run_first_tie_an_batch"]["depends_on"],
+            "wait_after_first_ct_switch",
+        )
+        self.assertEqual(
+            steps["run_first_regional_ops_batch"]["depends_on"],
+            "wait_after_first_ct_switch",
+        )
+
+        self.assertNotIn("wait_after_second_tie_an_switch", steps)
+        self.assertNotIn("wait_after_second_regional_ops_switch", steps)
+        self.assertEqual(
+            steps["wait_after_back_first_batch"]["depends_on"],
+            {"click_back_after_first_batch": "success|skipped"},
+        )
+        self.assertEqual(
+            steps["click_second_tie_an"]["depends_on"],
+            {"switch_second_tie_an": "success|skipped"},
+        )
+        self.assertEqual(
+            steps["wait_after_second_ct_switch"]["depends_on"],
+            {
+                "all": [
+                    {"click_second_tie_an": "success|failed|skipped"},
+                    {"switch_second_regional_ops": "success|failed|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            steps["run_second_tie_an_batch"]["depends_on"],
+            {"wait_after_second_ct_switch": "success|skipped"},
+        )
+        self.assertEqual(
+            steps["run_second_regional_ops_batch"]["depends_on"],
+            {"wait_after_second_ct_switch": "success|skipped"},
+        )
+
+    def test_regional_ops_only_ct_dag_finishes_without_pending_nodes(self):
+        task = self.task_data["auto_battle_ct_batch_pc"]
+        regional_job = {
+            "route_id": "ct.regional_ops_center.wilderness_station",
+            "city_name": "荒原站",
+            "threat_level": 1,
+            "difficulty": 1,
+        }
+
+        async def fake_execute_single_action(_executor, node_data, _node_context):
+            if node_data["action"] == "resonance_pc.group_ct_jobs":
+                return {
+                    "tie_an_jobs": [],
+                    "regional_ops_jobs": [regional_job],
+                    "unknown_jobs": [],
+                    "category_order": ["regional_ops_center"],
+                    "has_tie_an": False,
+                    "has_regional_ops_center": True,
+                }
+            return True
+
+        async def run_task():
+            pause_event = asyncio.Event()
+            pause_event.set()
+            engine = ExecutionEngine(
+                orchestrator=SimpleNamespace(debug_mode=False, services={}),
+                pause_event=pause_event,
+            )
+            context = ExecutionContext(inputs={"jobs": [regional_job]}, cid="ct-dag-test")
+            with patch.object(
+                NodeExecutor,
+                "execute_single_action",
+                new=fake_execute_single_action,
+            ):
+                await engine.run(task, "auto_battle_ct_batch_pc", context)
+                for _ in range(100):
+                    if all(
+                        state not in {StepState.PENDING, StepState.RUNNING}
+                        for state in engine.step_states.values()
+                    ):
+                        break
+                    await asyncio.sleep(0.01)
+            return engine
+
+        engine = asyncio.run(run_task())
+
+        self.assertTrue(
+            all(
+                state in {StepState.SUCCESS, StepState.SKIPPED}
+                for state in engine.step_states.values()
+            ),
+            engine.step_states,
+        )
+        self.assertEqual(engine.step_states["run_first_tie_an_batch"], StepState.SKIPPED)
+        self.assertEqual(
+            engine.step_states["run_first_regional_ops_batch"],
+            StepState.SUCCESS,
+        )
+        self.assertEqual(
+            engine.step_states["click_back_after_single_batch"],
+            StepState.SUCCESS,
+        )
+
+    def test_ct_then_gp_dispatch_dag_finishes_without_pending_template_branches(self):
+        task = self.task_data["auto_battle_dispatch_pc"]
+        ct_job = {"route_id": "ct.tie_an.shoggolith_city.bounty"}
+        gp_job = {
+            "route_id": "gp.action_summary.global_supply.magic",
+            "difficulty": 2,
+        }
+        jobs = [ct_job, gp_job]
+
+        async def fake_execute_single_action(_executor, node_data, _node_context):
+            action = node_data["action"]
+            if action == "resonance_pc.normalize_battle_jobs":
+                return {"normalized_jobs": jobs}
+            if action == "resonance_pc.validate_battle_jobs":
+                return {"normalized_jobs": jobs}
+            if action == "resonance_pc.group_battle_jobs":
+                return {
+                    "ct_jobs": [ct_job],
+                    "gp_jobs": [gp_job],
+                    "unknown_jobs": [],
+                    "category_order": ["ct", "gp"],
+                }
+            return True
+
+        async def run_task():
+            pause_event = asyncio.Event()
+            pause_event.set()
+            engine = ExecutionEngine(
+                orchestrator=SimpleNamespace(debug_mode=False, services={}),
+                pause_event=pause_event,
+            )
+            context = ExecutionContext(
+                inputs={"jobs": jobs, "stop_on_failure": True},
+                cid="ct-gp-template-dag-test",
+            )
+            with patch.object(
+                NodeExecutor,
+                "execute_single_action",
+                new=fake_execute_single_action,
+            ):
+                await engine.run(task, "auto_battle_dispatch_pc", context)
+                for _ in range(100):
+                    if all(
+                        state not in {StepState.PENDING, StepState.RUNNING}
+                        for state in engine.step_states.values()
+                    ):
+                        break
+                    await asyncio.sleep(0.01)
+            return engine
+
+        engine = asyncio.run(run_task())
+
+        self.assertTrue(
+            all(
+                state in {StepState.SUCCESS, StepState.SKIPPED}
+                for state in engine.step_states.values()
+            ),
+            engine.step_states,
+        )
+        self.assertEqual(engine.step_states["run_first_ct_batch"], StepState.SUCCESS)
+        self.assertEqual(engine.step_states["run_second_gp_batch"], StepState.SUCCESS)
+        self.assertEqual(
+            engine.step_states["click_back_to_initial_after_second_category"],
+            StepState.SUCCESS,
+        )
+
+    def test_optional_category_chains_propagate_skipped_state(self):
+        gp_steps = self.task_data["auto_battle_gp_batch_pc"]["steps"]
+        self.assertEqual(
+            gp_steps["wait_after_back_first_gp_batch"]["depends_on"],
+            {"click_back_after_first_gp_batch": "success|skipped"},
+        )
+        self.assertEqual(
+            gp_steps["switch_second_action_summary"]["depends_on"],
+            {"wait_after_back_first_gp_batch": "success|skipped"},
+        )
+        self.assertEqual(
+            gp_steps["switch_second_structural"]["depends_on"],
+            {"wait_after_back_first_gp_batch": "success|skipped"},
+        )
+        self.assertEqual(
+            gp_steps["run_second_action_summary_batch"]["depends_on"],
+            {"wait_after_second_gp_switch": "success|skipped"},
+        )
+        self.assertEqual(
+            gp_steps["run_second_structural_batch"]["depends_on"],
+            {"wait_after_second_gp_switch": "success|skipped"},
+        )
+
+        dispatch_steps = self.task_data["auto_battle_dispatch_pc"]["steps"]
+        self.assertEqual(
+            dispatch_steps["wait_after_ct_menu_recovery"]["depends_on"],
+            {"recover_ct_menu_after_first_gp": "success|skipped"},
+        )
+        self.assertEqual(
+            dispatch_steps["wait_second_ct_category_template"]["depends_on"],
+            {"wait_after_ct_menu_recovery": "success|skipped"},
+        )
+        self.assertEqual(
+            dispatch_steps["switch_second_ct"]["depends_on"],
+            {"wait_second_ct_category_template": "success|skipped"},
+        )
+        self.assertEqual(
+            dispatch_steps["run_second_ct_batch"]["depends_on"],
+            {"wait_after_second_switch": "success|skipped"},
+        )
+        self.assertEqual(
+            dispatch_steps["run_second_gp_batch"]["depends_on"],
+            {"wait_after_second_switch": "success|skipped"},
+        )
 
     def test_action_summary_difficulty_requires_start_battle_business_success(self):
         steps = self.task_data["auto_battle_gp_action_summary_run_difficulty_pc"]["steps"]
@@ -688,7 +1253,28 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         assertion = steps["assert_start_battle_clicked"]
         self.assertEqual(assertion["action"], "plans/aura_base/assert_condition")
         self.assertIn("nodes.click_start_battle.output", assertion["params"]["condition"])
-        self.assertEqual(steps["run_combat_after_start_battle"]["depends_on"], "assert_start_battle_clicked")
+        self.assertEqual(
+            steps["detect_stamina_after_start_battle"]["depends_on"],
+            "assert_start_battle_clicked",
+        )
+        self.assertEqual(
+            steps["run_combat_after_start_battle"]["depends_on"],
+            "detect_stamina_after_start_battle",
+        )
+
+    def test_tie_an_expel_waits_after_confirming_difficulty(self):
+        steps = self.task_data["auto_battle_ct_tie_an_run_one_pc"]["steps"]
+        wait_step = steps["wait_after_confirm_difficulty"]
+        self.assertEqual(wait_step["action"], "plans/aura_base/sleep")
+        self.assertEqual(wait_step["params"]["seconds"], 0.5)
+        self.assertEqual(
+            wait_step["depends_on"],
+            {"click_confirm_difficulty": "success|skipped"},
+        )
+        self.assertEqual(
+            steps["click_go_combat_with_difficulty"]["depends_on"],
+            {"wait_after_confirm_difficulty": "success|skipped"},
+        )
 
     def test_all_pc_battle_task_drags_hold_before_release(self):
         expected_custom_actions = {
@@ -738,10 +1324,78 @@ class TestResonanceBattleDispatchActions(unittest.TestCase):
         )
 
         wait_step = steps["wait_after_ct_menu_recovery"]
-        self.assertEqual(wait_step["depends_on"], "recover_ct_menu_after_first_gp")
+        self.assertEqual(
+            wait_step["depends_on"],
+            {"recover_ct_menu_after_first_gp": "success|skipped"},
+        )
 
-        switch_second_ct = steps["switch_second_ct"]
-        self.assertEqual(switch_second_ct["depends_on"], "wait_after_ct_menu_recovery")
+        wait_second_ct = steps["wait_second_ct_category_template"]
+        self.assertEqual(
+            wait_second_ct["depends_on"],
+            {"wait_after_ct_menu_recovery": "success|skipped"},
+        )
+
+    def test_top_level_category_switches_wait_for_templates_and_assert_clicks(self):
+        steps = self.task_data["auto_battle_dispatch_pc"]["steps"]
+        cases = (
+            ("first", "ct", "templates/battle_category_ct.png"),
+            ("first", "gp", "templates/battle_category_gp.png"),
+            ("second", "ct", "templates/battle_category_ct.png"),
+            ("second", "gp", "templates/battle_category_gp.png"),
+        )
+
+        for order, category, template in cases:
+            wait_step = steps[f"wait_{order}_{category}_category_template"]
+            switch_step = steps[f"switch_{order}_{category}"]
+            assert_step = steps[f"assert_{order}_{category}_switched"]
+
+            self.assertEqual(wait_step["action"], "plans/aura_base/wait_for_image")
+            self.assertEqual(wait_step["params"]["template"], template)
+            self.assertEqual(wait_step["params"]["timeout"], 8.0)
+            self.assertEqual(wait_step["params"]["interval"], 0.2)
+            self.assertEqual(wait_step["params"]["region"], [20, 180, 200, 160])
+            self.assertEqual(wait_step["params"]["threshold"], 0.95)
+            self.assertTrue(wait_step["params"]["use_grayscale"])
+
+            self.assertEqual(switch_step["action"], "plans/aura_base/find_image_and_click")
+            self.assertEqual(switch_step["params"]["template"], template)
+            self.assertEqual(
+                switch_step["depends_on"],
+                {f"wait_{order}_{category}_category_template": "success|skipped"},
+            )
+            self.assertEqual(
+                switch_step["when"],
+                f"{{{{ nodes.prepare_category_order.{order}_category == '{category}' }}}}",
+            )
+
+            self.assertEqual(assert_step["action"], "plans/aura_base/assert_condition")
+            self.assertEqual(
+                assert_step["depends_on"],
+                {f"switch_{order}_{category}": "success|skipped"},
+            )
+            self.assertIn(
+                f"nodes.switch_{order}_{category}.output",
+                assert_step["params"]["condition"],
+            )
+
+        self.assertEqual(
+            steps["wait_after_first_switch"]["depends_on"],
+            {
+                "all": [
+                    {"assert_first_ct_switched": "success|skipped"},
+                    {"assert_first_gp_switched": "success|skipped"},
+                ]
+            },
+        )
+        self.assertEqual(
+            steps["wait_after_second_switch"]["depends_on"],
+            {
+                "all": [
+                    {"assert_second_ct_switched": "success|skipped"},
+                    {"assert_second_gp_switched": "success|skipped"},
+                ]
+            },
+        )
 
 
 if __name__ == "__main__":

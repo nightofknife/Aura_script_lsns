@@ -40,6 +40,20 @@ auto_battle_combat_pc:
         message: "failed to click combat start entry"
       depends_on: click_start_entry
 
+    detect_stamina_after_start:
+      action: resonance_pc.detect_and_cancel_insufficient_stamina
+      params:
+        dialog_region: [430, 300, 500, 120]
+        dialog_template: "templates/battle_insufficient_stamina_dialog.png"
+        dialog_threshold: 0.9
+        cancel_region: [240, 450, 220, 110]
+        cancel_template: "templates/battle_insufficient_stamina_cancel.png"
+        cancel_threshold: 0.9
+        timeout_sec: 2.0
+        interval_sec: 0.2
+        stable_scans: 2
+      depends_on: assert_start_battle_clicked
+
     resolve_battle_result:
       action: resonance_pc.run_battle_resolution
       params:
@@ -53,7 +67,9 @@ auto_battle_combat_pc:
         confirm_timeout_sec: 30.0
         exit_hint_timeout_sec: 30.0
         short_interval_sec: 0.5
-      depends_on: assert_start_battle_clicked
+      depends_on: detect_stamina_after_start
+      when: "{{ not nodes.detect_stamina_after_start.output.insufficient_stamina }}"
   returns:
     success: true
-    branch: "{{ nodes.resolve_battle_result.output.branch }}"
+    outcome: "{{ 'insufficient_stamina' if nodes.detect_stamina_after_start.output.insufficient_stamina else 'completed' }}"
+    branch: "{{ nodes.resolve_battle_result.output.branch | default(none) }}"
