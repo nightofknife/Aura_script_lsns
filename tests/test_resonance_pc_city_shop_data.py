@@ -6,6 +6,21 @@ from plans.resonance_pc.src.services.city_shop_data_pc_service import (
 )
 
 
+def test_anita_rocket_base_exchange_uses_pc_client_coordinates() -> None:
+    service = ResonancePcCityShopDataService()
+
+    exchange = service.resolve_shop_point("阿妮塔发射中心", "交易所")
+
+    assert exchange == {
+        "city_key": "anita_rocket_base",
+        "city_name": "阿妮塔发射中心",
+        "shop_key": "exchange",
+        "shop_name": "交易所",
+        "x": 505,
+        "y": 475,
+    }
+
+
 def test_black_moon_amusement_park_city_and_exchange_are_resolvable() -> None:
     service = ResonancePcCityShopDataService()
 
