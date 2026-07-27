@@ -397,6 +397,29 @@ def test_select_intercity_destination_does_not_fallback_drag_without_mappable_ci
     assert app.clicks == []
 
 
+def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_mapping():
+    app = _FakeApp()
+    ocr = _FakeOcr([["云帅桥基地"], ["岚心城"]])
+
+    result = resonance_pc_select_intercity_destination(
+        to_city_name="岚心城",
+        location_file_path="data/meta/location_pc.json",
+        max_search_steps=2,
+        drag_duration_sec=0,
+        drag_hold_sec=0,
+        app=app,
+        ocr=ocr,
+        controller=_FakeController(),
+    )
+
+    first_attempt = result["attempt_trace"][0]
+    assert result["attempts_used"] == 2
+    assert first_attempt["observed"][0]["text"] == "云帅桥基地"
+    assert first_attempt["observed"][0]["norm_text"] == "云岫桥基地"
+    assert first_attempt["mappable"][0]["city_key"] == "yunxiuqiao_base"
+    assert app.clicks == [(220, 265)]
+
+
 def test_intercity_depart_and_wait_can_confirm_and_arrive_without_fatigue_panel():
     app = _FakeApp()
     ocr = _FakeOcr([["启程"], ["7号自由港"], ["立即出发"]])

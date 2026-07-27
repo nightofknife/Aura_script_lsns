@@ -77,13 +77,20 @@ def _coerce_book_count(books_used: Any, max_books_per_purchase: Any) -> int:
             "max_books_per_purchase must be > 0",
             {"max_books_per_purchase": max_books_per_purchase},
         )
-    if requested > max_books:
-        _raise_error(
-            "books_used_exceeds_ui_limit",
-            "requested books_used exceeds the purchase item dialog limit",
-            {"books_used": requested, "max_books_per_purchase": max_books},
-        )
     return requested
+
+
+def _split_book_batches(books_used: Any, max_books_per_purchase: Any) -> List[int]:
+    requested = _coerce_book_count(books_used, max_books_per_purchase)
+    max_books = int(max_books_per_purchase)
+    if requested <= 0:
+        return []
+
+    full_batches, remainder = divmod(requested, max_books)
+    batches = [max_books] * full_batches
+    if remainder:
+        batches.append(remainder)
+    return batches
 
 
 def _offset_center(center: Tuple[int, int] | None, region: Tuple[int, int, int, int]) -> Tuple[int, int] | None:
@@ -251,40 +258,18 @@ def _click_template_or_point(
     )
 
 
-@action_info(
-    name="resonance_pc.use_purchase_books",
-    public=True,
-    description="Use 进货采买书 before selecting products on the buy-goods page.",
-)
-@requires_services(
-    app="plans/aura_base/app",
-    ocr="plans/aura_base/ocr",
-    vision="plans/aura_base/vision",
-)
-def resonance_pc_use_purchase_books(
-    books_used: int,
-    item_name: str = "进货采买书",
-    max_books_per_purchase: int = 10,
-    open_timeout_sec: float = 3.0,
-    dialog_timeout_sec: float = 3.0,
-    click_interval_sec: float = 0.2,
-    app: Any = None,
-    ocr: Any = None,
-    vision: Any = None,
+def _use_purchase_book_batch(
+    *,
+    batch_size: int,
+    item_name: str,
+    open_timeout_sec: float,
+    dialog_timeout_sec: float,
+    click_interval_sec: float,
+    app: Any,
+    ocr: Any,
+    vision: Any,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None:
-        _raise_error("missing_service", "app, ocr and vision services are required")
-
-    requested = _coerce_book_count(books_used, max_books_per_purchase)
-    if requested <= 0:
-        return {
-            "ok": True,
-            "used": 0,
-            "skipped": True,
-            "reason": "books_used_zero",
-        }
-
-    logger.info("准备使用 %s x %d。", item_name, requested)
+    logger.info("执行单批 %s x %d。", item_name, batch_size)
 
     open_click = _click_template_or_point(
         app,
@@ -308,7 +293,7 @@ def resonance_pc_use_purchase_books(
         _raise_error(
             "purchase_item_modal_not_found",
             "failed to find purchase item row after opening item dialog",
-            {"item_name": item_name},
+            {"item_name": item_name, "batch_size": batch_size},
         )
 
     item_use_click = _click_template_or_point(
@@ -333,10 +318,10 @@ def resonance_pc_use_purchase_books(
         _raise_error(
             "purchase_book_quantity_dialog_not_found",
             "failed to find purchase book quantity dialog",
-            {"item_name": item_name, "books_used": requested},
+            {"item_name": item_name, "books_used": batch_size},
         )
 
-    plus_clicks = max(requested - 1, 0)
+    plus_clicks = max(batch_size - 1, 0)
     for _ in range(plus_clicks):
         app.click(x=_PLUS_ONE_POINT[0], y=_PLUS_ONE_POINT[1])
         time.sleep(max(float(click_interval_sec), 0.1))
@@ -364,7 +349,7 @@ def resonance_pc_use_purchase_books(
         _raise_error(
             "purchase_book_confirm_not_applied",
             "purchase book quantity dialog remained after clicking confirm",
-            {"item_name": item_name, "books_used": requested, "confirm_click": confirm_click},
+            {"item_name": item_name, "books_used": batch_size, "confirm_click": confirm_click},
         )
 
     ready_result = _wait_for_text(
@@ -376,15 +361,151 @@ def resonance_pc_use_purchase_books(
         interval_sec=0.3,
     )
     if not getattr(ready_result, "found", False):
-        logger.warning("使用 %s 后未确认看到预计买入，但会继续后续买货步骤。", item_name)
+        logger.warning("使用 %s x %d 后未确认看到预计买入。", item_name, batch_size)
 
     return {
         "ok": True,
-        "used": requested,
+        "used": batch_size,
         "item_name": item_name,
         "plus_clicks": plus_clicks,
         "open_click": open_click,
         "item_use_click": item_use_click,
         "confirm_click": confirm_click,
         "buy_page_ready": bool(getattr(ready_result, "found", False)),
+    }
+
+
+@action_info(
+    name="resonance_pc.use_purchase_books",
+    public=True,
+    description="Use 进货采买书 before selecting products on the buy-goods page.",
+)
+@requires_services(
+    app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
+    vision="plans/aura_base/vision",
+)
+def resonance_pc_use_purchase_books(
+    books_used: int,
+    item_name: str = "进货采买书",
+    max_books_per_purchase: int = 10,
+    open_timeout_sec: float = 3.0,
+    dialog_timeout_sec: float = 3.0,
+    click_interval_sec: float = 0.2,
+    app: Any = None,
+    ocr: Any = None,
+    vision: Any = None,
+) -> Dict[str, Any]:
+    if app is None or ocr is None or vision is None:
+        _raise_error("missing_service", "app, ocr and vision services are required")
+
+    requested = _coerce_book_count(books_used, max_books_per_purchase)
+    max_books = int(max_books_per_purchase)
+    batch_sizes = _split_book_batches(requested, max_books)
+    if requested <= 0:
+        return {
+            "ok": True,
+            "requested": 0,
+            "used": 0,
+            "skipped": True,
+            "reason": "books_used_zero",
+            "max_books_per_purchase": max_books,
+            "batch_count": 0,
+            "batch_sizes": [],
+            "batches": [],
+        }
+
+    logger.info(
+        "准备分批使用 %s：总数=%d，单批上限=%d，批次=%s。",
+        item_name,
+        requested,
+        max_books,
+        batch_sizes,
+    )
+
+    completed_batches: List[Dict[str, Any]] = []
+    used = 0
+    for batch_index, batch_size in enumerate(batch_sizes, start=1):
+        logger.info(
+            "开始使用 %s 批次 %d/%d：数量=%d。",
+            item_name,
+            batch_index,
+            len(batch_sizes),
+            batch_size,
+        )
+        try:
+            batch_result = _use_purchase_book_batch(
+                batch_size=batch_size,
+                item_name=item_name,
+                open_timeout_sec=open_timeout_sec,
+                dialog_timeout_sec=dialog_timeout_sec,
+                click_interval_sec=click_interval_sec,
+                app=app,
+                ocr=ocr,
+                vision=vision,
+            )
+        except PurchaseBookUseError as exc:
+            _raise_error(
+                "purchase_book_batch_failed",
+                "failed while applying a purchase-book batch",
+                {
+                    "item_name": item_name,
+                    "requested": requested,
+                    "used_before_failure": used,
+                    "failed_batch_index": batch_index,
+                    "failed_batch_size": batch_size,
+                    "batch_sizes": batch_sizes,
+                    "completed_batches": completed_batches,
+                    "cause": exc.to_dict(),
+                },
+            )
+
+        batch_record = {
+            **batch_result,
+            "batch_index": batch_index,
+            "batch_size": batch_size,
+        }
+        completed_batches.append(batch_record)
+        used += batch_size
+
+        if batch_index < len(batch_sizes) and not batch_result["buy_page_ready"]:
+            _raise_error(
+                "purchase_book_batch_return_not_ready",
+                "buy page was not confirmed before the next purchase-book batch",
+                {
+                    "item_name": item_name,
+                    "requested": requested,
+                    "used_before_failure": used,
+                    "failed_batch_index": batch_index + 1,
+                    "failed_batch_size": batch_sizes[batch_index],
+                    "batch_sizes": batch_sizes,
+                    "completed_batches": completed_batches,
+                },
+            )
+
+        logger.info(
+            "完成使用 %s 批次 %d/%d：本批=%d，累计=%d/%d。",
+            item_name,
+            batch_index,
+            len(batch_sizes),
+            batch_size,
+            used,
+            requested,
+        )
+
+    last_batch = completed_batches[-1]
+    return {
+        "ok": True,
+        "requested": requested,
+        "used": used,
+        "item_name": item_name,
+        "max_books_per_purchase": max_books,
+        "batch_count": len(completed_batches),
+        "batch_sizes": batch_sizes,
+        "batches": completed_batches,
+        "plus_clicks": sum(int(batch["plus_clicks"]) for batch in completed_batches),
+        "open_click": last_batch["open_click"],
+        "item_use_click": last_batch["item_use_click"],
+        "confirm_click": last_batch["confirm_click"],
+        "buy_page_ready": all(bool(batch["buy_page_ready"]) for batch in completed_batches),
     }
