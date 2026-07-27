@@ -18,7 +18,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--fatigue-budget", type=int, required=True)
     parser.add_argument("--cargo-capacity", type=int, required=True)
     parser.add_argument("--book-budget", type=int, default=0)
-    parser.add_argument("--book-profit-threshold", type=float, default=0.0)
+    parser.add_argument("--book-profit-threshold", type=float, default=15000.0)
     parser.add_argument("--max-cycle-hops", type=int, default=6)
     parser.add_argument("--max-rounds", type=int, default=64)
     parser.add_argument("--use-fatigue-medicine", action="store_true")

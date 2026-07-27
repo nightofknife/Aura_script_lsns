@@ -42,7 +42,7 @@ TASKS: list[dict[str, Any]] = [
         "inputs": {
             "cargo_capacity": 120,
             "book_budget": 0,
-            "book_profit_threshold": 0,
+            "book_profit_threshold": 15000,
             "max_cycle_hops": 4,
         },
         "timeout_sec": 90,

@@ -20,6 +20,9 @@ from .resonance_pc_market_data_service import (
 from .resonance_pc_trade_exact_solver import ResonancePcExactTradeSolver
 
 
+DEFAULT_BOOK_PROFIT_THRESHOLD = 15000
+
+
 class ResonancePcTradePlannerError(RuntimeError):
     """Structured planner error."""
 
@@ -141,7 +144,7 @@ class ResonancePcTradePlannerService:
         fatigue_budget: int = 100,
         cargo_capacity: int = 650,
         book_budget: int = 0,
-        book_profit_threshold: Any = 0,
+        book_profit_threshold: Any = DEFAULT_BOOK_PROFIT_THRESHOLD,
         negotiation_budget: int = 0,
         all_plan: int = 0,
         bargain_success_rates_bps: Optional[List[Any]] = [5000],
@@ -590,7 +593,7 @@ class ResonancePcTradePlannerService:
         *,
         cargo_capacity: int = 120,
         book_budget: int = 0,
-        book_profit_threshold: float = 0,
+        book_profit_threshold: float = DEFAULT_BOOK_PROFIT_THRESHOLD,
         available_city_ids: Optional[List[str]] = None,
         start_city_id: Optional[str] = None,
         current_city_id: Optional[str] = None,
@@ -635,7 +638,7 @@ class ResonancePcTradePlannerService:
         current_city: Optional[str] = None,
         cargo_capacity: int = 650,
         book_budget: int = 0,
-        book_profit_threshold: float = 0,
+        book_profit_threshold: float = DEFAULT_BOOK_PROFIT_THRESHOLD,
         max_cycle_hops: int = DEFAULT_CYCLE_MAX_HOPS,
         snapshot_id: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -703,7 +706,7 @@ class ResonancePcTradePlannerService:
         *,
         cargo_capacity: int = 120,
         book_budget: int = 0,
-        book_profit_threshold: float = 0,
+        book_profit_threshold: float = DEFAULT_BOOK_PROFIT_THRESHOLD,
         available_city_ids: Optional[List[str]] = None,
         start_city_id: Optional[str] = None,
         current_city_id: Optional[str] = None,
@@ -924,7 +927,7 @@ class ResonancePcTradePlannerService:
         current_city: Optional[str] = None,
         cargo_capacity: int = 650,
         book_budget: int = 0,
-        book_profit_threshold: float = 0,
+        book_profit_threshold: float = DEFAULT_BOOK_PROFIT_THRESHOLD,
         max_cycle_hops: int = DEFAULT_CYCLE_MAX_HOPS,
         snapshot_id: Optional[str] = None,
     ) -> Dict[str, Any]:

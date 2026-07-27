@@ -99,7 +99,7 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `fatigue_budget` | int | `100` | `>=0` | 旅行疲劳与议价期望疲劳的总预算 |
 | `cargo_capacity` | int | `650` | `>0` | 每段可装载商品数量 |
 | `book_budget` | int | `0` | `>=0` | 整条路线共享的进货书数量 |
-| `book_profit_threshold` | number | `0` | `>=0` | 第 N 本书相对第 N-1 本书的最低税后边际收益 |
+| `book_profit_threshold` | number | `15000` | `>=0` | 第 N 本书相对第 N-1 本书的最低税后边际收益 |
 | `negotiation_budget` | int | `0` | `>=0` | `all_plan=0` 时允许的满砍价/满抬价总次数 |
 | `negotiation_max_attempts` | int | `5` | `1..6` | 自动执行时每次砍价或抬价最多点击次数；每次操作独立重新计数，不影响规划 |
 | `bargain_success_rates_bps` | list[int] | `[5000]` | 非空，每项 `0..10000` | 砍满所需期望疲劳 |

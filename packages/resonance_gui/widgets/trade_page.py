@@ -471,7 +471,7 @@ class TradePage(QWidget):
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 100)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 650)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
-        self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 0)))
+        self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 15000)))
         self.negotiation_budget.setValue(int(values.get("negotiation_budget", 0)))
         self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))
         self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
