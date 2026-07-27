@@ -29,7 +29,7 @@ auto_cycle_trade_pc:
       - name: book_profit_threshold
         type: number
         required: false
-        default: 0
+        default: 15000
         min: 0
       - name: negotiation_budget
         type: number
@@ -219,7 +219,7 @@ auto_cycle_trade_pc:
         fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
-        book_profit_threshold: "{{ inputs.book_profit_threshold | default(0) }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold | default(15000) }}"
         negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
         negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"

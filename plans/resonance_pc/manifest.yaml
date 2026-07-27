@@ -893,7 +893,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: negotiation_budget
       type: Any
       required: false
@@ -964,7 +964,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: negotiation_budget
       type: Any
       required: false
@@ -1322,7 +1322,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: negotiation_budget
       type: Any
       required: false
@@ -1448,7 +1448,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: available_city_ids
       type: Any
       required: false
@@ -1513,7 +1513,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: max_cycle_hops
       type: Any
       required: false
@@ -1557,7 +1557,7 @@ exports:
     - name: book_profit_threshold
       type: Any
       required: false
-      default: 0
+      default: 15000
     - name: max_cycle_hops
       type: Any
       required: false
@@ -1860,4 +1860,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-26T10:08:54Z'
+  generated_at: '2026-07-27T03:20:12Z'

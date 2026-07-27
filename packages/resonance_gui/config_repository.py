@@ -48,7 +48,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 100,
     "cargo_capacity": 650,
     "book_budget": 0,
-    "book_profit_threshold": 0,
+    "book_profit_threshold": 15000,
     "negotiation_budget": 0,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],

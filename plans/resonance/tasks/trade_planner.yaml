@@ -19,7 +19,7 @@ trade_plan_next:
       - name: book_profit_threshold
         type: number
         required: false
-        default: 0
+        default: 15000
       - name: available_city_ids
         type: list
         required: true
@@ -67,7 +67,7 @@ trade_plan_best_cycle:
       - name: book_profit_threshold
         type: number
         required: false
-        default: 0
+        default: 15000
       - name: available_city_ids
         type: list
         required: false
@@ -133,7 +133,7 @@ trade_simulate:
       - name: book_profit_threshold
         type: number
         required: false
-        default: 0
+        default: 15000
       - name: available_city_ids
         type: list
         required: true

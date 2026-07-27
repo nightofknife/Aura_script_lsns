@@ -136,6 +136,11 @@ _CITY_ALIAS_TO_KEY: Dict[str, str] = {
     "沃德镇": "confluence_tower",
 }
 
+_CITY_OCR_TEXT_REPLACEMENTS: Dict[str, str] = {
+    # Temporary compatibility for a recurring intercity-map OCR confusion.
+    "云帅桥基地": "云岫桥基地",
+}
+
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
     raise IntercityDestinationError(code=code, message=message, detail=detail)
@@ -144,6 +149,13 @@ def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = Non
 def _normalize_text(text: Any) -> str:
     normalized = re.sub(r"[\s\u3000\|:：,，。!?！？()（）\[\]【】<>《》\"'`~\-]+", "", str(text))
     return normalized.strip().lower()
+
+
+def _normalize_city_ocr_text(text: Any) -> str:
+    normalized = _normalize_text(text)
+    for observed_text, canonical_text in _CITY_OCR_TEXT_REPLACEMENTS.items():
+        normalized = normalized.replace(observed_text, canonical_text)
+    return normalized
 
 
 def _resolve_location_file_path(location_file_path: str) -> Path:
@@ -338,7 +350,7 @@ def _capture_and_ocr_city_labels(
         observed.append(
             {
                 "text": text,
-                "norm_text": _normalize_text(text),
+                "norm_text": _normalize_city_ocr_text(text),
                 "center": [abs_x, abs_y],
                 "confidence": float(getattr(item, "confidence", 0.0) or 0.0),
             }
