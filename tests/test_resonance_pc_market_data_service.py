@@ -110,12 +110,16 @@ def test_extract_buy_lot_pairs_from_chunk_text():
     chunk = (
         'abc {name:"发动机",buyPrices:{修格里城:3363},buyLot:{修格里城:9},sellPrices:{汇流塔:4170}} '
         '{name:"弹丸加速装置",buyLot:{修格里城:18,铁盟哨站:18},sellPrices:{汇流塔:2920}} '
-        '{name:"手工编织地毯",buyLot:{},sellPrices:{汇流塔:2074}} xyz'
+        '{name:"手工编织地毯",buyLot:{},sellPrices:{汇流塔:2074}} '
+        '{name:"宇航服",type:"Craft",craft:{太空棉:.375,芳纶纤维:.375},buyPrices:{云岫桥基地:99999}} '
+        '{name:"鱼肝油",sellPrices:{岚心城:4663},type:"Special",buyPrices:{汇流塔:2680},buyLot:{汇流塔:8}} xyz'
     )
     pairs = ResonancePcMarketDataService._extract_product_buy_lot_pairs(chunk)
     assert pairs["发动机"] == {"修格里城": 9}
     assert pairs["弹丸加速装置"] == {"修格里城": 18, "铁盟哨站": 18}
     assert pairs["手工编织地毯"] == {}
+    assert "宇航服" not in pairs
+    assert pairs["鱼肝油"] == {"汇流塔": 8}
 
 
 def test_refresh_includes_buy_lot_from_web_source(tmp_path: Path):

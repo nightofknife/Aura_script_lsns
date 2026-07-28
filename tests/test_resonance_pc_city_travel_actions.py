@@ -397,9 +397,12 @@ def test_select_intercity_destination_does_not_fallback_drag_without_mappable_ci
     assert app.clicks == []
 
 
-def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_mapping():
+@pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地"])
+def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_mapping(
+    observed_city_name,
+):
     app = _FakeApp()
-    ocr = _FakeOcr([["云帅桥基地"], ["岚心城"]])
+    ocr = _FakeOcr([[observed_city_name], ["岚心城"]])
 
     result = resonance_pc_select_intercity_destination(
         to_city_name="岚心城",
@@ -414,7 +417,7 @@ def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_m
 
     first_attempt = result["attempt_trace"][0]
     assert result["attempts_used"] == 2
-    assert first_attempt["observed"][0]["text"] == "云帅桥基地"
+    assert first_attempt["observed"][0]["text"] == observed_city_name
     assert first_attempt["observed"][0]["norm_text"] == "云岫桥基地"
     assert first_attempt["mappable"][0]["city_key"] == "yunxiuqiao_base"
     assert app.clicks == [(220, 265)]

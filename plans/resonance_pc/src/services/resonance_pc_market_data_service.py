@@ -978,11 +978,42 @@ class ResonancePcMarketDataService:
             return {}
 
         pairs: Dict[str, Dict[str, int]] = {}
-        for match in re.finditer(r'\{name:"([^"]+?)",.*?buyLot:\{([^{}]*)\}', chunk_text, re.DOTALL):
-            product_name = str(match.group(1)).strip()
+        for name_match in re.finditer(r'\{name:"([^"]+?)",', chunk_text):
+            object_start = name_match.start()
+            object_end: Optional[int] = None
+            depth = 0
+            quote: Optional[str] = None
+            escaped = False
+            for index in range(object_start, len(chunk_text)):
+                char = chunk_text[index]
+                if quote is not None:
+                    if escaped:
+                        escaped = False
+                    elif char == "\\":
+                        escaped = True
+                    elif char == quote:
+                        quote = None
+                    continue
+                if char in {'"', "'", "`"}:
+                    quote = char
+                elif char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                    if depth == 0:
+                        object_end = index + 1
+                        break
+            if object_end is None:
+                continue
+
+            product_object = chunk_text[object_start:object_end]
+            lot_match = re.search(r"buyLot:\{([^{}]*)\}", product_object)
+            if lot_match is None:
+                continue
+            product_name = str(name_match.group(1)).strip()
             if not product_name:
                 continue
-            lot_block = str(match.group(2) or "")
+            lot_block = str(lot_match.group(1) or "")
             city_lots: Dict[str, int] = {}
             for city_name, lot_text in re.findall(r"([^,:{}]+):([0-9]+)", lot_block):
                 cname = str(city_name).strip()
