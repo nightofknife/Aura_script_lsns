@@ -1298,6 +1298,117 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.enter_reforming_center
+    module: plans.resonance_pc.src.actions.reforming_center_pc_actions
+    function: resonance_pc_enter_reforming_center
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter the Reforming Center from the game main screen via the profile
+      menu.
+    parameters:
+    - name: main_timeout_sec
+      type: Any
+      required: false
+      default: 5.0
+    - name: menu_timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: entry_timeout_sec
+      type: Any
+      required: false
+      default: 20.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_profile_click_sec
+      type: Any
+      required: false
+      default: 0.8
+  - name: resonance_pc.admit_all_available_prisoners
+    module: plans.resonance_pc.src.actions.reforming_center_pc_actions
+    function: resonance_pc_admit_all_available_prisoners
+    public: true
+    read_only: false
+    timeout: null
+    description: Admit all available prisoners up to the Reforming Center capacity
+      and return to its overview.
+    parameters:
+    - name: page_timeout_sec
+      type: Any
+      required: false
+      default: 15.0
+    - name: success_timeout_sec
+      type: Any
+      required: false
+      default: 20.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.5
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.5
+  - name: resonance_pc.navigate_reforming_center_room
+    module: plans.resonance_pc.src.actions.reforming_center_pc_actions
+    function: resonance_pc_navigate_reforming_center_room
+    public: true
+    read_only: false
+    timeout: null
+    description: Find a Reforming Center room by OCR, safely pan it into the interaction
+      area, and click it.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: room_layout_path
+      type: Any
+      required: false
+      default: null
+    - name: search_region
+      type: Any
+      required: false
+      default: null
+    - name: drag_region
+      type: Any
+      required: false
+      default: null
+    - name: click_region
+      type: Any
+      required: false
+      default: null
+    - name: target_title_point
+      type: Any
+      required: false
+      default: null
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: max_no_anchor_polls
+      type: Any
+      required: false
+      default: 2
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.8
+    - name: drag_hold_sec
+      type: Any
+      required: false
+      default: 0.2
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 0.8
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.trade_plan_optimal_route
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_optimal_route
@@ -1767,6 +1878,16 @@ exports:
       required: false
       default: 128
   tasks:
+  - id: admit_prisoners_pc/admit_prisoners_pc
+    title: Admit Prisoners (PC)
+    source: tasks/admit_prisoners_pc.yaml
+    description: Fill all available Reforming Center capacity using the safe one-click
+      admission flow.
+  - id: admit_prisoners_pc
+    title: Admit Prisoners (PC)
+    source: tasks/admit_prisoners_pc.yaml
+    description: Fill all available Reforming Center capacity using the safe one-click
+      admission flow.
   - id: auto_battle_combat_pc/auto_battle_combat_pc
     title: Auto Battle PC Combat
     source: tasks/auto_battle_combat_pc.yaml
@@ -1848,6 +1969,26 @@ exports:
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
+  - id: enter_reforming_center_pc/enter_reforming_center_pc
+    title: Enter Reforming Center (PC)
+    source: tasks/enter_reforming_center_pc.yaml
+    description: Enter the Reforming Center from the game main screen through the
+      profile menu.
+  - id: enter_reforming_center_pc
+    title: Enter Reforming Center (PC)
+    source: tasks/enter_reforming_center_pc.yaml
+    description: Enter the Reforming Center from the game main screen through the
+      profile menu.
+  - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
+    title: Navigate Reforming Center Room (PC)
+    source: tasks/navigate_reforming_center_room_pc.yaml
+    description: Safely pan the Reforming Center overview until the requested room
+      is fully interactable, then click it.
+  - id: navigate_reforming_center_room_pc
+    title: Navigate Reforming Center Room (PC)
+    source: tasks/navigate_reforming_center_room_pc.yaml
+    description: Safely pan the Reforming Center overview until the requested room
+      is fully interactable, then click it.
   - id: preview_trade_plan_pc/preview_trade_plan_pc
     title: Preview Exact Trade Plan (PC)
     source: tasks/preview_trade_plan_pc.yaml
@@ -1860,4 +2001,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-27T03:20:12Z'
+  generated_at: '2026-07-29T16:31:12Z'

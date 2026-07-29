@@ -1,0 +1,39 @@
+navigate_reforming_center_room_pc:
+  meta:
+    title: Navigate Reforming Center Room (PC)
+    description: Safely pan the Reforming Center overview until the requested room is fully interactable, then click it.
+    entry_point: true
+    inputs:
+      - name: room_name
+        type: string
+        required: true
+      - name: max_search_steps
+        type: number
+        required: false
+        default: 12
+        min: 1
+      - name: settle_sec
+        type: number
+        required: false
+        default: 0.8
+        min: 0.05
+  steps:
+    ensure_reforming_center:
+      action: resonance_pc.enter_reforming_center
+
+    navigate:
+      action: resonance_pc.navigate_reforming_center_room
+      params:
+        room_name: "{{ inputs.room_name }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+      depends_on: ensure_reforming_center
+  returns:
+    success: "{{ nodes.navigate.output.success }}"
+    status: "{{ nodes.navigate.output.status }}"
+    page_state: "{{ nodes.navigate.output.page_state }}"
+    room_key: "{{ nodes.navigate.output.room_key }}"
+    room_name: "{{ nodes.navigate.output.room_name }}"
+    clicked_point: "{{ nodes.navigate.output.clicked_point }}"
+    drag_count: "{{ nodes.navigate.output.drag_count }}"
+    attempts_used: "{{ nodes.navigate.output.attempts_used }}"

@@ -1,0 +1,39 @@
+enter_reforming_center_pc:
+  meta:
+    title: Enter Reforming Center (PC)
+    description: Enter the Reforming Center from the game main screen through the profile menu.
+    entry_point: true
+    inputs:
+      - name: main_timeout_sec
+        type: number
+        required: false
+        default: 5.0
+        min: 0
+      - name: menu_timeout_sec
+        type: number
+        required: false
+        default: 10.0
+        min: 0
+      - name: entry_timeout_sec
+        type: number
+        required: false
+        default: 20.0
+        min: 0
+      - name: interval_sec
+        type: number
+        required: false
+        default: 0.5
+        min: 0.05
+  steps:
+    enter:
+      action: resonance_pc.enter_reforming_center
+      params:
+        main_timeout_sec: "{{ inputs.main_timeout_sec }}"
+        menu_timeout_sec: "{{ inputs.menu_timeout_sec }}"
+        entry_timeout_sec: "{{ inputs.entry_timeout_sec }}"
+        interval_sec: "{{ inputs.interval_sec }}"
+  returns:
+    success: "{{ nodes.enter.output.success }}"
+    status: "{{ nodes.enter.output.status }}"
+    page_state: "{{ nodes.enter.output.page_state }}"
+    overview: "{{ nodes.enter.output.overview }}"
