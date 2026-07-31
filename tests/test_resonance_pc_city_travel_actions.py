@@ -397,7 +397,7 @@ def test_select_intercity_destination_does_not_fallback_drag_without_mappable_ci
     assert app.clicks == []
 
 
-@pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地"])
+@pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地", "云帕桥基地"])
 def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_mapping(
     observed_city_name,
 ):

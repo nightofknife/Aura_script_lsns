@@ -142,6 +142,51 @@ def test_purchase_book_button_templates_exist():
         assert _resolve_template_path(template).is_file()
 
 
+def test_purchase_book_template_wait_retries_until_found():
+    class FakeApp:
+        def __init__(self):
+            self.clicks = []
+            self.moves = []
+
+        def capture(self, rect):
+            return SimpleNamespace(success=True, image=object())
+
+        def move_to(self, *args, **kwargs):
+            self.moves.append((args, kwargs))
+
+        def click(self, *args, **kwargs):
+            self.clicks.append((args, kwargs))
+
+    class FakeVision:
+        def __init__(self):
+            self.calls = 0
+
+        def find_template(self, **kwargs):
+            self.calls += 1
+            if self.calls < 3:
+                return SimpleNamespace(found=False, confidence=0.2, center_point=None)
+            return SimpleNamespace(found=True, confidence=0.95, center_point=(72, 24))
+
+    app = FakeApp()
+    vision = FakeVision()
+    result = _click_template_or_point(
+        app,
+        vision,
+        _USE_ITEM_BUTTON_TEMPLATE,
+        [1010, 80, 145, 55],
+        (1080, 105),
+        threshold=0.82,
+        timeout_sec=0.2,
+        retry_interval_sec=0.01,
+    )
+
+    assert vision.calls == 3
+    assert result["attempts"] == 3
+    assert result["confidence"] == pytest.approx(0.95)
+    assert app.moves == [((1082, 104), {"duration": 0.1})]
+    assert app.clicks == [((), {"x": 1082, "y": 104})]
+
+
 def test_purchase_book_template_miss_does_not_use_fallback_point():
     class FakeApp:
         def __init__(self):
@@ -158,20 +203,30 @@ def test_purchase_book_template_miss_does_not_use_fallback_point():
             self.clicks.append((args, kwargs))
 
     class FakeVision:
+        def __init__(self):
+            self.calls = 0
+
         def find_template(self, **kwargs):
+            self.calls += 1
             return SimpleNamespace(found=False, confidence=0.104, center_point=None)
 
     app = FakeApp()
+    vision = FakeVision()
     with pytest.raises(PurchaseBookUseError) as exc_info:
         _click_template_or_point(
             app,
-            FakeVision(),
+            vision,
             _USE_ITEM_BUTTON_TEMPLATE,
             [1010, 80, 145, 55],
             (1080, 105),
             threshold=0.82,
+            timeout_sec=0.11,
+            retry_interval_sec=0.03,
         )
 
     assert exc_info.value.code == "purchase_book_template_not_found"
+    assert exc_info.value.detail["timeout_sec"] == pytest.approx(0.11)
+    assert exc_info.value.detail["attempts"] == vision.calls
+    assert vision.calls >= 2
     assert app.moves == []
     assert app.clicks == []
