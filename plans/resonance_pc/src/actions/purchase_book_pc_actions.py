@@ -223,28 +223,58 @@ def _click_template_or_point(
     fallback_point: Tuple[int, int],
     *,
     threshold: float = 0.8,
+    timeout_sec: float = 0.0,
+    retry_interval_sec: float = 0.2,
 ) -> Dict[str, Any]:
-    result = _find_template(app, vision, template, region, threshold=threshold)
-    confidence = float(getattr(result, "confidence", 0.0) or 0.0)
-    if getattr(result, "found", False) and getattr(result, "center_point", None):
-        x, y = result.center_point
-        logger.info("模板找到: '%s'，位于窗口坐标 (%s, %s)，置信度: %.2f", template, x, y, confidence)
-        app.move_to(int(x), int(y), duration=0.1)
-        app.click(x=int(x), y=int(y))
-        return {
-            "clicked": True,
-            "method": "template",
-            "template": template,
-            "confidence": confidence,
-            "x": int(x),
-            "y": int(y),
-        }
+    timeout = max(float(timeout_sec or 0.0), 0.0)
+    retry_interval = max(float(retry_interval_sec or 0.0), 0.05)
+    deadline = time.monotonic() + timeout
+    attempts = 0
+    confidence = 0.0
+    best_confidence = 0.0
+
+    while True:
+        attempts += 1
+        result = _find_template(app, vision, template, region, threshold=threshold)
+        confidence = float(getattr(result, "confidence", 0.0) or 0.0)
+        best_confidence = max(best_confidence, confidence)
+        if getattr(result, "found", False) and getattr(result, "center_point", None):
+            x, y = result.center_point
+            logger.info(
+                "模板找到: '%s'，位于窗口坐标 (%s, %s)，置信度: %.2f，尝试次数: %d",
+                template,
+                x,
+                y,
+                confidence,
+                attempts,
+            )
+            app.move_to(int(x), int(y), duration=0.1)
+            app.click(x=int(x), y=int(y))
+            return {
+                "clicked": True,
+                "method": "template",
+                "template": template,
+                "confidence": confidence,
+                "attempts": attempts,
+                "x": int(x),
+                "y": int(y),
+            }
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        time.sleep(min(retry_interval, remaining))
 
     logger.warning(
-        "未能在区域 %s 找到模板 '%s' (confidence=%.3f); 不使用固定坐标兜底。",
+        "限定时间内未能在区域 %s 找到模板 '%s' "
+        "(attempts=%d, timeout_sec=%.2f, last_confidence=%.3f, best_confidence=%.3f); "
+        "不使用固定坐标兜底。",
         region,
         template,
+        attempts,
+        timeout,
         confidence,
+        best_confidence,
     )
     _raise_error(
         "purchase_book_template_not_found",
@@ -252,7 +282,10 @@ def _click_template_or_point(
         {
             "template": template,
             "region": list(region),
-            "confidence": confidence,
+            "attempts": attempts,
+            "timeout_sec": timeout,
+            "last_confidence": confidence,
+            "best_confidence": best_confidence,
             "fallback_point_disabled": {"x": int(fallback_point[0]), "y": int(fallback_point[1])},
         },
     )
@@ -278,6 +311,8 @@ def _use_purchase_book_batch(
         _USE_ITEM_BUTTON_REGION,
         _USE_ITEM_BUTTON_POINT,
         threshold=0.82,
+        timeout_sec=open_timeout_sec,
+        retry_interval_sec=click_interval_sec,
     )
     time.sleep(max(float(click_interval_sec), 0.1))
 
@@ -303,6 +338,8 @@ def _use_purchase_book_batch(
         _FIRST_ITEM_USE_BUTTON_REGION,
         _FIRST_ITEM_USE_BUTTON_POINT,
         threshold=0.82,
+        timeout_sec=dialog_timeout_sec,
+        retry_interval_sec=click_interval_sec,
     )
     time.sleep(max(float(click_interval_sec), 0.1))
 
@@ -334,6 +371,8 @@ def _use_purchase_book_batch(
         _CONFIRM_BUTTON_REGION,
         _CONFIRM_POINT,
         threshold=0.8,
+        timeout_sec=dialog_timeout_sec,
+        retry_interval_sec=click_interval_sec,
     )
     time.sleep(0.8)
 

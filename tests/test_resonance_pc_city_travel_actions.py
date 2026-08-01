@@ -438,7 +438,7 @@ def test_select_intercity_destination_uses_anchor_waypoints_and_retries_after_dr
     assert app.clicks == [(220, 265)]
 
 
-@pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地"])
+@pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地", "云帕桥基地"])
 def test_select_intercity_destination_replaces_known_city_ocr_confusion_before_mapping(
     observed_city_name,
 ):
