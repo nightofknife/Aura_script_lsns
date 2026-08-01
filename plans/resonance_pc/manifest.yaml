@@ -1033,7 +1033,7 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Select destination city in intercity view via OCR + directional drag.
+    description: Select an intercity destination via OCR-anchored city waypoint drags.
     parameters:
     - name: to_city_name
       type: Any
@@ -1158,8 +1158,7 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Wait for intercity arrival using the station button or destination
-      city-main marker.
+    description: Wait for intercity arrival using only the station-button template.
     parameters:
     - name: timeout_sec
       type: Any
@@ -1266,6 +1265,82 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.auto_passenger_roundtrip_flow
+    module: plans.resonance_pc.src.actions.passenger_flow_pc_actions
+    function: resonance_pc_auto_passenger_roundtrip_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Run fixed Cape City <-> Lanxin City passenger round trips from city-main
+      UI.
+    parameters:
+    - name: round_trips
+      type: Any
+      required: false
+      default: 1
+    - name: reposition_to_route
+      type: Any
+      required: false
+      default: true
+    - name: preferred_start_city_id
+      type: Any
+      required: false
+      default: '11'
+    - name: use_fatigue_medicine
+      type: Any
+      required: false
+      default: false
+    - name: allowed_fatigue_medicines
+      type: Any
+      required: false
+      default: null
+    - name: fatigue_medicine_max_uses
+      type: Any
+      required: false
+      default: 4
+    - name: arrival_timeout_seconds
+      type: Any
+      required: false
+      default: 1800.0
+  - name: resonance_pc.open_passenger_management
+    module: plans.resonance_pc.src.actions.passenger_pc_actions
+    function: resonance_pc_open_passenger_management
+    public: true
+    read_only: false
+    timeout: null
+    description: Open passenger management from the stable Resonance PC city-main
+      screen.
+    parameters: []
+  - name: resonance_pc.recruit_passengers_by_flyer
+    module: plans.resonance_pc.src.actions.passenger_pc_actions
+    function: resonance_pc_recruit_passengers_by_flyer
+    public: true
+    read_only: false
+    timeout: null
+    description: Recruit passengers for one destination with flyers and return to
+      city main.
+    parameters:
+    - name: to_city_name
+      type: Any
+      required: true
+      default: null
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+  - name: resonance_pc.enter_city_and_settle_passengers
+    module: plans.resonance_pc.src.actions.passenger_pc_actions
+    function: resonance_pc_enter_city_and_settle_passengers
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter the arrived city, require passenger revenue settlement, and
+      return to city main.
+    parameters:
+    - name: settlement_timeout_sec
+      type: Any
+      required: false
+      default: 30.0
   - name: resonance_pc.use_purchase_books
     module: plans.resonance_pc.src.actions.purchase_book_pc_actions
     function: resonance_pc_use_purchase_books
@@ -1969,6 +2044,16 @@ exports:
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
+  - id: auto_passenger_roundtrip_pc/auto_passenger_roundtrip_pc
+    title: Cape-Lanxin Passenger Round Trip (PC)
+    source: tasks/auto_passenger_roundtrip_pc.yaml
+    description: Run fixed flyer-based passenger round trips between Cape City and
+      Lanxin City.
+  - id: auto_passenger_roundtrip_pc
+    title: Cape-Lanxin Passenger Round Trip (PC)
+    source: tasks/auto_passenger_roundtrip_pc.yaml
+    description: Run fixed flyer-based passenger round trips between Cape City and
+      Lanxin City.
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -2001,4 +2086,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-29T16:31:12Z'
+  generated_at: '2026-08-01T09:55:08Z'

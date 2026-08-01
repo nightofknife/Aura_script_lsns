@@ -35,17 +35,21 @@ def _window(tmp_path) -> ResonanceMainWindow:
     return window
 
 
-def test_main_window_exposes_independent_battle_navigation(tmp_path):
+def test_main_window_exposes_independent_passenger_and_battle_navigation(tmp_path):
     window = _window(tmp_path)
     try:
         assert [button.text() for button in window.nav_buttons] == [
             "跑商",
+            "客运",
             "战斗",
             "任务工具",
             "历史",
             "设置",
         ]
         window.nav_buttons[1].click()
+        assert window.page_stack.currentWidget() is window.passenger_page
+        assert window.page_stack.currentWidget() is not window.trade_page
+        window.nav_buttons[2].click()
         assert window.page_stack.currentWidget() is window.battle_page
         assert window.page_stack.currentWidget() is not window.trade_page
     finally:
@@ -114,5 +118,48 @@ def test_history_filter_routes_battle_rows_to_battle_page(tmp_path):
         window._open_history_row(0, 0)
         assert window.page_stack.currentWidget() is window.battle_page
         assert window.battle_page.cid_value.text() == "battle-cid"
+    finally:
+        window.close()
+
+
+def test_main_window_routes_pc_passenger_lifecycle_to_passenger_page(tmp_path):
+    window = _window(tmp_path)
+    try:
+        item = {
+            "game_name": "resonance_pc",
+            "kind": "passenger_run",
+            "label": "PC 独立客运",
+        }
+        window._on_task_started(item)
+        window._on_task_dispatched(
+            {
+                "item": item,
+                "cid": "passenger-cid",
+                "dispatch": {"cid": "passenger-cid", "status": "queued"},
+            }
+        )
+
+        assert window.page_stack.currentWidget() is window.passenger_page
+        assert window.passenger_page.is_busy()
+        assert not window.trade_page.is_busy()
+        assert window.passenger_page.cid_value.text() == "passenger-cid"
+
+        window._on_task_finished(
+            {
+                "cid": "passenger-cid",
+                "status": "success",
+                "gui_item": item,
+                "final_result": {
+                    "user_data": {
+                        "success": True,
+                        "status": "completed",
+                        "requested_round_trips": 1,
+                        "completed_legs": [{}, {}],
+                    }
+                },
+            }
+        )
+        assert window.passenger_page.run_status_value.text() == "已完成"
+        assert not window.passenger_page.is_busy()
     finally:
         window.close()

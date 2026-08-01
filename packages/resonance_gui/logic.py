@@ -10,12 +10,15 @@ GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
+PC_PASSENGER_TASK_REF = "tasks:auto_passenger_roundtrip_pc.yaml:auto_passenger_roundtrip_pc"
 PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
 PC_BATTLE_PREVIEW_TASK_REF = (
     "tasks:auto_battle_input_preview_pc.yaml:auto_battle_input_preview_pc"
 )
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
+PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
+PASSENGER_PROGRESS_SCHEMA = "resonance_pc.passenger_progress.v1"
 
 TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 STATUS_LABELS = {
@@ -42,6 +45,16 @@ TRADE_STAGE_LABELS = {
     "final_sale": "终点清仓",
     "route": "执行路线",
     "task": "任务",
+}
+
+PASSENGER_STAGE_LABELS = {
+    "precheck_main": "检查客运状态",
+    "resolve_start": "识别起点",
+    "reposition": "前往线路端点",
+    "recruit": "传单揽客",
+    "travel": "跨城行驶",
+    "settlement": "客运结算",
+    "task": "客运任务",
 }
 
 
@@ -123,6 +136,83 @@ def reduce_trade_progress(
     if isinstance(data.get("summary"), Mapping):
         next_state.summary = dict(data["summary"])
     return next_state
+
+
+@dataclass
+class PassengerProgressState:
+    """Reduced presentation state for one passenger run."""
+
+    cid: str = ""
+    sequence: int = -1
+    stage: str = "precheck_main"
+    state: str = "idle"
+    round_index: int | None = None
+    leg_index: int | None = None
+    leg_count: int = 0
+    source_city: str = ""
+    destination_city: str = ""
+    recruited_count: int | None = None
+    seat_capacity: int | None = None
+    expected_fatigue_used: int = 0
+    expected_fatigue_total: int = 0
+    leg_revenue: int | None = None
+    total_revenue: int = 0
+    requires_manual_completion: bool = False
+    last_data: dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def stage_label(self) -> str:
+        return PASSENGER_STAGE_LABELS.get(self.stage, self.stage or "待开始")
+
+
+def reduce_passenger_progress(
+    current: PassengerProgressState | None,
+    event: Mapping[str, Any] | None,
+    *,
+    expected_cid: str = "",
+) -> PassengerProgressState:
+    state = current or PassengerProgressState(cid=str(expected_cid or ""))
+    envelope = dict(event or {})
+    if str(envelope.get("name") or "") != PASSENGER_PROGRESS_EVENT:
+        return state
+    payload = envelope.get("payload")
+    if not isinstance(payload, Mapping):
+        return state
+    payload = dict(payload)
+    if str(payload.get("schema") or "") != PASSENGER_PROGRESS_SCHEMA:
+        return state
+    cid = str(payload.get("cid") or "")
+    if expected_cid and cid != str(expected_cid):
+        return state
+    try:
+        sequence = int(payload.get("sequence", -1))
+    except (TypeError, ValueError):
+        return state
+    if sequence <= state.sequence:
+        return state
+    return PassengerProgressState(
+        cid=cid or state.cid,
+        sequence=sequence,
+        stage=str(payload.get("stage") or state.stage),
+        state=str(payload.get("state") or state.state),
+        round_index=_optional_int(payload.get("round_index")),
+        leg_index=_optional_int(payload.get("leg_index")),
+        leg_count=_int_or(payload.get("leg_count"), state.leg_count),
+        source_city=str(payload.get("source_city") or state.source_city),
+        destination_city=str(payload.get("destination_city") or state.destination_city),
+        recruited_count=_optional_int(payload.get("recruited_count")),
+        seat_capacity=_optional_int(payload.get("seat_capacity")),
+        expected_fatigue_used=_int_or(payload.get("expected_fatigue_used"), state.expected_fatigue_used),
+        expected_fatigue_total=_int_or(payload.get("expected_fatigue_total"), state.expected_fatigue_total),
+        leg_revenue=_optional_int(payload.get("leg_revenue")),
+        total_revenue=_int_or(payload.get("total_revenue"), state.total_revenue),
+        requires_manual_completion=bool(
+            payload.get("requires_manual_completion", state.requires_manual_completion)
+        ),
+        last_data=dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {},
+        events=[*state.events, envelope],
+    )
 
 
 def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:

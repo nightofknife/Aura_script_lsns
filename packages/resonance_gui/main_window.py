@@ -34,6 +34,7 @@ from .bridge import RunnerBridge
 from .config_repository import GuiPreferences, ResonanceConfigRepository
 from .logic import (
     PC_GAME_NAME,
+    extract_final_result,
     extract_run_id,
     extract_status,
     parse_inputs_json,
@@ -43,7 +44,7 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
-from .widgets import BattlePage, TradePage
+from .widgets import BattlePage, PassengerPage, TradePage
 from .widgets.run_detail import RunDetailView
 
 
@@ -55,6 +56,7 @@ class ResonanceMainWindow(QMainWindow):
     requestRunNow = Signal(str, object, object, float)
     requestRunPcTrade = Signal(object, float)
     requestPreviewPcTrade = Signal(object, float)
+    requestRunPcPassenger = Signal(object, float)
     requestRunPcBattle = Signal(object, float)
     requestValidatePcBattle = Signal(object, float)
     requestEnqueueTask = Signal(str, object, object, float)
@@ -101,12 +103,14 @@ class ResonanceMainWindow(QMainWindow):
 
         self.page_stack = QStackedWidget(root)
         self.trade_page = TradePage(self._settings, self.page_stack)
+        self.passenger_page = PassengerPage(self._settings, self.page_stack)
         self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
         self.settings_page = self._build_settings_page()
         for page in (
             self.trade_page,
+            self.passenger_page,
             self.battle_page,
             self.workbench_page,
             self.history_page,
@@ -122,6 +126,9 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.previewRequested.connect(self._preview_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.trade_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
+        self.passenger_page.startRequested.connect(self._run_pc_passenger)
+        self.passenger_page.cancelRequested.connect(self.requestCancelCurrent.emit)
+        self.passenger_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
         self.battle_page.startRequested.connect(self._run_pc_battle)
         self.battle_page.validateRequested.connect(self._validate_pc_battle)
         self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
@@ -145,7 +152,7 @@ class ResonanceMainWindow(QMainWindow):
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
-        for index, text in enumerate(("跑商", "战斗", "任务工具", "历史", "设置")):
+        for index, text in enumerate(("跑商", "客运", "战斗", "任务工具", "历史", "设置")):
             button = QPushButton(text, nav)
             button.setCheckable(True)
             button.setProperty("nav", True)
@@ -242,6 +249,7 @@ class ResonanceMainWindow(QMainWindow):
         self.history_filter = QComboBox(root)
         self.history_filter.addItem("全部类型", "all")
         self.history_filter.addItem("跑商", "trade")
+        self.history_filter.addItem("客运", "passenger")
         self.history_filter.addItem("战斗", "battle")
         self.history_filter.currentIndexChanged.connect(self._render_history)
         top.addWidget(self.history_filter)
@@ -314,6 +322,7 @@ class ResonanceMainWindow(QMainWindow):
         self.requestRunNow.connect(self._bridge.run_task_now)
         self.requestRunPcTrade.connect(self._bridge.run_pc_trade)
         self.requestPreviewPcTrade.connect(self._bridge.preview_pc_trade)
+        self.requestRunPcPassenger.connect(self._bridge.run_pc_passenger)
         self.requestRunPcBattle.connect(self._bridge.run_pc_battle)
         self.requestValidatePcBattle.connect(self._bridge.validate_pc_battle)
         self.requestEnqueueTask.connect(self._bridge.enqueue_task)
@@ -328,9 +337,12 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.taskDispatched.connect(self._on_task_dispatched)
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self.trade_page.apply_progress)
+        self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
+        self._bridge.targetStatusChanged.connect(self.passenger_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
         self._bridge.cancelRequested.connect(self.trade_page.cancel_requested)
+        self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
@@ -373,6 +385,9 @@ class ResonanceMainWindow(QMainWindow):
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
+
+    def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
+        self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
 
     def _run_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcBattle.emit(inputs, float(self.timeout_spin.value()))
@@ -425,6 +440,11 @@ class ResonanceMainWindow(QMainWindow):
                 summary_text = "战斗任务单"
                 result_text = "查看执行详情"
                 type_label = "战斗"
+            elif kind == "passenger":
+                result = extract_final_result(row)
+                summary_text = "海角城 ↔ 岚心城"
+                result_text = str(result.get("total_revenue") or "--")
+                type_label = "客运"
             else:
                 summary = trade_result_summary(row)
                 city_path = summary.get("city_path") or []
@@ -447,8 +467,12 @@ class ResonanceMainWindow(QMainWindow):
         visible_rows = getattr(self, "_visible_history_rows", self._history_rows)
         if 0 <= row < len(visible_rows):
             payload = visible_rows[row]
-            if self._history_kind(payload) == "battle":
+            history_kind = self._history_kind(payload)
+            if history_kind == "battle":
                 self.battle_page.show_history_result(payload)
+                self._switch_page(2)
+            elif history_kind == "passenger":
+                self.passenger_page.show_history_result(payload)
                 self._switch_page(1)
             else:
                 self.trade_page.show_history_result(payload)
@@ -460,6 +484,8 @@ class ResonanceMainWindow(QMainWindow):
             str(row.get(key) or "")
             for key in ("task_name", "task_ref", "task_id")
         ).lower()
+        if "passenger" in task_identity:
+            return "passenger"
         return "battle" if "battle" in task_identity else "trade"
 
     def _on_queue_changed(self, rows: list[dict[str, Any]]) -> None:
@@ -487,12 +513,15 @@ class ResonanceMainWindow(QMainWindow):
             elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
                 self._switch_page(0)
+            elif kind == "passenger_run":
+                self.passenger_page.begin_run(payload)
+                self._switch_page(1)
             elif kind == "battle_preview":
                 self.battle_page.begin_validation(payload)
-                self._switch_page(1)
+                self._switch_page(2)
             elif kind == "battle_run":
                 self.battle_page.begin_run(payload)
-                self._switch_page(1)
+                self._switch_page(2)
             else:
                 self.run_detail.show_text(pretty_json(payload))
         else:
@@ -501,6 +530,8 @@ class ResonanceMainWindow(QMainWindow):
     def _on_run_updated(self, payload: dict[str, Any]) -> None:
         if self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             self.trade_page.update_run(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("passenger_"):
+            self.passenger_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("battle_"):
             self.battle_page.update_run(payload)
 
@@ -513,6 +544,8 @@ class ResonanceMainWindow(QMainWindow):
                 self.trade_page.finish_preview(payload)
             elif kind == "trade_run":
                 self.trade_page.finish_run(payload)
+            elif kind == "passenger_run":
+                self.passenger_page.finish_run(payload)
             elif kind == "battle_preview":
                 self.battle_page.finish_validation(payload)
             elif kind == "battle_run":
@@ -524,6 +557,8 @@ class ResonanceMainWindow(QMainWindow):
         stage = str(payload.get("stage") or "")
         if stage in {"run_pc_battle", "validate_pc_battle"}:
             self.battle_page.show_failure(payload)
+        elif stage == "run_pc_passenger":
+            self.passenger_page.show_failure(payload)
         elif stage in {"run_pc_trade", "preview_pc_trade"}:
             self.trade_page.show_failure(payload)
         elif (
@@ -531,6 +566,11 @@ class ResonanceMainWindow(QMainWindow):
             and self._active_kind.startswith("battle_")
         ):
             self.battle_page.show_failure(payload)
+        elif (
+            self._active_game_name == PC_GAME_NAME
+            and self._active_kind.startswith("passenger_")
+        ):
+            self.passenger_page.show_failure(payload)
         elif (
             self._active_game_name == PC_GAME_NAME
             and self._active_kind.startswith("trade_")
@@ -544,6 +584,7 @@ class ResonanceMainWindow(QMainWindow):
             self._active_game_name = ""
             self._active_kind = ""
         self.trade_page.set_busy(busy)
+        self.passenger_page.set_busy(busy)
         self.battle_page.set_busy(busy)
         self.run_button.setEnabled(not busy)
         self.enqueue_button.setEnabled(True)

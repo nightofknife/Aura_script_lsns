@@ -15,9 +15,12 @@ from .logic import (
     PC_BATTLE_PREVIEW_TASK_REF,
     PC_BATTLE_TASK_REF,
     PC_GAME_NAME,
+    PC_PASSENGER_TASK_REF,
     PC_TRADE_PREVIEW_TASK_REF,
     PC_TRADE_TASK_REF,
     TERMINAL_STATUSES,
+    PASSENGER_PROGRESS_EVENT,
+    PASSENGER_PROGRESS_SCHEMA,
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
     extract_run_id,
@@ -39,6 +42,7 @@ class RunnerBridge(QObject):
     taskFinished = Signal(dict)
     taskFailed = Signal(dict)
     tradeProgress = Signal(dict)
+    passengerProgress = Signal(dict)
     targetStatusChanged = Signal(dict)
     cancelRequested = Signal(dict)
     busyChanged = Signal(bool)
@@ -131,6 +135,24 @@ class RunnerBridge(QObject):
         run_inputs.pop("start_city_id", None)
         item = self._make_item(PC_GAME_NAME, PC_TRADE_TASK_REF, run_inputs, "PC 自动跑商", timeout_sec)
         item["kind"] = "trade_run"
+        self._queue.insert(0, item)
+        self._emit_queue()
+        self._run_next()
+
+    @Slot(object, float)
+    def run_pc_passenger(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        if self._busy:
+            self.taskFailed.emit({"stage": "run_pc_passenger", "error": "已有任务正在运行。"})
+            return
+        run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        item = self._make_item(
+            PC_GAME_NAME,
+            PC_PASSENGER_TASK_REF,
+            run_inputs,
+            "PC 独立客运",
+            timeout_sec,
+        )
+        item["kind"] = "passenger_run"
         self._queue.insert(0, item)
         self._emit_queue()
         self._run_next()
@@ -328,16 +350,26 @@ class RunnerBridge(QObject):
 
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
         for event in events:
-            if str(event.get("name") or "") != TRADE_PROGRESS_EVENT:
+            name = str(event.get("name") or "")
+            if name not in {TRADE_PROGRESS_EVENT, PASSENGER_PROGRESS_EVENT}:
                 continue
             payload = event.get("payload")
             if not isinstance(payload, dict):
                 continue
-            if str(payload.get("schema") or "") != TRADE_PROGRESS_SCHEMA:
+            schema = str(payload.get("schema") or "")
+            expected_schema = (
+                TRADE_PROGRESS_SCHEMA
+                if name == TRADE_PROGRESS_EVENT
+                else PASSENGER_PROGRESS_SCHEMA
+            )
+            if schema != expected_schema:
                 continue
             if str(payload.get("cid") or "") != self._current_cid:
                 continue
-            self.tradeProgress.emit(dict(event))
+            if name == TRADE_PROGRESS_EVENT:
+                self.tradeProgress.emit(dict(event))
+            else:
+                self.passengerProgress.emit(dict(event))
 
     def _request_cancel(self, *, reason: str) -> None:
         self._cancel_sent = True

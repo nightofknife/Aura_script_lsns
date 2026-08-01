@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import heapq
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -47,15 +49,16 @@ _FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.
 
 _GO_DESTINATION_REGION = [900, 580, 340, 120]
 _ARRIVAL_BUTTON_REGION = [780, 325, 240, 70]
-_ARRIVAL_CITY_MAIN_REGION = [1000, 450, 250, 70]
 _DEPART_CONFIRM_REGION = [450, 360, 760, 220]
 _FATIGUE_PANEL_REGION = [70, 80, 520, 190]
 _FATIGUE_BACK_REGION = [0, 0, 260, 90]
 _FATIGUE_MEDICINE_CONFIRM_REGION = [620, 520, 660, 120]
 
-_ARRIVAL_CITY_MAIN_MARKERS = ("访问城市", "访问地区")
-_ARRIVAL_CITY_MAIN_CONFIRMATIONS = 2
 _DEFAULT_ARRIVAL_TIMEOUT_SECONDS = 900.0
+_ANCHOR_ROUTE_MAX_HOP_MAP_UNITS = 550.0
+_POST_DRAG_STABILIZE_SECONDS = 0.6
+_POST_DRAG_OCR_RETRIES = 2
+_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS = 0.4
 
 _WEEKLY_NOTICE_CHECKBOX = [890, 523]
 _DEPART_CONFIRM_POINT = [852, 447]
@@ -534,7 +537,10 @@ def _plan_directional_drag(
 
     max_abs = max(abs(rel_x), abs(rel_y), 1)
     span = max(int(drag_span_px), 60)
-    scale = float(span) / float(max_abs)
+    # A short waypoint must stay a short move.  Enlarging every vector to a
+    # full-span drag can skip all intermediate city labels and leave OCR with
+    # no usable map anchor.
+    scale = min(1.0, float(span) / float(max_abs))
     dir_x = int(round(rel_x * scale))
     dir_y = int(round(-rel_y * scale))  # keep old behavior on y axis
 
@@ -551,27 +557,104 @@ def _plan_directional_drag(
     }
 
 
-def _plan_fallback_drag(
-    drag_center: List[int],
-    drag_span_px: int,
-    step_index: int,
-    window_size: Tuple[int, int],
-) -> Tuple[Tuple[int, int], Tuple[int, int], Dict[str, Any]]:
-    half = max(int(drag_span_px // 2), 30)
-    phase = (int(step_index) // 3) % 4
-    cx, cy = int(drag_center[0]), int(drag_center[1])
-    # Keep same pattern as old script: down -> left -> up -> right
-    if phase == 0:
-        start, end, direction = (cx, cy - half), (cx, cy + half), "down"
-    elif phase == 1:
-        start, end, direction = (cx + half, cy), (cx - half, cy), "left"
-    elif phase == 2:
-        start, end, direction = (cx, cy + half), (cx, cy - half), "up"
-    else:
-        start, end, direction = (cx - half, cy), (cx + half, cy), "right"
-    start = _clamp_point(start, window_size[0], window_size[1])
-    end = _clamp_point(end, window_size[0], window_size[1])
-    return start, end, {"fallback_phase": phase, "fallback_direction": direction}
+def _city_maplocs(city_table: Dict[str, Any]) -> Dict[str, Tuple[int, int]]:
+    result: Dict[str, Tuple[int, int]] = {}
+    for city_key in sorted(city_table):
+        try:
+            result[city_key] = _extract_maploc(city_table, city_key)
+        except IntercityDestinationError:
+            continue
+    return result
+
+
+def _shortest_anchor_route(
+    source_city_key: str,
+    target_city_key: str,
+    city_table: Dict[str, Any],
+    max_hop_map_units: float = _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+) -> Optional[Dict[str, Any]]:
+    """Return a shortest city-to-city waypoint chain for map navigation."""
+    maplocs = _city_maplocs(city_table)
+    if source_city_key not in maplocs or target_city_key not in maplocs:
+        return None
+    if source_city_key == target_city_key:
+        return {"route": [source_city_key], "total_distance": 0.0}
+
+    distances: Dict[str, float] = {source_city_key: 0.0}
+    previous: Dict[str, str] = {}
+    queue: List[Tuple[float, str]] = [(0.0, source_city_key)]
+    hop_limit = max(float(max_hop_map_units), 1.0)
+
+    while queue:
+        current_distance, current = heapq.heappop(queue)
+        if current_distance > distances.get(current, math.inf):
+            continue
+        if current == target_city_key:
+            break
+        current_loc = maplocs[current]
+        for neighbor in sorted(maplocs):
+            if neighbor == current:
+                continue
+            hop_distance = math.dist(current_loc, maplocs[neighbor])
+            if hop_distance > hop_limit:
+                continue
+            candidate = current_distance + hop_distance
+            if candidate + 1e-9 < distances.get(neighbor, math.inf):
+                distances[neighbor] = candidate
+                previous[neighbor] = current
+                heapq.heappush(queue, (candidate, neighbor))
+
+    if target_city_key not in distances:
+        return None
+
+    route = [target_city_key]
+    while route[-1] != source_city_key:
+        route.append(previous[route[-1]])
+    route.reverse()
+    return {"route": route, "total_distance": float(distances[target_city_key])}
+
+
+def _choose_anchor_route(
+    mappable_points: List[Dict[str, Any]],
+    target_city_key: str,
+    city_table: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    candidates: List[Tuple[float, int, float, str, Dict[str, Any], Dict[str, Any]]] = []
+    for point in mappable_points:
+        anchor_city_key = str(point["city_key"])
+        route_result = _shortest_anchor_route(
+            source_city_key=anchor_city_key,
+            target_city_key=target_city_key,
+            city_table=city_table,
+        )
+        if route_result is None:
+            continue
+        route = list(route_result["route"])
+        if len(route) < 2:
+            continue
+        candidates.append(
+            (
+                float(route_result["total_distance"]),
+                len(route),
+                -float(point.get("confidence", 0.0) or 0.0),
+                anchor_city_key,
+                point,
+                route_result,
+            )
+        )
+    if not candidates:
+        return None
+    _, _, _, anchor_city_key, point, route_result = min(candidates, key=lambda item: item[:4])
+    route = list(route_result["route"])
+    waypoint_city_key = route[1]
+    return {
+        "anchor_city_key": anchor_city_key,
+        "anchor_point": point,
+        "waypoint_city_key": waypoint_city_key,
+        "waypoint_maploc": _extract_maploc(city_table, waypoint_city_key),
+        "route": route,
+        "total_distance": float(route_result["total_distance"]),
+    }
 
 
 def _perform_drag_with_hold(
@@ -785,36 +868,6 @@ def _click_arrival_template_until_absent(
 def _check_intercity_cancelled() -> None:
     if is_current_task_cancel_requested():
         raise asyncio.CancelledError("Resonance PC intercity arrival wait was cancelled")
-
-
-def _detect_arrival_city_main(
-    app: Any,
-    ocr: Any,
-    *,
-    poll_count: int,
-    region: List[int],
-) -> Dict[str, Any]:
-    _check_intercity_cancelled()
-    items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=region)
-    hit = _find_marker_hit(items, _ARRIVAL_CITY_MAIN_MARKERS)
-    result = {
-        "found": hit is not None,
-        "marker": str((hit or {}).get("marker") or ""),
-        "confidence": float((hit or {}).get("confidence") or 0.0),
-        "center": (hit or {}).get("center"),
-        "region": list(region),
-        "ocr_items": items,
-    }
-    if result["found"]:
-        logger.info(
-            "[IntercityArrivalCityMain] poll=%s found=True marker=%s confidence=%.4f center=%s region=%s",
-            poll_count,
-            result["marker"],
-            result["confidence"],
-            result["center"],
-            region,
-        )
-    return result
 
 
 def _wait_for_marker_hit(
@@ -1076,7 +1129,7 @@ def _wait_departure_gate(
     name="resonance_pc.select_intercity_destination",
     public=True,
     read_only=False,
-    description="Select destination city in intercity view via OCR + directional drag.",
+    description="Select an intercity destination via OCR-anchored city waypoint drags.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1111,7 +1164,7 @@ def resonance_pc_select_intercity_destination(
     alias_lookup = _build_alias_lookup(city_table)
     target_city_key = _resolve_city_key_from_name(to_city_name, city_table, alias_lookup)
     target_alias_norms = _build_target_alias_set(target_city_key)
-    target_maploc = _extract_maploc(city_table, target_city_key)
+    _extract_maploc(city_table, target_city_key)  # fail early when route metadata is incomplete
 
     win_size = app.get_window_size() or (1280, 720)
     if not isinstance(win_size, tuple) or len(win_size) != 2:
@@ -1123,9 +1176,23 @@ def resonance_pc_select_intercity_destination(
     last_seen_texts: List[str] = []
     selected_point: Optional[Tuple[int, int]] = None
     selected_mode: Optional[str] = None
+    has_dragged = False
 
     for step in range(max_steps):
         observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
+        stabilization_retries = 0
+        if has_dragged:
+            while stabilization_retries < _POST_DRAG_OCR_RETRIES:
+                current_mappable = _build_mappable_city_points(
+                    observed=observed,
+                    alias_lookup=alias_lookup,
+                    city_table=city_table,
+                )
+                if current_mappable:
+                    break
+                stabilization_retries += 1
+                time.sleep(_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS)
+                observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
         last_seen_texts = [str(item.get("text", "")) for item in observed[:20]]
         observed_log = [
             {
@@ -1187,14 +1254,47 @@ def resonance_pc_select_intercity_destination(
         ]
 
         if mappable_points:
+            anchor_route = _choose_anchor_route(
+                mappable_points=mappable_points,
+                target_city_key=target_city_key,
+                city_table=city_table,
+            )
+            if anchor_route is None:
+                selected_mode = "no_anchor_route"
+                attempts.append(
+                    {
+                        "step": step + 1,
+                        "mode": "no_anchor_route",
+                        "observed_city_count": len(mappable_points),
+                        "observed_text_count": len(observed),
+                        "observed": observed_log,
+                        "mappable": mappable_log,
+                        "stabilization_retries": stabilization_retries,
+                        "plan": {
+                            "reason": "no_connected_anchor_route",
+                            "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+                            "fallback_drag_disabled": True,
+                        },
+                    }
+                )
+                break
             start, end, plan_debug = _plan_directional_drag(
                 mappable_points=mappable_points,
-                target_maploc=target_maploc,
+                target_maploc=anchor_route["waypoint_maploc"],
                 drag_center=center,
                 drag_span_px=span,
                 window_size=(width, height),
             )
-            mode = "directional"
+            plan_debug.update(
+                {
+                    "anchor_city_key": anchor_route["anchor_city_key"],
+                    "waypoint_city_key": anchor_route["waypoint_city_key"],
+                    "anchor_route": anchor_route["route"],
+                    "route_total_distance": anchor_route["total_distance"],
+                    "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+                }
+            )
+            mode = "anchor_route"
         else:
             selected_mode = "no_mappable"
             attempts.append(
@@ -1205,6 +1305,7 @@ def resonance_pc_select_intercity_destination(
                     "observed_text_count": len(observed),
                     "observed": observed_log,
                     "mappable": [],
+                    "stabilization_retries": stabilization_retries,
                     "plan": {"reason": "no_mappable_city_points", "fallback_drag_disabled": True},
                 }
             )
@@ -1227,6 +1328,7 @@ def resonance_pc_select_intercity_destination(
                 "observed_text_count": len(observed),
                 "observed": observed_log,
                 "mappable": mappable_log,
+                "stabilization_retries": stabilization_retries,
                 "plan": plan_debug,
             }
         )
@@ -1248,7 +1350,8 @@ def resonance_pc_select_intercity_destination(
             drag_duration_sec=drag_duration_sec,
             drag_hold_sec=drag_hold_sec,
         )
-        time.sleep(0.2)
+        has_dragged = True
+        time.sleep(_POST_DRAG_STABILIZE_SECONDS)
 
     _raise_error(
         code="destination_not_found_after_drag",
@@ -1371,7 +1474,6 @@ def resonance_pc_intercity_depart_and_wait(
                 timeout_sec=enter_station_timeout_seconds,
                 interval_sec=3.0,
                 app=app,
-                ocr=ocr,
                 vision=vision,
             )
             return {
@@ -1524,11 +1626,10 @@ def resonance_pc_intercity_depart_and_wait(
     name="resonance_pc.wait_intercity_arrival",
     public=True,
     read_only=False,
-    description="Wait for intercity arrival using the station button or destination city-main marker.",
+    description="Wait for intercity arrival using only the station-button template.",
 )
 @requires_services(
     app="plans/aura_base/app",
-    ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
 )
 def resonance_pc_wait_intercity_arrival(
@@ -1540,15 +1641,13 @@ def resonance_pc_wait_intercity_arrival(
     arrival_click_max_attempts: int = 5,
     arrival_click_verify_interval_sec: float = 0.8,
     app: Any = None,
-    ocr: Any = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
-    """Wait until the station prompt is handled or the destination city main screen appears."""
-    if app is None or ocr is None or vision is None:
-        raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
+    """Wait until the station prompt is detected and handled."""
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required for wait_intercity_arrival.")
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
-    city_main_region = list(_ARRIVAL_CITY_MAIN_REGION)
     raw_timeout = float(timeout_sec)
     timeout = _DEFAULT_ARRIVAL_TIMEOUT_SECONDS if raw_timeout <= 0 else max(raw_timeout, 0.1)
     interval = max(float(interval_sec), 0.1)
@@ -1556,9 +1655,7 @@ def resonance_pc_wait_intercity_arrival(
     deadline = started + timeout
     poll_count = 0
     trace: List[Dict[str, Any]] = []
-    city_main_confirmations = 0
     last_station: Dict[str, Any] = {}
-    last_city_main: Dict[str, Any] = {}
 
     while time.monotonic() <= deadline:
         _check_intercity_cancelled()
@@ -1598,54 +1695,18 @@ def resonance_pc_wait_intercity_arrival(
                 "arrival_point": station["arrival_point"],
                 "arrival_click_attempts": station["click_attempts"],
                 "station_template": station,
-                "city_main_evidence": None,
                 "trace": trace[-20:],
             }
 
-        city_main = _detect_arrival_city_main(
-            app=app,
-            ocr=ocr,
-            poll_count=poll_count,
-            region=city_main_region,
-        )
-        last_city_main = dict(city_main)
-        if city_main.get("found"):
-            city_main_confirmations += 1
-        else:
-            city_main_confirmations = 0
         record = {
             "poll": poll_count,
-            "state": "city_main_candidate" if city_main.get("found") else "traveling",
+            "state": "traveling",
             "station_confidence": float(
                 (station.get("initial_match") or {}).get("confidence") or 0.0
             ),
-            "city_main_marker": city_main.get("marker"),
-            "city_main_confirmations": city_main_confirmations,
         }
         trace.append(record)
         trace = trace[-20:]
-        if city_main_confirmations >= _ARRIVAL_CITY_MAIN_CONFIRMATIONS:
-            logger.info(
-                "[IntercityArrival] arrived mode=city_main_detected poll=%s confirmations=%s elapsed_sec=%.3f",
-                poll_count,
-                city_main_confirmations,
-                time.monotonic() - started,
-            )
-            return {
-                "success": True,
-                "status": "arrived",
-                "arrival_mode": "city_main_detected",
-                "poll_count": poll_count,
-                "elapsed_sec": round(time.monotonic() - started, 3),
-                "arrival_point": None,
-                "arrival_click_attempts": 0,
-                "station_template": station,
-                "city_main_evidence": {
-                    **city_main,
-                    "confirmations": city_main_confirmations,
-                },
-                "trace": trace,
-            }
 
         _check_intercity_cancelled()
         time.sleep(interval)
@@ -1653,15 +1714,13 @@ def resonance_pc_wait_intercity_arrival(
     _raise_error(
         code="arrival_timeout",
         message=(
-            "Neither the intercity station button nor the destination city-main "
-            f"marker was confirmed within {timeout:.1f}s."
+            f"The intercity station button was not confirmed within {timeout:.1f}s."
         ),
         detail={
             "poll_count": poll_count,
             "elapsed_sec": round(time.monotonic() - started, 3),
             "timeout_sec": timeout,
             "last_station_template": last_station,
-            "last_city_main_evidence": last_city_main,
             "trace": trace[-20:],
         },
     )

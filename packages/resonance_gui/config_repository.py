@@ -65,6 +65,16 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_medicine_max_uses": 4,
 }
 
+DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
+    "round_trips": 1,
+    "reposition_to_route": True,
+    "preferred_start_city_id": "11",
+    "use_fatigue_medicine": False,
+    "allowed_fatigue_medicines": [],
+    "fatigue_medicine_max_uses": 4,
+    "arrival_timeout_seconds": 1800,
+}
+
 DEFAULT_BATTLE_INPUTS: dict[str, Any] = {
     "jobs": [],
     "stop_on_failure": True,
@@ -108,6 +118,21 @@ class ResonanceConfigRepository:
         normalized = _merge_trade_inputs(inputs)
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
 
+    def load_passenger_inputs(self) -> dict[str, Any]:
+        raw = self.settings.value("passenger/inputs_json", "")
+        if raw:
+            try:
+                parsed = json.loads(str(raw))
+                if isinstance(parsed, dict):
+                    return _merge_passenger_inputs(parsed)
+            except (TypeError, ValueError):
+                pass
+        return _merge_passenger_inputs({})
+
+    def save_passenger_inputs(self, inputs: dict[str, Any]) -> None:
+        normalized = _merge_passenger_inputs(inputs)
+        self.settings.setValue("passenger/inputs_json", json.dumps(normalized, ensure_ascii=False))
+
     def load_battle_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("battle/inputs_json", "")
         if raw:
@@ -147,6 +172,36 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     ):
         normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
     merged["available_city_ids"] = normalized_city_ids
+    return merged
+
+
+def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
+    merged = json.loads(json.dumps(DEFAULT_PASSENGER_INPUTS, ensure_ascii=False))
+    for key in merged:
+        if key in values:
+            merged[key] = values[key]
+    try:
+        merged["round_trips"] = max(int(merged["round_trips"]), 1)
+    except (TypeError, ValueError):
+        merged["round_trips"] = 1
+    merged["reposition_to_route"] = bool(merged["reposition_to_route"])
+    preferred = str(merged.get("preferred_start_city_id") or "11")
+    merged["preferred_start_city_id"] = preferred if preferred in {"11", "15"} else "11"
+    merged["use_fatigue_medicine"] = bool(merged["use_fatigue_medicine"])
+    raw_medicines = merged.get("allowed_fatigue_medicines")
+    merged["allowed_fatigue_medicines"] = [
+        str(value).strip()
+        for value in (raw_medicines if isinstance(raw_medicines, list) else [])
+        if str(value).strip()
+    ]
+    try:
+        merged["fatigue_medicine_max_uses"] = max(int(merged["fatigue_medicine_max_uses"]), 0)
+    except (TypeError, ValueError):
+        merged["fatigue_medicine_max_uses"] = 4
+    try:
+        merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
+    except (TypeError, ValueError):
+        merged["arrival_timeout_seconds"] = 1800
     return merged
 
 
