@@ -1,0 +1,42 @@
+admit_prisoners_pc:
+  meta:
+    title: Admit Prisoners (PC)
+    description: Fill all available Reforming Center capacity using the safe one-click admission flow.
+    entry_point: true
+    inputs:
+      - name: page_timeout_sec
+        type: number
+        required: false
+        default: 15.0
+        min: 0
+      - name: success_timeout_sec
+        type: number
+        required: false
+        default: 20.0
+        min: 0
+      - name: interval_sec
+        type: number
+        required: false
+        default: 0.5
+        min: 0.05
+  steps:
+    ensure_reforming_center:
+      action: resonance_pc.enter_reforming_center
+
+    admit:
+      action: resonance_pc.admit_all_available_prisoners
+      params:
+        page_timeout_sec: "{{ inputs.page_timeout_sec }}"
+        success_timeout_sec: "{{ inputs.success_timeout_sec }}"
+        interval_sec: "{{ inputs.interval_sec }}"
+      depends_on: ensure_reforming_center
+  returns:
+    success: "{{ nodes.admit.output.success }}"
+    status: "{{ nodes.admit.output.status }}"
+    page_state: "{{ nodes.admit.output.page_state }}"
+    initial_count: "{{ nodes.admit.output.initial_count }}"
+    final_count: "{{ nodes.admit.output.final_count }}"
+    capacity: "{{ nodes.admit.output.capacity }}"
+    available_count: "{{ nodes.admit.output.available_count | default(0) }}"
+    expected_admissions: "{{ nodes.admit.output.expected_admissions | default(0) }}"
+    admitted_count: "{{ nodes.admit.output.admitted_count }}"

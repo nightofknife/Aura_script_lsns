@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "coordinate_basis": "Room-title centers in the default Reforming Center overview camera.",
+  "rooms": {
+    "6号整顿宿舍": {
+      "display_name": "6号整顿宿舍",
+      "aliases": ["6号宿舍"],
+      "map_point": [260, -350],
+      "click_offset": [120, 55],
+      "minimum_center_level": 26
+    },
+    "5号整顿宿舍": {
+      "display_name": "5号整顿宿舍",
+      "aliases": ["5号宿舍"],
+      "map_point": [260, -230],
+      "click_offset": [120, 55],
+      "minimum_center_level": 21
+    },
+    "4号整顿宿舍": {
+      "display_name": "4号整顿宿舍",
+      "aliases": ["4号宿舍"],
+      "map_point": [260, -110],
+      "click_offset": [120, 55],
+      "minimum_center_level": 16
+    },
+    "3号整顿宿舍": {
+      "display_name": "3号整顿宿舍",
+      "aliases": ["3号宿舍"],
+      "map_point": [260, 10],
+      "click_offset": [120, 55],
+      "minimum_center_level": 11
+    },
+    "2号整顿宿舍": {
+      "display_name": "2号整顿宿舍",
+      "aliases": ["2号宿舍"],
+      "map_point": [260, 185],
+      "click_offset": [120, 55]
+    },
+    "1号整顿宿舍": {
+      "display_name": "1号整顿宿舍",
+      "aliases": ["1号宿舍"],
+      "map_point": [260, 300],
+      "click_offset": [120, 55]
+    },
+    "6号生产车间": {
+      "display_name": "6号生产车间",
+      "aliases": ["生产车间6"],
+      "map_point": [900, -350],
+      "click_offset": [120, 55],
+      "minimum_center_level": 26
+    },
+    "5号生产车间": {
+      "display_name": "5号生产车间",
+      "aliases": ["生产车间5"],
+      "map_point": [900, -230],
+      "click_offset": [120, 55],
+      "minimum_center_level": 21
+    },
+    "4号生产车间": {
+      "display_name": "4号生产车间",
+      "aliases": ["生产车间4"],
+      "map_point": [900, -110],
+      "click_offset": [120, 55],
+      "minimum_center_level": 16
+    },
+    "3号生产车间": {
+      "display_name": "3号生产车间",
+      "aliases": ["生产车间3"],
+      "map_point": [900, 10],
+      "click_offset": [120, 55],
+      "minimum_center_level": 11
+    },
+    "2号生产车间": {
+      "display_name": "2号生产车间",
+      "aliases": ["生产车间2"],
+      "map_point": [900, 185],
+      "click_offset": [120, 55]
+    },
+    "1号生产车间": {
+      "display_name": "1号生产车间",
+      "aliases": ["生产车间1"],
+      "map_point": [900, 300],
+      "click_offset": [120, 55]
+    },
+    "放风场地": {
+      "display_name": "放风场地",
+      "aliases": ["放风区"],
+      "map_point": [-175, 525],
+      "click_offset": [150, 55]
+    },
+    "餐厅": {
+      "display_name": "餐厅",
+      "aliases": ["食堂"],
+      "map_point": [225, 525],
+      "click_offset": [120, 55]
+    },
+    "禁闭室": {
+      "display_name": "禁闭室",
+      "aliases": [],
+      "map_point": [-110, 645],
+      "click_offset": [120, 55]
+    },
+    "医务室": {
+      "display_name": "医务室",
+      "aliases": ["医疗室"],
+      "map_point": [225, 645],
+      "click_offset": [120, 55]
+    },
+    "探视室": {
+      "display_name": "探视室",
+      "aliases": [],
+      "map_point": [-110, 765],
+      "click_offset": [120, 55]
+    },
+    "假释室": {
+      "display_name": "假释室",
+      "aliases": [],
+      "map_point": [225, 765],
+      "click_offset": [120, 55]
+    },
+    "安保中心": {
+      "display_name": "安保中心",
+      "aliases": ["保安中心"],
+      "map_point": [-110, 885],
+      "click_offset": [120, 55]
+    },
+    "囚犯管理中心": {
+      "display_name": "囚犯管理中心",
+      "aliases": ["管理中心"],
+      "map_point": [225, 885],
+      "click_offset": [120, 55]
+    },
+    "成品仓库": {
+      "display_name": "成品仓库",
+      "aliases": ["成品库"],
+      "map_point": [-175, 1020],
+      "click_offset": [260, 75]
+    },
+    "原料仓库": {
+      "display_name": "原料仓库",
+      "aliases": ["原料库"],
+      "map_point": [-175, 1195],
+      "click_offset": [260, 75]
+    },
+    "植物纤维原料车间": {
+      "display_name": "植物纤维原料车间",
+      "aliases": ["植物纤维车间", "植物纤维原料"],
+      "map_point": [875, 525],
+      "click_offset": [120, 55]
+    },
+    "动物纤维原料车间": {
+      "display_name": "动物纤维原料车间",
+      "aliases": ["动物纤维车间", "动物纤维原料"],
+      "map_point": [1200, 525],
+      "click_offset": [120, 55]
+    },
+    "缝纫工具原料车间": {
+      "display_name": "缝纫工具原料车间",
+      "aliases": ["缝工具原料车间", "缝纫工具车间"],
+      "map_point": [875, 645],
+      "click_offset": [120, 55]
+    },
+    "人造纤维原料车间": {
+      "display_name": "人造纤维原料车间",
+      "aliases": ["人造纤维车间", "人造纤维原料"],
+      "map_point": [1200, 645],
+      "click_offset": [120, 55]
+    },
+    "研发中心": {
+      "display_name": "研发中心",
+      "aliases": ["研究中心"],
+      "map_point": [875, 765],
+      "click_offset": [120, 55]
+    },
+    "电力中心": {
+      "display_name": "电力中心",
+      "aliases": [],
+      "map_point": [1200, 765],
+      "click_offset": [120, 55]
+    },
+    "财务中心": {
+      "display_name": "财务中心",
+      "aliases": [],
+      "map_point": [875, 885],
+      "click_offset": [120, 55]
+    },
+    "转运中心": {
+      "display_name": "转运中心",
+      "aliases": ["运输中心"],
+      "map_point": [1200, 885],
+      "click_offset": [120, 55]
+    },
+    "黑月订单站": {
+      "display_name": "黑月订单站",
+      "aliases": ["黑月订单"],
+      "map_point": [875, 1015],
+      "click_offset": [180, 70]
+    },
+    "原料采购站": {
+      "display_name": "原料采购站",
+      "aliases": ["原料采购"],
+      "map_point": [875, 1185],
+      "click_offset": [250, 75]
+    }
+  }
+}

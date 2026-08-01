@@ -68,6 +68,53 @@ def test_all_trade_cities_have_intercity_map_coordinates():
     assert missing == []
 
 
+def test_anchor_route_connects_lanxin_to_cape_through_visible_city_chain():
+    location_path = _REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta" / "location_pc.json"
+    city_table = json.loads(location_path.read_text(encoding="utf-8"))["city"]
+
+    result = city_travel_pc_actions._shortest_anchor_route(
+        source_city_key="qiyu_station",
+        target_city_key="cape_city",
+        city_table=city_table,
+    )
+
+    assert result is not None
+    assert result["route"] == [
+        "qiyu_station",
+        "yunxiuqiao_base",
+        "mander_mine",
+        "gronru_city",
+        "cape_city",
+    ]
+    maplocs = city_travel_pc_actions._city_maplocs(city_table)
+    for source, destination in zip(result["route"], result["route"][1:]):
+        assert (
+            city_travel_pc_actions.math.dist(maplocs[source], maplocs[destination])
+            <= city_travel_pc_actions._ANCHOR_ROUTE_MAX_HOP_MAP_UNITS
+        )
+
+
+def test_directional_drag_does_not_expand_short_waypoint_move_to_full_span():
+    start, end, debug = city_travel_pc_actions._plan_directional_drag(
+        mappable_points=[
+            {
+                "screen_x": 640,
+                "screen_y": 360,
+                "map_x": 0,
+                "map_y": 0,
+            }
+        ],
+        target_maploc=(100, 0),
+        drag_center=[640, 360],
+        drag_span_px=600,
+        window_size=(1280, 720),
+    )
+
+    assert debug["drag_vector"] == {"x": 100, "y": 0}
+    assert start == (690, 360)
+    assert end == (590, 360)
+
+
 class _FakeApp:
     def __init__(self):
         self.clicks = []
@@ -183,7 +230,6 @@ def test_wait_intercity_arrival_clicks_enter_station():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -201,7 +247,6 @@ def test_wait_intercity_arrival_retries_until_template_disappears():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -219,7 +264,6 @@ def test_wait_intercity_arrival_fails_when_template_remains_visible():
     try:
         resonance_pc_wait_intercity_arrival(
             app=app,
-            ocr=_FakeOcr([]),
             vision=vision,
             timeout_sec=1,
             interval_sec=0.1,
@@ -235,13 +279,12 @@ def test_wait_intercity_arrival_fails_when_template_remains_visible():
     assert app.clicks == [(810, 345), (810, 345), (810, 345)]
 
 
-def test_wait_intercity_arrival_uses_scoped_city_main_ocr():
+def test_wait_intercity_arrival_uses_only_station_template_region():
     app = _FakeApp()
     vision = _SequencedArrivalVision([False, True, False])
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=_FakeOcr([[]]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -250,8 +293,9 @@ def test_wait_intercity_arrival_uses_scoped_city_main_ocr():
 
     assert result["poll_count"] == 2
     assert app.clicks == [(810, 345)]
-    assert (1000, 450, 250, 70) in app.capture_rects
+    assert set(app.capture_rects) == {(780, 325, 240, 70)}
     assert (0, 0, 1280, 720) not in app.capture_rects
+    assert (1000, 450, 250, 70) not in app.capture_rects
 
 
 def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
@@ -260,7 +304,6 @@ def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
-        ocr=_FakeOcr([[]]),
         vision=vision,
         timeout_sec=0,
         interval_sec=0.15,
@@ -272,56 +315,14 @@ def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
     assert app.clicks == [(810, 345)]
 
 
-def test_wait_intercity_arrival_accepts_automatic_city_main():
-    app = _FakeApp()
-    vision = _SequencedArrivalVision([False, False])
-    ocr = _FakeOcr([["访问城市"], ["访问城市"]])
-
-    result = resonance_pc_wait_intercity_arrival(
-        app=app,
-        ocr=ocr,
-        vision=vision,
-        timeout_sec=1,
-        interval_sec=0.1,
-    )
-
-    assert result["status"] == "arrived"
-    assert result["arrival_mode"] == "city_main_detected"
-    assert result["poll_count"] == 2
-    assert result["arrival_click_attempts"] == 0
-    assert result["city_main_evidence"]["marker"] == "访问城市"
-    assert result["city_main_evidence"]["confirmations"] == 2
-    assert app.clicks == []
-
-
-def test_wait_intercity_arrival_rejects_transient_city_main_marker():
-    app = _FakeApp()
-    vision = _SequencedArrivalVision([False, False, False, False])
-    ocr = _FakeOcr([["访问城市"], [], ["访问地区"], ["访问地区"]])
-
-    result = resonance_pc_wait_intercity_arrival(
-        app=app,
-        ocr=ocr,
-        vision=vision,
-        timeout_sec=1,
-        interval_sec=0.1,
-    )
-
-    assert result["arrival_mode"] == "city_main_detected"
-    assert result["poll_count"] == 4
-    assert result["city_main_evidence"]["marker"] == "访问地区"
-
-
 def test_wait_intercity_arrival_zero_timeout_uses_safe_default(monkeypatch):
     app = _FakeApp()
     vision = _SequencedArrivalVision([False, False, False])
-    ocr = _FakeOcr([[], [], []])
     monkeypatch.setattr(city_travel_pc_actions, "_DEFAULT_ARRIVAL_TIMEOUT_SECONDS", 0.15)
 
     with pytest.raises(IntercityDestinationError) as raised:
         resonance_pc_wait_intercity_arrival(
             app=app,
-            ocr=ocr,
             vision=vision,
             timeout_sec=0,
             interval_sec=0.1,
@@ -337,7 +338,6 @@ def test_wait_intercity_arrival_honors_cooperative_cancellation(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         resonance_pc_wait_intercity_arrival(
             app=_FakeApp(),
-            ocr=_FakeOcr([]),
             vision=_SequencedArrivalVision([]),
             timeout_sec=1,
             interval_sec=0.1,
@@ -395,6 +395,47 @@ def test_select_intercity_destination_does_not_fallback_drag_without_mappable_ci
 
     assert app.moves == []
     assert app.clicks == []
+
+
+def test_select_intercity_destination_uses_anchor_waypoints_and_retries_after_drag(monkeypatch):
+    monkeypatch.setattr(city_travel_pc_actions.time, "sleep", lambda _seconds: None)
+    app = _FakeApp()
+    ocr = _FakeOcr(
+        [
+            ["栖羽站", "岚心城"],
+            ["基地"],
+            ["基地"],
+            ["云岫桥基地"],
+            ["曼德矿场"],
+            ["格罗努城"],
+            ["海角城"],
+        ]
+    )
+
+    result = resonance_pc_select_intercity_destination(
+        to_city_name="海角城",
+        location_file_path="data/meta/location_pc.json",
+        max_search_steps=5,
+        drag_duration_sec=0,
+        drag_hold_sec=0,
+        app=app,
+        ocr=ocr,
+        controller=_FakeController(),
+    )
+
+    assert result["success"] is True
+    assert result["mode"] == "anchor_route"
+    assert result["attempts_used"] == 5
+    assert [attempt["plan"]["waypoint_city_key"] for attempt in result["attempt_trace"]] == [
+        "yunxiuqiao_base",
+        "mander_mine",
+        "gronru_city",
+        "cape_city",
+    ]
+    assert result["attempt_trace"][0]["plan"]["anchor_city_key"] == "qiyu_station"
+    assert result["attempt_trace"][1]["stabilization_retries"] == 2
+    assert len(app.moves) == 8
+    assert app.clicks == [(220, 265)]
 
 
 @pytest.mark.parametrize("observed_city_name", ["云帅桥基地", "云崎桥基地", "云帕桥基地"])

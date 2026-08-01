@@ -346,5 +346,25 @@
                 320
             ]
         }
+    },
+    "passenger_ui": {
+        "main_button_region": [950, 600, 220, 120],
+        "score_marker_region": [120, 70, 330, 130],
+        "recruit_button_region": [1040, 350, 220, 280],
+        "flyer_mode_region": [0, 500, 470, 150],
+        "destination_marker_region": [560, 560, 680, 120],
+        "destination_next_region": [980, 590, 280, 120],
+        "destination_city_region": [540, 75, 710, 500],
+        "destination_drag_up": [[1160, 525], [1160, 180]],
+        "destination_drag_down": [[1160, 180], [1160, 525]],
+        "dispatch_marker_region": [430, 20, 430, 110],
+        "dispatch_card_region": [15, 115, 1250, 500],
+        "dispatch_confirm_region": [490, 585, 320, 110],
+        "amount_max_region": [900, 310, 130, 110],
+        "amount_confirm_region": [620, 445, 660, 140],
+        "recruit_success_region": [100, 505, 520, 180],
+        "settlement_region": [30, 470, 540, 180],
+        "visit_city_region": [980, 430, 290, 110],
+        "safe_exit_point": [640, 690]
     }
 }

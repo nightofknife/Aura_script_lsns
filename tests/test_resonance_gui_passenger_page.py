@@ -1,0 +1,139 @@
+from __future__ import annotations
+
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication
+
+from packages.resonance_gui.bridge import RunnerBridge
+from packages.resonance_gui.config_repository import ResonanceConfigRepository
+from packages.resonance_gui.logic import (
+    PASSENGER_PROGRESS_EVENT,
+    PASSENGER_PROGRESS_SCHEMA,
+    PC_GAME_NAME,
+    PC_PASSENGER_TASK_REF,
+)
+from packages.resonance_gui.widgets.passenger_page import PassengerPage
+
+
+def _app() -> QApplication:
+    return QApplication.instance() or QApplication([])
+
+
+def _page(tmp_path) -> PassengerPage:
+    _app()
+    settings = QSettings(str(tmp_path / "passenger-page.ini"), QSettings.Format.IniFormat)
+    page = PassengerPage(ResonanceConfigRepository(settings=settings))
+    page.resize(1112, 760)
+    page.show()
+    QApplication.processEvents()
+    return page
+
+
+def test_passenger_page_collects_and_persists_inputs(tmp_path):
+    page = _page(tmp_path)
+    try:
+        page.round_trips.setValue(3)
+        page.reposition_to_route.setChecked(False)
+        page.use_medicine.setChecked(True)
+        page.allowed_medicines.setText("提神棒棒糖, 桦石")
+        page.medicine_max_uses.setValue(2)
+        page.arrival_timeout.setValue(1200)
+
+        inputs = page.collect_inputs()
+
+        assert inputs == {
+            "round_trips": 3,
+            "reposition_to_route": False,
+            "preferred_start_city_id": "11",
+            "use_fatigue_medicine": True,
+            "allowed_fatigue_medicines": ["提神棒棒糖", "桦石"],
+            "fatigue_medicine_max_uses": 2,
+            "arrival_timeout_seconds": 1200,
+        }
+        assert "456" in page.expected_fatigue.text()
+    finally:
+        page.close()
+
+
+def test_passenger_page_reduces_progress_and_renders_blocked_result(tmp_path):
+    page = _page(tmp_path)
+    try:
+        page.set_target_status({"ok": True, "target": {"visible": True, "title": "雷索纳斯"}})
+        page.begin_run({"cid": "passenger-cid"})
+        page.apply_progress(
+            {
+                "name": PASSENGER_PROGRESS_EVENT,
+                "payload": {
+                    "schema": PASSENGER_PROGRESS_SCHEMA,
+                    "cid": "passenger-cid",
+                    "sequence": 1,
+                    "stage": "travel",
+                    "state": "started",
+                    "round_index": 1,
+                    "leg_index": 1,
+                    "leg_count": 2,
+                    "source_city": "海角城",
+                    "destination_city": "岚心城",
+                    "recruited_count": 35,
+                    "seat_capacity": 64,
+                    "expected_fatigue_used": 0,
+                    "expected_fatigue_total": 152,
+                },
+            }
+        )
+
+        assert page.route_value.text() == "海角城 → 岚心城"
+        assert page.leg_value.text() == "1 / 2"
+        assert page.passenger_value.text() == "35 / 64"
+        assert page.fatigue_value.text() == "0 / 152"
+
+        page.finish_run(
+            {
+                "status": "success",
+                "final_result": {
+                    "user_data": {
+                        "success": False,
+                        "status": "blocked",
+                        "reason": "fatigue_recovery_required",
+                        "requested_round_trips": 1,
+                        "completed_legs": [],
+                        "expected_fatigue_used": 0,
+                        "total_revenue": 0,
+                        "requires_manual_completion": True,
+                    }
+                },
+            }
+        )
+
+        assert page.run_status_value.text() == "已阻塞"
+        assert page.manual_value.text() == "是"
+        assert not page.is_busy()
+    finally:
+        page.close()
+
+
+class _Runner:
+    def run_task(self, **kwargs):
+        self.kwargs = kwargs
+        return {"cid": "passenger-cid", "status": "queued"}
+
+    def close(self):
+        return None
+
+
+def test_bridge_dispatches_passenger_to_dedicated_pc_task():
+    _app()
+    runner = _Runner()
+    bridge = RunnerBridge(runner_factory=lambda: runner)
+    dispatched: list[dict] = []
+    bridge.taskDispatched.connect(dispatched.append)
+
+    bridge.run_pc_passenger({"round_trips": 2}, 0.0)
+
+    assert runner.kwargs["game_name"] == PC_GAME_NAME
+    assert runner.kwargs["task_ref"] == PC_PASSENGER_TASK_REF
+    assert runner.kwargs["inputs"] == {"round_trips": 2}
+    assert dispatched[0]["item"]["kind"] == "passenger_run"
