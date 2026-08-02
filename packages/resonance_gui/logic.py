@@ -48,7 +48,6 @@ TRADE_STAGE_LABELS = {
 }
 
 PASSENGER_STAGE_LABELS = {
-    "precheck_main": "检查客运状态",
     "resolve_start": "识别起点",
     "reposition": "前往线路端点",
     "recruit": "传单揽客",
@@ -144,7 +143,7 @@ class PassengerProgressState:
 
     cid: str = ""
     sequence: int = -1
-    stage: str = "precheck_main"
+    stage: str = "resolve_start"
     state: str = "idle"
     round_index: int | None = None
     leg_index: int | None = None

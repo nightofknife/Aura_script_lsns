@@ -47,7 +47,6 @@ _AMOUNT_MAX_TEMPLATE = "templates/passenger_amount_max.png"
 _AMOUNT_CONFIRM_TEMPLATE = "templates/passenger_amount_confirm.png"
 _RECRUIT_SUCCESS_TEMPLATE = "templates/passenger_recruit_success.png"
 _SETTLEMENT_TEMPLATE = "templates/passenger_revenue_settlement.png"
-_BACK_TEMPLATE = "templates/nav_back_button.png"
 
 _MAIN_BUTTON_REGION = [950, 600, 220, 120]
 _SCORE_MARKER_REGION = [120, 70, 330, 130]
@@ -64,7 +63,6 @@ _AMOUNT_CONFIRM_REGION = [620, 445, 660, 140]
 _RECRUIT_SUCCESS_REGION = [100, 505, 520, 180]
 _SETTLEMENT_REGION = [30, 470, 540, 180]
 _VISIT_CITY_REGION = [980, 430, 290, 110]
-_BACK_REGION = [0, 0, 190, 100]
 
 _DESTINATION_DRAG_UP = ((1160, 525), (1160, 180))
 _DESTINATION_DRAG_DOWN = ((1160, 180), (1160, 525))
@@ -76,6 +74,9 @@ _DISPATCH_CLUSTER_DISTANCE = 40
 _DISPATCH_LOCK_MAX_DX = 120
 _PAGE_TIMEOUT = 12.0
 _POLL_INTERVAL = 0.35
+_OPEN_MANAGEMENT_MAX_ATTEMPTS = 3
+_OPEN_MANAGEMENT_SCORE_TIMEOUT = 4.0
+_OPEN_MANAGEMENT_RETRY_DELAY = 1.0
 
 _CITY_ALIASES: Dict[str, Tuple[str, ...]] = {
     "cape_city": ("海角城",),
@@ -385,9 +386,28 @@ def _find_alias_hit(items: Sequence[Dict[str, Any]], aliases: Sequence[str]) -> 
         norm = str(row.get("norm_text") or "")
         if not isinstance(center, list) or len(center) != 2:
             continue
-        if any(alias and (alias in norm or norm in alias) for alias in wanted):
+        if any(alias and alias in norm for alias in wanted):
             return row
     return None
+
+
+def _visit_city_entry_evidence(app: Any, ocr: Any) -> Dict[str, Any]:
+    items = _capture_text_items(app, ocr, _VISIT_CITY_REGION)
+    wanted = {
+        _normalize_text(alias)
+        for alias in ("访问城市", "访问地区", "进入城市")
+    }
+    hit = next(
+        (
+            row
+            for row in items
+            if str(row.get("norm_text") or "") in wanted
+            and isinstance(row.get("center"), list)
+            and len(row["center"]) == 2
+        ),
+        None,
+    )
+    return {"found": hit is not None, "hit": hit, "ocr_items": items}
 
 
 def _drag(app: Any, controller: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
@@ -402,7 +422,7 @@ def _drag(app: Any, controller: Any, start: Tuple[int, int], end: Tuple[int, int
     finally:
         if pressed:
             controller.mouse_up("left")
-    time.sleep(0.35)
+    time.sleep(0.5)
 
 
 def _select_destination_city(
@@ -602,40 +622,8 @@ def _open_recruitment_hub_from_score(app: Any, ocr: Any, vision: Any) -> Dict[st
     return {
         "success": True,
         "page_state": "recruitment_hub",
-        "passenger_ratio": _passenger_ratio(items),
         "flyer_ratio": _flyer_ratio(items),
         "ocr_items": items,
-    }
-
-
-def _close_recruitment_hub_to_main(app: Any, vision: Any) -> Dict[str, Any]:
-    _click_template_required(
-        app,
-        vision,
-        _BACK_TEMPLATE,
-        _BACK_REGION,
-        error_code="passenger_recruit_back_not_found",
-    )
-    score = _wait_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION)
-    if not score.get("found"):
-        _raise("passenger_score_not_restored", "passenger score page was not restored", {"match": score})
-    return _click_blank_and_confirm_main(app, vision, error_code="main_screen_not_restored")
-
-
-def probe_passenger_load_from_score(app: Any, ocr: Any, vision: Any) -> Dict[str, Any]:
-    """Read current onboard passenger ratio from an already-open score page and return to main."""
-
-    hub = _open_recruitment_hub_from_score(app, ocr, vision)
-    ratio = hub.get("passenger_ratio")
-    cleanup = _close_recruitment_hub_to_main(app, vision)
-    if not isinstance(ratio, dict):
-        _raise("passenger_load_unreadable", "unable to read current passenger occupancy", {"hub": hub})
-    return {
-        "success": True,
-        "current_passengers": int(ratio.get("current") or 0),
-        "seat_capacity": int(ratio.get("total") or 0),
-        "flyers_available": int((hub.get("flyer_ratio") or {}).get("current") or 0),
-        "cleanup": cleanup,
     }
 
 
@@ -649,15 +637,99 @@ def probe_passenger_load_from_score(app: Any, ocr: Any, vision: Any) -> Dict[str
 def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) -> Dict[str, Any]:
     if app is None or vision is None:
         raise RuntimeError("app/vision services are required")
-    main = _wait_template(app, vision, _MAIN_BUTTON_TEMPLATE, _MAIN_BUTTON_REGION, timeout_sec=4.0)
-    center = main.get("center")
-    if not main.get("found") or not isinstance(center, list) or len(center) != 2:
-        _raise("not_on_city_main", "passenger management button was not found on city main", {"match": main})
-    app.click(x=int(center[0]), y=int(center[1]))
-    score = _wait_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION)
-    if not score.get("found"):
-        _raise("passenger_management_not_found", "passenger score page did not appear", {"match": score})
-    return {"success": True, "page_state": "passenger_score", "main_button": main, "score_marker": score}
+    attempts: List[Dict[str, Any]] = []
+    last_main: Dict[str, Any] = {}
+    last_score: Dict[str, Any] = {}
+
+    for attempt in range(1, _OPEN_MANAGEMENT_MAX_ATTEMPTS + 1):
+        stable = _wait_main_stable(
+            app,
+            vision,
+            timeout_sec=12.0 if attempt == 1 else 4.0,
+        )
+        last_main = dict(stable.get("match") or {})
+        center = last_main.get("center")
+        record: Dict[str, Any] = {
+            "attempt": attempt,
+            "main_stable": stable,
+            "clicked": False,
+        }
+        logger.info(
+            "[PassengerManagement] phase=main_stable attempt=%s/%s confirmed=%s "
+            "confidence=%.4f center=%s",
+            attempt,
+            _OPEN_MANAGEMENT_MAX_ATTEMPTS,
+            bool(stable.get("confirmed")),
+            float(last_main.get("confidence") or 0.0),
+            last_main.get("center"),
+        )
+
+        if not stable.get("confirmed") or not isinstance(center, list) or len(center) != 2:
+            last_score = _wait_template(
+                app,
+                vision,
+                _SCORE_MARKER_TEMPLATE,
+                _SCORE_MARKER_REGION,
+                timeout_sec=_OPEN_MANAGEMENT_SCORE_TIMEOUT,
+            )
+            record["score_marker"] = last_score
+            attempts.append(record)
+            if last_score.get("found"):
+                return {
+                    "success": True,
+                    "page_state": "passenger_score",
+                    "main_button": last_main,
+                    "score_marker": last_score,
+                    "attempts": attempts,
+                }
+            continue
+
+        _check_cancelled()
+        app.click(x=int(center[0]), y=int(center[1]))
+        record["clicked"] = True
+        record["click_point"] = [int(center[0]), int(center[1])]
+        last_score = _wait_template(
+            app,
+            vision,
+            _SCORE_MARKER_TEMPLATE,
+            _SCORE_MARKER_REGION,
+            timeout_sec=_OPEN_MANAGEMENT_SCORE_TIMEOUT,
+        )
+        record["score_marker"] = last_score
+        attempts.append(record)
+        logger.info(
+            "[PassengerManagement] phase=score attempt=%s/%s found=%s confidence=%.4f",
+            attempt,
+            _OPEN_MANAGEMENT_MAX_ATTEMPTS,
+            bool(last_score.get("found")),
+            float(last_score.get("confidence") or 0.0),
+        )
+        if last_score.get("found"):
+            return {
+                "success": True,
+                "page_state": "passenger_score",
+                "main_button": last_main,
+                "score_marker": last_score,
+                "attempts": attempts,
+            }
+        if attempt < _OPEN_MANAGEMENT_MAX_ATTEMPTS:
+            time.sleep(_OPEN_MANAGEMENT_RETRY_DELAY)
+
+    first_main_confirmed = bool(
+        attempts and (attempts[0].get("main_stable") or {}).get("confirmed")
+    )
+    if not first_main_confirmed:
+        _raise(
+            "not_on_city_main",
+            "passenger management button was not stable on city main",
+            {"attempts": attempts, "last_main": last_main, "last_score": last_score},
+        )
+    _raise(
+        "passenger_management_not_found",
+        "passenger score page did not appear after retrying the management button",
+        {"attempts": attempts, "last_main": last_main, "last_score": last_score},
+    )
+    return {}
 
 
 @action_info(
@@ -686,17 +758,6 @@ def resonance_pc_recruit_passengers_by_flyer(
     if not _match_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION).get("found"):
         resonance_pc_open_passenger_management(app=app, vision=vision)
     hub = _open_recruitment_hub_from_score(app, ocr, vision)
-    onboard = hub.get("passenger_ratio")
-    if isinstance(onboard, dict) and int(onboard.get("current") or 0) > 0:
-        _close_recruitment_hub_to_main(app, vision)
-        return {
-            "success": False,
-            "status": "blocked",
-            "reason": "preloaded_passengers_unsupported",
-            "current_passengers": int(onboard.get("current") or 0),
-            "seat_capacity": int(onboard.get("total") or 0),
-        }
-
     initial_flyers = int((hub.get("flyer_ratio") or {}).get("current") or 0)
     _click_template_required(
         app,
@@ -783,7 +844,7 @@ def resonance_pc_recruit_passengers_by_flyer(
         "reason": None,
         "to_city_name": str(to_city_name),
         "recruited_passengers": int(recruited),
-        "seat_capacity": int((remaining_seats or onboard or {}).get("total") or 0),
+        "seat_capacity": int((remaining_seats or {}).get("total") or 0),
         "remaining_seats": int((remaining_seats or {}).get("current") or 0),
         "flyers_before": initial_flyers,
         "flyers_remaining": remaining_flyer_count,
@@ -812,12 +873,13 @@ def resonance_pc_enter_city_and_settle_passengers(
         raise RuntimeError("app/ocr/vision services are required")
     # The shared intercity action normally clicks 进入站点 itself.  In that case
     # the settlement is already open when this passenger-specific action starts.
+    initial_settlement_timeout = min(max(float(settlement_timeout_sec), 0.1), 12.0)
     settlement = _wait_template(
         app,
         vision,
         _SETTLEMENT_TEMPLATE,
         _SETTLEMENT_REGION,
-        timeout_sec=0.2,
+        timeout_sec=initial_settlement_timeout,
     )
     visit_hit: Optional[Dict[str, Any]] = None
     if not settlement.get("found"):
@@ -864,9 +926,25 @@ def resonance_pc_enter_city_and_settle_passengers(
             _SETTLEMENT_REGION,
             timeout_sec=2.5,
         )
-        main = _wait_main_stable(app, vision, timeout_sec=3.0) if absent.get("absent") else {"confirmed": False}
-        dismiss_attempts.append({"attempt": attempt, "absent": absent, "main": main})
-        if absent.get("absent") and main.get("confirmed"):
+        visit_city = (
+            _visit_city_entry_evidence(app, ocr)
+            if absent.get("absent")
+            else {"found": False, "ocr_items": []}
+        )
+        main = (
+            _wait_main_stable(app, vision, timeout_sec=3.0)
+            if visit_city.get("found")
+            else {"confirmed": False, "reason": "visit_city_not_found"}
+        )
+        dismiss_attempts.append(
+            {
+                "attempt": attempt,
+                "absent": absent,
+                "visit_city": visit_city,
+                "main": main,
+            }
+        )
+        if absent.get("absent") and visit_city.get("found") and main.get("confirmed"):
             return {
                 "success": True,
                 "status": "completed",
