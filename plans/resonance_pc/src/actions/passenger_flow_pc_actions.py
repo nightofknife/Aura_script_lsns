@@ -23,9 +23,7 @@ from .city_trade_flow_pc_actions import (
 from .city_travel_pc_actions import IntercityDestinationError, resonance_pc_intercity_depart_and_wait
 from .passenger_pc_actions import (
     PassengerPcError,
-    probe_passenger_load_from_score,
     resonance_pc_enter_city_and_settle_passengers,
-    resonance_pc_open_passenger_management,
     resonance_pc_recruit_passengers_by_flyer,
 )
 
@@ -271,27 +269,6 @@ def _run_passenger_roundtrip_sync(
     medicine_usage: Dict[str, int] = {}
     loaded_destination: Optional[Dict[str, str]] = None
 
-    _emit("precheck_main", "started")
-    try:
-        resonance_pc_open_passenger_management(app=app, vision=vision)
-        load = probe_passenger_load_from_score(app=app, ocr=ocr, vision=vision)
-    except PassengerPcError as exc:
-        return _block(result, exc.code, "precheck_main", detail=exc.to_dict())
-    if int(load.get("current_passengers") or 0) > 0:
-        return _block(
-            result,
-            "preloaded_passengers_unsupported",
-            "precheck_main",
-            detail=load,
-        )
-    _emit(
-        "precheck_main",
-        "completed",
-        recruited_count=0,
-        seat_capacity=int(load.get("seat_capacity") or 0),
-        data={"flyers_available": int(load.get("flyers_available") or 0)},
-    )
-
     _emit("resolve_start", "started")
     try:
         current = _read_current_city(app, ocr, vision, city_shop_data)
@@ -312,20 +289,31 @@ def _run_passenger_roundtrip_sync(
     if current_city_id is None:
         if not reposition_to_route:
             return _block(result, "outside_passenger_route", "resolve_start", detail=current)
-        start_id = str(preferred_start_city_id or "11")
-        if start_id not in _ROUTE_BY_ID:
+        preferred_start_id = str(preferred_start_city_id or "11")
+        if preferred_start_id not in _ROUTE_BY_ID:
             raise ValueError("preferred_start_city_id must be 11 or 15")
+        current_market_id = _CITY_ID_BY_KEY.get(current_key)
+        if current_market_id is None:
+            return _block(result, "current_city_unknown", "reposition", detail=current)
+        endpoint_fatigue = {
+            endpoint_id: market_data.get_travel_fatigue(current_market_id, endpoint_id)
+            for endpoint_id in _ROUTE_BY_ID
+        }
+        start_id = min(
+            endpoint_fatigue,
+            key=lambda endpoint_id: (
+                endpoint_fatigue[endpoint_id],
+                endpoint_id != preferred_start_id,
+            ),
+        )
         destination = dict(_ROUTE_BY_ID[start_id])
+        reposition_cost = endpoint_fatigue[start_id]
         _emit(
             "reposition",
             "started",
             source_city=str(current.get("city_name") or ""),
             destination_city=destination["city_name"],
         )
-        current_market_id = _CITY_ID_BY_KEY.get(current_key)
-        if current_market_id is None:
-            return _block(result, "current_city_unknown", "reposition", detail=current)
-        reposition_cost = market_data.get_travel_fatigue(current_market_id, start_id)
         try:
             travel = resonance_pc_intercity_depart_and_wait(
                 to_city_name=destination["city_name"],
@@ -348,6 +336,10 @@ def _run_passenger_roundtrip_sync(
             "from_city": str(current.get("city_name") or ""),
             "to_city": destination["city_name"],
             "expected_fatigue": reposition_cost,
+            "endpoint_fatigue": {
+                _ROUTE_BY_ID[endpoint_id]["city_name"]: cost
+                for endpoint_id, cost in endpoint_fatigue.items()
+            },
             "travel": travel,
         }
         result["expected_fatigue_used"] += reposition_cost

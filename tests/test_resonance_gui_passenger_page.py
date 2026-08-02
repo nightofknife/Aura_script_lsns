@@ -36,23 +36,13 @@ def test_passenger_page_collects_and_persists_inputs(tmp_path):
     page = _page(tmp_path)
     try:
         page.round_trips.setValue(3)
-        page.reposition_to_route.setChecked(False)
-        page.use_medicine.setChecked(True)
-        page.allowed_medicines.setText("提神棒棒糖, 桦石")
-        page.medicine_max_uses.setValue(2)
-        page.arrival_timeout.setValue(1200)
 
         inputs = page.collect_inputs()
 
-        assert inputs == {
-            "round_trips": 3,
-            "reposition_to_route": False,
-            "preferred_start_city_id": "11",
-            "use_fatigue_medicine": True,
-            "allowed_fatigue_medicines": ["提神棒棒糖", "桦石"],
-            "fatigue_medicine_max_uses": 2,
-            "arrival_timeout_seconds": 1200,
-        }
+        assert inputs == {"round_trips": 3}
+        assert not page.trade_during_trip.isEnabled()
+        assert not page.trade_during_trip.isChecked()
+        assert page.start_button.objectName() == "primaryButton"
         assert "456" in page.expected_fatigue.text()
     finally:
         page.close()

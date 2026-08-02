@@ -10,14 +10,15 @@ class _Market:
         return 76 if {str(from_city_id), str(to_city_id)} == {"11", "15"} else 40
 
 
+class _LanxinIsCloserMarket(_Market):
+    def get_travel_fatigue(self, from_city_id: str, to_city_id: str) -> int:
+        if str(from_city_id) == "1":
+            return {"11": 65, "15": 25}[str(to_city_id)]
+        return super().get_travel_fatigue(from_city_id, to_city_id)
+
+
 def _install_happy_path(monkeypatch, start_key: str):
     destinations: list[str] = []
-    monkeypatch.setattr(flow, "resonance_pc_open_passenger_management", lambda **_kwargs: {"success": True})
-    monkeypatch.setattr(
-        flow,
-        "probe_passenger_load_from_score",
-        lambda **_kwargs: {"current_passengers": 0, "seat_capacity": 64, "flyers_available": 475},
-    )
     monkeypatch.setattr(
         flow,
         "_read_current_city",
@@ -93,13 +94,14 @@ def test_round_trip_starts_from_current_route_endpoint(monkeypatch, start_key, e
     assert destinations == expected
 
 
-def test_outside_route_repositions_to_cape_before_recruitment(monkeypatch):
+def test_outside_route_uses_preferred_endpoint_when_fatigue_is_equal(monkeypatch):
     destinations = _install_happy_path(monkeypatch, "shoggolith_city")
 
     result = _run()
 
     assert result["success"] is True
     assert result["reposition_leg"]["to_city"] == "海角城"
+    assert result["reposition_leg"]["endpoint_fatigue"] == {"海角城": 40, "岚心城": 40}
     assert result["expected_fatigue_used"] == 192
     assert destinations[0] == "travel:海角城"
     assert destinations[1:] == [
@@ -107,6 +109,25 @@ def test_outside_route_repositions_to_cape_before_recruitment(monkeypatch):
         "travel:岚心城",
         "recruit:海角城",
         "travel:海角城",
+    ]
+
+
+def test_outside_route_repositions_to_endpoint_with_lower_fatigue(monkeypatch):
+    destinations = _install_happy_path(monkeypatch, "shoggolith_city")
+
+    result = _run(market_data=_LanxinIsCloserMarket())
+
+    assert result["success"] is True
+    assert result["reposition_leg"]["to_city"] == "岚心城"
+    assert result["reposition_leg"]["expected_fatigue"] == 25
+    assert result["reposition_leg"]["endpoint_fatigue"] == {"海角城": 65, "岚心城": 25}
+    assert result["expected_fatigue_used"] == 177
+    assert destinations == [
+        "travel:岚心城",
+        "recruit:海角城",
+        "travel:海角城",
+        "recruit:岚心城",
+        "travel:岚心城",
     ]
 
 
@@ -164,18 +185,3 @@ def test_arrival_timeout_after_recruitment_is_structured_manual_block(monkeypatc
     assert result["failure_stage"] == "travel"
     assert result["requires_manual_completion"] is True
     assert result["loaded_destination"]["city_name"] == "岚心城"
-
-
-def test_preloaded_passengers_block_before_city_or_travel(monkeypatch):
-    monkeypatch.setattr(flow, "resonance_pc_open_passenger_management", lambda **_kwargs: {"success": True})
-    monkeypatch.setattr(
-        flow,
-        "probe_passenger_load_from_score",
-        lambda **_kwargs: {"current_passengers": 2, "seat_capacity": 64},
-    )
-    monkeypatch.setattr(flow, "_read_current_city", lambda *_args, **_kwargs: pytest.fail("must not read city"))
-
-    result = _run()
-
-    assert result["status"] == "blocked"
-    assert result["reason"] == "preloaded_passengers_unsupported"

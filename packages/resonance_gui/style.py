@@ -30,12 +30,55 @@ QPushButton[nav="true"]:checked {
     font-weight: 600;
 }
 QFrame#statusBand { background: #ffffff; border-bottom: 1px solid #dfe4e8; }
+QFrame#contentPanel { background: #f7f9fa; }
+QFrame#actionBar { background: #ffffff; border-top: 1px solid #dfe4e8; }
 QLabel[caption="true"] { color: #6c7780; font-size: 11px; }
 QLabel[value="true"] { color: #20252b; font-weight: 600; }
 QLabel#stageTitle { color: #20252b; font-size: 19px; font-weight: 700; }
 QLabel#pageTitle { color: #20252b; font-size: 17px; font-weight: 700; }
 QLabel#sectionTitle { color: #2b333a; font-size: 14px; font-weight: 700; }
 QFrame#parameterPanel { background: #ffffff; border-right: 1px solid #dfe4e8; }
+QLabel#passengerRouteTitle { color: #0b6f72; font-size: 20px; font-weight: 700; padding-top: 4px; }
+QLabel#passengerRouteNote { padding-bottom: 2px; }
+QLabel[badge="true"] {
+    color: #7d5b08;
+    background: #fff3ce;
+    border: 1px solid #ead487;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+}
+QLabel#passengerEstimate {
+    color: #173f40;
+    background: #e7f3f3;
+    border-left: 3px solid #148f91;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 700;
+}
+QLabel#passengerPolicy {
+    color: #68737c;
+    background: #f4f6f8;
+    border: 1px solid #e0e5e8;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 11px;
+}
+QFrame#passengerRouteBand {
+    background: #ffffff;
+    border: 1px solid #d7e1e3;
+    border-radius: 5px;
+}
+QLabel#passengerTimeline { color: #087f82; font-size: 16px; font-weight: 700; }
+QLabel#passengerStageDetail { color: #4f5b64; font-size: 12px; }
+QFrame#passengerMetrics {
+    background: transparent;
+    border-top: 1px solid #dfe5e8;
+    border-bottom: 1px solid #dfe5e8;
+}
+QLabel[metricValue="true"] { color: #20252b; font-size: 14px; font-weight: 700; }
+QTextBrowser#passengerDetails { background: #ffffff; color: #4d5962; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit, QTextBrowser {
     background: #ffffff;
     border: 1px solid #cfd6dc;
