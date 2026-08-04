@@ -15,10 +15,14 @@ def test_passenger_task_exports_fixed_roundtrip_contract():
     assert task["meta"]["entry_point"] is True
     inputs = {row["name"]: row for row in task["meta"]["inputs"]}
     assert inputs["round_trips"]["default"] == 1
+    assert inputs["trade_during_trip"]["default"] is False
+    assert inputs["reposition_to_route"]["default"] is True
     assert inputs["preferred_start_city_id"]["default"] == "11"
     assert inputs["arrival_timeout_seconds"]["default"] == 1800
     assert task["steps"]["run"]["action"] == "resonance_pc.auto_passenger_roundtrip_flow"
     assert task["returns"]["requires_manual_completion"] == "{{ nodes.run.output.requires_manual_completion }}"
+    assert task["returns"]["trade_legs"] == "{{ nodes.run.output.trade_legs }}"
+    assert task["returns"]["trade_final_sale"] == "{{ nodes.run.output.trade_final_sale }}"
 
 
 def test_manifest_registers_passenger_actions_and_task():

@@ -109,7 +109,7 @@ class PassengerPage(QWidget):
         subtitle = QLabel("海角城  ↔  岚心城", panel)
         subtitle.setObjectName("passengerRouteTitle")
         layout.addWidget(subtitle)
-        route_note = QLabel("固定线路 · 传单揽客 · 自动归位", panel)
+        route_note = QLabel("固定线路 · 传单揽客 · 可选倒货", panel)
         route_note.setObjectName("passengerRouteNote")
         route_note.setProperty("caption", True)
         layout.addWidget(route_note)
@@ -118,7 +118,7 @@ class PassengerPage(QWidget):
         input_title = QLabel("运行设置", panel)
         input_title.setObjectName("sectionTitle")
         layout.addWidget(input_title)
-        input_note = QLabel("只需设置计划执行多少次往返。", panel)
+        input_note = QLabel("设置往返次数，并按需启用倒货或自动归位。", panel)
         input_note.setProperty("caption", True)
         layout.addWidget(input_note)
         layout.addSpacing(10)
@@ -131,20 +131,15 @@ class PassengerPage(QWidget):
         self.round_trips.valueChanged.connect(self._refresh_expected_fatigue)
         form.addRow("往返次数", self.round_trips)
 
-        trade_control = QWidget(panel)
-        trade_layout = QHBoxLayout(trade_control)
-        trade_layout.setContentsMargins(0, 0, 0, 0)
-        trade_layout.setSpacing(8)
-        self.trade_during_trip = QCheckBox("启用", trade_control)
+        self.trade_during_trip = QCheckBox("启用", panel)
         self.trade_during_trip.setChecked(False)
-        self.trade_during_trip.setEnabled(False)
-        self.trade_during_trip.setToolTip("中途买卖货功能尚未实现")
-        trade_layout.addWidget(self.trade_during_trip)
-        trade_badge = QLabel("开发中", trade_control)
-        trade_badge.setProperty("badge", True)
-        trade_layout.addWidget(trade_badge)
-        trade_layout.addStretch(1)
-        form.addRow("中途买卖货", trade_control)
+        self.trade_during_trip.setToolTip("每程揽客前强制刷新行情，先卖后买；末站只清仓")
+        form.addRow("中途买卖货", self.trade_during_trip)
+
+        self.auto_reposition = QCheckBox("启用", panel)
+        self.auto_reposition.setChecked(True)
+        self.auto_reposition.setToolTip("不在线路端点时，前往疲劳消耗较低的端点")
+        form.addRow("自动前往起点", self.auto_reposition)
         layout.addLayout(form)
 
         layout.addSpacing(22)
@@ -153,7 +148,7 @@ class PassengerPage(QWidget):
         self.expected_fatigue.setObjectName("passengerEstimate")
         layout.addWidget(self.expected_fatigue)
         policy = QLabel(
-            "不在线路端点时自动前往疲劳消耗较低的线路端点。任务不使用疲劳药；疲劳不足时停止并提示人工处理。",
+            "倒货只购买强制刷新行情中税后预计盈利的商品，不使用砍价、抬价或进货书。关闭自动前往起点时，若当前不在海角城或岚心城，任务会直接停止。",
             panel,
         )
         policy.setWordWrap(True)
@@ -247,11 +242,16 @@ class PassengerPage(QWidget):
 
     def set_inputs(self, values: Mapping[str, Any]) -> None:
         self.round_trips.setValue(int(values.get("round_trips", 1)))
-        self.trade_during_trip.setChecked(False)
+        self.trade_during_trip.setChecked(bool(values.get("trade_during_trip", False)))
+        self.auto_reposition.setChecked(bool(values.get("reposition_to_route", True)))
         self._refresh_expected_fatigue()
 
     def collect_inputs(self) -> dict[str, Any]:
-        inputs = {"round_trips": self.round_trips.value()}
+        inputs = {
+            "round_trips": self.round_trips.value(),
+            "trade_during_trip": self.trade_during_trip.isChecked(),
+            "reposition_to_route": self.auto_reposition.isChecked(),
+        }
         self._settings.save_passenger_inputs(inputs)
         return inputs
 
@@ -355,7 +355,8 @@ class PassengerPage(QWidget):
     def set_busy(self, busy: bool) -> None:
         self._busy = bool(busy)
         self.round_trips.setEnabled(not self._busy)
-        self.trade_during_trip.setEnabled(False)
+        self.trade_during_trip.setEnabled(not self._busy)
+        self.auto_reposition.setEnabled(not self._busy)
         self._sync_actions()
 
     def is_busy(self) -> bool:

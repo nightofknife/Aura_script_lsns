@@ -15,17 +15,22 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
+from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
 from .city_trade_flow_pc_actions import (
+    CityTradeFlowError,
+    _execute_city_trade_inside_current_city,
     resonance_pc_go_city_main_direct,
     resonance_pc_open_city_panel_from_main,
     resonance_pc_read_city_name_on_city_panel,
 )
 from .city_travel_pc_actions import IntercityDestinationError, resonance_pc_intercity_depart_and_wait
+from .market_data_pc_actions import resonance_pc_market_refresh
 from .passenger_pc_actions import (
     PassengerPcError,
     resonance_pc_enter_city_and_settle_passengers,
     resonance_pc_recruit_passengers_by_flyer,
 )
+from .trade_planner_pc_actions import resonance_pc_trade_plan_optimal_route
 
 
 _PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
@@ -59,6 +64,8 @@ _CITY_ID_BY_KEY = {
 }
 _ROUTE_ID_BY_KEY = {value["city_key"]: city_id for city_id, value in _ROUTE_BY_ID.items()}
 _OPPOSITE_CITY_ID = {"11": "15", "15": "11"}
+_PASSENGER_TRADE_CARGO_CAPACITY = 650
+_PASSENGER_TRADE_LEVEL = 20
 
 
 class _PassengerProgressReporter:
@@ -175,7 +182,7 @@ def _medicine_rows(usage: Dict[str, int]) -> List[Dict[str, Any]]:
     return [{"name": name, "count": count} for name, count in sorted(usage.items()) if count > 0]
 
 
-def _result_base(round_trips: int) -> Dict[str, Any]:
+def _result_base(round_trips: int, *, trade_during_trip: bool = False) -> Dict[str, Any]:
     return {
         "success": False,
         "status": "not_started",
@@ -192,6 +199,11 @@ def _result_base(round_trips: int) -> Dict[str, Any]:
         "ticket_revenue": 0,
         "extra_revenue": 0,
         "total_revenue": 0,
+        "trade_during_trip": bool(trade_during_trip),
+        "trade_legs": [],
+        "trade_expected_profit": 0.0,
+        "trade_final_sale": None,
+        "trade_warnings": [],
         "fatigue_medicine_used": [],
         "failure_stage": None,
         "requires_manual_completion": False,
@@ -249,9 +261,162 @@ def _read_current_city(
     return current
 
 
+def _exception_detail(exc: Exception) -> Dict[str, Any]:
+    to_dict = getattr(exc, "to_dict", None)
+    if callable(to_dict):
+        detail = to_dict()
+        if isinstance(detail, dict):
+            return detail
+    return {"error_type": type(exc).__name__, "message": str(exc)}
+
+
+def _prepare_passenger_trade_plan(
+    *,
+    source_city_id: str,
+    destination_city_id: str,
+    market_data: ResonancePcMarketDataService,
+    trade_planner: ResonancePcTradePlannerService,
+) -> Dict[str, Any]:
+    """Refresh market data and accept only the fixed one-way passenger route."""
+
+    source = _ROUTE_BY_ID[str(source_city_id)]
+    destination = _ROUTE_BY_ID[str(destination_city_id)]
+    base = {
+        "source_city": dict(source),
+        "destination_city": dict(destination),
+        "status": "skip_buy",
+        "reason": None,
+        "snapshot_id": None,
+        "buy_products": [],
+        "expected_profit": 0.0,
+    }
+    try:
+        snapshot = resonance_pc_market_refresh(
+            force=True,
+            resonance_pc_market_data=market_data,
+        )
+    except Exception as exc:  # noqa: BLE001 - stale fallback must never become a buy plan
+        base.update({"reason": "market_refresh_failed", "refresh_error": _exception_detail(exc)})
+        return base
+
+    base["market_refresh"] = {
+        "snapshot_id": snapshot.get("snapshot_id"),
+        "stale": bool(snapshot.get("stale")),
+        "stale_reason": snapshot.get("stale_reason"),
+    }
+    base["snapshot_id"] = snapshot.get("snapshot_id")
+    if bool(snapshot.get("stale")):
+        base["reason"] = "stale_market_rejected"
+        return base
+    snapshot_id = str(snapshot.get("snapshot_id") or "").strip()
+    if not snapshot_id:
+        base["reason"] = "market_snapshot_id_missing"
+        return base
+
+    try:
+        plan = resonance_pc_trade_plan_optimal_route(
+            fatigue_budget=market_data.get_travel_fatigue(source_city_id, destination_city_id),
+            cargo_capacity=_PASSENGER_TRADE_CARGO_CAPACITY,
+            book_budget=0,
+            negotiation_budget=0,
+            all_plan=0,
+            trade_level=_PASSENGER_TRADE_LEVEL,
+            available_city_ids=[str(source_city_id), str(destination_city_id)],
+            city_prestige={"default": 20, "overrides": {}},
+            product_unlocks={"mode": "all", "product_ids": []},
+            current_city_id=str(source_city_id),
+            snapshot_id=snapshot_id,
+            resonance_pc_trade_planner=trade_planner,
+        )
+    except Exception as exc:  # noqa: BLE001 - planning failure means sell-only, never stale buying
+        base.update({"reason": "trade_planning_failed", "planning_error": _exception_detail(exc)})
+        return base
+
+    base["planner_result"] = plan
+    route = [row for row in (plan.get("route") or []) if isinstance(row, dict)]
+    if str(plan.get("status") or "") != "ok" or float(plan.get("expected_profit") or 0.0) <= 0:
+        base["reason"] = str(plan.get("reason") or "no_positive_profit_goods")
+        return base
+    if len(route) != 1:
+        base["reason"] = "fixed_route_plan_mismatch"
+        return base
+    leg = route[0]
+    if (
+        str(leg.get("from_city_id") or "") != str(source_city_id)
+        or str(leg.get("to_city_id") or "") != str(destination_city_id)
+    ):
+        base["reason"] = "fixed_route_plan_mismatch"
+        return base
+    products = [str(value).strip() for value in (leg.get("buy_products") or []) if str(value).strip()]
+    if not products or float(leg.get("expected_profit") or 0.0) <= 0:
+        base["reason"] = "no_positive_profit_goods"
+        return base
+    base.update(
+        {
+            "status": "planned",
+            "reason": None,
+            "buy_products": products,
+            "expected_profit": float(leg.get("expected_profit") or 0.0),
+            "route_leg": dict(leg),
+        }
+    )
+    return base
+
+
+def _execute_passenger_trade_at_city(
+    *,
+    current_city_id: str,
+    destination_city_id: Optional[str],
+    final_sale: bool,
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    controller: Any,
+    city_shop_data: ResonancePcCityShopDataService,
+    market_data: ResonancePcMarketDataService,
+    trade_planner: ResonancePcTradePlannerService,
+) -> Dict[str, Any]:
+    current = _ROUTE_BY_ID[str(current_city_id)]
+    plan = None
+    buy_products: List[str] = []
+    if not final_sale:
+        if destination_city_id is None:
+            raise ValueError("destination_city_id is required before a passenger trade leg")
+        plan = _prepare_passenger_trade_plan(
+            source_city_id=str(current_city_id),
+            destination_city_id=str(destination_city_id),
+            market_data=market_data,
+            trade_planner=trade_planner,
+        )
+        buy_products = list(plan.get("buy_products") or [])
+
+    resonance_pc_open_city_panel_from_main(app=app, ocr=ocr)
+    execution = _execute_city_trade_inside_current_city(
+        current_city=current["city_name"],
+        buy_products=buy_products,
+        books_used=0,
+        sell_raise_to_cap=False,
+        buy_bargain_to_cap=False,
+        app=app,
+        ocr=ocr,
+        vision=vision,
+        controller=controller,
+        city_shop_data=city_shop_data,
+    )
+    return {
+        "success": True,
+        "current_city": dict(current),
+        "final_sale": bool(final_sale),
+        "plan": plan,
+        "buy_products": buy_products,
+        "execution": execution,
+    }
+
+
 def _run_passenger_roundtrip_sync(
     *,
     round_trips: int,
+    trade_during_trip: bool,
     reposition_to_route: bool,
     preferred_start_city_id: str,
     use_fatigue_medicine: bool,
@@ -264,8 +429,9 @@ def _run_passenger_roundtrip_sync(
     controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     market_data: ResonancePcMarketDataService,
+    trade_planner: Optional[ResonancePcTradePlannerService],
 ) -> Dict[str, Any]:
-    result = _result_base(round_trips)
+    result = _result_base(round_trips, trade_during_trip=trade_during_trip)
     medicine_usage: Dict[str, int] = {}
     loaded_destination: Optional[Dict[str, str]] = None
 
@@ -377,6 +543,50 @@ def _run_passenger_roundtrip_sync(
             "destination_city": destination["city_name"],
             "expected_fatigue_total": expected_total,
         }
+
+        if trade_during_trip:
+            assert trade_planner is not None
+            _emit("trade", "started", **progress_fields)
+            try:
+                trade_leg = _execute_passenger_trade_at_city(
+                    current_city_id=current_city_id,
+                    destination_city_id=destination_id,
+                    final_sale=False,
+                    app=app,
+                    ocr=ocr,
+                    vision=vision,
+                    controller=controller,
+                    city_shop_data=city_shop_data,
+                    market_data=market_data,
+                    trade_planner=trade_planner,
+                )
+            except Exception as exc:  # noqa: BLE001 - UI failures are structured before recruitment
+                return _block(
+                    result,
+                    exc.code if isinstance(exc, CityTradeFlowError) else "passenger_trade_failed",
+                    "trade",
+                    detail=_exception_detail(exc),
+                )
+            result["trade_legs"].append(trade_leg)
+            trade_plan = trade_leg.get("plan") or {}
+            result["trade_expected_profit"] += float(trade_plan.get("expected_profit") or 0.0)
+            if trade_plan.get("reason"):
+                result["trade_warnings"].append(
+                    {
+                        "leg_index": leg_index + 1,
+                        "reason": str(trade_plan.get("reason")),
+                    }
+                )
+            _emit(
+                "trade",
+                "completed",
+                **progress_fields,
+                data={
+                    "buy_products": list(trade_leg.get("buy_products") or []),
+                    "expected_profit": float(trade_plan.get("expected_profit") or 0.0),
+                    "buy_skipped_reason": trade_plan.get("reason"),
+                },
+            )
 
         _emit("recruit", "started", **progress_fields)
         try:
@@ -498,6 +708,41 @@ def _run_passenger_roundtrip_sync(
             expected_fatigue_used=result["expected_fatigue_used"],
         )
 
+    if trade_during_trip:
+        assert trade_planner is not None
+        _emit(
+            "final_sale",
+            "started",
+            source_city=_ROUTE_BY_ID[current_city_id]["city_name"],
+            expected_fatigue_total=expected_total,
+        )
+        try:
+            result["trade_final_sale"] = _execute_passenger_trade_at_city(
+                current_city_id=current_city_id,
+                destination_city_id=None,
+                final_sale=True,
+                app=app,
+                ocr=ocr,
+                vision=vision,
+                controller=controller,
+                city_shop_data=city_shop_data,
+                market_data=market_data,
+                trade_planner=trade_planner,
+            )
+        except Exception as exc:  # noqa: BLE001 - passengers are already settled
+            return _block(
+                result,
+                exc.code if isinstance(exc, CityTradeFlowError) else "passenger_final_sale_failed",
+                "final_sale",
+                detail=_exception_detail(exc),
+            )
+        _emit(
+            "final_sale",
+            "completed",
+            source_city=_ROUTE_BY_ID[current_city_id]["city_name"],
+            expected_fatigue_total=expected_total,
+        )
+
     result.update(
         {
             "success": True,
@@ -526,11 +771,13 @@ def _run_passenger_roundtrip_sync(
     controller="plans/aura_base/controller",
     resonance_pc_city_shop_data="resonance_pc_city_shop_data",
     resonance_pc_market_data="resonance_pc_market_data",
+    resonance_pc_trade_planner="resonance_pc_trade_planner",
     event_bus="core/event_bus",
 )
 @_with_passenger_progress
 async def resonance_pc_auto_passenger_roundtrip_flow(
     round_trips: int = 1,
+    trade_during_trip: bool = False,
     reposition_to_route: bool = True,
     preferred_start_city_id: str = "11",
     use_fatigue_medicine: bool = False,
@@ -543,6 +790,7 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
     controller: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
+    resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
@@ -562,12 +810,14 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
         or controller is None
         or resonance_pc_city_shop_data is None
         or resonance_pc_market_data is None
+        or (bool(trade_during_trip) and resonance_pc_trade_planner is None)
     ):
         raise RuntimeError("passenger flow requires app/ocr/vision/controller/city/market services")
 
     return await asyncio.to_thread(
         _run_passenger_roundtrip_sync,
         round_trips=normalized_round_trips,
+        trade_during_trip=bool(trade_during_trip),
         reposition_to_route=bool(reposition_to_route),
         preferred_start_city_id=preferred_id,
         use_fatigue_medicine=bool(use_fatigue_medicine),
@@ -582,4 +832,5 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
         controller=controller,
         city_shop_data=resonance_pc_city_shop_data,
         market_data=resonance_pc_market_data,
+        trade_planner=resonance_pc_trade_planner,
     )
