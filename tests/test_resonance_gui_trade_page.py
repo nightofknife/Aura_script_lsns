@@ -55,6 +55,7 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         page.negotiation_max_attempts.setValue(6)
         page.bargain_rates.setText("5000, 6000")
         page.raise_rates.setText("5000")
+        page.auto_cape_island_investment.setChecked(True)
 
         inputs = page.collect_inputs()
 
@@ -63,6 +64,7 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         assert inputs["cargo_capacity"] == 650
         assert inputs["negotiation_max_attempts"] == 6
         assert inputs["bargain_success_rates_bps"] == [5000, 6000]
+        assert inputs["auto_cape_island_investment"] is True
         assert inputs["available_city_ids"] == [
             "1", "2", "3", "4", "5", "6", "7", "8", "9",
             "10", "11", "12", "13", "15", "16", "18", "20",

@@ -63,6 +63,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
+    "auto_cape_island_investment": False,
 }
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
@@ -173,6 +174,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     ):
         normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
     merged["available_city_ids"] = normalized_city_ids
+    merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     return merged
 
 

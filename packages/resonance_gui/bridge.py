@@ -168,6 +168,7 @@ class RunnerBridge(QObject):
             "use_fatigue_medicine",
             "allowed_fatigue_medicines",
             "fatigue_medicine_max_uses",
+            "auto_cape_island_investment",
         ):
             preview_inputs.pop(key, None)
         item = self._make_item(

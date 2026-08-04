@@ -725,6 +725,35 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.execute_cape_island_investment_from_city_panel
+    module: plans.resonance_pc.src.actions.cape_island_investment_pc_actions
+    function: resonance_pc_execute_cape_island_investment_from_city_panel
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter Mirage Island from the Cape City panel and perform the best
+      available investment.
+    parameters:
+    - name: location_file_path
+      type: Any
+      required: false
+      default: data/meta/location_pc.json
+    - name: page_timeout_sec
+      type: Any
+      required: false
+      default: 12.0
+    - name: metric_timeout_sec
+      type: Any
+      required: false
+      default: 8.0
+    - name: interval_sec
+      type: Any
+      required: false
+      default: 0.3
+    - name: transition_attempts
+      type: Any
+      required: false
+      default: 3
   - name: resonance_pc.open_city_panel_from_main
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_open_city_panel_from_main
@@ -1027,6 +1056,10 @@ exports:
       type: Any
       required: false
       default: 4
+    - name: auto_cape_island_investment
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -2058,6 +2091,16 @@ exports:
     source: tasks/auto_passenger_roundtrip_pc.yaml
     description: Run fixed flyer-based passenger round trips between Cape City and
       Lanxin City.
+  - id: cape_island_investment_pc/cape_island_investment_pc
+    title: Cape Island Investment (PC)
+    source: tasks/cape_island_investment_pc.yaml
+    description: Enter Mirage Island from the Cape City main screen, invest once when
+      possible, and return.
+  - id: cape_island_investment_pc
+    title: Cape Island Investment (PC)
+    source: tasks/cape_island_investment_pc.yaml
+    description: Enter Mirage Island from the Cape City main screen, invest once when
+      possible, and return.
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -2090,4 +2133,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-01T09:55:08Z'
+  generated_at: '2026-08-04T17:15:29Z'

@@ -211,6 +211,10 @@ auto_cycle_trade_pc:
         type: number
         required: false
         default: 4
+      - name: auto_cape_island_investment
+        type: boolean
+        required: false
+        default: false
   steps:
     run:
       action: resonance_pc.auto_cycle_trade_flow
@@ -234,6 +238,7 @@ auto_cycle_trade_pc:
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
+        auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
   returns:
     success: "{{ nodes.run.output.success }}"
     status: "{{ nodes.run.output.status }}"
