@@ -1,0 +1,26 @@
+cape_island_investment_pc:
+  meta:
+    title: Cape Island Investment (PC)
+    description: Enter Mirage Island from the Cape City main screen, invest once when possible, and return.
+    entry_point: true
+  steps:
+    open_city:
+      action: resonance_pc.open_city_panel_from_main
+
+    invest:
+      action: resonance_pc.execute_cape_island_investment_from_city_panel
+      depends_on: open_city
+
+    return_main:
+      action: resonance_pc.go_city_main_direct
+      depends_on: invest
+  returns:
+    success: "{{ nodes.return_main.output.success }}"
+    status: "{{ nodes.invest.output.status }}"
+    reason: "{{ nodes.invest.output.reason }}"
+    metrics: "{{ nodes.invest.output.metrics }}"
+    capped: "{{ nodes.invest.output.capped }}"
+    selected_option: "{{ nodes.invest.output.selected_option }}"
+    options: "{{ nodes.invest.output.options }}"
+    elapsed_ms: "{{ nodes.invest.output.elapsed_ms }}"
+    page_state: "{{ nodes.return_main.output.page_state }}"

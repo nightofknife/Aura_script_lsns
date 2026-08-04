@@ -23,6 +23,9 @@ from ..services.resonance_pc_trade_exact_solver import (
     trade_solver_progress,
 )
 from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
+from .cape_island_investment_pc_actions import (
+    resonance_pc_execute_cape_island_investment_from_city_panel,
+)
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
@@ -1077,6 +1080,7 @@ async def _execute_route(
     controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     state_store: StateStoreService,
+    auto_cape_island_investment: bool = False,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -1111,6 +1115,7 @@ async def _execute_route(
                 controller=controller,
                 city_shop_data=city_shop_data,
                 progress_fields=progress_fields,
+                auto_cape_island_investment=bool(auto_cape_island_investment),
             )
             page_state = str(leg_result.get("page_state") or "city_main")
             travel = dict(leg_result.get("travel") or {})
@@ -1140,6 +1145,18 @@ async def _execute_route(
         summary = await resonance_pc_trade_route_execution_summary(route_run_key, state_store=state_store)
         summary["page_state"] = page_state
         summary["leg_results"] = leg_results
+        island_results = [
+            dict(item.get("cape_island_investment") or {})
+            for item in leg_results
+            if bool((item.get("cape_island_investment") or {}).get("triggered"))
+        ]
+        summary["cape_island_triggered_count"] = len(island_results)
+        summary["cape_island_invested_count"] = sum(
+            1 for item in island_results if str(item.get("status") or "") == "invested"
+        )
+        summary["cape_island_skipped_count"] = sum(
+            1 for item in island_results if str(item.get("status") or "") == "skipped"
+        )
         return summary
     finally:
         if route_run_key:
@@ -1162,6 +1179,7 @@ async def _execute_trade_leg(
     controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     progress_fields: Optional[Dict[str, Any]] = None,
+    auto_cape_island_investment: bool = False,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -1226,14 +1244,110 @@ async def _execute_trade_leg(
             **arrival_fields,
             data={"travel": dict(travel)},
         )
+    travel_status = str(travel.get("status") or "ok").lower()
+    cape_island_investment: Dict[str, Any] = {
+        "triggered": False,
+        "status": "not_applicable",
+        "reason": None,
+    }
+    if (
+        bool(auto_cape_island_investment)
+        and travel_status != "blocked"
+        and bool(travel.get("success", True))
+        and _is_cape_city_arrival(leg)
+    ):
+        cape_island_investment = await asyncio.to_thread(
+            _execute_cape_island_investment_after_arrival,
+            leg_index=index,
+            leg=leg,
+            app=app,
+            ocr=ocr,
+            vision=vision,
+            city_shop_data=city_shop_data,
+        )
     return {
         "index": int(index),
         "status": "pending",
         "leg": dict(leg),
         "city_trade": city_trade,
         "travel": travel,
+        "cape_island_investment": cape_island_investment,
         "page_state": "city_main",
     }
+
+
+def _is_cape_city_arrival(leg: Dict[str, Any]) -> bool:
+    return bool(
+        str(leg.get("to_city_id") or "").strip() == "11"
+        or str(leg.get("to_city_key") or "").strip().lower() == "cape_city"
+        or str(leg.get("to_city") or "").strip() == "海角城"
+    )
+
+
+def _execute_cape_island_investment_after_arrival(
+    *,
+    leg_index: int,
+    leg: Dict[str, Any],
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    city_shop_data: ResonancePcCityShopDataService,
+) -> Dict[str, Any]:
+    started_at = time.monotonic()
+    arrival_city = str(leg.get("to_city") or "海角城")
+    logger.info(
+        "Cape island investment triggered leg_index=%s from_city=%s to_city=%s to_city_id=%s",
+        int(leg_index),
+        leg.get("from_city"),
+        arrival_city,
+        leg.get("to_city_id"),
+    )
+    try:
+        open_city = resonance_pc_open_city_panel_from_main(app=app, ocr=ocr)
+        investment = resonance_pc_execute_cape_island_investment_from_city_panel(
+            app=app,
+            ocr=ocr,
+            vision=vision,
+            resonance_pc_city_shop_data=city_shop_data,
+        )
+        return_main = resonance_pc_go_city_main_direct(app=app, vision=vision)
+    except Exception as exc:
+        code = str(getattr(exc, "code", type(exc).__name__))
+        logger.exception(
+            "Cape island investment route hook failed leg_index=%s city=%s code=%s elapsed_ms=%s",
+            int(leg_index),
+            arrival_city,
+            code,
+            int((time.monotonic() - started_at) * 1000),
+        )
+        raise
+    result = {
+        "triggered": True,
+        "status": str(investment.get("status") or "unknown"),
+        "reason": investment.get("reason"),
+        "degraded": bool(investment.get("degraded")),
+        "unclassified_slots": list(investment.get("unclassified_slots") or []),
+        "arrival_city": arrival_city,
+        "open_city": open_city,
+        "investment": investment,
+        "return_main": return_main,
+        "page_state": str(return_main.get("page_state") or "city_main"),
+        "elapsed_ms": int((time.monotonic() - started_at) * 1000),
+    }
+    selected = investment.get("selected_option") or {}
+    logger.info(
+        "Cape island investment route result leg_index=%s status=%s reason=%s "
+        "selected_slot=%s selected_category=%s selected_grade=%s returned_page=%s elapsed_ms=%s",
+        int(leg_index),
+        result["status"],
+        result["reason"],
+        selected.get("slot"),
+        selected.get("category"),
+        selected.get("grade"),
+        result["page_state"],
+        result["elapsed_ms"],
+    )
+    return result
 
 
 def _summarize_negotiation_execution(
@@ -1498,6 +1612,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
+    auto_cape_island_investment: bool = False,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -1652,6 +1767,9 @@ async def resonance_pc_auto_cycle_trade_flow(
         "blocked_leg": None,
         "fatigue_medicine_used": [],
         "fatigue_medicine_use_count": 0,
+        "cape_island_triggered_count": 0,
+        "cape_island_invested_count": 0,
+        "cape_island_skipped_count": 0,
     }
     final_sale: Optional[Dict[str, Any]] = None
 
@@ -1669,6 +1787,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             controller=controller,
             city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
+            auto_cape_island_investment=bool(auto_cape_island_investment),
         )
         page_state = str(execution.get("page_state") or "city_main")
 

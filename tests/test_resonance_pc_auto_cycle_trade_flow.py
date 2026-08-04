@@ -45,7 +45,11 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "use_fatigue_medicine",
         "allowed_fatigue_medicines",
         "fatigue_medicine_max_uses",
+        "auto_cape_island_investment",
     }.issubset(input_names)
+    assert steps["run"]["params"]["auto_cape_island_investment"] == (
+        "{{ inputs.auto_cape_island_investment | default(false) }}"
+    )
     assert task["returns"]["route"] == "{{ nodes.run.output.route }}"
     assert task["returns"]["negotiation_max_attempts"] == (
         "{{ nodes.run.output.negotiation_max_attempts }}"
@@ -75,6 +79,7 @@ def test_route_execution_reuses_existing_travel_action_and_handles_blocked():
     assert 'location_file_path="data/meta/location_pc.json"' in leg_source
     assert "enter_station_timeout_seconds=900" in leg_source
     assert "use_fatigue_medicine=bool(use_fatigue_medicine)" in leg_source
+    assert "auto_cape_island_investment" in leg_source
     assert "resonance_pc_trade_route_execution_update" in route_source
     assert "blocked" in route_source
 

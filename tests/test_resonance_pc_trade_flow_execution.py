@@ -320,6 +320,215 @@ def test_route_propagates_trade_exception_and_cleans_execution_state(monkeypatch
     assert store.data == {}
 
 
+def test_cape_island_investment_runs_after_arrival_when_enabled(monkeypatch):
+    events: list[tuple] = []
+    route = [
+        {
+            "from_city": "A",
+            "to_city": "海角城",
+            "to_city_id": "11",
+            "to_city_key": "cape_city",
+            "buy_products": [],
+            "books_used": 0,
+            "bargain_to_cap": False,
+            "raise_to_cap": False,
+        }
+    ]
+    _patch_route_ui(monkeypatch, events)
+
+    def invest(**kwargs):
+        events.append(("cape_island", kwargs["leg_index"], kwargs["leg"]["to_city"]))
+        return {"triggered": True, "status": "invested", "reason": None}
+
+    monkeypatch.setattr(actions, "_execute_cape_island_investment_after_arrival", invest)
+
+    result = asyncio.run(
+        actions._execute_route(
+            route=route,
+            start_page_state="city_panel",
+            use_fatigue_medicine=False,
+            allowed_fatigue_medicines=[],
+            fatigue_medicine_max_uses=4,
+            app=object(),
+            ocr=object(),
+            vision=object(),
+            controller=object(),
+            city_shop_data=object(),
+            state_store=_MemoryStateStore(),
+            auto_cape_island_investment=True,
+        )
+    )
+
+    assert events == [
+        ("city_trade", "A", [], 0, False, False),
+        ("travel", "海角城"),
+        ("cape_island", 0, "海角城"),
+    ]
+    assert result["cape_island_triggered_count"] == 1
+    assert result["cape_island_invested_count"] == 1
+    assert result["cape_island_skipped_count"] == 0
+
+
+def test_cape_island_investment_is_disabled_by_default_and_not_run_when_travel_blocks(monkeypatch):
+    events: list[tuple] = []
+    route = [
+        {
+            "from_city": "海角城",
+            "from_city_id": "11",
+            "to_city": "B",
+            "to_city_id": "2",
+            "buy_products": [],
+            "books_used": 0,
+        },
+        {
+            "from_city": "B",
+            "from_city_id": "2",
+            "to_city": "海角城",
+            "to_city_id": "11",
+            "buy_products": [],
+            "books_used": 0,
+        },
+    ]
+    _patch_route_ui(monkeypatch, events, blocked_destination="海角城")
+    monkeypatch.setattr(
+        actions,
+        "_execute_cape_island_investment_after_arrival",
+        lambda **_kwargs: pytest.fail("island investment must not run"),
+    )
+
+    result = asyncio.run(
+        actions._execute_route(
+            route=route,
+            start_page_state="city_panel",
+            use_fatigue_medicine=False,
+            allowed_fatigue_medicines=[],
+            fatigue_medicine_max_uses=4,
+            app=object(),
+            ocr=object(),
+            vision=object(),
+            controller=object(),
+            city_shop_data=object(),
+            state_store=_MemoryStateStore(),
+            auto_cape_island_investment=True,
+        )
+    )
+
+    assert result["status"] == "blocked"
+    assert result["cape_island_triggered_count"] == 0
+
+
+def test_terminal_cape_investment_finishes_before_final_sale(monkeypatch):
+    events: list[tuple] = []
+    route = [
+        {
+            "from_city": "A",
+            "to_city": "海角城",
+            "to_city_id": "11",
+            "buy_products": [],
+            "books_used": 0,
+            "bargain_to_cap": False,
+            "raise_to_cap": True,
+        }
+    ]
+    _patch_planning(
+        monkeypatch,
+        events,
+        {"status": "ok", "reason": None, "snapshot_id": "snapshot-1", "route": route},
+    )
+    _patch_route_ui(monkeypatch, events)
+    monkeypatch.setattr(
+        actions,
+        "_execute_cape_island_investment_after_arrival",
+        lambda **_kwargs: events.append(("cape_island",))
+        or {"triggered": True, "status": "skipped", "reason": "all_metrics_capped"},
+    )
+
+    result = _run_flow(_MemoryStateStore(), auto_cape_island_investment=True)
+
+    assert events.index(("cape_island",)) < events.index(
+        ("city_trade", "海角城", [], 0, True, False)
+    )
+    assert result["execution"]["cape_island_skipped_count"] == 1
+
+
+def test_repeated_cape_arrivals_each_trigger_investment(monkeypatch):
+    events: list[tuple] = []
+    route = [
+        {"from_city": "A", "to_city": "海角城", "to_city_id": "11", "buy_products": []},
+        {"from_city": "海角城", "to_city": "B", "to_city_id": "2", "buy_products": []},
+        {"from_city": "B", "to_city": "海角城", "to_city_id": "11", "buy_products": []},
+    ]
+    _patch_route_ui(monkeypatch, events)
+
+    def invest(**kwargs):
+        events.append(("cape_island", kwargs["leg_index"]))
+        return {"triggered": True, "status": "invested", "reason": None}
+
+    monkeypatch.setattr(actions, "_execute_cape_island_investment_after_arrival", invest)
+
+    result = asyncio.run(
+        actions._execute_route(
+            route=route,
+            start_page_state="city_panel",
+            use_fatigue_medicine=False,
+            allowed_fatigue_medicines=[],
+            fatigue_medicine_max_uses=4,
+            app=object(),
+            ocr=object(),
+            vision=object(),
+            controller=object(),
+            city_shop_data=object(),
+            state_store=_MemoryStateStore(),
+            auto_cape_island_investment=True,
+        )
+    )
+
+    assert [event for event in events if event[0] == "cape_island"] == [
+        ("cape_island", 0),
+        ("cape_island", 2),
+    ]
+    assert result["cape_island_triggered_count"] == 2
+
+
+def test_cape_investment_failure_stops_before_the_next_route_leg(monkeypatch):
+    events: list[tuple] = []
+    route = [
+        {"from_city": "A", "to_city": "海角城", "to_city_id": "11", "buy_products": []},
+        {"from_city": "海角城", "to_city": "B", "to_city_id": "2", "buy_products": []},
+    ]
+    _patch_route_ui(monkeypatch, events)
+
+    def fail_investment(**_kwargs):
+        events.append(("cape_island_failed",))
+        raise RuntimeError("island failed")
+
+    monkeypatch.setattr(actions, "_execute_cape_island_investment_after_arrival", fail_investment)
+
+    with pytest.raises(RuntimeError, match="island failed"):
+        asyncio.run(
+            actions._execute_route(
+                route=route,
+                start_page_state="city_panel",
+                use_fatigue_medicine=False,
+                allowed_fatigue_medicines=[],
+                fatigue_medicine_max_uses=4,
+                app=object(),
+                ocr=object(),
+                vision=object(),
+                controller=object(),
+                city_shop_data=object(),
+                state_store=_MemoryStateStore(),
+                auto_cape_island_investment=True,
+            )
+        )
+
+    assert events == [
+        ("city_trade", "A", [], 0, False, False),
+        ("travel", "海角城"),
+        ("cape_island_failed",),
+    ]
+
+
 def test_empty_buy_products_skips_buy_page(monkeypatch):
     menu_nodes: list[int] = []
 

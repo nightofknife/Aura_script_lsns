@@ -79,6 +79,7 @@ _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
 }
 
 _SHOP_NAME_TO_KEY: Dict[str, str] = {
+    "蜃息岛": "mirage_island",
     "管理中心": "administration",
     "瞳仁服饰总店": "clothing",
     "列车整备库": "train_maintenance",

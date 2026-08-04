@@ -187,6 +187,9 @@ class TradePage(QWidget):
         medicine_form.addRow("最大次数", self.medicine_max_uses)
         form_stack.addWidget(self.medicine_box)
 
+        self.auto_cape_island_investment = QCheckBox("是否自动进行蜃息岛投资", content)
+        form_stack.addWidget(self.auto_cape_island_investment)
+
         self.advanced_toggle = QToolButton(content)
         self.advanced_toggle.setText("高级规划参数")
         self.advanced_toggle.setCheckable(True)
@@ -501,6 +504,9 @@ class TradePage(QWidget):
         self.use_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
         self.allowed_medicines.setText(self._join_values(values.get("allowed_fatigue_medicines", [])))
         self.medicine_max_uses.setValue(int(values.get("fatigue_medicine_max_uses", 4)))
+        self.auto_cape_island_investment.setChecked(
+            bool(values.get("auto_cape_island_investment", False))
+        )
         self._sync_mode_controls()
         self._sync_city_controls()
         self._sync_unlock_controls()
@@ -546,6 +552,7 @@ class TradePage(QWidget):
             "use_fatigue_medicine": self.use_medicine.isChecked(),
             "allowed_fatigue_medicines": self._parse_text_list(self.allowed_medicines.text()),
             "fatigue_medicine_max_uses": self.medicine_max_uses.value(),
+            "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
         }
 
     def _request_start(self) -> None:
@@ -772,6 +779,7 @@ class TradePage(QWidget):
             self.cargo_capacity,
             self.book_budget,
             self.use_medicine,
+            self.auto_cape_island_investment,
             self.advanced_toggle,
             self.advanced_panel,
             self.city_selector,
