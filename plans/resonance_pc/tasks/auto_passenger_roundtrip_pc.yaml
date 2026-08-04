@@ -9,6 +9,10 @@ auto_passenger_roundtrip_pc:
         required: false
         default: 1
         min: 1
+      - name: trade_during_trip
+        type: boolean
+        required: false
+        default: false
       - name: reposition_to_route
         type: boolean
         required: false
@@ -41,6 +45,7 @@ auto_passenger_roundtrip_pc:
       action: resonance_pc.auto_passenger_roundtrip_flow
       params:
         round_trips: "{{ inputs.round_trips | default(1) }}"
+        trade_during_trip: "{{ inputs.trade_during_trip | default(false) }}"
         reposition_to_route: "{{ inputs.reposition_to_route | default(true) }}"
         preferred_start_city_id: "{{ inputs.preferred_start_city_id | default('11') }}"
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
@@ -63,6 +68,11 @@ auto_passenger_roundtrip_pc:
     ticket_revenue: "{{ nodes.run.output.ticket_revenue }}"
     extra_revenue: "{{ nodes.run.output.extra_revenue }}"
     total_revenue: "{{ nodes.run.output.total_revenue }}"
+    trade_during_trip: "{{ nodes.run.output.trade_during_trip }}"
+    trade_legs: "{{ nodes.run.output.trade_legs }}"
+    trade_expected_profit: "{{ nodes.run.output.trade_expected_profit }}"
+    trade_final_sale: "{{ nodes.run.output.trade_final_sale }}"
+    trade_warnings: "{{ nodes.run.output.trade_warnings }}"
     fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"
     failure_stage: "{{ nodes.run.output.failure_stage }}"
     requires_manual_completion: "{{ nodes.run.output.requires_manual_completion }}"

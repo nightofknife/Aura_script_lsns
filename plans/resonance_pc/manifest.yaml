@@ -1278,6 +1278,10 @@ exports:
       type: Any
       required: false
       default: 1
+    - name: trade_during_trip
+      type: Any
+      required: false
+      default: false
     - name: reposition_to_route
       type: Any
       required: false

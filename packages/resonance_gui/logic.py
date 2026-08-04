@@ -50,9 +50,11 @@ TRADE_STAGE_LABELS = {
 PASSENGER_STAGE_LABELS = {
     "resolve_start": "识别起点",
     "reposition": "前往线路端点",
+    "trade": "中途倒货",
     "recruit": "传单揽客",
     "travel": "跨城行驶",
     "settlement": "客运结算",
+    "final_sale": "终点清仓",
     "task": "客运任务",
 }
 

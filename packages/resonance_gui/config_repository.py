@@ -67,6 +67,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
     "round_trips": 1,
+    "trade_during_trip": False,
     "reposition_to_route": True,
     "preferred_start_city_id": "11",
     "use_fatigue_medicine": False,
@@ -185,6 +186,7 @@ def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         merged["round_trips"] = 1
     merged["reposition_to_route"] = bool(merged["reposition_to_route"])
+    merged["trade_during_trip"] = bool(merged["trade_during_trip"])
     preferred = str(merged.get("preferred_start_city_id") or "11")
     merged["preferred_start_city_id"] = preferred if preferred in {"11", "15"} else "11"
     merged["use_fatigue_medicine"] = bool(merged["use_fatigue_medicine"])

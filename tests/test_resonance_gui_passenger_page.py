@@ -36,14 +36,29 @@ def test_passenger_page_collects_and_persists_inputs(tmp_path):
     page = _page(tmp_path)
     try:
         page.round_trips.setValue(3)
+        page.trade_during_trip.setChecked(True)
+        page.auto_reposition.setChecked(False)
 
         inputs = page.collect_inputs()
 
-        assert inputs == {"round_trips": 3}
-        assert not page.trade_during_trip.isEnabled()
-        assert not page.trade_during_trip.isChecked()
+        assert inputs == {
+            "round_trips": 3,
+            "trade_during_trip": True,
+            "reposition_to_route": False,
+        }
+        assert page.trade_during_trip.isEnabled()
+        assert page.auto_reposition.isEnabled()
+        assert page.trade_during_trip.isChecked()
         assert page.start_button.objectName() == "primaryButton"
         assert "456" in page.expected_fatigue.text()
+
+        restored = _page(tmp_path)
+        try:
+            assert restored.round_trips.value() == 3
+            assert restored.trade_during_trip.isChecked()
+            assert not restored.auto_reposition.isChecked()
+        finally:
+            restored.close()
     finally:
         page.close()
 
