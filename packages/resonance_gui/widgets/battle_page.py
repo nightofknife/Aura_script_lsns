@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from ..battle_catalog import (
     DIFFICULTY_LABELS,
     MAIN_CATEGORY_LABELS,
+    MISSION_LABELS,
     SUBCATEGORY_LABELS,
     BattleRoute,
     battle_job_summary,
@@ -150,10 +151,13 @@ class BattlePage(QWidget):
         self.job_form = QFormLayout()
         self.job_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.subcategory_combo = QComboBox(content)
+        self.mission_combo = QComboBox(content)
         self.route_combo = QComboBox(content)
-        self.subcategory_combo.currentIndexChanged.connect(self._sync_routes)
+        self.subcategory_combo.currentIndexChanged.connect(self._sync_missions)
+        self.mission_combo.currentIndexChanged.connect(self._sync_routes)
         self.route_combo.currentIndexChanged.connect(self._sync_dynamic_fields)
         self.job_form.addRow("作战分类", self.subcategory_combo)
+        self.job_form.addRow("任务类型", self.mission_combo)
         self.job_form.addRow("城市 / 关卡", self.route_combo)
 
         self.stage_spin = QSpinBox(content)
@@ -306,17 +310,44 @@ class BattlePage(QWidget):
         selected = self.subcategory_combo.findData(previous)
         self.subcategory_combo.setCurrentIndex(selected if selected >= 0 else 0)
         self.subcategory_combo.blockSignals(False)
+        self._sync_missions()
+
+    def _sync_missions(self, *_args: object) -> None:
+        is_tie_an = (
+            self._selected_main_category() == "ct"
+            and str(self.subcategory_combo.currentData() or "") == "tie_an"
+        )
+        previous = self.mission_combo.currentData()
+        self.mission_combo.blockSignals(True)
+        self.mission_combo.clear()
+        if is_tie_an:
+            for value in ("expel", "bounty"):
+                self.mission_combo.addItem(MISSION_LABELS[value], value)
+            selected = self.mission_combo.findData(previous)
+            self.mission_combo.setCurrentIndex(selected if selected >= 0 else 0)
+        self.mission_combo.blockSignals(False)
+        self._set_form_field_visible(self.mission_combo, is_tie_an)
+        route_label = self.job_form.labelForField(self.route_combo)
+        if route_label is not None:
+            route_label.setText("城市" if is_tie_an else "城市 / 关卡")
         self._sync_routes()
 
     def _sync_routes(self, *_args: object) -> None:
         category = self._selected_main_category()
         subcategory = str(self.subcategory_combo.currentData() or "")
+        mission_type = str(self.mission_combo.currentData() or "")
         selected_route = self.route_combo.currentData()
         self.route_combo.blockSignals(True)
         self.route_combo.clear()
         for route in self._routes:
-            if route.main_category == category and route.subcategory == subcategory:
-                self.route_combo.addItem(route.title, route.route_id)
+            if route.main_category != category or route.subcategory != subcategory:
+                continue
+            if subcategory == "tie_an" and route.mission_type != mission_type:
+                continue
+            self.route_combo.addItem(
+                route.detail if subcategory == "tie_an" else route.title,
+                route.route_id,
+            )
         index = self.route_combo.findData(selected_route)
         self.route_combo.setCurrentIndex(index if index >= 0 else 0)
         self.route_combo.blockSignals(False)
@@ -612,6 +643,7 @@ class BattlePage(QWidget):
             self.category_buttons["ct"],
             self.category_buttons["gp"],
             self.subcategory_combo,
+            self.mission_combo,
             self.route_combo,
             self.stage_spin,
             self.difficulty_combo,

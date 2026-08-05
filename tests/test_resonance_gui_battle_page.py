@@ -29,6 +29,9 @@ def _page(tmp_path) -> BattlePage:
 def _select(page: BattlePage, category: str, subcategory: str, route_id: str) -> None:
     page.category_buttons[category].click()
     page.subcategory_combo.setCurrentIndex(page.subcategory_combo.findData(subcategory))
+    if subcategory == "tie_an":
+        mission_type = "bounty" if route_id.endswith(".bounty") else "expel"
+        page.mission_combo.setCurrentIndex(page.mission_combo.findData(mission_type))
     page.route_combo.setCurrentIndex(page.route_combo.findData(route_id))
     QApplication.processEvents()
 
@@ -50,12 +53,20 @@ def test_battle_page_switches_dynamic_fields_by_route_type(tmp_path):
     page = _page(tmp_path)
     try:
         _select(page, "ct", "tie_an", "ct.tie_an.shoggolith_city.expel")
+        assert page.mission_combo.isVisible()
+        assert page.mission_combo.currentText() == "驱逐"
+        assert page.route_combo.currentText() == "修格里城"
+        mission_row, _mission_role = page.job_form.getWidgetPosition(page.mission_combo)
+        route_row, _route_role = page.job_form.getWidgetPosition(page.route_combo)
+        assert mission_row < route_row
         assert page.stage_spin.isVisible()
         assert page.difficulty_combo.isVisible()
         assert not page.threat_spin.isVisible()
         assert page.formation_combo.isVisible()
 
         _select(page, "ct", "tie_an", "ct.tie_an.shoggolith_city.bounty")
+        assert page.mission_combo.currentText() == "悬赏"
+        assert page.route_combo.currentText() == "修格里城"
         assert not page.stage_spin.isVisible()
         assert not page.difficulty_combo.isVisible()
         assert not page.threat_spin.isVisible()
@@ -67,6 +78,7 @@ def test_battle_page_switches_dynamic_fields_by_route_type(tmp_path):
             "regional_ops_center",
             "ct.regional_ops_center.wilderness_station",
         )
+        assert not page.mission_combo.isVisible()
         assert not page.stage_spin.isVisible()
         assert page.difficulty_combo.isVisible()
         assert page.threat_spin.isVisible()
