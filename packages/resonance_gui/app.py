@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import sys
 import tempfile
 
@@ -40,7 +41,10 @@ def self_check_resonance_gui() -> int:
     app.setOrganizationName("Aura")
     app.setStyle("Fusion")
 
-    runner = SubprocessGameRunner()
+    base_path = str(os.environ.get("AURA_BASE_PATH") or "").strip()
+    runner = SubprocessGameRunner(
+        env_overrides={"AURA_BASE_PATH": base_path} if base_path else None,
+    )
     window = None
     try:
         discovered = {row.get("game_name") for row in runner.list_games(include_shared=True)}

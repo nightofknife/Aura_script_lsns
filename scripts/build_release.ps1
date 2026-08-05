@@ -396,7 +396,7 @@ function Invoke-GuiRuntimeSelfCheck {
     $startInfo.WorkingDirectory = $ReleaseRootPath
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
-    $startInfo.EnvironmentVariables["AURA_BASE_PATH"] = $ReleaseRootPath
+    $startInfo.EnvironmentVariables.Remove("AURA_BASE_PATH")
     $startInfo.EnvironmentVariables["PYTHONNOUSERSITE"] = "1"
 
     Write-Host "Running frozen Resonance GUI subprocess self-check ..."

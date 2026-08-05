@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import runpy
+import sys
 import zipfile
+from unittest.mock import patch
 
 import pytest
 
@@ -25,6 +29,7 @@ from scripts.release.validate_windows_execution_level import parse_execution_lev
         (["plans/resonance/src/action.py", "tests/test_action.py"], "plan"),
         (["packages/aura_core/runtime.py"], "full"),
         (["plans/resonance/task.yaml", "packaging/pyinstaller/aura.spec"], "full"),
+        (["scripts/package_release.ps1"], "full"),
         (["README.md", "tests/test_docs.py"], "none"),
         (["plans/old/manifest.yaml", "plans/new/manifest.yaml"], "plan"),
     ],
@@ -127,6 +132,52 @@ def test_release_builder_does_not_force_administrator_startup():
 
     assert "--uac-admin" not in build_script
     assert "validate_windows_execution_level.py" in build_script
+
+
+def test_release_self_check_does_not_mask_runtime_base_path_discovery():
+    repo_root = Path(__file__).resolve().parents[1]
+    build_script = (repo_root / "scripts" / "build_release.ps1").read_text(encoding="utf-8")
+
+    assert '$startInfo.EnvironmentVariables.Remove("AURA_BASE_PATH")' in build_script
+    assert '$startInfo.EnvironmentVariables["AURA_BASE_PATH"] = $ReleaseRootPath' not in build_script
+
+
+def test_frozen_runtime_hook_infers_release_root_from_runtime_executable(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    hook_path = repo_root / "packaging" / "pyinstaller" / "rthook_aura_external_plans.py"
+    release_root = tmp_path / "AuraResonance"
+    runtime_dir = release_root / "runtime"
+    runtime_dir.mkdir(parents=True)
+    (release_root / "plans").mkdir()
+    runtime_exe = runtime_dir / "AuraResonanceRuntime.exe"
+    runtime_exe.touch()
+
+    with (
+        patch.dict(os.environ, {}, clear=True),
+        patch.object(sys, "executable", str(runtime_exe)),
+        patch.object(sys, "frozen", True, create=True),
+        patch.object(sys, "path", list(sys.path)),
+    ):
+        hook_globals = runpy.run_path(str(hook_path))
+        resolved = hook_globals["_resolve_external_base_path"]()
+
+    assert resolved == release_root.resolve()
+
+
+def test_frozen_runtime_hook_prefers_explicit_base_path(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    hook_path = repo_root / "packaging" / "pyinstaller" / "rthook_aura_external_plans.py"
+    configured_root = tmp_path / "configured"
+    configured_root.mkdir()
+
+    with (
+        patch.dict(os.environ, {"AURA_BASE_PATH": str(configured_root)}, clear=True),
+        patch.object(sys, "path", list(sys.path)),
+    ):
+        hook_globals = runpy.run_path(str(hook_path))
+        resolved = hook_globals["_resolve_external_base_path"]()
+
+    assert resolved == configured_root.resolve()
 
 
 @pytest.mark.parametrize(
@@ -236,3 +287,61 @@ def test_overlay_requirements_only_install_nvidia_runtime_packages():
     assert "-r release-gpu.txt" not in requirements
     assert "nvidia-cuda-runtime" in requirements
     assert "onnxruntime-gpu" not in requirements
+
+
+def test_local_release_entrypoint_uses_isolated_profile_environments():
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts" / "package_release.ps1").read_text(encoding="utf-8")
+
+    assert '.venv-release-$Profile' in script
+    assert 'requirements\\release-$Profile.txt' in script
+    assert 'build_release.ps1' in script
+    assert 'IncludeGui = $true' in script
+
+
+def test_development_requirements_include_gui_and_pinned_pytest():
+    repo_root = Path(__file__).resolve().parents[1]
+    requirements = (repo_root / "requirements" / "dev.txt").read_text(encoding="utf-8")
+
+    assert "-r runtime.lock" in requirements
+    assert "PySide6==6.11.1" in requirements
+    assert "pytest==9.0.3" in requirements
+
+
+def test_locked_runtime_setup_does_not_upgrade_then_downgrade_tooling():
+    repo_root = Path(__file__).resolve().parents[1]
+    script = (repo_root / "scripts" / "setup_python_runtime.ps1").read_text(encoding="utf-8")
+    lock_branch = script.index('if ($UseLock -and (Test-Path $LockFile))')
+    fallback_branch = script.index("} else {", lock_branch)
+    upgrade_command = script.index('"--upgrade", "pip", "wheel"', lock_branch)
+
+    assert upgrade_command > fallback_branch
+
+
+def test_generated_plan_cache_is_ignored_and_not_packaged():
+    repo_root = Path(__file__).resolve().parents[1]
+    gitignore = (repo_root / ".gitignore").read_text(encoding="utf-8")
+
+    assert "plans/*/data/cache/" in gitignore
+
+
+def test_development_vision_runtime_matches_release_version():
+    repo_root = Path(__file__).resolve().parents[1]
+    cpu = (repo_root / "requirements" / "optional-vision-onnx-cpu.txt").read_text(encoding="utf-8")
+    gpu = (repo_root / "requirements" / "optional-vision-onnx-cuda.txt").read_text(encoding="utf-8")
+
+    assert "onnxruntime==1.27.0" in cpu
+    assert "onnxruntime-gpu==1.27.0" in gpu
+
+
+def test_legacy_gui_spec_is_removed():
+    repo_root = Path(__file__).resolve().parents[1]
+
+    assert not (repo_root / "packaging" / "pyinstaller" / "resonance_gui.spec").exists()
+
+
+def test_pytest_collection_is_limited_to_canonical_tests_directory():
+    repo_root = Path(__file__).resolve().parents[1]
+    config = (repo_root / "pytest.ini").read_text(encoding="utf-8")
+
+    assert "testpaths = tests" in config

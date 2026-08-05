@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $VenvPython)) {
-    throw "Venv python not found: $VenvPython"
+    throw "Development environment not found: $VenvPython. Run .\scripts\setup_dev_environment.ps1 first."
 }
 
 $env:PYTHONNOUSERSITE = "1"

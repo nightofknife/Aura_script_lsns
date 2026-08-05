@@ -1,6 +1,9 @@
 # Release Packaging
 
-`scripts/build_release.ps1` builds a Windows release with external editable plans.
+`scripts/package_release.ps1` is the supported local entrypoint. It creates a
+profile-specific Python 3.12 environment, installs pinned release dependencies,
+checks MuMu and OCR assets, then delegates to the low-level
+`scripts/build_release.ps1` builder.
 
 Important output names:
 
@@ -25,10 +28,48 @@ The build deliberately excludes or removes files that are not used at runtime:
 
 `scripts/release/prune_release_payload.py --check-only` is run by the Windows release workflow before artifacts are uploaded. The frozen GUI subprocess self-check and CPU OCR doctor run after runtime pruning, so a removed runtime dependency fails the release build.
 
-Example build:
+Example local builds:
 
 ```powershell
-.\scripts\build_release.ps1 -IncludeGui -CreateZip -ReleaseName aura-resonance-release
+.\scripts\package_release.ps1 -Profile cpu
+.\scripts\package_release.ps1 -Profile gpu
+```
+
+The environments are `.venv-release-cpu` and `.venv-release-gpu`; outputs are
+under `.runtime\packages\<profile>`. Reuse is intentional. Add
+`-RefreshDependencies` after changing package indexes, or
+`-RecreateEnvironment` when repairing an environment. The builder never reuses
+the development `.venv`.
+
+If the OCR bundle is absent, download the project model release before building:
+
+```powershell
+.\scripts\release\download_ocr_models.ps1 -Repository nightofknife/Aura_script_lsns
+```
+
+`scripts/build_release.ps1` remains available for CI and low-level diagnostics,
+but callers must then supply the matching clean release environment themselves.
+
+The active PyInstaller definition is
+`packaging\pyinstaller\aura.spec`. The former standalone GUI spec was removed to
+avoid producing a second, behaviorally different package.
+
+## Workspace cleanup
+
+Generated runtime trees and test artifacts can be inspected with:
+
+```powershell
+.\scripts\clean_workspace.ps1
+```
+
+The command is preview-only by default. Add `-Apply` to remove the listed
+generated directories. Release environments and canonical `.runtime` output are
+preserved unless their explicit include switches are supplied.
+
+To remove only Python bytecode caches without touching historical build output:
+
+```powershell
+.\scripts\clean_workspace.ps1 -PythonCachesOnly -Apply
 ```
 
 Example release smoke:

@@ -109,9 +109,27 @@ def _prepare_packaged_dll_search_paths() -> None:
 
 _prepare_packaged_dll_search_paths()
 
-base_path = os.environ.get("AURA_BASE_PATH")
-if base_path:
-    resolved = str(Path(base_path).resolve())
+
+def _resolve_external_base_path() -> Path | None:
+    configured = str(os.environ.get("AURA_BASE_PATH") or "").strip()
+    if configured:
+        return Path(configured).resolve()
+
+    if not getattr(sys, "frozen", False):
+        return None
+
+    executable_dir = Path(sys.executable).resolve().parent
+    candidates = (executable_dir.parent, executable_dir)
+    for candidate in candidates:
+        if (candidate / "plans").is_dir():
+            return candidate
+    return None
+
+
+base_path = _resolve_external_base_path()
+if base_path is not None:
+    resolved = str(base_path)
+    os.environ["AURA_BASE_PATH"] = resolved
     if resolved not in sys.path:
         sys.path.insert(0, resolved)
 
