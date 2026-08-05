@@ -1506,6 +1506,10 @@ exports:
       type: Any
       required: false
       default: none
+    - name: mask
+      type: Any
+      required: false
+      default: null
   - name: find_all_templates_in_set
     module: plans.aura_base.src.actions.vision_actions
     function: find_all_templates_in_set
@@ -1606,6 +1610,10 @@ exports:
       type: Any
       required: false
       default: none
+    - name: mask
+      type: Any
+      required: false
+      default: null
   - name: list_templates_in_set
     module: plans.aura_base.src.actions.vision_actions
     function: list_templates_in_set
@@ -2673,4 +2681,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-07-13T15:49:09Z'
+  generated_at: '2026-08-05T04:19:41Z'

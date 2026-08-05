@@ -336,7 +336,7 @@ def test_cape_island_investment_runs_after_arrival_when_enabled(monkeypatch):
     ]
     _patch_route_ui(monkeypatch, events)
 
-    def invest(**kwargs):
+    async def invest(**kwargs):
         events.append(("cape_island", kwargs["leg_index"], kwargs["leg"]["to_city"]))
         return {"triggered": True, "status": "invested", "reason": None}
 
@@ -436,12 +436,11 @@ def test_terminal_cape_investment_finishes_before_final_sale(monkeypatch):
         {"status": "ok", "reason": None, "snapshot_id": "snapshot-1", "route": route},
     )
     _patch_route_ui(monkeypatch, events)
-    monkeypatch.setattr(
-        actions,
-        "_execute_cape_island_investment_after_arrival",
-        lambda **_kwargs: events.append(("cape_island",))
-        or {"triggered": True, "status": "skipped", "reason": "all_metrics_capped"},
-    )
+    async def invest(**_kwargs):
+        events.append(("cape_island",))
+        return {"triggered": True, "status": "skipped", "reason": "all_metrics_capped"}
+
+    monkeypatch.setattr(actions, "_execute_cape_island_investment_after_arrival", invest)
 
     result = _run_flow(_MemoryStateStore(), auto_cape_island_investment=True)
 
@@ -460,7 +459,7 @@ def test_repeated_cape_arrivals_each_trigger_investment(monkeypatch):
     ]
     _patch_route_ui(monkeypatch, events)
 
-    def invest(**kwargs):
+    async def invest(**kwargs):
         events.append(("cape_island", kwargs["leg_index"]))
         return {"triggered": True, "status": "invested", "reason": None}
 
@@ -498,7 +497,7 @@ def test_cape_investment_failure_stops_before_the_next_route_leg(monkeypatch):
     ]
     _patch_route_ui(monkeypatch, events)
 
-    def fail_investment(**_kwargs):
+    async def fail_investment(**_kwargs):
         events.append(("cape_island_failed",))
         raise RuntimeError("island failed")
 

@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.context.persistence.store_service import StateStoreService
+from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 
@@ -1081,6 +1082,7 @@ async def _execute_route(
     city_shop_data: ResonancePcCityShopDataService,
     state_store: StateStoreService,
     auto_cape_island_investment: bool = False,
+    engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -1116,6 +1118,7 @@ async def _execute_route(
                 city_shop_data=city_shop_data,
                 progress_fields=progress_fields,
                 auto_cape_island_investment=bool(auto_cape_island_investment),
+                engine=engine,
             )
             page_state = str(leg_result.get("page_state") or "city_main")
             travel = dict(leg_result.get("travel") or {})
@@ -1180,6 +1183,7 @@ async def _execute_trade_leg(
     city_shop_data: ResonancePcCityShopDataService,
     progress_fields: Optional[Dict[str, Any]] = None,
     auto_cape_island_investment: bool = False,
+    engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -1256,14 +1260,14 @@ async def _execute_trade_leg(
         and bool(travel.get("success", True))
         and _is_cape_city_arrival(leg)
     ):
-        cape_island_investment = await asyncio.to_thread(
-            _execute_cape_island_investment_after_arrival,
+        cape_island_investment = await _execute_cape_island_investment_after_arrival(
             leg_index=index,
             leg=leg,
             app=app,
             ocr=ocr,
             vision=vision,
             city_shop_data=city_shop_data,
+            engine=engine,
         )
     return {
         "index": int(index),
@@ -1284,7 +1288,7 @@ def _is_cape_city_arrival(leg: Dict[str, Any]) -> bool:
     )
 
 
-def _execute_cape_island_investment_after_arrival(
+async def _execute_cape_island_investment_after_arrival(
     *,
     leg_index: int,
     leg: Dict[str, Any],
@@ -1292,7 +1296,10 @@ def _execute_cape_island_investment_after_arrival(
     ocr: Any,
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
+    engine: ExecutionEngine | None,
 ) -> Dict[str, Any]:
+    if engine is None:
+        raise RuntimeError("Cape island investment requires the active execution engine")
     started_at = time.monotonic()
     arrival_city = str(leg.get("to_city") or "海角城")
     logger.info(
@@ -1303,14 +1310,23 @@ def _execute_cape_island_investment_after_arrival(
         leg.get("to_city_id"),
     )
     try:
-        open_city = resonance_pc_open_city_panel_from_main(app=app, ocr=ocr)
-        investment = resonance_pc_execute_cape_island_investment_from_city_panel(
+        open_city = await asyncio.to_thread(
+            resonance_pc_open_city_panel_from_main,
+            app=app,
+            ocr=ocr,
+        )
+        investment = await resonance_pc_execute_cape_island_investment_from_city_panel(
             app=app,
             ocr=ocr,
             vision=vision,
             resonance_pc_city_shop_data=city_shop_data,
+            engine=engine,
         )
-        return_main = resonance_pc_go_city_main_direct(app=app, vision=vision)
+        return_main = await asyncio.to_thread(
+            resonance_pc_go_city_main_direct,
+            app=app,
+            vision=vision,
+        )
     except Exception as exc:
         code = str(getattr(exc, "code", type(exc).__name__))
         logger.exception(
@@ -1623,6 +1639,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     state_store: StateStoreService | None = None,
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
+    engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
     del event_bus, context
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
@@ -1788,6 +1805,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
             auto_cape_island_investment=bool(auto_cape_island_investment),
+            engine=engine,
         )
         page_state = str(execution.get("page_state") or "city_main")
 

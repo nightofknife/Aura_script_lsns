@@ -185,6 +185,7 @@ def find_templates_in_set(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    mask: str | None = None,
 ) -> dict[str, Any]:
     capture = app.capture(rect=region)
     if not capture.success:
@@ -194,9 +195,12 @@ def find_templates_in_set(
     template_paths = expand_template_paths(engine, vision, templates_ref)
     matches: list[dict[str, Any]] = []
     template_images = [str(path) for path in template_paths]
+    mask_path = resolve_template_path(engine, vision, mask) if mask else None
+    mask_images = [mask_path] * len(template_images) if mask_path else None
     match_results = vision.find_templates_batch(
         source_image=capture.image,
         template_images=template_images,
+        mask_images=mask_images,
         threshold=threshold,
         use_grayscale=use_grayscale,
         match_method=match_method,
@@ -295,6 +299,7 @@ def find_best_template_in_set(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    mask: str | None = None,
 ) -> dict[str, Any]:
     result = find_templates_in_set(
         app,
@@ -306,6 +311,7 @@ def find_best_template_in_set(
         use_grayscale,
         match_method,
         preprocess,
+        mask,
     )
     matches = result["matches"]
     if not matches:
