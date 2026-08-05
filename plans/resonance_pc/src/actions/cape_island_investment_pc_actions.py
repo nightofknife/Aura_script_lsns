@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import cv2
+
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
+from ....aura_base.src.actions.vision_actions import find_best_template_in_set
+from ....aura_base.src.actions.wait_actions import (
+    wait_for_image,
+    wait_for_templates_in_set_to_disappear,
+)
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 
@@ -26,7 +35,6 @@ class CapeIslandInvestmentError(RuntimeError):
         return {"code": self.code, "message": self.message, "detail": self.detail}
 
 
-_PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CAPE_CITY_NAME = "海角城"
 _MIRAGE_ISLAND_NAME = "蜃息岛"
 
@@ -41,12 +49,12 @@ _INVESTMENT_SUCCESS_TEMPLATE = "templates/cape_island_investment_success.png"
 CARD_OPTION_TEMPLATES: Dict[str, Dict[str, Tuple[str, ...]]] = {
     "share": {
         "bronze": ("templates/cape_island_card_share_bronze.png",),
-        "silver": (),
-        "gold": (),
+        "silver": ("templates/cape_island_card_share_silver.png",),
+        "gold": ("templates/cape_island_card_share_gold.png",),
     },
     "ticket": {
         "bronze": ("templates/cape_island_card_ticket_bronze.png",),
-        "silver": (),
+        "silver": ("templates/cape_island_card_ticket_silver.png",),
         "gold": (),
     },
     "tax": {
@@ -54,7 +62,17 @@ CARD_OPTION_TEMPLATES: Dict[str, Dict[str, Tuple[str, ...]]] = {
         "silver": ("templates/cape_island_card_tax_silver.png",),
         "gold": (),
     },
-    "all": {"rainbow": ()},
+    "all": {
+        "bronze": ("templates/cape_island_card_all_basic.png",),
+        "silver": (),
+        "gold": ("templates/cape_island_card_all_advanced.png",),
+    },
+}
+_CARD_TEMPLATE_METADATA = {
+    Path(template).name: (category, grade)
+    for category, grades in CARD_OPTION_TEMPLATES.items()
+    for grade, templates in grades.items()
+    for template in templates
 }
 
 _ISLAND_HOME_REGION = (0, 60, 1280, 660)
@@ -85,10 +103,15 @@ _CARD_BUTTON_REGIONS: Tuple[Tuple[int, int, int, int], ...] = (
     (1065, 545, 215, 150),
 )
 
-_GRADE_PRIORITY = {"bronze": 1, "silver": 2, "gold": 3, "rainbow": 4}
+_GRADE_PRIORITY = {"bronze": 1, "silver": 2, "gold": 3}
 _CATEGORY_PRIORITY = {"tax": 1, "ticket": 2, "share": 3, "all": 4}
-_GRADE_LABELS = {"bronze": "铜", "silver": "银", "gold": "金", "rainbow": "彩"}
-_CATEGORY_LABELS = {"tax": "税率", "ticket": "票价", "share": "分成", "all": "全部提升"}
+_GRADE_LABELS = {"bronze": "铜", "silver": "银", "gold": "金"}
+_CATEGORY_LABELS = {"tax": "税率", "ticket": "票价", "share": "分成", "all": "全提升"}
+
+_CARD_MATCH_METHOD = cv2.TM_SQDIFF_NORMED
+_CARD_MATCH_THRESHOLD = 0.84
+_CARD_TEMPLATE_SET = "templates/cape_island_card_*.png"
+_CARD_TEMPLATE_MASK = "templates/cape_island_medal_circle_mask.png"
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
@@ -107,88 +130,31 @@ def _coerce_region(region: Sequence[int]) -> Tuple[int, int, int, int]:
     return tuple(int(value) for value in region)  # type: ignore[return-value]
 
 
-def _template_path(template: str) -> Path:
-    raw = Path(str(template or ""))
-    return raw if raw.is_absolute() else _PLAN_ROOT / raw
-
-
-def _match_template(
-    app: Any,
-    vision: Any,
+def _match_payload(
+    match: Any,
+    *,
     template: str,
     region: Sequence[int],
-    *,
-    threshold: float = 0.86,
-    use_grayscale: bool = True,
-    require_configured: bool = True,
 ) -> Dict[str, Any]:
-    rect = _coerce_region(region)
-    if not str(template or "").strip():
-        if require_configured:
-            _raise_error("template_not_configured", "required template path is empty", {"region": list(rect)})
-        return {"found": False, "configured": False, "template": "", "region": list(rect), "confidence": 0.0}
-    path = _template_path(template)
-    if not path.is_file():
-        _raise_error(
-            "template_not_found",
-            "required island investment template file was not found",
-            {"template": str(template), "resolved_path": str(path), "region": list(rect)},
-        )
-    capture = app.capture(rect=rect)
-    if not bool(getattr(capture, "success", False)):
-        _raise_error("capture_failed", "failed to capture island investment region", {"region": list(rect)})
-    result = vision.find_template(
-        source_image=capture.image,
-        template_image=str(path),
-        threshold=float(threshold),
-        use_grayscale=bool(use_grayscale),
-    )
-    center = getattr(result, "center_point", None)
     payload: Dict[str, Any] = {
-        "found": bool(getattr(result, "found", False)),
-        "configured": True,
+        "found": bool(match.found),
         "template": str(template),
-        "region": list(rect),
-        "confidence": float(getattr(result, "confidence", 0.0) or 0.0),
+        "region": list(_coerce_region(region)),
+        "confidence": float(match.confidence or 0.0),
     }
-    if center and len(center) == 2:
-        payload["center"] = [int(rect[0] + int(center[0])), int(rect[1] + int(center[1]))]
-    logger.debug(
-        "Cape island template match template=%s found=%s confidence=%.4f region=%s center=%s",
-        template,
-        payload["found"],
-        payload["confidence"],
-        payload["region"],
-        payload.get("center"),
-    )
+    if match.top_left is not None:
+        payload["top_left"] = [int(match.top_left[0]), int(match.top_left[1])]
+    if match.center_point is not None:
+        payload["center"] = [int(match.center_point[0]), int(match.center_point[1])]
+    if match.rect is not None:
+        payload["rect"] = [int(value) for value in match.rect]
     return payload
 
 
-def _wait_template(
+async def _click_template_required(
     app: Any,
     vision: Any,
-    template: str,
-    region: Sequence[int],
-    *,
-    timeout_sec: float,
-    interval_sec: float,
-    threshold: float = 0.86,
-    should_exist: bool = True,
-) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last: Dict[str, Any] = {"found": False, "template": template, "region": list(region)}
-    while True:
-        last = _match_template(app, vision, template, region, threshold=threshold)
-        if bool(last.get("found")) is bool(should_exist):
-            return last
-        if time.monotonic() >= deadline:
-            return last
-        time.sleep(max(float(interval_sec), 0.05))
-
-
-def _click_template_required(
-    app: Any,
-    vision: Any,
+    engine: ExecutionEngine,
     template: str,
     region: Sequence[int],
     *,
@@ -196,19 +162,22 @@ def _click_template_required(
     interval_sec: float,
     error_code: str,
 ) -> Dict[str, Any]:
-    match = _wait_template(
-        app,
-        vision,
-        template,
-        region,
-        timeout_sec=timeout_sec,
-        interval_sec=interval_sec,
+    match = await wait_for_image(
+        app=app,
+        vision=vision,
+        engine=engine,
+        template=template,
+        timeout=timeout_sec,
+        interval=interval_sec,
+        region=_coerce_region(region),
+        threshold=0.86,
     )
-    center = match.get("center")
-    if not match.get("found") or not isinstance(center, list) or len(center) != 2:
-        _raise_error(error_code, "required island investment control was not found", {"match": match})
+    payload = _match_payload(match, template=template, region=region)
+    center = match.center_point
+    if not match.found or center is None:
+        _raise_error(error_code, "required island investment control was not found", {"match": payload})
     app.click(x=int(center[0]), y=int(center[1]))
-    return {"clicked": True, "x": int(center[0]), "y": int(center[1]), "match": match}
+    return {"clicked": True, "x": int(center[0]), "y": int(center[1]), "match": payload}
 
 
 def _capture_ocr_texts(app: Any, ocr: Any, region: Sequence[int]) -> List[Dict[str, Any]]:
@@ -310,51 +279,29 @@ def _metric_caps(metrics: Dict[str, Any]) -> Dict[str, bool]:
     }
 
 
-def _configured_card_template_count() -> int:
-    return sum(
-        1
-        for grades in CARD_OPTION_TEMPLATES.values()
-        for templates in grades.values()
-        for template in templates
-        if str(template).strip()
-    )
-
-
-def _best_option_match(
+async def _recognize_card_option(
     app: Any,
     vision: Any,
-    region: Sequence[int],
-) -> Optional[Dict[str, Any]]:
-    matches: List[Dict[str, Any]] = []
-    for category, grades in CARD_OPTION_TEMPLATES.items():
-        for grade, templates in grades.items():
-            for template in templates:
-                match = _match_template(
-                    app,
-                    vision,
-                    template,
-                    region,
-                    threshold=0.84,
-                    use_grayscale=False,
-                    require_configured=False,
-                )
-                if match.get("found"):
-                    match["category"] = category
-                    match["grade"] = grade
-                    matches.append(match)
-    if not matches:
-        return None
-    return max(matches, key=lambda item: float(item.get("confidence") or 0.0))
-
-
-def _classify_card(
-    app: Any,
-    vision: Any,
+    engine: ExecutionEngine,
     slot: int,
     region: Sequence[int],
 ) -> Dict[str, Any]:
-    option_match = _best_option_match(app, vision, region)
-    if option_match is None:
+    result = await asyncio.to_thread(
+        find_best_template_in_set,
+        app=app,
+        vision=vision,
+        engine=engine,
+        templates_ref=_CARD_TEMPLATE_SET,
+        region=_coerce_region(region),
+        threshold=_CARD_MATCH_THRESHOLD,
+        use_grayscale=False,
+        match_method=_CARD_MATCH_METHOD,
+        mask=_CARD_TEMPLATE_MASK,
+    )
+    template = result.get("template")
+    match = result.get("match")
+    metadata = _CARD_TEMPLATE_METADATA.get(Path(str(template or "")).name)
+    if not template or match is None or not match.found or metadata is None:
         return {
             "slot": int(slot),
             "category": None,
@@ -362,12 +309,14 @@ def _classify_card(
             "confidence": 0.0,
             "match": None,
         }
+    category, grade = metadata
+    match_payload = _match_payload(match, template=str(template), region=region)
     return {
         "slot": int(slot),
-        "category": str(option_match["category"]),
-        "grade": str(option_match["grade"]),
-        "confidence": float(option_match.get("confidence") or 0.0),
-        "match": option_match,
+        "category": str(category),
+        "grade": str(grade),
+        "confidence": float(match.confidence or 0.0),
+        "match": match_payload,
     }
 
 
@@ -375,7 +324,7 @@ def _option_is_eligible(option: Dict[str, Any], capped: Dict[str, bool]) -> bool
     category = str(option.get("category") or "")
     grade = str(option.get("grade") or "")
     if category == "all":
-        allowed = not all(bool(value) for value in capped.values())
+        allowed = not any(bool(value) for value in capped.values())
     else:
         allowed = category in capped and not bool(capped[category])
     return bool(allowed and grade in _GRADE_PRIORITY)
@@ -400,9 +349,10 @@ def _select_investment_option(
     )
 
 
-def _enter_island(
+async def _enter_island(
     app: Any,
     vision: Any,
+    engine: ExecutionEngine,
     city_shop_data: ResonancePcCityShopDataService,
     *,
     location_file_path: str,
@@ -418,15 +368,22 @@ def _enter_island(
     last_match: Dict[str, Any] = {}
     for attempt in range(1, max(int(transition_attempts), 1) + 1):
         app.click(x=int(point["x"]), y=int(point["y"]))
-        last_match = _wait_template(
-            app,
-            vision,
-            _ISLAND_HOME_TEMPLATE,
-            _ISLAND_HOME_REGION,
-            timeout_sec=page_timeout_sec,
-            interval_sec=interval_sec,
+        match = await wait_for_image(
+            app=app,
+            vision=vision,
+            engine=engine,
+            template=_ISLAND_HOME_TEMPLATE,
+            timeout=page_timeout_sec,
+            interval=interval_sec,
+            region=_ISLAND_HOME_REGION,
+            threshold=0.86,
         )
-        if last_match.get("found"):
+        last_match = _match_payload(
+            match,
+            template=_ISLAND_HOME_TEMPLATE,
+            region=_ISLAND_HOME_REGION,
+        )
+        if match.found:
             return {"attempts": attempt, "click": point, "match": last_match}
     _raise_error(
         "cape_island_entry_timeout",
@@ -436,9 +393,10 @@ def _enter_island(
     return {}
 
 
-def _open_revenue_overview(
+async def _open_revenue_overview(
     app: Any,
     vision: Any,
+    engine: ExecutionEngine,
     *,
     page_timeout_sec: float,
     interval_sec: float,
@@ -447,15 +405,22 @@ def _open_revenue_overview(
     last_match: Dict[str, Any] = {}
     for attempt in range(1, max(int(transition_attempts), 1) + 1):
         app.click(x=_OPEN_REVENUE_SAFE_POINT[0], y=_OPEN_REVENUE_SAFE_POINT[1])
-        last_match = _wait_template(
-            app,
-            vision,
-            _REVENUE_OVERVIEW_TEMPLATE,
-            _REVENUE_OVERVIEW_REGION,
-            timeout_sec=page_timeout_sec,
-            interval_sec=interval_sec,
+        match = await wait_for_image(
+            app=app,
+            vision=vision,
+            engine=engine,
+            template=_REVENUE_OVERVIEW_TEMPLATE,
+            timeout=page_timeout_sec,
+            interval=interval_sec,
+            region=_REVENUE_OVERVIEW_REGION,
+            threshold=0.86,
         )
-        if last_match.get("found"):
+        last_match = _match_payload(
+            match,
+            template=_REVENUE_OVERVIEW_TEMPLATE,
+            region=_REVENUE_OVERVIEW_REGION,
+        )
+        if match.found:
             return {
                 "attempts": attempt,
                 "click": {"x": _OPEN_REVENUE_SAFE_POINT[0], "y": _OPEN_REVENUE_SAFE_POINT[1]},
@@ -481,7 +446,7 @@ def _open_revenue_overview(
     vision="plans/aura_base/vision",
     resonance_pc_city_shop_data="resonance_pc_city_shop_data",
 )
-def resonance_pc_execute_cape_island_investment_from_city_panel(
+async def resonance_pc_execute_cape_island_investment_from_city_panel(
     location_file_path: str = "data/meta/location_pc.json",
     page_timeout_sec: float = 12.0,
     metric_timeout_sec: float = 8.0,
@@ -491,50 +456,68 @@ def resonance_pc_execute_cape_island_investment_from_city_panel(
     ocr: Any = None,
     vision: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
+    engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None or resonance_pc_city_shop_data is None:
-        raise RuntimeError("app/ocr/vision/resonance_pc_city_shop_data services are required")
+    if (
+        app is None
+        or ocr is None
+        or vision is None
+        or resonance_pc_city_shop_data is None
+        or engine is None
+    ):
+        raise RuntimeError("app/ocr/vision/resonance_pc_city_shop_data/engine are required")
     started_at = time.monotonic()
-    island_entry = _enter_island(
+    island_entry = await _enter_island(
         app,
         vision,
+        engine,
         resonance_pc_city_shop_data,
         location_file_path=location_file_path,
         page_timeout_sec=page_timeout_sec,
         interval_sec=interval_sec,
         transition_attempts=transition_attempts,
     )
-    revenue_overview = _open_revenue_overview(
+    revenue_overview = await _open_revenue_overview(
         app,
         vision,
+        engine,
         page_timeout_sec=page_timeout_sec,
         interval_sec=interval_sec,
         transition_attempts=transition_attempts,
     )
-    investment_tab = _click_template_required(
+    investment_tab = await _click_template_required(
         app,
         vision,
+        engine,
         _INVESTMENT_TAB_TEMPLATE,
         _INVESTMENT_TAB_REGION,
         timeout_sec=page_timeout_sec,
         interval_sec=interval_sec,
         error_code="investment_tab_not_found",
     )
-    investment_page = _wait_template(
-        app,
-        vision,
-        _INVESTMENT_PAGE_TEMPLATE,
-        _INVESTMENT_PAGE_REGION,
-        timeout_sec=page_timeout_sec,
-        interval_sec=interval_sec,
+    investment_page_match = await wait_for_image(
+        app=app,
+        vision=vision,
+        engine=engine,
+        template=_INVESTMENT_PAGE_TEMPLATE,
+        timeout=page_timeout_sec,
+        interval=interval_sec,
+        region=_INVESTMENT_PAGE_REGION,
+        threshold=0.86,
     )
-    if not investment_page.get("found"):
+    investment_page = _match_payload(
+        investment_page_match,
+        template=_INVESTMENT_PAGE_TEMPLATE,
+        region=_INVESTMENT_PAGE_REGION,
+    )
+    if not investment_page_match.found:
         _raise_error(
             "investment_page_not_confirmed",
             "the island investment page did not appear after clicking its tab",
             {"investment_tab": investment_tab, "last_match": investment_page},
         )
-    metric_result = _read_investment_metrics(
+    metric_result = await asyncio.to_thread(
+        _read_investment_metrics,
         app,
         ocr,
         timeout_sec=metric_timeout_sec,
@@ -574,10 +557,17 @@ def resonance_pc_execute_cape_island_investment_from_city_panel(
         )
         return base_result
 
-    options = [
-        _classify_card(app, vision, slot=index + 1, region=region)
-        for index, region in enumerate(_CARD_ICON_REGIONS)
-    ]
+    options = []
+    for index, region in enumerate(_CARD_ICON_REGIONS):
+        options.append(
+            await _recognize_card_option(
+                app,
+                vision,
+                engine,
+                slot=index + 1,
+                region=region,
+            )
+        )
     for option in options:
         option["eligible"] = _option_is_eligible(option, capped)
         logger.info(
@@ -629,48 +619,69 @@ def resonance_pc_execute_cape_island_investment_from_city_panel(
         float(selected.get("confidence") or 0.0),
     )
     slot_index = int(selected["slot"]) - 1
-    invest_click = _click_template_required(
+    invest_click = await _click_template_required(
         app,
         vision,
+        engine,
         _INVEST_BUTTON_TEMPLATE,
         _CARD_BUTTON_REGIONS[slot_index],
         timeout_sec=page_timeout_sec,
         interval_sec=interval_sec,
         error_code="investment_button_not_found",
     )
-    success_match = _wait_template(
-        app,
-        vision,
-        _INVESTMENT_SUCCESS_TEMPLATE,
-        _INVESTMENT_SUCCESS_REGION,
-        timeout_sec=page_timeout_sec,
-        interval_sec=interval_sec,
+    success_result = await wait_for_image(
+        app=app,
+        vision=vision,
+        engine=engine,
+        template=_INVESTMENT_SUCCESS_TEMPLATE,
+        timeout=page_timeout_sec,
+        interval=interval_sec,
+        region=_INVESTMENT_SUCCESS_REGION,
+        threshold=0.86,
     )
-    if not success_match.get("found"):
+    success_match = _match_payload(
+        success_result,
+        template=_INVESTMENT_SUCCESS_TEMPLATE,
+        region=_INVESTMENT_SUCCESS_REGION,
+    )
+    if not success_result.found:
         _raise_error(
             "investment_success_not_confirmed",
             "the investment success overlay did not appear",
             {"selected_option": selected, "invest_click": invest_click, "last_match": success_match},
         )
     app.click(x=_SUCCESS_DISMISS_POINT[0], y=_SUCCESS_DISMISS_POINT[1])
-    dismissed = _wait_template(
-        app,
-        vision,
-        _INVESTMENT_SUCCESS_TEMPLATE,
-        _INVESTMENT_SUCCESS_REGION,
-        timeout_sec=page_timeout_sec,
-        interval_sec=interval_sec,
-        should_exist=False,
+    disappeared = await wait_for_templates_in_set_to_disappear(
+        app=app,
+        vision=vision,
+        engine=engine,
+        templates_ref=_INVESTMENT_SUCCESS_TEMPLATE,
+        timeout=page_timeout_sec,
+        interval=interval_sec,
+        region=_INVESTMENT_SUCCESS_REGION,
+        threshold=0.86,
     )
-    returned_page = _wait_template(
-        app,
-        vision,
-        _INVESTMENT_PAGE_TEMPLATE,
-        _INVESTMENT_PAGE_REGION,
-        timeout_sec=page_timeout_sec,
-        interval_sec=interval_sec,
+    dismissed = {
+        "found": not bool(disappeared),
+        "template": _INVESTMENT_SUCCESS_TEMPLATE,
+        "region": list(_INVESTMENT_SUCCESS_REGION),
+    }
+    returned_result = await wait_for_image(
+        app=app,
+        vision=vision,
+        engine=engine,
+        template=_INVESTMENT_PAGE_TEMPLATE,
+        timeout=page_timeout_sec,
+        interval=interval_sec,
+        region=_INVESTMENT_PAGE_REGION,
+        threshold=0.86,
     )
-    if dismissed.get("found") or not returned_page.get("found"):
+    returned_page = _match_payload(
+        returned_result,
+        template=_INVESTMENT_PAGE_TEMPLATE,
+        region=_INVESTMENT_PAGE_REGION,
+    )
+    if not disappeared or not returned_result.found:
         _raise_error(
             "investment_result_dismiss_failed",
             "the investment result was not dismissed back to the investment page",

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import Mock
 
+import cv2
 import pytest
 
 from plans.resonance_pc.src.actions import cape_island_investment_pc_actions as actions
 from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
+from plans.aura_base.src.services.vision_service import MatchResult
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -22,10 +25,13 @@ class _App:
 
 
 def _match(found=True, confidence=0.99, center=None):
-    result = {"found": found, "confidence": confidence}
-    if center is not None:
-        result["center"] = list(center)
-    return result
+    return MatchResult(
+        found=bool(found),
+        confidence=float(confidence),
+        top_left=(1, 2) if found else None,
+        center_point=tuple(center or (66, 67)) if found else None,
+        rect=(1, 2, 130, 130) if found else None,
+    )
 
 
 def test_cape_city_mirage_island_coordinate_is_resolved_from_location_data():
@@ -49,16 +55,19 @@ def test_page_templates_and_available_card_option_samples_exist():
     ]
 
     assert all((PLAN_ROOT / template).is_file() for template in page_templates)
+    assert (PLAN_ROOT / actions._CARD_TEMPLATE_MASK).is_file()
     assert len(actions.CARD_OPTION_TEMPLATES["share"]["bronze"]) == 1
+    assert len(actions.CARD_OPTION_TEMPLATES["share"]["silver"]) == 1
+    assert len(actions.CARD_OPTION_TEMPLATES["share"]["gold"]) == 1
     assert len(actions.CARD_OPTION_TEMPLATES["ticket"]["bronze"]) == 1
+    assert len(actions.CARD_OPTION_TEMPLATES["ticket"]["silver"]) == 1
     assert len(actions.CARD_OPTION_TEMPLATES["tax"]["bronze"]) == 1
     assert len(actions.CARD_OPTION_TEMPLATES["tax"]["silver"]) == 1
-    assert actions.CARD_OPTION_TEMPLATES["share"]["silver"] == ()
-    assert actions.CARD_OPTION_TEMPLATES["share"]["gold"] == ()
-    assert actions.CARD_OPTION_TEMPLATES["ticket"]["silver"] == ()
     assert actions.CARD_OPTION_TEMPLATES["ticket"]["gold"] == ()
     assert actions.CARD_OPTION_TEMPLATES["tax"]["gold"] == ()
-    assert actions.CARD_OPTION_TEMPLATES["all"]["rainbow"] == ()
+    assert len(actions.CARD_OPTION_TEMPLATES["all"]["bronze"]) == 1
+    assert actions.CARD_OPTION_TEMPLATES["all"]["silver"] == ()
+    assert len(actions.CARD_OPTION_TEMPLATES["all"]["gold"]) == 1
     assert all(
         (PLAN_ROOT / template).is_file()
         for grades in actions.CARD_OPTION_TEMPLATES.values()
@@ -67,20 +76,73 @@ def test_page_templates_and_available_card_option_samples_exist():
     )
 
 
+@pytest.mark.parametrize(
+    ("target_name", "same_artwork_name", "minimum_margin"),
+    [
+        ("cape_island_card_ticket_silver.png", "cape_island_card_ticket_bronze.png", 0.02),
+        ("cape_island_card_share_gold.png", "cape_island_card_share_bronze.png", 0.005),
+        ("cape_island_card_share_silver.png", "cape_island_card_share_bronze.png", 0.02),
+    ],
+)
+def test_masked_color_sqdiff_separates_same_artwork_grades_in_one_match(
+    target_name,
+    same_artwork_name,
+    minimum_margin,
+):
+    target = cv2.imread(str(PLAN_ROOT / "templates" / target_name), cv2.IMREAD_COLOR)
+    same_artwork = cv2.imread(
+        str(PLAN_ROOT / "templates" / same_artwork_name),
+        cv2.IMREAD_COLOR,
+    )
+    assert target is not None
+    assert same_artwork is not None
+    mask = cv2.imread(
+        str(PLAN_ROOT / actions._CARD_TEMPLATE_MASK),
+        cv2.IMREAD_GRAYSCALE,
+    )
+    assert mask is not None
+
+    correct_error = cv2.matchTemplate(
+        target,
+        target,
+        actions._CARD_MATCH_METHOD,
+        mask=mask,
+    )[0, 0]
+    wrong_error = cv2.matchTemplate(
+        target,
+        same_artwork,
+        actions._CARD_MATCH_METHOD,
+        mask=mask,
+    )[0, 0]
+    correct_confidence = 1.0 - float(correct_error)
+    wrong_confidence = 1.0 - float(wrong_error)
+
+    assert actions._CARD_MATCH_METHOD == cv2.TM_SQDIFF_NORMED
+    assert mask.shape == (130, 130)
+    assert correct_confidence == pytest.approx(1.0)
+    assert correct_confidence - wrong_confidence > minimum_margin
+
+
 def test_enter_island_retries_the_same_resolved_coordinate(monkeypatch):
     app = _App()
     service = ResonancePcCityShopDataService(plan_root=PLAN_ROOT)
     matches = iter([_match(False), _match(True)])
-    monkeypatch.setattr(actions, "_wait_template", lambda *_args, **_kwargs: next(matches))
+    async def wait_for_image(**_kwargs):
+        return next(matches)
 
-    result = actions._enter_island(
-        app,
-        object(),
-        service,
-        location_file_path="data/meta/location_pc.json",
-        page_timeout_sec=0,
-        interval_sec=0.05,
-        transition_attempts=3,
+    monkeypatch.setattr(actions, "wait_for_image", wait_for_image)
+
+    result = asyncio.run(
+        actions._enter_island(
+            app,
+            object(),
+            object(),
+            service,
+            location_file_path="data/meta/location_pc.json",
+            page_timeout_sec=0,
+            interval_sec=0.05,
+            transition_attempts=3,
+        )
     )
 
     assert result["attempts"] == 2
@@ -90,14 +152,20 @@ def test_enter_island_retries_the_same_resolved_coordinate(monkeypatch):
 def test_open_revenue_overview_retries_only_the_fixed_safe_point(monkeypatch):
     app = _App()
     matches = iter([_match(False), _match(False), _match(True)])
-    monkeypatch.setattr(actions, "_wait_template", lambda *_args, **_kwargs: next(matches))
+    async def wait_for_image(**_kwargs):
+        return next(matches)
 
-    result = actions._open_revenue_overview(
-        app,
-        object(),
-        page_timeout_sec=0,
-        interval_sec=0.05,
-        transition_attempts=3,
+    monkeypatch.setattr(actions, "wait_for_image", wait_for_image)
+
+    result = asyncio.run(
+        actions._open_revenue_overview(
+            app,
+            object(),
+            object(),
+            page_timeout_sec=0,
+            interval_sec=0.05,
+            transition_attempts=3,
+        )
     )
 
     assert result["attempts"] == 3
@@ -132,14 +200,31 @@ def test_metric_caps_use_the_game_limits():
     assert capped == {"share": True, "ticket": True, "tax": True}
 
 
-def test_rainbow_wins_when_any_metric_is_not_capped():
+def test_all_boost_requires_every_metric_to_be_below_cap():
+    options = [
+        {"slot": 1, "category": "share", "grade": "gold"},
+        {"slot": 2, "category": "all", "grade": "gold"},
+        {"slot": 3, "category": "ticket", "grade": "gold"},
+    ]
+
+    assert actions._select_investment_option(
+        options,
+        {"share": False, "ticket": False, "tax": False},
+    )["slot"] == 2
+    assert actions._select_investment_option(
+        options,
+        {"share": False, "ticket": False, "tax": True},
+    )["slot"] == 1
+
+
+def test_all_boost_uses_an_ordinary_grade_instead_of_a_special_top_grade():
     selected = actions._select_investment_option(
         [
-            {"slot": 1, "category": "share", "grade": "gold"},
-            {"slot": 2, "category": "all", "grade": "rainbow"},
-            {"slot": 3, "category": "ticket", "grade": "gold"},
+            {"slot": 1, "category": "all", "grade": "bronze"},
+            {"slot": 2, "category": "share", "grade": "silver"},
+            {"slot": 3, "category": "ticket", "grade": "bronze"},
         ],
-        {"share": True, "ticket": False, "tax": True},
+        {"share": False, "ticket": False, "tax": False},
     )
 
     assert selected["slot"] == 2
@@ -163,22 +248,42 @@ def test_same_grade_prefers_share_then_ticket_then_tax_and_excludes_capped():
 
 
 def _patch_navigation(monkeypatch, metrics):
-    monkeypatch.setattr(actions, "_enter_island", lambda *_args, **_kwargs: {"attempts": 1})
-    monkeypatch.setattr(actions, "_open_revenue_overview", lambda *_args, **_kwargs: {"attempts": 1})
-    monkeypatch.setattr(
-        actions,
-        "_click_template_required",
-        lambda *_args, **_kwargs: {"clicked": True, "x": 1, "y": 2},
-    )
-    monkeypatch.setattr(
-        actions,
-        "_wait_template",
-        lambda *_args, **kwargs: _match(bool(kwargs.get("should_exist", True))),
-    )
+    async def enter(*_args, **_kwargs):
+        return {"attempts": 1}
+
+    async def open_revenue(*_args, **_kwargs):
+        return {"attempts": 1}
+
+    async def click_required(*_args, **_kwargs):
+        return {"clicked": True, "x": 1, "y": 2}
+
+    async def wait_image(**_kwargs):
+        return _match(True)
+
+    async def wait_disappear(**_kwargs):
+        return True
+
+    monkeypatch.setattr(actions, "_enter_island", enter)
+    monkeypatch.setattr(actions, "_open_revenue_overview", open_revenue)
+    monkeypatch.setattr(actions, "_click_template_required", click_required)
+    monkeypatch.setattr(actions, "wait_for_image", wait_image)
+    monkeypatch.setattr(actions, "wait_for_templates_in_set_to_disappear", wait_disappear)
     monkeypatch.setattr(
         actions,
         "_read_investment_metrics",
         lambda *_args, **_kwargs: {"values": dict(metrics), "ocr_history": {}},
+    )
+
+
+def _run_investment(app=None):
+    return asyncio.run(
+        actions.resonance_pc_execute_cape_island_investment_from_city_panel(
+            app=app or _App(),
+            ocr=object(),
+            vision=object(),
+            resonance_pc_city_shop_data=object(),
+            engine=object(),
+        )
     )
 
 
@@ -190,12 +295,7 @@ def test_all_metrics_capped_skips_without_card_templates(monkeypatch):
     }
     _patch_navigation(monkeypatch, metrics)
 
-    result = actions.resonance_pc_execute_cape_island_investment_from_city_panel(
-        app=_App(),
-        ocr=object(),
-        vision=object(),
-        resonance_pc_city_shop_data=object(),
-    )
+    result = _run_investment()
 
     assert result["success"] is True
     assert result["status"] == "skipped"
@@ -211,25 +311,14 @@ def test_investment_without_card_templates_skips_and_keeps_the_flow_available(mo
         "tax_reduction_percent": -5.0,
     }
     _patch_navigation(monkeypatch, metrics)
-    monkeypatch.setattr(
-        actions,
-        "CARD_OPTION_TEMPLATES",
-        {
-            "share": {"bronze": (), "silver": (), "gold": ()},
-            "ticket": {"bronze": (), "silver": (), "gold": ()},
-            "tax": {"bronze": (), "silver": (), "gold": ()},
-            "all": {"rainbow": ()},
-        },
-    )
+    async def unclassified(*_args, slot, **_kwargs):
+        return {"slot": slot, "category": None, "grade": None, "confidence": 0.0}
+
+    monkeypatch.setattr(actions, "_recognize_card_option", unclassified)
     fake_logger = Mock()
     monkeypatch.setattr(actions, "logger", fake_logger)
 
-    result = actions.resonance_pc_execute_cape_island_investment_from_city_panel(
-        app=_App(),
-        ocr=object(),
-        vision=object(),
-        resonance_pc_city_shop_data=object(),
-    )
+    result = _run_investment()
 
     assert result["status"] == "skipped"
     assert result["reason"] == "no_recognized_eligible_option"
@@ -254,14 +343,12 @@ def test_partial_card_classification_uses_the_best_recognized_eligible_option(mo
             {"slot": 3, "category": "tax", "grade": "silver", "confidence": 0.95},
         ]
     )
-    monkeypatch.setattr(actions, "_classify_card", lambda *_args, **_kwargs: next(options))
+    async def recognize(*_args, **_kwargs):
+        return next(options)
 
-    result = actions.resonance_pc_execute_cape_island_investment_from_city_panel(
-        app=_App(),
-        ocr=object(),
-        vision=object(),
-        resonance_pc_city_shop_data=object(),
-    )
+    monkeypatch.setattr(actions, "_recognize_card_option", recognize)
+
+    result = _run_investment()
 
     assert result["status"] == "invested"
     assert result["selected_option"]["slot"] == 2
@@ -276,7 +363,6 @@ def test_successful_investment_selects_and_dismisses_result(monkeypatch):
         "tax_reduction_percent": -4.8,
     }
     _patch_navigation(monkeypatch, metrics)
-    monkeypatch.setattr(actions, "_configured_card_template_count", lambda: 4)
     options = iter(
         [
             {"slot": 1, "category": "tax", "grade": "silver", "confidence": 0.9},
@@ -284,17 +370,15 @@ def test_successful_investment_selects_and_dismisses_result(monkeypatch):
             {"slot": 3, "category": "share", "grade": "gold", "confidence": 0.9},
         ]
     )
-    monkeypatch.setattr(actions, "_classify_card", lambda *_args, **_kwargs: next(options))
+    async def recognize(*_args, **_kwargs):
+        return next(options)
+
+    monkeypatch.setattr(actions, "_recognize_card_option", recognize)
     fake_logger = Mock()
     monkeypatch.setattr(actions, "logger", fake_logger)
     app = _App()
 
-    result = actions.resonance_pc_execute_cape_island_investment_from_city_panel(
-        app=app,
-        ocr=object(),
-        vision=object(),
-        resonance_pc_city_shop_data=object(),
-    )
+    result = _run_investment(app)
 
     assert result["status"] == "invested"
     assert result["selected_option"]["slot"] == 3
