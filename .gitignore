@@ -6,6 +6,8 @@
 .pytest_cache/
 .pytest_tmp/
 .codex_tmp/
+.playwright-cli/
+.test-tmp/
 .mypy_cache/
 .ruff_cache/
 __pycache__/
@@ -17,7 +19,7 @@ tmp/
 tmp_*.png
 .tmp*
 artifacts/
-plans/resonance/data/cache/market/snapshots/
+plans/*/data/cache/
 plans/resonance/data/cache/player/
 AuraResonanceGui.spec
 python-runtime.local.ps1
