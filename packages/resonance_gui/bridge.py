@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import os
 import time
 from typing import Any, Callable
 
@@ -50,7 +51,12 @@ class RunnerBridge(QObject):
 
     def __init__(self, runner_factory: RunnerFactory | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self._runner_factory = runner_factory or (lambda: SubprocessGameRunner())
+        if runner_factory is None:
+            base_path = str(os.environ.get("AURA_BASE_PATH") or "").strip()
+            runner_factory = lambda: SubprocessGameRunner(
+                env_overrides={"AURA_BASE_PATH": base_path} if base_path else None,
+            )
+        self._runner_factory = runner_factory
         self._runner: Any | None = None
         self._queue: list[dict[str, Any]] = []
         self._busy = False
