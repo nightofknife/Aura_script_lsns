@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 from pathlib import Path
 
 from plans.resonance_pc.src.services.resonance_pc_market_data_service import ResonancePcMarketDataService
@@ -9,6 +10,11 @@ from plans.resonance_pc.src.services.resonance_pc_trade_planner_service import (
     ResonancePcTradePlannerError,
     ResonancePcTradePlannerService,
 )
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PC_PLAN_ROOT = REPO_ROOT / "plans" / "resonance_pc"
+MARKET_FIXTURES_ROOT = Path(__file__).resolve().parent / "fixtures" / "resonance_pc" / "market"
 
 
 class _FakeMarketData:
@@ -338,8 +344,15 @@ def test_fatigue_budget_hard_constraint(tmp_path: Path):
         assert step["fatigue_cost"] <= 5
 
 
-def test_e2e_with_cached_snapshot_20260313():
-    market_service = ResonancePcMarketDataService()
+def test_e2e_with_cached_snapshot_20260313(tmp_path: Path):
+    snapshot_id = "20260313T191517Z_6a617b35f2"
+    plan_root = tmp_path / "resonance_pc"
+    shutil.copytree(PC_PLAN_ROOT / "data" / "meta", plan_root / "data" / "meta")
+    snapshots_dir = plan_root / "data" / "cache" / "market" / "snapshots"
+    snapshots_dir.mkdir(parents=True)
+    shutil.copy2(MARKET_FIXTURES_ROOT / f"{snapshot_id}.json", snapshots_dir)
+
+    market_service = ResonancePcMarketDataService(plan_root=plan_root)
     planner = ResonancePcTradePlannerService(resonance_pc_market_data=market_service)
 
     result = planner.simulate_until_stop(
@@ -349,11 +362,11 @@ def test_e2e_with_cached_snapshot_20260313():
         cargo_capacity=120,
         book_profit_threshold=0,
         available_city_ids=[str(i) for i in range(1, 21)],
-        snapshot_id="20260313T191517Z_6a617b35f2",
+        snapshot_id=snapshot_id,
         max_iterations=24,
     )
 
-    assert result["snapshot_id"] == "20260313T191517Z_6a617b35f2"
+    assert result["snapshot_id"] == snapshot_id
     assert result["totals"]["fatigue"] <= 120
     assert isinstance(result["steps"], list)
     assert len(result["station_sequence"]) >= 1

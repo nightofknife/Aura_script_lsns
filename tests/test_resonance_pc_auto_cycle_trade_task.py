@@ -266,7 +266,6 @@ def test_resonance_pc_business_sources_and_assets_are_physically_separate():
         assert not pc_asset.is_symlink()
 
     assert (PC_PLAN_ROOT / "data" / "meta" / "location_pc.json").is_file()
-    assert (PC_PLAN_ROOT / "data" / "cache" / "market").is_dir()
 
 
 def test_resonance_pc_manifest_exports_only_pc_business_symbols():
