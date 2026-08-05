@@ -4,20 +4,29 @@ Aura Game Framework 当前默认使用 Python 3.12 虚拟环境。
 
 ## 1. 初始化运行环境
 
-在项目根目录执行：
+在项目根目录执行开发环境入口：
 
 ```powershell
-.\scripts\setup_python_runtime.ps1
+.\scripts\setup_dev_environment.ps1 -VisionProvider cuda
 ```
 
 关键行为：
 
 - 自动解析本机 Python `3.12.x`
-- 创建或复用 `.venv`
-- 安装 `requirements/runtime.txt`
+- 创建或复用唯一的开发环境 `.venv`
+- 安装锁定的 runtime、GUI 与 pytest 依赖
 - 根据 `-VisionProvider` 安装 ONNX Runtime vision 依赖，默认 `cuda`
 - 如果存在 `requirements/runtime.lock` 则优先使用 lock
-- 运行 `pip check`
+- 运行 `pip check` 和完整 preflight
+
+CPU-only 开发机使用：
+
+```powershell
+.\scripts\setup_dev_environment.ps1 -VisionProvider cpu
+```
+
+`setup_python_runtime.ps1` 是底层 runtime 初始化脚本；日常开发应使用
+`setup_dev_environment.ps1`，避免出现能运行 CLI、却缺少 GUI 或测试依赖的半完整环境。
 
 ## 2. 启动前校验
 
@@ -106,7 +115,7 @@ if __name__ == "__main__":
 - `requirements/runtime.txt`
   运行时依赖。
 - `requirements/dev.txt`
-  开发与测试依赖。
+  固定版本的开发、GUI 与测试依赖。
 - `requirements/optional-yolo-cpu.txt`
   YOLO 兼容入口，转向共享 ONNX Runtime CPU 推理依赖。
 - `requirements/optional-yolo-cuda.txt`

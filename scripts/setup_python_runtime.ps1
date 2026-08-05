@@ -120,12 +120,13 @@ if ($cfgText -notmatch "include-system-site-packages\s*=\s*false") {
 }
 
 Write-Host "Installing runtime dependencies ..."
-Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @("-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools<82")
-
 $refreshLock = $false
 if ($UseLock -and (Test-Path $LockFile)) {
     Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @("-m", "pip", "install", "-r", $LockFile)
 } else {
+    Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @(
+        "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools<82"
+    )
     Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @("-m", "pip", "install", "-r", $RuntimeRequirements)
     $refreshLock = $true
 }

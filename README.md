@@ -18,10 +18,15 @@ scripts/build_release.ps1      Windows release builder
 ## Quick Commands
 
 ```powershell
+.\scripts\setup_dev_environment.ps1 -VisionProvider cuda
 .\scripts\run_cli.ps1 tasks resonance
 .\scripts\run_cli.ps1 run resonance tasks:market_data.yaml:market_data_get_latest --timeout-sec 120
 .\scripts\run_cli.ps1 gui resonance
 ```
+
+The project uses one canonical `.venv` for development. Release builds use
+separate `.venv-release-cpu` and `.venv-release-gpu` environments so their
+mutually exclusive ONNX Runtime packages cannot contaminate each other.
 
 ## Validation
 
@@ -39,6 +44,22 @@ The Resonance release uses:
 - `AuraResonanceGui.exe`
 - `runtime\AuraResonanceRuntime.exe`
 - external editable plan packages under `plans\`
+
+Build a local CPU release with the high-level entrypoint:
+
+```powershell
+.\scripts\package_release.ps1 -Profile cpu
+```
+
+Use `-Profile gpu` for the GPU archive. Generated build trees are kept under
+`.runtime\packages\`; `scripts\build_release.ps1` remains the low-level builder
+used by CI and advanced packaging work.
+
+Preview reclaimable legacy build directories without deleting anything:
+
+```powershell
+.\scripts\clean_workspace.ps1
+```
 
 Previous game-specific business assets are intentionally not part of this repository.
 

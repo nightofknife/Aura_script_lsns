@@ -18,7 +18,10 @@ CORE_FILES = {
     "cli.py",
     "scripts/build_preflight.ps1",
     "scripts/build_release.ps1",
+    "scripts/clean_workspace.ps1",
     "scripts/fetch_mumu_runtime_assets.py",
+    "scripts/package_release.ps1",
+    "scripts/setup_dev_environment.ps1",
     "scripts/setup_python_runtime.ps1",
 }
 

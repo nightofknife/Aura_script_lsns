@@ -3,4 +3,4 @@
 # in the release build venv.
 numpy<2.4
 opencv-python
-onnxruntime-gpu
+onnxruntime-gpu==1.27.0
