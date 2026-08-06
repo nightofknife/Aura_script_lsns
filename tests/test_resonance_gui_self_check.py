@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+import sys
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from packages.resonance_gui.app import self_check_resonance_gui
+from packages.resonance_gui.app import (
+    APP_ICON_RELATIVE_PATH,
+    _application_icon_path,
+    self_check_resonance_gui,
+)
 
 
 class _FakeRunner:
@@ -43,3 +49,15 @@ def test_gui_self_check_requires_windows_capture():
             assert "windows_capture" in str(exc)
         else:
             raise AssertionError("self-check should fail when windows_capture is unavailable")
+
+
+def test_gui_application_icon_is_available_in_source_tree():
+    icon_path = _application_icon_path()
+
+    assert icon_path.is_file()
+    assert icon_path.name == "aura_resonance_chibi_icon-optimized.ico"
+
+
+def test_gui_application_icon_uses_frozen_bundle_root(tmp_path):
+    with patch.object(sys, "_MEIPASS", str(tmp_path), create=True):
+        assert _application_icon_path() == Path(tmp_path) / APP_ICON_RELATIVE_PATH

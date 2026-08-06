@@ -22,7 +22,11 @@ from scripts.release.prune_release_payload import (
 from scripts.release.pyinstaller_filters import excluded_data_globs, should_collect_submodule
 from scripts.release.validate_ocr_bundle import validate_bundle
 from scripts.release.release_contract import load_contract, parse_hashed_lock
-from scripts.release.validate_release import validate_archive, validate_archive_matches_tree
+from scripts.release.validate_release import (
+    _resolve_powershell_executable,
+    validate_archive,
+    validate_archive_matches_tree,
+)
 from scripts.release.validate_release_set import _equivalent_generated_metadata
 from scripts.release.validate_windows_execution_level import parse_execution_level
 
@@ -136,12 +140,40 @@ def test_release_builder_does_not_force_administrator_startup():
     assert "validate_windows_execution_level.py" in build_script
 
 
+def test_release_builder_embeds_and_validates_gui_icons():
+    repo_root = Path(__file__).resolve().parents[1]
+    build_script = (repo_root / "scripts" / "build_release.ps1").read_text(encoding="utf-8")
+    pyinstaller_spec = (repo_root / "packaging" / "pyinstaller" / "aura.spec").read_text(
+        encoding="utf-8"
+    )
+    contract = load_contract(repo_root / "packaging" / "release-contract.json")
+
+    icon_name = "aura_resonance_chibi_icon-optimized.ico"
+    assert f"packaging\\\\assets\\\\{icon_name}" in build_script
+    assert "--icon $IconPath" in build_script
+    assert "--require-icon" in build_script
+    assert icon_name in pyinstaller_spec
+    assert "icon=str(APP_ICON)" in pyinstaller_spec
+    assert (
+        f"runtime/_internal/packaging/assets/{icon_name}"
+        in contract["full_release"]["required_paths"]
+    )
+
+
 def test_release_self_check_does_not_mask_runtime_base_path_discovery():
     repo_root = Path(__file__).resolve().parents[1]
     validator = (repo_root / "scripts" / "release" / "validate_release.py").read_text(encoding="utf-8")
 
     assert 'env.pop("AURA_BASE_PATH", None)' in validator
     assert 'env["AURA_BASE_PATH"]' not in validator
+
+
+def test_release_smoke_falls_back_to_windows_powershell():
+    with patch(
+        "scripts.release.validate_release.shutil.which",
+        side_effect=lambda name: None if name == "pwsh" else r"C:\Windows\powershell.exe",
+    ):
+        assert _resolve_powershell_executable() == r"C:\Windows\powershell.exe"
 
 
 def test_frozen_runtime_hook_infers_release_root_from_runtime_executable(tmp_path):

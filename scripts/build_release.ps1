@@ -326,11 +326,13 @@ function Build-GuiRootLauncher {
     param(
         [string]$PythonPath,
         [string]$LauncherSource,
+        [string]$IconPath,
         [string]$DistPath,
         [string]$WorkPath
     )
 
     Assert-PathExists -PathValue $LauncherSource -Label "GUI root launcher source"
+    Assert-PathExists -PathValue $IconPath -Label "Aura Resonance application icon"
     New-Item -ItemType Directory -Force -Path $DistPath | Out-Null
     New-Item -ItemType Directory -Force -Path $WorkPath | Out-Null
 
@@ -340,6 +342,7 @@ function Build-GuiRootLauncher {
         --clean `
         --onefile `
         --windowed `
+        --icon $IconPath `
         --name AuraResonanceGui `
         --distpath $DistPath `
         --workpath $WorkPath `
@@ -468,6 +471,7 @@ $ReleasePlansDir = Join-Path $ReleaseRoot "plans"
 $ReleaseOcrModelsDir = Join-Path $ReleaseRoot "models\\ocr"
 $ReleaseYoloModelsDir = Join-Path $ReleaseRoot "models\\yolo"
 $GuiLauncherSource = Join-Path $RepoRoot "packaging\\launcher\\aura_resonance_launcher.py"
+$GuiIconPath = Join-Path $RepoRoot "packaging\\assets\\aura_resonance_chibi_icon-optimized.ico"
 $RunTemplate = Join-Path $RepoRoot "packaging\\templates\\run.ps1"
 $ConfigTemplate = Join-Path $RepoRoot "packaging\\templates\\config.yaml"
 $SourcePlansDir = Join-Path $RepoRoot "plans"
@@ -550,6 +554,7 @@ if (-not $SkipBuild) {
         Build-GuiRootLauncher `
             -PythonPath $VenvPythonPath `
             -LauncherSource $GuiLauncherSource `
+            -IconPath $GuiIconPath `
             -DistPath $LauncherDistPath `
             -WorkPath $LauncherWorkPath
         Assert-PathExists -PathValue $BuiltGuiLauncherExe -Label "Built AuraResonanceGui root launcher executable"
@@ -564,6 +569,16 @@ if (-not $SkipBuild) {
         @builtExecutables
     if ($LASTEXITCODE -ne 0) {
         throw "Packaged executable execution-level validation failed."
+    }
+    if ($IncludeGui) {
+        & $VenvPythonPath $ExecutionLevelValidator `
+            --expected-level asInvoker `
+            --require-icon `
+            $BuiltGuiRuntimeExe `
+            $BuiltGuiLauncherExe
+        if ($LASTEXITCODE -ne 0) {
+            throw "Packaged GUI executable icon-resource validation failed."
+        }
     }
 }
 
