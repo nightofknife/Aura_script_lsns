@@ -49,6 +49,8 @@ _FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.
 
 _GO_DESTINATION_REGION = [900, 580, 340, 120]
 _ARRIVAL_BUTTON_REGION = [780, 325, 240, 70]
+_CITY_MAIN_ENTRY_REGION = [980, 430, 290, 110]
+_CITY_MAIN_ENTRY_MARKERS = ("访问城市", "访问地区", "进入城市")
 _DEPART_CONFIRM_REGION = [450, 360, 760, 220]
 _FATIGUE_PANEL_REGION = [70, 80, 520, 190]
 _FATIGUE_BACK_REGION = [0, 0, 260, 90]
@@ -866,6 +868,30 @@ def _click_arrival_template_until_absent(
     )
 
 
+def _detect_city_main_entry(app: Any, ocr: Any, *, poll_count: int) -> Dict[str, Any]:
+    _check_intercity_cancelled()
+    items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=_CITY_MAIN_ENTRY_REGION)
+    wanted = {_normalize_text(marker) for marker in _CITY_MAIN_ENTRY_MARKERS}
+    hit = next((item for item in items if str(item.get("norm_text") or "") in wanted), None)
+    evidence = {
+        "found": hit is not None,
+        "hit": hit,
+        "region": list(_CITY_MAIN_ENTRY_REGION),
+        "markers": list(_CITY_MAIN_ENTRY_MARKERS),
+        "ocr_items": items[:10],
+    }
+    if hit is not None or poll_count <= 3 or poll_count % 10 == 0:
+        logger.info(
+            "[IntercityArrivalCityMain] poll=%s found=%s hit_text=%s center=%s region=%s",
+            poll_count,
+            bool(hit is not None),
+            hit.get("text") if isinstance(hit, dict) else None,
+            hit.get("center") if isinstance(hit, dict) else None,
+            _CITY_MAIN_ENTRY_REGION,
+        )
+    return evidence
+
+
 def _check_intercity_cancelled() -> None:
     if is_current_task_cancel_requested():
         raise asyncio.CancelledError("Resonance PC intercity arrival wait was cancelled")
@@ -1475,6 +1501,7 @@ def resonance_pc_intercity_depart_and_wait(
                 timeout_sec=enter_station_timeout_seconds,
                 interval_sec=3.0,
                 app=app,
+                ocr=ocr,
                 vision=vision,
             )
             return {
@@ -1631,6 +1658,7 @@ def resonance_pc_intercity_depart_and_wait(
 )
 @requires_services(
     app="plans/aura_base/app",
+    ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
 )
 def resonance_pc_wait_intercity_arrival(
@@ -1642,11 +1670,12 @@ def resonance_pc_wait_intercity_arrival(
     arrival_click_max_attempts: int = 5,
     arrival_click_verify_interval_sec: float = 0.8,
     app: Any = None,
+    ocr: Any = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
     """Wait until the station prompt is detected and handled."""
-    if app is None or vision is None:
-        raise RuntimeError("app/vision services are required for wait_intercity_arrival.")
+    if app is None or ocr is None or vision is None:
+        raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
     raw_timeout = float(timeout_sec)
@@ -1657,6 +1686,7 @@ def resonance_pc_wait_intercity_arrival(
     poll_count = 0
     trace: List[Dict[str, Any]] = []
     last_station: Dict[str, Any] = {}
+    last_city_main: Dict[str, Any] = {}
 
     while time.monotonic() <= deadline:
         _check_intercity_cancelled()
@@ -1699,12 +1729,42 @@ def resonance_pc_wait_intercity_arrival(
                 "trace": trace[-20:],
             }
 
+        city_main = _detect_city_main_entry(app=app, ocr=ocr, poll_count=poll_count)
+        last_city_main = dict(city_main)
+        if city_main.get("found"):
+            record = {
+                "poll": poll_count,
+                "state": "arrived",
+                "arrival_mode": "city_main_detected",
+                "city_main": city_main,
+            }
+            trace.append(record)
+            logger.info(
+                "[IntercityArrival] arrived mode=city_main_detected poll=%s elapsed_sec=%.3f hit=%s",
+                poll_count,
+                time.monotonic() - started,
+                city_main.get("hit"),
+            )
+            return {
+                "success": True,
+                "status": "arrived",
+                "arrival_mode": "city_main_detected",
+                "poll_count": poll_count,
+                "elapsed_sec": round(time.monotonic() - started, 3),
+                "arrival_point": None,
+                "arrival_click_attempts": 0,
+                "station_template": station,
+                "city_main": city_main,
+                "trace": trace[-20:],
+            }
+
         record = {
             "poll": poll_count,
             "state": "traveling",
             "station_confidence": float(
                 (station.get("initial_match") or {}).get("confidence") or 0.0
             ),
+            "city_main_found": bool(city_main.get("found")),
         }
         trace.append(record)
         trace = trace[-20:]
@@ -1722,6 +1782,7 @@ def resonance_pc_wait_intercity_arrival(
             "elapsed_sec": round(time.monotonic() - started, 3),
             "timeout_sec": timeout,
             "last_station_template": last_station,
+            "last_city_main": last_city_main,
             "trace": trace[-20:],
         },
     )

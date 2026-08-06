@@ -230,6 +230,7 @@ def test_wait_intercity_arrival_clicks_enter_station():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
+        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -247,6 +248,7 @@ def test_wait_intercity_arrival_retries_until_template_disappears():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
+        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -264,6 +266,7 @@ def test_wait_intercity_arrival_fails_when_template_remains_visible():
     try:
         resonance_pc_wait_intercity_arrival(
             app=app,
+            ocr=_FakeOcr([]),
             vision=vision,
             timeout_sec=1,
             interval_sec=0.1,
@@ -279,12 +282,13 @@ def test_wait_intercity_arrival_fails_when_template_remains_visible():
     assert app.clicks == [(810, 345), (810, 345), (810, 345)]
 
 
-def test_wait_intercity_arrival_uses_only_station_template_region():
+def test_wait_intercity_arrival_uses_station_and_city_main_regions():
     app = _FakeApp()
     vision = _SequencedArrivalVision([False, True, False])
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
+        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=1,
         interval_sec=0.1,
@@ -293,9 +297,28 @@ def test_wait_intercity_arrival_uses_only_station_template_region():
 
     assert result["poll_count"] == 2
     assert app.clicks == [(810, 345)]
-    assert set(app.capture_rects) == {(780, 325, 240, 70)}
+    assert set(app.capture_rects) == {(780, 325, 240, 70), (980, 430, 290, 110)}
     assert (0, 0, 1280, 720) not in app.capture_rects
-    assert (1000, 450, 250, 70) not in app.capture_rects
+
+
+def test_wait_intercity_arrival_accepts_existing_city_main_without_clicking_station():
+    app = _FakeApp()
+    vision = _SequencedArrivalVision([False])
+
+    result = resonance_pc_wait_intercity_arrival(
+        app=app,
+        ocr=_FakeOcr([["访问城市"]]),
+        vision=vision,
+        timeout_sec=1,
+        interval_sec=0.1,
+        arrival_click_verify_interval_sec=0,
+    )
+
+    assert result["status"] == "arrived"
+    assert result["arrival_mode"] == "city_main_detected"
+    assert result["arrival_click_attempts"] == 0
+    assert result["city_main"]["hit"]["text"] == "访问城市"
+    assert app.clicks == []
 
 
 def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
@@ -304,6 +327,7 @@ def test_wait_intercity_arrival_zero_timeout_waits_until_arrival():
 
     result = resonance_pc_wait_intercity_arrival(
         app=app,
+        ocr=_FakeOcr([]),
         vision=vision,
         timeout_sec=0,
         interval_sec=0.15,
@@ -323,6 +347,7 @@ def test_wait_intercity_arrival_zero_timeout_uses_safe_default(monkeypatch):
     with pytest.raises(IntercityDestinationError) as raised:
         resonance_pc_wait_intercity_arrival(
             app=app,
+            ocr=_FakeOcr([]),
             vision=vision,
             timeout_sec=0,
             interval_sec=0.1,
@@ -338,6 +363,7 @@ def test_wait_intercity_arrival_honors_cooperative_cancellation(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         resonance_pc_wait_intercity_arrival(
             app=_FakeApp(),
+            ocr=_FakeOcr([]),
             vision=_SequencedArrivalVision([]),
             timeout_sec=1,
             interval_sec=0.1,
