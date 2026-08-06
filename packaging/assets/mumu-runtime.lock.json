@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "path": "plans/aura_base/assets/mumu/scrcpy/scrcpy-server-v1.24.jar",
+      "url": "https://github.com/Genymobile/scrcpy/releases/download/v1.24/scrcpy-server-v1.24",
+      "size": 41159,
+      "sha256": "ae74a81ea79c0dc7250e586627c278c0a9a8c5de46c9fb5c38c167fb1a36f056"
+    },
+    {
+      "path": "plans/aura_base/assets/mumu/android_touch/arm64-v8a/touch",
+      "url": "https://raw.githubusercontent.com/BobbleKeyboard/android_touch/fd45440e005300c01a360982dd3369202fd3ef46/libs/arm64-v8a/touch",
+      "size": 792720,
+      "sha256": "2a8f98719e312db8f6745689b291adc38fc1999e9434b7f5885f417a6c6f950d"
+    },
+    {
+      "path": "plans/aura_base/assets/mumu/android_touch/armeabi-v7a/touch",
+      "url": "https://raw.githubusercontent.com/BobbleKeyboard/android_touch/fd45440e005300c01a360982dd3369202fd3ef46/libs/armeabi-v7a/touch",
+      "size": 419440,
+      "sha256": "def2fad59a0f66d6cc8e15449ff619198871c9440a2f77052be9e728559cf1e4"
+    },
+    {
+      "path": "plans/aura_base/assets/mumu/android_touch/x86/touch",
+      "url": "https://raw.githubusercontent.com/BobbleKeyboard/android_touch/fd45440e005300c01a360982dd3369202fd3ef46/libs/x86/touch",
+      "size": 816760,
+      "sha256": "d35ae1c8f57b01a66f7ef5e05e7ae8ffee086bec05a4b2a29705a50eb8fa11fb"
+    },
+    {
+      "path": "plans/aura_base/assets/mumu/android_touch/x86_64/touch",
+      "url": "https://raw.githubusercontent.com/BobbleKeyboard/android_touch/fd45440e005300c01a360982dd3369202fd3ef46/libs/x86_64/touch",
+      "size": 837960,
+      "sha256": "dee16dddee0a6523bd952c4f46940a5d96ababd6ec7fb188aa68c3232914aade"
+    }
+  ]
+}

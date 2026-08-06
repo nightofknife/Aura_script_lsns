@@ -274,13 +274,15 @@ package:
   发布包入口脚本模板
 - `packaging/templates/config.yaml`
   发布态默认配置模板
-- `scripts/build_release.ps1`
-  一键构建并组装发布目录的脚本
+- `scripts/package_release.ps1`
+  本地与 CI 共用的完整打包、验证和归档入口
+- `packaging/release-contract.json`
+  CPU、GPU、overlay 的统一发行契约
 
 默认输出目录位于：
 
 ```text
-.runtime/release/aura-release/
+.runtime/releases/<label>/
 ```
 
 这个发布目录采用的是“`plans/` 位于发布根目录”的零改代码布局，而不是 `workspace/plans/` 布局。

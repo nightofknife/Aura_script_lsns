@@ -31,15 +31,16 @@ python -m pytest tests\test_resonance_gui_*.py --basetemp .pytest_tmp\resonance_
 本地打包统一从高层入口开始，它会按 profile 创建并复用隔离的发布环境：
 
 ```powershell
-.\scripts\package_release.ps1 -Profile cpu
-.\scripts\package_release.ps1 -Profile gpu
+.\scripts\package_release.ps1 -Profile cpu -ReleaseLabel local
+.\scripts\package_release.ps1 -Profile gpu -ReleaseLabel local
+.\scripts\package_release.ps1 -Profile all -ReleaseLabel local
 ```
 
-只有调试 PyInstaller 或 CI 流程时才直接调用 `build_release.ps1`。
+`build_release.ps1` 是内部目录构建器，不应作为本地或 CI 的发行入口。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File <release>\run.ps1 games --all
-powershell -NoProfile -ExecutionPolicy Bypass -File <release>\run.ps1 tasks resonance
+pwsh -NoProfile -File <release>\run.ps1 games --all
+pwsh -NoProfile -File <release>\run.ps1 tasks resonance
 & <release>\runtime\AuraResonanceRuntime.exe --self-check
 ```
 

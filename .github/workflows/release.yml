@@ -7,13 +7,12 @@ on:
     branches: [main]
     tags:
       - "v*"
-      - "plan-*"
   workflow_dispatch:
     inputs:
       scope:
         description: Build scope
         type: choice
-        options: [auto, full, plan]
+        options: [auto, full, ci]
         default: auto
       publish_release:
         description: Publish artifacts to a GitHub Release
@@ -38,9 +37,6 @@ concurrency:
 env:
   PYTHONUTF8: "1"
   PYTHONIOENCODING: utf-8
-  OCR_MODEL_RELEASE_TAG: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
-  OCR_MODEL_ASSET: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
-  OCR_MODEL_CHECKSUM_ASSET: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
 
 jobs:
   scope:
@@ -53,9 +49,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read release policy
+        id: policy
+        shell: pwsh
+        run: |
+          $contract = Get-Content -Raw packaging\release-contract.json | ConvertFrom-Json
+          "python_version=$($contract.python.major_minor)" >> $env:GITHUB_OUTPUT
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ steps.policy.outputs.python_version }}
 
       - name: Resolve release label
         id: label
@@ -85,24 +88,23 @@ jobs:
           $forced = "auto"
           if ($env:GITHUB_REF -like "refs/tags/v*") {
             $forced = "full"
-          } elseif ($env:GITHUB_REF -like "refs/tags/plan-*") {
-            $forced = "plan"
           } elseif ($env:GITHUB_EVENT_NAME -eq "pull_request") {
             $base = $env:PR_BASE_SHA
           } elseif ($env:GITHUB_EVENT_NAME -eq "push") {
             $base = $env:PUSH_BASE_SHA
           } elseif ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
-            if ($env:MANUAL_SCOPE) { $forced = $env:MANUAL_SCOPE }
+            if ($env:MANUAL_SCOPE -eq "ci") { $forced = "none" }
+            elseif ($env:MANUAL_SCOPE) { $forced = $env:MANUAL_SCOPE }
             $base = (git rev-parse HEAD^ 2>$null)
           }
-          $detectArgs = @(
+          $args = @(
             "scripts\release\detect_release_scope.py",
             "--head", $env:GITHUB_SHA,
             "--force", $forced,
             "--github-output", $env:GITHUB_OUTPUT
           )
-          if ($base) { $detectArgs += @("--base", $base) }
-          python @detectArgs
+          if ($base) { $args += @("--base", $base) }
+          python @args
 
   ci:
     runs-on: windows-2022
@@ -110,15 +112,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read release policy
+        id: policy
+        shell: pwsh
+        run: |
+          $contract = Get-Content -Raw packaging\release-contract.json | ConvertFrom-Json
+          "python_version=$($contract.python.major_minor)" >> $env:GITHUB_OUTPUT
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ steps.policy.outputs.python_version }}
           cache: pip
           cache-dependency-path: requirements/*.txt
 
       - name: Install CI dependencies
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r requirements\ci.txt
+
+      - name: Validate release contract and locks
+        shell: pwsh
+        run: |
+          python -c "from pathlib import Path; from scripts.release.release_contract import load_contract, parse_hashed_lock; c=load_contract(); [parse_hashed_lock(Path(c['profiles'][p]['requirements_lock'])) for p in ('cpu','gpu','overlay')]"
 
       - name: Validate Plan manifests
         shell: pwsh
@@ -138,69 +152,66 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest tests -q
 
-  build-plan:
-    runs-on: windows-2022
-    needs: [scope, ci]
-    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'plan' }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Fetch MuMu runtime assets
-        shell: pwsh
-        run: python scripts\fetch_mumu_runtime_assets.py
-
-      - name: Build complete filtered Plan replacement package
-        id: plan
-        shell: pwsh
-        env:
-          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
-        run: |
-          $archive = ".runtime-plan\AuraResonance-plans-$env:RELEASE_LABEL.zip"
-          python scripts\release\build_plan_package.py --archive $archive
-          if ($LASTEXITCODE -ne 0) { throw "Plan package build failed." }
-          "artifact_path=$archive" >> $env:GITHUB_OUTPUT
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-plans
-          path: ${{ steps.plan.outputs.artifact_path }}
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 0
-
   build-full:
     needs: [scope, ci]
-    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'full' }}
+    if: ${{ needs.scope.outputs.scope == 'full' }}
     strategy:
       fail-fast: false
       matrix:
-        profile: [cpu, gpu]
+        profile: [cpu, gpu, overlay]
     uses: ./.github/workflows/_build-windows.yml
     with:
       profile: ${{ matrix.profile }}
       release_label: ${{ needs.scope.outputs.release_label }}
-      ocr_model_release_tag: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
-      ocr_model_asset: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
-      ocr_model_checksum_asset: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
 
-  build-overlay:
-    needs: [scope, ci]
-    if: ${{ github.event_name != 'pull_request' && needs.scope.outputs.scope == 'full' }}
-    uses: ./.github/workflows/_build-windows.yml
-    with:
-      profile: overlay
-      release_label: ${{ needs.scope.outputs.release_label }}
-      ocr_model_release_tag: ${{ vars.AURA_OCR_MODEL_RELEASE_TAG || 'model-ppocrv5-server-v1' }}
-      ocr_model_asset: ${{ vars.AURA_OCR_MODEL_ASSET || 'models-ocr-ppocrv5_server-v1.zip' }}
-      ocr_model_checksum_asset: ${{ vars.AURA_OCR_MODEL_SHA256_ASSET || 'models-ocr-ppocrv5_server-v1.sha256' }}
+  verify-set:
+    runs-on: windows-2022
+    needs: [scope, ci, build-full]
+    if: ${{ needs.scope.outputs.scope == 'full' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read release policy
+        id: policy
+        shell: pwsh
+        run: |
+          $contract = Get-Content -Raw packaging\release-contract.json | ConvertFrom-Json
+          "python_version=$($contract.python.major_minor)" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.policy.outputs.python_version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-full-*
+          path: .runtime-artifacts
+          merge-multiple: true
+
+      - name: Validate CPU, GPU, and overlay as one release set
+        shell: pwsh
+        env:
+          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+        run: |
+          python -m scripts.release.validate_release_set `
+            --cpu ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip" `
+            --gpu ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-gpu.zip" `
+            --overlay ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-nvidia-cu13-overlay.zip" `
+            --label $env:RELEASE_LABEL `
+            --contract packaging\release-contract.json `
+            --work-root .runtime-validate-set `
+            --checksums .runtime-artifacts\SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-checksums
+          path: .runtime-artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
 
   gpu-smoke:
     runs-on: [self-hosted, windows, gpu]
-    needs: [scope, build-full, build-overlay]
+    needs: [scope, verify-set]
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gpu_smoke && needs.scope.outputs.scope == 'full' }}
     steps:
       - uses: actions/download-artifact@v4
@@ -221,23 +232,21 @@ jobs:
           Expand-Archive -LiteralPath $gpuZip -DestinationPath $work -Force
           Expand-Archive -LiteralPath $overlayZip -DestinationPath $work -Force
           $release = Join-Path $work "AuraResonance-$env:RELEASE_LABEL-win-x64-gpu"
-          & pwsh -NoProfile -File (Join-Path $release "run.ps1") doctor --ocr --ocr-provider cuda
+          pwsh -NoProfile -File (Join-Path $release "run.ps1") doctor --ocr --ocr-provider cuda
           if ($LASTEXITCODE -ne 0) { throw "CUDA OCR smoke failed." }
 
   publish:
     runs-on: windows-2022
     permissions:
       contents: write
-    needs: [scope, ci, build-plan, build-full, build-overlay]
+    needs: [scope, ci, build-full, verify-set]
     if: >-
       ${{
         always() &&
         needs.ci.result == 'success' &&
-        (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)) &&
-        (
-          (needs.scope.outputs.scope == 'plan' && needs.build-plan.result == 'success') ||
-          (needs.scope.outputs.scope == 'full' && needs.build-full.result == 'success' && needs.build-overlay.result == 'success')
-        )
+        needs.build-full.result == 'success' &&
+        needs.verify-set.result == 'success' &&
+        (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
       }}
     steps:
       - uses: actions/download-artifact@v4
@@ -245,17 +254,6 @@ jobs:
           pattern: release-*
           path: .runtime-artifacts
           merge-multiple: true
-
-      - name: Generate checksums
-        shell: pwsh
-        run: |
-          $files = @(Get-ChildItem .runtime-artifacts -File -Filter "*.zip" | Sort-Object Name)
-          if ($files.Count -lt 1) { throw "No release archives were downloaded." }
-          $lines = foreach ($file in $files) {
-            $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $($file.Name)"
-          }
-          $lines | Set-Content .runtime-artifacts\SHA256SUMS.txt -Encoding ascii
 
       - name: Publish GitHub Release
         shell: pwsh
@@ -277,6 +275,7 @@ jobs:
           $assets = @(Get-ChildItem .runtime-artifacts -File | Where-Object {
             $_.Extension -eq ".zip" -or $_.Name -eq "SHA256SUMS.txt"
           })
+          if ($assets.Count -ne 4) { throw "Expected three release archives and SHA256SUMS.txt; found $($assets.Count)." }
           foreach ($asset in $assets) {
             gh release upload $tag $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
             if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($asset.Name)." }

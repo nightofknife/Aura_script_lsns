@@ -23,6 +23,7 @@ CORE_FILES = {
     "scripts/package_release.ps1",
     "scripts/setup_dev_environment.ps1",
     "scripts/setup_python_runtime.ps1",
+    "scripts/update_release_locks.ps1",
 }
 
 
@@ -40,7 +41,7 @@ def classify_paths(paths: Iterable[str], forced_scope: str = "auto") -> dict[str
     elif core_changed:
         scope = "full"
     elif plan_changed:
-        scope = "plan"
+        scope = "full"
     else:
         scope = "none"
 
@@ -86,7 +87,7 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
-    parser.add_argument("--force", choices=("auto", "full", "plan", "none"), default="auto")
+    parser.add_argument("--force", choices=("auto", "full", "none"), default="auto")
     parser.add_argument("--github-output", type=Path)
     args = parser.parse_args()
 

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "platform": "win-x64",
+  "python": {
+    "major_minor": "3.12"
+  },
+  "artifacts": {
+    "cpu": "AuraResonance-{label}-win-x64-cpu.zip",
+    "gpu": "AuraResonance-{label}-win-x64-gpu.zip",
+    "overlay": "AuraResonance-{label}-nvidia-cu13-overlay.zip",
+    "checksums": "SHA256SUMS.txt"
+  },
+  "profiles": {
+    "cpu": {
+      "requirements_input": "requirements/release-cpu.txt",
+      "requirements_lock": "requirements/release-cpu.lock.txt",
+      "release_directory": "AuraResonance-{label}-win-x64-cpu",
+      "execution_provider": "cpu",
+      "onnxruntime_distribution": "onnxruntime"
+    },
+    "gpu": {
+      "requirements_input": "requirements/release-gpu.txt",
+      "requirements_lock": "requirements/release-gpu.lock.txt",
+      "release_directory": "AuraResonance-{label}-win-x64-gpu",
+      "execution_provider": "auto",
+      "onnxruntime_distribution": "onnxruntime-gpu"
+    },
+    "overlay": {
+      "requirements_input": "requirements/release-nvidia-overlay.txt",
+      "requirements_lock": "requirements/release-overlay.lock.txt",
+      "release_directory": "AuraResonance-{label}-win-x64-gpu",
+      "base_profile": "gpu",
+      "cuda_major": 13,
+      "cudnn_major": 9,
+      "required_dlls": [
+        "runtime/_internal/nvidia/cu13/bin/x86_64/cudart64_13.dll",
+        "runtime/_internal/nvidia/cu13/bin/x86_64/cublas64_13.dll",
+        "runtime/_internal/nvidia/cu13/bin/x86_64/cublasLt64_13.dll",
+        "runtime/_internal/nvidia/cu13/bin/x86_64/cufft64_12.dll"
+      ],
+      "required_globs": [
+        "runtime/_internal/nvidia/**/cudnn64_9.dll"
+      ]
+    }
+  },
+  "assets": {
+    "ocr": {
+      "release_tag": "model-ppocrv5-server-v1",
+      "model_asset": "models-ocr-ppocrv5_server-v1.zip",
+      "checksum_asset": "models-ocr-ppocrv5_server-v1.sha256",
+      "bundle_directory": "models/ocr/ppocrv5_server"
+    },
+    "mumu_lock": "packaging/assets/mumu-runtime.lock.json"
+  },
+  "full_release": {
+    "required_paths": [
+      "AuraResonanceGui.exe",
+      "runtime/aura.exe",
+      "runtime/AuraResonanceRuntime.exe",
+      "runtime/_internal/PySide6",
+      "models/ocr/ppocrv5_server/ocr.meta.json",
+      "models/ocr/ppocrv5_server/det.onnx",
+      "models/ocr/ppocrv5_server/rec.onnx",
+      "plans/aura_base/manifest.yaml",
+      "plans/aura_benchmark/manifest.yaml",
+      "plans/resonance/manifest.yaml",
+      "plans/resonance_pc/manifest.yaml",
+      "run.ps1",
+      "config.yaml",
+      "BUILD-INFO.txt",
+      "BUILD-INFO.json"
+    ],
+    "forbidden_paths": [
+      "runtime/_internal/paddle",
+      "runtime/_internal/paddleocr",
+      "runtime/_internal/paddlex",
+      "runtime/_internal/nvidia",
+      "plans/resonance/data/cache",
+      "plans/resonance_pc/data/cache"
+    ]
+  },
+  "comparison": {
+    "exact_roots": [
+      "plans",
+      "models"
+    ],
+    "exact_files": [
+      "run.ps1",
+      "README.md",
+      "LICENSE"
+    ],
+    "allowed_cpu_gpu_differences": [
+      "AuraResonanceGui.exe",
+      "BUILD-INFO.txt",
+      "BUILD-INFO.json",
+      "config.yaml",
+      "runtime/aura.exe",
+      "runtime/AuraResonanceRuntime.exe",
+      "runtime/_internal/base_library.zip",
+      "runtime/_internal/onnxruntime/**",
+      "runtime/_internal/onnxruntime-*.dist-info/**",
+      "runtime/_internal/onnxruntime_gpu-*.dist-info/**"
+    ]
+  },
+  "archive": {
+    "max_entry_length": 180,
+    "max_asset_bytes": 2147483647
+  }
+}

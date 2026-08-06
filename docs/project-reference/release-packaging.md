@@ -1,80 +1,61 @@
 # Release Packaging
 
-`scripts/package_release.ps1` is the supported local entrypoint. It creates a
-profile-specific Python 3.12 environment, installs pinned release dependencies,
-checks MuMu and OCR assets, then delegates to the low-level
-`scripts/build_release.ps1` builder.
+`scripts/package_release.ps1` is the only supported release entrypoint for both
+local builds and GitHub Actions. It creates profile-specific Python 3.12
+environments, installs hashed dependency locks, verifies immutable runtime
+assets, delegates directory assembly to the internal builder, runs smoke tests,
+and creates validated archives.
 
-Important output names:
+## Outputs
 
-- `AuraResonanceGui.exe`
-- `runtime\AuraResonanceRuntime.exe`
-- `runtime\aura.exe`
-
-The release root copies all manifest-backed plan packages from `plans/`, including `aura_base`, `aura_benchmark`, `resonance`, and `resonance_pc`. Plan caches, state, logs, screenshots, and credentials are excluded.
-
-## Payload policy
-
-The frozen runtime keeps both PC and emulator capabilities. WGC, DXGI, MuMu scrcpy/PyAV, ONNX Runtime, OCR models, Qt Widgets, and external editable plans are release requirements.
-
-The build deliberately excludes or removes files that are not used at runtime:
-
-- raw Python source duplicated by PyInstaller's PYZ archive
-- dependency test suites and ONNX Runtime conversion/quantization tools
-- Qt QML, Quick, PDF, virtual keyboard, and unloaded translation catalogs
-- Pillow AVIF and OpenCV video FFmpeg codecs
-- build self-check logs and run history
-- NVIDIA overlay headers, import libraries, symbols, and other development files
-
-`scripts/release/prune_release_payload.py --check-only` is run by the Windows release workflow before artifacts are uploaded. The frozen GUI subprocess self-check and CPU OCR doctor run after runtime pruning, so a removed runtime dependency fails the release build.
-
-Example local builds:
-
-```powershell
-.\scripts\package_release.ps1 -Profile cpu
-.\scripts\package_release.ps1 -Profile gpu
+```text
+AuraResonance-<label>-win-x64-cpu.zip
+AuraResonance-<label>-win-x64-gpu.zip
+AuraResonance-<label>-nvidia-cu13-overlay.zip
+SHA256SUMS.txt
 ```
 
-The environments are `.venv-release-cpu` and `.venv-release-gpu`; outputs are
-under `.runtime\packages\<profile>`. Reuse is intentional. Add
-`-RefreshDependencies` after changing package indexes, or
-`-RecreateEnvironment` when repairing an environment. The builder never reuses
-the development `.venv`.
+Both full packages contain `AuraResonanceGui.exe`, the frozen runtime, OCR
+models, default config, and the complete filtered external `plans/` source tree.
+Plan caches, state, logs, screenshots, credentials, and bytecode are excluded.
+Standalone Plan replacement packages are not produced.
 
-If the OCR bundle is absent, download the project model release before building:
-
-```powershell
-.\scripts\release\download_ocr_models.ps1 -Repository nightofknife/Aura_script_lsns
-```
-
-`scripts/build_release.ps1` remains available for CI and low-level diagnostics,
-but callers must then supply the matching clean release environment themselves.
-
-The active PyInstaller definition is
-`packaging\pyinstaller\aura.spec`. The former standalone GUI spec was removed to
-avoid producing a second, behaviorally different package.
-
-## Workspace cleanup
-
-Generated runtime trees and test artifacts can be inspected with:
+## Canonical commands
 
 ```powershell
-.\scripts\clean_workspace.ps1
+pwsh .\scripts\package_release.ps1 -Profile cpu -ReleaseLabel local
+pwsh .\scripts\package_release.ps1 -Profile gpu -ReleaseLabel local
+pwsh .\scripts\package_release.ps1 -Profile overlay -ReleaseLabel local
+pwsh .\scripts\package_release.ps1 -Profile all -ReleaseLabel local
 ```
 
-The command is preview-only by default. Add `-Apply` to remove the listed
-generated directories. Release environments and canonical `.runtime` output are
-preserved unless their explicit include switches are supplied.
+The `all` profile is the preferred local release rehearsal. It validates the
+CPU, GPU, and overlay as one set and writes `SHA256SUMS.txt` only after every
+check passes. A dirty source tree fails by default; `-AllowDirty` is reserved for
+local test packages and is recorded in `BUILD-INFO.json`. Use `-Offline` to
+forbid asset downloads.
 
-To remove only Python bytecode caches without touching historical build output:
+## Sources of truth
 
-```powershell
-.\scripts\clean_workspace.ps1 -PythonCachesOnly -Apply
-```
+- `packaging/release-contract.json` defines profiles, names, providers, required
+  files, permitted CPU/GPU differences, overlay DLLs, and archive limits.
+- `requirements/release-*.lock.txt` contain complete Windows/Python 3.12 locks
+  with wheel hashes. Regenerate them with `scripts/update_release_locks.ps1`.
+- `packaging/assets/mumu-runtime.lock.json` pins MuMu helper downloads by URL,
+  size, and SHA256. OCR remains pinned to the model Release and checksum named in
+  the release contract.
 
-Example release smoke:
+`scripts/build_release.ps1` is internal. It only builds and assembles directory
+trees; direct callers do not receive dependency preparation, smoke tests,
+archives, or consistency validation.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File <release>\run.ps1 tasks resonance
-& <release>\runtime\AuraResonanceRuntime.exe --self-check
-```
+## Validation
+
+Every CPU and GPU build runs CLI discovery, task discovery, CPU OCR doctor, GUI
+self-check, excluded-payload scanning, execution-provider checks, and archive
+safety checks. The overlay is restricted to its notice and
+`runtime/_internal/nvidia` payload.
+
+The release-set validator then requires matching commit, label, contract, model
+and MuMu fingerprints; identical Plan/model trees; matching common dependencies;
+only allowlisted CPU/GPU differences; and a collision-free GPU/overlay merge.

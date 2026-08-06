@@ -10,35 +10,39 @@ from unittest.mock import patch
 
 import pytest
 
-from scripts.release.build_plan_package import collect_plan_files, create_archive, validate_selected_files
+from scripts.release.assemble_release_plans import collect_plan_files, stage_plan_tree, validate_selected_files
 from scripts.release.detect_release_scope import classify_paths
 from scripts.release.prune_release_payload import (
     classify_nvidia_file,
     classify_runtime_file,
+    path_is_file,
     prune_files,
     reset_release_runtime_data,
 )
 from scripts.release.pyinstaller_filters import excluded_data_globs, should_collect_submodule
 from scripts.release.validate_ocr_bundle import validate_bundle
+from scripts.release.release_contract import load_contract, parse_hashed_lock
+from scripts.release.validate_release import validate_archive, validate_archive_matches_tree
+from scripts.release.validate_release_set import _equivalent_generated_metadata
 from scripts.release.validate_windows_execution_level import parse_execution_level
 
 
 @pytest.mark.parametrize(
     ("paths", "expected"),
     [
-        (["plans/resonance/src/action.py", "tests/test_action.py"], "plan"),
+        (["plans/resonance/src/action.py", "tests/test_action.py"], "full"),
         (["packages/aura_core/runtime.py"], "full"),
         (["plans/resonance/task.yaml", "packaging/pyinstaller/aura.spec"], "full"),
         (["scripts/package_release.ps1"], "full"),
         (["README.md", "tests/test_docs.py"], "none"),
-        (["plans/old/manifest.yaml", "plans/new/manifest.yaml"], "plan"),
+        (["plans/old/manifest.yaml", "plans/new/manifest.yaml"], "full"),
     ],
 )
 def test_release_scope_classification(paths, expected):
     assert classify_paths(paths)["scope"] == expected
 
 
-def test_plan_archive_contains_full_filtered_tree(tmp_path):
+def test_full_release_plan_tree_is_complete_and_filtered(tmp_path):
     repo = tmp_path / "repo"
     plan = repo / "plans" / "demo"
     (plan / "src").mkdir(parents=True)
@@ -55,18 +59,16 @@ def test_plan_archive_contains_full_filtered_tree(tmp_path):
 
     files = collect_plan_files(repo / "plans")
     validate_selected_files(files)
-    archive_path = tmp_path / "plans.zip"
-    create_archive(files, archive_path)
-
-    with zipfile.ZipFile(archive_path) as archive:
-        names = set(archive.namelist())
-    assert "plans/demo/manifest.yaml" in names
-    assert "plans/demo/src/action.py" in names
-    assert "plans/demo/data/meta/catalog.json" in names
-    assert "plans/demo/data/cache/latest.json" not in names
-    assert "plans/demo/src/ignored.pyc" not in names
-    assert "plans/demo/src/credentials.json" not in names
-    assert "plans/demo/src/.env.local" not in names
+    destination = tmp_path / "release-plans"
+    stage_plan_tree(files, destination)
+    names = {path.relative_to(destination).as_posix() for path in destination.rglob("*") if path.is_file()}
+    assert "demo/manifest.yaml" in names
+    assert "demo/src/action.py" in names
+    assert "demo/data/meta/catalog.json" in names
+    assert "demo/data/cache/latest.json" not in names
+    assert "demo/src/ignored.pyc" not in names
+    assert "demo/src/credentials.json" not in names
+    assert "demo/src/.env.local" not in names
 
 
 def test_ocr_bundle_uses_optional_model_flags(tmp_path):
@@ -136,10 +138,10 @@ def test_release_builder_does_not_force_administrator_startup():
 
 def test_release_self_check_does_not_mask_runtime_base_path_discovery():
     repo_root = Path(__file__).resolve().parents[1]
-    build_script = (repo_root / "scripts" / "build_release.ps1").read_text(encoding="utf-8")
+    validator = (repo_root / "scripts" / "release" / "validate_release.py").read_text(encoding="utf-8")
 
-    assert '$startInfo.EnvironmentVariables.Remove("AURA_BASE_PATH")' in build_script
-    assert '$startInfo.EnvironmentVariables["AURA_BASE_PATH"] = $ReleaseRootPath' not in build_script
+    assert 'env.pop("AURA_BASE_PATH", None)' in validator
+    assert 'env["AURA_BASE_PATH"]' not in validator
 
 
 def test_frozen_runtime_hook_infers_release_root_from_runtime_executable(tmp_path):
@@ -224,6 +226,7 @@ def test_runtime_payload_pruning_is_precise(tmp_path):
         runtime / "_internal" / "numpy" / "_core" / "_multiarray_tests.cp312-win_amd64.pyd",
         runtime / "_internal" / "numpy" / "random" / "lib" / "npyrandom.lib",
         runtime / "_internal" / "onnxruntime" / "tools" / "mobile_helpers" / "ops.md",
+        runtime / "_internal" / "av-17.0.0.dist-info" / "licenses" / "__pycache__" / "AUTHORS.pyc",
     ]
     retained = [
         runtime / "_internal" / "PySide6" / "Qt6Widgets.dll",
@@ -293,10 +296,117 @@ def test_local_release_entrypoint_uses_isolated_profile_environments():
     repo_root = Path(__file__).resolve().parents[1]
     script = (repo_root / "scripts" / "package_release.ps1").read_text(encoding="utf-8")
 
-    assert '.venv-release-$Profile' in script
-    assert 'requirements\\release-$Profile.txt' in script
+    assert '.venv-release-$SelectedProfile' in script
+    assert 'requirements_lock' in script
+    assert '--require-hashes' in script
     assert 'build_release.ps1' in script
-    assert 'IncludeGui = $true' in script
+    assert '-IncludeGui' in script
+    assert 'scripts.release.validate_release' in script
+
+
+def test_release_contract_defines_one_locked_rule_set():
+    repo_root = Path(__file__).resolve().parents[1]
+    contract = load_contract(repo_root / "packaging" / "release-contract.json")
+
+    assert contract["python"]["major_minor"] == "3.12"
+    assert contract["platform"] == "win-x64"
+    for profile in ("cpu", "gpu", "overlay"):
+        lock_path = repo_root / contract["profiles"][profile]["requirements_lock"]
+        assert lock_path.is_file()
+        assert parse_hashed_lock(lock_path)
+
+
+def test_release_archives_reject_path_traversal(tmp_path):
+    contract = load_contract()
+    archive = tmp_path / "unsafe.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr("AuraResonance-test-win-x64-cpu/../escape.txt", "bad")
+
+    with pytest.raises(ValueError, match="Unsafe archive entry"):
+        validate_archive(archive, expected_root="AuraResonance-test-win-x64-cpu", contract=contract)
+
+
+def test_release_archive_must_match_validated_tree(tmp_path):
+    root = tmp_path / "AuraResonance-test-win-x64-cpu"
+    root.mkdir()
+    (root / "payload.txt").write_text("expected", encoding="utf-8")
+    archive = tmp_path / "release.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.write(root / "payload.txt", f"{root.name}/payload.txt")
+
+    validate_archive_matches_tree(archive, root)
+    (root / "payload.txt").write_text("changed", encoding="utf-8")
+    with pytest.raises(ValueError, match="do not exactly match"):
+        validate_archive_matches_tree(archive, root)
+
+
+def test_workflow_has_no_plan_only_release_path():
+    repo_root = Path(__file__).resolve().parents[1]
+    workflow = (repo_root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    reusable = (repo_root / ".github" / "workflows" / "_build-windows.yml").read_text(encoding="utf-8")
+
+    assert "plan-*" not in workflow
+    assert "build-plan:" not in workflow
+    assert "release-plans" not in workflow
+    assert "scripts\\package_release.ps1" in reusable
+    assert "scripts\\build_release.ps1" not in reusable
+    assert "onnxruntime_providers_cuda.dll" not in reusable
+
+
+def test_cpu_and_gpu_locks_only_swap_onnxruntime_distribution():
+    repo_root = Path(__file__).resolve().parents[1]
+    cpu = parse_hashed_lock(repo_root / "requirements" / "release-cpu.lock.txt")
+    gpu = parse_hashed_lock(repo_root / "requirements" / "release-gpu.lock.txt")
+
+    assert set(cpu) - set(gpu) == {"onnxruntime"}
+    assert set(gpu) - set(cpu) == {"onnxruntime-gpu"}
+    cpu.pop("onnxruntime")
+    gpu.pop("onnxruntime-gpu")
+    assert cpu == gpu
+
+
+def test_mumu_asset_lock_uses_immutable_urls_and_hashes():
+    repo_root = Path(__file__).resolve().parents[1]
+    payload = json.loads((repo_root / "packaging" / "assets" / "mumu-runtime.lock.json").read_text(encoding="utf-8"))
+
+    assert payload["schema_version"] == 1
+    assert len(payload["assets"]) == 5
+    for asset in payload["assets"]:
+        assert "/master/" not in asset["url"]
+        assert len(asset["sha256"]) == 64
+        assert asset["size"] > 0
+
+
+def test_generated_record_metadata_ignores_only_environment_launchers(tmp_path):
+    cpu = tmp_path / "cpu"
+    gpu = tmp_path / "gpu"
+    relative = "runtime/_internal/demo-1.0.dist-info/RECORD"
+    for root, launcher_hash in ((cpu, "cpu"), (gpu, "gpu")):
+        path = root / relative
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            f"../../Scripts/demo.exe,sha256={launcher_hash},10\npackage/module.py,sha256=shared,20\n",
+            encoding="utf-8",
+        )
+
+    assert _equivalent_generated_metadata(relative, cpu, gpu)
+    (gpu / relative).write_text("package/module.py,sha256=changed,20\n", encoding="utf-8")
+    assert not _equivalent_generated_metadata(relative, cpu, gpu)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows long-path behavior")
+def test_payload_pruner_handles_files_beyond_legacy_max_path(tmp_path):
+    root = tmp_path / "nvidia"
+    relative = Path("cu13") / "include" / ("nested" * 35) / "header.h"
+    extended = Path("\\\\?\\" + str((root / relative).resolve()))
+    extended.parent.mkdir(parents=True)
+    extended.write_bytes(b"header")
+
+    assert len(str((root / relative).resolve())) > 260
+    assert path_is_file(root / relative)
+    report = prune_files(root, classify_nvidia_file)
+    assert report["removed_files"] == 1
+    assert not path_is_file(root / relative)
 
 
 def test_development_requirements_include_gui_and_pinned_pytest():

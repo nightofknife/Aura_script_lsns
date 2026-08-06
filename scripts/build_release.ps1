@@ -3,12 +3,9 @@ param(
     [string]$SpecPath = "packaging\\pyinstaller\\aura.spec",
     [string]$RuntimeRoot = ".runtime",
     [string]$ReleaseName = "aura-release",
-    [string]$PyInstallerVersion = "6.14.2",
     [ValidateSet("cpu", "gpu")]
     [string]$OnnxRuntimeProfile = "gpu",
-    [switch]$IncludeNvidia,
     [switch]$IncludeGui,
-    [switch]$CreateZip,
     [switch]$CreateNvidiaOverlay,
     [switch]$SkipBuild,
     [switch]$SkipAssemble
@@ -314,41 +311,14 @@ function Copy-PlanPackages {
         [string]$RepoRootPath,
         [string]$Destination,
         [string]$PythonPath,
-        [string]$PackagerPath
+        [string]$AssemblerPath
     )
 
     Assert-PathExists -PathValue (Join-Path $RepoRootPath "plans") -Label "Plans directory"
-    Assert-PathExists -PathValue $PackagerPath -Label "Plan package builder"
-    & $PythonPath $PackagerPath --repo-root $RepoRootPath --destination $Destination
+    Assert-PathExists -PathValue $AssemblerPath -Label "Release Plan tree assembler"
+    & $PythonPath $AssemblerPath --repo-root $RepoRootPath --destination $Destination
     if ($LASTEXITCODE -ne 0) {
         throw "Filtered Plan tree assembly failed with exit code $LASTEXITCODE."
-    }
-}
-
-function Ensure-PyInstaller {
-    param(
-        [string]$PythonPath,
-        [string]$Version
-    )
-
-    $previousErrorActionPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        & $PythonPath -c "import PyInstaller" *> $null
-        $hasPyInstaller = $LASTEXITCODE -eq 0
-    }
-    finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-
-    if ($hasPyInstaller) {
-        return
-    }
-
-    Write-Host "Installing PyInstaller $Version into build venv ..."
-    & $PythonPath -m pip install "pyinstaller==$Version"
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install PyInstaller $Version."
     }
 }
 
@@ -378,67 +348,6 @@ function Build-GuiRootLauncher {
 
     if ($LASTEXITCODE -ne 0) {
         throw "AuraResonanceGui root launcher build failed with exit code $LASTEXITCODE."
-    }
-}
-
-function Invoke-GuiRuntimeSelfCheck {
-    param(
-        [string]$ExecutablePath,
-        [string]$ReleaseRootPath,
-        [int]$TimeoutSec = 30
-    )
-
-    Assert-PathExists -PathValue $ExecutablePath -Label "Resonance GUI runtime self-check executable"
-
-    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $startInfo.FileName = $ExecutablePath
-    $startInfo.Arguments = "--self-check"
-    $startInfo.WorkingDirectory = $ReleaseRootPath
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $startInfo.EnvironmentVariables.Remove("AURA_BASE_PATH")
-    $startInfo.EnvironmentVariables["PYTHONNOUSERSITE"] = "1"
-
-    Write-Host "Running frozen Resonance GUI subprocess self-check ..."
-    $process = [System.Diagnostics.Process]::Start($startInfo)
-    try {
-        if (-not $process.WaitForExit($TimeoutSec * 1000)) {
-            & taskkill.exe /PID $process.Id /T /F *> $null
-            $global:LASTEXITCODE = 0
-            throw "Resonance GUI runtime self-check timed out after $TimeoutSec seconds."
-        }
-        if ($process.ExitCode -ne 0) {
-            throw "Resonance GUI runtime self-check failed with exit code $($process.ExitCode)."
-        }
-    }
-    finally {
-        $process.Dispose()
-    }
-}
-
-function Assert-ReleaseArchivePathLengths {
-    param(
-        [string]$ReleaseRootPath,
-        [int]$MaxEntryLength = 180
-    )
-
-    $releaseParent = Split-Path -Parent $ReleaseRootPath
-    $tooLong = @(
-        Get-ChildItem -LiteralPath $ReleaseRootPath -Recurse -File | ForEach-Object {
-            $entryPath = $_.FullName.Substring($releaseParent.Length).TrimStart("\", "/")
-            if ($entryPath.Length -gt $MaxEntryLength) {
-                [pscustomobject]@{
-                    Length = $entryPath.Length
-                    Path = $entryPath
-                }
-            }
-        }
-    )
-    if ($tooLong.Count -gt 0) {
-        $examples = ($tooLong | Sort-Object Length -Descending | Select-Object -First 5 | ForEach-Object {
-            "$($_.Length): $($_.Path)"
-        }) -join [Environment]::NewLine
-        throw "Release contains archive paths longer than $MaxEntryLength characters:$([Environment]::NewLine)$examples"
     }
 }
 
@@ -498,42 +407,6 @@ function Assert-NvidiaRuntimeOverlayBundle {
     }
 }
 
-function New-ZipArchive {
-    param(
-        [string]$SourcePath,
-        [string]$DestinationPath
-    )
-
-    Assert-PathExists -PathValue $SourcePath -Label "Zip source"
-    if (Test-Path $DestinationPath) {
-        Remove-Item -LiteralPath $DestinationPath -Force
-    }
-
-    Write-Host "Creating zip archive: $DestinationPath"
-    Compress-Archive -Path $SourcePath -DestinationPath $DestinationPath -Force
-}
-
-function Update-ReleaseChecksums {
-    param([string]$ReleaseDirectory)
-
-    if (-not (Test-Path $ReleaseDirectory)) {
-        return
-    }
-
-    $zipFiles = @(Get-ChildItem -LiteralPath $ReleaseDirectory -File -Filter "*.zip" | Sort-Object Name)
-    if ($zipFiles.Count -lt 1) {
-        return
-    }
-
-    $checksumPath = Join-Path $ReleaseDirectory "SHA256SUMS.txt"
-    $lines = foreach ($zipFile in $zipFiles) {
-        $hash = (Get-FileHash -LiteralPath $zipFile.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-        "$hash  $($zipFile.Name)"
-    }
-    $lines | Set-Content -Path $checksumPath -Encoding ascii
-    Write-Host "Updated release checksums: $checksumPath"
-}
-
 function New-NvidiaRuntimeOverlay {
     param(
         [string]$PythonPath,
@@ -549,7 +422,6 @@ function New-NvidiaRuntimeOverlay {
     $overlayReleaseRoot = Join-Path $overlayRoot $ReleaseName
     $overlayRuntimeInternal = Join-Path $overlayReleaseRoot "runtime\\_internal"
     $overlayNvidiaDir = Join-Path $overlayRuntimeInternal "nvidia"
-    $overlayZip = Join-Path $RuntimeRootPath "release\\$ReleaseName-nvidia-overlay.zip"
 
     if (Test-Path $overlayRoot) {
         Remove-Item -LiteralPath $overlayRoot -Recurse -Force
@@ -576,11 +448,7 @@ function New-NvidiaRuntimeOverlay {
         "The main package intentionally keeps these CUDA/cuDNN runtime libraries external."
     ) | Set-Content -Path (Join-Path $overlayReleaseRoot "NVIDIA-RUNTIME-OVERLAY.txt") -Encoding UTF8
 
-    if (Test-Path $overlayZip) {
-        Remove-Item -LiteralPath $overlayZip -Force
-    }
-    Write-Host "Creating NVIDIA runtime overlay zip: $overlayZip"
-    Compress-Archive -Path $overlayReleaseRoot -DestinationPath $overlayZip -Force
+    Write-Host "NVIDIA runtime overlay assembled at: $overlayReleaseRoot"
 }
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -605,7 +473,7 @@ $ConfigTemplate = Join-Path $RepoRoot "packaging\\templates\\config.yaml"
 $SourcePlansDir = Join-Path $RepoRoot "plans"
 $SourceOcrModelsDir = Join-Path $RepoRoot "models\\ocr"
 $SourceYoloModelsDir = Join-Path $RepoRoot "models\\yolo"
-$PlanPackager = Join-Path $RepoRoot "scripts\\release\\build_plan_package.py"
+$PlanAssembler = Join-Path $RepoRoot "scripts\\release\\assemble_release_plans.py"
 $OcrBundleValidator = Join-Path $RepoRoot "scripts\\release\\validate_ocr_bundle.py"
 $ExecutionLevelValidator = Join-Path $RepoRoot "scripts\\release\\validate_windows_execution_level.py"
 $PayloadPruner = Join-Path $RepoRoot "scripts\\release\\prune_release_payload.py"
@@ -613,9 +481,6 @@ $SourceLicense = Join-Path $RepoRoot "LICENSE"
 $SourceReadme = Join-Path $RepoRoot "README.md"
 
 if ($OnnxRuntimeProfile -eq "cpu") {
-    if ($IncludeNvidia) {
-        throw "-IncludeNvidia is only valid with -OnnxRuntimeProfile gpu."
-    }
     if ($CreateNvidiaOverlay) {
         throw "-CreateNvidiaOverlay is only valid with -OnnxRuntimeProfile gpu."
     }
@@ -626,18 +491,14 @@ Assert-PathExists -PathValue $SpecFilePath -Label "PyInstaller spec"
 Assert-PathExists -PathValue $RunTemplate -Label "Run script template"
 Assert-PathExists -PathValue $ConfigTemplate -Label "Config template"
 Assert-PathExists -PathValue $SourcePlansDir -Label "Plans directory"
-Assert-PathExists -PathValue $PlanPackager -Label "Plan package builder"
+Assert-PathExists -PathValue $PlanAssembler -Label "Release Plan tree assembler"
 Assert-PathExists -PathValue $OcrBundleValidator -Label "OCR bundle validator"
 Assert-PathExists -PathValue $ExecutionLevelValidator -Label "Windows execution level validator"
 Assert-PathExists -PathValue $PayloadPruner -Label "Release payload pruner"
 
 $env:PYTHONNOUSERSITE = "1"
-$env:AURA_PKG_INCLUDE_NVIDIA = if ($IncludeNvidia) { "1" } else { "0" }
+$env:AURA_PKG_INCLUDE_NVIDIA = "0"
 $env:AURA_PKG_INCLUDE_GUI = if ($IncludeGui) { "1" } else { "0" }
-
-if (-not $SkipBuild) {
-    Ensure-PyInstaller -PythonPath $VenvPythonPath -Version $PyInstallerVersion
-}
 
 $isOverlayOnly = $CreateNvidiaOverlay -and $SkipBuild -and $SkipAssemble
 if ((-not $SkipBuild) -or $CreateNvidiaOverlay) {
@@ -659,6 +520,9 @@ if ((-not $SkipBuild) -or $CreateNvidiaOverlay) {
     }
     if ($IncludeGui -and (-not $SkipBuild)) {
         Assert-PythonModulesPresent -PythonPath $VenvPythonPath -ModuleNames @("PySide6", "shiboken6")
+    }
+    if (-not $SkipBuild) {
+        Assert-PythonModulesPresent -PythonPath $VenvPythonPath -ModuleNames @("PyInstaller")
     }
     if (-not $isOverlayOnly) {
         Assert-OnnxRuntimeEnvironment -PythonPath $VenvPythonPath -Profile $OnnxRuntimeProfile
@@ -732,7 +596,7 @@ if (-not $SkipAssemble) {
         -RepoRootPath $RepoRoot `
         -Destination $ReleasePlansDir `
         -PythonPath $VenvPythonPath `
-        -PackagerPath $PlanPackager
+        -AssemblerPath $PlanAssembler
     Copy-OcrModels `
         -Source $SourceOcrModelsDir `
         -Destination $ReleaseOcrModelsDir `
@@ -752,48 +616,6 @@ if (-not $SkipAssemble) {
         Copy-Item -LiteralPath $SourceReadme -Destination (Join-Path $ReleaseRoot "README.md") -Force
     }
 
-    $nvidiaRuntimeMode = if ($OnnxRuntimeProfile -eq "cpu") {
-        "none"
-    } elseif ($IncludeNvidia) {
-        "bundled"
-    } elseif ($CreateNvidiaOverlay) {
-        "overlay"
-    } else {
-        "external"
-    }
-    $onnxRuntimeDistribution = if ($OnnxRuntimeProfile -eq "cpu") { "onnxruntime" } else { "onnxruntime-gpu" }
-    $gpuBackend = if ($OnnxRuntimeProfile -eq "cpu") { "none" } else { "onnxruntime-gpu" }
-
-    $summaryPath = Join-Path $ReleaseRoot "BUILD-INFO.txt"
-    $summaryLines = @(
-        "release_name=$ReleaseName"
-        "built_at_utc=$([DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))"
-        "release_profile=$OnnxRuntimeProfile"
-        "onnxruntime_distribution=$onnxRuntimeDistribution"
-        "include_nvidia=$($IncludeNvidia.IsPresent)"
-        "create_zip=$($CreateZip.IsPresent)"
-        "create_nvidia_overlay=$($CreateNvidiaOverlay.IsPresent)"
-        "ocr_backend=onnxruntime"
-        "gpu_backend=$gpuBackend"
-        "paddle_stack=false"
-        "nvidia_runtime=$nvidiaRuntimeMode"
-        "base_path_mode=release_root"
-        "entrypoint=run.ps1"
-    )
-    if ($IncludeGui) {
-        $summaryLines += @(
-            "gui=true"
-            "gui_entrypoint=AuraResonanceGui.exe"
-            "gui_runtime=runtime\\AuraResonanceRuntime.exe"
-        )
-    }
-    $summaryLines | Set-Content -Path $summaryPath -Encoding UTF8
-
-    if ($IncludeGui) {
-        Invoke-GuiRuntimeSelfCheck `
-            -ExecutablePath (Join-Path $ReleaseRuntimeDir "AuraResonanceRuntime.exe") `
-            -ReleaseRootPath $ReleaseRoot
-    }
     & $VenvPythonPath $PayloadPruner --release-root $ReleaseRoot
     if ($LASTEXITCODE -ne 0) {
         throw "Generated release runtime data cleanup failed."
@@ -802,22 +624,10 @@ if (-not $SkipAssemble) {
     Write-Host "Release assembled at: $ReleaseRoot"
 }
 
-if ($CreateZip) {
-    Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $ReleaseRuntimeDir
-    Assert-ReleaseArchivePathLengths -ReleaseRootPath $ReleaseRoot
-    New-ZipArchive `
-        -SourcePath $ReleaseRoot `
-        -DestinationPath (Join-Path $RuntimeRootPath "release\\$ReleaseName.zip")
-}
-
 if ($CreateNvidiaOverlay) {
     New-NvidiaRuntimeOverlay `
         -PythonPath $VenvPythonPath `
         -RuntimeRootPath $RuntimeRootPath `
         -ReleaseName $ReleaseName `
         -PayloadPrunerPath $PayloadPruner
-}
-
-if ($CreateZip -or $CreateNvidiaOverlay) {
-    Update-ReleaseChecksums -ReleaseDirectory (Join-Path $RuntimeRootPath "release")
 }

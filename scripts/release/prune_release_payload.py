@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -10,10 +11,35 @@ from typing import Callable
 Classifier = Callable[[Path], str | None]
 
 
+def _filesystem_path(path: Path) -> Path:
+    resolved = path.resolve()
+    if os.name == "nt" and not str(resolved).startswith("\\\\?\\"):
+        return Path("\\\\?\\" + str(resolved))
+    return resolved
+
+
+def path_is_file(path: Path) -> bool:
+    return _filesystem_path(path).is_file()
+
+
+def iter_files(root: Path):
+    resolved = root.resolve()
+    filesystem_root = _filesystem_path(resolved)
+    for directory, _, filenames in os.walk(filesystem_root):
+        directory_path = Path(directory)
+        for filename in filenames:
+            filesystem_file = directory_path / filename
+            relative = filesystem_file.relative_to(filesystem_root)
+            yield resolved / relative
+
+
 def classify_runtime_file(relative: Path) -> str | None:
     parts = tuple(part.lower() for part in relative.parts)
     if not parts:
         return None
+
+    if "__pycache__" in parts or relative.suffix.lower() in {".pyc", ".pyo"}:
+        return "python_cache"
 
     if parts[:3] in {
         ("_internal", "pyside6", "qml"),
@@ -80,19 +106,18 @@ def classify_nvidia_file(relative: Path) -> str | None:
 def _matching_files(root: Path, classifier: Classifier) -> list[tuple[Path, str]]:
     return [
         (path, reason)
-        for path in root.rglob("*")
-        if path.is_file()
+        for path in iter_files(root)
         for reason in (classifier(path.relative_to(root)),)
         if reason is not None
     ]
 
 
 def _remove_empty_directories(root: Path) -> None:
-    directories = sorted(
-        (path for path in root.rglob("*") if path.is_dir()),
-        key=lambda path: len(path.parts),
-        reverse=True,
-    )
+    filesystem_root = _filesystem_path(root)
+    directories = []
+    for directory, child_directories, _ in os.walk(filesystem_root, topdown=False):
+        directory_path = Path(directory)
+        directories.extend(directory_path / child for child in child_directories)
     for directory in directories:
         try:
             directory.rmdir()
@@ -109,11 +134,11 @@ def prune_files(root: Path, classifier: Classifier, *, check_only: bool = False)
     totals = Counter()
     total_bytes = 0
     for path, reason in matches:
-        size = path.stat().st_size
+        size = _filesystem_path(path).stat().st_size
         totals[reason] += 1
         total_bytes += size
         if not check_only:
-            path.unlink()
+            _filesystem_path(path).unlink()
 
     if check_only and matches:
         sample = ", ".join(str(path.relative_to(resolved)) for path, _ in matches[:5])
@@ -138,8 +163,8 @@ def reset_release_runtime_data(release_root: Path, *, check_only: bool = False) 
 
     logs = resolved / "logs"
     logs.mkdir(exist_ok=True)
-    files = [path for path in logs.rglob("*") if path.is_file()]
-    total_bytes = sum(path.stat().st_size for path in files)
+    files = list(iter_files(logs))
+    total_bytes = sum(_filesystem_path(path).stat().st_size for path in files)
     if check_only and files:
         sample = ", ".join(str(path.relative_to(resolved)) for path in files[:5])
         raise ValueError(
@@ -147,7 +172,7 @@ def reset_release_runtime_data(release_root: Path, *, check_only: bool = False) 
         )
     if not check_only:
         for path in files:
-            path.unlink()
+            _filesystem_path(path).unlink()
         _remove_empty_directories(logs)
 
     return {

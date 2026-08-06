@@ -14,7 +14,6 @@ from pathlib import Path
 
 from PyInstaller.utils.hooks import (
     collect_all,
-    collect_dynamic_libs,
     collect_submodules,
     copy_metadata,
 )
@@ -28,12 +27,6 @@ ROOT = Path.cwd().resolve()
 ENTRYPOINT = ROOT / "cli.py"
 GUI_ENTRYPOINT = ROOT / "packages" / "resonance_gui" / "__main__.py"
 
-INCLUDE_NVIDIA = os.environ.get("AURA_PKG_INCLUDE_NVIDIA", "").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
 INCLUDE_GUI = os.environ.get("AURA_PKG_INCLUDE_GUI", "").strip().lower() in {
     "1",
     "true",
@@ -123,9 +116,6 @@ for optional_pkg in optional_packages:
 # Qt hooks for the QtCore/QtGui/QtWidgets modules that this application uses.
 # collect_all would also bundle unrelated QML, WebEngine, examples, and Qt
 # build intermediates, including paths that Windows Explorer cannot extract.
-
-if INCLUDE_NVIDIA:
-    binaries += collect_dynamic_libs("nvidia")
 
 metadata_distributions = [
     "onnxruntime-gpu",

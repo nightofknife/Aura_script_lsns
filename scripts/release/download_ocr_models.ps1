@@ -1,9 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Repository,
-    [string]$ReleaseTag = "model-ppocrv5-server-v1",
-    [string]$ModelAsset = "models-ocr-ppocrv5_server-v1.zip",
-    [string]$ChecksumAsset = "models-ocr-ppocrv5_server-v1.sha256",
+    [string]$ReleaseTag = "",
+    [string]$ModelAsset = "",
+    [string]$ChecksumAsset = "",
     [string]$DestinationRoot = "models\ocr",
     [string]$WorkDirectory = ".runtime-model-assets",
     [string]$PythonPath = "python"
@@ -12,6 +12,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$contract = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "packaging\release-contract.json") | ConvertFrom-Json
+if (-not $ReleaseTag) { $ReleaseTag = $contract.assets.ocr.release_tag }
+if (-not $ModelAsset) { $ModelAsset = $contract.assets.ocr.model_asset }
+if (-not $ChecksumAsset) { $ChecksumAsset = $contract.assets.ocr.checksum_asset }
 $workRoot = Join-Path $repoRoot $WorkDirectory
 $destination = Join-Path $repoRoot $DestinationRoot
 $validator = Join-Path $repoRoot "scripts\release\validate_ocr_bundle.py"

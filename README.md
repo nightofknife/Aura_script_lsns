@@ -12,7 +12,7 @@ packages/resonance_gui         Resonance desktop GUI
 plans/aura_base                Shared runtime actions and services
 plans/aura_benchmark           Lightweight framework smoke plan
 plans/resonance                Resonance automation plan
-scripts/build_release.ps1      Windows release builder
+scripts/package_release.ps1    Canonical local and CI release entrypoint
 ```
 
 ## Quick Commands
@@ -25,8 +25,9 @@ scripts/build_release.ps1      Windows release builder
 ```
 
 The project uses one canonical `.venv` for development. Release builds use
-separate `.venv-release-cpu` and `.venv-release-gpu` environments so their
-mutually exclusive ONNX Runtime packages cannot contaminate each other.
+separate `.venv-release-cpu`, `.venv-release-gpu`, and
+`.venv-release-overlay` environments so mutually exclusive runtime packages
+cannot contaminate each other.
 
 ## Validation
 
@@ -48,12 +49,14 @@ The Resonance release uses:
 Build a local CPU release with the high-level entrypoint:
 
 ```powershell
-.\scripts\package_release.ps1 -Profile cpu
+.\scripts\package_release.ps1 -Profile cpu -ReleaseLabel local
+.\scripts\package_release.ps1 -Profile all -ReleaseLabel local
 ```
 
-Use `-Profile gpu` for the GPU archive. Generated build trees are kept under
-`.runtime\packages\`; `scripts\build_release.ps1` remains the low-level builder
-used by CI and advanced packaging work.
+`cpu`, `gpu`, `overlay`, and `all` use the same locked build path locally and in
+GitHub Actions. Generated artifacts are written under
+`.runtime\releases\<label>`. The low-level builder is an internal implementation
+detail and does not install dependencies, validate artifacts, or create ZIPs.
 
 Preview reclaimable legacy build directories without deleting anything:
 
@@ -72,8 +75,6 @@ The GPU build falls back to CPU when CUDA is unavailable. To enable a bundled
 CUDA 13 runtime, extract the matching `nvidia-cu13-overlay.zip` over the GPU
 release directory and allow it to merge the `runtime` directory.
 
-Plans remain editable source files. To apply a Plan replacement archive, close
-Aura Resonance, back up the current `plans\` directory if desired, replace that
-directory with the complete `plans\` directory from the archive, and start the
-GUI again. Plan archives intentionally contain no installer, compatibility
-metadata, cache, logs, credentials, or bytecode.
+Plans remain editable source files inside each full release. They are versioned
+and released together with Core; standalone Plan replacement archives are not
+published.
