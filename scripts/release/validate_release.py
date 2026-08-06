@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import subprocess
 import zipfile
 from hashlib import sha256
@@ -183,20 +184,29 @@ def _run_checked(args: list[str], *, cwd: Path, env: dict[str, str], timeout: in
     return output
 
 
+def _resolve_powershell_executable() -> str:
+    for candidate in ("pwsh", "powershell"):
+        executable = shutil.which(candidate)
+        if executable:
+            return executable
+    raise RuntimeError("PowerShell is required to run packaged release smoke checks.")
+
+
 def run_runtime_smoke(release_root: Path) -> None:
     release_root = release_root.resolve()
     env = os.environ.copy()
     env.pop("AURA_BASE_PATH", None)
     env["PYTHONNOUSERSITE"] = "1"
     env["QT_QPA_PLATFORM"] = "offscreen"
+    powershell = _resolve_powershell_executable()
     run_script = str(release_root / "run.ps1")
-    games = _run_checked(["pwsh", "-NoProfile", "-File", run_script, "games", "--all"], cwd=release_root, env=env)
+    games = _run_checked([powershell, "-NoProfile", "-File", run_script, "games", "--all"], cwd=release_root, env=env)
     if '"game_name": "resonance"' not in games or '"game_name": "resonance_pc"' not in games:
         raise ValueError("Packaged CLI did not discover both Resonance plans.")
-    _run_checked(["pwsh", "-NoProfile", "-File", run_script, "tasks", "resonance"], cwd=release_root, env=env)
-    _run_checked(["pwsh", "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=release_root, env=env)
+    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance"], cwd=release_root, env=env)
+    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=release_root, env=env)
     _run_checked(
-        ["pwsh", "-NoProfile", "-File", run_script, "doctor", "--ocr", "--ocr-provider", "cpu"],
+        [powershell, "-NoProfile", "-File", run_script, "doctor", "--ocr", "--ocr-provider", "cpu"],
         cwd=release_root,
         env=env,
     )

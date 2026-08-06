@@ -58,6 +58,7 @@
       "runtime/aura.exe",
       "runtime/AuraResonanceRuntime.exe",
       "runtime/_internal/PySide6",
+      "runtime/_internal/packaging/assets/aura_resonance_chibi_icon-optimized.ico",
       "models/ocr/ppocrv5_server/ocr.meta.json",
       "models/ocr/ppocrv5_server/det.onnx",
       "models/ocr/ppocrv5_server/rec.onnx",

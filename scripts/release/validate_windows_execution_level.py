@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 
 _MANIFEST_RESOURCE_TYPE = 24
+_GROUP_ICON_RESOURCE_TYPE = 14
 _ASM_V3_NAMESPACE = "urn:schemas-microsoft-com:asm.v3"
 
 
@@ -51,6 +52,24 @@ def read_execution_level(executable: Path) -> str:
     return levels.pop()
 
 
+def count_icon_groups(executable: Path) -> int:
+    if not executable.is_file():
+        raise FileNotFoundError(f"Executable not found: {executable}")
+
+    try:
+        from PyInstaller.utils.win32.winresource import get_resources
+    except ImportError as exc:
+        raise RuntimeError(
+            "PyInstaller is required to inspect Windows executable resources."
+        ) from exc
+
+    resources = get_resources(str(executable), types=[_GROUP_ICON_RESOURCE_TYPE])
+    return sum(
+        len(resources_by_name)
+        for resources_by_name in resources.get(_GROUP_ICON_RESOURCE_TYPE, {}).values()
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate requestedExecutionLevel in Windows executable manifests."
@@ -59,6 +78,11 @@ def main() -> int:
         "--expected-level",
         default="asInvoker",
         choices=("asInvoker", "highestAvailable", "requireAdministrator"),
+    )
+    parser.add_argument(
+        "--require-icon",
+        action="store_true",
+        help="Require at least one Windows RT_GROUP_ICON resource in every executable.",
     )
     parser.add_argument("executables", nargs="+", type=Path)
     args = parser.parse_args()
@@ -71,7 +95,16 @@ def main() -> int:
             raise ValueError(
                 f"Expected execution level '{args.expected_level}', found '{level}': {resolved}"
             )
-        results.append({"executable": str(resolved), "execution_level": level})
+        icon_groups = count_icon_groups(resolved) if args.require_icon else None
+        if args.require_icon and not icon_groups:
+            raise ValueError(f"Executable has no Windows icon group resource: {resolved}")
+        result: dict[str, object] = {
+            "executable": str(resolved),
+            "execution_level": level,
+        }
+        if icon_groups is not None:
+            result["icon_groups"] = icon_groups
+        results.append(result)
 
     print(json.dumps({"validated": results}, indent=2))
     return 0

@@ -26,6 +26,7 @@ from scripts.release.pyinstaller_filters import excluded_data_globs, should_coll
 ROOT = Path.cwd().resolve()
 ENTRYPOINT = ROOT / "cli.py"
 GUI_ENTRYPOINT = ROOT / "packages" / "resonance_gui" / "__main__.py"
+APP_ICON = ROOT / "packaging" / "assets" / "aura_resonance_chibi_icon-optimized.ico"
 
 INCLUDE_GUI = os.environ.get("AURA_PKG_INCLUDE_GUI", "").strip().lower() in {
     "1",
@@ -76,6 +77,9 @@ hiddenimports += [
     "pywintypes",
 ]
 if INCLUDE_GUI:
+    if not APP_ICON.is_file():
+        raise SystemExit(f"Aura Resonance application icon is missing: {APP_ICON}")
+    datas.append((str(APP_ICON), "packaging/assets"))
     hiddenimports += collect_submodules("packages.resonance_gui")
 
 
@@ -233,6 +237,7 @@ if INCLUDE_GUI:
         upx=False,
         console=False,
         disable_windowed_traceback=False,
+        icon=str(APP_ICON),
     )
     collected_executables.append(gui_exe)
 
