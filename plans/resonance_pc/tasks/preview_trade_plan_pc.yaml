@@ -8,11 +8,6 @@ preview_trade_plan_pc:
         type: string
         required: true
         enum: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]
-      - name: all_plan
-        type: number
-        required: false
-        default: 0
-        enum: [0, 1]
       - name: fatigue_budget
         type: number
         required: false
@@ -32,11 +27,6 @@ preview_trade_plan_pc:
         type: number
         required: false
         default: 15000
-        min: 0
-      - name: negotiation_budget
-        type: number
-        required: false
-        default: 0
         min: 0
       - name: bargain_success_rates_bps
         type: list
@@ -159,12 +149,10 @@ preview_trade_plan_pc:
       action: resonance_pc.preview_trade_plan_flow
       params:
         start_city_id: "{{ inputs.start_city_id }}"
-        all_plan: "{{ inputs.all_plan | default(0) }}"
         fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(15000) }}"
-        negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"

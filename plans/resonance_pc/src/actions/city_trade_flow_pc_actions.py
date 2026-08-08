@@ -1442,8 +1442,6 @@ async def resonance_pc_preview_trade_plan_flow(
     cargo_capacity: int = 650,
     book_budget: int = 0,
     book_profit_threshold: float = 15000,
-    negotiation_budget: int = 0,
-    all_plan: int = 0,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
@@ -1460,12 +1458,6 @@ async def resonance_pc_preview_trade_plan_flow(
 ) -> Dict[str, Any]:
     del event_bus, context
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
-    normalized_all_plan = _strict_integer("all_plan", all_plan)
-    if normalized_all_plan not in {0, 1}:
-        raise ValueError("all_plan must be 0 or 1")
-    normalized_negotiation_budget = _strict_integer("negotiation_budget", negotiation_budget)
-    if normalized_negotiation_budget < 0:
-        raise ValueError("negotiation_budget must be >= 0")
     normalized_start_city_id = str(start_city_id or "").strip()
     if not normalized_start_city_id:
         raise ValueError("start_city_id is required")
@@ -1533,8 +1525,8 @@ async def resonance_pc_preview_trade_plan_flow(
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
             book_profit_threshold=book_profit_threshold,
-            negotiation_budget=normalized_negotiation_budget,
-            all_plan=normalized_all_plan,
+            negotiation_budget=0,
+            all_plan=1,
             bargain_success_rates_bps=bargain_success_rates_bps,
             bargain_step_bps=bargain_step_bps,
             raise_success_rates_bps=raise_success_rates_bps,
@@ -1613,9 +1605,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     cargo_capacity: int = 650,
     book_budget: int = 0,
     book_profit_threshold: float = 15000,
-    negotiation_budget: int = 0,
     negotiation_max_attempts: int = 5,
-    all_plan: int = 0,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
@@ -1643,12 +1633,6 @@ async def resonance_pc_auto_cycle_trade_flow(
 ) -> Dict[str, Any]:
     del event_bus, context
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
-    normalized_all_plan = _strict_integer("all_plan", all_plan)
-    if normalized_all_plan not in {0, 1}:
-        raise ValueError("all_plan must be 0 or 1")
-    normalized_negotiation_budget = _strict_integer("negotiation_budget", negotiation_budget)
-    if normalized_negotiation_budget < 0:
-        raise ValueError("negotiation_budget must be >= 0")
     if isinstance(negotiation_max_attempts, bool) or not isinstance(
         negotiation_max_attempts,
         int,
@@ -1736,8 +1720,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
             book_profit_threshold=book_profit_threshold,
-            negotiation_budget=normalized_negotiation_budget,
-            all_plan=normalized_all_plan,
+            negotiation_budget=0,
+            all_plan=1,
             bargain_success_rates_bps=bargain_success_rates_bps,
             bargain_step_bps=bargain_step_bps,
             raise_success_rates_bps=raise_success_rates_bps,

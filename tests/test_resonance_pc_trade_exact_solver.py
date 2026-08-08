@@ -58,6 +58,7 @@ def _solver(
     buy_lot: dict[str, dict[str, int]],
     prices: dict[str, dict[str, dict[str, int]]],
     trade_rules: dict | None = None,
+    unlockable_product_ids: list[str] | None = None,
 ) -> ResonancePcExactTradeSolver:
     return ResonancePcExactTradeSolver(
         snapshot=_snapshot(prices),
@@ -69,6 +70,7 @@ def _solver(
         buy_lot=buy_lot,
         trade_rules=trade_rules or TRADE_RULES,
         allowed_city_ids=cities,
+        unlockable_product_ids=unlockable_product_ids,
     )
 
 
@@ -178,6 +180,35 @@ def test_tax_purchase_quantity_and_product_unlock_formula():
         product_unlocks={"mode": "only", "product_ids": []},
     )
     assert locked_all["status"] == "no_plan"
+
+
+def test_product_unlocks_only_gate_reputation_products():
+    solver = _solver(
+        cities=["1", "2"],
+        costs={"1": {"2": 1}, "2": {"1": 1}},
+        buy_lot={"1": {"base": 1, "gated": 1}, "2": {}},
+        prices={
+            "base": {"buy": {"1": 100}, "sell": {"2": 200}},
+            "gated": {"buy": {"1": 100}, "sell": {"2": 300}},
+        },
+        unlockable_product_ids=["gated"],
+    )
+
+    locked = _solve(
+        solver,
+        fatigue_budget=1,
+        cargo_capacity=10,
+        product_unlocks={"mode": "only", "product_ids": []},
+    )
+    assert locked["route"][0]["buy_product_ids"] == ["base"]
+
+    unlocked = _solve(
+        solver,
+        fatigue_budget=1,
+        cargo_capacity=10,
+        product_unlocks={"mode": "only", "product_ids": ["gated"]},
+    )
+    assert unlocked["route"][0]["buy_product_ids"] == ["gated", "base"]
 
 
 def test_all_plan_zero_counts_full_operations_and_pays_expected_fatigue():

@@ -57,6 +57,7 @@ class _SearchState:
 )
 class ResonancePcTradePlannerService:
     BUY_LOT_SCHEMA_VERSION = "1.0.0"
+    PRODUCT_UNLOCKS_SCHEMA_VERSION = "1.0.0"
     TRADE_CONSTRAINTS_SCHEMA_VERSION = "1.0.0"
     TRADE_RULES_SCHEMA_VERSION = "2.0.0"
     MAX_ROLLING_WINDOW = 6
@@ -126,10 +127,12 @@ class ResonancePcTradePlannerService:
         self.plan_root = Path(plan_root) if plan_root else Path(__file__).resolve().parents[2]
         self.meta_dir = self.plan_root / "data" / "meta"
         self.buy_lot_file = self.meta_dir / "buy_lot.json"
+        self.product_unlocks_file = self.meta_dir / "product_unlocks.json"
         self.trade_constraints_file = self.meta_dir / "trade_constraints.json"
         self.trade_rules_file = self.meta_dir / "trade_rules.json"
         self.beam_width = max(int(beam_width), 1)
         self._buy_lot_payload: Optional[Dict[str, Any]] = None
+        self._product_unlocks_payload: Optional[Dict[str, Any]] = None
         self._trade_constraints_payload: Optional[Dict[str, Any]] = None
         self._trade_rules_payload: Optional[Dict[str, Any]] = None
         self._max_sell_price_cache: Dict[str, float] = {}
@@ -248,11 +251,13 @@ class ResonancePcTradePlannerService:
             )
 
         buy_lot_payload = self._load_buy_lot_payload()
+        product_unlocks_payload = self._load_product_unlocks_payload()
         trade_rules_payload = self._load_trade_rules_payload()
         cache_key = self._optimal_route_cache_key(
             snapshot=snapshot,
             fatigue_payload=fatigue_payload,
             buy_lot_payload=buy_lot_payload,
+            product_unlocks_payload=product_unlocks_payload,
             trade_rules_payload=trade_rules_payload,
             start_city_id=resolved_city_id,
             allowed_city_ids=allowed_city_ids,
@@ -283,6 +288,7 @@ class ResonancePcTradePlannerService:
             buy_lot=buy_lot_payload["city_product_buy_lot"],
             trade_rules=trade_rules_payload,
             allowed_city_ids=allowed_city_ids,
+            unlockable_product_ids=product_unlocks_payload["product_ids"],
         )
         try:
             result = solver.solve(
@@ -323,6 +329,7 @@ class ResonancePcTradePlannerService:
         snapshot: Dict[str, Any],
         fatigue_payload: Dict[str, Any],
         buy_lot_payload: Dict[str, Any],
+        product_unlocks_payload: Dict[str, Any],
         trade_rules_payload: Dict[str, Any],
         start_city_id: str,
         allowed_city_ids: List[str],
@@ -345,6 +352,7 @@ class ResonancePcTradePlannerService:
             "snapshot": snapshot,
             "fatigue_payload": fatigue_payload,
             "buy_lot_payload": buy_lot_payload,
+            "product_unlocks_payload": product_unlocks_payload,
             "trade_rules_payload": trade_rules_payload,
             "start_city_id": start_city_id,
             "allowed_city_ids": list(allowed_city_ids),
@@ -2156,6 +2164,70 @@ class ResonancePcTradePlannerService:
             "city_product_buy_lot": normalized,
         }
         return self._buy_lot_payload
+
+    def _load_product_unlocks_payload(self) -> Dict[str, Any]:
+        if self._product_unlocks_payload is not None:
+            return self._product_unlocks_payload
+        if not self.product_unlocks_file.is_file():
+            raise ResonancePcTradePlannerError(
+                code="product_unlocks_missing",
+                message=f"product unlock metadata file not found: {self.product_unlocks_file}",
+            )
+        try:
+            payload = json.loads(self.product_unlocks_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ResonancePcTradePlannerError(
+                code="product_unlocks_invalid",
+                message="product unlock metadata is not valid JSON.",
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ResonancePcTradePlannerError(
+                code="product_unlocks_invalid",
+                message="product unlock metadata must be an object.",
+            )
+        schema_version = str(payload.get("schema_version") or "").strip()
+        if schema_version != self.PRODUCT_UNLOCKS_SCHEMA_VERSION:
+            raise ResonancePcTradePlannerError(
+                code="product_unlocks_invalid",
+                message=(
+                    f"Unsupported product unlock schema_version '{schema_version}', "
+                    f"expected '{self.PRODUCT_UNLOCKS_SCHEMA_VERSION}'."
+                ),
+            )
+        city_product_unlocks = payload.get("city_product_unlocks")
+        if not isinstance(city_product_unlocks, dict):
+            raise ResonancePcTradePlannerError(
+                code="product_unlocks_invalid",
+                message="product unlock metadata must include city_product_unlocks.",
+            )
+        normalized: Dict[str, List[str]] = {}
+        all_product_ids: set[str] = set()
+        for city_id, raw_product_ids in city_product_unlocks.items():
+            if not isinstance(raw_product_ids, list):
+                raise ResonancePcTradePlannerError(
+                    code="product_unlocks_invalid",
+                    message=f"product unlock city '{city_id}' must be a list.",
+                )
+            values = list(
+                dict.fromkeys(
+                    str(product_id).strip()
+                    for product_id in raw_product_ids
+                    if str(product_id).strip()
+                )
+            )
+            normalized[str(city_id)] = values
+            all_product_ids.update(values)
+        self._product_unlocks_payload = {
+            "schema_version": schema_version,
+            "city_product_unlocks": normalized,
+            "product_ids": sorted(
+                all_product_ids,
+                key=lambda value: (int(value), value)
+                if value.isdigit()
+                else (2**31 - 1, value),
+            ),
+        }
+        return self._product_unlocks_payload
 
     def _load_trade_rules_payload(self) -> Dict[str, Any]:
         if self._trade_rules_payload is not None:

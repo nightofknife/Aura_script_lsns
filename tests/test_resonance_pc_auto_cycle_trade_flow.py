@@ -26,12 +26,10 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
     assert list(steps) == ["run"]
     assert steps["run"]["action"] == "resonance_pc.auto_cycle_trade_flow"
     assert {
-        "all_plan",
         "fatigue_budget",
         "cargo_capacity",
         "book_budget",
         "book_profit_threshold",
-        "negotiation_budget",
         "negotiation_max_attempts",
         "bargain_success_rates_bps",
         "bargain_step_bps",
@@ -47,6 +45,8 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "fatigue_medicine_max_uses",
         "auto_cape_island_investment",
     }.issubset(input_names)
+    assert "all_plan" not in input_names
+    assert "negotiation_budget" not in input_names
     assert steps["run"]["params"]["auto_cape_island_investment"] == (
         "{{ inputs.auto_cape_island_investment | default(false) }}"
     )
@@ -91,19 +91,15 @@ def test_final_sell_is_skipped_when_flow_is_blocked():
     assert "_execute_city_trade_inside_current_city" in source
 
 
-@pytest.mark.parametrize(("all_plan", "negotiation_budget"), [(0, 1), (1, 0)])
-def test_negotiation_capable_modes_reach_the_normal_service_boundary(all_plan, negotiation_budget):
+def test_auto_trade_is_locked_to_full_plan_before_the_service_boundary():
     import asyncio
 
     with pytest.raises(RuntimeError, match="requires app/ocr/vision/controller"):
-        asyncio.run(
-            actions.resonance_pc_auto_cycle_trade_flow(
-                all_plan=all_plan,
-                negotiation_budget=negotiation_budget,
-            )
-        )
+        asyncio.run(actions.resonance_pc_auto_cycle_trade_flow())
 
     source = inspect.getsource(actions.resonance_pc_auto_cycle_trade_flow)
+    assert "all_plan=1" in source
+    assert "negotiation_budget=0" in source
     assert "negotiation_execution_not_implemented" not in source
 
 
@@ -113,7 +109,6 @@ def test_auto_flow_validates_binary_profile_before_services_or_ui():
     with pytest.raises(ValueError, match="must be an integer"):
         asyncio.run(
             actions.resonance_pc_auto_cycle_trade_flow(
-                all_plan=1,
                 bargain_success_rates_bps=[5000.5],
             )
         )

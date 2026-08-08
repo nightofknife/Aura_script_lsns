@@ -313,8 +313,11 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["negotiation_max_attempts"] == 5
     assert trade_inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+    assert "all_plan" not in trade_inputs
+    assert "negotiation_budget" not in trade_inputs
     trade_inputs["fatigue_budget"] = 300
     trade_inputs["all_plan"] = 1
+    trade_inputs["negotiation_budget"] = 9
     trade_inputs["available_city_ids"] = ["3", "1"]
     trade_inputs["start_city_id"] = "3"
     repo.save_trade_inputs(trade_inputs)
@@ -322,7 +325,8 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     repo.save_trade_inputs(trade_inputs)
     assert repo.load_trade_inputs()["auto_cape_island_investment"] is True
     assert repo.load_trade_inputs()["fatigue_budget"] == 300
-    assert repo.load_trade_inputs()["all_plan"] == 1
+    assert "all_plan" not in repo.load_trade_inputs()
+    assert "negotiation_budget" not in repo.load_trade_inputs()
     assert repo.load_trade_inputs()["available_city_ids"] == ["3", "1"]
     assert repo.load_trade_inputs()["start_city_id"] == "3"
 

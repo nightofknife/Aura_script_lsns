@@ -4,13 +4,6 @@ auto_cycle_trade_pc:
     description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
     entry_point: true
     inputs:
-      - name: all_plan
-        type: number
-        required: false
-        default: 0
-        enum:
-          - 0
-          - 1
       - name: fatigue_budget
         type: number
         required: false
@@ -30,11 +23,6 @@ auto_cycle_trade_pc:
         type: number
         required: false
         default: 15000
-        min: 0
-      - name: negotiation_budget
-        type: number
-        required: false
-        default: 0
         min: 0
       - name: negotiation_max_attempts
         type: number
@@ -222,12 +210,10 @@ auto_cycle_trade_pc:
     run:
       action: resonance_pc.auto_cycle_trade_flow
       params:
-        all_plan: "{{ inputs.all_plan | default(0) }}"
         fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(15000) }}"
-        negotiation_budget: "{{ inputs.negotiation_budget | default(0) }}"
         negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
