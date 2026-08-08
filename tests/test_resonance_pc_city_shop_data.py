@@ -188,3 +188,61 @@ def test_confluence_tower_facilities_are_resolvable() -> None:
     for shop_name, expected_point in expected.items():
         shop = service.resolve_shop_point("汇流塔", shop_name)
         assert (shop["shop_key"], shop["x"], shop["y"]) == expected_point
+
+
+def test_farstar_bridge_facilities_are_resolvable() -> None:
+    service = ResonancePcCityShopDataService()
+
+    expected = {
+        "交易所": ("exchange", 225, 285),
+        "黑月办事处": ("black_moon_office", 450, 200),
+        "大桥管理中心": ("bridge_administration", 820, 350),
+        "垃圾处理中心": ("waste_processing_center", 610, 520),
+    }
+
+    assert service.resolve_city("远星大桥") == {
+        "city_key": "farstar_bridge",
+        "city_name": "远星大桥",
+    }
+    for shop_name, expected_point in expected.items():
+        shop = service.resolve_shop_point("远星大桥", shop_name)
+        assert (shop["shop_key"], shop["x"], shop["y"]) == expected_point
+
+
+def test_tatu_station_facilities_are_resolvable() -> None:
+    service = ResonancePcCityShopDataService()
+
+    expected = {
+        "指挥部": ("headquarters", 605, 90),
+        "交易所": ("exchange", 665, 305),
+        "投资中心": ("investment_center", 855, 420),
+    }
+
+    assert service.resolve_city("塔图站") == {
+        "city_key": "tatu_station",
+        "city_name": "塔图站",
+    }
+    for shop_name, expected_point in expected.items():
+        shop = service.resolve_shop_point("塔图站", shop_name)
+        assert (shop["shop_key"], shop["x"], shop["y"]) == expected_point
+
+
+def test_gronru_city_facilities_are_resolvable() -> None:
+    service = ResonancePcCityShopDataService()
+
+    expected = {
+        "休息区": ("rest", 435, 205),
+        "寿司店": ("sushi_restaurant", 600, 120),
+        "市政厅": ("city_hall", 805, 150),
+        "交易所": ("exchange", 645, 465),
+        "商会": ("commerce", 875, 325),
+        "铁安局": ("battle", 1095, 385),
+    }
+
+    assert service.resolve_city("贡露城") == {
+        "city_key": "gronru_city",
+        "city_name": "贡露城",
+    }
+    for shop_name, expected_point in expected.items():
+        shop = service.resolve_shop_point("贡露城", shop_name)
+        assert (shop["shop_key"], shop["x"], shop["y"]) == expected_point

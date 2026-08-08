@@ -537,7 +537,7 @@ def test_optimal_route_defaults_to_enabled_cities_and_accepts_explicit_subset():
     )
 
     assert result["status"] == "ok"
-    assert result["city_path_ids"] == ["3", "20"]
+    assert result["city_path_ids"] == ["3", "19"]
 
     subset_result = resonance_pc_trade_plan_optimal_route(
         current_city_id="3",

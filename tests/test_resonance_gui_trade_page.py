@@ -7,11 +7,15 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
-from packages.resonance_gui.config_repository import ResonanceConfigRepository
+from packages.resonance_gui.config_repository import (
+    DEFAULT_PC_TRADE_CITY_IDS,
+    ResonanceConfigRepository,
+)
 from packages.resonance_gui.logic import TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA
-from packages.resonance_gui.widgets.trade_page import TradePage
+from packages.resonance_gui.widgets import trade_page as trade_page_module
+from packages.resonance_gui.widgets.trade_page import CityPrestigeDialog, TradePage
 
 
 def _app() -> QApplication:
@@ -65,15 +69,12 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         assert inputs["negotiation_max_attempts"] == 6
         assert inputs["bargain_success_rates_bps"] == [5000, 6000]
         assert inputs["auto_cape_island_investment"] is True
-        assert inputs["available_city_ids"] == [
-            "1", "2", "3", "4", "5", "6", "7", "8", "9",
-            "10", "11", "12", "13", "15", "16", "18", "20",
-        ]
+        assert inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
         assert inputs["start_city_id"] == "3"
         assert not page.negotiation_budget.isEnabled()
         assert page.negotiation_max_attempts.isEnabled()
         assert set(page.city_checks) == set(inputs["available_city_ids"])
-        assert {"14", "17", "19"}.isdisjoint(page.city_checks)
+        assert {"14", "17", "19"}.issubset(page.city_checks)
 
         requests = []
         page.previewRequested.connect(lambda payload, timeout: requests.append((payload, timeout)))
@@ -107,23 +108,73 @@ def test_trade_page_shows_effective_pc_capture_profile(tmp_path):
     finally:
         page.close()
 
-def test_trade_page_collects_city_multiselect_and_selected_prestige_only(tmp_path):
+def test_trade_page_collects_city_multiselect_and_persisted_prestige(tmp_path):
     page = _page(tmp_path)
     try:
         page._set_all_cities(False)
         page.city_checks["3"].setChecked(True)
         page.city_checks["1"].setChecked(True)
         page.start_city.setCurrentIndex(page.start_city.findData("3"))
-        page.city_prestige["3"].setValue(16)
-        page.city_prestige["2"].setValue(12)
+        page._city_prestige_default = 18
+        page._city_prestige_overrides = {"3": 16, "2": 12}
+        page._update_city_prestige_button()
 
         inputs = page.collect_inputs()
 
         assert inputs["available_city_ids"] == ["1", "3"]
         assert inputs["start_city_id"] == "3"
-        assert inputs["city_prestige"]["overrides"] == {"3": 16}
-        assert not page.city_prestige["3"].isHidden()
-        assert page.city_prestige["2"].isHidden()
+        assert inputs["city_prestige"] == {
+            "default": 18,
+            "overrides": {"3": 16, "2": 12},
+        }
+        assert page.city_prestige_button.text() == "设置城市声望（2 个自定义）"
+        assert not hasattr(page, "city_prestige")
+    finally:
+        page.close()
+
+
+def test_city_prestige_dialog_edits_all_cities_and_restores_defaults():
+    dialog = CityPrestigeDialog(default_level=18, overrides={"3": 16, "19": 12})
+    try:
+        assert dialog.prestige_value() == {
+            "default": 18,
+            "overrides": {"3": 16, "19": 12},
+        }
+        assert set(dialog.city_prestige) == set(DEFAULT_PC_TRADE_CITY_IDS)
+
+        dialog._restore_defaults()
+
+        assert dialog.prestige_value() == {"default": 20, "overrides": {}}
+    finally:
+        dialog.close()
+
+
+def test_trade_page_prestige_dialog_save_updates_settings(tmp_path, monkeypatch):
+    page = _page(tmp_path)
+
+    class AcceptedPrestigeDialog:
+        def __init__(self, default_level, overrides, parent):
+            assert default_level == 20
+            assert overrides == {}
+            assert parent is page
+
+        @staticmethod
+        def exec():
+            return QDialog.DialogCode.Accepted
+
+        @staticmethod
+        def prestige_value():
+            return {"default": 17, "overrides": {"14": 11, "19": 9}}
+
+    monkeypatch.setattr(trade_page_module, "CityPrestigeDialog", AcceptedPrestigeDialog)
+    try:
+        page._edit_city_prestige()
+
+        assert page.city_prestige_button.text() == "设置城市声望（2 个自定义）"
+        assert page._settings.load_trade_inputs()["city_prestige"] == {
+            "default": 17,
+            "overrides": {"14": 11, "19": 9},
+        }
     finally:
         page.close()
 

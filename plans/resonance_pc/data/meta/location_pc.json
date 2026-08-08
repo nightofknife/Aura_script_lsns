@@ -280,18 +280,70 @@
             "maploc": [
                 644,
                 863
+            ],
+            "exchange": [
+                225,
+                285
+            ],
+            "black_moon_office": [
+                450,
+                200
+            ],
+            "bridge_administration": [
+                820,
+                350
+            ],
+            "waste_processing_center": [
+                610,
+                520
             ]
         },
         "tatu_station": {
             "maploc": [
                 1530,
                 797
+            ],
+            "headquarters": [
+                605,
+                90
+            ],
+            "exchange": [
+                665,
+                305
+            ],
+            "investment_center": [
+                855,
+                420
             ]
         },
         "gronru_city": {
             "maploc": [
                 777,
                 863
+            ],
+            "rest": [
+                435,
+                205
+            ],
+            "sushi_restaurant": [
+                600,
+                120
+            ],
+            "city_hall": [
+                805,
+                150
+            ],
+            "exchange": [
+                645,
+                465
+            ],
+            "commerce": [
+                875,
+                325
+            ],
+            "battle": [
+                1095,
+                385
             ]
         },
         "cape_city": {

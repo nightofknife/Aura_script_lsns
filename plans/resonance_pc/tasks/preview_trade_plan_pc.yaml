@@ -81,7 +81,7 @@ preview_trade_plan_pc:
       - name: available_city_ids
         type: list
         required: false
-        default: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "15", "16", "18", "20"]
+        default: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]
         min: 2
         item:
           name: available_city_id
@@ -170,7 +170,7 @@ preview_trade_plan_pc:
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
         trade_level: "{{ inputs.trade_level | default(20) }}"
-        available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '15', '16', '18', '20']) }}"
+        available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         active_events: "{{ inputs.active_events | default([]) }}"

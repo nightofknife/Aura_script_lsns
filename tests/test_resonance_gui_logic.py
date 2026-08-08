@@ -312,10 +312,7 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert trade_inputs["cargo_capacity"] == 650
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["negotiation_max_attempts"] == 5
-    assert trade_inputs["available_city_ids"] == [
-        "1", "2", "3", "4", "5", "6", "7", "8", "9",
-        "10", "11", "12", "13", "15", "16", "18", "20",
-    ]
+    assert trade_inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
     trade_inputs["fatigue_budget"] = 300
     trade_inputs["all_plan"] = 1
     trade_inputs["available_city_ids"] = ["3", "1"]
@@ -361,6 +358,23 @@ def test_config_repository_migrates_legacy_default_city_selection(tmp_path):
     assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
 
 
+def test_config_repository_migrates_previous_pc_default_city_selection(tmp_path):
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    previous_default = [
+        city_id
+        for city_id in (str(value) for value in range(1, 21))
+        if city_id not in {"14", "17", "19"}
+    ]
+    settings.setValue(
+        "trade/inputs_json",
+        json.dumps({"available_city_ids": previous_default}, ensure_ascii=False),
+    )
+
+    repo = ResonanceConfigRepository(settings=settings)
+
+    assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+
+
 def test_gui_trade_city_options_match_complete_location_data():
     plan_meta = REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta"
     constraints = json.loads(
@@ -373,11 +387,14 @@ def test_gui_trade_city_options_match_complete_location_data():
         city_id
         for city_id in constraints["allowed_city_ids"]
         if "maploc" in locations[constraints["city_id_to_key"][city_id]]
-        and "exchange" in locations[constraints["city_id_to_key"][city_id]]
     ]
 
     assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == complete_city_ids
     assert DEFAULT_PC_TRADE_CITY_IDS == complete_city_ids
+    assert all(
+        "exchange" in locations[constraints["city_id_to_key"][city_id]]
+        for city_id in complete_city_ids
+    )
 
 
 def test_trade_progress_reducer_rejects_foreign_and_stale_events():

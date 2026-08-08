@@ -10,9 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 ADB_PLAN_ROOT = REPO_ROOT / "plans" / "resonance"
 PC_PLAN_ROOT = REPO_ROOT / "plans" / "resonance_pc"
 ALL_CITY_IDS = [str(city_id) for city_id in range(1, 21)]
-DEFAULT_AVAILABLE_CITY_IDS = [
-    city_id for city_id in ALL_CITY_IDS if city_id not in {"14", "17", "19"}
-]
+DEFAULT_AVAILABLE_CITY_IDS = list(ALL_CITY_IDS)
 
 
 def _load_yaml(path: Path):

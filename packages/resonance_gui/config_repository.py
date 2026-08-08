@@ -23,14 +23,22 @@ PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
     ("11", "海角城"),
     ("12", "云岫桥基地"),
     ("13", "汇流塔"),
+    ("14", "远星大桥"),
     ("15", "岚心城"),
     ("16", "栖羽站"),
+    ("17", "塔图站"),
     ("18", "黑月游乐城"),
+    ("19", "贡露城"),
     ("20", "维蒂林场"),
 )
 DEFAULT_PC_TRADE_CITY_IDS = [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS]
 _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
     frozenset(("3", "4", "1", "5", "7", "8", "9", "2")),
+    frozenset(
+        city_id
+        for city_id in (str(value) for value in range(1, 21))
+        if city_id not in {"14", "17", "19"}
+    ),
     frozenset(str(city_id) for city_id in range(1, 21)),
 )
 

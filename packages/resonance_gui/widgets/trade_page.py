@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
+    QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QFrame,
     QGridLayout,
@@ -47,6 +49,94 @@ from ..logic import (
     route_product_lines,
     trade_result_summary,
 )
+
+
+class CityPrestigeDialog(QDialog):
+    def __init__(
+        self,
+        default_level: int = 20,
+        overrides: Mapping[str, Any] | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("appRoot")
+        self.setWindowTitle("城市声望设置")
+        self.setModal(True)
+        self.setMinimumWidth(620)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 16)
+        layout.setSpacing(14)
+
+        default_row = QHBoxLayout()
+        default_row.addWidget(QLabel("默认城市声望", self))
+        default_row.addStretch(1)
+        self.default_prestige = self._prestige_spin(allow_default=False)
+        self.default_prestige.setValue(max(1, min(int(default_level), 20)))
+        default_row.addWidget(self.default_prestige)
+        layout.addLayout(default_row)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+        normalized_overrides = dict(overrides or {})
+        self.city_prestige: dict[str, QSpinBox] = {}
+        rows_per_column = (len(PC_TRADE_CITY_OPTIONS) + 1) // 2
+        for index, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
+            section = index // rows_per_column
+            row = index % rows_per_column
+            column = section * 2
+            label = QLabel(city_name, self)
+            field = self._prestige_spin(allow_default=True)
+            field.setValue(max(0, min(int(normalized_overrides.get(city_id, 0)), 20)))
+            self.city_prestige[city_id] = field
+            grid.addWidget(label, row, column)
+            grid.addWidget(field, row, column + 1)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(2, 1)
+        layout.addLayout(grid)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+            | QDialogButtonBox.StandardButton.RestoreDefaults,
+            parent=self,
+        )
+        save_button = buttons.button(QDialogButtonBox.StandardButton.Save)
+        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        restore_button = buttons.button(QDialogButtonBox.StandardButton.RestoreDefaults)
+        save_button.setText("保存")
+        cancel_button.setText("取消")
+        restore_button.setText("全部使用默认")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        restore_button.clicked.connect(self._restore_defaults)
+        layout.addWidget(buttons)
+
+    @staticmethod
+    def _prestige_spin(*, allow_default: bool) -> QSpinBox:
+        field = QSpinBox()
+        field.setRange(0 if allow_default else 1, 20)
+        if allow_default:
+            field.setSpecialValueText("默认")
+        field.setFixedWidth(88)
+        return field
+
+    def _restore_defaults(self) -> None:
+        self.default_prestige.setValue(20)
+        for field in self.city_prestige.values():
+            field.setValue(0)
+
+    def prestige_value(self) -> dict[str, Any]:
+        return {
+            "default": self.default_prestige.value(),
+            "overrides": {
+                city_id: field.value()
+                for city_id, field in self.city_prestige.items()
+                if field.value() > 0
+            },
+        }
+
 
 class TradePage(QWidget):
     startRequested = Signal(object, float)
@@ -224,7 +314,10 @@ class TradePage(QWidget):
         self.raise_rates.setPlaceholderText("5000, 5000")
         self.raise_step = self._spin(1, 2000)
         self.trade_level = self._spin(1, 20)
-        self.default_prestige = self._spin(1, 20)
+        self._city_prestige_default = 20
+        self._city_prestige_overrides: dict[str, int] = {}
+        self.city_prestige_button = QPushButton("设置城市声望", panel)
+        self.city_prestige_button.clicked.connect(self._edit_city_prestige)
         self.unlock_mode = QComboBox(panel)
         self.unlock_mode.addItem("全部商品", "all")
         self.unlock_mode.addItem("仅指定商品", "only")
@@ -241,17 +334,7 @@ class TradePage(QWidget):
         form.addRow("抬价成功率(bps)", self.raise_rates)
         form.addRow("抬价幅度(bps)", self.raise_step)
         form.addRow("贸易等级", self.trade_level)
-        form.addRow("默认城市声望", self.default_prestige)
-        self.city_prestige: dict[str, QSpinBox] = {}
-        self.city_prestige_rows: dict[str, tuple[QLabel, QSpinBox]] = {}
-        for city_id, city_name in PC_TRADE_CITY_OPTIONS:
-            field = self._spin(1, 20)
-            field.setSpecialValueText("默认")
-            field.setMinimum(0)
-            label = QLabel(f"{city_name}声望", panel)
-            self.city_prestige[city_id] = field
-            self.city_prestige_rows[city_id] = (label, field)
-            form.addRow(label, field)
+        form.addRow("城市声望", self.city_prestige_button)
         form.addRow("商品解锁", self.unlock_mode)
         form.addRow("商品 ID", self.product_ids)
         form.addRow("活动", self.active_events)
@@ -441,13 +524,40 @@ class TradePage(QWidget):
         self._sync_city_controls()
 
     def _sync_city_controls(self) -> None:
-        if not hasattr(self, "city_prestige_rows"):
-            return
-        for city_id, (label, field) in self.city_prestige_rows.items():
-            visible = self.city_checks[city_id].isChecked()
-            label.setVisible(visible)
-            field.setVisible(visible)
         self._sync_start_city_options()
+
+    def _edit_city_prestige(self) -> None:
+        dialog = CityPrestigeDialog(
+            default_level=self._city_prestige_default,
+            overrides=self._city_prestige_overrides,
+            parent=self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        prestige = dialog.prestige_value()
+        self._city_prestige_default = int(prestige["default"])
+        self._city_prestige_overrides = {
+            str(city_id): int(value)
+            for city_id, value in dict(prestige["overrides"]).items()
+        }
+        self._update_city_prestige_button()
+        saved_inputs = self._settings.load_trade_inputs()
+        saved_inputs["city_prestige"] = self._city_prestige_payload()
+        self._settings.save_trade_inputs(saved_inputs)
+
+    def _city_prestige_payload(self) -> dict[str, Any]:
+        return {
+            "default": self._city_prestige_default,
+            "overrides": dict(self._city_prestige_overrides),
+        }
+
+    def _update_city_prestige_button(self) -> None:
+        count = len(self._city_prestige_overrides)
+        suffix = f"（{count} 个自定义）" if count else ""
+        self.city_prestige_button.setText(f"设置城市声望{suffix}")
+        self.city_prestige_button.setToolTip(
+            f"默认声望：{self._city_prestige_default}；自定义城市：{count}"
+        )
 
     def _sync_start_city_options(self) -> None:
         if not hasattr(self, "start_city"):
@@ -492,10 +602,14 @@ class TradePage(QWidget):
         start_city_index = self.start_city.findData(str(values.get("start_city_id") or ""))
         self.start_city.setCurrentIndex(max(start_city_index, 0))
         prestige = values.get("city_prestige") if isinstance(values.get("city_prestige"), Mapping) else {}
-        self.default_prestige.setValue(int(prestige.get("default", 20)))
+        self._city_prestige_default = max(1, min(int(prestige.get("default", 20)), 20))
         overrides = prestige.get("overrides") if isinstance(prestige.get("overrides"), Mapping) else {}
-        for city_id, field in self.city_prestige.items():
-            field.setValue(int(overrides.get(city_id, 0)))
+        self._city_prestige_overrides = {
+            city_id: max(1, min(int(overrides[city_id]), 20))
+            for city_id, _city_name in PC_TRADE_CITY_OPTIONS
+            if city_id in overrides and int(overrides[city_id]) > 0
+        }
+        self._update_city_prestige_button()
         unlocks = values.get("product_unlocks") if isinstance(values.get("product_unlocks"), Mapping) else {}
         index = self.unlock_mode.findData(str(unlocks.get("mode") or "all"))
         self.unlock_mode.setCurrentIndex(max(index, 0))
@@ -523,11 +637,6 @@ class TradePage(QWidget):
             raise ValueError("请选择起始城市")
         if start_city_id and start_city_id not in selected_city_ids:
             raise ValueError("起始城市必须属于参与规划城市")
-        overrides = {
-            city_id: self.city_prestige[city_id].value()
-            for city_id in selected_city_ids
-            if self.city_prestige[city_id].value() > 0
-        }
         return {
             "start_city_id": start_city_id,
             "all_plan": self.mode_group.checkedId(),
@@ -543,7 +652,7 @@ class TradePage(QWidget):
             "raise_step_bps": self.raise_step.value(),
             "trade_level": self.trade_level.value(),
             "available_city_ids": selected_city_ids,
-            "city_prestige": {"default": self.default_prestige.value(), "overrides": overrides},
+            "city_prestige": self._city_prestige_payload(),
             "product_unlocks": {
                 "mode": str(self.unlock_mode.currentData()),
                 "product_ids": self._parse_text_list(self.product_ids.text()),
