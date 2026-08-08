@@ -7,7 +7,6 @@ from typing import Any, Mapping
 from PySide6.QtCore import QSize, QTimer, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -49,6 +48,7 @@ from ..logic import (
     route_product_lines,
     trade_result_summary,
 )
+from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 
 
 class CityPrestigeDialog(QDialog):
@@ -138,6 +138,160 @@ class CityPrestigeDialog(QDialog):
         }
 
 
+class ProductUnlockDialog(QDialog):
+    def __init__(
+        self,
+        groups: tuple[TradeProductGroup, ...],
+        unlocked_product_ids: set[str] | None = None,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("appRoot")
+        self.setWindowTitle("商品解锁设置")
+        self.setModal(True)
+        self.resize(760, 660)
+        self.setMinimumSize(620, 520)
+        self._groups = groups
+        self._all_product_ids = set(trade_product_ids(groups))
+        self._items_by_product_id: dict[str, list[QTreeWidgetItem]] = {}
+        self._city_items: list[QTreeWidgetItem] = []
+        self._updating = False
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 16)
+        layout.setSpacing(12)
+
+        toolbar = QHBoxLayout()
+        self.search = QLineEdit(self)
+        self.search.setPlaceholderText("搜索城市或商品")
+        self.search.textChanged.connect(self._filter_items)
+        toolbar.addWidget(self.search, 1)
+        unlock_all = QPushButton("全部解锁", self)
+        lock_all = QPushButton("全部设为未解锁", self)
+        unlock_all.clicked.connect(lambda: self._set_all_products(True))
+        lock_all.clicked.connect(lambda: self._set_all_products(False))
+        toolbar.addWidget(unlock_all)
+        toolbar.addWidget(lock_all)
+        layout.addLayout(toolbar)
+
+        self.tree = QTreeWidget(self)
+        self.tree.setColumnCount(2)
+        self.tree.setHeaderLabels(["城市 / 商品（勾选即解锁）", "已解锁数量"])
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.tree.setUniformRowHeights(True)
+        layout.addWidget(self.tree, 1)
+
+        enabled = self._all_product_ids if unlocked_product_ids is None else set(unlocked_product_ids)
+        for group in groups:
+            city_item = QTreeWidgetItem([group.city_name, ""])
+            city_item.setData(0, Qt.ItemDataRole.UserRole, {"city_id": group.city_id})
+            city_item.setFlags(
+                city_item.flags()
+                | Qt.ItemFlag.ItemIsUserCheckable
+                | Qt.ItemFlag.ItemIsAutoTristate
+            )
+            self.tree.addTopLevelItem(city_item)
+            self._city_items.append(city_item)
+            for product in group.products:
+                item = QTreeWidgetItem([product.name, ""])
+                item.setData(0, Qt.ItemDataRole.UserRole, {"product_id": product.product_id})
+                item.setToolTip(0, f"商品 ID: {product.product_id}")
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(
+                    0,
+                    Qt.CheckState.Checked
+                    if product.product_id in enabled
+                    else Qt.CheckState.Unchecked,
+                )
+                city_item.addChild(item)
+                self._items_by_product_id.setdefault(product.product_id, []).append(item)
+            self._update_city_count(city_item)
+        self.tree.itemChanged.connect(self._on_item_changed)
+
+        self.summary = QLabel(self)
+        self.summary.setProperty("caption", True)
+        layout.addWidget(self.summary)
+        self._update_summary()
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Save).setText("保存")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("取消")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def unlocked_product_ids(self) -> set[str]:
+        return {
+            product_id
+            for product_id, items in self._items_by_product_id.items()
+            if items and items[0].checkState(0) == Qt.CheckState.Checked
+        }
+
+    def _set_all_products(self, checked: bool) -> None:
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        self._updating = True
+        try:
+            for items in self._items_by_product_id.values():
+                for item in items:
+                    item.setCheckState(0, state)
+            for city_item in self._city_items:
+                self._update_city_count(city_item)
+        finally:
+            self._updating = False
+        self._update_summary()
+
+    def _on_item_changed(self, item: QTreeWidgetItem, _column: int) -> None:
+        if self._updating:
+            return
+        payload = item.data(0, Qt.ItemDataRole.UserRole)
+        product_id = str(payload.get("product_id") or "") if isinstance(payload, dict) else ""
+        if product_id:
+            self._updating = True
+            try:
+                for sibling in self._items_by_product_id.get(product_id, []):
+                    if sibling is not item:
+                        sibling.setCheckState(0, item.checkState(0))
+                for city_item in self._city_items:
+                    self._update_city_count(city_item)
+            finally:
+                self._updating = False
+        else:
+            for city_item in self._city_items:
+                self._update_city_count(city_item)
+        self._update_summary()
+
+    def _update_city_count(self, city_item: QTreeWidgetItem) -> None:
+        checked = sum(
+            city_item.child(index).checkState(0) == Qt.CheckState.Checked
+            for index in range(city_item.childCount())
+        )
+        city_item.setText(1, f"{checked}/{city_item.childCount()}")
+
+    def _update_summary(self) -> None:
+        self.summary.setText(
+            f"已解锁 {len(self.unlocked_product_ids())} / {len(self._all_product_ids)} 个声望商品"
+        )
+
+    def _filter_items(self, text: str) -> None:
+        keyword = str(text or "").strip().lower()
+        for city_item in self._city_items:
+            city_matches = keyword in city_item.text(0).lower()
+            visible_children = 0
+            for index in range(city_item.childCount()):
+                child = city_item.child(index)
+                product_matches = keyword in child.text(0).lower()
+                hidden = bool(keyword and not city_matches and not product_matches)
+                child.setHidden(hidden)
+                visible_children += int(not hidden)
+            city_item.setHidden(bool(keyword and not city_matches and visible_children == 0))
+            if keyword and visible_children:
+                city_item.setExpanded(True)
+
+
 class TradePage(QWidget):
     startRequested = Signal(object, float)
     previewRequested = Signal(object, float)
@@ -158,6 +312,9 @@ class TradePage(QWidget):
         self._plan_inputs: dict[str, Any] = {}
         self._active_mode = ""
         self._route_statuses: dict[int, str] = {}
+        self._product_groups = load_trade_product_groups()
+        self._all_product_ids = set(trade_product_ids(self._product_groups))
+        self._unlocked_product_ids: set[str] | None = None
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
@@ -232,23 +389,6 @@ class TradePage(QWidget):
         form_stack.setContentsMargins(0, 8, 4, 8)
         form_stack.setSpacing(12)
 
-        mode_label = QLabel("规划模式", content)
-        mode_label.setProperty("caption", True)
-        form_stack.addWidget(mode_label)
-        mode_row = QHBoxLayout()
-        mode_row.setSpacing(0)
-        self.budget_mode = QPushButton("预算模式", content)
-        self.full_mode = QPushButton("完整规划", content)
-        self.mode_group = QButtonGroup(self)
-        self.mode_group.setExclusive(True)
-        for value, button in ((0, self.budget_mode), (1, self.full_mode)):
-            button.setCheckable(True)
-            button.setProperty("segment", True)
-            self.mode_group.addButton(button, value)
-            mode_row.addWidget(button)
-        self.mode_group.idClicked.connect(self._sync_mode_controls)
-        form_stack.addLayout(mode_row)
-
         common_form = QFormLayout()
         common_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.fatigue_budget = self._spin(0, 100000)
@@ -302,7 +442,6 @@ class TradePage(QWidget):
         self.book_profit_threshold = QDoubleSpinBox(panel)
         self.book_profit_threshold.setRange(0, 1_000_000_000)
         self.book_profit_threshold.setDecimals(2)
-        self.negotiation_budget = self._spin(0, 100000)
         self.negotiation_max_attempts = self._spin(1, 6)
         self.negotiation_max_attempts.setToolTip(
             "每次买入砍价或卖出抬价分别计数；达到上限仍未满 20% 时按当前价格继续成交"
@@ -318,16 +457,11 @@ class TradePage(QWidget):
         self._city_prestige_overrides: dict[str, int] = {}
         self.city_prestige_button = QPushButton("设置城市声望", panel)
         self.city_prestige_button.clicked.connect(self._edit_city_prestige)
-        self.unlock_mode = QComboBox(panel)
-        self.unlock_mode.addItem("全部商品", "all")
-        self.unlock_mode.addItem("仅指定商品", "only")
-        self.unlock_mode.currentIndexChanged.connect(self._sync_unlock_controls)
-        self.product_ids = QLineEdit(panel)
-        self.product_ids.setPlaceholderText("商品 ID，使用逗号分隔")
+        self.product_unlock_button = QPushButton("设置商品解锁", panel)
+        self.product_unlock_button.clicked.connect(self._edit_product_unlocks)
         self.active_events = QLineEdit(panel)
         self.active_events.setPlaceholderText("活动 ID，使用逗号分隔")
         form.addRow("进货书收益阈值", self.book_profit_threshold)
-        form.addRow("协商预算", self.negotiation_budget)
         form.addRow("单次协商最大尝试次数", self.negotiation_max_attempts)
         form.addRow("砍价成功率(bps)", self.bargain_rates)
         form.addRow("砍价幅度(bps)", self.bargain_step)
@@ -335,8 +469,7 @@ class TradePage(QWidget):
         form.addRow("抬价幅度(bps)", self.raise_step)
         form.addRow("贸易等级", self.trade_level)
         form.addRow("城市声望", self.city_prestige_button)
-        form.addRow("商品解锁", self.unlock_mode)
-        form.addRow("商品 ID", self.product_ids)
+        form.addRow("商品解锁", self.product_unlock_button)
         form.addRow("活动", self.active_events)
         return panel
 
@@ -510,14 +643,6 @@ class TradePage(QWidget):
     def _sync_medicine_controls(self) -> None:
         self.medicine_box.setVisible(self.use_medicine.isChecked())
 
-    def _sync_mode_controls(self) -> None:
-        full = self.mode_group.checkedId() == 1
-        self.negotiation_budget.setEnabled(not full)
-        self.negotiation_budget.setToolTip("完整规划模式不限制协商次数" if full else "规划器可使用的协商预算")
-
-    def _sync_unlock_controls(self) -> None:
-        self.product_ids.setEnabled(str(self.unlock_mode.currentData()) == "only")
-
     def _set_all_cities(self, checked: bool) -> None:
         for checkbox in self.city_checks.values():
             checkbox.setChecked(checked)
@@ -559,6 +684,39 @@ class TradePage(QWidget):
             f"默认声望：{self._city_prestige_default}；自定义城市：{count}"
         )
 
+    def _edit_product_unlocks(self) -> None:
+        dialog = ProductUnlockDialog(
+            groups=self._product_groups,
+            unlocked_product_ids=self._unlocked_product_ids,
+            parent=self,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        selected = dialog.unlocked_product_ids()
+        self._unlocked_product_ids = None if selected == self._all_product_ids else selected
+        self._update_product_unlock_button()
+        saved_inputs = self._settings.load_trade_inputs()
+        saved_inputs["product_unlocks"] = self._product_unlock_payload()
+        self._settings.save_trade_inputs(saved_inputs)
+
+    def _product_unlock_payload(self) -> dict[str, Any]:
+        if self._unlocked_product_ids is None:
+            return {"mode": "all", "product_ids": []}
+        return {
+            "mode": "only",
+            "product_ids": sorted(
+                self._unlocked_product_ids,
+                key=lambda value: (int(value), value) if value.isdigit() else (2**31 - 1, value),
+            ),
+        }
+
+    def _update_product_unlock_button(self) -> None:
+        total = len(self._all_product_ids)
+        enabled = total if self._unlocked_product_ids is None else len(self._unlocked_product_ids)
+        suffix = "全部" if enabled == total else f"{enabled}/{total}"
+        self.product_unlock_button.setText(f"设置商品解锁（{suffix}）")
+        self.product_unlock_button.setToolTip(f"当前已解锁 {enabled} / {total} 个声望商品；普通商品始终可用")
+
     def _sync_start_city_options(self) -> None:
         if not hasattr(self, "start_city"):
             return
@@ -580,12 +738,10 @@ class TradePage(QWidget):
 
     def set_inputs(self, inputs: Mapping[str, Any]) -> None:
         values = dict(inputs)
-        (self.full_mode if int(values.get("all_plan", 0)) == 1 else self.budget_mode).setChecked(True)
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 100)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 650)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
         self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 15000)))
-        self.negotiation_budget.setValue(int(values.get("negotiation_budget", 0)))
         self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))
         self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
         self.bargain_step.setValue(int(values.get("bargain_step_bps", 1000)))
@@ -611,9 +767,16 @@ class TradePage(QWidget):
         }
         self._update_city_prestige_button()
         unlocks = values.get("product_unlocks") if isinstance(values.get("product_unlocks"), Mapping) else {}
-        index = self.unlock_mode.findData(str(unlocks.get("mode") or "all"))
-        self.unlock_mode.setCurrentIndex(max(index, 0))
-        self.product_ids.setText(self._join_values(unlocks.get("product_ids", [])))
+        unlock_mode = str(unlocks.get("mode") or "all").strip().lower()
+        if unlock_mode == "only":
+            self._unlocked_product_ids = {
+                str(product_id)
+                for product_id in (unlocks.get("product_ids") or [])
+                if str(product_id) in self._all_product_ids
+            }
+        else:
+            self._unlocked_product_ids = None
+        self._update_product_unlock_button()
         self.active_events.setText(self._join_values(values.get("active_events", [])))
         self.use_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
         self.allowed_medicines.setText(self._join_values(values.get("allowed_fatigue_medicines", [])))
@@ -621,9 +784,7 @@ class TradePage(QWidget):
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", False))
         )
-        self._sync_mode_controls()
         self._sync_city_controls()
-        self._sync_unlock_controls()
         self._sync_medicine_controls()
 
     def collect_inputs(self, *, require_start_city: bool = False) -> dict[str, Any]:
@@ -639,12 +800,10 @@ class TradePage(QWidget):
             raise ValueError("起始城市必须属于参与规划城市")
         return {
             "start_city_id": start_city_id,
-            "all_plan": self.mode_group.checkedId(),
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
             "book_budget": self.book_budget.value(),
             "book_profit_threshold": self.book_profit_threshold.value(),
-            "negotiation_budget": self.negotiation_budget.value(),
             "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
@@ -653,10 +812,7 @@ class TradePage(QWidget):
             "trade_level": self.trade_level.value(),
             "available_city_ids": selected_city_ids,
             "city_prestige": self._city_prestige_payload(),
-            "product_unlocks": {
-                "mode": str(self.unlock_mode.currentData()),
-                "product_ids": self._parse_text_list(self.product_ids.text()),
-            },
+            "product_unlocks": self._product_unlock_payload(),
             "active_events": self._parse_text_list(self.active_events.text()),
             "use_fatigue_medicine": self.use_medicine.isChecked(),
             "allowed_fatigue_medicines": self._parse_text_list(self.allowed_medicines.text()),
@@ -882,8 +1038,6 @@ class TradePage(QWidget):
     def set_busy(self, busy: bool) -> None:
         self._busy = bool(busy)
         for widget in (
-            self.budget_mode,
-            self.full_mode,
             self.fatigue_budget,
             self.cargo_capacity,
             self.book_budget,

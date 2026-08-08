@@ -57,11 +57,10 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert pc_task["meta"]["title"] == "Exact Auto Trade (PC)"
     assert "max_cycle_hops" not in inputs
     assert "max_rounds" not in inputs
-    assert inputs["all_plan"]["default"] == 0
-    assert inputs["all_plan"]["enum"] == [0, 1]
+    assert "all_plan" not in inputs
+    assert "negotiation_budget" not in inputs
     assert inputs["fatigue_budget"]["default"] == 100
     assert inputs["cargo_capacity"]["default"] == 650
-    assert inputs["negotiation_budget"]["default"] == 0
     assert inputs["negotiation_max_attempts"]["default"] == 5
     assert inputs["negotiation_max_attempts"]["min"] == 1
     assert inputs["negotiation_max_attempts"]["max"] == 6
@@ -114,7 +113,8 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
     assert ok is True
     assert defaults["city_prestige"] == {"default": 20, "overrides": {}}
     assert defaults["product_unlocks"] == {"mode": "all", "product_ids": []}
-    assert defaults["all_plan"] == 0
+    assert "all_plan" not in defaults
+    assert "negotiation_budget" not in defaults
     assert defaults["negotiation_max_attempts"] == 5
     assert defaults["bargain_success_rates_bps"] == [5000]
     assert defaults["bargain_step_bps"] == 1000
@@ -164,7 +164,6 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
     ok, custom_negotiation = validator.validate_inputs_against_meta(
         inputs_meta,
         {
-            "all_plan": 1,
             "bargain_success_rates_bps": [6300, 5300],
             "bargain_step_bps": 1170,
             "raise_success_rates_bps": [5000],
@@ -172,11 +171,9 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
         },
     )
     assert ok is True
-    assert custom_negotiation["all_plan"] == 1
     assert custom_negotiation["bargain_success_rates_bps"] == [6300, 5300]
 
     for bad_inputs in (
-        {"all_plan": 2},
         {"negotiation_max_attempts": 0},
         {"negotiation_max_attempts": 7},
         {"bargain_success_rates_bps": []},
@@ -213,6 +210,8 @@ def test_resonance_pc_preview_trade_plan_task_is_planning_only_and_valid():
         inputs["city_prestige"]["properties"]["overrides"]["properties"]
     ) == ALL_CITY_IDS
     assert "refresh_market" not in inputs
+    assert "all_plan" not in inputs
+    assert "negotiation_budget" not in inputs
     assert "use_fatigue_medicine" not in {item["name"] for item in task["meta"]["inputs"]}
     assert task["returns"]["preview"] == "{{ nodes.run.output.preview }}"
 
@@ -282,28 +281,32 @@ def test_resonance_pc_manifest_exports_only_pc_business_symbols():
 
     actions_by_name = {item["name"]: item for item in exports["actions"]}
     expected_negotiation_parameters = {
-        "all_plan",
         "bargain_success_rates_bps",
         "bargain_step_bps",
         "raise_success_rates_bps",
         "raise_step_bps",
     }
-    for action_name in (
-        "resonance_pc.trade_plan_optimal_route",
-        "resonance_pc.preview_trade_plan_flow",
-        "resonance_pc.auto_cycle_trade_flow",
-    ):
+    for action_name in ("resonance_pc.preview_trade_plan_flow", "resonance_pc.auto_cycle_trade_flow"):
         parameters = {
             parameter["name"]: parameter
             for parameter in actions_by_name[action_name]["parameters"]
         }
         parameter_names = set(parameters)
         assert expected_negotiation_parameters.issubset(parameter_names)
-        assert parameters["all_plan"]["default"] == 0
+        assert "all_plan" not in parameter_names
+        assert "negotiation_budget" not in parameter_names
         assert parameters["bargain_success_rates_bps"]["default"] == [5000]
         assert parameters["bargain_step_bps"]["default"] == 1000
         assert parameters["raise_success_rates_bps"]["default"] == [5000]
         assert parameters["raise_step_bps"]["default"] == 1000
+
+    planner_parameters = {
+        parameter["name"]: parameter
+        for parameter in actions_by_name["resonance_pc.trade_plan_optimal_route"]["parameters"]
+    }
+    assert expected_negotiation_parameters.issubset(planner_parameters)
+    assert planner_parameters["all_plan"]["default"] == 0
+    assert planner_parameters["negotiation_budget"]["default"] == 0
 
     for action_name in (
         "resonance_pc.auto_cycle_trade_flow",

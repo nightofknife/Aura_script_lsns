@@ -47,6 +47,15 @@ def _write_buy_lot(path: Path, city_product_buy_lot: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _write_product_unlocks(path: Path, city_product_unlocks: dict | None = None) -> None:
+    payload = {
+        "schema_version": "1.0.0",
+        "city_product_unlocks": city_product_unlocks or {},
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def _write_trade_constraints(path: Path, allowed_city_ids: list[str], city_id_to_key: dict[str, str]) -> None:
     payload = {
         "schema_version": "1.0.0",
@@ -67,6 +76,7 @@ def _build_service(
 ) -> ResonancePcTradePlannerService:
     plan_root = tmp_path / "resonance_pc"
     _write_buy_lot(plan_root / "data" / "meta" / "buy_lot.json", buy_lot)
+    _write_product_unlocks(plan_root / "data" / "meta" / "product_unlocks.json")
     if trade_constraints is not None:
         _write_trade_constraints(
             plan_root / "data" / "meta" / "trade_constraints.json",

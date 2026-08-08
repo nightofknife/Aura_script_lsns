@@ -6,7 +6,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication, QDialog
 
 from packages.resonance_gui.config_repository import (
@@ -14,8 +14,13 @@ from packages.resonance_gui.config_repository import (
     ResonanceConfigRepository,
 )
 from packages.resonance_gui.logic import TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA
+from packages.resonance_gui.trade_catalog import load_trade_product_groups, trade_product_ids
 from packages.resonance_gui.widgets import trade_page as trade_page_module
-from packages.resonance_gui.widgets.trade_page import CityPrestigeDialog, TradePage
+from packages.resonance_gui.widgets.trade_page import (
+    CityPrestigeDialog,
+    ProductUnlockDialog,
+    TradePage,
+)
 
 
 def _app() -> QApplication:
@@ -44,7 +49,7 @@ def _progress(cid: str, sequence: int, **payload):
     }
 
 
-def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
+def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
     page = _page(tmp_path)
     try:
         page.set_target_status({"ok": True, "target": {"hwnd": 1, "title": "Resonance", "visible": True}})
@@ -52,7 +57,6 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         assert not page.preview_button.isEnabled()
         page.start_city.setCurrentIndex(page.start_city.findData("3"))
         assert page.preview_button.isEnabled()
-        page.full_mode.click()
         page.fatigue_budget.setValue(300)
         page.cargo_capacity.setValue(650)
         page.book_budget.setValue(0)
@@ -63,7 +67,8 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
 
         inputs = page.collect_inputs()
 
-        assert inputs["all_plan"] == 1
+        assert "all_plan" not in inputs
+        assert "negotiation_budget" not in inputs
         assert inputs["fatigue_budget"] == 300
         assert inputs["cargo_capacity"] == 650
         assert inputs["negotiation_max_attempts"] == 6
@@ -71,7 +76,9 @@ def test_trade_page_collects_typed_inputs_and_mode_rules(tmp_path):
         assert inputs["auto_cape_island_investment"] is True
         assert inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
         assert inputs["start_city_id"] == "3"
-        assert not page.negotiation_budget.isEnabled()
+        assert not hasattr(page, "budget_mode")
+        assert not hasattr(page, "full_mode")
+        assert not hasattr(page, "negotiation_budget")
         assert page.negotiation_max_attempts.isEnabled()
         assert set(page.city_checks) == set(inputs["available_city_ids"])
         assert {"14", "17", "19"}.issubset(page.city_checks)
@@ -175,6 +182,72 @@ def test_trade_page_prestige_dialog_save_updates_settings(tmp_path, monkeypatch)
             "default": 17,
             "overrides": {"14": 11, "19": 9},
         }
+    finally:
+        page.close()
+
+
+def test_trade_product_catalog_only_contains_city_grouped_unlockable_products():
+    groups = load_trade_product_groups()
+
+    assert [group.city_id for group in groups] == ["1", "3", "4", "8", "10", "11", "15", "19"]
+    assert len(trade_product_ids(groups)) == 52
+    assert any(product.product_id == "1" and product.name == "发动机" for product in groups[0].products)
+    assert "3" not in trade_product_ids(groups)  # 家电是普通商品，不需要声望解锁。
+
+
+def test_product_unlock_dialog_switches_individual_products():
+    dialog = ProductUnlockDialog(
+        groups=load_trade_product_groups(),
+        unlocked_product_ids={"1", "2"},
+    )
+    try:
+        item = dialog._items_by_product_id["2"][0]
+        assert item.checkState(0) == Qt.CheckState.Checked
+
+        item.setCheckState(0, Qt.CheckState.Unchecked)
+        QApplication.processEvents()
+
+        assert dialog.unlocked_product_ids() == {"1"}
+        assert dialog.summary.text() == "已解锁 1 / 52 个声望商品"
+
+        dialog._set_all_products(True)
+        assert len(dialog.unlocked_product_ids()) == 52
+    finally:
+        dialog.close()
+
+
+def test_trade_page_product_unlock_dialog_save_updates_settings(tmp_path, monkeypatch):
+    page = _page(tmp_path)
+
+    class AcceptedProductUnlockDialog:
+        def __init__(self, groups, unlocked_product_ids, parent):
+            assert groups == page._product_groups
+            assert unlocked_product_ids is None
+            assert parent is page
+
+        @staticmethod
+        def exec():
+            return QDialog.DialogCode.Accepted
+
+        @staticmethod
+        def unlocked_product_ids():
+            return {"1", "2"}
+
+    monkeypatch.setattr(trade_page_module, "ProductUnlockDialog", AcceptedProductUnlockDialog)
+    try:
+        page._edit_product_unlocks()
+
+        assert page.product_unlock_button.text() == "设置商品解锁（2/52）"
+        assert page.collect_inputs()["product_unlocks"] == {
+            "mode": "only",
+            "product_ids": ["1", "2"],
+        }
+        assert page._settings.load_trade_inputs()["product_unlocks"] == {
+            "mode": "only",
+            "product_ids": ["1", "2"],
+        }
+        assert not hasattr(page, "unlock_mode")
+        assert not hasattr(page, "product_ids")
     finally:
         page.close()
 

@@ -170,6 +170,7 @@ class ResonancePcExactTradeSolver:
         buy_lot: Mapping[str, Mapping[str, Any]],
         trade_rules: Mapping[str, Any],
         allowed_city_ids: Sequence[str],
+        unlockable_product_ids: Optional[Sequence[str]] = None,
     ) -> None:
         self.snapshot = dict(snapshot)
         self.products: Dict[str, Any] = dict(snapshot.get("products") or {})
@@ -193,6 +194,11 @@ class ResonancePcExactTradeSolver:
         }
         self.rules = dict(trade_rules)
         self.allowed_city_ids = tuple(dict.fromkeys(str(item) for item in allowed_city_ids))
+        self.unlockable_product_ids = (
+            None
+            if unlockable_product_ids is None
+            else {str(item) for item in unlockable_product_ids}
+        )
 
     def solve(
         self,
@@ -798,7 +804,10 @@ class ResonancePcExactTradeSolver:
             unknown = sorted(product_ids - set(self.products), key=self._sort_key)
             if unknown:
                 raise ValueError(f"product_unlocks contains unknown product ids: {unknown}")
-            return product_ids
+            if self.unlockable_product_ids is None:
+                return product_ids
+            always_available = set(self.products) - self.unlockable_product_ids
+            return always_available | (product_ids & self.unlockable_product_ids)
         raise ValueError("product_unlocks.mode must be 'all' or 'only'")
 
     def _prestige_rule(self, level: int) -> Dict[str, int]:

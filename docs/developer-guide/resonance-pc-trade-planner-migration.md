@@ -109,7 +109,7 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `trade_level` | int | `20` | `1..20` | 兼容输入；不再影响议价 |
 | `available_city_ids` | list[str] | 有交易所坐标的 17 城 | 至少 2 个、不重复，且存在于疲劳图 | 限制精确规划参与的城市；必须包含当前城市；14、17、19 默认关闭但可手动启用 |
 | `city_prestige` | object | 满 20 级 | 默认等级和城市 ID 覆盖 | 买卖税和购买数量 |
-| `product_unlocks` | object | 全部解锁 | `all` 或 `only` | 限制可购买商品 |
+| `product_unlocks` | object | 全部解锁 | `all` 或 `only` | 普通商品始终可购；`only` 中的商品 ID 表示已解锁的声望商品 |
 | `active_events` | list | `[]` | 任意占位列表 | 当前忽略，非空时警告 |
 | `use_fatigue_medicine` | bool | `false` | - | 自动执行设置，不改变规划公式 |
 | `allowed_fatigue_medicines` | list | `[]` | - | 自动执行设置 |
