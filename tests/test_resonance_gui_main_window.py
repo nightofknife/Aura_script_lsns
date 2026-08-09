@@ -5,7 +5,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -35,23 +35,231 @@ def _window(tmp_path) -> ResonanceMainWindow:
     return window
 
 
-def test_main_window_exposes_independent_passenger_and_battle_navigation(tmp_path):
+def test_main_window_groups_freight_and_passenger_under_commerce_navigation(tmp_path):
     window = _window(tmp_path)
     try:
         assert [button.text() for button in window.nav_buttons] == [
             "跑商",
-            "客运",
             "战斗",
             "任务工具",
             "历史",
             "设置",
         ]
+        assert [button.text() for button in window.commerce_page.section_buttons] == [
+            "总览",
+            "货运",
+            "客运",
+        ]
+        assert window.page_stack.currentWidget() is window.commerce_page
+        assert window.commerce_page.section_stack.currentWidget() is window.commerce_page.overview_page
+        assert window.commerce_page.overview_page.freight_checkbox.isChecked()
+        assert window.commerce_page.overview_page.passenger_checkbox.isChecked()
+
+        window.commerce_page.section_buttons[2].click()
+        assert window.page_stack.currentWidget() is window.commerce_page
+        assert window.commerce_page.section_stack.currentWidget() is window.passenger_page
+
         window.nav_buttons[1].click()
-        assert window.page_stack.currentWidget() is window.passenger_page
-        assert window.page_stack.currentWidget() is not window.trade_page
-        window.nav_buttons[2].click()
         assert window.page_stack.currentWidget() is window.battle_page
-        assert window.page_stack.currentWidget() is not window.trade_page
+        window.nav_buttons[0].click()
+        assert window.commerce_page.section_stack.currentWidget() is window.commerce_page.overview_page
+    finally:
+        window.close()
+
+
+def test_commerce_overview_uses_live_inputs_and_runs_trade_then_passenger(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[tuple[dict, float]] = []
+    passenger_requests: list[tuple[dict, float]] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(
+            lambda inputs, timeout: trade_requests.append((dict(inputs), float(timeout)))
+        )
+        window.requestRunPcPassenger.connect(
+            lambda inputs, timeout: passenger_requests.append((dict(inputs), float(timeout)))
+        )
+
+        window.trade_page.fatigue_budget.setValue(321)
+        window.passenger_page.round_trips.setValue(3)
+        overview = window.commerce_page.overview_page
+        overview.run_button.click()
+
+        assert trade_requests[0][0]["fatigue_budget"] == 321
+        assert passenger_requests == []
+        assert overview.is_running
+        assert overview.run_button.text() == "停止"
+        assert window.commerce_page.section_stack.currentWidget() is overview
+
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "PC 自动跑商"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_dispatched(
+            {"item": trade_item, "cid": "trade-cid", "dispatch": {"status": "queued"}}
+        )
+        assert window.commerce_page.section_stack.currentWidget() is overview
+        window._on_task_finished(
+            {
+                "cid": "trade-cid",
+                "status": "success",
+                "gui_item": trade_item,
+                "final_result": {"user_data": {"success": True}},
+            }
+        )
+        window._on_busy_changed(False)
+
+        assert passenger_requests[0][0]["round_trips"] == 3
+        passenger_item = {
+            "game_name": "resonance_pc",
+            "kind": "passenger_run",
+            "label": "PC 独立客运",
+        }
+        window._on_busy_changed(True)
+        window._on_task_started(passenger_item)
+        window._on_task_finished(
+            {
+                "cid": "passenger-cid",
+                "status": "success",
+                "gui_item": passenger_item,
+                "final_result": {"user_data": {"success": True}},
+            }
+        )
+        window._on_busy_changed(False)
+
+        assert not overview.is_running
+        assert overview.run_button.text() == "运行"
+        assert overview.freight_checkbox.isEnabled()
+        assert overview.passenger_checkbox.isEnabled()
+    finally:
+        window.close()
+
+
+def test_commerce_overview_stop_cancels_current_and_drops_passenger(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[dict] = []
+    passenger_requests: list[dict] = []
+    cancel_requests: list[bool] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(lambda inputs, _timeout: trade_requests.append(dict(inputs)))
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        window.requestCancelCurrent.connect(lambda: cancel_requests.append(True))
+
+        overview = window.commerce_page.overview_page
+        overview.run_button.click()
+        assert len(trade_requests) == 1
+        window._on_busy_changed(True)
+        overview.run_button.click()
+
+        assert overview.is_stopping
+        assert overview.run_button.text() == "停止中…"
+        assert cancel_requests == [True]
+
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "PC 自动跑商"}
+        window._on_task_started(trade_item)
+        window._on_task_finished(
+            {
+                "cid": "trade-cid",
+                "status": "cancelled",
+                "gui_item": trade_item,
+                "final_result": {"user_data": {"success": False}},
+            }
+        )
+        window._on_busy_changed(False)
+
+        assert passenger_requests == []
+        assert not overview.is_running
+        assert overview.run_button.text() == "运行"
+    finally:
+        window.close()
+
+
+def test_commerce_overview_failure_stops_sequence(tmp_path):
+    window = _window(tmp_path)
+    passenger_requests: list[dict] = []
+    cancel_requests: list[bool] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(lambda _inputs, _timeout: None)
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        window.requestCancelCurrent.connect(lambda: cancel_requests.append(True))
+
+        overview = window.commerce_page.overview_page
+        overview.run_button.click()
+        window._on_busy_changed(True)
+        window._on_task_failed(
+            {"stage": "poll_run", "error": "状态读取失败", "recoverable": True}
+        )
+
+        assert overview.is_stopping
+        assert cancel_requests == [True]
+        window._on_busy_changed(False)
+        assert passenger_requests == []
+        assert not overview.is_running
+    finally:
+        window.close()
+
+
+def test_commerce_overview_requires_at_least_one_selection(tmp_path):
+    window = _window(tmp_path)
+    try:
+        overview = window.commerce_page.overview_page
+        overview.freight_checkbox.setChecked(False)
+        overview.passenger_checkbox.setChecked(False)
+        assert not overview.run_button.isEnabled()
+    finally:
+        window.close()
+
+
+def test_commerce_overview_can_run_passenger_only_with_live_inputs(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[dict] = []
+    passenger_requests: list[dict] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(lambda inputs, _timeout: trade_requests.append(dict(inputs)))
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+
+        overview = window.commerce_page.overview_page
+        overview.freight_checkbox.setChecked(False)
+        window.passenger_page.round_trips.setValue(4)
+        overview.run_button.click()
+
+        assert trade_requests == []
+        assert passenger_requests[0]["round_trips"] == 4
+    finally:
+        window.close()
+
+
+def test_commerce_overview_invalid_trade_inputs_open_trade_page(tmp_path, monkeypatch):
+    window = _window(tmp_path)
+    warnings: list[tuple[str, str]] = []
+    try:
+        monkeypatch.setattr(
+            QMessageBox,
+            "warning",
+            lambda _parent, title, message: warnings.append((str(title), str(message))),
+        )
+        for checkbox in window.trade_page.city_checks.values():
+            checkbox.setChecked(False)
+        next(iter(window.trade_page.city_checks.values())).setChecked(True)
+
+        overview = window.commerce_page.overview_page
+        overview.run_button.click()
+
+        assert not overview.is_running
+        assert window.commerce_page.section_stack.currentWidget() is window.trade_page
+        assert warnings and warnings[0][0] == "货运参数错误"
     finally:
         window.close()
 
@@ -139,7 +347,8 @@ def test_main_window_routes_pc_passenger_lifecycle_to_passenger_page(tmp_path):
             }
         )
 
-        assert window.page_stack.currentWidget() is window.passenger_page
+        assert window.page_stack.currentWidget() is window.commerce_page
+        assert window.commerce_page.section_stack.currentWidget() is window.passenger_page
         assert window.passenger_page.is_busy()
         assert not window.trade_page.is_busy()
         assert window.passenger_page.cid_value.text() == "passenger-cid"

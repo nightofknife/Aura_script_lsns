@@ -44,7 +44,7 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
-from .widgets import BattlePage, PassengerPage, TradePage
+from .widgets import BattlePage, CommercePage
 from .widgets.run_detail import RunDetailView
 
 
@@ -81,6 +81,11 @@ class ResonanceMainWindow(QMainWindow):
         self._busy = False
         self._active_game_name = ""
         self._active_kind = ""
+        self._commerce_active = False
+        self._commerce_stopping = False
+        self._commerce_current_kind = ""
+        self._commerce_pending: list[str] = []
+        self._commerce_inputs: dict[str, dict[str, Any]] = {}
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
         self.setWindowTitle("Aura 雷索纳斯控制台")
@@ -102,15 +107,15 @@ class ResonanceMainWindow(QMainWindow):
         layout.addWidget(self._build_navigation())
 
         self.page_stack = QStackedWidget(root)
-        self.trade_page = TradePage(self._settings, self.page_stack)
-        self.passenger_page = PassengerPage(self._settings, self.page_stack)
+        self.commerce_page = CommercePage(self._settings, self.page_stack)
+        self.trade_page = self.commerce_page.trade_page
+        self.passenger_page = self.commerce_page.passenger_page
         self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
         self.settings_page = self._build_settings_page()
         for page in (
-            self.trade_page,
-            self.passenger_page,
+            self.commerce_page,
             self.battle_page,
             self.workbench_page,
             self.history_page,
@@ -129,6 +134,8 @@ class ResonanceMainWindow(QMainWindow):
         self.passenger_page.startRequested.connect(self._run_pc_passenger)
         self.passenger_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.passenger_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
+        self.commerce_page.overview_page.startRequested.connect(self._start_commerce_sequence)
+        self.commerce_page.overview_page.stopRequested.connect(self._stop_commerce_sequence)
         self.battle_page.startRequested.connect(self._run_pc_battle)
         self.battle_page.validateRequested.connect(self._validate_pc_battle)
         self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
@@ -152,11 +159,11 @@ class ResonanceMainWindow(QMainWindow):
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
-        for index, text in enumerate(("跑商", "客运", "战斗", "任务工具", "历史", "设置")):
+        for index, text in enumerate(("跑商", "战斗", "任务工具", "历史", "设置")):
             button = QPushButton(text, nav)
             button.setCheckable(True)
             button.setProperty("nav", True)
-            button.clicked.connect(lambda checked=False, page=index: self._switch_page(page))
+            button.clicked.connect(lambda checked=False, page=index: self._navigate_to_page(page))
             self.nav_group.addButton(button, index)
             self.nav_buttons.append(button)
             layout.addWidget(button)
@@ -165,6 +172,11 @@ class ResonanceMainWindow(QMainWindow):
         runtime.setObjectName("brandCaption")
         layout.addWidget(runtime)
         return nav
+
+    def _navigate_to_page(self, index: int) -> None:
+        if index == 0:
+            self.commerce_page.show_overview()
+        self._switch_page(index)
 
     def _switch_page(self, index: int) -> None:
         self.page_stack.setCurrentIndex(index)
@@ -344,6 +356,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.cancelRequested.connect(self.trade_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
+        self._bridge.cancelRequested.connect(self._on_commerce_cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
         self._bridge.busyChanged.connect(self._on_busy_changed)
@@ -388,6 +401,100 @@ class ResonanceMainWindow(QMainWindow):
 
     def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
+
+    def _start_commerce_sequence(self, run_trade: bool, run_passenger: bool) -> None:
+        if self._busy or self._commerce_active or not (run_trade or run_passenger):
+            return
+
+        snapshots: dict[str, dict[str, Any]] = {}
+        if run_trade:
+            try:
+                snapshots["trade"] = self.trade_page.collect_inputs()
+            except ValueError as exc:
+                self.commerce_page.show_trade()
+                QMessageBox.warning(self, "货运参数错误", str(exc))
+                return
+        if run_passenger:
+            try:
+                snapshots["passenger"] = self.passenger_page.collect_inputs()
+            except ValueError as exc:
+                self.commerce_page.show_passenger()
+                QMessageBox.warning(self, "客运参数错误", str(exc))
+                return
+
+        if "trade" in snapshots:
+            self._settings.save_trade_inputs(snapshots["trade"])
+        if "passenger" in snapshots:
+            self._settings.save_passenger_inputs(snapshots["passenger"])
+
+        self._commerce_inputs = snapshots
+        self._commerce_pending = [
+            kind for kind in ("trade", "passenger") if kind in snapshots
+        ]
+        self._commerce_active = True
+        self._commerce_stopping = False
+        self._commerce_current_kind = ""
+        self.trade_page.set_busy(True)
+        self.passenger_page.set_busy(True)
+        self.run_button.setEnabled(False)
+        self.enqueue_button.setEnabled(False)
+        self.commerce_page.overview_page.set_running(True)
+        self._dispatch_next_commerce_task()
+
+    def _dispatch_next_commerce_task(self) -> None:
+        if not self._commerce_active or self._commerce_stopping:
+            return
+        if not self._commerce_pending:
+            self._finish_commerce_sequence()
+            return
+
+        kind = self._commerce_pending.pop(0)
+        self._commerce_current_kind = kind
+        inputs = dict(self._commerce_inputs[kind])
+        timeout = float(self.timeout_spin.value())
+        if kind == "trade":
+            self.requestRunPcTrade.emit(inputs, timeout)
+        else:
+            self.requestRunPcPassenger.emit(inputs, timeout)
+
+    def _stop_commerce_sequence(self) -> None:
+        if not self._commerce_active:
+            return
+        self._commerce_pending.clear()
+        self._commerce_stopping = True
+        self.commerce_page.overview_page.set_stopping()
+        if self._commerce_current_kind:
+            self.requestCancelCurrent.emit()
+        elif not self._busy:
+            self._finish_commerce_sequence()
+
+    def _abort_commerce_sequence(self, *, cancel_current: bool) -> None:
+        if not self._commerce_active:
+            return
+        self._commerce_pending.clear()
+        self._commerce_stopping = True
+        self.commerce_page.overview_page.set_stopping()
+        if cancel_current and self._commerce_current_kind:
+            self.requestCancelCurrent.emit()
+        if not self._busy and not self._commerce_current_kind:
+            self._finish_commerce_sequence()
+
+    def _finish_commerce_sequence(self) -> None:
+        self._commerce_active = False
+        self._commerce_stopping = False
+        self._commerce_current_kind = ""
+        self._commerce_pending.clear()
+        self._commerce_inputs.clear()
+        self.trade_page.set_busy(self._busy)
+        self.passenger_page.set_busy(self._busy)
+        self.run_button.setEnabled(not self._busy)
+        self.enqueue_button.setEnabled(True)
+        self.commerce_page.overview_page.set_running(False)
+        self.commerce_page.overview_page.set_external_busy(self._busy)
+
+    def _on_commerce_cancel_requested(self, _payload: dict[str, Any]) -> None:
+        if self._commerce_active:
+            self._abort_commerce_sequence(cancel_current=False)
 
     def _run_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcBattle.emit(inputs, float(self.timeout_spin.value()))
@@ -470,12 +577,14 @@ class ResonanceMainWindow(QMainWindow):
             history_kind = self._history_kind(payload)
             if history_kind == "battle":
                 self.battle_page.show_history_result(payload)
-                self._switch_page(2)
+                self._switch_page(1)
             elif history_kind == "passenger":
                 self.passenger_page.show_history_result(payload)
-                self._switch_page(1)
+                self.commerce_page.show_passenger()
+                self._switch_page(0)
             else:
                 self.trade_page.show_history_result(payload)
+                self.commerce_page.show_trade()
                 self._switch_page(0)
 
     @staticmethod
@@ -509,19 +618,24 @@ class ResonanceMainWindow(QMainWindow):
             kind = str(item.get("kind") or "")
             if kind == "trade_preview":
                 self.trade_page.begin_preview(payload)
+                self.commerce_page.show_trade()
                 self._switch_page(0)
             elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
-                self._switch_page(0)
+                if not self._commerce_active:
+                    self.commerce_page.show_trade()
+                    self._switch_page(0)
             elif kind == "passenger_run":
                 self.passenger_page.begin_run(payload)
-                self._switch_page(1)
+                if not self._commerce_active:
+                    self.commerce_page.show_passenger()
+                    self._switch_page(0)
             elif kind == "battle_preview":
                 self.battle_page.begin_validation(payload)
-                self._switch_page(2)
+                self._switch_page(1)
             elif kind == "battle_run":
                 self.battle_page.begin_run(payload)
-                self._switch_page(2)
+                self._switch_page(1)
             else:
                 self.run_detail.show_text(pretty_json(payload))
         else:
@@ -537,9 +651,11 @@ class ResonanceMainWindow(QMainWindow):
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage("任务执行结束")
+        finished_kind = ""
         if self._active_game_name == PC_GAME_NAME:
             item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
             kind = str(item.get("kind") or self._active_kind)
+            finished_kind = kind
             if kind == "trade_preview":
                 self.trade_page.finish_preview(payload)
             elif kind == "trade_run":
@@ -550,11 +666,27 @@ class ResonanceMainWindow(QMainWindow):
                 self.battle_page.finish_validation(payload)
             elif kind == "battle_run":
                 self.battle_page.finish_run(payload)
+        if self._commerce_active and finished_kind == f"{self._commerce_current_kind}_run":
+            status = extract_status(payload)
+            result = extract_final_result(payload)
+            result_status = str(result.get("status") or "").strip().lower()
+            succeeded = (
+                status == "success"
+                and result.get("success") is not False
+                and result_status not in {"blocked", "error", "failed", "timeout", "cancelled"}
+            )
+            self._commerce_current_kind = ""
+            if not succeeded:
+                self._abort_commerce_sequence(cancel_current=False)
         self.run_detail.show_text(render_result_text(payload))
 
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
+        if self._commerce_active:
+            self._abort_commerce_sequence(
+                cancel_current=stage != "cancel_task" and bool(self._commerce_current_kind)
+            )
         if stage in {"run_pc_battle", "validate_pc_battle"}:
             self.battle_page.show_failure(payload)
         elif stage == "run_pc_passenger":
@@ -583,12 +715,20 @@ class ResonanceMainWindow(QMainWindow):
         if not busy:
             self._active_game_name = ""
             self._active_kind = ""
-        self.trade_page.set_busy(busy)
-        self.passenger_page.set_busy(busy)
+        self.trade_page.set_busy(busy or self._commerce_active)
+        self.passenger_page.set_busy(busy or self._commerce_active)
         self.battle_page.set_busy(busy)
-        self.run_button.setEnabled(not busy)
-        self.enqueue_button.setEnabled(True)
+        self.commerce_page.overview_page.set_external_busy(busy)
+        self.run_button.setEnabled(not busy and not self._commerce_active)
+        self.enqueue_button.setEnabled(not self._commerce_active)
         self.cancel_button.setEnabled(busy)
+        if self._commerce_active and not busy:
+            if self._commerce_stopping:
+                self._finish_commerce_sequence()
+            elif self._commerce_pending:
+                self._dispatch_next_commerce_task()
+            else:
+                self._finish_commerce_sequence()
 
     def _on_log_message(self, message: str) -> None:
         self.statusBar().showMessage(message)
