@@ -174,6 +174,7 @@ class RunnerBridge(QObject):
             "use_fatigue_medicine",
             "allowed_fatigue_medicines",
             "fatigue_medicine_max_uses",
+            "arrival_timeout_seconds",
             "auto_cape_island_investment",
         ):
             preview_inputs.pop(key, None)

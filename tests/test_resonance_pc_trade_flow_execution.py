@@ -182,6 +182,37 @@ def test_full_multi_leg_flow_trades_travels_and_sells_at_endpoint(monkeypatch):
     assert result["final_sale"]["current_city"] == "C"
 
 
+def test_custom_arrival_timeout_reaches_every_travel_leg(monkeypatch):
+    events: list[tuple] = []
+    plan = {
+        "status": "ok",
+        "reason": None,
+        "snapshot_id": "snapshot-1",
+        "route": _route(),
+    }
+    _patch_planning(monkeypatch, events, plan)
+    _patch_route_ui(monkeypatch, events)
+    arrival_timeouts: list[float] = []
+
+    def travel(*, enter_station_timeout_seconds, **_kwargs):
+        arrival_timeouts.append(enter_station_timeout_seconds)
+        return {
+            "success": True,
+            "status": "ok",
+            "arrival_status": "arrived",
+            "fatigue_medicine_used": [],
+            "fatigue_medicine_use_count": 0,
+        }
+
+    monkeypatch.setattr(actions, "resonance_pc_intercity_depart_and_wait", travel)
+
+    result = _run_flow(_MemoryStateStore(), arrival_timeout_seconds=2700)
+
+    assert arrival_timeouts == [2700.0, 2700.0]
+    assert result["arrival_timeout_seconds"] == 2700.0
+    assert result["execution"]["arrival_timeout_seconds"] == 2700.0
+
+
 def test_custom_negotiation_limit_reaches_every_trade_and_degraded_sales_complete(monkeypatch):
     events: list[tuple] = []
     plan = {

@@ -1040,6 +1040,10 @@ exports:
       type: Any
       required: false
       default: 4
+    - name: arrival_timeout_seconds
+      type: Any
+      required: false
+      default: 1800.0
     - name: auto_cape_island_investment
       type: Any
       required: false
@@ -2117,4 +2121,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-08T17:37:45Z'
+  generated_at: '2026-08-09T19:26:33Z'
