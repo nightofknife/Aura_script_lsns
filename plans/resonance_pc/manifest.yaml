@@ -1112,7 +1112,7 @@ exports:
     - name: enter_station_timeout_seconds
       type: Any
       required: false
-      default: 900.0
+      default: 1800.0
     - name: location_file_path
       type: Any
       required: false
@@ -1180,7 +1180,7 @@ exports:
     - name: timeout_sec
       type: Any
       required: false
-      default: 900.0
+      default: 1800.0
     - name: interval_sec
       type: Any
       required: false

@@ -56,7 +56,7 @@ _FATIGUE_PANEL_REGION = [70, 80, 520, 190]
 _FATIGUE_BACK_REGION = [0, 0, 260, 90]
 _FATIGUE_MEDICINE_CONFIRM_REGION = [620, 520, 660, 120]
 
-_DEFAULT_ARRIVAL_TIMEOUT_SECONDS = 900.0
+_DEFAULT_ARRIVAL_TIMEOUT_SECONDS = 1800.0
 _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS = 550.0
 _POST_DRAG_STABILIZE_SECONDS = 0.6
 _POST_DRAG_OCR_RETRIES = 2
@@ -1408,7 +1408,7 @@ def resonance_pc_select_intercity_destination(
 )
 def resonance_pc_intercity_depart_and_wait(
     to_city_name: str,
-    enter_station_timeout_seconds: float = 900.0,
+    enter_station_timeout_seconds: float = 1800.0,
     location_file_path: str = "data/meta/location_pc.json",
     city_search_region: Optional[List[int]] = None,
     drag_center: Optional[List[int]] = None,
@@ -1662,7 +1662,7 @@ def resonance_pc_intercity_depart_and_wait(
     vision="plans/aura_base/vision",
 )
 def resonance_pc_wait_intercity_arrival(
-    timeout_sec: float = 900.0,
+    timeout_sec: float = 1800.0,
     interval_sec: float = 3.0,
     arrival_template: str = _ARRIVAL_BUTTON_TEMPLATE,
     arrival_template_region: Optional[List[int]] = None,

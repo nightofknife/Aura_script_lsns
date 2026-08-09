@@ -1219,7 +1219,7 @@ async def _execute_trade_leg(
     travel = await asyncio.to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
-        enter_station_timeout_seconds=900,
+        enter_station_timeout_seconds=1800,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 70, 1000, 550],
         drag_center=[640, 360],
