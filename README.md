@@ -1,80 +1,99 @@
-# Aura_script_lsns
+# Aura 雷索纳斯自动化助手
 
-Aura_script_lsns is a local Windows automation project for ResoNance/《雷索纳斯》. It keeps the Aura framework layers in this repository and ships a Resonance plan package plus a small desktop GUI for running common trade, market, city and battle-dispatch tasks.
+Aura 是一款面向 Windows 版《雷索纳斯》的桌面自动化工具，提供跑商、客运和战斗调度功能。
 
-## Repository Shape
+程序通过识别游戏画面并操作鼠标键盘完成任务。发布包已经包含运行环境，普通用户无需安装 Python。
 
-```text
-cli.py                         CLI entrypoint
-packages/aura_core             Scheduler, task runtime, manifest tooling
-packages/aura_game             Local runner facade used by CLI and GUI
-packages/resonance_gui         Resonance desktop GUI
-plans/aura_base                Shared runtime actions and services
-plans/aura_benchmark           Lightweight framework smoke plan
-plans/resonance                Resonance automation plan
-scripts/package_release.ps1    Canonical local and CI release entrypoint
-```
+> 本项目为非官方工具，与《雷索纳斯》官方无关。游戏更新可能导致画面识别或操作流程暂时失效，请根据自己的情况使用。
 
-## Quick Commands
+## 主要功能
 
-```powershell
-.\scripts\setup_dev_environment.ps1 -VisionProvider cuda
-.\scripts\run_cli.ps1 tasks resonance
-.\scripts\run_cli.ps1 run resonance tasks:market_data.yaml:market_data_get_latest --timeout-sec 120
-.\scripts\run_cli.ps1 gui resonance
-```
+### 自动跑商
 
-The project uses one canonical `.venv` for development. Release builds use
-separate `.venv-release-cpu`, `.venv-release-gpu`, and
-`.venv-release-overlay` environments so mutually exclusive runtime packages
-cannot contaminate each other.
+- 自动刷新市场行情并计算完整跑商路线。
+- 自动完成卖货、买货、砍价、抬价、城市移动和终点清仓。
+- 可设置起始城市、参与规划城市、疲劳预算、货舱容量和进货书数量。
+- 支持城市声望、商品解锁情况和贸易等级设置。
+- 支持按需使用疲劳药。
+- 支持到达海角城后自动进行蜃息岛投资。
+- 可以只计算方案，不操作游戏；确认路线后再开始执行。
 
-## Validation
+### 自动客运
 
-```powershell
-python -m packages.aura_core.cli.package_cli check plans/resonance
-python -m packages.aura_core.cli.package_cli validate plans/resonance
-python tools\plan_doctor.py --plan resonance
-python -m pytest tests\test_resonance_*.py --basetemp .pytest_tmp\resonance
-```
+- 自动执行海角城与岚心城之间的往返客运。
+- 可设置往返次数，并显示预计疲劳消耗和执行进度。
+- 可在不位于线路端点时自动前往合适的起点。
+- 可选中途倒货，只购买刷新行情后预计税后盈利的商品。
 
-## Release Names
+### 战斗调度
 
-The Resonance release uses:
+- 可组合多项作战任务并按顺序执行。
+- 支持协同终端、铁安局、区域作战中心、行动汇总和构析勘探等内容。
+- 可设置任务类型、城市或关卡、难度、队伍和抓捕次数等参数。
+- 支持执行前校验任务单。
+- 可选择普通失败后是否停止后续任务。
 
-- `AuraResonanceGui.exe`
-- `runtime\AuraResonanceRuntime.exe`
-- external editable plan packages under `plans\`
+## 下载
 
-Build a local CPU release with the high-level entrypoint:
+前往 [最新正式版下载页面](https://github.com/nightofknife/Aura_script_lsns/releases/latest)，根据电脑情况选择压缩包。
 
-```powershell
-.\scripts\package_release.ps1 -Profile cpu -ReleaseLabel local
-.\scripts\package_release.ps1 -Profile all -ReleaseLabel local
-```
+| 版本 | 适合人群 | 文件名 |
+| --- | --- | --- |
+| CPU 版 | 推荐大多数用户使用，兼容性最好 | `AuraResonance-版本号-win-x64-cpu.zip` |
+| GPU 版 | 希望使用 NVIDIA 显卡加速画面识别的用户 | `AuraResonance-版本号-win-x64-gpu.zip` |
+| CUDA 13 扩展包 | GPU 版无法使用本机 CUDA，或需要随包运行库时使用 | `AuraResonance-版本号-nvidia-cu13-overlay.zip` |
 
-`cpu`, `gpu`, `overlay`, and `all` use the same locked build path locally and in
-GitHub Actions. Generated artifacts are written under
-`.runtime\releases\<label>`. The low-level builder is an internal implementation
-detail and does not install dependencies, validate artifacts, or create ZIPs.
+不确定选哪个版本时，直接下载 **CPU 版**。
 
-Preview reclaimable legacy build directories without deleting anything:
+使用 CUDA 13 扩展包时，先完整解压 GPU 版，再把扩展包中的内容解压到 GPU 版目录，允许合并其中的 `runtime` 文件夹。
 
-```powershell
-.\scripts\clean_workspace.ps1
-```
+## 快速开始
 
-Previous game-specific business assets are intentionally not part of this repository.
+1. 下载所需版本，并把压缩包完整解压到一个独立文件夹。
+2. 启动《雷索纳斯》PC 客户端并登录游戏。
+3. 建议把游戏画面设置为 `1280 × 720`，执行期间不要改变窗口尺寸或显示缩放。
+4. 尽量回到城市主界面，再双击解压目录中的 `AuraResonanceGui.exe`。
+5. 在程序中刷新游戏连接，确认显示“已连接”。
+6. 选择跑商、客运或战斗，填写参数后先进行方案计算或任务校验。
+7. 确认无误后开始任务。
 
-## Using a Release
+请勿只把 `AuraResonanceGui.exe` 单独复制出来运行。程序需要同目录下的 `runtime`、`plans` 和 `models` 等文件。
 
-Choose the CPU archive for a universal Windows build, or the GPU archive for a
-machine that may use NVIDIA CUDA acceleration. Extract the archive completely,
-then double-click `AuraResonanceGui.exe`; Python does not need to be installed.
-The GPU build falls back to CPU when CUDA is unavailable. To enable a bundled
-CUDA 13 runtime, extract the matching `nvidia-cu13-overlay.zip` over the GPU
-release directory and allow it to merge the `runtime` directory.
+## 页面使用
 
-Plans remain editable source files inside each full release. They are versioned
-and released together with Core; standalone Plan replacement archives are not
-published.
+### 跑商
+
+1. 在“货运”页面填写疲劳、货舱和进货书等参数。
+2. 选择起始城市和参与规划的城市。
+3. 商品或城市条件与游戏账号不一致时，先修改“城市声望”和“商品解锁”。
+4. 点击“计算方案”查看路线、预计收益和资源消耗。此操作不会控制游戏。
+5. 点击“开始跑商”后，程序会重新确认方案并开始操作游戏。
+
+### 客运
+
+1. 切换到“客运”页面并设置往返次数。
+2. 根据需要启用“中途买卖货”和“自动前往起点”。
+3. 确认预计疲劳足够后开始任务。
+4. 如果取消时已经揽客，请按界面提示人工完成当前单程。
+
+### 战斗
+
+1. 选择作战类别、任务类型和关卡。
+2. 填写该任务需要的难度、队伍或抓捕次数。
+3. 点击“加入任务单”，按需要继续添加其他任务。
+4. 先点击“校验任务单”，通过后再开始战斗。
+
+## 运行注意事项
+
+- 自动化使用真实鼠标和键盘输入，任务运行时不要同时操作鼠标键盘。
+- 程序可能会自动把游戏窗口切换到前台，这是正常现象。
+- 请保持游戏客户端运行，不要在任务过程中关闭游戏或调整分辨率。
+- 网络异常会影响市场行情刷新和路线计算。
+- 游戏更新、界面活动或临时弹窗可能打断自动化。遇到异常时先停止任务，处理弹窗并回到城市主界面后再试。
+- 正常情况下无需管理员权限；如果游戏以管理员身份运行，自动化程序也可能需要使用相同权限启动。
+
+## 更新
+
+新版本发布后，从 [Releases](https://github.com/nightofknife/Aura_script_lsns/releases) 下载完整压缩包并解压到新目录。不要只覆盖旧版本中的个别可执行文件。
+
+当前图形界面主要面向《雷索纳斯》PC 客户端。模拟器任务仍保留在发布包中，但不是本 README 推荐的使用入口。
