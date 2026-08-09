@@ -29,6 +29,64 @@ QPushButton[nav="true"]:checked {
     border-left-color: #19a5a5;
     font-weight: 600;
 }
+QFrame#commerceHeader {
+    background: #ffffff;
+    border-bottom: 1px solid #d7dfe3;
+}
+QLabel#commerceTitle { color: #20252b; font-size: 18px; font-weight: 700; }
+QLabel#commerceCaption { color: #6c7780; font-size: 11px; }
+QPushButton[commerceNav="true"] {
+    min-width: 72px;
+    padding: 7px 18px;
+    background: #f4f7f8;
+    border-color: #cdd7dc;
+}
+QPushButton[commerceNav="true"]:hover { background: #e9f1f2; border-color: #8eacad; }
+QPushButton[commerceNav="true"]:checked {
+    background: #087f82;
+    border-color: #087f82;
+    color: #ffffff;
+    font-weight: 700;
+}
+QFrame#commerceOverviewPanel {
+    background: #ffffff;
+    border: 1px solid #d8e1e4;
+    border-radius: 8px;
+}
+QLabel#commerceOverviewTitle { color: #20252b; font-size: 22px; font-weight: 700; }
+QLabel#developmentBadge {
+    color: #805d09;
+    background: #fff1bf;
+    border: 1px solid #e2c45f;
+    border-radius: 4px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 700;
+}
+QCheckBox[commerceSwitch="true"] {
+    color: #273038;
+    font-size: 16px;
+    font-weight: 600;
+    spacing: 12px;
+    padding: 8px 4px;
+}
+QPushButton[commerceRun="true"] {
+    min-height: 36px;
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 700;
+}
+QPushButton[commerceRunState="run"] {
+    color: #ffffff;
+    background: #087f82;
+    border-color: #087f82;
+}
+QPushButton[commerceRunState="run"]:hover { background: #066e71; }
+QPushButton[commerceRunState="stop"] {
+    color: #a52a24;
+    background: #fff7f6;
+    border-color: #cfaaa7;
+}
 QFrame#statusBand { background: #ffffff; border-bottom: 1px solid #dfe4e8; }
 QFrame#contentPanel { background: #f7f9fa; }
 QFrame#actionBar { background: #ffffff; border-top: 1px solid #dfe4e8; }
