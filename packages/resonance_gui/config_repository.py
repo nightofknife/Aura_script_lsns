@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QSettings
+
+from .paths import resolve_application_root
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -89,9 +92,45 @@ DEFAULT_BATTLE_INPUTS: dict[str, Any] = {
 }
 
 
+def create_portable_settings(
+    base_path: Path | None = None,
+    *,
+    legacy_settings: QSettings | None = None,
+) -> QSettings:
+    root = Path(base_path).resolve() if base_path is not None else resolve_application_root()
+    settings_path = root / "gui-settings.ini"
+    portable = QSettings(str(settings_path), QSettings.Format.IniFormat)
+
+    if settings_path.exists() or portable.allKeys():
+        return portable
+
+    legacy = legacy_settings if legacy_settings is not None else QSettings("Aura", "ResonanceGui")
+    legacy_keys = list(legacy.allKeys())
+    if not legacy_keys:
+        return portable
+
+    for key in legacy_keys:
+        portable.setValue(key, legacy.value(key))
+    portable.sync()
+    if portable.status() == QSettings.Status.NoError:
+        legacy.clear()
+        legacy.sync()
+    return portable
+
+
 class ResonanceConfigRepository:
-    def __init__(self, settings: QSettings | None = None) -> None:
-        self.settings = settings or QSettings("Aura", "ResonanceGui")
+    def __init__(
+        self,
+        settings: QSettings | None = None,
+        *,
+        base_path: Path | None = None,
+        legacy_settings: QSettings | None = None,
+    ) -> None:
+        self.settings = (
+            settings
+            if settings is not None
+            else create_portable_settings(base_path, legacy_settings=legacy_settings)
+        )
 
     def load_preferences(self) -> GuiPreferences:
         return GuiPreferences(
@@ -104,12 +143,14 @@ class ResonanceConfigRepository:
         self.settings.setValue("runner/timeout_sec", float(preferences.timeout_sec))
         self.settings.setValue("history/limit", int(preferences.history_limit))
         self.settings.setValue("workbench/last_task_id", preferences.last_task_id)
+        self.settings.sync()
 
     def value(self, key: str, default: Any = None) -> Any:
         return self.settings.value(key, default)
 
     def set_value(self, key: str, value: Any) -> None:
         self.settings.setValue(key, value)
+        self.settings.sync()
 
     def load_trade_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("trade/inputs_json", "")
@@ -125,6 +166,7 @@ class ResonanceConfigRepository:
     def save_trade_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_trade_inputs(inputs)
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
+        self.settings.sync()
 
     def load_passenger_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("passenger/inputs_json", "")
@@ -140,6 +182,7 @@ class ResonanceConfigRepository:
     def save_passenger_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_passenger_inputs(inputs)
         self.settings.setValue("passenger/inputs_json", json.dumps(normalized, ensure_ascii=False))
+        self.settings.sync()
 
     def load_battle_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("battle/inputs_json", "")
@@ -155,6 +198,7 @@ class ResonanceConfigRepository:
     def save_battle_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_battle_inputs(inputs)
         self.settings.setValue("battle/inputs_json", json.dumps(normalized, ensure_ascii=False))
+        self.settings.sync()
 
 
 def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:

@@ -14,6 +14,9 @@ __pycache__/
 *.pyc
 *.pyo
 logs/
+gui-settings.ini
+updates/
+.update-work/
 plans/logs/
 tmp/
 tmp_*.png

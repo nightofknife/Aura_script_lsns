@@ -55,6 +55,7 @@
   "full_release": {
     "required_paths": [
       "AuraResonanceGui.exe",
+      "更新.exe",
       "runtime/aura.exe",
       "runtime/AuraResonanceRuntime.exe",
       "runtime/_internal/PySide6",
@@ -77,7 +78,10 @@
       "runtime/_internal/paddlex",
       "runtime/_internal/nvidia",
       "plans/resonance/data/cache",
-      "plans/resonance_pc/data/cache"
+      "plans/resonance_pc/data/cache",
+      "gui-settings.ini",
+      "updates",
+      ".update-work"
     ]
   },
   "comparison": {
@@ -92,6 +96,7 @@
     ],
     "allowed_cpu_gpu_differences": [
       "AuraResonanceGui.exe",
+      "更新.exe",
       "BUILD-INFO.txt",
       "BUILD-INFO.json",
       "config.yaml",

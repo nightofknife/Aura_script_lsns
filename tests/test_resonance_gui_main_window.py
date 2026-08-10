@@ -5,7 +5,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -33,6 +33,19 @@ def _window(tmp_path) -> ResonanceMainWindow:
     window.show()
     QApplication.processEvents()
     return window
+
+
+def test_available_update_is_only_shown_in_window_title(tmp_path):
+    window = _window(tmp_path)
+    try:
+        original_child_count = len(window.findChildren(QWidget))
+
+        window._show_available_update("v9.9.9")
+
+        assert window.windowTitle() == "Aura 雷索纳斯控制台 · 发现新版本 v9.9.9"
+        assert len(window.findChildren(QWidget)) == original_child_count
+    finally:
+        window.close()
 
 
 def test_main_window_groups_freight_and_passenger_under_commerce_navigation(tmp_path):

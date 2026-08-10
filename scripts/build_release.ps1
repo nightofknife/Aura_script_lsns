@@ -354,6 +354,38 @@ function Build-GuiRootLauncher {
     }
 }
 
+function Build-PortableUpdater {
+    param(
+        [string]$PythonPath,
+        [string]$UpdaterSource,
+        [string]$IconPath,
+        [string]$DistPath,
+        [string]$WorkPath
+    )
+
+    Assert-PathExists -PathValue $UpdaterSource -Label "Portable updater source"
+    Assert-PathExists -PathValue $IconPath -Label "Aura Resonance application icon"
+    New-Item -ItemType Directory -Force -Path $DistPath | Out-Null
+    New-Item -ItemType Directory -Force -Path $WorkPath | Out-Null
+
+    Write-Host "Building portable updater ..."
+    & $PythonPath -m PyInstaller `
+        --noconfirm `
+        --clean `
+        --onefile `
+        --console `
+        --icon $IconPath `
+        --name "更新" `
+        --distpath $DistPath `
+        --workpath $WorkPath `
+        --specpath $WorkPath `
+        $UpdaterSource
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Portable updater build failed with exit code $LASTEXITCODE."
+    }
+}
+
 function Get-NvidiaPackageRoot {
     param([string]$PythonPath)
 
@@ -462,15 +494,19 @@ $DistPath = Join-Path $RuntimeRootPath "dist"
 $WorkPath = Join-Path $RuntimeRootPath "build\\pyinstaller"
 $LauncherDistPath = Join-Path $RuntimeRootPath "launcher-dist"
 $LauncherWorkPath = Join-Path $RuntimeRootPath "build\\launcher"
+$UpdaterDistPath = Join-Path $RuntimeRootPath "updater-dist"
+$UpdaterWorkPath = Join-Path $RuntimeRootPath "build\\updater"
 $ReleaseRoot = Join-Path $RuntimeRootPath "release\\$ReleaseName"
 $BuiltRuntimeDir = Join-Path $DistPath "aura"
 $BuiltGuiRuntimeExe = Join-Path $BuiltRuntimeDir "AuraResonanceRuntime.exe"
 $BuiltGuiLauncherExe = Join-Path $LauncherDistPath "AuraResonanceGui.exe"
+$BuiltUpdaterExe = Join-Path $UpdaterDistPath "更新.exe"
 $ReleaseRuntimeDir = Join-Path $ReleaseRoot "runtime"
 $ReleasePlansDir = Join-Path $ReleaseRoot "plans"
 $ReleaseOcrModelsDir = Join-Path $ReleaseRoot "models\\ocr"
 $ReleaseYoloModelsDir = Join-Path $ReleaseRoot "models\\yolo"
 $GuiLauncherSource = Join-Path $RepoRoot "packaging\\launcher\\aura_resonance_launcher.py"
+$UpdaterSource = Join-Path $RepoRoot "updater\\aura_updater.py"
 $GuiIconPath = Join-Path $RepoRoot "packaging\\assets\\aura_resonance_chibi_icon-optimized.ico"
 $RunTemplate = Join-Path $RepoRoot "packaging\\templates\\run.ps1"
 $ConfigTemplate = Join-Path $RepoRoot "packaging\\templates\\config.yaml"
@@ -558,11 +594,18 @@ if (-not $SkipBuild) {
             -DistPath $LauncherDistPath `
             -WorkPath $LauncherWorkPath
         Assert-PathExists -PathValue $BuiltGuiLauncherExe -Label "Built AuraResonanceGui root launcher executable"
+        Build-PortableUpdater `
+            -PythonPath $VenvPythonPath `
+            -UpdaterSource $UpdaterSource `
+            -IconPath $GuiIconPath `
+            -DistPath $UpdaterDistPath `
+            -WorkPath $UpdaterWorkPath
+        Assert-PathExists -PathValue $BuiltUpdaterExe -Label "Built portable updater executable"
     }
 
     $builtExecutables = @((Join-Path $BuiltRuntimeDir "aura.exe"))
     if ($IncludeGui) {
-        $builtExecutables += @($BuiltGuiRuntimeExe, $BuiltGuiLauncherExe)
+        $builtExecutables += @($BuiltGuiRuntimeExe, $BuiltGuiLauncherExe, $BuiltUpdaterExe)
     }
     & $VenvPythonPath $ExecutionLevelValidator `
         --expected-level asInvoker `
@@ -575,7 +618,8 @@ if (-not $SkipBuild) {
             --expected-level asInvoker `
             --require-icon `
             $BuiltGuiRuntimeExe `
-            $BuiltGuiLauncherExe
+            $BuiltGuiLauncherExe `
+            $BuiltUpdaterExe
         if ($LASTEXITCODE -ne 0) {
             throw "Packaged GUI executable icon-resource validation failed."
         }
@@ -587,6 +631,7 @@ if (-not $SkipAssemble) {
     if ($IncludeGui) {
         Assert-PathExists -PathValue $BuiltGuiRuntimeExe -Label "Built Resonance GUI runtime executable"
         Assert-PathExists -PathValue $BuiltGuiLauncherExe -Label "Built AuraResonanceGui root launcher executable"
+        Assert-PathExists -PathValue $BuiltUpdaterExe -Label "Built portable updater executable"
     }
     Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $BuiltRuntimeDir
 
@@ -605,6 +650,7 @@ if (-not $SkipAssemble) {
     }
     if ($IncludeGui) {
         Copy-Item -LiteralPath $BuiltGuiLauncherExe -Destination (Join-Path $ReleaseRoot "AuraResonanceGui.exe") -Force
+        Copy-Item -LiteralPath $BuiltUpdaterExe -Destination (Join-Path $ReleaseRoot "更新.exe") -Force
     }
     Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $ReleaseRuntimeDir
     Copy-PlanPackages `

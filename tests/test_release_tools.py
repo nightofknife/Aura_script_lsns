@@ -36,6 +36,7 @@ from scripts.release.validate_windows_execution_level import parse_execution_lev
     [
         (["plans/resonance/src/action.py", "tests/test_action.py"], "full"),
         (["packages/aura_core/runtime.py"], "full"),
+        (["updater/aura_updater.py"], "full"),
         (["plans/resonance/task.yaml", "packaging/pyinstaller/aura.spec"], "full"),
         (["scripts/package_release.ps1"], "full"),
         (["README.md", "tests/test_docs.py"], "none"),
@@ -157,6 +158,23 @@ def test_release_builder_embeds_and_validates_gui_icons():
     assert (
         f"runtime/_internal/packaging/assets/{icon_name}"
         in contract["full_release"]["required_paths"]
+    )
+
+
+def test_release_builder_packages_portable_updater():
+    repo_root = Path(__file__).resolve().parents[1]
+    build_script = (repo_root / "scripts" / "build_release.ps1").read_text(encoding="utf-8")
+    validator = (repo_root / "scripts" / "release" / "validate_release.py").read_text(encoding="utf-8")
+    contract = load_contract(repo_root / "packaging" / "release-contract.json")
+
+    assert "updater\\\\aura_updater.py" in build_script
+    assert '--name "更新"' in build_script
+    assert 'Join-Path $ReleaseRoot "更新.exe"' in build_script
+    assert 'release_root / "更新.exe"' in validator
+    assert "更新.exe" in contract["full_release"]["required_paths"]
+    assert "更新.exe" in contract["comparison"]["allowed_cpu_gpu_differences"]
+    assert {"gui-settings.ini", "updates", ".update-work"}.issubset(
+        contract["full_release"]["forbidden_paths"]
     )
 
 

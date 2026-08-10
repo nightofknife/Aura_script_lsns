@@ -211,6 +211,7 @@ def run_runtime_smoke(release_root: Path) -> None:
         env=env,
     )
     _run_checked([str(release_root / "runtime" / "AuraResonanceRuntime.exe"), "--self-check"], cwd=release_root, env=env)
+    _run_checked([str(release_root / "更新.exe"), "--self-check"], cwd=release_root, env=env)
 
 
 def main() -> int:

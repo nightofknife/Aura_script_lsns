@@ -13,6 +13,7 @@ CORE_PREFIXES = (
     "packaging/",
     "requirements/",
     "scripts/release/",
+    "updater/",
 )
 CORE_FILES = {
     "cli.py",

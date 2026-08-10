@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import threading
+from typing import Any, Callable
 
 from PySide6.QtCore import QThread, QTimer, Qt, Signal
 from PySide6.QtWidgets import (
@@ -44,11 +45,13 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
+from .update_checker import find_available_update
 from .widgets import BattlePage, CommercePage
 from .widgets.run_detail import RunDetailView
 
 
 class ResonanceMainWindow(QMainWindow):
+    updateCheckCompleted = Signal(str)
     requestInitialize = Signal()
     requestRefreshTasks = Signal()
     requestRefreshHistory = Signal()
@@ -70,11 +73,14 @@ class ResonanceMainWindow(QMainWindow):
         bridge: RunnerBridge | None = None,
         settings: ResonanceConfigRepository | None = None,
         initialize_on_startup: bool = True,
+        update_checker: Callable[[], str] | None = None,
     ) -> None:
         super().__init__()
         self._settings = settings or ResonanceConfigRepository()
         self._preferences = self._settings.load_preferences()
         self._bridge = bridge or RunnerBridge()
+        self._update_checker = update_checker if update_checker is not None else find_available_update
+        self._update_check_started = False
         self._bridge_thread = QThread(self)
         self._task_items: dict[str, QTreeWidgetItem] = {}
         self._history_rows: list[dict[str, Any]] = []
@@ -88,14 +94,39 @@ class ResonanceMainWindow(QMainWindow):
         self._commerce_inputs: dict[str, dict[str, Any]] = {}
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
-        self.setWindowTitle("Aura 雷索纳斯控制台")
+        self._base_window_title = "Aura 雷索纳斯控制台"
+        self.setWindowTitle(self._base_window_title)
         self.setMinimumSize(1040, 680)
         self.resize(1280, 820)
         self._build_ui()
         self._wire_bridge()
+        self.updateCheckCompleted.connect(self._show_available_update)
         self._select_task(self._current_task.task_id)
         if initialize_on_startup:
             QTimer.singleShot(0, self.requestInitialize.emit)
+            QTimer.singleShot(0, self._start_update_check)
+
+    def _start_update_check(self) -> None:
+        if self._update_check_started:
+            return
+        self._update_check_started = True
+
+        def run() -> None:
+            try:
+                latest_tag = str(self._update_checker() or "").strip()
+            except Exception:
+                latest_tag = ""
+            try:
+                self.updateCheckCompleted.emit(latest_tag)
+            except RuntimeError:
+                return
+
+        threading.Thread(target=run, name="aura-update-check", daemon=True).start()
+
+    def _show_available_update(self, latest_tag: str) -> None:
+        normalized = str(latest_tag or "").strip()
+        if normalized:
+            self.setWindowTitle(f"{self._base_window_title} · 发现新版本 {normalized}")
 
     def _build_ui(self) -> None:
         root = QWidget(self)
