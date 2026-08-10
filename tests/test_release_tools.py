@@ -168,8 +168,10 @@ def test_release_builder_packages_portable_updater():
     contract = load_contract(repo_root / "packaging" / "release-contract.json")
 
     assert "updater\\\\aura_updater.py" in build_script
-    assert '--name "更新"' in build_script
-    assert 'Join-Path $ReleaseRoot "更新.exe"' in build_script
+    assert "[char]0x66F4" in build_script
+    assert "[char]0x65B0" in build_script
+    assert "--name $ExecutableName" in build_script
+    assert "Join-Path $ReleaseRoot $UpdaterExecutableName" in build_script
     assert 'release_root / "更新.exe"' in validator
     assert "更新.exe" in contract["full_release"]["required_paths"]
     assert "更新.exe" in contract["comparison"]["allowed_cpu_gpu_differences"]

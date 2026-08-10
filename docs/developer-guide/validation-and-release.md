@@ -10,10 +10,28 @@ python tools\plan_doctor.py --plan resonance
 
 ## Tests
 
+所有测试、验证、冒烟检查和打包检查都必须从仓库根目录运行，测试产生的临时文件、
+缓存、截图、日志和其他产物也必须保存在当前仓库内。禁止把系统临时目录、桌面、
+其他 checkout 或外部项目目录作为测试工作目录。
+
+`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`。需要隔离不同
+测试范围时，可以显式使用 `.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
+
 ```powershell
 New-Item -ItemType Directory -Force -Path .pytest_tmp | Out-Null
 python -m pytest tests\test_resonance_*.py --basetemp .pytest_tmp\resonance
 python -m pytest tests\test_resonance_gui_*.py --basetemp .pytest_tmp\resonance_gui
+```
+
+非 pytest 工具如果会调用操作系统临时目录，运行前必须把临时环境变量指向仓库内的
+专用目录，例如：
+
+```powershell
+$testTemp = Join-Path $PWD ".pytest_tmp\manual"
+New-Item -ItemType Directory -Force -Path $testTemp | Out-Null
+$env:TEMP = $testTemp
+$env:TMP = $testTemp
+$env:TMPDIR = $testTemp
 ```
 
 日常验证应使用 `.venv\Scripts\python.exe`，不要从历史 `.venv-*` 或

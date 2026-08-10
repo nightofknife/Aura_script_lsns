@@ -12,6 +12,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$UpdaterBaseName = [string]([char]0x66F4) + [string]([char]0x65B0)
+$UpdaterExecutableName = "$UpdaterBaseName.exe"
 
 function Assert-PathExists {
     param([string]$PathValue, [string]$Label)
@@ -359,6 +361,7 @@ function Build-PortableUpdater {
         [string]$PythonPath,
         [string]$UpdaterSource,
         [string]$IconPath,
+        [string]$ExecutableName,
         [string]$DistPath,
         [string]$WorkPath
     )
@@ -375,7 +378,7 @@ function Build-PortableUpdater {
         --onefile `
         --console `
         --icon $IconPath `
-        --name "更新" `
+        --name $ExecutableName `
         --distpath $DistPath `
         --workpath $WorkPath `
         --specpath $WorkPath `
@@ -500,7 +503,7 @@ $ReleaseRoot = Join-Path $RuntimeRootPath "release\\$ReleaseName"
 $BuiltRuntimeDir = Join-Path $DistPath "aura"
 $BuiltGuiRuntimeExe = Join-Path $BuiltRuntimeDir "AuraResonanceRuntime.exe"
 $BuiltGuiLauncherExe = Join-Path $LauncherDistPath "AuraResonanceGui.exe"
-$BuiltUpdaterExe = Join-Path $UpdaterDistPath "更新.exe"
+$BuiltUpdaterExe = Join-Path $UpdaterDistPath $UpdaterExecutableName
 $ReleaseRuntimeDir = Join-Path $ReleaseRoot "runtime"
 $ReleasePlansDir = Join-Path $ReleaseRoot "plans"
 $ReleaseOcrModelsDir = Join-Path $ReleaseRoot "models\\ocr"
@@ -598,6 +601,7 @@ if (-not $SkipBuild) {
             -PythonPath $VenvPythonPath `
             -UpdaterSource $UpdaterSource `
             -IconPath $GuiIconPath `
+            -ExecutableName $UpdaterBaseName `
             -DistPath $UpdaterDistPath `
             -WorkPath $UpdaterWorkPath
         Assert-PathExists -PathValue $BuiltUpdaterExe -Label "Built portable updater executable"
@@ -650,7 +654,7 @@ if (-not $SkipAssemble) {
     }
     if ($IncludeGui) {
         Copy-Item -LiteralPath $BuiltGuiLauncherExe -Destination (Join-Path $ReleaseRoot "AuraResonanceGui.exe") -Force
-        Copy-Item -LiteralPath $BuiltUpdaterExe -Destination (Join-Path $ReleaseRoot "更新.exe") -Force
+        Copy-Item -LiteralPath $BuiltUpdaterExe -Destination (Join-Path $ReleaseRoot $UpdaterExecutableName) -Force
     }
     Update-MsvcRuntimeForOnnxRuntime -RuntimeDir $ReleaseRuntimeDir
     Copy-PlanPackages `
