@@ -14,7 +14,7 @@ python tools\plan_doctor.py --plan resonance
 缓存、截图、日志和其他产物也必须保存在当前仓库内。禁止把系统临时目录、桌面、
 其他 checkout 或外部项目目录作为测试工作目录。
 
-`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp/default`。需要隔离不同
+`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`。需要隔离不同
 测试范围时，可以显式使用 `.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
 
 ```powershell
