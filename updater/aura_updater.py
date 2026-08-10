@@ -592,6 +592,14 @@ def self_check() -> None:
         raise UpdateError("Portable-data preservation self-check failed")
 
 
+def _write_console_line(message: str, ascii_fallback: str) -> None:
+    try:
+        sys.stdout.write(message + "\n")
+    except UnicodeEncodeError:
+        sys.stdout.write(ascii_fallback + "\n")
+    sys.stdout.flush()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Aura 独立更新器")
     parser.add_argument("--self-check", action="store_true", help=argparse.SUPPRESS)
@@ -600,18 +608,27 @@ def main(argv: list[str] | None = None) -> int:
         try:
             self_check()
         except Exception:
-            print(FAILURE_MESSAGE)
+            _write_console_line(
+                FAILURE_MESSAGE,
+                "Update failed. Please download the latest release from GitHub Releases.",
+            )
             return 1
-        print("更新器自检通过。")
+        _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
         return 0
 
     try:
-        print("正在检查最新正式版……")
+        _write_console_line("正在检查最新正式版……", "Checking the latest formal release...")
         updated = perform_update(application_root())
-        print("更新完成。" if updated else "当前已是最新正式版。")
+        if updated:
+            _write_console_line("更新完成。", "Update completed.")
+        else:
+            _write_console_line("当前已是最新正式版。", "The installed release is already current.")
         return 0
     except Exception:
-        print(FAILURE_MESSAGE)
+        _write_console_line(
+            FAILURE_MESSAGE,
+            "Update failed. Please download the latest release from GitHub Releases.",
+        )
         return 1
 
 

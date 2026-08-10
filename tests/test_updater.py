@@ -13,6 +13,7 @@ import pytest
 from updater.aura_updater import (
     FAILURE_MESSAGE,
     UpdateError,
+    _write_console_line,
     extract_release_archive,
     install_staged_release,
     main,
@@ -202,3 +203,13 @@ def test_updater_failure_only_directs_user_to_manual_download(capsys):
     assert FAILURE_MESSAGE in output
     assert "details" not in output
     assert "回滚" not in output
+
+
+def test_console_output_falls_back_to_ascii_when_code_page_rejects_chinese(monkeypatch):
+    output = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    monkeypatch.setattr("updater.aura_updater.sys.stdout", output)
+
+    _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
+
+    output.seek(0)
+    assert output.read() == "Aura updater self-check passed.\n"
