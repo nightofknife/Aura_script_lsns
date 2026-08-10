@@ -43,12 +43,16 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "use_fatigue_medicine",
         "allowed_fatigue_medicines",
         "fatigue_medicine_max_uses",
+        "arrival_timeout_seconds",
         "auto_cape_island_investment",
     }.issubset(input_names)
     assert "all_plan" not in input_names
     assert "negotiation_budget" not in input_names
     assert steps["run"]["params"]["auto_cape_island_investment"] == (
         "{{ inputs.auto_cape_island_investment | default(false) }}"
+    )
+    assert steps["run"]["params"]["arrival_timeout_seconds"] == (
+        "{{ inputs.arrival_timeout_seconds | default(1800) }}"
     )
     assert task["returns"]["route"] == "{{ nodes.run.output.route }}"
     assert task["returns"]["negotiation_max_attempts"] == (
@@ -77,7 +81,7 @@ def test_route_execution_reuses_existing_travel_action_and_handles_blocked():
 
     assert "resonance_pc_intercity_depart_and_wait" in leg_source
     assert 'location_file_path="data/meta/location_pc.json"' in leg_source
-    assert "enter_station_timeout_seconds=1800" in leg_source
+    assert "enter_station_timeout_seconds=arrival_timeout_seconds" in leg_source
     assert "use_fatigue_medicine=bool(use_fatigue_medicine)" in leg_source
     assert "auto_cape_island_investment" in leg_source
     assert "resonance_pc_trade_route_execution_update" in route_source
@@ -124,6 +128,18 @@ def test_auto_flow_validates_negotiation_attempt_limit_before_services_or_ui(
         asyncio.run(
             actions.resonance_pc_auto_cycle_trade_flow(
                 negotiation_max_attempts=negotiation_max_attempts,
+            )
+        )
+
+
+@pytest.mark.parametrize("arrival_timeout_seconds", [0, -1, True, "bad", float("inf")])
+def test_auto_flow_validates_arrival_timeout_before_services_or_ui(arrival_timeout_seconds):
+    import asyncio
+
+    with pytest.raises(ValueError, match="arrival_timeout_seconds"):
+        asyncio.run(
+            actions.resonance_pc_auto_cycle_trade_flow(
+                arrival_timeout_seconds=arrival_timeout_seconds,
             )
         )
 

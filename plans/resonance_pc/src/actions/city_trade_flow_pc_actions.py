@@ -6,6 +6,7 @@ import time
 import asyncio
 import contextvars
 import functools
+import math
 import threading
 from fractions import Fraction
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -1075,6 +1076,7 @@ async def _execute_route(
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
     negotiation_max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
+    arrival_timeout_seconds: float = 1800.0,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1111,6 +1113,7 @@ async def _execute_route(
                 allowed_fatigue_medicines=allowed_fatigue_medicines,
                 fatigue_medicine_max_uses=fatigue_medicine_max_uses,
                 negotiation_max_attempts=negotiation_max_attempts,
+                arrival_timeout_seconds=arrival_timeout_seconds,
                 app=app,
                 ocr=ocr,
                 vision=vision,
@@ -1176,6 +1179,7 @@ async def _execute_trade_leg(
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
     negotiation_max_attempts: int,
+    arrival_timeout_seconds: float = 1800.0,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1219,7 +1223,7 @@ async def _execute_trade_leg(
     travel = await asyncio.to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
-        enter_station_timeout_seconds=1800,
+        enter_station_timeout_seconds=arrival_timeout_seconds,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 70, 1000, 550],
         drag_center=[640, 360],
@@ -1618,6 +1622,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
+    arrival_timeout_seconds: float = 1800.0,
     auto_cape_island_investment: bool = False,
     app: Any = None,
     ocr: Any = None,
@@ -1643,6 +1648,14 @@ async def resonance_pc_auto_cycle_trade_flow(
         raise ValueError(
             f"negotiation_max_attempts must be between 1 and {MAX_NEGOTIATION_MAX_ATTEMPTS}"
         )
+    if isinstance(arrival_timeout_seconds, bool):
+        raise ValueError("arrival_timeout_seconds must be a positive number")
+    try:
+        normalized_arrival_timeout_seconds = float(arrival_timeout_seconds)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("arrival_timeout_seconds must be a positive number") from exc
+    if not math.isfinite(normalized_arrival_timeout_seconds) or normalized_arrival_timeout_seconds <= 0:
+        raise ValueError("arrival_timeout_seconds must be a positive number")
     expected_fatigue_to_cap(
         success_rates_bps=(
             [5000] if bargain_success_rates_bps is None else bargain_success_rates_bps
@@ -1761,6 +1774,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         "status": "not_started",
         "reason": plan.get("reason"),
         "negotiation_max_attempts": normalized_negotiation_max_attempts,
+        "arrival_timeout_seconds": normalized_arrival_timeout_seconds,
         "completed_leg_count": 0,
         "completed_route": [],
         "leg_results": [],
@@ -1782,6 +1796,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             allowed_fatigue_medicines=allowed_fatigue_medicines or [],
             fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
             negotiation_max_attempts=normalized_negotiation_max_attempts,
+            arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             app=app,
             ocr=ocr,
             vision=vision,
@@ -1848,6 +1863,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     negotiation_execution = _summarize_negotiation_execution(execution, final_sale)
     execution.update(negotiation_execution)
     execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts
+    execution["arrival_timeout_seconds"] = normalized_arrival_timeout_seconds
     execution_status = str(execution.get("status") or "not_started").lower()
     if execution_status == "blocked":
         status = "blocked"
@@ -1871,6 +1887,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "status": status,
             "reason": reason,
             "negotiation_max_attempts": normalized_negotiation_max_attempts,
+            "arrival_timeout_seconds": normalized_arrival_timeout_seconds,
             "warnings": result_warnings,
             "execution": execution,
             "final_sale": final_sale,

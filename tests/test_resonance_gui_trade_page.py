@@ -52,6 +52,7 @@ def _progress(cid: str, sequence: int, **payload):
 def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
     page = _page(tmp_path)
     try:
+        assert page.arrival_timeout_minutes.value() == 30
         page.set_target_status({"ok": True, "target": {"hwnd": 1, "title": "Resonance", "visible": True}})
         assert page.start_button.isEnabled()
         assert not page.preview_button.isEnabled()
@@ -60,6 +61,7 @@ def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
         page.fatigue_budget.setValue(300)
         page.cargo_capacity.setValue(650)
         page.book_budget.setValue(0)
+        page.arrival_timeout_minutes.setValue(45)
         page.negotiation_max_attempts.setValue(6)
         page.bargain_rates.setText("5000, 6000")
         page.raise_rates.setText("5000")
@@ -71,6 +73,7 @@ def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
         assert "negotiation_budget" not in inputs
         assert inputs["fatigue_budget"] == 300
         assert inputs["cargo_capacity"] == 650
+        assert inputs["arrival_timeout_seconds"] == 2700
         assert inputs["negotiation_max_attempts"] == 6
         assert inputs["bargain_success_rates_bps"] == [5000, 6000]
         assert inputs["auto_cape_island_investment"] is True
@@ -80,6 +83,7 @@ def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
         assert not hasattr(page, "full_mode")
         assert not hasattr(page, "negotiation_budget")
         assert page.negotiation_max_attempts.isEnabled()
+        assert page.arrival_timeout_minutes.isEnabled()
         assert set(page.city_checks) == set(inputs["available_city_ids"])
         assert {"14", "17", "19"}.issubset(page.city_checks)
 

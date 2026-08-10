@@ -202,6 +202,11 @@ auto_cycle_trade_pc:
         type: number
         required: false
         default: 4
+      - name: arrival_timeout_seconds
+        type: number
+        required: false
+        default: 1800
+        min: 1
       - name: auto_cape_island_investment
         type: boolean
         required: false
@@ -227,6 +232,7 @@ auto_cycle_trade_pc:
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
+        arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(1800) }}"
         auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
   returns:
     success: "{{ nodes.run.output.success }}"

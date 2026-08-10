@@ -394,6 +394,11 @@ class TradePage(QWidget):
         self.fatigue_budget = self._spin(0, 100000)
         self.cargo_capacity = self._spin(1, 100000)
         self.book_budget = self._spin(0, 100000)
+        self.arrival_timeout_minutes = self._spin(1, 240)
+        self.arrival_timeout_minutes.setSuffix(" 分钟")
+        self.arrival_timeout_minutes.setToolTip(
+            "超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时"
+        )
         self.start_city = QComboBox(content)
         self.start_city.currentIndexChanged.connect(self._sync_actions)
         common_form.addRow("起始城市", self.start_city)
@@ -402,6 +407,7 @@ class TradePage(QWidget):
         common_form.addRow("疲劳预算", self.fatigue_budget)
         common_form.addRow("货舱容量", self.cargo_capacity)
         common_form.addRow("进货书", self.book_budget)
+        common_form.addRow("到站等待上限", self.arrival_timeout_minutes)
         form_stack.addLayout(common_form)
 
         self.use_medicine = QCheckBox("允许使用疲劳药", content)
@@ -741,6 +747,8 @@ class TradePage(QWidget):
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 100)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 650)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
+        arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 1800)), 1)
+        self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 15000)))
         self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))
         self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
@@ -803,6 +811,7 @@ class TradePage(QWidget):
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
             "book_budget": self.book_budget.value(),
+            "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "book_profit_threshold": self.book_profit_threshold.value(),
             "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "bargain_success_rates_bps": bargain_rates,
@@ -1041,6 +1050,7 @@ class TradePage(QWidget):
             self.fatigue_budget,
             self.cargo_capacity,
             self.book_budget,
+            self.arrival_timeout_minutes,
             self.use_medicine,
             self.auto_cape_island_investment,
             self.advanced_toggle,

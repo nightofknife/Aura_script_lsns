@@ -178,6 +178,7 @@ def test_runner_bridge_dispatches_preview_without_execution_only_inputs():
             "use_fatigue_medicine": True,
             "allowed_fatigue_medicines": ["药"],
             "fatigue_medicine_max_uses": 4,
+            "arrival_timeout_seconds": 2700,
             "auto_cape_island_investment": True,
         },
         0.0,
@@ -199,6 +200,7 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
             "fatigue_budget": 300,
             "start_city_id": "3",
             "negotiation_max_attempts": 6,
+            "arrival_timeout_seconds": 2700,
             "auto_cape_island_investment": True,
         },
         0.0,
@@ -208,6 +210,7 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
     assert run_call["inputs"] == {
         "fatigue_budget": 300,
         "negotiation_max_attempts": 6,
+        "arrival_timeout_seconds": 2700,
         "auto_cape_island_investment": True,
     }
 
@@ -312,6 +315,7 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert trade_inputs["cargo_capacity"] == 650
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["negotiation_max_attempts"] == 5
+    assert trade_inputs["arrival_timeout_seconds"] == 1800
     assert trade_inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
     assert "all_plan" not in trade_inputs
     assert "negotiation_budget" not in trade_inputs
@@ -322,9 +326,11 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     trade_inputs["start_city_id"] = "3"
     repo.save_trade_inputs(trade_inputs)
     trade_inputs["auto_cape_island_investment"] = True
+    trade_inputs["arrival_timeout_seconds"] = 2700
     repo.save_trade_inputs(trade_inputs)
     assert repo.load_trade_inputs()["auto_cape_island_investment"] is True
     assert repo.load_trade_inputs()["fatigue_budget"] == 300
+    assert repo.load_trade_inputs()["arrival_timeout_seconds"] == 2700
     assert "all_plan" not in repo.load_trade_inputs()
     assert "negotiation_budget" not in repo.load_trade_inputs()
     assert repo.load_trade_inputs()["available_city_ids"] == ["3", "1"]
