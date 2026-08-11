@@ -10,8 +10,16 @@ import urllib.request
 from .paths import resolve_application_root
 
 
-LATEST_RELEASE_API = "https://api.github.com/repos/nightofknife/Aura_script_lsns/releases/latest"
+LATEST_CHECKSUMS_URL = (
+    "https://github.com/nightofknife/Aura_script_lsns/releases/latest/download/SHA256SUMS.txt"
+)
 _VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
+_CHECKSUM_LINE_RE = re.compile(r"^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$")
+_RELEASE_FILENAME_RE = re.compile(
+    r"^AuraResonance-(v?\d+\.\d+\.\d+)-(?:win-x64-(?:cpu|gpu)|nvidia-cu13-overlay)\.zip$",
+    re.IGNORECASE,
+)
+_MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -36,6 +44,39 @@ def _read_current_tag(root: Path) -> str:
     return str(payload.get("release_label") or "").strip()
 
 
+def _read_latest_tag(contents: bytes) -> str:
+    try:
+        text = contents.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return ""
+
+    filenames: set[str] = set()
+    tags: set[str] = set()
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = _CHECKSUM_LINE_RE.fullmatch(line)
+        if match is None:
+            return ""
+        filename = match.group(2).strip()
+        if filename != Path(filename).name or filename.casefold() in filenames:
+            return ""
+        filenames.add(filename.casefold())
+        release_match = _RELEASE_FILENAME_RE.fullmatch(filename)
+        if release_match is not None:
+            tags.add(release_match.group(1))
+
+    if len(tags) != 1:
+        return ""
+    tag = next(iter(tags))
+    required = {
+        f"AuraResonance-{tag}-win-x64-cpu.zip".casefold(),
+        f"AuraResonance-{tag}-win-x64-gpu.zip".casefold(),
+        f"AuraResonance-{tag}-nvidia-cu13-overlay.zip".casefold(),
+    }
+    return tag if required.issubset(filenames) else ""
+
+
 def check_for_update(
     *,
     base_path: Path | None = None,
@@ -49,20 +90,19 @@ def check_for_update(
         return None
 
     request = urllib.request.Request(
-        LATEST_RELEASE_API,
+        LATEST_CHECKSUMS_URL,
         headers={
-            "Accept": "application/vnd.github+json",
+            "Accept": "text/plain",
             "User-Agent": f"AuraResonance/{current_tag}",
-            "X-GitHub-Api-Version": "2022-11-28",
         },
     )
     open_url = opener or urllib.request.urlopen
     with open_url(request, timeout=max(float(timeout_sec), 0.1)) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+        contents = response.read(_MAX_CHECKSUM_BYTES + 1)
 
-    if bool(payload.get("draft")) or bool(payload.get("prerelease")):
+    if len(contents) > _MAX_CHECKSUM_BYTES:
         return None
-    latest_tag = str(payload.get("tag_name") or "").strip()
+    latest_tag = _read_latest_tag(contents)
     latest_version = _parse_version(latest_tag)
     if latest_version is None:
         return None

@@ -18,10 +18,15 @@ import urllib.request
 import zipfile
 
 
-LATEST_RELEASE_API = "https://api.github.com/repos/nightofknife/Aura_script_lsns/releases/latest"
+RELEASES_URL = "https://github.com/nightofknife/Aura_script_lsns/releases"
+LATEST_CHECKSUMS_URL = f"{RELEASES_URL}/latest/download/SHA256SUMS.txt"
 FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
 VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 SHA256_RE = re.compile(r"^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$")
+RELEASE_ASSET_RE = re.compile(
+    r"^AuraResonance-(v?\d+\.\d+\.\d+)-win-x64-(?:cpu|gpu)\.zip$",
+    re.IGNORECASE,
+)
 MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
@@ -73,6 +78,7 @@ class ReleaseAsset:
 class LatestRelease:
     tag: str
     assets: tuple[ReleaseAsset, ...]
+    checksums: dict[str, str]
 
 
 def parse_version(value: Any) -> tuple[int, int, int] | None:
@@ -94,7 +100,6 @@ def _request(url: str, *, accept: str) -> urllib.request.Request:
         headers={
             "Accept": accept,
             "User-Agent": "AuraResonanceUpdater/1",
-            "X-GitHub-Api-Version": "2022-11-28",
         },
     )
 
@@ -114,35 +119,46 @@ def fetch_latest_release(
     opener: Callable[..., Any] | None = None,
     timeout_sec: float = 15.0,
 ) -> LatestRelease:
-    request = _request(LATEST_RELEASE_API, accept="application/vnd.github+json")
+    request = _request(LATEST_CHECKSUMS_URL, accept="text/plain")
     with _open_url(request, opener=opener, timeout_sec=timeout_sec) as response:
         raw = response.read(MAX_CHECKSUM_BYTES + 1)
     if len(raw) > MAX_CHECKSUM_BYTES:
-        raise UpdateError("GitHub release metadata is too large")
-    payload = json.loads(raw.decode("utf-8"))
-    if bool(payload.get("draft")) or bool(payload.get("prerelease")):
-        raise UpdateError("Latest release is not a formal release")
+        raise UpdateError("最新版本校验文件过大")
 
-    tag = str(payload.get("tag_name") or "").strip()
+    checksums = parse_checksums(raw)
+    tags = {
+        match.group(1)
+        for filename in checksums
+        if (match := RELEASE_ASSET_RE.fullmatch(filename)) is not None
+    }
+    if len(tags) != 1:
+        raise UpdateError("无法从 SHA256SUMS.txt 唯一确定最新正式版版本号")
+    tag = next(iter(tags))
     if parse_version(tag) is None:
-        raise UpdateError("Latest release tag is invalid")
+        raise UpdateError("SHA256SUMS.txt 中的最新版本号无效")
 
-    assets: list[ReleaseAsset] = []
-    for item in payload.get("assets") or []:
-        name = str(item.get("name") or "").strip()
-        url = str(item.get("browser_download_url") or "").strip()
-        parsed_url = urllib.parse.urlparse(url)
-        if (
-            not name
-            or name != Path(name).name
-            or parsed_url.scheme.lower() != "https"
-            or parsed_url.hostname not in {"github.com", "www.github.com"}
-        ):
-            continue
-        assets.append(ReleaseAsset(name=name, url=url))
-    if not assets:
-        raise UpdateError("Latest release has no downloadable assets")
-    return LatestRelease(tag=tag, assets=tuple(assets))
+    asset_names = (
+        f"AuraResonance-{tag}-win-x64-cpu.zip",
+        f"AuraResonance-{tag}-win-x64-gpu.zip",
+        f"AuraResonance-{tag}-nvidia-cu13-overlay.zip",
+    )
+    missing = [name for name in asset_names if name.casefold() not in checksums]
+    if missing:
+        raise UpdateError("SHA256SUMS.txt 缺少正式版资产：" + ", ".join(missing))
+
+    encoded_tag = urllib.parse.quote(tag, safe="")
+    assets = tuple(
+        ReleaseAsset(
+            name=name,
+            url=f"{RELEASES_URL}/download/{encoded_tag}/{urllib.parse.quote(name, safe='')}",
+        )
+        for name in asset_names
+    )
+    return LatestRelease(
+        tag=tag,
+        assets=assets,
+        checksums=checksums,
+    )
 
 
 def select_asset(release: LatestRelease, suffix: str, *, exact: bool = False) -> ReleaseAsset:
@@ -536,15 +552,7 @@ def perform_update(
 
     download_root = _confined_child(root, "updates", release.tag)
     work_root = _confined_child(root, ".update-work")
-    checksums_asset = select_asset(release, "SHA256SUMS.txt", exact=True)
-    checksums_path = download_root / checksums_asset.name
-    download_asset(
-        checksums_asset,
-        checksums_path,
-        opener=opener,
-        max_bytes=MAX_CHECKSUM_BYTES,
-    )
-    checksums = parse_checksums(checksums_path.read_bytes())
+    checksums = release.checksums
 
     main_asset = select_asset(release, f"-win-x64-{profile}.zip")
     main_archive = _download_and_verify(
@@ -600,6 +608,39 @@ def _write_console_line(message: str, ascii_fallback: str) -> None:
     sys.stdout.flush()
 
 
+def _describe_error(error: BaseException) -> tuple[str, str]:
+    details = str(error).strip() or "没有提供错误详情"
+    name = type(error).__name__
+    message = f"失败原因：{name}: {details}"
+    ascii_details = details.encode("ascii", "backslashreplace").decode("ascii")
+    return message, f"Failure reason: {name}: {ascii_details}"
+
+
+def _wait_for_enter_after_failure() -> None:
+    try:
+        interactive = bool(sys.stdin and sys.stdin.isatty())
+    except (AttributeError, OSError):
+        interactive = False
+    if not interactive:
+        return
+    _write_console_line("按回车键关闭窗口。", "Press Enter to close this window.")
+    try:
+        sys.stdin.readline()
+    except (EOFError, OSError):
+        return
+
+
+def _report_failure(error: BaseException, *, wait_for_enter: bool) -> None:
+    message, fallback = _describe_error(error)
+    _write_console_line(message, fallback)
+    _write_console_line(
+        FAILURE_MESSAGE,
+        "Update failed. Please download the latest release from GitHub Releases.",
+    )
+    if wait_for_enter:
+        _wait_for_enter_after_failure()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Aura 独立更新器")
     parser.add_argument("--self-check", action="store_true", help=argparse.SUPPRESS)
@@ -607,11 +648,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.self_check:
         try:
             self_check()
-        except Exception:
-            _write_console_line(
-                FAILURE_MESSAGE,
-                "Update failed. Please download the latest release from GitHub Releases.",
-            )
+        except Exception as exc:
+            _report_failure(exc, wait_for_enter=False)
             return 1
         _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
         return 0
@@ -624,11 +662,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             _write_console_line("当前已是最新正式版。", "The installed release is already current.")
         return 0
-    except Exception:
-        _write_console_line(
-            FAILURE_MESSAGE,
-            "Update failed. Please download the latest release from GitHub Releases.",
-        )
+    except Exception as exc:
+        _report_failure(exc, wait_for_enter=True)
         return 1
 
 
