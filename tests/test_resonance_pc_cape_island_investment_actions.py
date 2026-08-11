@@ -127,10 +127,16 @@ def test_enter_island_retries_the_same_resolved_coordinate(monkeypatch):
     app = _App()
     service = ResonancePcCityShopDataService(plan_root=PLAN_ROOT)
     matches = iter([_match(False), _match(True)])
+    sleeps = []
+
     async def wait_for_image(**_kwargs):
         return next(matches)
 
+    async def sleep(seconds):
+        sleeps.append(seconds)
+
     monkeypatch.setattr(actions, "wait_for_image", wait_for_image)
+    monkeypatch.setattr(actions.asyncio, "sleep", sleep)
 
     result = asyncio.run(
         actions._enter_island(
@@ -146,23 +152,33 @@ def test_enter_island_retries_the_same_resolved_coordinate(monkeypatch):
     )
 
     assert result["attempts"] == 2
+    assert result["settle_sec"] == 2.0
     assert app.clicks == [(112, 425), (112, 425)]
+    assert sleeps == [2.0]
 
 
 def test_open_revenue_overview_retries_only_the_fixed_safe_point(monkeypatch):
     app = _App()
     matches = iter([_match(False), _match(False), _match(True)])
+    clock = [100.0]
+    wait_timeouts = []
+
     async def wait_for_image(**_kwargs):
-        return next(matches)
+        wait_timeouts.append(_kwargs["timeout"])
+        match = next(matches)
+        if not match.found:
+            clock[0] += _kwargs["timeout"]
+        return match
 
     monkeypatch.setattr(actions, "wait_for_image", wait_for_image)
+    monkeypatch.setattr(actions.time, "monotonic", lambda: clock[0])
 
     result = asyncio.run(
         actions._open_revenue_overview(
             app,
             object(),
             object(),
-            page_timeout_sec=0,
+            page_timeout_sec=12.0,
             interval_sec=0.05,
             transition_attempts=3,
         )
@@ -170,6 +186,38 @@ def test_open_revenue_overview_retries_only_the_fixed_safe_point(monkeypatch):
 
     assert result["attempts"] == 3
     assert app.clicks == [actions._OPEN_REVENUE_SAFE_POINT] * 3
+    assert wait_timeouts == pytest.approx([1.5, 1.5, 9.0])
+
+
+def test_open_revenue_overview_stops_clicking_when_total_timeout_is_exhausted(monkeypatch):
+    app = _App()
+    clock = [100.0]
+    wait_timeouts = []
+
+    async def wait_for_image(**kwargs):
+        wait_timeouts.append(kwargs["timeout"])
+        clock[0] += kwargs["timeout"]
+        return _match(False)
+
+    monkeypatch.setattr(actions, "wait_for_image", wait_for_image)
+    monkeypatch.setattr(actions.time, "monotonic", lambda: clock[0])
+
+    with pytest.raises(actions.CapeIslandInvestmentError) as exc_info:
+        asyncio.run(
+            actions._open_revenue_overview(
+                app,
+                object(),
+                object(),
+                page_timeout_sec=2.0,
+                interval_sec=0.05,
+                transition_attempts=3,
+            )
+        )
+
+    assert exc_info.value.code == "revenue_overview_timeout"
+    assert exc_info.value.detail["attempts"] == 2
+    assert app.clicks == [actions._OPEN_REVENUE_SAFE_POINT] * 2
+    assert wait_timeouts == pytest.approx([1.5, 0.5])
 
 
 @pytest.mark.parametrize(
