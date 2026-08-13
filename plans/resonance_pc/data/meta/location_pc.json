@@ -384,6 +384,12 @@
                 420
             ]
         },
+        "wulin_source": {
+            "maploc": [-636, 287],
+            "exchange": [370, 380],
+            "battle": [1035, 460],
+            "event_city_center": [820, 95]
+        },
         "confluence_tower": {
             "maploc": [
                 153,

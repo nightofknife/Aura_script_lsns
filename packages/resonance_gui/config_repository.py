@@ -33,8 +33,12 @@ PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
     ("18", "黑月游乐城"),
     ("19", "贡露城"),
     ("20", "维蒂林场"),
+    ("21", "武林源"),
 )
-DEFAULT_PC_TRADE_CITY_IDS = [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS]
+ALL_PC_TRADE_CITY_IDS = [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS]
+DEFAULT_PC_TRADE_CITY_IDS = [
+    city_id for city_id in ALL_PC_TRADE_CITY_IDS if city_id != "21"
+]
 _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
     frozenset(("3", "4", "1", "5", "7", "8", "9", "2")),
     frozenset(
@@ -44,6 +48,7 @@ _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
     ),
     frozenset(str(city_id) for city_id in range(1, 21)),
 )
+_CITY_DEFAULTS_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -159,15 +164,43 @@ class ResonanceConfigRepository:
             try:
                 parsed = json.loads(str(raw))
                 if isinstance(parsed, dict):
+                    parsed = self._migrate_trade_city_defaults(parsed)
                     return _merge_trade_inputs(parsed)
             except (TypeError, ValueError):
                 pass
+        self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
+        self.settings.sync()
         return _merge_trade_inputs({})
 
     def save_trade_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_trade_inputs(inputs)
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
+        self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
         self.settings.sync()
+
+    def _migrate_trade_city_defaults(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        try:
+            defaults_version = int(self.settings.value("trade/city_defaults_version", 1))
+        except (TypeError, ValueError):
+            defaults_version = 1
+        if defaults_version >= _CITY_DEFAULTS_VERSION:
+            return inputs
+
+        migrated = dict(inputs)
+        raw_city_ids = migrated.get("available_city_ids")
+        selected = {
+            str(city_id)
+            for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
+        }
+        if selected == set(ALL_PC_TRADE_CITY_IDS):
+            migrated["available_city_ids"] = list(DEFAULT_PC_TRADE_CITY_IDS)
+            self.settings.setValue(
+                "trade/inputs_json",
+                json.dumps(migrated, ensure_ascii=False),
+            )
+        self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
+        self.settings.sync()
+        return migrated
 
     def load_passenger_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("passenger/inputs_json", "")
@@ -212,7 +245,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         dict.fromkeys(
             str(city_id)
             for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
-            if str(city_id) in DEFAULT_PC_TRADE_CITY_IDS
+            if str(city_id) in ALL_PC_TRADE_CITY_IDS
         )
     )
     raw_city_id_set = frozenset(

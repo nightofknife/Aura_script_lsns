@@ -10,6 +10,7 @@ from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication, QDialog
 
 from packages.resonance_gui.config_repository import (
+    ALL_PC_TRADE_CITY_IDS,
     DEFAULT_PC_TRADE_CITY_IDS,
     ResonanceConfigRepository,
 )
@@ -78,13 +79,15 @@ def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
         assert inputs["bargain_success_rates_bps"] == [5000, 6000]
         assert inputs["auto_cape_island_investment"] is True
         assert inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+        assert "21" in page.city_checks
+        assert not page.city_checks["21"].isChecked()
         assert inputs["start_city_id"] == "3"
         assert not hasattr(page, "budget_mode")
         assert not hasattr(page, "full_mode")
         assert not hasattr(page, "negotiation_budget")
         assert page.negotiation_max_attempts.isEnabled()
         assert page.arrival_timeout_minutes.isEnabled()
-        assert set(page.city_checks) == set(inputs["available_city_ids"])
+        assert set(page.city_checks) == set(ALL_PC_TRADE_CITY_IDS)
         assert {"14", "17", "19"}.issubset(page.city_checks)
 
         requests = []
@@ -151,7 +154,7 @@ def test_city_prestige_dialog_edits_all_cities_and_restores_defaults():
             "default": 18,
             "overrides": {"3": 16, "19": 12},
         }
-        assert set(dialog.city_prestige) == set(DEFAULT_PC_TRADE_CITY_IDS)
+        assert set(dialog.city_prestige) == set(ALL_PC_TRADE_CITY_IDS)
 
         dialog._restore_defaults()
 

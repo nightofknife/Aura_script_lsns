@@ -53,6 +53,7 @@ _CITY_ALIAS_TO_KEY: Dict[str, str] = {
     "沃德镇": "confluence_tower",
     "贡露城": "gronru_city",
     "格罗努城": "gronru_city",
+    "武林源": "wulin_source",
 }
 
 _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
@@ -76,6 +77,7 @@ _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
     "vitilin_forest": "维蒂林场",
     "yunxiuqiao_base": "云岫桥基地",
     "confluence_tower": "汇流塔",
+    "wulin_source": "武林源",
 }
 
 _SHOP_NAME_TO_KEY: Dict[str, str] = {

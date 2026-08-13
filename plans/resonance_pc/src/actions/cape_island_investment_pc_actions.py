@@ -85,6 +85,8 @@ _INVESTMENT_SUCCESS_REGION = (500, 180, 300, 350)
 # 今日收益 value; the second one dismisses the modal without touching a card.
 _OPEN_REVENUE_SAFE_POINT = (220, 580)
 _SUCCESS_DISMISS_POINT = (470, 610)
+_ISLAND_HOME_SETTLE_SEC = 2.0
+_REVENUE_CLICK_RETRY_INTERVAL_SEC = 1.5
 
 _METRIC_SPECS: Dict[str, Dict[str, Any]] = {
     "share_percent": {"region": (860, 180, 160, 90), "kind": "share"},
@@ -384,7 +386,13 @@ async def _enter_island(
             region=_ISLAND_HOME_REGION,
         )
         if match.found:
-            return {"attempts": attempt, "click": point, "match": last_match}
+            await asyncio.sleep(_ISLAND_HOME_SETTLE_SEC)
+            return {
+                "attempts": attempt,
+                "click": point,
+                "match": last_match,
+                "settle_sec": _ISLAND_HOME_SETTLE_SEC,
+            }
     _raise_error(
         "cape_island_entry_timeout",
         "clicked the Cape City island coordinate but the island page was not confirmed",
@@ -403,14 +411,26 @@ async def _open_revenue_overview(
     transition_attempts: int,
 ) -> Dict[str, Any]:
     last_match: Dict[str, Any] = {}
-    for attempt in range(1, max(int(transition_attempts), 1) + 1):
+    attempt_limit = max(int(transition_attempts), 1)
+    deadline = time.monotonic() + max(float(page_timeout_sec), 0.0)
+    attempts_made = 0
+    for attempt in range(1, attempt_limit + 1):
+        if attempt > 1 and time.monotonic() >= deadline:
+            break
+        attempts_made = attempt
         app.click(x=_OPEN_REVENUE_SAFE_POINT[0], y=_OPEN_REVENUE_SAFE_POINT[1])
+        remaining_sec = max(deadline - time.monotonic(), 0.0)
+        wait_timeout_sec = (
+            remaining_sec
+            if attempt == attempt_limit
+            else min(_REVENUE_CLICK_RETRY_INTERVAL_SEC, remaining_sec)
+        )
         match = await wait_for_image(
             app=app,
             vision=vision,
             engine=engine,
             template=_REVENUE_OVERVIEW_TEMPLATE,
-            timeout=page_timeout_sec,
+            timeout=wait_timeout_sec,
             interval=interval_sec,
             region=_REVENUE_OVERVIEW_REGION,
             threshold=0.86,
@@ -429,7 +449,11 @@ async def _open_revenue_overview(
     _raise_error(
         "revenue_overview_timeout",
         "the fixed island background click did not open the revenue overview",
-        {"attempts": max(int(transition_attempts), 1), "last_match": last_match},
+        {
+            "attempts": attempts_made,
+            "timeout_sec": max(float(page_timeout_sec), 0.0),
+            "last_match": last_match,
+        },
     )
     return {}
 

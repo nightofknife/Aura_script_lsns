@@ -7,6 +7,7 @@ from PySide6.QtCore import QSettings
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import (
+    ALL_PC_TRADE_CITY_IDS,
     DEFAULT_BATTLE_INPUTS,
     DEFAULT_PC_TRADE_CITY_IDS,
     PC_TRADE_CITY_OPTIONS,
@@ -364,7 +365,7 @@ def test_config_repository_migrates_legacy_default_city_selection(tmp_path):
     )
     repo = ResonanceConfigRepository(settings=settings)
 
-    assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == DEFAULT_PC_TRADE_CITY_IDS
+    assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == ALL_PC_TRADE_CITY_IDS
     assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
 
 
@@ -385,6 +386,39 @@ def test_config_repository_migrates_previous_pc_default_city_selection(tmp_path)
     assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
 
 
+def test_config_repository_migrates_twenty_city_default_selection(tmp_path):
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    settings.setValue(
+        "trade/inputs_json",
+        json.dumps(
+            {"available_city_ids": [str(value) for value in range(1, 21)]},
+            ensure_ascii=False,
+        ),
+    )
+
+    repo = ResonanceConfigRepository(settings=settings)
+
+    assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+
+
+def test_config_repository_migrates_all_cities_to_wulin_opted_out_once(tmp_path):
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    settings.setValue(
+        "trade/inputs_json",
+        json.dumps({"available_city_ids": ALL_PC_TRADE_CITY_IDS}, ensure_ascii=False),
+    )
+    repo = ResonanceConfigRepository(settings=settings)
+
+    assert repo.load_trade_inputs()["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
+    assert "21" not in repo.load_trade_inputs()["available_city_ids"]
+
+    selected_all = repo.load_trade_inputs()
+    selected_all["available_city_ids"] = list(ALL_PC_TRADE_CITY_IDS)
+    repo.save_trade_inputs(selected_all)
+
+    assert repo.load_trade_inputs()["available_city_ids"] == ALL_PC_TRADE_CITY_IDS
+
+
 def test_gui_trade_city_options_match_complete_location_data():
     plan_meta = REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta"
     constraints = json.loads(
@@ -400,7 +434,10 @@ def test_gui_trade_city_options_match_complete_location_data():
     ]
 
     assert [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS] == complete_city_ids
-    assert DEFAULT_PC_TRADE_CITY_IDS == complete_city_ids
+    assert ALL_PC_TRADE_CITY_IDS == complete_city_ids
+    assert DEFAULT_PC_TRADE_CITY_IDS == [
+        city_id for city_id in complete_city_ids if city_id != "21"
+    ]
     assert all(
         "exchange" in locations[constraints["city_id_to_key"][city_id]]
         for city_id in complete_city_ids

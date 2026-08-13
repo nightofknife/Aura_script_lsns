@@ -96,6 +96,7 @@ auto_cycle_trade_pc:
           - "18"
           - "19"
           - "20"
+          - "21"
         min: 2
         item:
           name: available_city_id
@@ -122,6 +123,7 @@ auto_cycle_trade_pc:
             - "18"
             - "19"
             - "20"
+            - "21"
       - name: city_prestige
         type: dict
         required: false
@@ -162,6 +164,7 @@ auto_cycle_trade_pc:
               "18": {name: city_18, type: number, required: false, min: 1, max: 20}
               "19": {name: city_19, type: number, required: false, min: 1, max: 20}
               "20": {name: city_20, type: number, required: false, min: 1, max: 20}
+              "21": {name: city_21, type: number, required: false, min: 1, max: 20}
       - name: product_unlocks
         type: dict
         required: false
@@ -225,7 +228,7 @@ auto_cycle_trade_pc:
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
         trade_level: "{{ inputs.trade_level | default(20) }}"
-        available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']) }}"
+        available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         active_events: "{{ inputs.active_events | default([]) }}"

@@ -2,8 +2,8 @@
   "schema_version": "1.0.0",
   "source": {
     "site": "https://www.resonance-columba.com/route",
-    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-783db856da218bb5.js",
-    "extracted_at": "2026-08-08T19:02:42.329985+00:00"
+    "route_chunk": "https://www.resonance-columba.com/_next/static/chunks/177ff284-3594f4d7a6e848d6.js",
+    "extracted_at": "2026-08-13T03:48:24.078364+00:00"
   },
   "default_lot": 0,
   "city_product_buy_lot": {
@@ -224,9 +224,19 @@
       "216": 28,
       "217": 1,
       "218": 36
+    },
+    "21": {
+      "219": 3,
+      "220": 3,
+      "221": 9,
+      "222": 12,
+      "223": 18,
+      "224": 21,
+      "225": 27,
+      "226": 30,
+      "227": 36,
+      "228": 45,
+      "229": 54
     }
-  },
-  "unknown_city_names": [
-    "武林源"
-  ]
+  }
 }

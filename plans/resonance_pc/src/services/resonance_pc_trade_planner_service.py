@@ -67,7 +67,7 @@ class ResonancePcTradePlannerService:
     DEFAULT_CYCLE_BEAM_WIDTH = 64
     DEFAULT_CYCLE_TOPK_NEXT = 6
     OPTIMAL_ROUTE_CACHE_SIZE = 8
-    DEFAULT_ALLOWED_CITY_IDS = [str(city_id) for city_id in range(1, 21)]
+    DEFAULT_ALLOWED_CITY_IDS = [str(city_id) for city_id in range(1, 22)]
     DEFAULT_AVAILABLE_CITY_IDS = [
         "1",
         "2",
@@ -86,6 +86,7 @@ class ResonancePcTradePlannerService:
         "16",
         "18",
         "20",
+        "21",
     ]
     DEFAULT_CITY_ID_TO_KEY = {
         "1": "shoggolith_city",
@@ -108,6 +109,7 @@ class ResonancePcTradePlannerService:
         "18": "black_moon_amusement_park",
         "19": "gronru_city",
         "20": "vitilin_forest",
+        "21": "wulin_source",
     }
     KNOWN_CITY_KEY_TO_ID = {
         **{value: key for key, value in DEFAULT_CITY_ID_TO_KEY.items()},
