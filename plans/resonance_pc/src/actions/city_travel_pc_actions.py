@@ -61,6 +61,7 @@ _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS = 550.0
 _POST_DRAG_STABILIZE_SECONDS = 0.6
 _POST_DRAG_OCR_RETRIES = 2
 _POST_DRAG_OCR_RETRY_INTERVAL_SECONDS = 0.4
+_MAX_CONSECUTIVE_UNANCHORED_DRAGS = 4
 
 _WEEKLY_NOTICE_CHECKBOX = [890, 523]
 _DEPART_CONFIRM_POINT = [852, 447]
@@ -110,6 +111,7 @@ _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
     "vitilin_forest": "维蒂林场",
     "cape_city": "海角城",
     "confluence_tower": "汇流塔",
+    "wulin_source": "武林源",
 }
 
 _CITY_ALIAS_TO_KEY: Dict[str, str] = {
@@ -139,6 +141,7 @@ _CITY_ALIAS_TO_KEY: Dict[str, str] = {
     "海角城": "cape_city",
     "汇流塔": "confluence_tower",
     "沃德镇": "confluence_tower",
+    "武林源": "wulin_source",
 }
 
 _CITY_OCR_TEXT_REPLACEMENTS: Dict[str, str] = {
@@ -1204,6 +1207,9 @@ def resonance_pc_select_intercity_destination(
     selected_point: Optional[Tuple[int, int]] = None
     selected_mode: Optional[str] = None
     has_dragged = False
+    last_drag_start: Optional[Tuple[int, int]] = None
+    last_drag_end: Optional[Tuple[int, int]] = None
+    consecutive_unanchored_drags = 0
 
     for step in range(max_steps):
         observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
@@ -1281,68 +1287,108 @@ def resonance_pc_select_intercity_destination(
         ]
 
         if mappable_points:
+            consecutive_unanchored_drags = 0
             anchor_route = _choose_anchor_route(
                 mappable_points=mappable_points,
                 target_city_key=target_city_key,
                 city_table=city_table,
             )
             if anchor_route is None:
-                selected_mode = "no_anchor_route"
+                if not fallback_enabled:
+                    selected_mode = "no_anchor_route"
+                    attempts.append(
+                        {
+                            "step": step + 1,
+                            "mode": "no_anchor_route",
+                            "observed_city_count": len(mappable_points),
+                            "observed_text_count": len(observed),
+                            "observed": observed_log,
+                            "mappable": mappable_log,
+                            "stabilization_retries": stabilization_retries,
+                            "plan": {
+                                "reason": "no_connected_anchor_route",
+                                "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+                                "fallback_drag_disabled": True,
+                            },
+                        }
+                    )
+                    break
+                start, end, plan_debug = _plan_directional_drag(
+                    mappable_points=mappable_points,
+                    target_maploc=_extract_maploc(city_table, target_city_key),
+                    drag_center=center,
+                    drag_span_px=span,
+                    window_size=(width, height),
+                )
+                plan_debug.update(
+                    {
+                        "reason": "no_connected_anchor_route",
+                        "target_city_key": target_city_key,
+                        "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+                    }
+                )
+                mode = "target_directional"
+            else:
+                start, end, plan_debug = _plan_directional_drag(
+                    mappable_points=mappable_points,
+                    target_maploc=anchor_route["waypoint_maploc"],
+                    drag_center=center,
+                    drag_span_px=span,
+                    window_size=(width, height),
+                )
+                plan_debug.update(
+                    {
+                        "anchor_city_key": anchor_route["anchor_city_key"],
+                        "waypoint_city_key": anchor_route["waypoint_city_key"],
+                        "anchor_route": anchor_route["route"],
+                        "route_total_distance": anchor_route["total_distance"],
+                        "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
+                    }
+                )
+                mode = "anchor_route"
+        else:
+            can_blind_drag = (
+                fallback_enabled
+                and last_drag_start is not None
+                and last_drag_end is not None
+                and consecutive_unanchored_drags < _MAX_CONSECUTIVE_UNANCHORED_DRAGS
+            )
+            if not can_blind_drag:
+                selected_mode = "no_mappable"
                 attempts.append(
                     {
                         "step": step + 1,
-                        "mode": "no_anchor_route",
-                        "observed_city_count": len(mappable_points),
+                        "mode": "no_mappable",
+                        "observed_city_count": 0,
                         "observed_text_count": len(observed),
                         "observed": observed_log,
-                        "mappable": mappable_log,
+                        "mappable": [],
                         "stabilization_retries": stabilization_retries,
                         "plan": {
-                            "reason": "no_connected_anchor_route",
-                            "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-                            "fallback_drag_disabled": True,
+                            "reason": "no_mappable_city_points",
+                            "fallback_drag_disabled": not can_blind_drag,
+                            "has_previous_drag": last_drag_start is not None and last_drag_end is not None,
+                            "consecutive_unanchored_drags": consecutive_unanchored_drags,
+                            "max_consecutive_unanchored_drags": _MAX_CONSECUTIVE_UNANCHORED_DRAGS,
                         },
                     }
                 )
+                logger.info(
+                    "[IntercitySelectNoDrag] step=%s target=%s observed=%s consecutive_unanchored=%s",
+                    step + 1,
+                    to_city_name,
+                    json.dumps(observed_log, ensure_ascii=False),
+                    consecutive_unanchored_drags,
+                )
                 break
-            start, end, plan_debug = _plan_directional_drag(
-                mappable_points=mappable_points,
-                target_maploc=anchor_route["waypoint_maploc"],
-                drag_center=center,
-                drag_span_px=span,
-                window_size=(width, height),
-            )
-            plan_debug.update(
-                {
-                    "anchor_city_key": anchor_route["anchor_city_key"],
-                    "waypoint_city_key": anchor_route["waypoint_city_key"],
-                    "anchor_route": anchor_route["route"],
-                    "route_total_distance": anchor_route["total_distance"],
-                    "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-                }
-            )
-            mode = "anchor_route"
-        else:
-            selected_mode = "no_mappable"
-            attempts.append(
-                {
-                    "step": step + 1,
-                    "mode": "no_mappable",
-                    "observed_city_count": 0,
-                    "observed_text_count": len(observed),
-                    "observed": observed_log,
-                    "mappable": [],
-                    "stabilization_retries": stabilization_retries,
-                    "plan": {"reason": "no_mappable_city_points", "fallback_drag_disabled": True},
-                }
-            )
-            logger.info(
-                "[IntercitySelectNoDrag] step=%s target=%s observed=%s",
-                step + 1,
-                to_city_name,
-                json.dumps(observed_log, ensure_ascii=False),
-            )
-            break
+            start, end = last_drag_start, last_drag_end
+            consecutive_unanchored_drags += 1
+            plan_debug = {
+                "reason": "repeat_previous_drag_without_anchor",
+                "consecutive_unanchored_drags": consecutive_unanchored_drags,
+                "max_consecutive_unanchored_drags": _MAX_CONSECUTIVE_UNANCHORED_DRAGS,
+            }
+            mode = "blind_repeat"
 
         selected_mode = mode
         attempts.append(
@@ -1377,6 +1423,8 @@ def resonance_pc_select_intercity_destination(
             drag_duration_sec=drag_duration_sec,
             drag_hold_sec=drag_hold_sec,
         )
+        last_drag_start = start
+        last_drag_end = end
         has_dragged = True
         time.sleep(_POST_DRAG_STABILIZE_SECONDS)
 

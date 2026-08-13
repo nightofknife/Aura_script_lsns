@@ -20,7 +20,8 @@
     "17",
     "18",
     "19",
-    "20"
+    "20",
+    "21"
   ],
   "default_available_city_ids": [
     "1",
@@ -42,7 +43,8 @@
     "17",
     "18",
     "19",
-    "20"
+    "20",
+    "21"
   ],
   "city_id_to_key": {
     "1": "shoggolith_city",
@@ -64,6 +66,7 @@
     "17": "tatu_station",
     "18": "black_moon_amusement_park",
     "19": "gronru_city",
-    "20": "vitilin_forest"
+    "20": "vitilin_forest",
+    "21": "wulin_source"
   }
 }

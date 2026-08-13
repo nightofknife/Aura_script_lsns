@@ -9,7 +9,7 @@ from packages.aura_core.scheduler.validation import InputValidator
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ADB_PLAN_ROOT = REPO_ROOT / "plans" / "resonance"
 PC_PLAN_ROOT = REPO_ROOT / "plans" / "resonance_pc"
-ALL_CITY_IDS = [str(city_id) for city_id in range(1, 21)]
+ALL_CITY_IDS = [str(city_id) for city_id in range(1, 22)]
 DEFAULT_AVAILABLE_CITY_IDS = list(ALL_CITY_IDS)
 
 
@@ -156,12 +156,12 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
 
     ok, error = validator.validate_inputs_against_meta(
         inputs_meta,
-        {"city_prestige": {"default": 20, "overrides": {"21": 10}}},
+        {"city_prestige": {"default": 20, "overrides": {"22": 10}}},
     )
 
     assert ok is False
     assert "city_prestige.overrides" in error
-    assert "unexpected fields: 21" in error
+    assert "unexpected fields: 22" in error
 
     ok, custom_negotiation = validator.validate_inputs_against_meta(
         inputs_meta,

@@ -423,6 +423,78 @@ def test_select_intercity_destination_does_not_fallback_drag_without_mappable_ci
     assert app.clicks == []
 
 
+def test_select_intercity_destination_blind_repeats_last_drag_for_disconnected_city(monkeypatch):
+    monkeypatch.setattr(city_travel_pc_actions.time, "sleep", lambda _seconds: None)
+    app = _FakeApp()
+    ocr = _FakeOcr(
+        [
+            ["阿妮塔发射中心"],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            ["武林源"],
+        ]
+    )
+
+    result = resonance_pc_select_intercity_destination(
+        to_city_name="武林源",
+        location_file_path="data/meta/location_pc.json",
+        max_search_steps=4,
+        drag_duration_sec=0,
+        drag_hold_sec=0,
+        app=app,
+        ocr=ocr,
+        controller=_FakeController(),
+    )
+
+    assert result["success"] is True
+    assert [attempt["mode"] for attempt in result["attempt_trace"]] == [
+        "target_directional",
+        "blind_repeat",
+        "blind_repeat",
+    ]
+    assert result["attempt_trace"][1]["plan"]["consecutive_unanchored_drags"] == 1
+    first_drag = app.moves[:2]
+    assert app.moves[2:4] == first_drag
+    assert app.moves[4:6] == first_drag
+    assert app.clicks == [(220, 265)]
+
+
+def test_select_intercity_destination_stops_after_unanchored_drag_limit(monkeypatch):
+    monkeypatch.setattr(city_travel_pc_actions.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr(city_travel_pc_actions, "_MAX_CONSECUTIVE_UNANCHORED_DRAGS", 2)
+    app = _FakeApp()
+    ocr = _FakeOcr([["阿妮塔发射中心"]] + [[]] * 9)
+
+    with pytest.raises(IntercityDestinationError) as raised:
+        resonance_pc_select_intercity_destination(
+            to_city_name="武林源",
+            location_file_path="data/meta/location_pc.json",
+            max_search_steps=5,
+            drag_duration_sec=0,
+            drag_hold_sec=0,
+            app=app,
+            ocr=ocr,
+            controller=_FakeController(),
+        )
+
+    assert raised.value.detail["selected_mode"] == "no_mappable"
+    assert [attempt["mode"] for attempt in raised.value.detail["attempt_trace"]] == [
+        "target_directional",
+        "blind_repeat",
+        "blind_repeat",
+        "no_mappable",
+    ]
+    final_plan = raised.value.detail["attempt_trace"][-1]["plan"]
+    assert final_plan["consecutive_unanchored_drags"] == 2
+    assert final_plan["max_consecutive_unanchored_drags"] == 2
+    assert len(app.moves) == 6
+
+
 def test_select_intercity_destination_uses_anchor_waypoints_and_retries_after_drag(monkeypatch):
     monkeypatch.setattr(city_travel_pc_actions.time, "sleep", lambda _seconds: None)
     app = _FakeApp()

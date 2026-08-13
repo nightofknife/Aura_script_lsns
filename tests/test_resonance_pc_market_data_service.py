@@ -361,14 +361,15 @@ def test_travel_fatigue_dataset_consistency():
     costs = payload["costs"]
 
     city_ids = sorted(cities.keys(), key=lambda x: int(x))
-    assert len(city_ids) == 20
+    assert len(city_ids) == 21
+    assert cities["21"] == "武林源"
 
     edge_count = 0
     for i, from_id in enumerate(city_ids):
         for to_id in city_ids[i + 1 :]:
             assert costs[from_id][to_id] == costs[to_id][from_id]
             edge_count += 1
-    assert edge_count == 190
+    assert edge_count == 210
 
 
 def test_get_travel_fatigue_sample_pairs():
@@ -377,10 +378,12 @@ def test_get_travel_fatigue_sample_pairs():
     assert service.get_travel_fatigue("1", "3") == 27
     assert service.get_travel_fatigue("1", "4") == 24
     assert service.get_travel_fatigue("2", "1") == 24
+    assert service.get_travel_fatigue("10", "21") == 76
+    assert service.get_travel_fatigue("21", "18") == 46
 
 
 def test_travel_fatigue_csv_matches_json():
-    meta_dir = Path("plans/resonance/data/meta")
+    meta_dir = Path("plans/resonance_pc/data/meta")
     json_payload = json.loads((meta_dir / "city_travel_fatigue.json").read_text(encoding="utf-8"))
     costs = json_payload["costs"]
     city_ids = sorted(json_payload["cities"].keys(), key=lambda x: int(x))
@@ -402,7 +405,7 @@ def test_travel_fatigue_csv_matches_json():
             json_edges.add((pair[0], pair[1], int(costs[a][b])))
 
     assert csv_edges == json_edges
-    assert len(csv_edges) == 190
+    assert len(csv_edges) == 210
 
 
 def test_travel_fatigue_invalid_payload_raises(tmp_path: Path):

@@ -190,6 +190,28 @@ def test_confluence_tower_facilities_are_resolvable() -> None:
         assert (shop["shop_key"], shop["x"], shop["y"]) == expected_point
 
 
+def test_wulin_source_facilities_are_resolvable() -> None:
+    service = ResonancePcCityShopDataService()
+
+    assert service.resolve_city("武林源") == {
+        "city_key": "wulin_source",
+        "city_name": "武林源",
+    }
+    exchange = service.resolve_shop_point("武林源", "交易所")
+    battle = service.resolve_shop_point("武林源", "作战")
+
+    assert (exchange["shop_key"], exchange["x"], exchange["y"]) == (
+        "exchange",
+        370,
+        380,
+    )
+    assert (battle["shop_key"], battle["x"], battle["y"]) == (
+        "battle",
+        1035,
+        460,
+    )
+
+
 def test_farstar_bridge_facilities_are_resolvable() -> None:
     service = ResonancePcCityShopDataService()
 
