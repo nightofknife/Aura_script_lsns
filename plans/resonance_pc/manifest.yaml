@@ -1209,6 +1209,22 @@ exports:
       type: Any
       required: false
       default: 0.8
+  - name: resonance_pc.enter_main
+    module: plans.resonance_pc.src.actions.game_startup_pc_actions
+    function: resonance_pc_enter_main
+    public: true
+    read_only: true
+    timeout: null
+    description: Placeholder for entering the Resonance PC main screen.
+    parameters: []
+  - name: resonance_pc.close_game
+    module: plans.resonance_pc.src.actions.game_startup_pc_actions
+    function: resonance_pc_close_game
+    public: true
+    read_only: true
+    timeout: null
+    description: Placeholder for closing the Resonance PC game.
+    parameters: []
   - name: resonance_pc.market_refresh
     module: plans.resonance_pc.src.actions.market_data_pc_actions
     function: resonance_pc_market_refresh
@@ -1366,6 +1382,15 @@ exports:
       type: Any
       required: false
       default: 30.0
+  - name: resonance_pc.player_data_refresh
+    module: plans.resonance_pc.src.actions.player_data_pc_actions
+    function: resonance_pc_player_data_refresh
+    public: true
+    read_only: false
+    timeout: 180
+    description: Refresh Resonance profile, currencies, clarity, fatigue, cargo and
+      recovery options.
+    parameters: []
   - name: resonance_pc.use_purchase_books
     module: plans.resonance_pc.src.actions.purchase_book_pc_actions
     function: resonance_pc_use_purchase_books
@@ -2099,6 +2124,14 @@ exports:
     source: tasks/enter_reforming_center_pc.yaml
     description: Enter the Reforming Center from the game main screen through the
       profile menu.
+  - id: game_startup_pc/enter_main
+    title: Enter Resonance Main Screen (PC)
+    source: tasks/game_startup_pc.yaml
+    description: Placeholder for starting or restoring Resonance PC to its main screen.
+  - id: game_startup_pc/close_game
+    title: Close Resonance Game (PC)
+    source: tasks/game_startup_pc.yaml
+    description: Placeholder for closing the Resonance PC game.
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -2109,6 +2142,11 @@ exports:
     source: tasks/navigate_reforming_center_room_pc.yaml
     description: Safely pan the Reforming Center overview until the requested room
       is fully interactable, then click it.
+  - id: player_data_pc/player_data_refresh
+    title: Resonance Player Data Refresh (PC)
+    source: tasks/player_data_pc.yaml
+    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery
+      options from the PC client.
   - id: preview_trade_plan_pc/preview_trade_plan_pc
     title: Preview Exact Trade Plan (PC)
     source: tasks/preview_trade_plan_pc.yaml
@@ -2121,4 +2159,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-09T19:26:33Z'
+  generated_at: '2026-08-13T09:09:13Z'

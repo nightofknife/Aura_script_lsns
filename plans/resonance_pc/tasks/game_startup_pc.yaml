@@ -1,0 +1,35 @@
+enter_main:
+  meta:
+    title: Enter Resonance Main Screen (PC)
+    description: Placeholder for starting or restoring Resonance PC to its main screen.
+    entry_point: true
+    inputs: []
+
+  steps:
+    enter_main:
+      action: resonance_pc.enter_main
+      params: {}
+
+  returns:
+    success: "{{ nodes.enter_main.output.success }}"
+    status: "{{ nodes.enter_main.output.status }}"
+    reason: "{{ nodes.enter_main.output.reason }}"
+    message: "{{ nodes.enter_main.output.message }}"
+
+close_game:
+  meta:
+    title: Close Resonance Game (PC)
+    description: Placeholder for closing the Resonance PC game.
+    entry_point: true
+    inputs: []
+
+  steps:
+    close_game:
+      action: resonance_pc.close_game
+      params: {}
+
+  returns:
+    success: "{{ nodes.close_game.output.success }}"
+    status: "{{ nodes.close_game.output.status }}"
+    reason: "{{ nodes.close_game.output.reason }}"
+    message: "{{ nodes.close_game.output.message }}"

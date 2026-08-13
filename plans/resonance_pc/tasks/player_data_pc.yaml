@@ -1,0 +1,16 @@
+player_data_refresh:
+  meta:
+    title: Resonance Player Data Refresh (PC)
+    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery options from the PC client.
+    entry_point: true
+    concurrency: exclusive
+    inputs: []
+
+  steps:
+    refresh:
+      action: resonance_pc.player_data_refresh
+      timeout_sec: 180
+      params: {}
+
+  returns:
+    player_data: "{{ nodes.refresh.output }}"
