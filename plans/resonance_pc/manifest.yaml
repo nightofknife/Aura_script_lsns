@@ -1213,18 +1213,59 @@ exports:
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
     function: resonance_pc_enter_main
     public: true
-    read_only: true
-    timeout: null
-    description: Placeholder for entering the Resonance PC main screen.
-    parameters: []
+    read_only: false
+    timeout: 900
+    description: Start Resonance PC when needed and settle on the game main screen.
+    parameters:
+    - name: executable_path
+      type: Any
+      required: false
+      default: null
+    - name: launch_if_not_running
+      type: Any
+      required: false
+      default: true
+    - name: window_timeout_sec
+      type: Any
+      required: false
+      default: 90.0
+    - name: max_settle_rounds
+      type: Any
+      required: false
+      default: 300
+    - name: round_interval_sec
+      type: Any
+      required: false
+      default: 1.0
+    - name: click_x
+      type: Any
+      required: false
+      default: 450
+    - name: click_y
+      type: Any
+      required: false
+      default: 660
+    - name: region
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.close_game
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
     function: resonance_pc_close_game
     public: true
-    read_only: true
+    read_only: false
     timeout: null
-    description: Placeholder for closing the Resonance PC game.
-    parameters: []
+    description: Close the verified Resonance PC target window and optionally terminate
+      it after timeout.
+    parameters:
+    - name: graceful_timeout_sec
+      type: Any
+      required: false
+      default: 10.0
+    - name: force_after_timeout
+      type: Any
+      required: false
+      default: true
   - name: resonance_pc.market_refresh
     module: plans.resonance_pc.src.actions.market_data_pc_actions
     function: resonance_pc_market_refresh
@@ -2127,11 +2168,11 @@ exports:
   - id: game_startup_pc/enter_main
     title: Enter Resonance Main Screen (PC)
     source: tasks/game_startup_pc.yaml
-    description: Placeholder for starting or restoring Resonance PC to its main screen.
+    description: Start Resonance PC when needed and restore it to the main screen.
   - id: game_startup_pc/close_game
     title: Close Resonance Game (PC)
     source: tasks/game_startup_pc.yaml
-    description: Placeholder for closing the Resonance PC game.
+    description: Close the verified Resonance PC window and process.
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -2159,4 +2200,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-13T09:09:13Z'
+  generated_at: '2026-08-15T16:36:58Z'
