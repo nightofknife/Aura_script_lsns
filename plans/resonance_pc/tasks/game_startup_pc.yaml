@@ -1,35 +1,83 @@
 enter_main:
   meta:
     title: Enter Resonance Main Screen (PC)
-    description: Placeholder for starting or restoring Resonance PC to its main screen.
+    description: Start Resonance PC when needed and restore it to the main screen.
     entry_point: true
-    inputs: []
+    inputs:
+      - name: executable_path
+        type: string
+        required: false
+        default: null
+      - name: launch_if_not_running
+        type: boolean
+        required: false
+        default: true
+      - name: window_timeout_sec
+        type: number
+        required: false
+        default: 90
+        min: 1
+      - name: max_settle_rounds
+        type: number
+        required: false
+        default: 300
+        min: 1
+      - name: round_interval_sec
+        type: number
+        required: false
+        default: 1
+        min: 0
 
   steps:
     enter_main:
       action: resonance_pc.enter_main
-      params: {}
+      params:
+        executable_path: "{{ inputs.executable_path }}"
+        launch_if_not_running: "{{ inputs.launch_if_not_running }}"
+        window_timeout_sec: "{{ inputs.window_timeout_sec }}"
+        max_settle_rounds: "{{ inputs.max_settle_rounds }}"
+        round_interval_sec: "{{ inputs.round_interval_sec }}"
 
   returns:
     success: "{{ nodes.enter_main.output.success }}"
     status: "{{ nodes.enter_main.output.status }}"
     reason: "{{ nodes.enter_main.output.reason }}"
     message: "{{ nodes.enter_main.output.message }}"
+    reached_main: "{{ nodes.enter_main.output.reached_main }}"
+    launched: "{{ nodes.enter_main.output.launched }}"
+    pid: "{{ nodes.enter_main.output.pid }}"
+    hwnd: "{{ nodes.enter_main.output.hwnd }}"
+    initial_state: "{{ nodes.enter_main.output.initial_state }}"
+    final_state: "{{ nodes.enter_main.output.final_state }}"
+    rounds: "{{ nodes.enter_main.output.rounds }}"
 
 close_game:
   meta:
     title: Close Resonance Game (PC)
-    description: Placeholder for closing the Resonance PC game.
+    description: Close the verified Resonance PC window and process.
     entry_point: true
-    inputs: []
+    inputs:
+      - name: graceful_timeout_sec
+        type: number
+        required: false
+        default: 10
+        min: 0
+      - name: force_after_timeout
+        type: boolean
+        required: false
+        default: true
 
   steps:
     close_game:
       action: resonance_pc.close_game
-      params: {}
+      params:
+        graceful_timeout_sec: "{{ inputs.graceful_timeout_sec }}"
+        force_after_timeout: "{{ inputs.force_after_timeout }}"
 
   returns:
     success: "{{ nodes.close_game.output.success }}"
     status: "{{ nodes.close_game.output.status }}"
     reason: "{{ nodes.close_game.output.reason }}"
     message: "{{ nodes.close_game.output.message }}"
+    pid: "{{ nodes.close_game.output.pid }}"
+    method: "{{ nodes.close_game.output.method }}"

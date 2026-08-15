@@ -53,3 +53,9 @@ runtime:
 input:
   profile: default_pc
   actions: {}
+
+apps:
+  resonance_pc:
+    follow_child: false
+    window_title: "雷索纳斯"
+    window_title_exact: true
