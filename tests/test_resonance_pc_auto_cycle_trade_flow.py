@@ -52,7 +52,7 @@ def test_auto_cycle_trade_yaml_is_single_flow_action_entrypoint():
         "{{ inputs.auto_cape_island_investment | default(false) }}"
     )
     assert steps["run"]["params"]["arrival_timeout_seconds"] == (
-        "{{ inputs.arrival_timeout_seconds | default(1800) }}"
+        "{{ inputs.arrival_timeout_seconds | default(3600) }}"
     )
     assert task["returns"]["route"] == "{{ nodes.run.output.route }}"
     assert task["returns"]["negotiation_max_attempts"] == (

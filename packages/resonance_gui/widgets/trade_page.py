@@ -751,7 +751,7 @@ class TradePage(QWidget):
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 700)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 750)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
-        arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 1800)), 1)
+        arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 3600)), 1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 15000)))
         self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))

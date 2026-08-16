@@ -254,7 +254,7 @@ class SettingsHubPage(QWidget):
         self.close_on_failure.setChecked(self._bool_value("workflow/close_on_failure", False))
         trade_inputs = self._settings.load_trade_inputs()
         self.trade_arrival_timeout.setValue(
-            max(int(trade_inputs.get("arrival_timeout_seconds", 1800)) // 60, 1)
+            max(int(trade_inputs.get("arrival_timeout_seconds", 3600)) // 60, 1)
         )
 
     def save_values(self) -> None:

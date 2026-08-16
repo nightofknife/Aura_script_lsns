@@ -23,9 +23,11 @@ from packages.resonance_gui.logic import (
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
     TradeProgressState,
+    WorkflowFreightProgressState,
     expected_profit_per_fatigue,
     parse_inputs_json,
     reduce_trade_progress,
+    reduce_workflow_freight_progress,
     render_result_text,
     route_product_lines,
     trade_result_summary,
@@ -317,7 +319,7 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert trade_inputs["cargo_capacity"] == 750
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["negotiation_max_attempts"] == 5
-    assert trade_inputs["arrival_timeout_seconds"] == 1800
+    assert trade_inputs["arrival_timeout_seconds"] == 3600
     assert trade_inputs["available_city_ids"] == DEFAULT_PC_TRADE_CITY_IDS
     assert "all_plan" not in trade_inputs
     assert "negotiation_budget" not in trade_inputs
@@ -469,6 +471,121 @@ def test_trade_progress_reducer_rejects_foreign_and_stale_events():
     assert reduced.route[0]["to_city"] == "B"
     assert reduced.summary["expected_profit"] == 9
     assert reduce_trade_progress(reduced, planning, expected_cid="cid-1").sequence == 4
+
+
+def test_workflow_freight_progress_builds_city_stages_and_tracks_business_progress():
+    route = [
+        {"from_city": "A", "to_city": "海角城", "to_city_id": "11", "buy_products": ["A货"]},
+        {"from_city": "海角城", "to_city": "A", "buy_products": []},
+    ]
+
+    def event(sequence: int, stage: str, state: str, **fields):
+        return {
+            "name": TRADE_PROGRESS_EVENT,
+            "payload": {
+                "schema": TRADE_PROGRESS_SCHEMA,
+                "cid": "cid-workflow",
+                "sequence": sequence,
+                "stage": stage,
+                "state": state,
+                **fields,
+            },
+        }
+
+    state = reduce_workflow_freight_progress(
+        WorkflowFreightProgressState(investment_enabled=True),
+        event(1, "planning", "completed", data={"route": route}),
+        investment_enabled=True,
+    )
+    assert [city.name for city in state.cities] == ["A", "海角城", "A"]
+    assert [city.index for city in state.cities] == [0, 1, 2]
+    assert any(phase.key == "investment" for phase in state.cities[1].phases)
+    assert next(phase for phase in state.cities[1].phases if phase.key == "buy").state == "skipped"
+
+    state = reduce_workflow_freight_progress(
+        state, event(2, "sell", "started", city_index=0, city_count=3, leg_index=0)
+    )
+    state = reduce_workflow_freight_progress(
+        state,
+        event(
+            3,
+            "negotiation",
+            "started",
+            city_index=0,
+            leg_index=0,
+            operation="raise",
+        ),
+    )
+    sell = next(phase for phase in state.cities[0].phases if phase.key == "sell")
+    assert sell.detail == "售出 · 抬价中"
+    state = reduce_workflow_freight_progress(
+        state, event(4, "travel", "started", city_index=0, leg_index=0)
+    )
+    state = reduce_workflow_freight_progress(
+        state, event(5, "arrival", "completed", city_index=1, leg_index=0)
+    )
+    travel = next(phase for phase in state.cities[0].phases if phase.key == "travel")
+    arrival = next(phase for phase in state.cities[1].phases if phase.key == "arrival")
+    assert travel.state == "completed"
+    assert arrival.state == "completed"
+    assert state.active_city_index == 1
+    assert state.percent is not None and state.percent > 0
+
+    stale = reduce_workflow_freight_progress(
+        state, event(5, "investment", "started", city_index=1, leg_index=0)
+    )
+    assert stale.sequence == state.sequence
+    assert stale.completed_units == state.completed_units
+
+
+def test_workflow_freight_progress_maps_blocked_arrival_to_departure_and_task_failure():
+    route = [{"from_city": "A", "to_city": "B", "buy_products": []}]
+    planning = {
+        "name": TRADE_PROGRESS_EVENT,
+        "payload": {
+            "schema": TRADE_PROGRESS_SCHEMA,
+            "cid": "cid-blocked",
+            "sequence": 1,
+            "stage": "planning",
+            "state": "completed",
+            "data": {"route": route},
+        },
+    }
+    state = reduce_workflow_freight_progress(None, planning)
+    state = reduce_workflow_freight_progress(
+        state,
+        {
+            "name": TRADE_PROGRESS_EVENT,
+            "payload": {
+                "schema": TRADE_PROGRESS_SCHEMA,
+                "cid": "cid-blocked",
+                "sequence": 2,
+                "stage": "travel",
+                "state": "started",
+                "city_index": 0,
+                "leg_index": 0,
+            },
+        },
+    )
+    state = reduce_workflow_freight_progress(
+        state,
+        {
+            "name": TRADE_PROGRESS_EVENT,
+            "payload": {
+                "schema": TRADE_PROGRESS_SCHEMA,
+                "cid": "cid-blocked",
+                "sequence": 3,
+                "stage": "arrival",
+                "state": "blocked",
+                "city_index": 0,
+                "leg_index": 0,
+            },
+        },
+    )
+    travel = next(phase for phase in state.cities[0].phases if phase.key == "travel")
+    assert travel.state == "failed"
+    assert state.active_city_index == 0
+    assert state.state == "failed"
 
 
 def test_trade_result_summary_and_route_products_support_new_and_old_shapes():

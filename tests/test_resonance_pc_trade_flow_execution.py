@@ -21,6 +21,14 @@ class _MemoryStateStore:
         self.data.pop(key, None)
 
 
+class _ProgressRecorder:
+    def __init__(self):
+        self.events: list[dict] = []
+
+    async def emit(self, stage: str, state: str, **fields):
+        self.events.append({"stage": stage, "state": state, **fields})
+
+
 async def _no_sleep(_seconds: float) -> None:
     return None
 
@@ -398,6 +406,56 @@ def test_cape_island_investment_runs_after_arrival_when_enabled(monkeypatch):
     assert result["cape_island_triggered_count"] == 1
     assert result["cape_island_invested_count"] == 1
     assert result["cape_island_skipped_count"] == 0
+
+
+def test_route_progress_identifies_city_occurrences_and_investment_phases(monkeypatch):
+    ui_events: list[tuple] = []
+    route = [
+        {
+            "from_city": "A",
+            "to_city": "海角城",
+            "to_city_id": "11",
+            "buy_products": [],
+            "books_used": 0,
+        }
+    ]
+    _patch_route_ui(monkeypatch, ui_events)
+
+    async def invest(**_kwargs):
+        return {"triggered": True, "status": "skipped", "reason": "all_metrics_capped"}
+
+    monkeypatch.setattr(actions, "_execute_cape_island_investment_after_arrival", invest)
+    recorder = _ProgressRecorder()
+    token = actions._ACTIVE_PROGRESS_REPORTER.set(recorder)
+    try:
+        asyncio.run(
+            actions._execute_route(
+                route=route,
+                start_page_state="city_panel",
+                use_fatigue_medicine=False,
+                allowed_fatigue_medicines=[],
+                fatigue_medicine_max_uses=4,
+                app=object(),
+                ocr=object(),
+                vision=object(),
+                controller=object(),
+                city_shop_data=object(),
+                state_store=_MemoryStateStore(),
+                auto_cape_island_investment=True,
+            )
+        )
+    finally:
+        actions._ACTIVE_PROGRESS_REPORTER.reset(token)
+
+    leg_started = next(row for row in recorder.events if row["stage"] == "leg" and row["state"] == "started")
+    arrival = next(row for row in recorder.events if row["stage"] == "arrival")
+    investments = [row for row in recorder.events if row["stage"] == "investment"]
+    assert (leg_started["city_index"], leg_started["city_count"]) == (0, 2)
+    assert (arrival["city_index"], arrival["city_count"]) == (1, 2)
+    assert [(row["state"], row["city_index"], row["city_count"]) for row in investments] == [
+        ("started", 1, 2),
+        ("skipped", 1, 2),
+    ]
 
 
 def test_cape_island_investment_is_disabled_by_default_and_not_run_when_travel_blocks(monkeypatch):

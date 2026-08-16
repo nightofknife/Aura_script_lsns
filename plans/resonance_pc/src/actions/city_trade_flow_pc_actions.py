@@ -1076,7 +1076,7 @@ async def _execute_route(
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
     negotiation_max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
-    arrival_timeout_seconds: float = 1800.0,
+    arrival_timeout_seconds: float = 3600.0,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1096,6 +1096,8 @@ async def _execute_route(
             progress_fields = {
                 "leg_index": index,
                 "leg_count": len(route),
+                "city_index": index,
+                "city_count": len(route) + 1,
                 "from_city": str(leg.get("from_city") or ""),
                 "to_city": str(leg.get("to_city") or ""),
                 "current_city": str(leg.get("from_city") or ""),
@@ -1179,7 +1181,7 @@ async def _execute_trade_leg(
     allowed_fatigue_medicines: Optional[List[str]],
     fatigue_medicine_max_uses: int,
     negotiation_max_attempts: int,
-    arrival_timeout_seconds: float = 1800.0,
+    arrival_timeout_seconds: float = 3600.0,
     app: Any,
     ocr: Any,
     vision: Any,
@@ -1246,6 +1248,11 @@ async def _execute_trade_leg(
         travel_status = str(travel.get("status") or "ok").lower()
         arrival_fields = dict(progress_fields)
         arrival_fields["current_city"] = str(leg.get("to_city") or "")
+        arrival_fields["city_index"] = (
+            int(progress_fields.get("city_index", index))
+            if travel_status == "blocked"
+            else int(progress_fields.get("city_index", index)) + 1
+        )
         await reporter.emit(
             "arrival",
             "blocked" if travel_status == "blocked" else "completed",
@@ -1264,15 +1271,40 @@ async def _execute_trade_leg(
         and bool(travel.get("success", True))
         and _is_cape_city_arrival(leg)
     ):
-        cape_island_investment = await _execute_cape_island_investment_after_arrival(
-            leg_index=index,
-            leg=leg,
-            app=app,
-            ocr=ocr,
-            vision=vision,
-            city_shop_data=city_shop_data,
-            engine=engine,
+        investment_fields = dict(progress_fields)
+        investment_fields.update(
+            city_index=int(progress_fields.get("city_index", index)) + 1,
+            current_city=str(leg.get("to_city") or ""),
         )
+        if reporter is not None:
+            await reporter.emit("investment", "started", **investment_fields)
+        try:
+            cape_island_investment = await _execute_cape_island_investment_after_arrival(
+                leg_index=index,
+                leg=leg,
+                app=app,
+                ocr=ocr,
+                vision=vision,
+                city_shop_data=city_shop_data,
+                engine=engine,
+            )
+        except Exception as exc:
+            if reporter is not None:
+                await reporter.emit(
+                    "investment",
+                    "failed",
+                    **investment_fields,
+                    data={"error_type": type(exc).__name__, "message": str(exc)},
+                )
+            raise
+        if reporter is not None:
+            investment_status = str(cape_island_investment.get("status") or "").lower()
+            await reporter.emit(
+                "investment",
+                "skipped" if investment_status == "skipped" else "completed",
+                **investment_fields,
+                data={"investment": dict(cape_island_investment)},
+            )
     return {
         "index": int(index),
         "status": "pending",
@@ -1622,7 +1654,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
-    arrival_timeout_seconds: float = 1800.0,
+    arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = False,
     app: Any = None,
     ocr: Any = None,
@@ -1755,6 +1787,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "planning",
             "completed",
             leg_count=len(route),
+            city_count=len(route) + 1 if route else 0,
             current_city=str(current.get("city_name") or ""),
             snapshot_id=str(refresh.get("snapshot_id") or ""),
             data={
@@ -1817,6 +1850,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                 await reporter.emit(
                     "final_sale",
                     "started",
+                    city_index=len(route),
+                    city_count=len(route) + 1,
                     leg_count=len(route),
                     current_city=endpoint_city,
                     data={"raise_to_cap": bool(route[-1].get("raise_to_cap"))},
@@ -1837,6 +1872,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                 progress_context={
                     "leg_index": len(route),
                     "leg_count": len(route),
+                    "city_index": len(route),
+                    "city_count": len(route) + 1,
                     "current_city": endpoint_city,
                     "from_city": endpoint_city,
                     "to_city": endpoint_city,
@@ -1847,6 +1884,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                 await reporter.emit(
                     "final_sale",
                     "completed",
+                    city_index=len(route),
+                    city_count=len(route) + 1,
                     leg_count=len(route),
                     current_city=endpoint_city,
                     data={"final_sale": final_sale},

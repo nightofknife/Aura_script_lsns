@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from dataclasses import dataclass, field
 from typing import Any, Mapping
@@ -42,10 +43,283 @@ TRADE_STAGE_LABELS = {
     "negotiation": "协商",
     "travel": "城市移动",
     "arrival": "等待到站",
+    "investment": "投资",
     "final_sale": "终点清仓",
     "route": "执行路线",
     "task": "任务",
 }
+
+FREIGHT_PHASE_LABELS = {
+    "arrival": "到达城市",
+    "sell": "售出货物",
+    "buy": "购买货物",
+    "investment": "城市投资",
+    "travel": "前往下一城市",
+    "final_sale": "终点清仓",
+}
+
+
+@dataclass
+class FreightBusinessPhase:
+    """One user-meaningful business phase inside a freight city visit."""
+
+    key: str
+    label: str
+    state: str = "waiting"
+    detail: str = ""
+
+
+@dataclass
+class FreightCityStage:
+    """Presentation state for one occurrence of a city in the planned route."""
+
+    index: int
+    count: int
+    name: str
+    role: str
+    phases: list[FreightBusinessPhase] = field(default_factory=list)
+
+    @property
+    def state(self) -> str:
+        states = {phase.state for phase in self.phases}
+        if "failed" in states:
+            return "failed"
+        if "running" in states:
+            return "running"
+        if self.phases and states <= {"completed", "skipped"}:
+            return "completed"
+        return "waiting"
+
+
+@dataclass
+class WorkflowFreightProgressState:
+    """City-oriented workflow progress reduced from additive trade events."""
+
+    cid: str = ""
+    sequence: int = -1
+    state: str = "waiting"
+    preparation_state: str = "waiting"
+    preparation_detail: str = "等待读取目标与规划路线"
+    route: list[dict[str, Any]] = field(default_factory=list)
+    cities: list[FreightCityStage] = field(default_factory=list)
+    active_city_index: int | None = None
+    active_phase: str = ""
+    investment_enabled: bool = False
+
+    @property
+    def total_units(self) -> int:
+        return 1 + sum(len(city.phases) for city in self.cities)
+
+    @property
+    def completed_units(self) -> int:
+        completed = 1 if self.preparation_state in {"completed", "skipped"} else 0
+        return completed + sum(
+            1
+            for city in self.cities
+            for phase in city.phases
+            if phase.state in {"completed", "skipped"}
+        )
+
+    @property
+    def percent(self) -> int | None:
+        if not self.route and self.state not in {"completed", "success"}:
+            return None
+        total = max(self.total_units, 1)
+        return min(100, round(self.completed_units * 100 / total))
+
+    @property
+    def current_label(self) -> str:
+        if self.active_city_index is not None and 0 <= self.active_city_index < len(self.cities):
+            city = self.cities[self.active_city_index]
+            for phase in city.phases:
+                if phase.key == self.active_phase:
+                    return f"{city.name} · {phase.detail or phase.label}"
+            return city.name
+        return self.preparation_detail
+
+
+def reduce_workflow_freight_progress(
+    current: WorkflowFreightProgressState | None,
+    event: Mapping[str, Any] | None,
+    *,
+    expected_cid: str = "",
+    investment_enabled: bool | None = None,
+) -> WorkflowFreightProgressState:
+    """Reduce trade progress into route preparation and city business stages."""
+
+    state = copy.deepcopy(current) if current is not None else WorkflowFreightProgressState()
+    if investment_enabled is not None:
+        state.investment_enabled = bool(investment_enabled)
+    envelope = dict(event or {})
+    if str(envelope.get("name") or "") != TRADE_PROGRESS_EVENT:
+        return state
+    payload = envelope.get("payload")
+    if not isinstance(payload, Mapping):
+        return state
+    payload = dict(payload)
+    if str(payload.get("schema") or "") != TRADE_PROGRESS_SCHEMA:
+        return state
+    cid = str(payload.get("cid") or "")
+    if expected_cid and cid != str(expected_cid):
+        return state
+    try:
+        sequence = int(payload.get("sequence", -1))
+    except (TypeError, ValueError):
+        return state
+    if sequence <= state.sequence:
+        return state
+
+    state.cid = cid or state.cid
+    state.sequence = sequence
+    stage = str(payload.get("stage") or "task")
+    event_state = str(payload.get("state") or "running").lower()
+    data = dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {}
+
+    if stage in {"target", "city", "market", "planning"}:
+        state.state = "running"
+        state.preparation_detail = TRADE_STAGE_LABELS.get(stage, "准备货运")
+        state.preparation_state = "completed" if stage == "planning" and event_state == "completed" else "running"
+        if stage == "planning" and event_state == "completed":
+            route = [dict(item) for item in data.get("route", []) if isinstance(item, Mapping)]
+            state.route = route
+            state.cities = _build_freight_city_stages(route, state.investment_enabled)
+        return state
+
+    if stage == "task" and event_state in {"failed", "error", "cancelled"}:
+        state.state = "cancelled" if event_state == "cancelled" else "failed"
+        _fail_active_freight_phase(state, str(data.get("message") or "货运执行失败"))
+        return state
+    if stage == "route" and event_state in {"blocked", "failed", "error"}:
+        state.state = "failed"
+        _fail_active_freight_phase(state, str(data.get("reason") or "路线执行失败"))
+        return state
+    if stage in {"task", "route"} and event_state in {"completed", "success"}:
+        state.state = "completed"
+        state.preparation_state = "completed"
+        for city in state.cities:
+            for phase in city.phases:
+                if phase.state == "waiting":
+                    phase.state = "skipped"
+        state.active_city_index = len(state.cities) - 1 if state.cities else None
+        state.active_phase = ""
+        return state
+    if not state.cities:
+        return state
+
+    city_index = _freight_event_city_index(payload, stage, event_state, len(state.cities))
+    phase_key = (
+        "travel"
+        if stage == "arrival" and event_state in {"blocked", "failed", "error"}
+        else _freight_event_phase_key(payload, stage, city_index, len(state.cities))
+    )
+    if city_index is None or phase_key is None or not 0 <= city_index < len(state.cities):
+        return state
+    city = state.cities[city_index]
+    phase = next((item for item in city.phases if item.key == phase_key), None)
+    if phase is None:
+        return state
+
+    view_state = _freight_view_state(event_state)
+    if stage == "negotiation":
+        operation = str(payload.get("operation") or "")
+        phase.detail = "售出 · 抬价中" if operation == "raise" else "购买 · 砍价中"
+        if view_state == "failed":
+            phase.state = "failed"
+        elif phase.state not in {"completed", "skipped"}:
+            phase.state = "running"
+    else:
+        phase.detail = ""
+        phase.state = view_state
+
+    if stage == "arrival" and event_state == "completed" and city_index > 0:
+        previous_travel = next(
+            (item for item in state.cities[city_index - 1].phases if item.key == "travel"), None
+        )
+        if previous_travel is not None:
+            previous_travel.state = "completed"
+    state.active_city_index = city_index
+    state.active_phase = phase_key
+    state.state = "failed" if view_state == "failed" else "running"
+    return state
+
+
+def _build_freight_city_stages(
+    route: list[dict[str, Any]], investment_enabled: bool
+) -> list[FreightCityStage]:
+    if not route:
+        return []
+    names = [str(route[0].get("from_city") or "起点")]
+    names.extend(str(leg.get("to_city") or f"城市 {index + 2}") for index, leg in enumerate(route))
+    cities: list[FreightCityStage] = []
+    city_count = len(names)
+    for index, name in enumerate(names):
+        role = "initial" if index == 0 else ("terminal" if index == city_count - 1 else "intermediate")
+        keys: list[str] = []
+        if index > 0:
+            keys.append("arrival")
+        if index > 0 and investment_enabled and _is_cape_city(name, route[index - 1]):
+            keys.append("investment")
+        keys.extend(["sell", "buy", "travel"] if index < city_count - 1 else ["final_sale"])
+        phases = [FreightBusinessPhase(key=key, label=FREIGHT_PHASE_LABELS[key]) for key in keys]
+        if index < len(route) and not list(route[index].get("buy_products") or []):
+            for phase in phases:
+                if phase.key == "buy":
+                    phase.state = "skipped"
+                    phase.detail = "本城无需购买"
+        cities.append(FreightCityStage(index=index, count=city_count, name=name, role=role, phases=phases))
+    return cities
+
+
+def _is_cape_city(name: str, incoming_leg: Mapping[str, Any]) -> bool:
+    return bool(
+        str(name).strip() == "海角城"
+        or str(incoming_leg.get("to_city_id") or "").strip() == "11"
+        or str(incoming_leg.get("to_city_key") or "").strip().lower() == "cape_city"
+    )
+
+
+def _freight_event_city_index(
+    payload: Mapping[str, Any], stage: str, event_state: str, city_count: int
+) -> int | None:
+    explicit = _optional_int(payload.get("city_index"))
+    if explicit is not None:
+        return explicit
+    leg_index = _optional_int(payload.get("leg_index"))
+    if leg_index is None:
+        return city_count - 1 if stage == "final_sale" else None
+    if stage in {"arrival", "investment"} and event_state not in {"blocked", "failed", "error"}:
+        return leg_index + 1
+    return min(leg_index, city_count - 1)
+
+
+def _freight_event_phase_key(
+    payload: Mapping[str, Any], stage: str, city_index: int | None, city_count: int
+) -> str | None:
+    if stage == "negotiation":
+        return "sell" if str(payload.get("operation") or "") == "raise" else "buy"
+    if stage == "sell" and city_index == city_count - 1:
+        return "final_sale"
+    return stage if stage in FREIGHT_PHASE_LABELS else None
+
+
+def _freight_view_state(state: str) -> str:
+    if state in {"completed", "success"}:
+        return "completed"
+    if state in {"skipped"}:
+        return "skipped"
+    if state in {"blocked", "failed", "error", "cancelled"}:
+        return "failed"
+    return "running"
+
+
+def _fail_active_freight_phase(state: WorkflowFreightProgressState, detail: str) -> None:
+    if state.active_city_index is None or not 0 <= state.active_city_index < len(state.cities):
+        return
+    for phase in state.cities[state.active_city_index].phases:
+        if phase.key == state.active_phase:
+            phase.state = "failed"
+            phase.detail = detail
+            return
 
 PASSENGER_STAGE_LABELS = {
     "resolve_start": "识别起点",

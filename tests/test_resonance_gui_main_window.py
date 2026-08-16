@@ -24,6 +24,7 @@ from packages.resonance_gui.app import _configure_application
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
+from packages.resonance_gui.logic import TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA
 
 
 class _IdleRunner:
@@ -537,6 +538,7 @@ def test_trade_summary_defaults_and_advanced_arrival_timeout(tmp_path):
         assert not window.workflow_page.trade_medicine.isChecked()
         assert window.workflow_page.trade_investment.isChecked()
         assert not hasattr(window.workflow_page, "trade_arrival")
+        assert window.settings_page.trade_arrival_timeout.value() == 60
         assert window.trade_page.arrival_timeout_minutes.parent() is not None
         assert not window.trade_page.arrival_timeout_minutes.isVisible()
 
@@ -550,6 +552,135 @@ def test_trade_summary_defaults_and_advanced_arrival_timeout(tmp_path):
         )
         assert merged["arrival_timeout_seconds"] == 2700
         assert merged["auto_cape_island_investment"] is True
+    finally:
+        window.close()
+
+
+def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
+    window = _window(tmp_path)
+    try:
+        page = window.workflow_page
+        page.begin_workflow(
+            ["commerce"],
+            ["trade"],
+            {"auto_cape_island_investment": True},
+        )
+        assert page.task_progress_bar.maximum() == 1
+        assert page.task_progress_bar.value() == 0
+        assert page.internal_progress_bar.maximum() == 0
+
+        route = [
+            {
+                "from_city": "澄明数据中心",
+                "to_city": "海角城",
+                "to_city_id": "11",
+                "buy_products": ["货物"],
+            }
+        ]
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-city-tree",
+                    "sequence": 1,
+                    "stage": "planning",
+                    "state": "completed",
+                    "city_count": 2,
+                    "data": {"route": route},
+                },
+            },
+        )
+        trade = page._tree_items["trade"]
+        assert trade.child(0).text(0) == "准备与路线规划"
+        assert trade.child(1).text(0).startswith("城市 1/2 · 澄明数据中心")
+        assert trade.child(2).text(0).startswith("城市 2/2 · 海角城")
+        assert page.internal_progress_bar.maximum() == 100
+
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-city-tree",
+                    "sequence": 2,
+                    "stage": "arrival",
+                    "state": "completed",
+                    "leg_index": 0,
+                    "city_index": 1,
+                    "city_count": 2,
+                    "current_city": "海角城",
+                },
+            },
+        )
+        assert trade.child(2).isExpanded()
+        assert "海角城" in page.internal_progress_label.text()
+        assert any("城市投资" in trade.child(2).child(i).text(0) for i in range(trade.child(2).childCount()))
+        page.finish_workflow(success=False, message="测试结束")
+    finally:
+        window.close()
+
+
+def test_workflow_failure_remains_failed_after_close_cleanup(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[dict] = []
+    pc_tasks: list[str] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcTask.disconnect()
+        window.requestRunPcTrade.connect(
+            lambda inputs, _timeout: trade_requests.append(dict(inputs))
+        )
+        window.requestRunPcTask.connect(
+            lambda task_ref, _inputs, _label, _timeout: pc_tasks.append(str(task_ref))
+        )
+        window.workflow_page._task_checks["startup"].setChecked(False)
+        window.workflow_page._task_checks["battle"].setChecked(False)
+        window.workflow_page._commerce_checks["passenger"].setChecked(False)
+        window.settings_page.close_on_failure.setChecked(True)
+
+        window.workflow_page.run_button.click()
+        assert len(trade_requests) == 1
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_finished(
+            {
+                "status": "success",
+                "gui_item": trade_item,
+                "final_result": {
+                    "user_data": {
+                        "success": False,
+                        "status": "blocked",
+                        "reason": "arrival_timeout",
+                    }
+                },
+            }
+        )
+        window._on_busy_changed(False)
+        assert pc_tasks == ["tasks:game_startup_pc.yaml:close_game"]
+
+        close_item = {
+            "game_name": "resonance_pc",
+            "kind": "workflow_task",
+            "label": "关闭游戏",
+        }
+        window._on_busy_changed(True)
+        window._on_task_started(close_item)
+        window._on_task_finished(
+            {
+                "status": "success",
+                "gui_item": close_item,
+                "final_result": {"user_data": {"success": True, "status": "stopped"}},
+            }
+        )
+        window._on_busy_changed(False)
+
+        assert not window.workflow_page.is_running()
+        assert "arrival_timeout" in window.workflow_page.progress_label.text()
+        assert "全部启用任务已完成" not in window.workflow_page.progress_label.text()
     finally:
         window.close()
 

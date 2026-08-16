@@ -250,6 +250,24 @@ QFrame#workflowPanel {
 }
 QLabel#workflowTitle { color: #38342e; font-size: 19px; font-weight: 700; }
 QLabel#workflowProgress { color: #66745c; font-size: 16px; font-weight: 700; padding: 7px 0; }
+QLabel#workflowInternalProgress { color: #514c43; font-weight: 600; padding: 3px 0; }
+QProgressBar#workflowTaskProgressBar, QProgressBar#workflowInternalProgressBar {
+    background: #e8decc;
+    color: #38342e;
+    border: 1px solid #c9b99d;
+    border-radius: 4px;
+    min-height: 15px;
+    max-height: 15px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+}
+QProgressBar#workflowTaskProgressBar::chunk, QProgressBar#workflowInternalProgressBar::chunk {
+    background: #77866b;
+    border-radius: 3px;
+}
+QProgressBar#workflowInternalProgressBar[runState="failed"]::chunk,
+QProgressBar#workflowInternalProgressBar[runState="cancelled"]::chunk { background: #b9785d; }
 QListWidget#workflowTaskList, QListWidget#commerceOrderList, QListWidget#settingsCategories {
     background: transparent;
     border: 0;
