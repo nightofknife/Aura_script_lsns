@@ -5,8 +5,22 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QTextBrowser,
+    QTreeWidget,
+    QWidget,
+)
 
+from packages.resonance_gui.app import _configure_application
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
@@ -44,6 +58,111 @@ def test_available_update_is_only_shown_in_window_title(tmp_path):
 
         assert window.windowTitle() == "Aura 雷索纳斯控制台 · 发现新版本 v9.9.9"
         assert len(window.findChildren(QWidget)) == original_child_count
+    finally:
+        window.close()
+
+
+def test_fixed_light_theme_remains_readable_with_dark_system_palette(tmp_path):
+    app = _app()
+    original_palette = app.palette()
+    dark_palette = QPalette()
+    dark_palette.setColor(QPalette.ColorRole.Window, QColor("#202124"))
+    dark_palette.setColor(QPalette.ColorRole.WindowText, QColor("#f1f3f4"))
+    dark_palette.setColor(QPalette.ColorRole.Base, QColor("#202124"))
+    dark_palette.setColor(QPalette.ColorRole.Text, QColor("#f1f3f4"))
+    dark_palette.setColor(QPalette.ColorRole.ButtonText, QColor("#f1f3f4"))
+    app.setPalette(dark_palette)
+    window = None
+    try:
+        _configure_application(app)
+        window = _window(tmp_path)
+        for widget_type in (
+            QLineEdit,
+            QSpinBox,
+            QComboBox,
+            QTreeWidget,
+            QCheckBox,
+            QTextBrowser,
+        ):
+            widget = window.findChild(widget_type)
+            assert widget is not None
+            palette = widget.palette()
+            assert palette.color(QPalette.ColorRole.Text).lightness() < 128
+            assert palette.color(QPalette.ColorRole.WindowText).lightness() < 128
+        line_edit = window.findChild(QLineEdit)
+        assert line_edit.palette().color(QPalette.ColorRole.Base).lightness() > 200
+    finally:
+        if window is not None:
+            window.close()
+        app.setPalette(original_palette)
+
+
+def test_game_path_is_not_detected_automatically_and_manual_path_is_only_validated_on_click(
+    tmp_path, monkeypatch
+):
+    executable = tmp_path / "雷索纳斯.exe"
+    executable.touch()
+    settings = QSettings(str(tmp_path / "manual-path.ini"), QSettings.Format.IniFormat)
+    settings.setValue("game/executable_path", str(executable))
+    registry_calls: list[bool] = []
+    monkeypatch.setattr(
+        "packages.resonance_gui.widgets.settings_hub_page.find_registry_executables",
+        lambda **_kwargs: registry_calls.append(True) or (),
+    )
+    window = ResonanceMainWindow(
+        bridge=RunnerBridge(runner_factory=_IdleRunner),
+        settings=ResonanceConfigRepository(settings=settings),
+        initialize_on_startup=False,
+    )
+    try:
+        assert window.settings_page.detect_result.text() == "未检测"
+        assert registry_calls == []
+        window.settings_page._detect_executable()
+        assert window.settings_page.detect_result.text() == "用户路径验证通过"
+        assert registry_calls == []
+    finally:
+        window.close()
+
+
+def test_empty_game_path_is_filled_from_registry_only_after_detect_click(tmp_path, monkeypatch):
+    executable = tmp_path / "雷索纳斯.exe"
+    executable.touch()
+    registry_calls: list[bool] = []
+    monkeypatch.setattr(
+        "packages.resonance_gui.widgets.settings_hub_page.find_registry_executables",
+        lambda **_kwargs: registry_calls.append(True) or (executable,),
+    )
+    window = _window(tmp_path)
+    try:
+        assert window.settings_page.executable_path.text() == ""
+        assert registry_calls == []
+        window.settings_page._detect_executable()
+        assert registry_calls == [True]
+        assert window.settings_page.executable_path.text() == str(executable)
+        assert window.settings_page.detect_result.text() == "已从注册表检测到游戏"
+    finally:
+        window.close()
+
+
+def test_browsing_game_path_does_not_run_detection(tmp_path, monkeypatch):
+    executable = tmp_path / "雷索纳斯.exe"
+    executable.touch()
+    registry_calls: list[bool] = []
+    monkeypatch.setattr(
+        "packages.resonance_gui.widgets.settings_hub_page.find_registry_executables",
+        lambda **_kwargs: registry_calls.append(True) or (),
+    )
+    monkeypatch.setattr(
+        QFileDialog,
+        "getOpenFileName",
+        lambda *_args, **_kwargs: (str(executable), "程序 (*.exe)"),
+    )
+    window = _window(tmp_path)
+    try:
+        window.settings_page._browse_executable()
+        assert window.settings_page.executable_path.text() == str(executable)
+        assert window.settings_page.detect_result.text() == "未检测"
+        assert registry_calls == []
     finally:
         window.close()
 
