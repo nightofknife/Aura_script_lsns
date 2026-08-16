@@ -165,6 +165,13 @@ class ResonanceMainWindow(QMainWindow):
         self.back_to_workflow_button.clicked.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.back_to_workflow_button.hide()
         top_layout.addWidget(self.back_to_workflow_button)
+        self.refresh_target_button = QPushButton("刷新目标", top_bar)
+        self.refresh_target_button.setObjectName("quietButton")
+        self.refresh_target_button.clicked.connect(self.requestRefreshTarget.emit)
+        top_layout.addWidget(self.refresh_target_button)
+        self.global_target_label = QLabel("● 等待连接", top_bar)
+        self.global_target_label.setProperty("caption", True)
+        top_layout.addWidget(self.global_target_label)
         layout.addWidget(top_bar)
 
         self.page_stack = QStackedWidget(root)
@@ -172,6 +179,11 @@ class ResonanceMainWindow(QMainWindow):
         self.commerce_page = CommercePage(self._settings, self.page_stack)
         self.trade_page = self.commerce_page.trade_page
         self.passenger_page = self.commerce_page.passenger_page
+        self.workflow_page.attach_parameter_editors(
+            self.trade_page.parameter_panel,
+            self.passenger_page.parameter_panel,
+            self.trade_page.execution_panel,
+        )
         self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
@@ -199,6 +211,7 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.openTradeRequested.connect(self._open_trade_editor)
         self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._switch_page(self.BATTLE_PAGE_INDEX))
+        self.workflow_page.previewTradeRequested.connect(self._preview_workflow_trade)
         self.workflow_page.settingsRequested.connect(lambda: self._switch_page(self.SETTINGS_PAGE_INDEX))
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
@@ -211,16 +224,13 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.startRequested.connect(self._run_pc_trade)
         self.trade_page.previewRequested.connect(self._preview_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
-        self.trade_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
         self.passenger_page.startRequested.connect(self._run_pc_passenger)
         self.passenger_page.cancelRequested.connect(self.requestCancelCurrent.emit)
-        self.passenger_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
         self.commerce_page.overview_page.startRequested.connect(self._start_commerce_sequence)
         self.commerce_page.overview_page.stopRequested.connect(self._stop_commerce_sequence)
         self.battle_page.startRequested.connect(self._run_pc_battle)
         self.battle_page.validateRequested.connect(self._validate_pc_battle)
         self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
-        self.battle_page.refreshTargetRequested.connect(self.requestRefreshTarget.emit)
 
     def _build_navigation(self) -> QWidget:
         nav = QFrame(self)
@@ -446,7 +456,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.passenger_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
-        self._bridge.targetStatusChanged.connect(self.workflow_page.set_target_status)
+        self._bridge.targetStatusChanged.connect(self._set_global_target_status)
         self._bridge.cancelRequested.connect(self.trade_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
@@ -493,16 +503,27 @@ class ResonanceMainWindow(QMainWindow):
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
 
+    def _preview_workflow_trade(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            return
+        try:
+            inputs = self.trade_page.collect_inputs()
+        except ValueError as exc:
+            self.workflow_page.show_trade_editor()
+            QMessageBox.warning(self, "货运参数错误", str(exc))
+            return
+        self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
+
     def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
 
     def _open_trade_editor(self) -> None:
-        self.commerce_page.show_trade()
-        self._switch_page(self.COMMERCE_PAGE_INDEX)
+        self.workflow_page.show_trade_editor()
+        self._switch_page(self.WORKFLOW_PAGE_INDEX)
 
     def _open_passenger_editor(self) -> None:
-        self.commerce_page.show_passenger()
-        self._switch_page(self.COMMERCE_PAGE_INDEX)
+        self.workflow_page.show_passenger_editor()
+        self._switch_page(self.WORKFLOW_PAGE_INDEX)
 
     def _sync_workflow_settings(self) -> None:
         startup = self.settings_page.startup_inputs()
@@ -512,6 +533,9 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.startup_rounds.setValue(int(startup["max_settle_rounds"]))
         self.workflow_page.close_timeout.setValue(int(close["graceful_timeout_sec"]))
         self.workflow_page.close_force.setChecked(bool(close["force_after_timeout"]))
+        self.trade_page.arrival_timeout_minutes.setValue(
+            max(self.settings_page.trade_arrival_timeout_seconds() // 60, 1)
+        )
 
     def _start_commerce_sequence(self, run_trade: bool, run_passenger: bool) -> None:
         if self._busy or self._commerce_active or not (run_trade or run_passenger):
@@ -522,14 +546,14 @@ class ResonanceMainWindow(QMainWindow):
             try:
                 snapshots["trade"] = self.trade_page.collect_inputs()
             except ValueError as exc:
-                self.commerce_page.show_trade()
+                self._open_trade_editor()
                 QMessageBox.warning(self, "货运参数错误", str(exc))
                 return
         if run_passenger:
             try:
                 snapshots["passenger"] = self.passenger_page.collect_inputs()
             except ValueError as exc:
-                self.commerce_page.show_passenger()
+                self._open_passenger_editor()
                 QMessageBox.warning(self, "客运参数错误", str(exc))
                 return
 
@@ -832,12 +856,10 @@ class ResonanceMainWindow(QMainWindow):
                 self._switch_page(self.BATTLE_PAGE_INDEX)
             elif history_kind == "passenger":
                 self.passenger_page.show_history_result(payload)
-                self.commerce_page.show_passenger()
-                self._switch_page(self.COMMERCE_PAGE_INDEX)
+                self._open_passenger_editor()
             else:
                 self.trade_page.show_history_result(payload)
-                self.commerce_page.show_trade()
-                self._switch_page(self.COMMERCE_PAGE_INDEX)
+                self._open_trade_editor()
 
     @staticmethod
     def _history_kind(row: dict[str, Any]) -> str:
@@ -870,18 +892,16 @@ class ResonanceMainWindow(QMainWindow):
             kind = str(item.get("kind") or "")
             if kind == "trade_preview":
                 self.trade_page.begin_preview(payload)
-                self.commerce_page.show_trade()
-                self._switch_page(self.COMMERCE_PAGE_INDEX)
+                self.workflow_page.show_trade_preview()
+                self._switch_page(self.WORKFLOW_PAGE_INDEX)
             elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
                 if not self._commerce_active and not self._workflow_active:
-                    self.commerce_page.show_trade()
-                    self._switch_page(self.COMMERCE_PAGE_INDEX)
+                    self._open_trade_editor()
             elif kind == "passenger_run":
                 self.passenger_page.begin_run(payload)
                 if not self._commerce_active and not self._workflow_active:
-                    self.commerce_page.show_passenger()
-                    self._switch_page(self.COMMERCE_PAGE_INDEX)
+                    self._open_passenger_editor()
             elif kind == "battle_preview":
                 self.battle_page.begin_validation(payload)
                 self._switch_page(self.BATTLE_PAGE_INDEX)
@@ -1015,6 +1035,16 @@ class ResonanceMainWindow(QMainWindow):
         self.statusBar().showMessage(message)
         if self._workflow_active:
             self.workflow_page.append_log(message)
+
+    def _set_global_target_status(self, payload: dict[str, Any]) -> None:
+        target = payload.get("target") if isinstance(payload.get("target"), dict) else {}
+        ready = bool(payload.get("ok")) and bool(target.get("visible", True))
+        self.global_target_label.setText(
+            f"● {target.get('title') or '已连接窗口'}" if ready else "● 未连接窗口"
+        )
+        self.global_target_label.setProperty("status", "success" if ready else "warning")
+        self.global_target_label.style().unpolish(self.global_target_label)
+        self.global_target_label.style().polish(self.global_target_label)
 
     def _save_preferences(self) -> None:
         self._preferences = GuiPreferences(

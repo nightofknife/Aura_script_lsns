@@ -329,8 +329,10 @@ class TradePage(QWidget):
         root.addWidget(self._build_status_band())
 
         splitter = QSplitter(Qt.Orientation.Horizontal, self)
-        splitter.addWidget(self._build_parameter_panel())
-        splitter.addWidget(self._build_execution_panel())
+        self.parameter_panel = self._build_parameter_panel()
+        splitter.addWidget(self.parameter_panel)
+        self.execution_panel = self._build_execution_panel()
+        splitter.addWidget(self.execution_panel)
         splitter.setCollapsible(0, False)
         splitter.setCollapsible(1, False)
         splitter.setSizes([320, 820])
@@ -350,10 +352,6 @@ class TradePage(QWidget):
         self.cid_value = self._status_pair(layout, "CID", "--")
         self.elapsed_value = self._status_pair(layout, "运行时长", "00:00")
         layout.addStretch(1)
-        refresh = QPushButton("刷新目标", band)
-        refresh.setToolTip("重新检查雷索纳斯 PC 窗口")
-        refresh.clicked.connect(self.refreshTargetRequested.emit)
-        layout.addWidget(refresh)
         return band
 
     @staticmethod
@@ -395,6 +393,8 @@ class TradePage(QWidget):
         self.cargo_capacity = self._spin(1, 100000)
         self.book_budget = self._spin(0, 100000)
         self.arrival_timeout_minutes = self._spin(1, 240)
+        self.arrival_timeout_minutes.setParent(content)
+        self.arrival_timeout_minutes.hide()
         self.arrival_timeout_minutes.setSuffix(" 分钟")
         self.arrival_timeout_minutes.setToolTip(
             "超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时"
@@ -407,7 +407,6 @@ class TradePage(QWidget):
         common_form.addRow("疲劳预算", self.fatigue_budget)
         common_form.addRow("货舱容量", self.cargo_capacity)
         common_form.addRow("进货书", self.book_budget)
-        common_form.addRow("到站等待上限", self.arrival_timeout_minutes)
         form_stack.addLayout(common_form)
 
         self.use_medicine = QCheckBox("允许使用疲劳药", content)
@@ -486,15 +485,20 @@ class TradePage(QWidget):
         layout.setSpacing(4)
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(2)
-        self.city_checks: dict[str, QCheckBox] = {}
+        grid.setHorizontalSpacing(6)
+        grid.setVerticalSpacing(6)
+        self.city_checks: dict[str, QPushButton] = {}
         for index, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            checkbox = QCheckBox(city_name, selector)
-            checkbox.setToolTip(f"城市 ID: {city_id}")
-            checkbox.toggled.connect(self._sync_city_controls)
-            self.city_checks[city_id] = checkbox
-            grid.addWidget(checkbox, index, 0)
+            button = QPushButton(city_name, selector)
+            button.setCheckable(True)
+            button.setProperty("cityOption", True)
+            button.setMinimumHeight(30)
+            button.setToolTip(f"城市 ID: {city_id}；点击切换是否参与规划")
+            button.toggled.connect(self._sync_city_controls)
+            self.city_checks[city_id] = button
+            grid.addWidget(button, index // 3, index % 3)
+        for column in range(3):
+            grid.setColumnStretch(column, 1)
         layout.addLayout(grid)
 
         actions = QHBoxLayout()
@@ -744,8 +748,8 @@ class TradePage(QWidget):
 
     def set_inputs(self, inputs: Mapping[str, Any]) -> None:
         values = dict(inputs)
-        self.fatigue_budget.setValue(int(values.get("fatigue_budget", 100)))
-        self.cargo_capacity.setValue(int(values.get("cargo_capacity", 650)))
+        self.fatigue_budget.setValue(int(values.get("fatigue_budget", 700)))
+        self.cargo_capacity.setValue(int(values.get("cargo_capacity", 750)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
         arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 1800)), 1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
@@ -790,7 +794,7 @@ class TradePage(QWidget):
         self.allowed_medicines.setText(self._join_values(values.get("allowed_fatigue_medicines", [])))
         self.medicine_max_uses.setValue(int(values.get("fatigue_medicine_max_uses", 4)))
         self.auto_cape_island_investment.setChecked(
-            bool(values.get("auto_cape_island_investment", False))
+            bool(values.get("auto_cape_island_investment", True))
         )
         self._sync_city_controls()
         self._sync_medicine_controls()

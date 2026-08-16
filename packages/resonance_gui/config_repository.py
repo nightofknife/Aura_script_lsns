@@ -60,8 +60,8 @@ class GuiPreferences:
 
 DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "start_city_id": "",
-    "fatigue_budget": 100,
-    "cargo_capacity": 650,
+    "fatigue_budget": 700,
+    "cargo_capacity": 750,
     "book_budget": 0,
     "book_profit_threshold": 15000,
     "negotiation_max_attempts": 5,
@@ -78,7 +78,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
     "arrival_timeout_seconds": 1800,
-    "auto_cape_island_investment": False,
+    "auto_cape_island_investment": True,
 }
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {

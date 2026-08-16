@@ -91,10 +91,6 @@ class BattlePage(QWidget):
         self.cid_value = self._status_pair(layout, "CID", "--")
         self.elapsed_value = self._status_pair(layout, "运行时长", "00:00")
         layout.addStretch(1)
-        refresh = QPushButton("刷新目标", band)
-        refresh.setToolTip("重新检查雷索纳斯 PC 窗口")
-        refresh.clicked.connect(self.refreshTargetRequested.emit)
-        layout.addWidget(refresh)
         return band
 
     @staticmethod

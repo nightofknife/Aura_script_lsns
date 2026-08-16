@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
+from PySide6.QtCore import QEasingCurve, QEvent, QMimeData, QPoint, QPropertyAnimation, QRect, Qt, Signal
 from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -46,7 +46,7 @@ class _TaskRow(QFrame):
         self.setObjectName("workflowTaskRow")
         self.setProperty("selected", False)
         self.setMinimumHeight(52)
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.setCursor(Qt.CursorShape.ArrowCursor)
         self._drag_start = QPoint()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -60,29 +60,45 @@ class _TaskRow(QFrame):
         self.name_label.setObjectName("taskName")
         self.status_label = QLabel("○", self)
         self.status_label.setObjectName("taskStatus")
+        self.drag_handle = QLabel("⋮⋮", self)
+        self.drag_handle.setObjectName("taskDragHandle")
+        self.drag_handle.setToolTip("拖动调整顺序")
+        self.drag_handle.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.drag_handle.installEventFilter(self)
         layout.addWidget(self.enabled_check)
         layout.addWidget(self.number_label)
         layout.addWidget(self.name_label, 1)
         layout.addWidget(self.status_label)
+        layout.addWidget(self.drag_handle)
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         self.selected.emit(self.task_id)
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start = event.position().toPoint()
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event) -> None:  # noqa: N802
-        if not event.buttons() & Qt.MouseButton.LeftButton:
-            return super().mouseMoveEvent(event)
-        if (event.position().toPoint() - self._drag_start).manhattanLength() < 8:
-            return super().mouseMoveEvent(event)
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802
+        if watched is self.drag_handle and event.type() == QEvent.Type.MouseButtonPress:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.selected.emit(self.task_id)
+                self._drag_start = event.position().toPoint()
+                return True
+        if watched is self.drag_handle and event.type() == QEvent.Type.MouseMove:
+            if event.buttons() & Qt.MouseButton.LeftButton:
+                if (event.position().toPoint() - self._drag_start).manhattanLength() >= 8:
+                    self._start_drag()
+                return True
+        return super().eventFilter(watched, event)
+
+    def _start_drag(self) -> None:
         drag = QDrag(self)
         mime = QMimeData()
         mime.setData("application/x-aura-workflow-task", self.task_id.encode("utf-8"))
         drag.setMimeData(mime)
-        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        pixmap = self.grab()
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QPoint(pixmap.width() - 16, pixmap.height() // 2))
+        self.drag_handle.setCursor(Qt.CursorShape.ClosedHandCursor)
         drag.exec(Qt.DropAction.MoveAction)
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.drag_handle.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def set_selected(self, selected: bool) -> None:
         self.setProperty("selected", selected)
@@ -96,6 +112,13 @@ class _TaskRowsHost(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self._drop_indicator = QFrame(self)
+        self._drop_indicator.setObjectName("taskDropIndicator")
+        self._drop_indicator.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._drop_indicator.hide()
+        self._indicator_animation = QPropertyAnimation(self._drop_indicator, b"geometry", self)
+        self._indicator_animation.setDuration(110)
+        self._indicator_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
 
     def dragEnterEvent(self, event) -> None:  # noqa: N802
         if event.mimeData().hasFormat("application/x-aura-workflow-task"):
@@ -103,21 +126,54 @@ class _TaskRowsHost(QWidget):
 
     def dragMoveEvent(self, event) -> None:  # noqa: N802
         if event.mimeData().hasFormat("application/x-aura-workflow-task"):
+            target = self._drop_target(event.position().y())
+            self._show_drop_indicator(target)
             event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event) -> None:  # noqa: N802
+        self._drop_indicator.hide()
+        super().dragLeaveEvent(event)
 
     def dropEvent(self, event) -> None:  # noqa: N802
         if not event.mimeData().hasFormat("application/x-aura-workflow-task"):
             return
-        rows = sorted(self.findChildren(_TaskRow), key=lambda row: row.geometry().top())
-        target = len(rows)
-        y = event.position().y()
-        for index, row in enumerate(rows):
-            if y < row.geometry().center().y():
-                target = index
-                break
+        target = self._drop_target(event.position().y())
         task_id = bytes(event.mimeData().data("application/x-aura-workflow-task")).decode("utf-8")
+        self._drop_indicator.hide()
         self.taskDropped.emit(task_id, target)
         event.acceptProposedAction()
+
+    def _rows(self) -> list[_TaskRow]:
+        return sorted(self.findChildren(_TaskRow), key=lambda row: row.geometry().top())
+
+    def _drop_target(self, y: float) -> int:
+        rows = self._rows()
+        for index, row in enumerate(rows):
+            if y < row.geometry().center().y():
+                return index
+        return len(rows)
+
+    def _show_drop_indicator(self, target: int) -> None:
+        rows = self._rows()
+        if not rows:
+            return
+        if target <= 0:
+            y = rows[0].geometry().top() - 2
+        elif target >= len(rows):
+            y = rows[-1].geometry().bottom() + 3
+        else:
+            y = (rows[target - 1].geometry().bottom() + rows[target].geometry().top()) // 2
+        target_geometry = QRect(4, int(y), max(self.width() - 8, 1), 3)
+        if not self._drop_indicator.isVisible():
+            self._drop_indicator.setGeometry(target_geometry)
+            self._drop_indicator.show()
+            self._drop_indicator.raise_()
+            return
+        self._indicator_animation.stop()
+        self._indicator_animation.setStartValue(self._drop_indicator.geometry())
+        self._indicator_animation.setEndValue(target_geometry)
+        self._indicator_animation.start()
+        self._drop_indicator.raise_()
 
 
 class WorkflowPage(QWidget):
@@ -128,6 +184,7 @@ class WorkflowPage(QWidget):
     openTradeRequested = Signal()
     openPassengerRequested = Signal()
     openBattleRequested = Signal()
+    previewTradeRequested = Signal()
     settingsRequested = Signal()
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
@@ -187,9 +244,6 @@ class WorkflowPage(QWidget):
         footer.setObjectName("workflowFooter")
         footer_layout = QHBoxLayout(footer)
         footer_layout.setContentsMargins(4, 8, 4, 0)
-        self.connection_label = QLabel("● 等待连接", footer)
-        self.connection_label.setProperty("caption", True)
-        footer_layout.addWidget(self.connection_label)
         footer_layout.addStretch(1)
         self.settings_button = QPushButton("设置", footer)
         self.settings_button.setObjectName("quietButton")
@@ -214,13 +268,104 @@ class WorkflowPage(QWidget):
         panel.setObjectName("workflowPanel")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(18, 16, 18, 14)
+        self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.config_stack.addWidget(self._build_startup_config())
         self.config_stack.addWidget(self._build_commerce_config())
         self.config_stack.addWidget(self._build_battle_config())
         self.config_stack.addWidget(self._build_close_config())
-        layout.addWidget(self.config_stack)
+        self.center_stack.addWidget(self.config_stack)
+        (
+            self.trade_editor_page,
+            self.trade_editor_layout,
+            self.trade_editor_header,
+        ) = self._build_embedded_editor_page("完整货运参数")
+        self.trade_preview_button = QPushButton("方案试算", self.trade_editor_page)
+        self.trade_preview_button.setObjectName("primaryButton")
+        self.trade_preview_button.setToolTip("使用当前参数计算方案，不操作游戏")
+        self.trade_preview_button.clicked.connect(self._request_trade_preview)
+        self.trade_editor_header.addWidget(self.trade_preview_button)
+        (
+            self.passenger_editor_page,
+            self.passenger_editor_layout,
+            self.passenger_editor_header,
+        ) = self._build_embedded_editor_page("完整客运参数")
+        self.trade_preview_page = self._build_trade_preview_page()
+        self.center_stack.addWidget(self.trade_editor_page)
+        self.center_stack.addWidget(self.passenger_editor_page)
+        self.center_stack.addWidget(self.trade_preview_page)
+        layout.addWidget(self.center_stack)
         return panel
+
+    def _build_embedded_editor_page(
+        self, title: str
+    ) -> tuple[QWidget, QVBoxLayout, QHBoxLayout]:
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        header = QHBoxLayout()
+        back = QPushButton("← 返回跑商设置", page)
+        back.setObjectName("quietButton")
+        back.clicked.connect(self.show_commerce_summary)
+        heading = QLabel(title, page)
+        heading.setObjectName("workflowTitle")
+        header.addWidget(back)
+        header.addWidget(heading)
+        header.addStretch(1)
+        layout.addLayout(header)
+        return page, layout, header
+
+    def _build_trade_preview_page(self) -> QWidget:
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        header = QHBoxLayout()
+        back = QPushButton("← 返回修改参数", page)
+        back.setObjectName("quietButton")
+        back.clicked.connect(self.show_trade_editor)
+        heading = QLabel("货运方案试算", page)
+        heading.setObjectName("workflowTitle")
+        rerun = QPushButton("重新计算", page)
+        rerun.clicked.connect(self._request_trade_preview)
+        header.addWidget(back)
+        header.addWidget(heading)
+        header.addStretch(1)
+        header.addWidget(rerun)
+        layout.addLayout(header)
+        self.trade_preview_layout = layout
+        self.trade_preview_rerun_button = rerun
+        return page
+
+    def attach_parameter_editors(
+        self, trade_panel: QWidget, passenger_panel: QWidget, trade_result_panel: QWidget
+    ) -> None:
+        for panel, target_layout in (
+            (trade_panel, self.trade_editor_layout),
+            (passenger_panel, self.passenger_editor_layout),
+            (trade_result_panel, self.trade_preview_layout),
+        ):
+            panel.setMinimumWidth(0)
+            panel.setMaximumWidth(16777215)
+            target_layout.addWidget(panel, 1)
+
+    def show_trade_editor(self) -> None:
+        self.center_stack.setCurrentWidget(self.trade_editor_page)
+
+    def show_passenger_editor(self) -> None:
+        self.center_stack.setCurrentWidget(self.passenger_editor_page)
+
+    def show_trade_preview(self) -> None:
+        self.center_stack.setCurrentWidget(self.trade_preview_page)
+
+    def _request_trade_preview(self) -> None:
+        if self._busy:
+            return
+        self.show_trade_preview()
+        self.previewTradeRequested.emit()
+
+    def show_commerce_summary(self) -> None:
+        self.center_stack.setCurrentWidget(self.config_stack)
+        self.config_stack.setCurrentIndex(1)
 
     def _page_heading(self, title: str, description: str, parent: QWidget) -> QVBoxLayout:
         box = QVBoxLayout()
@@ -324,14 +469,12 @@ class WorkflowPage(QWidget):
         self.trade_fatigue.setRange(0, 100000)
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
-        self.trade_arrival = QSpinBox(page)
-        self.trade_arrival.setRange(1, 240)
-        self.trade_arrival.setSuffix(" 分钟")
         self.trade_medicine = QCheckBox("允许使用疲劳药", page)
+        self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
         form.addRow("疲劳预算", self.trade_fatigue)
         form.addRow("货舱容量", self.trade_cargo)
-        form.addRow("到站等待上限", self.trade_arrival)
         form.addRow("疲劳恢复", self.trade_medicine)
+        form.addRow("蜃息岛投资", self.trade_investment)
         layout.addLayout(form)
         button = QPushButton("打开完整货运参数", page)
         button.clicked.connect(self.openTradeRequested.emit)
@@ -430,6 +573,7 @@ class WorkflowPage(QWidget):
         if task_id not in self._task_rows:
             return
         self._selected_task = task_id
+        self.center_stack.setCurrentWidget(self.config_stack)
         for row_id, row in self._task_rows.items():
             row.set_selected(row_id == task_id)
         self.config_stack.setCurrentIndex(
@@ -536,10 +680,10 @@ class WorkflowPage(QWidget):
         }
 
     def apply_compact_inputs(self, trade: Mapping[str, Any], passenger: Mapping[str, Any]) -> None:
-        self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 100)))
-        self.trade_cargo.setValue(int(trade.get("cargo_capacity", 650)))
-        self.trade_arrival.setValue(max(int(trade.get("arrival_timeout_seconds", 1800)) // 60, 1))
+        self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 700)))
+        self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_medicine.setChecked(bool(trade.get("use_fatigue_medicine", False)))
+        self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
         self.passenger_rounds.setValue(int(passenger.get("round_trips", 1)))
         self.passenger_trade.setChecked(bool(passenger.get("trade_during_trip", False)))
         self.passenger_reposition.setChecked(bool(passenger.get("reposition_to_route", True)))
@@ -549,8 +693,8 @@ class WorkflowPage(QWidget):
         merged.update(
             fatigue_budget=self.trade_fatigue.value(),
             cargo_capacity=self.trade_cargo.value(),
-            arrival_timeout_seconds=self.trade_arrival.value() * 60,
             use_fatigue_medicine=self.trade_medicine.isChecked(),
+            auto_cape_island_investment=self.trade_investment.isChecked(),
         )
         return merged
 
@@ -565,12 +709,6 @@ class WorkflowPage(QWidget):
 
     def set_battle_count(self, count: int) -> None:
         self.battle_summary.setText(f"当前任务单包含 {count} 个作战任务。" if count else "尚未添加作战任务。")
-
-    def set_target_status(self, payload: Mapping[str, Any]) -> None:
-        target = payload.get("target") if isinstance(payload.get("target"), Mapping) else {}
-        ready = bool(payload.get("ok")) and bool(target.get("visible", True))
-        self.connection_label.setText(f"● {target.get('title') or '连接正常'}" if ready else "● 未连接")
-        self.connection_label.setProperty("status", "success" if ready else "warning")
 
     def begin_workflow(self, steps: list[str], commerce_steps: list[str]) -> None:
         self._busy = True

@@ -59,7 +59,8 @@ class PassengerPage(QWidget):
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(0)
-        body.addWidget(self._build_parameter_panel())
+        self.parameter_panel = self._build_parameter_panel()
+        body.addWidget(self.parameter_panel)
         body.addWidget(self._build_progress_panel(), 1)
         root.addLayout(body, 1)
         root.addWidget(self._build_action_bar())
@@ -77,9 +78,6 @@ class PassengerPage(QWidget):
         self.cid_value = QLabel("--", band)
         self.cid_value.hide()
         layout.addStretch(1)
-        refresh = QPushButton("刷新目标", band)
-        refresh.clicked.connect(self.refreshTargetRequested.emit)
-        layout.addWidget(refresh)
         return band
 
     @staticmethod

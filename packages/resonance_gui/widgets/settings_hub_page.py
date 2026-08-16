@@ -151,10 +151,29 @@ class SettingsHubPage(QWidget):
 
         advanced = QPushButton("高级参数  ›", page)
         advanced.setObjectName("quietButton")
-        advanced.setToolTip("底层运行时与输入参数仍由现有配置负责")
+        advanced.setCheckable(True)
+        advanced.setToolTip("调整通常无需修改的底层运行参数")
+        advanced.toggled.connect(self._toggle_advanced)
         layout.addWidget(advanced)
+        self.advanced_button = advanced
+        self.advanced_panel = QFrame(page)
+        self.advanced_panel.setObjectName("linenInset")
+        advanced_form = QFormLayout(self.advanced_panel)
+        self.trade_arrival_timeout = QSpinBox(self.advanced_panel)
+        self.trade_arrival_timeout.setRange(1, 240)
+        self.trade_arrival_timeout.setSuffix(" 分钟")
+        self.trade_arrival_timeout.setToolTip(
+            "超过该时间仍未识别到站按钮或城市主页时，货运任务判定为到站超时"
+        )
+        advanced_form.addRow("货运到站等待上限", self.trade_arrival_timeout)
+        self.advanced_panel.hide()
+        layout.addWidget(self.advanced_panel)
         layout.addStretch(1)
         return page
+
+    def _toggle_advanced(self, expanded: bool) -> None:
+        self.advanced_panel.setVisible(expanded)
+        self.advanced_button.setText("高级参数  ﹀" if expanded else "高级参数  ›")
 
     @staticmethod
     def _section(text: str, parent: QWidget) -> QLabel:
@@ -199,6 +218,10 @@ class SettingsHubPage(QWidget):
         self.close_mode.setCurrentIndex(0 if force else 1)
         self.close_timeout.setValue(int(self._settings.value("game/graceful_timeout_sec", 10)))
         self.close_on_failure.setChecked(self._bool_value("workflow/close_on_failure", False))
+        trade_inputs = self._settings.load_trade_inputs()
+        self.trade_arrival_timeout.setValue(
+            max(int(trade_inputs.get("arrival_timeout_seconds", 1800)) // 60, 1)
+        )
         if self.executable_path.text().strip():
             self._detect_executable()
 
@@ -210,6 +233,9 @@ class SettingsHubPage(QWidget):
         self._settings.set_value("game/force_after_timeout", bool(self.close_mode.currentData()))
         self._settings.set_value("game/graceful_timeout_sec", self.close_timeout.value())
         self._settings.set_value("workflow/close_on_failure", self.close_on_failure.isChecked())
+        trade_inputs = self._settings.load_trade_inputs()
+        trade_inputs["arrival_timeout_seconds"] = self.trade_arrival_timeout.value() * 60
+        self._settings.save_trade_inputs(trade_inputs)
         self.settingsSaved.emit()
 
     def startup_inputs(self) -> dict[str, object]:
@@ -229,6 +255,9 @@ class SettingsHubPage(QWidget):
 
     def close_on_failure_enabled(self) -> bool:
         return self.close_on_failure.isChecked()
+
+    def trade_arrival_timeout_seconds(self) -> int:
+        return self.trade_arrival_timeout.value() * 60
 
     def _cancel(self) -> None:
         self.load_values()

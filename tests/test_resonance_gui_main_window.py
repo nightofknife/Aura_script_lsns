@@ -4,8 +4,8 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -351,6 +351,111 @@ def test_workflow_task_drop_reorders_without_move_buttons(tmp_path):
         window.close()
 
 
+def test_workflow_drag_is_limited_to_handle_and_shows_drop_indicator(tmp_path):
+    window = _window(tmp_path)
+    try:
+        row = window.workflow_page._task_rows["startup"]
+        assert row.cursor().shape() == Qt.CursorShape.ArrowCursor
+        assert row.drag_handle.cursor().shape() == Qt.CursorShape.OpenHandCursor
+        host = window.workflow_page.task_rows_host
+        host._show_drop_indicator(2)
+        assert host._drop_indicator.isVisible()
+        assert host._drop_indicator.height() == 3
+    finally:
+        window.close()
+
+
+def test_full_commerce_parameters_open_inside_workflow_center(tmp_path):
+    window = _window(tmp_path)
+    try:
+        window.workflow_page._select_task("commerce")
+        window.workflow_page.openTradeRequested.emit()
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.trade_editor_page
+        assert window.trade_page.parameter_panel.parent() is window.workflow_page.trade_editor_page
+        window.workflow_page.show_commerce_summary()
+        window.workflow_page.openPassengerRequested.emit()
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.passenger_editor_page
+        )
+        assert window.passenger_page.parameter_panel.parent() is window.workflow_page.passenger_editor_page
+    finally:
+        window.close()
+
+
+def test_trade_preview_is_a_standalone_center_tool_not_a_workflow_task(tmp_path):
+    window = _window(tmp_path)
+    preview_requests: list[dict] = []
+    try:
+        window.requestPreviewPcTrade.disconnect()
+        window.requestPreviewPcTrade.connect(
+            lambda inputs, _timeout: preview_requests.append(dict(inputs))
+        )
+        original_steps = window.workflow_page.workflow_steps()
+        window.workflow_page.show_trade_editor()
+        window.workflow_page.trade_preview_button.click()
+
+        assert len(preview_requests) == 1
+        assert window.workflow_page.workflow_steps() == original_steps
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.trade_preview_page
+        )
+        assert window.workflow_page.trade_preview_page.isAncestorOf(
+            window.trade_page.execution_panel
+        )
+    finally:
+        window.close()
+
+
+def test_trade_summary_defaults_and_advanced_arrival_timeout(tmp_path):
+    window = _window(tmp_path)
+    try:
+        assert window.workflow_page.trade_fatigue.value() == 700
+        assert window.workflow_page.trade_cargo.value() == 750
+        assert not window.workflow_page.trade_medicine.isChecked()
+        assert window.workflow_page.trade_investment.isChecked()
+        assert not hasattr(window.workflow_page, "trade_arrival")
+        assert window.trade_page.arrival_timeout_minutes.parent() is not None
+        assert not window.trade_page.arrival_timeout_minutes.isVisible()
+
+        window.settings_page.trade_arrival_timeout.setValue(45)
+        window.settings_page.save_values()
+        assert window.trade_page.arrival_timeout_minutes.value() == 45
+        assert window.trade_page.collect_inputs()["arrival_timeout_seconds"] == 2700
+
+        merged = window.workflow_page.merge_trade_inputs(
+            {"arrival_timeout_seconds": 2700, "auto_cape_island_investment": False}
+        )
+        assert merged["arrival_timeout_seconds"] == 2700
+        assert merged["auto_cape_island_investment"] is True
+    finally:
+        window.close()
+
+
+def test_target_refresh_and_connection_status_are_global(tmp_path):
+    window = _window(tmp_path)
+    refresh_requests: list[bool] = []
+    try:
+        window.requestRefreshTarget.disconnect()
+        window.requestRefreshTarget.connect(lambda: refresh_requests.append(True))
+        window.refresh_target_button.click()
+        assert refresh_requests == [True]
+        assert window.global_target_label.text() == "● 等待连接"
+
+        window._set_global_target_status(
+            {"ok": True, "target": {"title": "雷索纳斯", "visible": True}}
+        )
+        assert "雷索纳斯" in window.global_target_label.text()
+        assert not hasattr(window.workflow_page, "connection_label")
+        for page in (window.trade_page, window.passenger_page, window.battle_page):
+            assert "刷新目标" not in [button.text() for button in page.findChildren(QPushButton)]
+    finally:
+        window.close()
+
+
 def test_detail_pages_return_without_collecting_inputs(tmp_path, monkeypatch):
     window = _window(tmp_path)
     try:
@@ -390,7 +495,8 @@ def test_commerce_overview_invalid_trade_inputs_open_trade_page(tmp_path, monkey
         overview.run_button.click()
 
         assert not overview.is_running
-        assert window.commerce_page.section_stack.currentWidget() is window.trade_page
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.trade_editor_page
         assert warnings and warnings[0][0] == "货运参数错误"
     finally:
         window.close()
@@ -479,8 +585,11 @@ def test_main_window_routes_pc_passenger_lifecycle_to_passenger_page(tmp_path):
             }
         )
 
-        assert window.page_stack.currentWidget() is window.commerce_page
-        assert window.commerce_page.section_stack.currentWidget() is window.passenger_page
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.passenger_editor_page
+        )
         assert window.passenger_page.is_busy()
         assert not window.trade_page.is_busy()
         assert window.passenger_page.cid_value.text() == "passenger-cid"

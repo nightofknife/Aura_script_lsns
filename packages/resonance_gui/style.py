@@ -163,6 +163,21 @@ QPushButton#dangerButton:hover { background: #f3dfd5; }
 QPushButton[segment="true"] { border-radius: 0; padding: 6px 10px; }
 QPushButton[segment="true"]:first { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
 QPushButton[segment="true"]:checked { background: #dce3d5; color: #4e6048; border-color: #77866b; font-weight: 700; }
+QPushButton[cityOption="true"] {
+    min-width: 0;
+    padding: 5px 4px;
+    border: 1px solid #cfc4b1;
+    border-radius: 5px;
+    background: #f4efe5;
+    color: #625d53;
+}
+QPushButton[cityOption="true"]:hover { background: #ebe4d6; border-color: #a9a18f; }
+QPushButton[cityOption="true"]:checked {
+    background: #dce3d5;
+    color: #44513f;
+    border-color: #77866b;
+    font-weight: 700;
+}
 QToolButton { color: #47535c; border: 0; padding: 4px 0; font-weight: 600; }
 QTreeWidget, QTableWidget {
     background: #fffaf0;
@@ -238,6 +253,14 @@ QLabel#taskStatus { color: #9c9589; font-size: 16px; font-weight: 700; }
 QLabel#taskStatus[runState="running"] { color: #77866b; }
 QLabel#taskStatus[runState="success"] { color: #6f8a5e; }
 QLabel#taskStatus[runState="failed"], QLabel#taskStatus[runState="cancelled"] { color: #b9785d; }
+QLabel#taskDragHandle {
+    color: #8d8578;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 2px 4px;
+}
+QLabel#taskDragHandle:hover { color: #66745c; background: #e8decc; border-radius: 3px; }
+QFrame#taskDropIndicator { background: #77866b; border: 0; border-radius: 1px; }
 QFrame#linenInset, QLabel#linenInsetLabel {
     background: #f2ebdd;
     border: 1px solid #d4c6ad;
