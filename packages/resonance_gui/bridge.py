@@ -132,6 +132,18 @@ class RunnerBridge(QObject):
         if not self._busy:
             self._run_next()
 
+    @Slot(str, object, object, float)
+    def run_pc_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
+        """Run one generic Resonance PC task without enabling bridge queue chaining."""
+        if self._busy:
+            self.taskFailed.emit({"stage": "run_pc_task", "error": "已有任务正在运行。"})
+            return
+        item = self._make_item(PC_GAME_NAME, task_ref, inputs, label, timeout_sec)
+        item["kind"] = "workflow_task"
+        self._queue.insert(0, item)
+        self._emit_queue()
+        self._run_next()
+
     @Slot(object, float)
     def run_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
         if self._busy:

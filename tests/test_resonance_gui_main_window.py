@@ -4,8 +4,8 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -48,34 +48,25 @@ def test_available_update_is_only_shown_in_window_title(tmp_path):
         window.close()
 
 
-def test_main_window_groups_freight_and_passenger_under_commerce_navigation(tmp_path):
+def test_main_window_opens_with_four_task_workflow_and_independent_commerce_order(tmp_path):
     window = _window(tmp_path)
     try:
-        assert [button.text() for button in window.nav_buttons] == [
-            "跑商",
-            "战斗",
-            "任务工具",
-            "历史",
-            "设置",
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert window.workflow_page.workflow_steps() == [
+            "startup", "commerce", "battle", "close"
         ]
-        assert [button.text() for button in window.commerce_page.section_buttons] == [
-            "总览",
-            "货运",
-            "客运",
+        assert window.workflow_page.commerce_steps() == ["trade", "passenger"]
+        window.workflow_page._select_task("commerce")
+        window.workflow_page._move_current(-1)
+        assert window.workflow_page.workflow_steps() == [
+            "commerce", "startup", "battle", "close"
         ]
-        assert window.page_stack.currentWidget() is window.commerce_page
-        assert window.commerce_page.section_stack.currentWidget() is window.commerce_page.overview_page
-        assert window.commerce_page.overview_page.freight_checkbox.isChecked()
-        assert window.commerce_page.overview_page.passenger_checkbox.isChecked()
-
-        window.commerce_page.section_buttons[2].click()
-        assert window.page_stack.currentWidget() is window.commerce_page
-        assert window.commerce_page.section_stack.currentWidget() is window.passenger_page
-
-        window.nav_buttons[1].click()
-        assert window.page_stack.currentWidget() is window.battle_page
-        window.nav_buttons[0].click()
-        assert window.commerce_page.section_stack.currentWidget() is window.commerce_page.overview_page
+        window.workflow_page._swap_commerce_order()
+        assert window.workflow_page.commerce_steps() == ["passenger", "trade"]
+        window.workflow_page.settings_button.click()
+        assert window.page_stack.currentWidget() is window.settings_page
+        window.settings_page.backRequested.emit()
+        assert window.page_stack.currentWidget() is window.workflow_page
     finally:
         window.close()
 
@@ -254,6 +245,239 @@ def test_commerce_overview_can_run_passenger_only_with_live_inputs(tmp_path):
         window.close()
 
 
+def test_workflow_runs_startup_trade_passenger_and_close_in_order(tmp_path):
+    window = _window(tmp_path)
+    pc_tasks: list[str] = []
+    trade_requests: list[dict] = []
+    passenger_requests: list[dict] = []
+    try:
+        window.requestRunPcTask.disconnect()
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTask.connect(
+            lambda task_ref, _inputs, _label, _timeout: pc_tasks.append(str(task_ref))
+        )
+        window.requestRunPcTrade.connect(
+            lambda inputs, _timeout: trade_requests.append(dict(inputs))
+        )
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        window.workflow_page._task_checks["battle"].setChecked(False)
+
+        window.workflow_page.run_button.click()
+        assert pc_tasks == ["tasks:game_startup_pc.yaml:enter_main"]
+
+        startup_item = {"game_name": "resonance_pc", "kind": "workflow_task", "label": "进入主界面"}
+        window._on_busy_changed(True)
+        window._on_task_started(startup_item)
+        window._on_task_finished({
+            "status": "success", "gui_item": startup_item,
+            "final_result": {"user_data": {"success": True, "status": "completed"}},
+        })
+        window._on_busy_changed(False)
+        assert len(trade_requests) == 1
+
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_finished({
+            "status": "success", "gui_item": trade_item,
+            "final_result": {"user_data": {"success": True, "status": "completed"}},
+        })
+        window._on_busy_changed(False)
+        assert len(passenger_requests) == 1
+
+        passenger_item = {"game_name": "resonance_pc", "kind": "passenger_run", "label": "客运"}
+        window._on_busy_changed(True)
+        window._on_task_started(passenger_item)
+        window._on_task_finished({
+            "status": "success", "gui_item": passenger_item,
+            "final_result": {"user_data": {"success": True, "status": "completed"}},
+        })
+        window._on_busy_changed(False)
+        assert pc_tasks[-1] == "tasks:game_startup_pc.yaml:close_game"
+
+        close_item = {"game_name": "resonance_pc", "kind": "workflow_task", "label": "关闭游戏"}
+        window._on_busy_changed(True)
+        window._on_task_started(close_item)
+        window._on_task_finished({
+            "status": "success", "gui_item": close_item,
+            "final_result": {"user_data": {"success": True, "status": "stopped"}},
+        })
+        window._on_busy_changed(False)
+
+        assert not window.workflow_page.is_running()
+        assert "全部启用任务已完成" in window.workflow_page.progress_label.text()
+    finally:
+        window.close()
+
+
+def test_workflow_task_and_commerce_order_persist(tmp_path):
+    window = _window(tmp_path)
+    try:
+        window.workflow_page._select_task("commerce")
+        window.workflow_page._move_current(-1)
+        window.workflow_page._swap_commerce_order()
+    finally:
+        window.close()
+
+    reopened = _window(tmp_path)
+    try:
+        assert reopened.workflow_page.workflow_steps() == [
+            "commerce", "startup", "battle", "close"
+        ]
+        assert reopened.workflow_page.commerce_steps() == ["passenger", "trade"]
+        assert all(row.isVisible() for row in reopened.workflow_page._task_rows.values())
+        assert all(row.name_label.text() for row in reopened.workflow_page._task_rows.values())
+    finally:
+        reopened.close()
+
+
+def test_workflow_task_drop_reorders_without_move_buttons(tmp_path):
+    window = _window(tmp_path)
+    try:
+        assert not hasattr(window.workflow_page, "up_button")
+        assert not hasattr(window.workflow_page, "down_button")
+        window.workflow_page._drop_task("close", 0)
+        assert window.workflow_page.workflow_steps() == [
+            "close", "startup", "commerce", "battle"
+        ]
+        assert [
+            window.workflow_page._task_rows[task_id].number_label.text()
+            for task_id in window.workflow_page._task_order
+        ] == ["1", "2", "3", "4"]
+    finally:
+        window.close()
+
+
+def test_workflow_drag_is_limited_to_handle_and_shows_drop_indicator(tmp_path):
+    window = _window(tmp_path)
+    try:
+        row = window.workflow_page._task_rows["startup"]
+        assert row.cursor().shape() == Qt.CursorShape.ArrowCursor
+        assert row.drag_handle.cursor().shape() == Qt.CursorShape.OpenHandCursor
+        host = window.workflow_page.task_rows_host
+        host._show_drop_indicator(2)
+        assert host._drop_indicator.isVisible()
+        assert host._drop_indicator.height() == 3
+    finally:
+        window.close()
+
+
+def test_full_commerce_parameters_open_inside_workflow_center(tmp_path):
+    window = _window(tmp_path)
+    try:
+        window.workflow_page._select_task("commerce")
+        window.workflow_page.openTradeRequested.emit()
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.trade_editor_page
+        assert window.trade_page.parameter_panel.parent() is window.workflow_page.trade_editor_page
+        window.workflow_page.show_commerce_summary()
+        window.workflow_page.openPassengerRequested.emit()
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.passenger_editor_page
+        )
+        assert window.passenger_page.parameter_panel.parent() is window.workflow_page.passenger_editor_page
+    finally:
+        window.close()
+
+
+def test_trade_preview_is_a_standalone_center_tool_not_a_workflow_task(tmp_path):
+    window = _window(tmp_path)
+    preview_requests: list[dict] = []
+    try:
+        window.requestPreviewPcTrade.disconnect()
+        window.requestPreviewPcTrade.connect(
+            lambda inputs, _timeout: preview_requests.append(dict(inputs))
+        )
+        original_steps = window.workflow_page.workflow_steps()
+        window.workflow_page.show_trade_editor()
+        window.workflow_page.trade_preview_button.click()
+
+        assert len(preview_requests) == 1
+        assert window.workflow_page.workflow_steps() == original_steps
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.trade_preview_page
+        )
+        assert window.workflow_page.trade_preview_page.isAncestorOf(
+            window.trade_page.execution_panel
+        )
+    finally:
+        window.close()
+
+
+def test_trade_summary_defaults_and_advanced_arrival_timeout(tmp_path):
+    window = _window(tmp_path)
+    try:
+        assert window.workflow_page.trade_fatigue.value() == 700
+        assert window.workflow_page.trade_cargo.value() == 750
+        assert not window.workflow_page.trade_medicine.isChecked()
+        assert window.workflow_page.trade_investment.isChecked()
+        assert not hasattr(window.workflow_page, "trade_arrival")
+        assert window.trade_page.arrival_timeout_minutes.parent() is not None
+        assert not window.trade_page.arrival_timeout_minutes.isVisible()
+
+        window.settings_page.trade_arrival_timeout.setValue(45)
+        window.settings_page.save_values()
+        assert window.trade_page.arrival_timeout_minutes.value() == 45
+        assert window.trade_page.collect_inputs()["arrival_timeout_seconds"] == 2700
+
+        merged = window.workflow_page.merge_trade_inputs(
+            {"arrival_timeout_seconds": 2700, "auto_cape_island_investment": False}
+        )
+        assert merged["arrival_timeout_seconds"] == 2700
+        assert merged["auto_cape_island_investment"] is True
+    finally:
+        window.close()
+
+
+def test_target_refresh_and_connection_status_are_global(tmp_path):
+    window = _window(tmp_path)
+    refresh_requests: list[bool] = []
+    try:
+        window.requestRefreshTarget.disconnect()
+        window.requestRefreshTarget.connect(lambda: refresh_requests.append(True))
+        window.refresh_target_button.click()
+        assert refresh_requests == [True]
+        assert window.global_target_label.text() == "● 等待连接"
+
+        window._set_global_target_status(
+            {"ok": True, "target": {"title": "雷索纳斯", "visible": True}}
+        )
+        assert "雷索纳斯" in window.global_target_label.text()
+        assert not hasattr(window.workflow_page, "connection_label")
+        for page in (window.trade_page, window.passenger_page, window.battle_page):
+            assert "刷新目标" not in [button.text() for button in page.findChildren(QPushButton)]
+    finally:
+        window.close()
+
+
+def test_detail_pages_return_without_collecting_inputs(tmp_path, monkeypatch):
+    window = _window(tmp_path)
+    try:
+        monkeypatch.setattr(
+            window.trade_page,
+            "collect_inputs",
+            lambda: (_ for _ in ()).throw(AssertionError("return collected trade inputs")),
+        )
+        monkeypatch.setattr(
+            window.passenger_page,
+            "collect_inputs",
+            lambda: (_ for _ in ()).throw(AssertionError("return collected passenger inputs")),
+        )
+        for page_index in (window.COMMERCE_PAGE_INDEX, window.BATTLE_PAGE_INDEX):
+            window._switch_page(page_index)
+            window.back_to_workflow_button.click()
+            assert window.page_stack.currentWidget() is window.workflow_page
+            assert window.isVisible()
+    finally:
+        window.close()
+
+
 def test_commerce_overview_invalid_trade_inputs_open_trade_page(tmp_path, monkeypatch):
     window = _window(tmp_path)
     warnings: list[tuple[str, str]] = []
@@ -271,7 +495,8 @@ def test_commerce_overview_invalid_trade_inputs_open_trade_page(tmp_path, monkey
         overview.run_button.click()
 
         assert not overview.is_running
-        assert window.commerce_page.section_stack.currentWidget() is window.trade_page
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.trade_editor_page
         assert warnings and warnings[0][0] == "货运参数错误"
     finally:
         window.close()
@@ -360,8 +585,11 @@ def test_main_window_routes_pc_passenger_lifecycle_to_passenger_page(tmp_path):
             }
         )
 
-        assert window.page_stack.currentWidget() is window.commerce_page
-        assert window.commerce_page.section_stack.currentWidget() is window.passenger_page
+        assert window.page_stack.currentWidget() is window.workflow_page
+        assert (
+            window.workflow_page.center_stack.currentWidget()
+            is window.workflow_page.passenger_editor_page
+        )
         assert window.passenger_page.is_busy()
         assert not window.trade_page.is_busy()
         assert window.passenger_page.cid_value.text() == "passenger-cid"

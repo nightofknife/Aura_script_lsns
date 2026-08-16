@@ -312,8 +312,9 @@ def test_config_repository_uses_resonance_settings(tmp_path):
     assert loaded.last_task_id == "market_latest"
 
     trade_inputs = repo.load_trade_inputs()
-    assert trade_inputs["auto_cape_island_investment"] is False
-    assert trade_inputs["cargo_capacity"] == 650
+    assert trade_inputs["auto_cape_island_investment"] is True
+    assert trade_inputs["fatigue_budget"] == 700
+    assert trade_inputs["cargo_capacity"] == 750
     assert trade_inputs["start_city_id"] == ""
     assert trade_inputs["negotiation_max_attempts"] == 5
     assert trade_inputs["arrival_timeout_seconds"] == 1800
