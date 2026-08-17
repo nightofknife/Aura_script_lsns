@@ -15,6 +15,7 @@ from .logic import (
     GAME_NAME,
     PC_BATTLE_PREVIEW_TASK_REF,
     PC_BATTLE_TASK_REF,
+    PC_COMBINED_COMMERCE_TASK_REF,
     PC_GAME_NAME,
     PC_PASSENGER_TASK_REF,
     PC_TRADE_PREVIEW_TASK_REF,
@@ -171,6 +172,26 @@ class RunnerBridge(QObject):
             timeout_sec,
         )
         item["kind"] = "passenger_run"
+        self._queue.insert(0, item)
+        self._emit_queue()
+        self._run_next()
+
+    @Slot(object, float)
+    def run_pc_combined_commerce(self, inputs: object, timeout_sec: float = 0.0) -> None:
+        if self._busy:
+            self.taskFailed.emit(
+                {"stage": "run_pc_combined_commerce", "error": "已有任务正在运行。"}
+            )
+            return
+        run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        item = self._make_item(
+            PC_GAME_NAME,
+            PC_COMBINED_COMMERCE_TASK_REF,
+            run_inputs,
+            "PC 客货运组合",
+            timeout_sec,
+        )
+        item["kind"] = "combined_commerce_run"
         self._queue.insert(0, item)
         self._emit_queue()
         self._run_next()

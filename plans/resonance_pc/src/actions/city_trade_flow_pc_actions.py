@@ -1460,19 +1460,7 @@ def _summarize_negotiation_execution(
     }
 
 
-@action_info(
-    name="resonance_pc.preview_trade_plan_flow",
-    public=True,
-    read_only=False,
-    description="Refresh market data and calculate a PC trade route from a user-selected start city.",
-)
-@requires_services(
-    resonance_pc_market_data="resonance_pc_market_data",
-    resonance_pc_trade_planner="resonance_pc_trade_planner",
-    event_bus="core/event_bus",
-)
-@_with_trade_progress
-async def resonance_pc_preview_trade_plan_flow(
+async def _preview_trade_plan_from_start_city(
     start_city_id: str,
     fatigue_budget: int = 100,
     cargo_capacity: int = 650,
@@ -1484,16 +1472,14 @@ async def resonance_pc_preview_trade_plan_flow(
     raise_step_bps: Optional[Any] = 1000,
     trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
+    required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
-    event_bus: EventBus | None = None,
-    context: ExecutionContext | None = None,
+    reporter: _TradeProgressReporter | None = None,
 ) -> Dict[str, Any]:
-    del event_bus, context
-    reporter = _ACTIVE_PROGRESS_REPORTER.get()
     normalized_start_city_id = str(start_city_id or "").strip()
     if not normalized_start_city_id:
         raise ValueError("start_city_id is required")
@@ -1569,6 +1555,7 @@ async def resonance_pc_preview_trade_plan_flow(
             raise_step_bps=raise_step_bps,
             trade_level=int(trade_level),
             available_city_ids=available_city_ids,
+            required_end_city_ids=required_end_city_ids,
             city_prestige=city_prestige
             or {"default": 20, "overrides": {}},
             product_unlocks=product_unlocks
@@ -1619,6 +1606,62 @@ async def resonance_pc_preview_trade_plan_flow(
 
 
 @action_info(
+    name="resonance_pc.preview_trade_plan_flow",
+    public=True,
+    read_only=False,
+    description="Refresh market data and calculate a PC trade route from a user-selected start city.",
+)
+@requires_services(
+    resonance_pc_market_data="resonance_pc_market_data",
+    resonance_pc_trade_planner="resonance_pc_trade_planner",
+    event_bus="core/event_bus",
+)
+@_with_trade_progress
+async def resonance_pc_preview_trade_plan_flow(
+    start_city_id: str,
+    fatigue_budget: int = 100,
+    cargo_capacity: int = 650,
+    book_budget: int = 0,
+    book_profit_threshold: float = 15000,
+    bargain_success_rates_bps: Optional[List[Any]] = [5000],
+    bargain_step_bps: Optional[Any] = 1000,
+    raise_success_rates_bps: Optional[List[Any]] = [5000],
+    raise_step_bps: Optional[Any] = 1000,
+    trade_level: int = 20,
+    available_city_ids: Optional[List[str]] = None,
+    required_end_city_ids: Optional[List[str]] = None,
+    city_prestige: Optional[Dict[str, Any]] = None,
+    product_unlocks: Optional[Dict[str, Any]] = None,
+    active_events: Optional[List[Any]] = None,
+    resonance_pc_market_data: ResonancePcMarketDataService | None = None,
+    resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
+    event_bus: EventBus | None = None,
+    context: ExecutionContext | None = None,
+) -> Dict[str, Any]:
+    del event_bus, context
+    return await _preview_trade_plan_from_start_city(
+        start_city_id=start_city_id,
+        fatigue_budget=fatigue_budget,
+        cargo_capacity=cargo_capacity,
+        book_budget=book_budget,
+        book_profit_threshold=book_profit_threshold,
+        bargain_success_rates_bps=bargain_success_rates_bps,
+        bargain_step_bps=bargain_step_bps,
+        raise_success_rates_bps=raise_success_rates_bps,
+        raise_step_bps=raise_step_bps,
+        trade_level=trade_level,
+        available_city_ids=available_city_ids,
+        required_end_city_ids=required_end_city_ids,
+        city_prestige=city_prestige,
+        product_unlocks=product_unlocks,
+        active_events=active_events,
+        resonance_pc_market_data=resonance_pc_market_data,
+        resonance_pc_trade_planner=resonance_pc_trade_planner,
+        reporter=_ACTIVE_PROGRESS_REPORTER.get(),
+    )
+
+
+@action_info(
     name="resonance_pc.auto_cycle_trade_flow",
     public=True,
     read_only=False,
@@ -1648,6 +1691,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     raise_step_bps: Optional[Any] = 1000,
     trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
+    required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
@@ -1773,6 +1817,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             raise_step_bps=raise_step_bps,
             trade_level=int(trade_level),
             available_city_ids=available_city_ids,
+            required_end_city_ids=required_end_city_ids,
             city_prestige=city_prestige
             or {"default": 20, "overrides": {}},
             product_unlocks=product_unlocks

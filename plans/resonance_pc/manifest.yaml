@@ -949,6 +949,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: required_end_city_ids
+      type: Any
+      required: false
+      default: null
     - name: city_prestige
       type: Any
       required: false
@@ -1013,6 +1017,10 @@ exports:
       required: false
       default: 20
     - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: required_end_city_ids
       type: Any
       required: false
       default: null
@@ -1209,6 +1217,30 @@ exports:
       type: Any
       required: false
       default: 0.8
+  - name: resonance_pc.auto_combined_commerce_flow
+    module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
+    function: resonance_pc_auto_combined_commerce_flow
+    public: true
+    read_only: false
+    timeout: null
+    description: Run one fatigue-budgeted freight and passenger workflow.
+    parameters:
+    - name: order
+      type: Any
+      required: false
+      default: trade_first
+    - name: total_fatigue_budget
+      type: Any
+      required: false
+      default: 700
+    - name: trade_inputs
+      type: Any
+      required: false
+      default: null
+    - name: passenger_inputs
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.enter_main
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
     function: resonance_pc_enter_main
@@ -1343,19 +1375,26 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.auto_passenger_roundtrip_flow
+  - name: resonance_pc.auto_passenger_trips_flow
     module: plans.resonance_pc.src.actions.passenger_flow_pc_actions
-    function: resonance_pc_auto_passenger_roundtrip_flow
+    function: resonance_pc_auto_passenger_trips_flow
     public: true
     read_only: false
     timeout: null
-    description: Run fixed Cape City <-> Lanxin City passenger round trips from city-main
-      UI.
+    description: Run configured alternating passenger trips from city-main UI.
     parameters:
-    - name: round_trips
+    - name: trip_count
       type: Any
       required: false
       default: 1
+    - name: passenger_city_a_id
+      type: Any
+      required: false
+      default: '11'
+    - name: passenger_city_b_id
+      type: Any
+      required: false
+      default: '15'
     - name: trade_during_trip
       type: Any
       required: false
@@ -1364,10 +1403,6 @@ exports:
       type: Any
       required: false
       default: true
-    - name: preferred_start_city_id
-      type: Any
-      required: false
-      default: '11'
     - name: use_fatigue_medicine
       type: Any
       required: false
@@ -1631,6 +1666,10 @@ exports:
       required: false
       default: 20
     - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: required_end_city_ids
       type: Any
       required: false
       default: null
@@ -2125,6 +2164,16 @@ exports:
     title: Auto Battle PC Input Preview
     source: tasks/auto_battle_input_preview_pc.yaml
     description: Preview-only task for validating constrained auto battle inputs.
+  - id: auto_combined_commerce_pc/auto_combined_commerce_pc
+    title: Combined Freight and Passenger Workflow (PC)
+    source: tasks/auto_combined_commerce_pc.yaml
+    description: Run freight and passenger tasks under one fatigue budget with validated
+      handoffs.
+  - id: auto_combined_commerce_pc
+    title: Combined Freight and Passenger Workflow (PC)
+    source: tasks/auto_combined_commerce_pc.yaml
+    description: Run freight and passenger tasks under one fatigue budget with validated
+      handoffs.
   - id: auto_cycle_trade_pc/auto_cycle_trade_pc
     title: Exact Auto Trade (PC)
     source: tasks/auto_cycle_trade_pc.yaml
@@ -2135,16 +2184,16 @@ exports:
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
-  - id: auto_passenger_roundtrip_pc/auto_passenger_roundtrip_pc
-    title: Cape-Lanxin Passenger Round Trip (PC)
-    source: tasks/auto_passenger_roundtrip_pc.yaml
-    description: Run fixed flyer-based passenger round trips between Cape City and
-      Lanxin City.
-  - id: auto_passenger_roundtrip_pc
-    title: Cape-Lanxin Passenger Round Trip (PC)
-    source: tasks/auto_passenger_roundtrip_pc.yaml
-    description: Run fixed flyer-based passenger round trips between Cape City and
-      Lanxin City.
+  - id: auto_passenger_trips_pc/auto_passenger_trips_pc
+    title: Passenger Trips (PC)
+    source: tasks/auto_passenger_trips_pc.yaml
+    description: Run a configured number of alternating one-way passenger trips between
+      two cities.
+  - id: auto_passenger_trips_pc
+    title: Passenger Trips (PC)
+    source: tasks/auto_passenger_trips_pc.yaml
+    description: Run a configured number of alternating one-way passenger trips between
+      two cities.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -2200,4 +2249,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-16T18:02:44Z'
+  generated_at: '2026-08-17T12:46:40Z'

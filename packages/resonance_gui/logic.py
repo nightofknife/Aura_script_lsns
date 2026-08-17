@@ -11,7 +11,10 @@ GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
-PC_PASSENGER_TASK_REF = "tasks:auto_passenger_roundtrip_pc.yaml:auto_passenger_roundtrip_pc"
+PC_PASSENGER_TASK_REF = "tasks:auto_passenger_trips_pc.yaml:auto_passenger_trips_pc"
+PC_COMBINED_COMMERCE_TASK_REF = (
+    "tasks:auto_combined_commerce_pc.yaml:auto_combined_commerce_pc"
+)
 PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
 PC_BATTLE_PREVIEW_TASK_REF = (
     "tasks:auto_battle_input_preview_pc.yaml:auto_battle_input_preview_pc"
@@ -421,7 +424,7 @@ class PassengerProgressState:
     sequence: int = -1
     stage: str = "resolve_start"
     state: str = "idle"
-    round_index: int | None = None
+    trip_index: int | None = None
     leg_index: int | None = None
     leg_count: int = 0
     source_city: str = ""
@@ -471,7 +474,7 @@ def reduce_passenger_progress(
         sequence=sequence,
         stage=str(payload.get("stage") or state.stage),
         state=str(payload.get("state") or state.state),
-        round_index=_optional_int(payload.get("round_index")),
+        trip_index=_optional_int(payload.get("trip_index")),
         leg_index=_optional_int(payload.get("leg_index")),
         leg_count=_int_or(payload.get("leg_count"), state.leg_count),
         source_city=str(payload.get("source_city") or state.source_city),

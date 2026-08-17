@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from typing import Any, Callable
 
-from PySide6.QtCore import QThread, QTimer, Qt, Signal
+from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -68,6 +68,7 @@ class ResonanceMainWindow(QMainWindow):
     requestRunPcTrade = Signal(object, float)
     requestPreviewPcTrade = Signal(object, float)
     requestRunPcPassenger = Signal(object, float)
+    requestRunPcCombinedCommerce = Signal(object, float)
     requestRunPcBattle = Signal(object, float)
     requestValidatePcBattle = Signal(object, float)
     requestEnqueueTask = Signal(str, object, object, float)
@@ -433,6 +434,7 @@ class ResonanceMainWindow(QMainWindow):
         self.requestRunPcTrade.connect(self._bridge.run_pc_trade)
         self.requestPreviewPcTrade.connect(self._bridge.preview_pc_trade)
         self.requestRunPcPassenger.connect(self._bridge.run_pc_passenger)
+        self.requestRunPcCombinedCommerce.connect(self._bridge.run_pc_combined_commerce)
         self.requestRunPcBattle.connect(self._bridge.run_pc_battle)
         self.requestValidatePcBattle.connect(self._bridge.validate_pc_battle)
         self.requestEnqueueTask.connect(self._bridge.enqueue_task)
@@ -448,12 +450,8 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self.trade_page.apply_progress)
         self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
-        self._bridge.tradeProgress.connect(
-            lambda event: self.workflow_page.apply_progress_event("trade", event)
-        )
-        self._bridge.passengerProgress.connect(
-            lambda event: self.workflow_page.apply_progress_event("passenger", event)
-        )
+        self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
+        self._bridge.passengerProgress.connect(self._on_workflow_passenger_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.passenger_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
@@ -467,6 +465,14 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.busyChanged.connect(self._on_busy_changed)
         self._bridge.logMessage.connect(self._on_log_message)
         self._bridge_thread.start()
+
+    @Slot(dict)
+    def _on_workflow_trade_progress(self, event: dict[str, Any]) -> None:
+        self.workflow_page.apply_progress_event("trade", event)
+
+    @Slot(dict)
+    def _on_workflow_passenger_progress(self, event: dict[str, Any]) -> None:
+        self.workflow_page.apply_progress_event("passenger", event)
 
     def _handle_task_selection_changed(self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None) -> None:
         del previous
@@ -518,6 +524,20 @@ class ResonanceMainWindow(QMainWindow):
     def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
 
+    @staticmethod
+    def _combined_commerce_inputs(
+        *,
+        order: str,
+        trade: dict[str, Any],
+        passenger: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "order": str(order),
+            "total_fatigue_budget": int(trade.get("fatigue_budget", 0)),
+            "trade_inputs": dict(trade),
+            "passenger_inputs": dict(passenger),
+        }
+
     def _open_trade_editor(self) -> None:
         self.workflow_page.show_trade_editor()
         self._switch_page(self.WORKFLOW_PAGE_INDEX)
@@ -563,10 +583,20 @@ class ResonanceMainWindow(QMainWindow):
         if "passenger" in snapshots:
             self._settings.save_passenger_inputs(snapshots["passenger"])
 
-        self._commerce_inputs = snapshots
-        self._commerce_pending = [
-            kind for kind in ("trade", "passenger") if kind in snapshots
-        ]
+        if set(snapshots) == {"trade", "passenger"}:
+            self._commerce_inputs = {
+                "combined_commerce": self._combined_commerce_inputs(
+                    order="trade_first",
+                    trade=snapshots["trade"],
+                    passenger=snapshots["passenger"],
+                )
+            }
+            self._commerce_pending = ["combined_commerce"]
+        else:
+            self._commerce_inputs = snapshots
+            self._commerce_pending = [
+                kind for kind in ("trade", "passenger") if kind in snapshots
+            ]
         self._commerce_active = True
         self._commerce_stopping = False
         self._commerce_current_kind = ""
@@ -605,6 +635,33 @@ class ResonanceMainWindow(QMainWindow):
             if "battle" in steps:
                 snapshots["battle"] = self.battle_page.collect_inputs()
                 self._settings.save_battle_inputs(snapshots["battle"])
+
+            run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
+            if set(commerce_steps) == {"trade", "passenger"}:
+                total_fatigue = int(run_snapshots["trade"].get("fatigue_budget", 0))
+                passenger_fatigue = self.workflow_page.passenger_route_fatigue()
+                route_city_ids = [
+                    str(run_snapshots["passenger"]["passenger_city_a_id"]),
+                    str(run_snapshots["passenger"]["passenger_city_b_id"]),
+                ]
+                available_city_ids = {
+                    str(city_id)
+                    for city_id in (run_snapshots["trade"].get("available_city_ids") or [])
+                }
+                unavailable_end_ids = [
+                    city_id for city_id in route_city_ids if city_id not in available_city_ids
+                ]
+                if unavailable_end_ids:
+                    raise ValueError(
+                        "客运线路端点必须同时包含在货运的可用城市中："
+                        + "、".join(unavailable_end_ids)
+                    )
+                trade_fatigue = total_fatigue - passenger_fatigue
+                if trade_fatigue <= 0:
+                    raise ValueError(
+                        f"总疲劳 {total_fatigue} 不足以完成客运所需的 "
+                        f"{passenger_fatigue} 疲劳，货运无法启动。"
+                    )
         except ValueError as exc:
             QMessageBox.warning(self, "流程参数错误", str(exc))
             return
@@ -620,14 +677,31 @@ class ResonanceMainWindow(QMainWindow):
                     "dispatch": "pc_task",
                 })
             elif step == "commerce":
-                for kind in commerce_steps:
+                if set(commerce_steps) == {"trade", "passenger"}:
                     pending.append({
-                        "step": kind,
-                        "parent": "commerce",
-                        "inputs": dict(snapshots[kind]),
-                        "label": "货运" if kind == "trade" else "客运",
-                        "dispatch": kind,
+                        "step": "commerce",
+                        "inputs": self._combined_commerce_inputs(
+                            order=(
+                                "trade_first"
+                                if commerce_steps[0] == "trade"
+                                else "passenger_first"
+                            ),
+                            trade=run_snapshots["trade"],
+                            passenger=run_snapshots["passenger"],
+                        ),
+                        "label": "客货运组合",
+                        "dispatch": "combined_commerce",
+                        "commerce_steps": list(commerce_steps),
                     })
+                else:
+                    for kind in commerce_steps:
+                        pending.append({
+                            "step": kind,
+                            "parent": "commerce",
+                            "inputs": dict(run_snapshots[kind]),
+                            "label": "货运" if kind == "trade" else "客运",
+                            "dispatch": kind,
+                        })
             elif step == "battle":
                 pending.append({
                     "step": "battle", "inputs": dict(snapshots["battle"]),
@@ -665,6 +739,9 @@ class ResonanceMainWindow(QMainWindow):
                 self._finish_workflow(True, "全部启用任务已完成。")
             return
         current = self._workflow_pending.pop(0)
+        if not bool(current.get("inputs_ready", True)):
+            self._abort_workflow("组合流程尚未获得可用的货运疲劳预算。")
+            return
         self._workflow_current = current
         step = str(current["step"])
         parent = str(current.get("parent") or "")
@@ -677,6 +754,8 @@ class ResonanceMainWindow(QMainWindow):
             self.requestRunPcTrade.emit(dict(current["inputs"]), timeout)
         elif dispatch == "passenger":
             self.requestRunPcPassenger.emit(dict(current["inputs"]), timeout)
+        elif dispatch == "combined_commerce":
+            self.requestRunPcCombinedCommerce.emit(dict(current["inputs"]), timeout)
         elif dispatch == "battle":
             self.requestRunPcBattle.emit(dict(current["inputs"]), timeout)
         else:
@@ -741,6 +820,8 @@ class ResonanceMainWindow(QMainWindow):
         timeout = float(self.timeout_spin.value())
         if kind == "trade":
             self.requestRunPcTrade.emit(inputs, timeout)
+        elif kind == "combined_commerce":
+            self.requestRunPcCombinedCommerce.emit(inputs, timeout)
         else:
             self.requestRunPcPassenger.emit(inputs, timeout)
 
@@ -836,8 +917,18 @@ class ResonanceMainWindow(QMainWindow):
                 type_label = "战斗"
             elif kind == "passenger":
                 result = extract_final_result(row)
-                summary_text = "海角城 ↔ 岚心城"
-                result_text = str(result.get("total_revenue") or "--")
+                route = result.get("passenger_route") if isinstance(result.get("passenger_route"), dict) else {}
+                city_a = route.get("city_a") if isinstance(route.get("city_a"), dict) else {}
+                city_b = route.get("city_b") if isinstance(route.get("city_b"), dict) else {}
+                summary_text = " ↔ ".join(
+                    value
+                    for value in (
+                        str(city_a.get("city_name") or ""),
+                        str(city_b.get("city_name") or ""),
+                    )
+                    if value
+                ) or "客运任务"
+                result_text = f"{len(result.get('completed_legs') or [])} 个单程"
                 type_label = "客运"
             else:
                 summary = trade_result_summary(row)
@@ -917,6 +1008,13 @@ class ResonanceMainWindow(QMainWindow):
                     self.workflow_page.set_active_progress_cid("passenger", extract_run_id(payload))
                 if not self._commerce_active and not self._workflow_active:
                     self._open_passenger_editor()
+            elif kind == "combined_commerce_run":
+                self.trade_page.begin_run(payload)
+                self.passenger_page.begin_run(payload)
+                if self._workflow_active:
+                    cid = extract_run_id(payload)
+                    self.workflow_page.set_active_progress_cid("trade", cid)
+                    self.workflow_page.set_active_progress_cid("passenger", cid)
             elif kind == "battle_preview":
                 self.battle_page.begin_validation(payload)
                 self._switch_page(self.BATTLE_PAGE_INDEX)
@@ -934,8 +1032,93 @@ class ResonanceMainWindow(QMainWindow):
             self.trade_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("passenger_"):
             self.passenger_page.update_run(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind == "combined_commerce_run":
+            self.trade_page.update_run(payload)
+            self.passenger_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("battle_"):
             self.battle_page.update_run(payload)
+
+    @staticmethod
+    def _combined_child_payload(
+        payload: dict[str, Any],
+        child: dict[str, Any],
+        *,
+        kind: str,
+    ) -> dict[str, Any]:
+        child_status = str(child.get("status") or "").strip().lower()
+        succeeded = (
+            child.get("success") is True
+            and child_status == "completed"
+        )
+        item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
+        return {
+            **dict(payload),
+            "status": "success" if succeeded else "failed",
+            "gui_item": {**dict(item), "kind": f"{kind}_run"},
+            "final_result": {"user_data": dict(child)},
+        }
+
+    def _finish_combined_pages(self, payload: dict[str, Any], result: dict[str, Any]) -> None:
+        trade = result.get("trade") if isinstance(result.get("trade"), dict) else {}
+        passenger = (
+            result.get("passenger") if isinstance(result.get("passenger"), dict) else {}
+        )
+        self.trade_page.finish_run(
+            self._combined_child_payload(payload, trade, kind="trade")
+        )
+        self.passenger_page.finish_run(
+            self._combined_child_payload(payload, passenger, kind="passenger")
+        )
+
+    @staticmethod
+    def _combined_reason_text(result: dict[str, Any]) -> str:
+        reason = str(result.get("reason") or "客货运组合未成功完成")
+        labels = {
+            "passenger_route_invalid": "客运线路参数无效。",
+            "passenger_endpoint_unavailable": "客运线路端点未全部包含在货运可用城市中。",
+            "insufficient_trade_fatigue": "完成客运后没有可用于货运的疲劳。",
+            "current_city_unknown": "无法识别当前城市，不能计算客货运组合方案。",
+            "trade_preflight_no_plan": "当前行情下没有可在客运后启动的货运方案。",
+            "trade_failed": "货运任务执行失败。",
+            "trade_handoff_invalid": "货运结束状态不满足客货运交接条件。",
+            "passenger_failed": "客运任务执行失败。",
+            "passenger_handoff_invalid": "客运结束状态不满足客货运交接条件。",
+            "passenger_forecast_mismatch": "客运实际终点或疲劳与运行前预测不一致。",
+            "post_passenger_trade_no_plan": "客运结束后的最新行情已无可执行货运方案。",
+        }
+        return labels.get(reason, reason)
+
+    def _finish_combined_workflow_result(
+        self,
+        *,
+        result: dict[str, Any],
+        succeeded: bool,
+    ) -> None:
+        trade = result.get("trade") if isinstance(result.get("trade"), dict) else {}
+        passenger = (
+            result.get("passenger") if isinstance(result.get("passenger"), dict) else {}
+        )
+        for kind, child, label in (
+            ("trade", trade, "货运"),
+            ("passenger", passenger, "客运"),
+        ):
+            if child.get("success") is True and str(child.get("status") or "") == "completed":
+                self.workflow_page.mark_step(kind, "success", f"{label}已完成")
+        if succeeded:
+            self.workflow_page.mark_step("commerce", "success", "客货运组合已完成")
+            self._workflow_current = None
+            return
+
+        failure_stage = str(result.get("failure_stage") or "")
+        failed_kind = "passenger" if failure_stage.startswith("passenger") else "trade"
+        if failure_stage == "preflight":
+            order = str(result.get("order") or "trade_first")
+            failed_kind = "passenger" if order == "passenger_first" else "trade"
+        reason = self._combined_reason_text(result)
+        self.workflow_page.mark_step(failed_kind, "failed", reason)
+        if failure_stage == "preflight":
+            QMessageBox.warning(self, "客货运组合不可执行", reason)
+        self._abort_workflow(reason)
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage("任务执行结束")
@@ -950,6 +1133,8 @@ class ResonanceMainWindow(QMainWindow):
                 self.trade_page.finish_run(payload)
             elif kind == "passenger_run":
                 self.passenger_page.finish_run(payload)
+            elif kind == "combined_commerce_run":
+                self._finish_combined_pages(payload, extract_final_result(payload))
             elif kind == "battle_preview":
                 self.battle_page.finish_validation(payload)
             elif kind == "battle_run":
@@ -965,6 +1150,15 @@ class ResonanceMainWindow(QMainWindow):
             )
             self._commerce_current_kind = ""
             if not succeeded:
+                if (
+                    finished_kind == "combined_commerce_run"
+                    and str(result.get("failure_stage") or "") == "preflight"
+                ):
+                    QMessageBox.warning(
+                        self,
+                        "客货运组合不可执行",
+                        self._combined_reason_text(result),
+                    )
                 self._abort_commerce_sequence(cancel_current=False)
         if self._workflow_active and self._workflow_current is not None:
             status = extract_status(payload)
@@ -977,7 +1171,9 @@ class ResonanceMainWindow(QMainWindow):
             )
             current = self._workflow_current
             step = str(current["step"])
-            if succeeded:
+            if str(current.get("dispatch") or "") == "combined_commerce":
+                self._finish_combined_workflow_result(result=result, succeeded=succeeded)
+            elif succeeded:
                 self.workflow_page.mark_step(step, "success", f"{current['label']}已完成")
                 parent = str(current.get("parent") or "")
                 if parent and not any(row.get("parent") == parent for row in self._workflow_pending):
@@ -1000,6 +1196,9 @@ class ResonanceMainWindow(QMainWindow):
             self.battle_page.show_failure(payload)
         elif stage == "run_pc_passenger":
             self.passenger_page.show_failure(payload)
+        elif stage == "run_pc_combined_commerce":
+            self.trade_page.show_failure(payload)
+            self.passenger_page.show_failure(payload)
         elif stage in {"run_pc_trade", "preview_pc_trade"}:
             self.trade_page.show_failure(payload)
         elif (
@@ -1017,6 +1216,9 @@ class ResonanceMainWindow(QMainWindow):
             and self._active_kind.startswith("trade_")
         ):
             self.trade_page.show_failure(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind == "combined_commerce_run":
+            self.trade_page.show_failure(payload)
+            self.passenger_page.show_failure(payload)
         self.run_detail.show_text(pretty_json(payload))
 
     def _on_busy_changed(self, busy: bool) -> None:
@@ -1040,7 +1242,10 @@ class ResonanceMainWindow(QMainWindow):
                 self._finish_commerce_sequence()
         if self._workflow_active and not busy:
             if self._workflow_stopping:
-                self._finish_workflow(False, "流程已停止。")
+                self._finish_workflow(
+                    False,
+                    self._workflow_failed_message or "流程已停止。",
+                )
             elif self._workflow_pending:
                 self._dispatch_next_workflow_task()
             elif self._workflow_current is None:

@@ -211,7 +211,8 @@ def _find_final_all_plan_one(
 ) -> Tuple[int, List[Tuple[int, int, int]]]:
     budget = prepared.scale.budget_ticks
     view = score_matrix[: budget + 1]
-    max_packed_score = int(view.max())
+    city_indices = prepared.required_end_indices or tuple(range(len(prepared.city_ids)))
+    max_packed_score = int(view[:, city_indices, :].max())
     if max_packed_score == int(_NEGATIVE_INFINITY):
         return 0, []
     max_profit = (max_packed_score + max_secondary_penalty) // profit_weight
@@ -222,7 +223,8 @@ def _find_final_all_plan_one(
         layer = view[fatigue]
         for books_used in range(prepared.book_budget + 1):
             scores = layer[:, books_used]
-            valid_scores = scores[scores != _NEGATIVE_INFINITY]
+            valid_scores = scores[list(city_indices)]
+            valid_scores = valid_scores[valid_scores != _NEGATIVE_INFINITY]
             if valid_scores.size == 0:
                 continue
             decoded = (
@@ -231,7 +233,8 @@ def _find_final_all_plan_one(
             if not np.any(decoded == max_profit):
                 continue
             candidates = []
-            for city_index, score in enumerate(scores):
+            for city_index in city_indices:
+                score = scores[city_index]
                 normalized = int(score)
                 if normalized == int(_NEGATIVE_INFINITY):
                     continue
@@ -258,7 +261,8 @@ def _find_final_all_plan_zero(
 ) -> Tuple[int, List[Tuple[int, int, int, int]]]:
     budget = prepared.scale.budget_ticks
     view = score_matrix[: budget + 1]
-    max_packed_score = int(view.max())
+    city_indices = prepared.required_end_indices or tuple(range(len(prepared.city_ids)))
+    max_packed_score = int(view[:, city_indices, :, :].max())
     if max_packed_score == int(_NEGATIVE_INFINITY):
         return 0, []
     max_profit = (max_packed_score + max_secondary_penalty) // profit_weight
@@ -271,7 +275,8 @@ def _find_final_all_plan_zero(
             for full_negotiation_used in range(negotiation_limit + 1):
                 scores = layer[:, books_used, full_negotiation_used]
                 candidates = []
-                for city_index, score in enumerate(scores):
+                for city_index in city_indices:
+                    score = scores[city_index]
                     normalized = int(score)
                     if normalized == int(_NEGATIVE_INFINITY):
                         continue

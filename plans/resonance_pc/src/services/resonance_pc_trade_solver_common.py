@@ -118,6 +118,7 @@ class ExactSearchResult:
 class PreparedSearch:
     city_ids: Tuple[str, ...]
     start_index: int
+    required_end_indices: Optional[Tuple[int, ...]]
     edges: Tuple[CompiledEdge, ...]
     scale: FatigueScale
     fatigue_budget: int
@@ -143,6 +144,7 @@ def prepare_search(
     book_budget: int,
     negotiation_budget: int,
     all_plan: int,
+    required_end_city_ids: Optional[Sequence[str]] = None,
 ) -> Optional[PreparedSearch]:
     """Compile exact edge costs into a normalized integer fatigue lattice."""
 
@@ -150,6 +152,20 @@ def prepare_search(
     city_to_index = {city_id: index for index, city_id in enumerate(ordered_cities)}
     if str(start_city_id) not in city_to_index:
         raise ValueError(f"start city '{start_city_id}' is not in the planning city set")
+    required_end_indices: Optional[Tuple[int, ...]] = None
+    if required_end_city_ids is not None:
+        normalized_end_ids = tuple(
+            dict.fromkeys(str(city_id).strip() for city_id in required_end_city_ids if str(city_id).strip())
+        )
+        if not normalized_end_ids:
+            raise ValueError("required_end_city_ids must contain at least one city")
+        unknown_end_ids = [city_id for city_id in normalized_end_ids if city_id not in city_to_index]
+        if unknown_end_ids:
+            raise ValueError(
+                "required end cities are outside the planning city set: "
+                + ", ".join(unknown_end_ids)
+            )
+        required_end_indices = tuple(city_to_index[city_id] for city_id in normalized_end_ids)
 
     budget_fraction = Fraction(int(fatigue_budget), 1)
     feasible_options = []
@@ -208,6 +224,7 @@ def prepare_search(
     return PreparedSearch(
         city_ids=ordered_cities,
         start_index=city_to_index[str(start_city_id)],
+        required_end_indices=required_end_indices,
         edges=tuple(compiled),
         scale=FatigueScale(
             denominator=denominator,

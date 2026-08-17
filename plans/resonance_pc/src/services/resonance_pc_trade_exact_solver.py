@@ -204,6 +204,7 @@ class ResonancePcExactTradeSolver:
         self,
         *,
         start_city_id: str,
+        required_end_city_ids: Optional[Sequence[str]] = None,
         fatigue_budget: int,
         cargo_capacity: int,
         book_budget: int,
@@ -241,6 +242,17 @@ class ResonancePcExactTradeSolver:
         start = str(start_city_id or "").strip()
         if not start or start not in self.fatigue_costs:
             raise ValueError(f"start_city_id '{start}' is not present in the fatigue graph")
+        normalized_end_city_ids = (
+            None
+            if required_end_city_ids is None
+            else tuple(
+                dict.fromkeys(
+                    str(city_id).strip()
+                    for city_id in required_end_city_ids
+                    if str(city_id).strip()
+                )
+            )
+        )
 
         bargain_profile = self._normalize_negotiation_profile(
             side="bargain",
@@ -303,6 +315,7 @@ class ResonancePcExactTradeSolver:
             book_budget=books_limit,
             negotiation_budget=negotiation_limit,
             all_plan=plan_mode,
+            required_end_city_ids=normalized_end_city_ids,
         )
         search_result = (
             None
@@ -317,7 +330,7 @@ class ResonancePcExactTradeSolver:
             raise_profile=raise_profile,
         )
         if search_result is None or search_result.expected_profit <= 0:
-            return self._empty_result(
+            empty = self._empty_result(
                 start=start,
                 fatigue_limit=fatigue_limit,
                 books_limit=books_limit,
@@ -326,6 +339,14 @@ class ResonancePcExactTradeSolver:
                 assumptions=assumptions,
                 warnings=warnings,
             )
+            empty.update(
+                {
+                    "required_end_city_ids": list(normalized_end_city_ids or []),
+                    "selected_end_city_id": None,
+                    "selected_end_city_name": None,
+                }
+            )
+            return empty
 
         route = [
             self._serialize_option(option) for option in search_result.route
@@ -343,6 +364,11 @@ class ResonancePcExactTradeSolver:
             "status": "ok",
             "reason": None,
             "snapshot_id": self.snapshot.get("snapshot_id"),
+            "required_end_city_ids": list(normalized_end_city_ids or []),
+            "selected_end_city_id": search_result.city_path[-1],
+            "selected_end_city_name": self.city_names.get(
+                search_result.city_path[-1], search_result.city_path[-1]
+            ),
             "all_plan": plan_mode,
             "expected_profit": float(search_result.expected_profit),
             "expected_profit_exact": self._fraction_text(
