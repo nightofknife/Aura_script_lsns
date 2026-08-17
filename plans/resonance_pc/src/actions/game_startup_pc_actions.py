@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import time
 from pathlib import Path
@@ -15,6 +14,7 @@ import win32gui
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_game.executable_locator import validate_executable_path
 
 
 PROCESS_IDENTIFIER = "resonance_pc"
@@ -158,82 +158,12 @@ def _resolve_target(windows_diagnostics: Any) -> Optional[Dict[str, Any]]:
     return dict(target) if isinstance(target, dict) else None
 
 
-def _registry_executable_candidates() -> Iterable[Path]:
-    if os.name != "nt":
-        return []
-    import winreg
-
-    roots = (
-        (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-    )
-    candidates: List[Path] = []
-    for hive, key_path in roots:
-        try:
-            with winreg.OpenKey(hive, key_path) as root:
-                subkey_count = winreg.QueryInfoKey(root)[0]
-                for index in range(subkey_count):
-                    try:
-                        with winreg.OpenKey(root, winreg.EnumKey(root, index)) as entry:
-                            display_name = str(winreg.QueryValueEx(entry, "DisplayName")[0] or "")
-                            if "雷索纳斯" not in display_name:
-                                continue
-                            try:
-                                display_icon = str(winreg.QueryValueEx(entry, "DisplayIcon")[0] or "")
-                            except OSError:
-                                display_icon = ""
-                            try:
-                                install_location = str(winreg.QueryValueEx(entry, "InstallLocation")[0] or "")
-                            except OSError:
-                                install_location = ""
-                            if display_icon:
-                                candidates.append(Path(display_icon.strip().strip('"').split(",", 1)[0]))
-                            if install_location:
-                                candidates.append(Path(install_location) / PROCESS_NAME)
-                    except OSError:
-                        continue
-        except OSError:
-            continue
-    return candidates
-
-
-def _shortcut_executable_candidates() -> Iterable[Path]:
-    if os.name != "nt":
-        return []
-    shortcut_paths = [
-        Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData"))
-        / "Microsoft/Windows/Start Menu/Programs/雷索纳斯/雷索纳斯.lnk",
-        Path(os.environ.get("APPDATA", ""))
-        / "Microsoft/Windows/Start Menu/Programs/雷索纳斯/雷索纳斯.lnk",
-    ]
-    try:
-        from win32com.client import Dispatch
-    except ImportError:
-        return []
-    shell = Dispatch("WScript.Shell")
-    candidates: List[Path] = []
-    for shortcut_path in shortcut_paths:
-        if shortcut_path.is_file():
-            target = str(shell.CreateShortcut(str(shortcut_path)).TargetPath or "")
-            if target:
-                candidates.append(Path(target))
-    return candidates
-
-
-def _resolve_executable(explicit_path: Optional[str], running: List[Dict[str, Any]]) -> Path:
-    candidates: List[Path] = []
-    if explicit_path and str(explicit_path).strip():
-        candidates.append(Path(str(explicit_path).strip().strip('"')))
-    candidates.extend(Path(item["exe"]) for item in running if item.get("exe"))
-    candidates.extend(_registry_executable_candidates())
-    candidates.extend(_shortcut_executable_candidates())
-    for candidate in candidates:
-        expanded = Path(os.path.expandvars(os.path.expanduser(str(candidate))))
-        if expanded.is_file() and expanded.name.casefold() == PROCESS_NAME.casefold():
-            return expanded.resolve()
+def _resolve_executable(explicit_path: Optional[str]) -> Path:
+    resolved = validate_executable_path(explicit_path, executable_name=PROCESS_NAME)
+    if resolved is not None:
+        return resolved
     raise StopTaskException(
-        "Resonance PC startup failed: executable was not found. Pass executable_path or repair the game installation entry.",
+        "Resonance PC startup failed: 未配置有效的游戏路径，请在设置中选择雷索纳斯.exe。",
         success=False,
     )
 
@@ -293,9 +223,9 @@ def resonance_pc_enter_main(
     app: Any = None,
     ocr: Any = None,
 ) -> Dict[str, Any]:
+    configured_executable = _resolve_executable(executable_path)
     if any(service is None for service in (process_manager, windows_diagnostics, app, ocr)):
         raise RuntimeError("process_manager/windows_diagnostics/app/ocr services are required")
-
     target = _resolve_target(windows_diagnostics)
     running = _matching_processes()
     launched = False
@@ -304,12 +234,11 @@ def resonance_pc_enter_main(
     if target is None and not running:
         if not bool(launch_if_not_running):
             raise StopTaskException("Resonance PC is not running and launch_if_not_running is false.", success=False)
-        executable = _resolve_executable(executable_path, running)
         launch_result = dict(
             process_manager.start_process(
                 identifier=PROCESS_IDENTIFIER,
-                executable_path=str(executable),
-                cwd=str(executable.parent),
+                executable_path=str(configured_executable),
+                cwd=str(configured_executable.parent),
             )
             or {}
         )

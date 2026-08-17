@@ -22,7 +22,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from packages.aura_game.executable_locator import (
+    find_registry_executables,
+    validate_executable_path,
+)
+
 from ..config_repository import ResonanceConfigRepository
+
+
+GAME_DISPLAY_NAME = "雷索纳斯"
+GAME_EXECUTABLE_NAME = "雷索纳斯.exe"
 
 
 class SettingsHubPage(QWidget):
@@ -98,6 +107,7 @@ class SettingsHubPage(QWidget):
         path_row = QHBoxLayout()
         self.executable_path = QLineEdit(program)
         self.executable_path.setPlaceholderText("选择雷索纳斯 PC 客户端程序")
+        self.executable_path.textChanged.connect(self._reset_detection_status)
         browse = QPushButton("浏览…", program)
         browse.clicked.connect(self._browse_executable)
         detect = QPushButton("检测", program)
@@ -201,13 +211,37 @@ class SettingsHubPage(QWidget):
         path, _ = QFileDialog.getOpenFileName(self, "选择游戏程序", start, "程序 (*.exe);;所有文件 (*)")
         if path:
             self.executable_path.setText(path)
-            self._detect_executable()
 
     def _detect_executable(self) -> None:
-        path = Path(self.executable_path.text().strip())
-        ok = path.is_file() and path.suffix.lower() == ".exe"
-        self.detect_result.setText("已检测到可用的游戏程序" if ok else "路径不存在或不是可执行文件")
-        self.detect_result.setProperty("status", "success" if ok else "warning")
+        entered = self.executable_path.text().strip()
+        if entered:
+            path = validate_executable_path(entered, executable_name=GAME_EXECUTABLE_NAME)
+            if path is None:
+                self._set_detection_status("路径不存在或不是雷索纳斯.exe", "warning")
+                return
+            self.executable_path.setText(str(path))
+            self._set_detection_status("用户路径验证通过", "success")
+            return
+
+        matches = find_registry_executables(
+            display_name_fragment=GAME_DISPLAY_NAME,
+            executable_name=GAME_EXECUTABLE_NAME,
+        )
+        if not matches:
+            self._set_detection_status("注册表中未找到游戏，请使用“浏览…”选择", "warning")
+            return
+        self.executable_path.setText(str(matches[0]))
+        suffix = "" if len(matches) == 1 else f"（找到 {len(matches)} 个安装记录，已使用第一个）"
+        self._set_detection_status(f"已从注册表检测到游戏{suffix}", "success")
+
+    def _reset_detection_status(self) -> None:
+        self._set_detection_status("未检测", "")
+
+    def _set_detection_status(self, text: str, status: str) -> None:
+        self.detect_result.setText(text)
+        self.detect_result.setProperty("status", status)
+        self.detect_result.style().unpolish(self.detect_result)
+        self.detect_result.style().polish(self.detect_result)
 
     def load_values(self) -> None:
         self.executable_path.setText(str(self._settings.value("game/executable_path", "") or ""))
@@ -220,10 +254,8 @@ class SettingsHubPage(QWidget):
         self.close_on_failure.setChecked(self._bool_value("workflow/close_on_failure", False))
         trade_inputs = self._settings.load_trade_inputs()
         self.trade_arrival_timeout.setValue(
-            max(int(trade_inputs.get("arrival_timeout_seconds", 1800)) // 60, 1)
+            max(int(trade_inputs.get("arrival_timeout_seconds", 3600)) // 60, 1)
         )
-        if self.executable_path.text().strip():
-            self._detect_executable()
 
     def save_values(self) -> None:
         self._settings.set_value("game/executable_path", self.executable_path.text().strip())

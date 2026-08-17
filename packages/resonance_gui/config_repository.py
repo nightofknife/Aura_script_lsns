@@ -77,7 +77,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
-    "arrival_timeout_seconds": 1800,
+    "arrival_timeout_seconds": 3600,
     "auto_cape_island_investment": True,
 }
 
@@ -262,7 +262,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     try:
         merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
     except (TypeError, ValueError):
-        merged["arrival_timeout_seconds"] = 1800
+        merged["arrival_timeout_seconds"] = 3600
     return merged
 
 

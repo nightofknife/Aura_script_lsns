@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QSpinBox,
     QStackedWidget,
@@ -26,7 +27,13 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
-from ..logic import PASSENGER_STAGE_LABELS, TRADE_STAGE_LABELS
+from ..logic import (
+    PASSENGER_STAGE_LABELS,
+    PassengerProgressState,
+    WorkflowFreightProgressState,
+    reduce_passenger_progress,
+    reduce_workflow_freight_progress,
+)
 
 
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
@@ -202,6 +209,9 @@ class WorkflowPage(QWidget):
         self._commerce_checks: dict[str, QCheckBox] = {}
         self._tree_items: dict[str, QTreeWidgetItem] = {}
         self._progress_items: dict[tuple[str, str], QTreeWidgetItem] = {}
+        self._freight_progress = WorkflowFreightProgressState()
+        self._passenger_progress = PassengerProgressState()
+        self._trade_investment_enabled = False
         self._build_ui()
         self._load_state()
         self._select_row(0)
@@ -546,9 +556,31 @@ class WorkflowPage(QWidget):
         self.run_button.clicked.connect(self._toggle_run)
         header.addWidget(self.run_button)
         layout.addLayout(header)
-        self.progress_label = QLabel("0 / 0 · 等待开始", panel)
-        self.progress_label.setObjectName("workflowProgress")
-        layout.addWidget(self.progress_label)
+        task_progress_title = QLabel("任务进度", panel)
+        task_progress_title.setObjectName("sectionTitle")
+        layout.addWidget(task_progress_title)
+        self.task_progress_label = QLabel("0 / 0 · 等待开始", panel)
+        self.task_progress_label.setObjectName("workflowProgress")
+        self.progress_label = self.task_progress_label
+        layout.addWidget(self.task_progress_label)
+        self.task_progress_bar = QProgressBar(panel)
+        self.task_progress_bar.setObjectName("workflowTaskProgressBar")
+        self.task_progress_bar.setRange(0, 1)
+        self.task_progress_bar.setValue(0)
+        self.task_progress_bar.setFormat("0 / 0")
+        layout.addWidget(self.task_progress_bar)
+        internal_progress_title = QLabel("任务内进度", panel)
+        internal_progress_title.setObjectName("sectionTitle")
+        layout.addWidget(internal_progress_title)
+        self.internal_progress_label = QLabel("等待任务开始", panel)
+        self.internal_progress_label.setObjectName("workflowInternalProgress")
+        layout.addWidget(self.internal_progress_label)
+        self.internal_progress_bar = QProgressBar(panel)
+        self.internal_progress_bar.setObjectName("workflowInternalProgressBar")
+        self.internal_progress_bar.setRange(0, 100)
+        self.internal_progress_bar.setValue(0)
+        self.internal_progress_bar.setFormat("%p%")
+        layout.addWidget(self.internal_progress_bar)
         self.run_tree = QTreeWidget(panel)
         self.run_tree.setObjectName("workflowRunTree")
         self.run_tree.setHeaderLabels(["任务与阶段", "状态"])
@@ -710,7 +742,12 @@ class WorkflowPage(QWidget):
     def set_battle_count(self, count: int) -> None:
         self.battle_summary.setText(f"当前任务单包含 {count} 个作战任务。" if count else "尚未添加作战任务。")
 
-    def begin_workflow(self, steps: list[str], commerce_steps: list[str]) -> None:
+    def begin_workflow(
+        self,
+        steps: list[str],
+        commerce_steps: list[str],
+        trade_inputs: Mapping[str, Any] | None = None,
+    ) -> None:
         self._busy = True
         self.run_button.setText("停止")
         self.run_button.setObjectName("dangerButton")
@@ -721,6 +758,13 @@ class WorkflowPage(QWidget):
         self.run_tree.clear()
         self._tree_items.clear()
         self._progress_items.clear()
+        self._trade_investment_enabled = bool(
+            dict(trade_inputs or {}).get("auto_cape_island_investment", False)
+        )
+        self._freight_progress = WorkflowFreightProgressState(
+            investment_enabled=self._trade_investment_enabled
+        )
+        self._passenger_progress = PassengerProgressState()
         labels = dict(WORKFLOW_TASKS)
         for index, step in enumerate(steps, 1):
             item = QTreeWidgetItem([f"{index}  {labels[step]}", "等待"])
@@ -736,7 +780,11 @@ class WorkflowPage(QWidget):
                 item.setExpanded(True)
         for task_id in self._task_status:
             self._set_left_status(task_id, "waiting" if task_id in steps else "skipped")
-        self.progress_label.setText(f"0 / {len(steps)} · 准备执行")
+        self.task_progress_label.setText(f"0 / {len(steps)} · 准备执行")
+        self.task_progress_bar.setRange(0, max(len(steps), 1))
+        self.task_progress_bar.setValue(0)
+        self.task_progress_bar.setFormat(f"0 / {len(steps)}")
+        self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
 
     def mark_step(self, step: str, state: str, detail: str = "") -> None:
@@ -757,11 +805,30 @@ class WorkflowPage(QWidget):
         top_steps = [self.run_tree.topLevelItem(i) for i in range(self.run_tree.topLevelItemCount())]
         done = sum(1 for row in top_steps if row.text(1) in {"完成", "跳过"})
         current = detail or state_text
-        self.progress_label.setText(f"{done} / {len(top_steps)} · {current}")
+        self.task_progress_label.setText(f"{done} / {len(top_steps)} · {current}")
+        self.task_progress_bar.setRange(0, max(len(top_steps), 1))
+        self.task_progress_bar.setValue(done)
+        self.task_progress_bar.setFormat(f"{done} / {len(top_steps)}")
+        if state == "running":
+            self._set_internal_progress(detail or state_text, None)
+        elif state == "success" and step in {"startup", "battle", "close", "passenger", "trade"}:
+            self._set_internal_progress(detail or state_text, 100)
+        elif state in {"failed", "cancelled"}:
+            self._set_internal_terminal(detail or state_text, state)
 
     def step_is_waiting(self, step: str) -> bool:
         item = self._tree_items.get(step)
         return item is not None and item.text(1) == "等待"
+
+    def set_active_progress_cid(self, kind: str, cid: str) -> None:
+        """Bind progress events to the task run currently dispatched by the workflow."""
+
+        if not self._busy or not cid:
+            return
+        if kind == "trade":
+            self._freight_progress.cid = str(cid)
+        elif kind == "passenger":
+            self._passenger_progress.cid = str(cid)
 
     def apply_progress_event(self, kind: str, event: Mapping[str, Any]) -> None:
         if not self._busy or kind not in {"trade", "passenger"}:
@@ -769,28 +836,53 @@ class WorkflowPage(QWidget):
         payload = event.get("payload")
         if not isinstance(payload, Mapping):
             return
-        stage = str(payload.get("stage") or "task")
-        state = str(payload.get("state") or "running").lower()
-        labels = TRADE_STAGE_LABELS if kind == "trade" else PASSENGER_STAGE_LABELS
-        label = labels.get(stage, stage)
-        parent = self._tree_items.get(kind)
-        if parent is None:
+        if kind == "trade":
+            previous_sequence = self._freight_progress.sequence
+            self._freight_progress = reduce_workflow_freight_progress(
+                self._freight_progress,
+                event,
+                expected_cid=self._freight_progress.cid,
+                investment_enabled=self._trade_investment_enabled,
+            )
+            if self._freight_progress.sequence == previous_sequence:
+                return
+            self._render_freight_progress()
+            percent = self._freight_progress.percent
+            self._set_internal_progress(
+                self._freight_progress.current_label,
+                percent,
+                state=(
+                    self._freight_progress.state
+                    if self._freight_progress.state in {"failed", "cancelled"}
+                    else "running"
+                ),
+            )
+            self.append_log(self._progress_log_line(payload, self._freight_progress.current_label))
             return
-        key = (kind, stage)
-        item = self._progress_items.get(key)
-        if item is None:
-            item = QTreeWidgetItem([label, "等待"])
-            parent.addChild(item)
-            self._progress_items[key] = item
-            parent.setExpanded(True)
-        view_state = "success" if state in {"completed", "success"} else (
-            "failed" if state in {"blocked", "failed", "error"} else "running"
+
+        previous_sequence = self._passenger_progress.sequence
+        self._passenger_progress = reduce_passenger_progress(
+            self._passenger_progress,
+            event,
+            expected_cid=self._passenger_progress.cid,
         )
-        item.setText(1, {"success": "完成", "failed": "失败", "running": "执行中"}[view_state])
-        detail_parts = [str(payload.get(key) or "") for key in ("current_city", "from_city", "to_city", "source_city", "destination_city")]
-        detail = " → ".join(dict.fromkeys(value for value in detail_parts if value))
-        self.progress_label.setText(f"执行中 · {label}" + (f" · {detail}" if detail else ""))
-        self.append_log(f"{('完成' if view_state == 'success' else '执行中')} · {label}" + (f" · {detail}" if detail else ""))
+        if self._passenger_progress.sequence == previous_sequence:
+            return
+        self._render_passenger_progress()
+        label = self._passenger_progress.stage_label
+        detail = self._passenger_detail()
+        self._set_internal_progress(
+            f"客运 · {label}" + (f" · {detail}" if detail else ""),
+            self._passenger_percent(),
+            state=(
+                "failed"
+                if self._passenger_progress.state in {"blocked", "failed", "error"}
+                else self._passenger_progress.state
+                if self._passenger_progress.state == "cancelled"
+                else "running"
+            ),
+        )
+        self.append_log(self._progress_log_line(payload, f"{label} · {detail}" if detail else label))
 
     def finish_workflow(self, *, success: bool, message: str) -> None:
         self._busy = False
@@ -799,8 +891,127 @@ class WorkflowPage(QWidget):
         self.run_button.style().unpolish(self.run_button)
         self.run_button.style().polish(self.run_button)
         self._set_editing_enabled(True)
-        self.progress_label.setText(("已完成 · " if success else "已停止 · ") + message)
+        self.task_progress_label.setText(("已完成 · " if success else "已停止 · ") + message)
+        if success:
+            self.task_progress_bar.setValue(self.task_progress_bar.maximum())
+            self._set_internal_progress("当前流程已完成", 100)
+        else:
+            self._set_internal_terminal(message, "failed")
         self.append_log(message)
+
+    def _set_internal_progress(
+        self, label: str, percent: int | None, *, state: str = "running"
+    ) -> None:
+        self.internal_progress_label.setText(str(label or "等待任务开始"))
+        self.internal_progress_bar.setProperty("runState", state)
+        if percent is None:
+            self.internal_progress_bar.setRange(0, 0)
+            self.internal_progress_bar.setFormat("")
+        else:
+            value = max(0, min(int(percent), 100))
+            self.internal_progress_bar.setRange(0, 100)
+            self.internal_progress_bar.setValue(value)
+            self.internal_progress_bar.setFormat(f"{value}%")
+        self.internal_progress_bar.style().unpolish(self.internal_progress_bar)
+        self.internal_progress_bar.style().polish(self.internal_progress_bar)
+
+    def _set_internal_terminal(self, label: str, state: str) -> None:
+        """Stop at the last real progress position instead of inventing a terminal percentage."""
+
+        self.internal_progress_label.setText(str(label or "任务已停止"))
+        self.internal_progress_bar.setProperty("runState", state)
+        self.internal_progress_bar.style().unpolish(self.internal_progress_bar)
+        self.internal_progress_bar.style().polish(self.internal_progress_bar)
+
+    def _render_freight_progress(self) -> None:
+        parent = self._tree_items.get("trade")
+        if parent is None:
+            return
+        parent.takeChildren()
+        preparation = QTreeWidgetItem(
+            ["准备与路线规划", self._tree_state_text(self._freight_progress.preparation_state)]
+        )
+        preparation.setToolTip(0, self._freight_progress.preparation_detail)
+        parent.addChild(preparation)
+        active_item: QTreeWidgetItem | None = None
+        for city in self._freight_progress.cities:
+            role = {"initial": "起点", "intermediate": "途经", "terminal": "终点"}[city.role]
+            city_item = QTreeWidgetItem(
+                [
+                    f"城市 {city.index + 1}/{city.count} · {city.name}（{role}）",
+                    self._tree_state_text(city.state),
+                ]
+            )
+            city_item.setData(0, Qt.ItemDataRole.UserRole, f"trade_city:{city.index}")
+            parent.addChild(city_item)
+            for phase in city.phases:
+                phase_item = QTreeWidgetItem(
+                    [phase.detail or phase.label, self._tree_state_text(phase.state)]
+                )
+                phase_item.setToolTip(0, phase.detail)
+                city_item.addChild(phase_item)
+            is_active = city.index == self._freight_progress.active_city_index
+            city_item.setExpanded(is_active or city.state == "failed")
+            if is_active:
+                active_item = city_item
+        parent.setExpanded(True)
+        if active_item is not None:
+            self.run_tree.scrollToItem(active_item)
+
+    def _render_passenger_progress(self) -> None:
+        parent = self._tree_items.get("passenger")
+        if parent is None:
+            return
+        stage = self._passenger_progress.stage
+        key = ("passenger", stage)
+        item = self._progress_items.get(key)
+        if item is None:
+            item = QTreeWidgetItem([PASSENGER_STAGE_LABELS.get(stage, stage), "等待"])
+            parent.addChild(item)
+            self._progress_items[key] = item
+        item.setText(1, self._tree_state_text(self._passenger_progress.state))
+        parent.setExpanded(True)
+        self.run_tree.scrollToItem(item)
+
+    def _passenger_percent(self) -> int | None:
+        state = self._passenger_progress
+        if state.leg_index is None or state.leg_count <= 0:
+            return 100 if state.state in {"completed", "success"} else None
+        stage_fraction = {
+            "trade": 0.18,
+            "recruit": 0.4,
+            "travel": 0.68,
+            "settlement": 1.0 if state.state == "completed" else 0.88,
+        }.get(state.stage, 0.0)
+        completed = max(state.leg_index - 1, 0) + stage_fraction
+        return min(100, round(completed * 100 / state.leg_count))
+
+    def _passenger_detail(self) -> str:
+        state = self._passenger_progress
+        cities = " → ".join(value for value in (state.source_city, state.destination_city) if value)
+        leg = f"航段 {state.leg_index}/{state.leg_count}" if state.leg_index and state.leg_count else ""
+        return " · ".join(value for value in (leg, cities) if value)
+
+    @staticmethod
+    def _tree_state_text(state: str) -> str:
+        return {
+            "waiting": "等待",
+            "running": "执行中",
+            "progress": "执行中",
+            "completed": "完成",
+            "success": "完成",
+            "skipped": "跳过",
+            "failed": "失败",
+            "blocked": "失败",
+            "error": "失败",
+            "cancelled": "已停止",
+            "idle": "等待",
+        }.get(state, state)
+
+    @classmethod
+    def _progress_log_line(cls, payload: Mapping[str, Any], detail: str) -> str:
+        state = cls._tree_state_text(str(payload.get("state") or "running").lower())
+        return f"{state} · {detail}"
 
     def append_log(self, message: str) -> None:
         self.log_view.append(str(message))

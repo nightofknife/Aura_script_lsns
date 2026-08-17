@@ -70,7 +70,7 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert inputs["raise_step_bps"]["default"] == 1000
     assert inputs["trade_level"]["default"] == 20
     assert inputs["auto_cape_island_investment"]["default"] is False
-    assert inputs["arrival_timeout_seconds"]["default"] == 1800
+    assert inputs["arrival_timeout_seconds"]["default"] == 3600
     assert inputs["available_city_ids"]["default"] == DEFAULT_AVAILABLE_CITY_IDS
     assert inputs["available_city_ids"]["item"]["enum"] == ALL_CITY_IDS
     assert inputs["city_prestige"]["default"] == {"default": 20, "overrides": {}}
@@ -123,7 +123,7 @@ def test_resonance_pc_exact_planner_dict_inputs_validate_defaults_and_overrides(
     assert defaults["raise_step_bps"] == 1000
     assert defaults["available_city_ids"] == DEFAULT_AVAILABLE_CITY_IDS
     assert defaults["auto_cape_island_investment"] is False
-    assert defaults["arrival_timeout_seconds"] == 1800
+    assert defaults["arrival_timeout_seconds"] == 3600
 
     ok, custom = validator.validate_inputs_against_meta(
         inputs_meta,

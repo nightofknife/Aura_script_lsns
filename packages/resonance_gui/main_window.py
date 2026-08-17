@@ -104,6 +104,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_stopping = False
         self._workflow_pending: list[dict[str, Any]] = []
         self._workflow_current: dict[str, Any] | None = None
+        self._workflow_failed_message = ""
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
         self._base_window_title = "Aura 雷索纳斯控制台"
@@ -645,7 +646,12 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_active = True
         self._workflow_stopping = False
         self._workflow_current = None
-        self.workflow_page.begin_workflow(steps, commerce_steps)
+        self._workflow_failed_message = ""
+        self.workflow_page.begin_workflow(
+            steps,
+            commerce_steps,
+            snapshots.get("trade"),
+        )
         self._switch_page(self.WORKFLOW_PAGE_INDEX)
         self._dispatch_next_workflow_task()
 
@@ -653,7 +659,10 @@ class ResonanceMainWindow(QMainWindow):
         if not self._workflow_active or self._workflow_stopping or self._busy:
             return
         if not self._workflow_pending:
-            self._finish_workflow(True, "全部启用任务已完成。")
+            if self._workflow_failed_message:
+                self._finish_workflow(False, self._workflow_failed_message)
+            else:
+                self._finish_workflow(True, "全部启用任务已完成。")
             return
         current = self._workflow_pending.pop(0)
         self._workflow_current = current
@@ -692,6 +701,7 @@ class ResonanceMainWindow(QMainWindow):
     def _abort_workflow(self, message: str) -> None:
         if not self._workflow_active:
             return
+        self._workflow_failed_message = str(message or "流程执行失败。")
         current = self._workflow_current
         if current is not None:
             self.workflow_page.mark_step(str(current["step"]), "failed", message)
@@ -716,6 +726,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending.clear()
         self._workflow_current = None
         self.workflow_page.finish_workflow(success=success, message=message)
+        self._workflow_failed_message = ""
 
     def _dispatch_next_commerce_task(self) -> None:
         if not self._commerce_active or self._commerce_stopping:
@@ -896,10 +907,14 @@ class ResonanceMainWindow(QMainWindow):
                 self._switch_page(self.WORKFLOW_PAGE_INDEX)
             elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
+                if self._workflow_active:
+                    self.workflow_page.set_active_progress_cid("trade", extract_run_id(payload))
                 if not self._commerce_active and not self._workflow_active:
                     self._open_trade_editor()
             elif kind == "passenger_run":
                 self.passenger_page.begin_run(payload)
+                if self._workflow_active:
+                    self.workflow_page.set_active_progress_cid("passenger", extract_run_id(payload))
                 if not self._commerce_active and not self._workflow_active:
                     self._open_passenger_editor()
             elif kind == "battle_preview":
@@ -1029,7 +1044,10 @@ class ResonanceMainWindow(QMainWindow):
             elif self._workflow_pending:
                 self._dispatch_next_workflow_task()
             elif self._workflow_current is None:
-                self._finish_workflow(True, "全部启用任务已完成。")
+                if self._workflow_failed_message:
+                    self._finish_workflow(False, self._workflow_failed_message)
+                else:
+                    self._finish_workflow(True, "全部启用任务已完成。")
 
     def _on_log_message(self, message: str) -> None:
         self.statusBar().showMessage(message)

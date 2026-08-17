@@ -53,7 +53,7 @@ def _progress(cid: str, sequence: int, **payload):
 def test_trade_page_collects_typed_full_plan_inputs(tmp_path):
     page = _page(tmp_path)
     try:
-        assert page.arrival_timeout_minutes.value() == 30
+        assert page.arrival_timeout_minutes.value() == 60
         page.set_target_status({"ok": True, "target": {"hwnd": 1, "title": "Resonance", "visible": True}})
         assert page.start_button.isEnabled()
         assert not page.preview_button.isEnabled()

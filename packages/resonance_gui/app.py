@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QSettings
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
 
 from packages.aura_game import SubprocessGameRunner
@@ -39,10 +39,45 @@ def _load_application_icon() -> QIcon:
     return icon
 
 
+def _light_application_palette() -> QPalette:
+    palette = QPalette()
+    colors = {
+        QPalette.ColorRole.Window: "#f2ebdd",
+        QPalette.ColorRole.WindowText: "#38342e",
+        QPalette.ColorRole.Base: "#fffaf0",
+        QPalette.ColorRole.AlternateBase: "#f3ecdf",
+        QPalette.ColorRole.ToolTipBase: "#fffaf0",
+        QPalette.ColorRole.ToolTipText: "#38342e",
+        QPalette.ColorRole.Text: "#38342e",
+        QPalette.ColorRole.Button: "#f8f3e8",
+        QPalette.ColorRole.ButtonText: "#38342e",
+        QPalette.ColorRole.BrightText: "#ffffff",
+        QPalette.ColorRole.Highlight: "#77866b",
+        QPalette.ColorRole.HighlightedText: "#ffffff",
+        QPalette.ColorRole.Link: "#52654b",
+        QPalette.ColorRole.LinkVisited: "#6e5f78",
+        QPalette.ColorRole.PlaceholderText: "#8d8578",
+    }
+    for role, value in colors.items():
+        palette.setColor(QPalette.ColorGroup.Active, role, QColor(value))
+        palette.setColor(QPalette.ColorGroup.Inactive, role, QColor(value))
+    disabled = {
+        QPalette.ColorRole.WindowText: "#9b958b",
+        QPalette.ColorRole.Text: "#9b958b",
+        QPalette.ColorRole.ButtonText: "#9b958b",
+        QPalette.ColorRole.HighlightedText: "#f3efe7",
+        QPalette.ColorRole.PlaceholderText: "#aaa398",
+    }
+    for role, value in disabled.items():
+        palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(value))
+    return palette
+
+
 def _configure_application(app: QApplication) -> QIcon:
     app.setApplicationName("Aura Resonance GUI")
     app.setOrganizationName("Aura")
     app.setStyle("Fusion")
+    app.setPalette(_light_application_palette())
     icon = _load_application_icon()
     app.setWindowIcon(icon)
     return icon

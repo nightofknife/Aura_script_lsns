@@ -7,6 +7,8 @@ QMainWindow, QWidget#appRoot {
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 13px;
 }
+QWidget { color: #38342e; }
+QLabel, QCheckBox, QRadioButton, QGroupBox { color: #38342e; }
 QFrame#navigation {
     background: #e8decc;
     border: 0;
@@ -139,10 +141,28 @@ QLabel[metricValue="true"] { color: #20252b; font-size: 14px; font-weight: 700; 
 QTextBrowser#passengerDetails { background: #ffffff; color: #4d5962; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit, QTextBrowser {
     background: #fffaf0;
+    color: #38342e;
     border: 1px solid #c9b99d;
     border-radius: 4px;
     padding: 5px 7px;
     selection-background-color: #77866b;
+    selection-color: #ffffff;
+}
+QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled,
+QPlainTextEdit:disabled, QTextBrowser:disabled {
+    background: #eee9df;
+    color: #9b958b;
+}
+QLineEdit[readOnly="true"], QPlainTextEdit[readOnly="true"] {
+    background: #f5efe4;
+    color: #554f46;
+}
+QComboBox QAbstractItemView {
+    background: #fffaf0;
+    color: #38342e;
+    selection-background-color: #77866b;
+    selection-color: #ffffff;
+    border: 1px solid #c9b99d;
 }
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
 QPlainTextEdit:focus, QTextBrowser:focus { border-color: #77866b; }
@@ -181,11 +201,17 @@ QPushButton[cityOption="true"]:checked {
 QToolButton { color: #47535c; border: 0; padding: 4px 0; font-weight: 600; }
 QTreeWidget, QTableWidget {
     background: #fffaf0;
+    color: #38342e;
     alternate-background-color: #f3ecdf;
     border: 1px solid #c9b99d;
     border-radius: 4px;
     gridline-color: #e8ecef;
     outline: 0;
+}
+QListWidget {
+    color: #38342e;
+    selection-background-color: #dce3d5;
+    selection-color: #384335;
 }
 QHeaderView::section {
     background: #edf1f3;
@@ -204,6 +230,18 @@ QLabel[status="error"] { color: #b3261e; }
 QScrollBar:vertical { background: #e8decc; width: 10px; margin: 0; }
 QScrollBar::handle:vertical { background: #b6aa94; min-height: 28px; border-radius: 4px; }
 QStatusBar { background: #f8f3e8; color: #716a5e; border-top: 1px solid #c9b99d; }
+QMenu {
+    background: #fffaf0;
+    color: #38342e;
+    border: 1px solid #c9b99d;
+}
+QMenu::item:selected { background: #dce3d5; color: #384335; }
+QToolTip {
+    background: #fffaf0;
+    color: #38342e;
+    border: 1px solid #c9b99d;
+    padding: 4px;
+}
 
 QFrame#workflowPanel {
     background: #f8f3e8;
@@ -212,6 +250,24 @@ QFrame#workflowPanel {
 }
 QLabel#workflowTitle { color: #38342e; font-size: 19px; font-weight: 700; }
 QLabel#workflowProgress { color: #66745c; font-size: 16px; font-weight: 700; padding: 7px 0; }
+QLabel#workflowInternalProgress { color: #514c43; font-weight: 600; padding: 3px 0; }
+QProgressBar#workflowTaskProgressBar, QProgressBar#workflowInternalProgressBar {
+    background: #e8decc;
+    color: #38342e;
+    border: 1px solid #c9b99d;
+    border-radius: 4px;
+    min-height: 15px;
+    max-height: 15px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+}
+QProgressBar#workflowTaskProgressBar::chunk, QProgressBar#workflowInternalProgressBar::chunk {
+    background: #77866b;
+    border-radius: 3px;
+}
+QProgressBar#workflowInternalProgressBar[runState="failed"]::chunk,
+QProgressBar#workflowInternalProgressBar[runState="cancelled"]::chunk { background: #b9785d; }
 QListWidget#workflowTaskList, QListWidget#commerceOrderList, QListWidget#settingsCategories {
     background: transparent;
     border: 0;

@@ -4,9 +4,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
 import yaml
 
 from packages.aura_core.config.validator import validate_task_definition
+from packages.aura_core.utils.exceptions import StopTaskException
 from plans.resonance_pc.src.actions import game_startup_pc_actions as actions
 
 
@@ -86,7 +88,7 @@ def test_enter_main_launches_detached_process_before_using_app(monkeypatch, tmp_
 
     monkeypatch.setattr(actions, "_resolve_target", lambda _service: None)
     monkeypatch.setattr(actions, "_matching_processes", lambda: [])
-    monkeypatch.setattr(actions, "_resolve_executable", lambda _path, _running: executable)
+    monkeypatch.setattr(actions, "_resolve_executable", lambda _path: executable)
     monkeypatch.setattr(actions, "_wait_for_target", lambda *_args: events.append("window") or target)
     monkeypatch.setattr(actions, "_detect_state", lambda *_args: events.append("capture") or _main_state())
     services["process_manager"].start_process.side_effect = (
@@ -109,8 +111,10 @@ def test_enter_main_launches_detached_process_before_using_app(monkeypatch, tmp_
     )
 
 
-def test_enter_main_does_not_launch_when_matching_process_is_starting(monkeypatch):
+def test_enter_main_does_not_launch_when_matching_process_is_starting(monkeypatch, tmp_path):
     services = _services()
+    executable = tmp_path / actions.PROCESS_NAME
+    executable.touch()
     target = {"hwnd": 101, "pid": 202, "process_name": actions.PROCESS_NAME}
     target_results = iter([None, target])
     monkeypatch.setattr(actions, "_resolve_target", lambda _service: next(target_results))
@@ -124,6 +128,7 @@ def test_enter_main_does_not_launch_when_matching_process_is_starting(monkeypatc
     monkeypatch.setattr(actions.psutil, "pid_exists", lambda pid: pid == 202)
 
     result = actions.resonance_pc_enter_main(
+        executable_path=str(executable),
         window_timeout_sec=1,
         round_interval_sec=0,
         **services,
@@ -134,8 +139,10 @@ def test_enter_main_does_not_launch_when_matching_process_is_starting(monkeypatc
     services["process_manager"].start_process.assert_not_called()
 
 
-def test_enter_main_clicks_fixed_point_for_every_other_state(monkeypatch):
+def test_enter_main_clicks_fixed_point_for_every_other_state(monkeypatch, tmp_path):
     services = _services()
+    executable = tmp_path / actions.PROCESS_NAME
+    executable.touch()
     target = {"hwnd": 101, "pid": 202, "process_name": actions.PROCESS_NAME}
     states = iter(
         [
@@ -148,6 +155,7 @@ def test_enter_main_clicks_fixed_point_for_every_other_state(monkeypatch):
     monkeypatch.setattr(actions, "_detect_state", lambda *_args: next(states))
 
     result = actions.resonance_pc_enter_main(
+        executable_path=str(executable),
         round_interval_sec=0,
         **services,
     )
@@ -157,8 +165,10 @@ def test_enter_main_clicks_fixed_point_for_every_other_state(monkeypatch):
     services["app"].press_key.assert_not_called()
 
 
-def test_enter_main_clicks_detected_update_button_center(monkeypatch):
+def test_enter_main_clicks_detected_update_button_center(monkeypatch, tmp_path):
     services = _services()
+    executable = tmp_path / actions.PROCESS_NAME
+    executable.touch()
     target = {"hwnd": 101, "pid": 202, "process_name": actions.PROCESS_NAME}
     states = iter(
         [
@@ -179,10 +189,32 @@ def test_enter_main_clicks_detected_update_button_center(monkeypatch):
     monkeypatch.setattr(actions, "_matching_processes", lambda: [])
     monkeypatch.setattr(actions, "_detect_state", lambda *_args: next(states))
 
-    result = actions.resonance_pc_enter_main(round_interval_sec=0, **services)
+    result = actions.resonance_pc_enter_main(
+        executable_path=str(executable), round_interval_sec=0, **services
+    )
 
     assert result["success"] is True
     services["app"].click.assert_called_once_with(x=700, y=500)
+
+
+def test_enter_main_rejects_empty_path_even_when_game_is_already_running(monkeypatch):
+    services = _services()
+    monkeypatch.setattr(
+        actions,
+        "_resolve_target",
+        lambda _service: {"hwnd": 101, "pid": 202, "process_name": actions.PROCESS_NAME},
+    )
+    monkeypatch.setattr(
+        actions,
+        "_matching_processes",
+        lambda: [{"pid": 202, "name": actions.PROCESS_NAME, "exe": r"D:\game\雷索纳斯.exe"}],
+    )
+
+    with pytest.raises(StopTaskException, match="未配置有效的游戏路径"):
+        actions.resonance_pc_enter_main(executable_path="", round_interval_sec=0, **services)
+
+    services["process_manager"].start_process.assert_not_called()
+    services["app"].click.assert_not_called()
 
 
 def test_close_game_posts_wm_close_to_verified_target(monkeypatch):
