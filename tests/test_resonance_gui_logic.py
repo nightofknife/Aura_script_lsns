@@ -18,6 +18,7 @@ from packages.resonance_gui.logic import (
     GAME_NAME,
     PC_BATTLE_PREVIEW_TASK_REF,
     PC_BATTLE_TASK_REF,
+    PC_COMBINED_COMMERCE_TASK_REF,
     PC_GAME_NAME,
     PC_TRADE_PREVIEW_TASK_REF,
     TRADE_PROGRESS_EVENT,
@@ -216,6 +217,27 @@ def test_runner_bridge_removes_preview_start_city_from_real_trade_inputs():
         "arrival_timeout_seconds": 2700,
         "auto_cape_island_investment": True,
     }
+
+
+def test_runner_bridge_dispatches_combined_commerce_to_dedicated_task():
+    fake = FakeRunner()
+    bridge = RunnerBridge(runner_factory=lambda: fake)
+    dispatched: list[dict] = []
+    bridge.taskDispatched.connect(dispatched.append)
+    inputs = {
+        "order": "passenger_first",
+        "total_fatigue_budget": 700,
+        "trade_inputs": {"fatigue_budget": 700},
+        "passenger_inputs": {"trip_count": 2, "trade_during_trip": True},
+    }
+
+    bridge.run_pc_combined_commerce(inputs, 0.0)
+
+    run_call = [call for call in fake.calls if call[0] == "run_task"][0][1]
+    assert run_call["game_name"] == PC_GAME_NAME
+    assert run_call["task_ref"] == PC_COMBINED_COMMERCE_TASK_REF
+    assert run_call["inputs"] == inputs
+    assert dispatched[0]["item"]["kind"] == "combined_commerce_run"
 
 
 def test_runner_bridge_dispatches_pc_battle_to_dedicated_plan():

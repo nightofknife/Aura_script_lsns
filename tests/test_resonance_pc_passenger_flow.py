@@ -106,7 +106,7 @@ def _run(**overrides):
         "trade_planner": None,
     }
     values.update(overrides)
-    return flow._run_passenger_roundtrip_sync(**values)
+    return flow._run_passenger_trips_sync(**values)
 
 
 @pytest.mark.parametrize(

@@ -776,10 +776,14 @@ class WorkflowPage(QWidget):
             self.passenger_city_a.addItem(city.name, city.city_id)
             self.passenger_city_b.addItem(city.name, city.city_id)
         self.passenger_city_a.currentIndexChanged.connect(
-            self._refresh_passenger_route_summary
+            lambda _index: self._passenger_route_changed(
+                self.passenger_city_a, self.passenger_city_b
+            )
         )
         self.passenger_city_b.currentIndexChanged.connect(
-            self._refresh_passenger_route_summary
+            lambda _index: self._passenger_route_changed(
+                self.passenger_city_b, self.passenger_city_a
+            )
         )
         self.passenger_trips = QSpinBox(page)
         self.passenger_trips.setRange(1, 198)
@@ -987,6 +991,7 @@ class WorkflowPage(QWidget):
         self._commerce_order.reverse()
         self._rebuild_commerce_rows()
         self._save_state()
+        self._refresh_combined_summary()
 
     def _move_commerce(self, kind: str, delta: int) -> None:
         if self._busy:
@@ -1088,9 +1093,15 @@ class WorkflowPage(QWidget):
             trade_during_trip=self.passenger_trade.isChecked(),
             reposition_to_route=self.passenger_reposition.isChecked(),
         )
-        merged.pop("preferred_start_city_id", None)
-        merged.pop("round_trips", None)
         return merged
+
+    def _passenger_route_changed(self, changed: QComboBox, other: QComboBox) -> None:
+        if changed.currentData() == other.currentData():
+            for index in range(other.count()):
+                if other.itemData(index) != changed.currentData():
+                    other.setCurrentIndex(index)
+                    break
+        self._refresh_passenger_route_summary()
 
     def _refresh_passenger_route_summary(self, _value: int = 0) -> None:
         try:
@@ -1140,7 +1151,7 @@ class WorkflowPage(QWidget):
                 f"组合流程 · 客运预留 {passenger_fatigue} 疲劳 · "
                 f"货运可用 {max(available, 0)} 疲劳。货运终点将限制为"
                 f"{city_a}或{city_b}，随后直接开始客运。"
-                + (" 当前总预算不足。" if available < 0 else "")
+                + (" 当前没有可用于货运的疲劳。" if available <= 0 else "")
             )
         else:
             self.combined_budget_summary.setText(
@@ -1266,6 +1277,8 @@ class WorkflowPage(QWidget):
             )
             if self._freight_progress.sequence == previous_sequence:
                 return
+            if self.step_is_waiting(kind):
+                self.mark_step(kind, "running", "开始货运")
             self._render_freight_progress()
             percent = self._freight_progress.percent
             self._set_internal_progress(
@@ -1288,6 +1301,8 @@ class WorkflowPage(QWidget):
         )
         if self._passenger_progress.sequence == previous_sequence:
             return
+        if self.step_is_waiting(kind):
+            self.mark_step(kind, "running", "开始客运")
         self._render_passenger_progress()
         label = self._passenger_progress.stage_label
         detail = self._passenger_detail()

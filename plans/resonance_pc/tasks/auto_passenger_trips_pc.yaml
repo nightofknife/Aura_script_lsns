@@ -1,4 +1,4 @@
-auto_passenger_roundtrip_pc:
+auto_passenger_trips_pc:
   meta:
     title: Passenger Trips (PC)
     description: Run a configured number of alternating one-way passenger trips between two cities.
@@ -45,7 +45,7 @@ auto_passenger_roundtrip_pc:
         min: 1
   steps:
     run:
-      action: resonance_pc.auto_passenger_roundtrip_flow
+      action: resonance_pc.auto_passenger_trips_flow
       params:
         passenger_city_a_id: "{{ inputs.passenger_city_a_id | default('11') }}"
         passenger_city_b_id: "{{ inputs.passenger_city_b_id | default('15') }}"

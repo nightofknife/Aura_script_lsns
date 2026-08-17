@@ -8,9 +8,9 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_passenger_task_exports_parameterized_roundtrip_contract():
-    task_path = REPO_ROOT / "plans" / "resonance_pc" / "tasks" / "auto_passenger_roundtrip_pc.yaml"
-    task = yaml.safe_load(task_path.read_text(encoding="utf-8"))["auto_passenger_roundtrip_pc"]
+def test_passenger_task_exports_parameterized_one_way_contract():
+    task_path = REPO_ROOT / "plans" / "resonance_pc" / "tasks" / "auto_passenger_trips_pc.yaml"
+    task = yaml.safe_load(task_path.read_text(encoding="utf-8"))["auto_passenger_trips_pc"]
 
     assert task["meta"]["entry_point"] is True
     inputs = {row["name"]: row for row in task["meta"]["inputs"]}
@@ -20,7 +20,7 @@ def test_passenger_task_exports_parameterized_roundtrip_contract():
     assert inputs["trade_during_trip"]["default"] is False
     assert inputs["reposition_to_route"]["default"] is True
     assert inputs["arrival_timeout_seconds"]["default"] == 1800
-    assert task["steps"]["run"]["action"] == "resonance_pc.auto_passenger_roundtrip_flow"
+    assert task["steps"]["run"]["action"] == "resonance_pc.auto_passenger_trips_flow"
     assert task["returns"]["requires_manual_completion"] == "{{ nodes.run.output.requires_manual_completion }}"
     assert task["returns"]["trade_legs"] == "{{ nodes.run.output.trade_legs }}"
     assert task["returns"]["trade_final_sale"] == "{{ nodes.run.output.trade_final_sale }}"
@@ -41,6 +41,6 @@ def test_manifest_registers_passenger_actions_and_task():
         "resonance_pc.open_passenger_management",
         "resonance_pc.recruit_passengers_by_flyer",
         "resonance_pc.enter_city_and_settle_passengers",
-        "resonance_pc.auto_passenger_roundtrip_flow",
+        "resonance_pc.auto_passenger_trips_flow",
     } <= actions
-    assert "auto_passenger_roundtrip_pc/auto_passenger_roundtrip_pc" in tasks
+    assert "auto_passenger_trips_pc/auto_passenger_trips_pc" in tasks

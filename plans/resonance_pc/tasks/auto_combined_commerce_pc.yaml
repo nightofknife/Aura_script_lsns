@@ -1,0 +1,46 @@
+auto_combined_commerce_pc:
+  meta:
+    title: Combined Freight and Passenger Workflow (PC)
+    description: Run freight and passenger tasks under one fatigue budget with validated handoffs.
+    entry_point: true
+    inputs:
+      - name: order
+        type: string
+        required: false
+        default: trade_first
+        enum: [trade_first, passenger_first]
+      - name: total_fatigue_budget
+        type: number
+        required: false
+        default: 700
+        min: 1
+      - name: trade_inputs
+        type: dict
+        required: false
+        default: {}
+      - name: passenger_inputs
+        type: dict
+        required: false
+        default: {}
+  steps:
+    run:
+      action: resonance_pc.auto_combined_commerce_flow
+      params:
+        order: "{{ inputs.order | default('trade_first') }}"
+        total_fatigue_budget: "{{ inputs.total_fatigue_budget | default(700) }}"
+        trade_inputs: "{{ inputs.trade_inputs | default({}) }}"
+        passenger_inputs: "{{ inputs.passenger_inputs | default({}) }}"
+  returns:
+    success: "{{ nodes.run.output.success }}"
+    status: "{{ nodes.run.output.status }}"
+    reason: "{{ nodes.run.output.reason }}"
+    failure_stage: "{{ nodes.run.output.failure_stage }}"
+    order: "{{ nodes.run.output.order }}"
+    preflight: "{{ nodes.run.output.preflight }}"
+    trade: "{{ nodes.run.output.trade }}"
+    passenger: "{{ nodes.run.output.passenger }}"
+    total_fatigue_budget: "{{ nodes.run.output.total_fatigue_budget }}"
+    expected_fatigue_used: "{{ nodes.run.output.expected_fatigue_used }}"
+    remaining_fatigue: "{{ nodes.run.output.remaining_fatigue }}"
+    end_city_id: "{{ nodes.run.output.end_city_id }}"
+    page_state: "{{ nodes.run.output.page_state }}"

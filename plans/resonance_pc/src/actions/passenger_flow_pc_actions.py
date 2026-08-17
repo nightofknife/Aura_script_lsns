@@ -455,7 +455,7 @@ def _execute_passenger_trade_at_city(
     }
 
 
-def _run_passenger_roundtrip_sync(
+def _run_passenger_trips_sync(
     *,
     trip_count: int,
     passenger_city_a_id: str,
@@ -822,7 +822,7 @@ def _run_passenger_roundtrip_sync(
 
 
 @action_info(
-    name="resonance_pc.auto_passenger_roundtrip_flow",
+    name="resonance_pc.auto_passenger_trips_flow",
     public=True,
     read_only=False,
     description="Run configured alternating passenger trips from city-main UI.",
@@ -838,7 +838,7 @@ def _run_passenger_roundtrip_sync(
     event_bus="core/event_bus",
 )
 @_with_passenger_progress
-async def resonance_pc_auto_passenger_roundtrip_flow(
+async def resonance_pc_auto_passenger_trips_flow(
     trip_count: int = 1,
     passenger_city_a_id: str = "11",
     passenger_city_b_id: str = "15",
@@ -882,7 +882,7 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
         raise RuntimeError("passenger flow requires app/ocr/vision/controller/city/market services")
 
     return await asyncio.to_thread(
-        _run_passenger_roundtrip_sync,
+        _run_passenger_trips_sync,
         trip_count=normalized_trip_count,
         passenger_city_a_id=city_a_id,
         passenger_city_b_id=city_b_id,

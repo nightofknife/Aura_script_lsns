@@ -71,7 +71,7 @@ def test_passenger_page_collects_and_persists_inputs(tmp_path):
         page.close()
 
 
-def test_legacy_round_trip_setting_migrates_to_two_single_trips(tmp_path):
+def test_legacy_round_trip_settings_are_not_migrated(tmp_path):
     settings = QSettings(str(tmp_path / "legacy-passenger.ini"), QSettings.Format.IniFormat)
     settings.setValue(
         "passenger/inputs_json",
@@ -88,10 +88,24 @@ def test_legacy_round_trip_setting_migrates_to_two_single_trips(tmp_path):
 
     loaded = repository.load_passenger_inputs()
 
-    assert loaded["trip_count"] == 6
-    assert loaded["passenger_city_a_id"] == "2"
-    assert loaded["passenger_city_b_id"] == "3"
+    assert loaded["trip_count"] == 1
+    assert loaded["passenger_city_a_id"] == "11"
+    assert loaded["passenger_city_b_id"] == "15"
     assert "round_trips" not in loaded
+
+
+def test_passenger_page_keeps_route_cities_distinct(tmp_path):
+    page = _page(tmp_path)
+    try:
+        page.city_a.setCurrentIndex(page.city_a.findData("2"))
+        page.city_b.setCurrentIndex(page.city_b.findData("2"))
+
+        assert page.city_b.currentData() == "2"
+        assert page.city_a.currentData() != page.city_b.currentData()
+        inputs = page.collect_inputs()
+        assert inputs["passenger_city_a_id"] != inputs["passenger_city_b_id"]
+    finally:
+        page.close()
 
 
 def test_passenger_page_reduces_progress_and_renders_blocked_result(tmp_path):

@@ -1,4 +1,4 @@
-"""Dedicated Resonance PC passenger round-trip workspace."""
+"""Dedicated Resonance PC passenger trip workspace."""
 
 from __future__ import annotations
 
@@ -151,8 +151,12 @@ class PassengerPage(QWidget):
         self.auto_reposition.setToolTip("当前不在线路端点时，前往疲劳消耗较低的端点")
         form.addRow("自动前往线路", self.auto_reposition)
         layout.addLayout(form)
-        self.city_a.currentIndexChanged.connect(self._route_changed)
-        self.city_b.currentIndexChanged.connect(self._route_changed)
+        self.city_a.currentIndexChanged.connect(
+            lambda _index: self._route_changed(self.city_a, self.city_b)
+        )
+        self.city_b.currentIndexChanged.connect(
+            lambda _index: self._route_changed(self.city_b, self.city_a)
+        )
 
         layout.addSpacing(22)
         self.expected_fatigue = QLabel(panel)
@@ -290,7 +294,12 @@ class PassengerPage(QWidget):
             f"{trips} 次 × 单次疲劳 {estimate.trip_fatigue}"
         )
 
-    def _route_changed(self, _index: int = -1) -> None:
+    def _route_changed(self, changed: QComboBox, other: QComboBox) -> None:
+        if changed.currentData() == other.currentData():
+            for index in range(other.count()):
+                if other.itemData(index) != changed.currentData():
+                    other.setCurrentIndex(index)
+                    break
         self._refresh_expected_fatigue()
 
     def _current_route_estimate(self) -> PassengerRouteEstimate:
@@ -368,7 +377,7 @@ class PassengerPage(QWidget):
         success = bool(result.get("success"))
         self.run_status_value.setText("已完成" if success else "已阻塞")
         self.stage_value.setText("任务结束")
-        self.stage_detail.setText(str(result.get("reason") or "客运往返已完成"))
+        self.stage_detail.setText(str(result.get("reason") or "客运任务已完成"))
         if success:
             route = result.get("passenger_route") if isinstance(result.get("passenger_route"), Mapping) else {}
             city_a = route.get("city_a") if isinstance(route.get("city_a"), Mapping) else {}

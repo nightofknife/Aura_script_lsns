@@ -272,24 +272,12 @@ def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
-    raw_trip_count = values.get("trip_count", 1)
-    if "trip_count" not in values and "round_trips" in values:
-        try:
-            raw_trip_count = int(values.get("round_trips") or 0) * 2
-        except (TypeError, ValueError):
-            raw_trip_count = 1
     try:
-        merged["trip_count"] = max(int(raw_trip_count), 1)
+        merged["trip_count"] = max(int(merged["trip_count"]), 1)
     except (TypeError, ValueError):
         merged["trip_count"] = 1
-    city_a_id = str(
-        values.get("passenger_city_a_id", values.get("passenger_from_city_id", "11"))
-        or "11"
-    ).strip()
-    city_b_id = str(
-        values.get("passenger_city_b_id", values.get("passenger_to_city_id", "15"))
-        or "15"
-    ).strip()
+    city_a_id = str(merged.get("passenger_city_a_id") or "11").strip()
+    city_b_id = str(merged.get("passenger_city_b_id") or "15").strip()
     if city_a_id not in ALL_PC_TRADE_CITY_IDS:
         city_a_id = "11"
     if city_b_id not in ALL_PC_TRADE_CITY_IDS:
