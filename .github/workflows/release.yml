@@ -44,10 +44,27 @@ jobs:
     outputs:
       scope: ${{ steps.classify.outputs.scope }}
       release_label: ${{ steps.label.outputs.release_label }}
+      publish_allowed: ${{ steps.release_source.outputs.publish_allowed }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check release source is on main
+        id: release_source
+        shell: pwsh
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ($LASTEXITCODE -ne 0) { throw "Failed to fetch origin/main for release source validation." }
+
+          git merge-base --is-ancestor $env:GITHUB_SHA refs/remotes/origin/main
+          if ($LASTEXITCODE -eq 0) {
+            "publish_allowed=true" >> $env:GITHUB_OUTPUT
+          } elseif ($LASTEXITCODE -eq 1) {
+            "publish_allowed=false" >> $env:GITHUB_OUTPUT
+          } else {
+            throw "Failed to determine whether $env:GITHUB_SHA belongs to origin/main."
+          }
 
       - name: Read release policy
         id: policy
@@ -246,6 +263,7 @@ jobs:
         needs.ci.result == 'success' &&
         needs.build-full.result == 'success' &&
         needs.verify-set.result == 'success' &&
+        needs.scope.outputs.publish_allowed == 'true' &&
         (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
       }}
     steps:
