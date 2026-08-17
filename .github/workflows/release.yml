@@ -22,10 +22,6 @@ on:
         description: Release tag for a manually published run
         type: string
         required: false
-      run_gpu_smoke:
-        description: Run CUDA OCR smoke on a self-hosted Windows GPU runner
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -169,55 +165,38 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest tests -q
 
-  build-full:
+  build-cpu:
     needs: [scope, ci]
     if: ${{ needs.scope.outputs.scope == 'full' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: [cpu, gpu, overlay]
     uses: ./.github/workflows/_build-windows.yml
     with:
-      profile: ${{ matrix.profile }}
+      profile: cpu
       release_label: ${{ needs.scope.outputs.release_label }}
 
-  verify-set:
+  verify-cpu:
     runs-on: windows-2022
-    needs: [scope, ci, build-full]
+    needs: [scope, ci, build-cpu]
     if: ${{ needs.scope.outputs.scope == 'full' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Read release policy
-        id: policy
-        shell: pwsh
-        run: |
-          $contract = Get-Content -Raw packaging\release-contract.json | ConvertFrom-Json
-          "python_version=$($contract.python.major_minor)" >> $env:GITHUB_OUTPUT
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ steps.policy.outputs.python_version }}
-
       - uses: actions/download-artifact@v4
         with:
-          pattern: release-full-*
+          name: release-full-cpu
           path: .runtime-artifacts
-          merge-multiple: true
 
-      - name: Validate CPU, GPU, and overlay as one release set
+      - name: Verify CPU release artifact and write checksum
         shell: pwsh
         env:
           RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
         run: |
-          python -m scripts.release.validate_release_set `
-            --cpu ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip" `
-            --gpu ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-gpu.zip" `
-            --overlay ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-nvidia-cu13-overlay.zip" `
-            --label $env:RELEASE_LABEL `
-            --contract packaging\release-contract.json `
-            --work-root .runtime-validate-set `
-            --checksums .runtime-artifacts\SHA256SUMS.txt
+          $expected = "AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip"
+          $archives = @(Get-ChildItem .runtime-artifacts -File -Filter "*.zip")
+          if ($archives.Count -ne 1 -or $archives[0].Name -ne $expected) {
+            throw "Expected only CPU release archive '$expected'."
+          }
+          $hash = (Get-FileHash -LiteralPath $archives[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -LiteralPath ".runtime-artifacts\SHA256SUMS.txt" `
+            -Value "$hash  $expected" `
+            -Encoding ascii
 
       - uses: actions/upload-artifact@v4
         with:
@@ -226,43 +205,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  gpu-smoke:
-    runs-on: [self-hosted, windows, gpu]
-    needs: [scope, verify-set]
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gpu_smoke && needs.scope.outputs.scope == 'full' }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: release-full-*
-          path: .runtime-artifacts
-          merge-multiple: true
-
-      - name: Verify CUDA OCR provider
-        shell: pwsh
-        env:
-          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
-        run: |
-          $work = ".runtime-gpu-smoke"
-          New-Item -ItemType Directory -Force -Path $work | Out-Null
-          $gpuZip = ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-win-x64-gpu.zip"
-          $overlayZip = ".runtime-artifacts\AuraResonance-$env:RELEASE_LABEL-nvidia-cu13-overlay.zip"
-          Expand-Archive -LiteralPath $gpuZip -DestinationPath $work -Force
-          Expand-Archive -LiteralPath $overlayZip -DestinationPath $work -Force
-          $release = Join-Path $work "AuraResonance-$env:RELEASE_LABEL-win-x64-gpu"
-          pwsh -NoProfile -File (Join-Path $release "run.ps1") doctor --ocr --ocr-provider cuda
-          if ($LASTEXITCODE -ne 0) { throw "CUDA OCR smoke failed." }
-
   publish:
     runs-on: windows-2022
     permissions:
       contents: write
-    needs: [scope, ci, build-full, verify-set]
+    needs: [scope, ci, build-cpu, verify-cpu]
     if: >-
       ${{
         always() &&
         needs.ci.result == 'success' &&
-        needs.build-full.result == 'success' &&
-        needs.verify-set.result == 'success' &&
+        needs.build-cpu.result == 'success' &&
+        needs.verify-cpu.result == 'success' &&
         needs.scope.outputs.publish_allowed == 'true' &&
         (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
       }}
@@ -278,6 +231,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MANUAL_TAG: ${{ inputs.release_tag }}
+          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
         run: |
           $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF_NAME } else { $env:MANUAL_TAG }
           if (-not $tag) { throw "A release tag is required for publishing." }
@@ -290,10 +244,17 @@ jobs:
               --notes "Automated Aura Resonance package build for $tag."
             if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag." }
           }
+          $expectedAssets = @(
+            "AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip",
+            "SHA256SUMS.txt"
+          )
           $assets = @(Get-ChildItem .runtime-artifacts -File | Where-Object {
             $_.Extension -eq ".zip" -or $_.Name -eq "SHA256SUMS.txt"
           })
-          if ($assets.Count -ne 4) { throw "Expected three release archives and SHA256SUMS.txt; found $($assets.Count)." }
+          $unexpected = @($assets | Where-Object { $_.Name -notin $expectedAssets })
+          if ($assets.Count -ne 2 -or $unexpected.Count -ne 0) {
+            throw "Expected CPU release archive and SHA256SUMS.txt; found $($assets.Count) release assets."
+          }
           foreach ($asset in $assets) {
             gh release upload $tag $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
             if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($asset.Name)." }

@@ -415,6 +415,19 @@ def test_workflow_only_publishes_commits_reachable_from_main():
     assert "needs.scope.outputs.publish_allowed == 'true'" in workflow
 
 
+def test_workflow_temporarily_builds_cpu_release_only():
+    repo_root = Path(__file__).resolve().parents[1]
+    workflow = (repo_root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert "build-cpu:" in workflow
+    assert "profile: cpu" in workflow
+    assert "profile: [cpu, gpu, overlay]" not in workflow
+    assert "gpu-smoke:" not in workflow
+    assert "run_gpu_smoke:" not in workflow
+    assert "name: release-full-cpu" in workflow
+    assert "Expected CPU release archive and SHA256SUMS.txt" in workflow
+
+
 def test_cpu_and_gpu_locks_only_swap_onnxruntime_distribution():
     repo_root = Path(__file__).resolve().parents[1]
     cpu = parse_hashed_lock(repo_root / "requirements" / "release-cpu.lock.txt")
