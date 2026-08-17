@@ -1,10 +1,18 @@
 auto_passenger_roundtrip_pc:
   meta:
-    title: Cape-Lanxin Passenger Round Trip (PC)
-    description: Run fixed flyer-based passenger round trips between Cape City and Lanxin City.
+    title: Passenger Trips (PC)
+    description: Run a configured number of alternating one-way passenger trips between two cities.
     entry_point: true
     inputs:
-      - name: round_trips
+      - name: passenger_city_a_id
+        type: string
+        required: false
+        default: "11"
+      - name: passenger_city_b_id
+        type: string
+        required: false
+        default: "15"
+      - name: trip_count
         type: number
         required: false
         default: 1
@@ -17,11 +25,6 @@ auto_passenger_roundtrip_pc:
         type: boolean
         required: false
         default: true
-      - name: preferred_start_city_id
-        type: string
-        required: false
-        default: "11"
-        enum: ["11", "15"]
       - name: use_fatigue_medicine
         type: boolean
         required: false
@@ -44,10 +47,11 @@ auto_passenger_roundtrip_pc:
     run:
       action: resonance_pc.auto_passenger_roundtrip_flow
       params:
-        round_trips: "{{ inputs.round_trips | default(1) }}"
+        passenger_city_a_id: "{{ inputs.passenger_city_a_id | default('11') }}"
+        passenger_city_b_id: "{{ inputs.passenger_city_b_id | default('15') }}"
+        trip_count: "{{ inputs.trip_count | default(1) }}"
         trade_during_trip: "{{ inputs.trade_during_trip | default(false) }}"
         reposition_to_route: "{{ inputs.reposition_to_route | default(true) }}"
-        preferred_start_city_id: "{{ inputs.preferred_start_city_id | default('11') }}"
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
@@ -58,8 +62,12 @@ auto_passenger_roundtrip_pc:
     reason: "{{ nodes.run.output.reason }}"
     start_city: "{{ nodes.run.output.start_city }}"
     end_city: "{{ nodes.run.output.end_city }}"
-    requested_round_trips: "{{ nodes.run.output.requested_round_trips }}"
-    completed_round_trips: "{{ nodes.run.output.completed_round_trips }}"
+    passenger_route: "{{ nodes.run.output.passenger_route }}"
+    trip_fatigue: "{{ nodes.run.output.trip_fatigue }}"
+    route_fatigue: "{{ nodes.run.output.route_fatigue }}"
+    reposition_fatigue: "{{ nodes.run.output.reposition_fatigue }}"
+    requested_trips: "{{ nodes.run.output.requested_trips }}"
+    completed_trips: "{{ nodes.run.output.completed_trips }}"
     completed_legs: "{{ nodes.run.output.completed_legs }}"
     reposition_leg: "{{ nodes.run.output.reposition_leg }}"
     expected_fatigue_used: "{{ nodes.run.output.expected_fatigue_used }}"

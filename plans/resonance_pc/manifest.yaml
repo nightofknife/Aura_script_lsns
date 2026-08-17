@@ -949,6 +949,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: required_end_city_ids
+      type: Any
+      required: false
+      default: null
     - name: city_prestige
       type: Any
       required: false
@@ -1013,6 +1017,10 @@ exports:
       required: false
       default: 20
     - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: required_end_city_ids
       type: Any
       required: false
       default: null
@@ -1349,13 +1357,20 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Run fixed Cape City <-> Lanxin City passenger round trips from city-main
-      UI.
+    description: Run configured alternating passenger trips from city-main UI.
     parameters:
-    - name: round_trips
+    - name: trip_count
       type: Any
       required: false
       default: 1
+    - name: passenger_city_a_id
+      type: Any
+      required: false
+      default: '11'
+    - name: passenger_city_b_id
+      type: Any
+      required: false
+      default: '15'
     - name: trade_during_trip
       type: Any
       required: false
@@ -1364,10 +1379,6 @@ exports:
       type: Any
       required: false
       default: true
-    - name: preferred_start_city_id
-      type: Any
-      required: false
-      default: '11'
     - name: use_fatigue_medicine
       type: Any
       required: false
@@ -1631,6 +1642,10 @@ exports:
       required: false
       default: 20
     - name: available_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: required_end_city_ids
       type: Any
       required: false
       default: null
@@ -2136,15 +2151,15 @@ exports:
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
   - id: auto_passenger_roundtrip_pc/auto_passenger_roundtrip_pc
-    title: Cape-Lanxin Passenger Round Trip (PC)
+    title: Passenger Trips (PC)
     source: tasks/auto_passenger_roundtrip_pc.yaml
-    description: Run fixed flyer-based passenger round trips between Cape City and
-      Lanxin City.
+    description: Run a configured number of alternating one-way passenger trips between
+      two cities.
   - id: auto_passenger_roundtrip_pc
-    title: Cape-Lanxin Passenger Round Trip (PC)
+    title: Passenger Trips (PC)
     source: tasks/auto_passenger_roundtrip_pc.yaml
-    description: Run fixed flyer-based passenger round trips between Cape City and
-      Lanxin City.
+    description: Run a configured number of alternating one-way passenger trips between
+      two cities.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -2200,4 +2215,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-16T18:02:44Z'
+  generated_at: '2026-08-17T10:25:55Z'

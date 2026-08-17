@@ -124,6 +124,37 @@ auto_cycle_trade_pc:
             - "19"
             - "20"
             - "21"
+      - name: required_end_city_ids
+        type: list
+        required: false
+        default: null
+        min: 1
+        item:
+          name: required_end_city_id
+          type: string
+          required: true
+          enum:
+            - "1"
+            - "2"
+            - "3"
+            - "4"
+            - "5"
+            - "6"
+            - "7"
+            - "8"
+            - "9"
+            - "10"
+            - "11"
+            - "12"
+            - "13"
+            - "14"
+            - "15"
+            - "16"
+            - "17"
+            - "18"
+            - "19"
+            - "20"
+            - "21"
       - name: city_prestige
         type: dict
         required: false
@@ -229,6 +260,7 @@ auto_cycle_trade_pc:
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
         trade_level: "{{ inputs.trade_level | default(20) }}"
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
+        required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         active_events: "{{ inputs.active_events | default([]) }}"
@@ -245,6 +277,9 @@ auto_cycle_trade_pc:
     all_plan: "{{ nodes.run.output.all_plan }}"
     city_path: "{{ nodes.run.output.city_path }}"
     city_path_ids: "{{ nodes.run.output.city_path_ids }}"
+    required_end_city_ids: "{{ nodes.run.output.required_end_city_ids }}"
+    selected_end_city_id: "{{ nodes.run.output.selected_end_city_id }}"
+    selected_end_city_name: "{{ nodes.run.output.selected_end_city_name }}"
     expected_profit: "{{ nodes.run.output.expected_profit }}"
     expected_profit_exact: "{{ nodes.run.output.expected_profit_exact }}"
     fatigue_budget: "{{ nodes.run.output.fatigue_budget }}"

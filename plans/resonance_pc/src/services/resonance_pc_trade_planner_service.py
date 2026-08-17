@@ -158,6 +158,7 @@ class ResonancePcTradePlannerService:
         raise_step_bps: Optional[Any] = 1000,
         trade_level: int = 20,
         available_city_ids: Optional[List[str]] = None,
+        required_end_city_ids: Optional[List[str]] = None,
         city_prestige: Optional[Dict[str, Any]] = None,
         product_unlocks: Optional[Dict[str, Any]] = None,
         active_events: Optional[List[Any]] = None,
@@ -251,6 +252,33 @@ class ResonancePcTradePlannerService:
                 ),
                 detail={"allowed_city_ids": allowed_city_ids},
             )
+        normalized_end_city_ids: Optional[List[str]] = None
+        if required_end_city_ids is not None:
+            if not isinstance(required_end_city_ids, list):
+                raise ResonancePcTradePlannerError(
+                    code="invalid_required_end_city_ids",
+                    message="required_end_city_ids must be a list.",
+                )
+            normalized_end_city_ids = list(
+                dict.fromkeys(
+                    str(city_id).strip()
+                    for city_id in required_end_city_ids
+                    if str(city_id).strip()
+                )
+            )
+            invalid_end_city_ids = [
+                city_id for city_id in normalized_end_city_ids if city_id not in allowed_city_ids
+            ]
+            if not normalized_end_city_ids or invalid_end_city_ids:
+                raise ResonancePcTradePlannerError(
+                    code="invalid_required_end_city_ids",
+                    message="Required end cities must be selected planning cities.",
+                    detail={
+                        "required_end_city_ids": normalized_end_city_ids,
+                        "invalid_end_city_ids": invalid_end_city_ids,
+                        "allowed_city_ids": allowed_city_ids,
+                    },
+                )
 
         buy_lot_payload = self._load_buy_lot_payload()
         product_unlocks_payload = self._load_product_unlocks_payload()
@@ -263,6 +291,7 @@ class ResonancePcTradePlannerService:
             trade_rules_payload=trade_rules_payload,
             start_city_id=resolved_city_id,
             allowed_city_ids=allowed_city_ids,
+            required_end_city_ids=normalized_end_city_ids,
             fatigue_budget=fatigue_budget,
             cargo_capacity=cargo_capacity,
             book_budget=book_budget,
@@ -295,6 +324,7 @@ class ResonancePcTradePlannerService:
         try:
             result = solver.solve(
                 start_city_id=resolved_city_id,
+                required_end_city_ids=normalized_end_city_ids,
                 fatigue_budget=fatigue_budget,
                 cargo_capacity=cargo_capacity,
                 book_budget=book_budget,
@@ -335,6 +365,7 @@ class ResonancePcTradePlannerService:
         trade_rules_payload: Dict[str, Any],
         start_city_id: str,
         allowed_city_ids: List[str],
+        required_end_city_ids: Optional[List[str]],
         fatigue_budget: Any,
         cargo_capacity: Any,
         book_budget: Any,
@@ -358,6 +389,7 @@ class ResonancePcTradePlannerService:
             "trade_rules_payload": trade_rules_payload,
             "start_city_id": start_city_id,
             "allowed_city_ids": list(allowed_city_ids),
+            "required_end_city_ids": list(required_end_city_ids or []),
             "fatigue_budget": fatigue_budget,
             "cargo_capacity": cargo_capacity,
             "book_budget": book_budget,

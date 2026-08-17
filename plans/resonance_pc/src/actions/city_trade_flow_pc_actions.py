@@ -1484,6 +1484,7 @@ async def resonance_pc_preview_trade_plan_flow(
     raise_step_bps: Optional[Any] = 1000,
     trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
+    required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
@@ -1569,6 +1570,7 @@ async def resonance_pc_preview_trade_plan_flow(
             raise_step_bps=raise_step_bps,
             trade_level=int(trade_level),
             available_city_ids=available_city_ids,
+            required_end_city_ids=required_end_city_ids,
             city_prestige=city_prestige
             or {"default": 20, "overrides": {}},
             product_unlocks=product_unlocks
@@ -1648,6 +1650,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     raise_step_bps: Optional[Any] = 1000,
     trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
+    required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
@@ -1773,6 +1776,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             raise_step_bps=raise_step_bps,
             trade_level=int(trade_level),
             available_city_ids=available_city_ids,
+            required_end_city_ids=required_end_city_ids,
             city_prestige=city_prestige
             or {"default": 20, "overrides": {}},
             product_unlocks=product_unlocks

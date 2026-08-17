@@ -206,7 +206,7 @@ def test_commerce_overview_uses_live_inputs_and_runs_trade_then_passenger(tmp_pa
         )
 
         window.trade_page.fatigue_budget.setValue(321)
-        window.passenger_page.round_trips.setValue(3)
+        window.passenger_page.trip_count.setValue(3)
         overview = window.commerce_page.overview_page
         overview.run_button.click()
 
@@ -233,7 +233,7 @@ def test_commerce_overview_uses_live_inputs_and_runs_trade_then_passenger(tmp_pa
         )
         window._on_busy_changed(False)
 
-        assert passenger_requests[0][0]["round_trips"] == 3
+        assert passenger_requests[0][0]["trip_count"] == 3
         passenger_item = {
             "game_name": "resonance_pc",
             "kind": "passenger_run",
@@ -356,11 +356,11 @@ def test_commerce_overview_can_run_passenger_only_with_live_inputs(tmp_path):
 
         overview = window.commerce_page.overview_page
         overview.freight_checkbox.setChecked(False)
-        window.passenger_page.round_trips.setValue(4)
+        window.passenger_page.trip_count.setValue(4)
         overview.run_button.click()
 
         assert trade_requests == []
-        assert passenger_requests[0]["round_trips"] == 4
+        assert passenger_requests[0]["trip_count"] == 4
     finally:
         window.close()
 
@@ -397,23 +397,47 @@ def test_workflow_runs_startup_trade_passenger_and_close_in_order(tmp_path):
         })
         window._on_busy_changed(False)
         assert len(trade_requests) == 1
+        assert trade_requests[0]["fatigue_budget"] == 624
+        assert trade_requests[0]["required_end_city_ids"] == ["11", "15"]
+        assert window._settings.load_trade_inputs()["fatigue_budget"] == 700
 
         trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
         window._on_busy_changed(True)
         window._on_task_started(trade_item)
         window._on_task_finished({
             "status": "success", "gui_item": trade_item,
-            "final_result": {"user_data": {"success": True, "status": "completed"}},
+            "final_result": {"user_data": {
+                "success": True,
+                "status": "completed",
+                "route": [{"from_city_id": "3", "to_city_id": "15", "to_city": "岚心城"}],
+                "execution": {
+                    "completed_leg_count": 1,
+                    "cape_island_triggered_count": 0,
+                },
+                "final_sale": {"success": True, "page_state": "city_main"},
+                "page_state": "city_main",
+            }},
         })
         window._on_busy_changed(False)
         assert len(passenger_requests) == 1
+        assert passenger_requests[0]["reposition_to_route"] is False
+        assert window._settings.load_passenger_inputs()["reposition_to_route"] is True
 
         passenger_item = {"game_name": "resonance_pc", "kind": "passenger_run", "label": "客运"}
         window._on_busy_changed(True)
         window._on_task_started(passenger_item)
         window._on_task_finished({
             "status": "success", "gui_item": passenger_item,
-            "final_result": {"user_data": {"success": True, "status": "completed"}},
+            "final_result": {"user_data": {
+                "success": True,
+                "status": "completed",
+                "requested_trips": 1,
+                "completed_trips": 1,
+                "expected_fatigue_used": 76,
+                "requires_manual_completion": False,
+                "loaded_destination": None,
+                "page_state": "city_main",
+            }},
         })
         window._on_busy_changed(False)
         assert pc_tasks[-1] == "tasks:game_startup_pc.yaml:close_game"
@@ -429,6 +453,143 @@ def test_workflow_runs_startup_trade_passenger_and_close_in_order(tmp_path):
 
         assert not window.workflow_page.is_running()
         assert "全部启用任务已完成" in window.workflow_page.progress_label.text()
+    finally:
+        window.close()
+
+
+def test_combined_workflow_passenger_first_derives_trade_budget_after_reposition(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[dict] = []
+    passenger_requests: list[dict] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(
+            lambda inputs, _timeout: trade_requests.append(dict(inputs))
+        )
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        for step in ("startup", "battle", "close"):
+            window.workflow_page._task_checks[step].setChecked(False)
+        window.workflow_page._swap_commerce_order()
+        window.workflow_page.trade_fatigue.setValue(200)
+
+        window.workflow_page.run_button.click()
+
+        assert len(passenger_requests) == 1
+        assert passenger_requests[0]["reposition_to_route"] is True
+        assert trade_requests == []
+
+        passenger_item = {"game_name": "resonance_pc", "kind": "passenger_run", "label": "客运"}
+        window._on_busy_changed(True)
+        window._on_task_started(passenger_item)
+        window._on_task_finished({
+            "status": "success",
+            "gui_item": passenger_item,
+            "final_result": {"user_data": {
+                "success": True,
+                "status": "completed",
+                "requested_trips": 1,
+                "completed_trips": 1,
+                "expected_fatigue_used": 91,
+                "requires_manual_completion": False,
+                "loaded_destination": None,
+                "page_state": "city_main",
+            }},
+        })
+        window._on_busy_changed(False)
+
+        assert len(trade_requests) == 1
+        assert trade_requests[0]["fatigue_budget"] == 109
+        assert "required_end_city_ids" not in trade_requests[0]
+        assert window._settings.load_trade_inputs()["fatigue_budget"] == 200
+
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_finished({
+            "status": "success",
+            "gui_item": trade_item,
+            "final_result": {"user_data": {"success": True, "status": "completed"}},
+        })
+        window._on_busy_changed(False)
+        assert not window.workflow_page.is_running()
+    finally:
+        window.close()
+
+
+def test_workflow_single_commerce_modes_keep_independent_inputs(tmp_path):
+    window = _window(tmp_path)
+    trade_requests: list[dict] = []
+    passenger_requests: list[dict] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(
+            lambda inputs, _timeout: trade_requests.append(dict(inputs))
+        )
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        for step in ("startup", "battle", "close"):
+            window.workflow_page._task_checks[step].setChecked(False)
+        window.workflow_page._commerce_checks["passenger"].setChecked(False)
+        window.workflow_page.trade_fatigue.setValue(321)
+
+        window.workflow_page.run_button.click()
+
+        assert trade_requests[0]["fatigue_budget"] == 321
+        assert "required_end_city_ids" not in trade_requests[0]
+        assert passenger_requests == []
+        assert window.workflow_page.trade_fatigue_label.text() == "货运疲劳预算"
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_finished({
+            "status": "success",
+            "gui_item": trade_item,
+            "final_result": {"user_data": {"success": True, "status": "completed"}},
+        })
+        window._on_busy_changed(False)
+    finally:
+        window.close()
+
+
+def test_combined_trade_handoff_rejects_wrong_terminal_city(tmp_path):
+    window = _window(tmp_path)
+    passenger_requests: list[dict] = []
+    try:
+        window.requestRunPcTrade.disconnect()
+        window.requestRunPcPassenger.disconnect()
+        window.requestRunPcTrade.connect(lambda _inputs, _timeout: None)
+        window.requestRunPcPassenger.connect(
+            lambda inputs, _timeout: passenger_requests.append(dict(inputs))
+        )
+        for step in ("startup", "battle", "close"):
+            window.workflow_page._task_checks[step].setChecked(False)
+
+        window.workflow_page.run_button.click()
+        trade_item = {"game_name": "resonance_pc", "kind": "trade_run", "label": "货运"}
+        window._on_busy_changed(True)
+        window._on_task_started(trade_item)
+        window._on_task_finished({
+            "status": "success",
+            "gui_item": trade_item,
+            "final_result": {"user_data": {
+                "success": True,
+                "status": "completed",
+                "route": [{"from_city_id": "3", "to_city_id": "8", "to_city": "淘金乐园"}],
+                "execution": {"completed_leg_count": 1},
+                "final_sale": {"success": True, "page_state": "city_main"},
+                "page_state": "city_main",
+            }},
+        })
+        window._on_busy_changed(False)
+
+        assert passenger_requests == []
+        assert not window.workflow_page.is_running()
+        assert "任一端点" in window.workflow_page.progress_label.text()
     finally:
         window.close()
 
@@ -552,6 +713,18 @@ def test_trade_summary_defaults_and_advanced_arrival_timeout(tmp_path):
         )
         assert merged["arrival_timeout_seconds"] == 2700
         assert merged["auto_cape_island_investment"] is True
+
+        window.workflow_page.passenger_city_a.setCurrentIndex(
+            window.workflow_page.passenger_city_a.findData("2")
+        )
+        window.workflow_page.passenger_city_b.setCurrentIndex(
+            window.workflow_page.passenger_city_b.findData("3")
+        )
+        window.workflow_page.passenger_trips.setValue(2)
+        passenger = window.workflow_page.merge_passenger_inputs({})
+        assert passenger["passenger_city_a_id"] == "2"
+        assert passenger["passenger_city_b_id"] == "3"
+        assert "预计 62 疲劳" in window.workflow_page.passenger_route_summary.text()
     finally:
         window.close()
 
@@ -905,7 +1078,7 @@ def test_main_window_routes_pc_passenger_lifecycle_to_passenger_page(tmp_path):
                     "user_data": {
                         "success": True,
                         "status": "completed",
-                        "requested_round_trips": 1,
+                        "requested_trips": 1,
                         "completed_legs": [{}, {}],
                     }
                 },

@@ -1,4 +1,4 @@
-"""Fixed Cape City <-> Lanxin City passenger round-trip flow for Resonance PC."""
+"""Parameterized alternating one-way passenger trips for Resonance PC."""
 
 from __future__ import annotations
 
@@ -36,36 +36,71 @@ from .trade_planner_pc_actions import resonance_pc_trade_plan_optimal_route
 _PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
 _PASSENGER_PROGRESS_SCHEMA = "resonance_pc.passenger_progress.v1"
 
-_ROUTE_BY_ID: Dict[str, Dict[str, str]] = {
-    "11": {"city_id": "11", "city_key": "cape_city", "city_name": "海角城"},
-    "15": {"city_id": "15", "city_key": "lanxin_city", "city_name": "岚心城"},
-}
-_CITY_ID_BY_KEY = {
-    "shoggolith_city": "1",
-    "brcl_outpost": "2",
-    "freeport": "3",
-    "clarity_data_center_administration_bureau": "4",
-    "anita_weapon_research_institute": "5",
-    "anita_energy_research_institute": "6",
-    "wilderness_station": "7",
-    "mander_mine": "8",
-    "onederland": "9",
-    "anita_rocket_base": "10",
-    "cape_city": "11",
-    "yunxiuqiao_base": "12",
-    "confluence_tower": "13",
-    "farstar_bridge": "14",
-    "lanxin_city": "15",
-    "qiyu_station": "16",
-    "tatu_station": "17",
-    "black_moon_amusement_park": "18",
-    "gronru_city": "19",
-    "vitilin_forest": "20",
-}
-_ROUTE_ID_BY_KEY = {value["city_key"]: city_id for city_id, value in _ROUTE_BY_ID.items()}
-_OPPOSITE_CITY_ID = {"11": "15", "15": "11"}
 _PASSENGER_TRADE_CARGO_CAPACITY = 650
 _PASSENGER_TRADE_LEVEL = 20
+
+
+def _build_passenger_route(
+    *,
+    city_a_id: str,
+    city_b_id: str,
+    city_shop_data: ResonancePcCityShopDataService,
+    market_data: ResonancePcMarketDataService,
+) -> Dict[str, Any]:
+    first_id = str(city_a_id or "").strip()
+    second_id = str(city_b_id or "").strip()
+    if not first_id or not second_id:
+        raise ValueError("passenger_city_a_id and passenger_city_b_id are required")
+    if first_id == second_id:
+        raise ValueError("passenger route cities must be different")
+
+    fatigue_payload = market_data.get_all_travel_fatigue()
+    city_names = {
+        str(city_id): str(city_name)
+        for city_id, city_name in dict(fatigue_payload.get("cities") or {}).items()
+    }
+    unknown = [city_id for city_id in (first_id, second_id) if city_id not in city_names]
+    if unknown:
+        raise ValueError(f"unknown passenger city ids: {', '.join(unknown)}")
+
+    city_id_by_key: Dict[str, str] = {}
+    identity_by_id: Dict[str, Dict[str, str]] = {}
+    for city_id, city_name in city_names.items():
+        try:
+            resolved = city_shop_data.resolve_city(city_name)
+        except Exception:  # noqa: BLE001 - cities without PC location data cannot be detected in UI
+            continue
+        identity = {
+            "city_id": city_id,
+            "city_key": str(resolved.get("city_key") or ""),
+            "city_name": str(resolved.get("city_name") or city_name),
+        }
+        identity_by_id[city_id] = identity
+        if identity["city_key"]:
+            city_id_by_key[identity["city_key"]] = city_id
+
+    missing_identity = [city_id for city_id in (first_id, second_id) if city_id not in identity_by_id]
+    if missing_identity:
+        raise ValueError(
+            "passenger cities are missing PC location metadata: " + ", ".join(missing_identity)
+        )
+
+    trip_fatigue = market_data.get_travel_fatigue(first_id, second_id)
+    route_by_id = {
+        first_id: dict(identity_by_id[first_id]),
+        second_id: dict(identity_by_id[second_id]),
+    }
+    return {
+        "city_a_id": first_id,
+        "city_b_id": second_id,
+        "route_by_id": route_by_id,
+        "route_id_by_key": {
+            identity["city_key"]: city_id for city_id, identity in route_by_id.items()
+        },
+        "city_id_by_key": city_id_by_key,
+        "opposite_city_id": {first_id: second_id, second_id: first_id},
+        "trip_fatigue": int(trip_fatigue),
+    }
 
 
 class _PassengerProgressReporter:
@@ -156,15 +191,15 @@ def _emit(stage: str, state: str, **fields: Any) -> None:
         reporter.emit_from_worker(stage, state, **fields)
 
 
-def _normalize_round_trips(value: Any) -> int:
+def _normalize_trip_count(value: Any) -> int:
     if isinstance(value, bool):
-        raise ValueError("round_trips must be an integer >= 1")
+        raise ValueError("trip_count must be an integer >= 1")
     try:
         normalized = int(value)
     except (TypeError, ValueError) as exc:
-        raise ValueError("round_trips must be an integer >= 1") from exc
+        raise ValueError("trip_count must be an integer >= 1") from exc
     if normalized < 1 or str(normalized) != str(value).strip():
-        raise ValueError("round_trips must be an integer >= 1")
+        raise ValueError("trip_count must be an integer >= 1")
     return normalized
 
 
@@ -182,15 +217,19 @@ def _medicine_rows(usage: Dict[str, int]) -> List[Dict[str, Any]]:
     return [{"name": name, "count": count} for name, count in sorted(usage.items()) if count > 0]
 
 
-def _result_base(round_trips: int, *, trade_during_trip: bool = False) -> Dict[str, Any]:
+def _result_base(trip_count: int, *, trade_during_trip: bool = False) -> Dict[str, Any]:
     return {
         "success": False,
         "status": "not_started",
         "reason": None,
         "start_city": None,
         "end_city": None,
-        "requested_round_trips": round_trips,
-        "completed_round_trips": 0,
+        "passenger_route": None,
+        "trip_fatigue": 0,
+        "route_fatigue": 0,
+        "reposition_fatigue": 0,
+        "requested_trips": trip_count,
+        "completed_trips": 0,
         "completed_legs": [],
         "reposition_leg": None,
         "expected_fatigue_used": 0,
@@ -274,13 +313,14 @@ def _prepare_passenger_trade_plan(
     *,
     source_city_id: str,
     destination_city_id: str,
+    route_by_id: Dict[str, Dict[str, str]],
     market_data: ResonancePcMarketDataService,
     trade_planner: ResonancePcTradePlannerService,
 ) -> Dict[str, Any]:
-    """Refresh market data and accept only the fixed one-way passenger route."""
+    """Refresh market data and accept only the configured one-way passenger route."""
 
-    source = _ROUTE_BY_ID[str(source_city_id)]
-    destination = _ROUTE_BY_ID[str(destination_city_id)]
+    source = route_by_id[str(source_city_id)]
+    destination = route_by_id[str(destination_city_id)]
     base = {
         "source_city": dict(source),
         "destination_city": dict(destination),
@@ -368,6 +408,7 @@ def _execute_passenger_trade_at_city(
     current_city_id: str,
     destination_city_id: Optional[str],
     final_sale: bool,
+    route_by_id: Dict[str, Dict[str, str]],
     app: Any,
     ocr: Any,
     vision: Any,
@@ -376,7 +417,7 @@ def _execute_passenger_trade_at_city(
     market_data: ResonancePcMarketDataService,
     trade_planner: ResonancePcTradePlannerService,
 ) -> Dict[str, Any]:
-    current = _ROUTE_BY_ID[str(current_city_id)]
+    current = route_by_id[str(current_city_id)]
     plan = None
     buy_products: List[str] = []
     if not final_sale:
@@ -385,6 +426,7 @@ def _execute_passenger_trade_at_city(
         plan = _prepare_passenger_trade_plan(
             source_city_id=str(current_city_id),
             destination_city_id=str(destination_city_id),
+            route_by_id=route_by_id,
             market_data=market_data,
             trade_planner=trade_planner,
         )
@@ -415,10 +457,11 @@ def _execute_passenger_trade_at_city(
 
 def _run_passenger_roundtrip_sync(
     *,
-    round_trips: int,
+    trip_count: int,
+    passenger_city_a_id: str,
+    passenger_city_b_id: str,
     trade_during_trip: bool,
     reposition_to_route: bool,
-    preferred_start_city_id: str,
     use_fatigue_medicine: bool,
     allowed_fatigue_medicines: List[str],
     fatigue_medicine_max_uses: int,
@@ -431,9 +474,30 @@ def _run_passenger_roundtrip_sync(
     market_data: ResonancePcMarketDataService,
     trade_planner: Optional[ResonancePcTradePlannerService],
 ) -> Dict[str, Any]:
-    result = _result_base(round_trips, trade_during_trip=trade_during_trip)
+    result = _result_base(trip_count, trade_during_trip=trade_during_trip)
     medicine_usage: Dict[str, int] = {}
     loaded_destination: Optional[Dict[str, str]] = None
+    route_info = _build_passenger_route(
+        city_a_id=passenger_city_a_id,
+        city_b_id=passenger_city_b_id,
+        city_shop_data=city_shop_data,
+        market_data=market_data,
+    )
+    route_by_id = dict(route_info["route_by_id"])
+    route_id_by_key = dict(route_info["route_id_by_key"])
+    city_id_by_key = dict(route_info["city_id_by_key"])
+    opposite_city_id = dict(route_info["opposite_city_id"])
+    route_fatigue = int(route_info["trip_fatigue"]) * int(trip_count)
+    result.update(
+        {
+            "passenger_route": {
+                "city_a": dict(route_by_id[route_info["city_a_id"]]),
+                "city_b": dict(route_by_id[route_info["city_b_id"]]),
+            },
+            "trip_fatigue": int(route_info["trip_fatigue"]),
+            "route_fatigue": route_fatigue,
+        }
+    )
 
     _emit("resolve_start", "started")
     try:
@@ -446,7 +510,7 @@ def _run_passenger_roundtrip_sync(
             detail={"error_type": type(exc).__name__, "message": str(exc)},
         )
     current_key = str(current.get("city_key") or "")
-    current_city_id = _ROUTE_ID_BY_KEY.get(current_key)
+    current_city_id = route_id_by_key.get(current_key)
     result["detected_start_city"] = {
         "city_key": current_key,
         "city_name": str(current.get("city_name") or ""),
@@ -455,24 +519,21 @@ def _run_passenger_roundtrip_sync(
     if current_city_id is None:
         if not reposition_to_route:
             return _block(result, "outside_passenger_route", "resolve_start", detail=current)
-        preferred_start_id = str(preferred_start_city_id or "11")
-        if preferred_start_id not in _ROUTE_BY_ID:
-            raise ValueError("preferred_start_city_id must be 11 or 15")
-        current_market_id = _CITY_ID_BY_KEY.get(current_key)
+        current_market_id = city_id_by_key.get(current_key)
         if current_market_id is None:
             return _block(result, "current_city_unknown", "reposition", detail=current)
         endpoint_fatigue = {
             endpoint_id: market_data.get_travel_fatigue(current_market_id, endpoint_id)
-            for endpoint_id in _ROUTE_BY_ID
+            for endpoint_id in route_by_id
         }
         start_id = min(
             endpoint_fatigue,
             key=lambda endpoint_id: (
                 endpoint_fatigue[endpoint_id],
-                endpoint_id != preferred_start_id,
+                endpoint_id != route_info["city_a_id"],
             ),
         )
-        destination = dict(_ROUTE_BY_ID[start_id])
+        destination = dict(route_by_id[start_id])
         reposition_cost = endpoint_fatigue[start_id]
         _emit(
             "reposition",
@@ -503,12 +564,13 @@ def _run_passenger_roundtrip_sync(
             "to_city": destination["city_name"],
             "expected_fatigue": reposition_cost,
             "endpoint_fatigue": {
-                _ROUTE_BY_ID[endpoint_id]["city_name"]: cost
+                route_by_id[endpoint_id]["city_name"]: cost
                 for endpoint_id, cost in endpoint_fatigue.items()
             },
             "travel": travel,
         }
         result["expected_fatigue_used"] += reposition_cost
+        result["reposition_fatigue"] = int(reposition_cost)
         current_city_id = start_id
         _emit(
             "reposition",
@@ -517,26 +579,25 @@ def _run_passenger_roundtrip_sync(
             expected_fatigue_used=result["expected_fatigue_used"],
         )
 
-    assert current_city_id in _ROUTE_BY_ID
-    result["start_city"] = dict(_ROUTE_BY_ID[current_city_id])
+    assert current_city_id in route_by_id
+    result["start_city"] = dict(route_by_id[current_city_id])
     expected_total = int(result["expected_fatigue_used"])
-    route_leg_fatigue = market_data.get_travel_fatigue("11", "15")
-    expected_total += route_leg_fatigue * round_trips * 2
+    expected_total += route_fatigue
     _emit(
         "resolve_start",
         "completed",
-        source_city=_ROUTE_BY_ID[current_city_id]["city_name"],
+        source_city=route_by_id[current_city_id]["city_name"],
         expected_fatigue_total=expected_total,
     )
 
-    total_legs = round_trips * 2
+    total_legs = int(trip_count)
     for leg_index in range(total_legs):
-        source = dict(_ROUTE_BY_ID[current_city_id])
-        destination_id = _OPPOSITE_CITY_ID[current_city_id]
-        destination = dict(_ROUTE_BY_ID[destination_id])
-        round_index = leg_index // 2 + 1
+        source = dict(route_by_id[current_city_id])
+        destination_id = opposite_city_id[current_city_id]
+        destination = dict(route_by_id[destination_id])
+        trip_index = leg_index + 1
         progress_fields = {
-            "round_index": round_index,
+            "trip_index": trip_index,
             "leg_index": leg_index + 1,
             "leg_count": total_legs,
             "source_city": source["city_name"],
@@ -552,6 +613,7 @@ def _run_passenger_roundtrip_sync(
                     current_city_id=current_city_id,
                     destination_city_id=destination_id,
                     final_sale=False,
+                    route_by_id=route_by_id,
                     app=app,
                     ocr=ocr,
                     vision=vision,
@@ -687,7 +749,7 @@ def _run_passenger_roundtrip_sync(
                 result[key] += int(value)
         completed_leg = {
             "leg_index": leg_index + 1,
-            "round_index": round_index,
+            "trip_index": trip_index,
             "from_city": source,
             "to_city": destination,
             "expected_fatigue": leg_fatigue,
@@ -698,7 +760,7 @@ def _run_passenger_roundtrip_sync(
         result["completed_legs"].append(completed_leg)
         current_city_id = destination_id
         result["end_city"] = dict(destination)
-        result["completed_round_trips"] = len(result["completed_legs"]) // 2
+        result["completed_trips"] = len(result["completed_legs"])
         _emit(
             "settlement",
             "completed",
@@ -713,7 +775,7 @@ def _run_passenger_roundtrip_sync(
         _emit(
             "final_sale",
             "started",
-            source_city=_ROUTE_BY_ID[current_city_id]["city_name"],
+            source_city=route_by_id[current_city_id]["city_name"],
             expected_fatigue_total=expected_total,
         )
         try:
@@ -721,6 +783,7 @@ def _run_passenger_roundtrip_sync(
                 current_city_id=current_city_id,
                 destination_city_id=None,
                 final_sale=True,
+                route_by_id=route_by_id,
                 app=app,
                 ocr=ocr,
                 vision=vision,
@@ -739,7 +802,7 @@ def _run_passenger_roundtrip_sync(
         _emit(
             "final_sale",
             "completed",
-            source_city=_ROUTE_BY_ID[current_city_id]["city_name"],
+            source_city=route_by_id[current_city_id]["city_name"],
             expected_fatigue_total=expected_total,
         )
 
@@ -762,7 +825,7 @@ def _run_passenger_roundtrip_sync(
     name="resonance_pc.auto_passenger_roundtrip_flow",
     public=True,
     read_only=False,
-    description="Run fixed Cape City <-> Lanxin City passenger round trips from city-main UI.",
+    description="Run configured alternating passenger trips from city-main UI.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -776,10 +839,11 @@ def _run_passenger_roundtrip_sync(
 )
 @_with_passenger_progress
 async def resonance_pc_auto_passenger_roundtrip_flow(
-    round_trips: int = 1,
+    trip_count: int = 1,
+    passenger_city_a_id: str = "11",
+    passenger_city_b_id: str = "15",
     trade_during_trip: bool = False,
     reposition_to_route: bool = True,
-    preferred_start_city_id: str = "11",
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
@@ -795,10 +859,13 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
     context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
     del event_bus, context
-    normalized_round_trips = _normalize_round_trips(round_trips)
-    preferred_id = str(preferred_start_city_id or "11").strip()
-    if preferred_id not in _ROUTE_BY_ID:
-        raise ValueError("preferred_start_city_id must be 11 or 15")
+    normalized_trip_count = _normalize_trip_count(trip_count)
+    city_a_id = str(passenger_city_a_id or "").strip()
+    city_b_id = str(passenger_city_b_id or "").strip()
+    if not city_a_id or not city_b_id:
+        raise ValueError("passenger_city_a_id and passenger_city_b_id are required")
+    if city_a_id == city_b_id:
+        raise ValueError("passenger route cities must be different")
     if isinstance(fatigue_medicine_max_uses, bool) or int(fatigue_medicine_max_uses) < 0:
         raise ValueError("fatigue_medicine_max_uses must be an integer >= 0")
     if float(arrival_timeout_seconds) <= 0:
@@ -816,10 +883,11 @@ async def resonance_pc_auto_passenger_roundtrip_flow(
 
     return await asyncio.to_thread(
         _run_passenger_roundtrip_sync,
-        round_trips=normalized_round_trips,
+        trip_count=normalized_trip_count,
+        passenger_city_a_id=city_a_id,
+        passenger_city_b_id=city_b_id,
         trade_during_trip=bool(trade_during_trip),
         reposition_to_route=bool(reposition_to_route),
-        preferred_start_city_id=preferred_id,
         use_fatigue_medicine=bool(use_fatigue_medicine),
         allowed_fatigue_medicines=[
             str(value).strip() for value in (allowed_fatigue_medicines or []) if str(value).strip()

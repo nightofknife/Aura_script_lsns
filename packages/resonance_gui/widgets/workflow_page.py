@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from ..passenger_catalog import load_passenger_route_catalog
 from ..logic import (
     PASSENGER_STAGE_LABELS,
     PassengerProgressState,
@@ -476,6 +477,7 @@ class WorkflowPage(QWidget):
         self._freight_progress = WorkflowFreightProgressState()
         self._passenger_progress = PassengerProgressState()
         self._trade_investment_enabled = False
+        self._passenger_route_catalog = load_passenger_route_catalog()
         self._build_ui()
         self._load_state()
         self._select_row(0)
@@ -703,7 +705,7 @@ class WorkflowPage(QWidget):
             row_layout.setContentsMargins(8, 5, 8, 5)
             check = QCheckBox("启用", row)
             check.setChecked(True)
-            check.toggled.connect(self._save_state)
+            check.toggled.connect(self._commerce_selection_changed)
             number = QLabel("", row)
             number.setObjectName("commerceStepNumber")
             name = QLabel(title, row)
@@ -729,6 +731,12 @@ class WorkflowPage(QWidget):
         self._rebuild_commerce_rows()
         layout.addWidget(order_box)
 
+        self.combined_budget_summary = QLabel(page)
+        self.combined_budget_summary.setWordWrap(True)
+        self.combined_budget_summary.setObjectName("linenInsetLabel")
+        self.combined_budget_summary.setProperty("caption", True)
+        layout.addWidget(self.combined_budget_summary)
+
         self.commerce_tabs = QTabWidget(page)
         self.commerce_tabs.addTab(self._build_trade_summary(), "货运设置")
         self.commerce_tabs.addTab(self._build_passenger_summary(), "客运设置")
@@ -741,11 +749,13 @@ class WorkflowPage(QWidget):
         form = QFormLayout()
         self.trade_fatigue = QSpinBox(page)
         self.trade_fatigue.setRange(0, 100000)
+        self.trade_fatigue.valueChanged.connect(self._refresh_combined_summary)
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
         self.trade_medicine = QCheckBox("允许使用疲劳药", page)
         self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
-        form.addRow("疲劳预算", self.trade_fatigue)
+        self.trade_fatigue_label = QLabel("货运疲劳预算", page)
+        form.addRow(self.trade_fatigue_label, self.trade_fatigue)
         form.addRow("货舱容量", self.trade_cargo)
         form.addRow("疲劳恢复", self.trade_medicine)
         form.addRow("蜃息岛投资", self.trade_investment)
@@ -760,14 +770,32 @@ class WorkflowPage(QWidget):
         page = QWidget(self)
         layout = QVBoxLayout(page)
         form = QFormLayout()
-        self.passenger_rounds = QSpinBox(page)
-        self.passenger_rounds.setRange(1, 99)
+        self.passenger_city_a = QComboBox(page)
+        self.passenger_city_b = QComboBox(page)
+        for city in self._passenger_route_catalog.cities:
+            self.passenger_city_a.addItem(city.name, city.city_id)
+            self.passenger_city_b.addItem(city.name, city.city_id)
+        self.passenger_city_a.currentIndexChanged.connect(
+            self._refresh_passenger_route_summary
+        )
+        self.passenger_city_b.currentIndexChanged.connect(
+            self._refresh_passenger_route_summary
+        )
+        self.passenger_trips = QSpinBox(page)
+        self.passenger_trips.setRange(1, 198)
+        self.passenger_trips.valueChanged.connect(self._refresh_passenger_route_summary)
         self.passenger_trade = QCheckBox("途中执行买卖货", page)
-        self.passenger_reposition = QCheckBox("自动前往线路起点", page)
-        form.addRow("往返次数", self.passenger_rounds)
+        self.passenger_reposition = QCheckBox("自动前往较近端点", page)
+        form.addRow("线路城市 A", self.passenger_city_a)
+        form.addRow("线路城市 B", self.passenger_city_b)
+        form.addRow("客运次数", self.passenger_trips)
         form.addRow("客运倒货", self.passenger_trade)
         form.addRow("起点处理", self.passenger_reposition)
         layout.addLayout(form)
+        self.passenger_route_summary = QLabel(page)
+        self.passenger_route_summary.setWordWrap(True)
+        self.passenger_route_summary.setProperty("caption", True)
+        layout.addWidget(self.passenger_route_summary)
         button = QPushButton("打开完整客运参数", page)
         button.clicked.connect(self.openPassengerRequested.emit)
         layout.addWidget(button)
@@ -972,6 +1000,11 @@ class WorkflowPage(QWidget):
         )
         self._rebuild_commerce_rows()
         self._save_state()
+        self._refresh_combined_summary()
+
+    def _commerce_selection_changed(self, _checked: bool = False) -> None:
+        self._save_state()
+        self._refresh_combined_summary()
 
     def _rebuild_commerce_rows(self) -> None:
         for kind in self._commerce_order:
@@ -1019,9 +1052,18 @@ class WorkflowPage(QWidget):
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_medicine.setChecked(bool(trade.get("use_fatigue_medicine", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
-        self.passenger_rounds.setValue(int(passenger.get("round_trips", 1)))
+        self._set_combo_data(
+            self.passenger_city_a,
+            str(passenger.get("passenger_city_a_id") or "11"),
+        )
+        self._set_combo_data(
+            self.passenger_city_b,
+            str(passenger.get("passenger_city_b_id") or "15"),
+        )
+        self.passenger_trips.setValue(int(passenger.get("trip_count", 1)))
         self.passenger_trade.setChecked(bool(passenger.get("trade_during_trip", False)))
         self.passenger_reposition.setChecked(bool(passenger.get("reposition_to_route", True)))
+        self._refresh_passenger_route_summary()
 
     def merge_trade_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
         merged = dict(inputs)
@@ -1034,13 +1076,83 @@ class WorkflowPage(QWidget):
         return merged
 
     def merge_passenger_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
+        estimate = self._passenger_route_catalog.estimate(
+            str(self.passenger_city_a.currentData() or ""),
+            str(self.passenger_city_b.currentData() or ""),
+        )
         merged = dict(inputs)
         merged.update(
-            round_trips=self.passenger_rounds.value(),
+            passenger_city_a_id=estimate.city_a.city_id,
+            passenger_city_b_id=estimate.city_b.city_id,
+            trip_count=self.passenger_trips.value(),
             trade_during_trip=self.passenger_trade.isChecked(),
             reposition_to_route=self.passenger_reposition.isChecked(),
         )
+        merged.pop("preferred_start_city_id", None)
+        merged.pop("round_trips", None)
         return merged
+
+    def _refresh_passenger_route_summary(self, _value: int = 0) -> None:
+        try:
+            estimate = self._passenger_route_catalog.estimate(
+                str(self.passenger_city_a.currentData() or ""),
+                str(self.passenger_city_b.currentData() or ""),
+            )
+        except ValueError as exc:
+            self.passenger_route_summary.setText(str(exc))
+            return
+        trips = self.passenger_trips.value()
+        total = estimate.trip_fatigue * trips
+        self.passenger_route_summary.setText(
+            f"{estimate.city_a.name} ↔ {estimate.city_b.name} · "
+            f"{trips} 次 × {estimate.trip_fatigue} · 预计 {total} 疲劳"
+        )
+        self._refresh_combined_summary()
+
+    def passenger_route_fatigue(self) -> int:
+        estimate = self._passenger_route_catalog.estimate(
+            str(self.passenger_city_a.currentData() or ""),
+            str(self.passenger_city_b.currentData() or ""),
+        )
+        return int(estimate.trip_fatigue) * self.passenger_trips.value()
+
+    def _refresh_combined_summary(self, _value: int = 0) -> None:
+        if not hasattr(self, "combined_budget_summary"):
+            return
+        enabled = self.commerce_steps()
+        combined = set(enabled) == {"trade", "passenger"}
+        self.trade_fatigue_label.setText("总疲劳预算" if combined else "货运疲劳预算")
+        self.combined_budget_summary.setVisible(combined)
+        if not combined:
+            self.combined_budget_summary.clear()
+            return
+        try:
+            passenger_fatigue = self.passenger_route_fatigue()
+        except ValueError as exc:
+            self.combined_budget_summary.setText(str(exc))
+            return
+        total_fatigue = self.trade_fatigue.value()
+        if enabled[0] == "trade":
+            available = total_fatigue - passenger_fatigue
+            city_a = self.passenger_city_a.currentText()
+            city_b = self.passenger_city_b.currentText()
+            self.combined_budget_summary.setText(
+                f"组合流程 · 客运预留 {passenger_fatigue} 疲劳 · "
+                f"货运可用 {max(available, 0)} 疲劳。货运终点将限制为"
+                f"{city_a}或{city_b}，随后直接开始客运。"
+                + (" 当前总预算不足。" if available < 0 else "")
+            )
+        else:
+            self.combined_budget_summary.setText(
+                f"组合流程 · 客运基础消耗 {passenger_fatigue} 疲劳。客运先执行，"
+                "归位消耗也会计入；完成后再从总预算中扣除实际预计消耗，"
+                "剩余疲劳全部交给货运。"
+            )
+
+    @staticmethod
+    def _set_combo_data(combo: QComboBox, value: str) -> None:
+        index = combo.findData(str(value))
+        combo.setCurrentIndex(max(index, 0))
 
     def set_battle_count(self, count: int) -> None:
         self.battle_summary.setText(f"当前任务单包含 {count} 个作战任务。" if count else "尚未添加作战任务。")

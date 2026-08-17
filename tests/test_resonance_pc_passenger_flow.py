@@ -6,13 +6,46 @@ import plans.resonance_pc.src.actions.passenger_flow_pc_actions as flow
 
 
 class _Market:
+    city_names = {
+        "1": "修格里城",
+        "2": "铁盟哨站",
+        "3": "七号自由港",
+        "11": "海角城",
+        "15": "岚心城",
+    }
+
     def get_travel_fatigue(self, from_city_id: str, to_city_id: str) -> int:
         return 76 if {str(from_city_id), str(to_city_id)} == {"11", "15"} else 40
+
+    def get_all_travel_fatigue(self):
+        return {
+            "cities": dict(self.city_names),
+            "costs": {
+                from_id: {
+                    to_id: self.get_travel_fatigue(from_id, to_id)
+                    for to_id in self.city_names
+                }
+                for from_id in self.city_names
+            },
+        }
+
+
+class _CityData:
+    keys = {
+        "修格里城": "shoggolith_city",
+        "铁盟哨站": "brcl_outpost",
+        "七号自由港": "freeport",
+        "海角城": "cape_city",
+        "岚心城": "lanxin_city",
+    }
+
+    def resolve_city(self, city_name: str):
+        return {"city_key": self.keys[city_name], "city_name": city_name}
 
 
 class _LanxinIsCloserMarket(_Market):
     def get_travel_fatigue(self, from_city_id: str, to_city_id: str) -> int:
-        if str(from_city_id) == "1":
+        if str(from_city_id) == "1" and str(to_city_id) in {"11", "15"}:
             return {"11": 65, "15": 25}[str(to_city_id)]
         return super().get_travel_fatigue(from_city_id, to_city_id)
 
@@ -55,10 +88,11 @@ def _install_happy_path(monkeypatch, start_key: str):
 
 def _run(**overrides):
     values = {
-        "round_trips": 1,
+        "trip_count": 2,
+        "passenger_city_a_id": "11",
+        "passenger_city_b_id": "15",
         "trade_during_trip": False,
         "reposition_to_route": True,
-        "preferred_start_city_id": "11",
         "use_fatigue_medicine": False,
         "allowed_fatigue_medicines": [],
         "fatigue_medicine_max_uses": 4,
@@ -67,7 +101,7 @@ def _run(**overrides):
         "ocr": object(),
         "vision": object(),
         "controller": object(),
-        "city_shop_data": object(),
+        "city_shop_data": _CityData(),
         "market_data": _Market(),
         "trade_planner": None,
     }
@@ -78,25 +112,33 @@ def _run(**overrides):
 @pytest.mark.parametrize(
     ("start_key", "expected"),
     [
-        ("cape_city", ["recruit:岚心城", "travel:岚心城", "recruit:海角城", "travel:海角城"]),
-        ("lanxin_city", ["recruit:海角城", "travel:海角城", "recruit:岚心城", "travel:岚心城"]),
+        (
+            "cape_city",
+            ["recruit:岚心城", "travel:岚心城", "recruit:海角城", "travel:海角城"],
+        ),
+        (
+            "lanxin_city",
+            ["recruit:海角城", "travel:海角城", "recruit:岚心城", "travel:岚心城"],
+        ),
     ],
 )
-def test_round_trip_starts_from_current_route_endpoint(monkeypatch, start_key, expected):
+def test_trips_start_from_current_route_endpoint(monkeypatch, start_key, expected):
     destinations = _install_happy_path(monkeypatch, start_key)
 
     result = _run()
 
     assert result["success"] is True
-    assert result["completed_round_trips"] == 1
+    assert result["completed_trips"] == 2
     assert result["expected_fatigue_used"] == 152
+    assert result["trip_fatigue"] == 76
+    assert result["route_fatigue"] == 152
     assert result["recruited_passengers"] == 70
     assert result["flyers_used"] == 120
     assert result["total_revenue"] == 240
     assert destinations == expected
 
 
-def test_outside_route_uses_preferred_endpoint_when_fatigue_is_equal(monkeypatch):
+def test_outside_route_repositions_to_nearest_endpoint(monkeypatch):
     destinations = _install_happy_path(monkeypatch, "shoggolith_city")
 
     result = _run()
@@ -114,7 +156,21 @@ def test_outside_route_uses_preferred_endpoint_when_fatigue_is_equal(monkeypatch
     ]
 
 
-def test_outside_route_repositions_to_endpoint_with_lower_fatigue(monkeypatch):
+def test_single_trip_runs_from_current_endpoint_to_the_other_city(monkeypatch):
+    destinations = _install_happy_path(monkeypatch, "cape_city")
+
+    result = _run(trip_count=1)
+
+    assert result["success"] is True
+    assert result["requested_trips"] == 1
+    assert result["completed_trips"] == 1
+    assert result["route_fatigue"] == 76
+    assert result["expected_fatigue_used"] == 76
+    assert result["end_city"]["city_name"] == "岚心城"
+    assert destinations == ["recruit:岚心城", "travel:岚心城"]
+
+
+def test_outside_route_chooses_other_endpoint_when_it_is_closer(monkeypatch):
     destinations = _install_happy_path(monkeypatch, "shoggolith_city")
 
     result = _run(market_data=_LanxinIsCloserMarket())
@@ -122,7 +178,6 @@ def test_outside_route_repositions_to_endpoint_with_lower_fatigue(monkeypatch):
     assert result["success"] is True
     assert result["reposition_leg"]["to_city"] == "岚心城"
     assert result["reposition_leg"]["expected_fatigue"] == 25
-    assert result["reposition_leg"]["endpoint_fatigue"] == {"海角城": 65, "岚心城": 25}
     assert result["expected_fatigue_used"] == 177
     assert destinations == [
         "travel:岚心城",
@@ -202,10 +257,10 @@ def test_outside_route_stops_before_reposition_when_switch_is_off(monkeypatch):
 def test_trade_runs_before_each_recruitment_and_final_arrival_is_sell_only(monkeypatch):
     events = _install_happy_path(monkeypatch, "cape_city")
 
-    def trade_at_city(*, current_city_id, destination_city_id, final_sale, **_kwargs):
-        current = flow._ROUTE_BY_ID[str(current_city_id)]["city_name"]
+    def trade_at_city(*, current_city_id, destination_city_id, final_sale, route_by_id, **_kwargs):
+        current = route_by_id[str(current_city_id)]["city_name"]
         destination = (
-            flow._ROUTE_BY_ID[str(destination_city_id)]["city_name"]
+            route_by_id[str(destination_city_id)]["city_name"]
             if destination_city_id is not None
             else None
         )
@@ -251,6 +306,7 @@ def test_trade_planner_rejects_stale_refresh_without_using_planner(monkeypatch):
     plan = flow._prepare_passenger_trade_plan(
         source_city_id="11",
         destination_city_id="15",
+        route_by_id=_route_by_id(),
         market_data=_Market(),
         trade_planner=object(),
     )
@@ -289,6 +345,7 @@ def test_trade_planner_accepts_only_positive_fixed_direction(monkeypatch):
     result = flow._prepare_passenger_trade_plan(
         source_city_id="11",
         destination_city_id="15",
+        route_by_id=_route_by_id(),
         market_data=_Market(),
         trade_planner=object(),
     )
@@ -328,6 +385,7 @@ def test_trade_planner_route_mismatch_becomes_sell_only(monkeypatch):
     result = flow._prepare_passenger_trade_plan(
         source_city_id="11",
         destination_city_id="15",
+        route_by_id=_route_by_id(),
         market_data=_Market(),
         trade_planner=object(),
     )
@@ -355,6 +413,7 @@ def test_refresh_failure_sells_existing_cargo_but_never_buys(monkeypatch):
         current_city_id="11",
         destination_city_id="15",
         final_sale=False,
+        route_by_id=_route_by_id(),
         app=object(),
         ocr=object(),
         vision=object(),
@@ -370,3 +429,28 @@ def test_refresh_failure_sells_existing_cargo_but_never_buys(monkeypatch):
     assert calls[0]["books_used"] == 0
     assert calls[0]["sell_raise_to_cap"] is False
     assert calls[0]["buy_bargain_to_cap"] is False
+
+
+def _route_by_id():
+    return {
+        "11": {"city_id": "11", "city_key": "cape_city", "city_name": "海角城"},
+        "15": {"city_id": "15", "city_key": "lanxin_city", "city_name": "岚心城"},
+    }
+
+
+def test_parameterized_route_uses_single_trip_fatigue_for_requested_count(monkeypatch):
+    destinations = _install_happy_path(monkeypatch, "brcl_outpost")
+
+    result = _run(
+        passenger_city_a_id="2",
+        passenger_city_b_id="3",
+        trip_count=3,
+    )
+
+    assert result["success"] is True
+    assert result["passenger_route"]["city_a"]["city_name"] == "铁盟哨站"
+    assert result["passenger_route"]["city_b"]["city_name"] == "七号自由港"
+    assert result["trip_fatigue"] == 40
+    assert result["route_fatigue"] == 120
+    assert result["expected_fatigue_used"] == 120
+    assert destinations[:2] == ["recruit:七号自由港", "travel:七号自由港"]

@@ -82,10 +82,11 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
 }
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
-    "round_trips": 1,
+    "passenger_city_a_id": "11",
+    "passenger_city_b_id": "15",
+    "trip_count": 1,
     "trade_during_trip": False,
     "reposition_to_route": True,
-    "preferred_start_city_id": "11",
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
@@ -271,14 +272,34 @@ def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    raw_trip_count = values.get("trip_count", 1)
+    if "trip_count" not in values and "round_trips" in values:
+        try:
+            raw_trip_count = int(values.get("round_trips") or 0) * 2
+        except (TypeError, ValueError):
+            raw_trip_count = 1
     try:
-        merged["round_trips"] = max(int(merged["round_trips"]), 1)
+        merged["trip_count"] = max(int(raw_trip_count), 1)
     except (TypeError, ValueError):
-        merged["round_trips"] = 1
+        merged["trip_count"] = 1
+    city_a_id = str(
+        values.get("passenger_city_a_id", values.get("passenger_from_city_id", "11"))
+        or "11"
+    ).strip()
+    city_b_id = str(
+        values.get("passenger_city_b_id", values.get("passenger_to_city_id", "15"))
+        or "15"
+    ).strip()
+    if city_a_id not in ALL_PC_TRADE_CITY_IDS:
+        city_a_id = "11"
+    if city_b_id not in ALL_PC_TRADE_CITY_IDS:
+        city_b_id = "15"
+    if city_a_id == city_b_id:
+        city_b_id = "15" if city_a_id != "15" else "11"
+    merged["passenger_city_a_id"] = city_a_id
+    merged["passenger_city_b_id"] = city_b_id
     merged["reposition_to_route"] = bool(merged["reposition_to_route"])
     merged["trade_during_trip"] = bool(merged["trade_during_trip"])
-    preferred = str(merged.get("preferred_start_city_id") or "11")
-    merged["preferred_start_city_id"] = preferred if preferred in {"11", "15"} else "11"
     merged["use_fatigue_medicine"] = bool(merged["use_fatigue_medicine"])
     raw_medicines = merged.get("allowed_fatigue_medicines")
     merged["allowed_fatigue_medicines"] = [

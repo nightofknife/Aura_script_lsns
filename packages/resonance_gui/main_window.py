@@ -105,6 +105,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending: list[dict[str, Any]] = []
         self._workflow_current: dict[str, Any] | None = None
         self._workflow_failed_message = ""
+        self._workflow_combined_context: dict[str, Any] = {}
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
         self._base_window_title = "Aura 雷索纳斯控制台"
@@ -605,7 +606,56 @@ class ResonanceMainWindow(QMainWindow):
             if "battle" in steps:
                 snapshots["battle"] = self.battle_page.collect_inputs()
                 self._settings.save_battle_inputs(snapshots["battle"])
+
+            run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
+            self._workflow_combined_context = {}
+            if set(commerce_steps) == {"trade", "passenger"}:
+                total_fatigue = int(run_snapshots["trade"].get("fatigue_budget", 0))
+                passenger_fatigue = self.workflow_page.passenger_route_fatigue()
+                route_city_ids = [
+                    str(run_snapshots["passenger"]["passenger_city_a_id"]),
+                    str(run_snapshots["passenger"]["passenger_city_b_id"]),
+                ]
+                available_city_ids = {
+                    str(city_id)
+                    for city_id in (run_snapshots["trade"].get("available_city_ids") or [])
+                }
+                if commerce_steps[0] == "trade":
+                    unavailable_end_ids = [
+                        city_id for city_id in route_city_ids if city_id not in available_city_ids
+                    ]
+                    if unavailable_end_ids:
+                        raise ValueError(
+                            "客运线路端点必须同时包含在货运的可用城市中："
+                            + "、".join(unavailable_end_ids)
+                        )
+                self._workflow_combined_context = {
+                    "enabled": True,
+                    "order": list(commerce_steps),
+                    "total_fatigue": total_fatigue,
+                    "passenger_route_fatigue": passenger_fatigue,
+                    "route_city_ids": route_city_ids,
+                    "trade_base_inputs": dict(run_snapshots["trade"]),
+                    "passenger_base_inputs": dict(run_snapshots["passenger"]),
+                }
+                if commerce_steps[0] == "trade":
+                    trade_fatigue = total_fatigue - passenger_fatigue
+                    if trade_fatigue < 0:
+                        raise ValueError(
+                            f"总疲劳 {total_fatigue} 不足以预留客运所需的 "
+                            f"{passenger_fatigue} 疲劳。"
+                        )
+                    run_snapshots["trade"].update(
+                        fatigue_budget=trade_fatigue,
+                        required_end_city_ids=route_city_ids,
+                    )
+                    run_snapshots["passenger"]["reposition_to_route"] = False
+                else:
+                    # The passenger result includes any repositioning cost. The trade
+                    # budget therefore cannot be frozen until that task has completed.
+                    run_snapshots["trade"].pop("required_end_city_ids", None)
         except ValueError as exc:
+            self._workflow_combined_context = {}
             QMessageBox.warning(self, "流程参数错误", str(exc))
             return
 
@@ -624,9 +674,15 @@ class ResonanceMainWindow(QMainWindow):
                     pending.append({
                         "step": kind,
                         "parent": "commerce",
-                        "inputs": dict(snapshots[kind]),
+                        "inputs": dict(run_snapshots[kind]),
                         "label": "货运" if kind == "trade" else "客运",
                         "dispatch": kind,
+                        "combined": bool(self._workflow_combined_context),
+                        "inputs_ready": not (
+                            bool(self._workflow_combined_context)
+                            and commerce_steps[0] == "passenger"
+                            and kind == "trade"
+                        ),
                     })
             elif step == "battle":
                 pending.append({
@@ -665,6 +721,9 @@ class ResonanceMainWindow(QMainWindow):
                 self._finish_workflow(True, "全部启用任务已完成。")
             return
         current = self._workflow_pending.pop(0)
+        if not bool(current.get("inputs_ready", True)):
+            self._abort_workflow("组合流程尚未获得可用的货运疲劳预算。")
+            return
         self._workflow_current = current
         step = str(current["step"])
         parent = str(current.get("parent") or "")
@@ -725,8 +784,95 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_stopping = False
         self._workflow_pending.clear()
         self._workflow_current = None
+        self._workflow_combined_context = {}
         self.workflow_page.finish_workflow(success=success, message=message)
         self._workflow_failed_message = ""
+
+    def _validate_combined_handoff(
+        self,
+        *,
+        step: str,
+        result: dict[str, Any],
+        current: dict[str, Any],
+    ) -> str | None:
+        """Validate that a combined stage left the game safe for its successor."""
+
+        if not current.get("combined") or not self._workflow_combined_context:
+            return None
+        if step == "passenger":
+            requested = int(result.get("requested_trips") or 0)
+            completed = int(result.get("completed_trips") or 0)
+            expected = int(current.get("inputs", {}).get("trip_count") or 0)
+            if requested != expected or completed != requested:
+                return f"客运只完成了 {completed}/{expected} 个单程，不能继续组合流程。"
+            if bool(result.get("requires_manual_completion")):
+                return "客运仍需人工完成当前航段，不能交接给货运。"
+            if result.get("loaded_destination") is not None:
+                return "客运结束时仍有已揽乘客，不能交接给货运。"
+            if str(result.get("page_state") or "") != "city_main":
+                return "客运结束后未回到城市主界面，不能交接给货运。"
+            if self._workflow_combined_context.get("order", [None])[0] == "passenger":
+                try:
+                    fatigue_used = int(result.get("expected_fatigue_used"))
+                except (TypeError, ValueError):
+                    return "客运结果缺少有效的疲劳消耗，无法计算货运预算。"
+                total_fatigue = int(self._workflow_combined_context["total_fatigue"])
+                trade_fatigue = total_fatigue - fatigue_used
+                if trade_fatigue < 0:
+                    return (
+                        f"客运实际预计消耗 {fatigue_used} 疲劳，超过总预算 "
+                        f"{total_fatigue}。"
+                    )
+                for pending in self._workflow_pending:
+                    if pending.get("step") != "trade":
+                        continue
+                    trade_inputs = dict(self._workflow_combined_context["trade_base_inputs"])
+                    trade_inputs["fatigue_budget"] = trade_fatigue
+                    trade_inputs.pop("required_end_city_ids", None)
+                    pending["inputs"] = trade_inputs
+                    pending["inputs_ready"] = True
+                    self.workflow_page.append_log(
+                        f"客运消耗 {fatigue_used} 疲劳，货运可用预算为 {trade_fatigue}。"
+                    )
+                    break
+            return None
+
+        if step != "trade":
+            return None
+        if self._workflow_combined_context.get("order", [None])[0] != "trade":
+            return None
+        route = [row for row in (result.get("route") or []) if isinstance(row, dict)]
+        execution = result.get("execution") if isinstance(result.get("execution"), dict) else {}
+        allowed_end_ids = set(self._workflow_combined_context.get("route_city_ids") or [])
+        end_city_id = str(
+            (route[-1].get("to_city_id") if route else None)
+            or result.get("selected_end_city_id")
+            or ""
+        )
+        if not route or end_city_id not in allowed_end_ids:
+            return "货运没有在客运线路的任一端点结束，不能开始后续客运。"
+        if int(execution.get("completed_leg_count") or 0) != len(route):
+            return "货运路线未完整执行，不能开始后续客运。"
+        final_sale = result.get("final_sale") if isinstance(result.get("final_sale"), dict) else {}
+        if not final_sale or final_sale.get("success") is False:
+            return "货运终点未完成清仓，不能开始后续客运。"
+        if str(final_sale.get("page_state") or "") != "city_main":
+            return "货运清仓后未回到城市主界面，不能开始后续客运。"
+        if str(result.get("page_state") or "") != "city_main":
+            return "货运结束后未回到城市主界面，不能开始后续客运。"
+
+        trade_inputs = current.get("inputs") if isinstance(current.get("inputs"), dict) else {}
+        if bool(trade_inputs.get("auto_cape_island_investment")):
+            cape_arrivals = sum(
+                1
+                for row in route
+                if str(row.get("to_city_id") or "") == "11"
+                or str(row.get("to_city") or "") == "海角城"
+            )
+            triggered = int(execution.get("cape_island_triggered_count") or 0)
+            if triggered != cape_arrivals:
+                return "货运中的蜃息岛投资阶段未完整执行，不能开始后续客运。"
+        return None
 
     def _dispatch_next_commerce_task(self) -> None:
         if not self._commerce_active or self._commerce_stopping:
@@ -836,8 +982,18 @@ class ResonanceMainWindow(QMainWindow):
                 type_label = "战斗"
             elif kind == "passenger":
                 result = extract_final_result(row)
-                summary_text = "海角城 ↔ 岚心城"
-                result_text = str(result.get("total_revenue") or "--")
+                route = result.get("passenger_route") if isinstance(result.get("passenger_route"), dict) else {}
+                city_a = route.get("city_a") if isinstance(route.get("city_a"), dict) else {}
+                city_b = route.get("city_b") if isinstance(route.get("city_b"), dict) else {}
+                summary_text = " ↔ ".join(
+                    value
+                    for value in (
+                        str(city_a.get("city_name") or ""),
+                        str(city_b.get("city_name") or ""),
+                    )
+                    if value
+                ) or "客运任务"
+                result_text = f"{len(result.get('completed_legs') or [])} 个单程"
                 type_label = "客运"
             else:
                 summary = trade_result_summary(row)
@@ -978,11 +1134,19 @@ class ResonanceMainWindow(QMainWindow):
             current = self._workflow_current
             step = str(current["step"])
             if succeeded:
-                self.workflow_page.mark_step(step, "success", f"{current['label']}已完成")
-                parent = str(current.get("parent") or "")
-                if parent and not any(row.get("parent") == parent for row in self._workflow_pending):
-                    self.workflow_page.mark_step(parent, "success", "跑商已完成")
-                self._workflow_current = None
+                handoff_error = self._validate_combined_handoff(
+                    step=step,
+                    result=result,
+                    current=current,
+                )
+                if handoff_error:
+                    self._abort_workflow(handoff_error)
+                else:
+                    self.workflow_page.mark_step(step, "success", f"{current['label']}已完成")
+                    parent = str(current.get("parent") or "")
+                    if parent and not any(row.get("parent") == parent for row in self._workflow_pending):
+                        self.workflow_page.mark_step(parent, "success", "跑商已完成")
+                    self._workflow_current = None
             else:
                 self._abort_workflow(str(result.get("reason") or f"{current['label']}未成功完成"))
         self.run_detail.show_text(render_result_text(payload))
@@ -1040,7 +1204,10 @@ class ResonanceMainWindow(QMainWindow):
                 self._finish_commerce_sequence()
         if self._workflow_active and not busy:
             if self._workflow_stopping:
-                self._finish_workflow(False, "流程已停止。")
+                self._finish_workflow(
+                    False,
+                    self._workflow_failed_message or "流程已停止。",
+                )
             elif self._workflow_pending:
                 self._dispatch_next_workflow_task()
             elif self._workflow_current is None:

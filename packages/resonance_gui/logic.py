@@ -421,7 +421,7 @@ class PassengerProgressState:
     sequence: int = -1
     stage: str = "resolve_start"
     state: str = "idle"
-    round_index: int | None = None
+    trip_index: int | None = None
     leg_index: int | None = None
     leg_count: int = 0
     source_city: str = ""
@@ -471,7 +471,7 @@ def reduce_passenger_progress(
         sequence=sequence,
         stage=str(payload.get("stage") or state.stage),
         state=str(payload.get("state") or state.state),
-        round_index=_optional_int(payload.get("round_index")),
+        trip_index=_optional_int(payload.get("trip_index", payload.get("round_index"))),
         leg_index=_optional_int(payload.get("leg_index")),
         leg_count=_int_or(payload.get("leg_count"), state.leg_count),
         source_city=str(payload.get("source_city") or state.source_city),

@@ -212,6 +212,11 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
     transition_attempts = 0
     state_updates = 0
     best: Optional[_Node] = None
+    required_end_indices = (
+        None
+        if prepared.required_end_indices is None
+        else frozenset(prepared.required_end_indices)
+    )
     progress = SolverProgress(backend="sparse", total=budget)
     progress.emit(0, force=True, pending_states=1)
 
@@ -310,6 +315,10 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                 if (
                     node.depth
                     and node.profit > 0
+                    and (
+                        required_end_indices is None
+                        or node.city_index in required_end_indices
+                    )
                     and _final_better(
                         node,
                         best,

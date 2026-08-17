@@ -73,6 +73,9 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert inputs["arrival_timeout_seconds"]["default"] == 3600
     assert inputs["available_city_ids"]["default"] == DEFAULT_AVAILABLE_CITY_IDS
     assert inputs["available_city_ids"]["item"]["enum"] == ALL_CITY_IDS
+    assert inputs["required_end_city_ids"]["required"] is False
+    assert inputs["required_end_city_ids"]["min"] == 1
+    assert inputs["required_end_city_ids"]["item"]["enum"] == ALL_CITY_IDS
     assert inputs["city_prestige"]["default"] == {"default": 20, "overrides": {}}
     assert list(
         inputs["city_prestige"]["properties"]["overrides"]["properties"]
@@ -93,6 +96,8 @@ def test_resonance_pc_task_uses_the_new_exact_planner_contract():
     assert "city_cycle" not in pc_task["returns"]
     assert "entry_route_count" not in pc_task["returns"]
     assert "city_path" in pc_task["returns"]
+    assert "required_end_city_ids" in pc_task["returns"]
+    assert "selected_end_city_id" in pc_task["returns"]
     assert "expected_fatigue_used" in pc_task["returns"]
     assert "full_negotiation_used" in pc_task["returns"]
     assert "negotiation_max_attempts" in pc_task["returns"]
@@ -208,6 +213,8 @@ def test_resonance_pc_preview_trade_plan_task_is_planning_only_and_valid():
     assert inputs["start_city_id"]["enum"] == ALL_CITY_IDS
     assert inputs["available_city_ids"]["default"] == DEFAULT_AVAILABLE_CITY_IDS
     assert inputs["available_city_ids"]["item"]["enum"] == ALL_CITY_IDS
+    assert inputs["required_end_city_ids"]["required"] is False
+    assert inputs["required_end_city_ids"]["item"]["enum"] == ALL_CITY_IDS
     assert list(
         inputs["city_prestige"]["properties"]["overrides"]["properties"]
     ) == ALL_CITY_IDS
@@ -216,6 +223,12 @@ def test_resonance_pc_preview_trade_plan_task_is_planning_only_and_valid():
     assert "negotiation_budget" not in inputs
     assert "use_fatigue_medicine" not in {item["name"] for item in task["meta"]["inputs"]}
     assert task["returns"]["preview"] == "{{ nodes.run.output.preview }}"
+    assert task["returns"]["required_end_city_ids"] == (
+        "{{ nodes.run.output.required_end_city_ids }}"
+    )
+    assert task["returns"]["selected_end_city_id"] == (
+        "{{ nodes.run.output.selected_end_city_id }}"
+    )
 
 
 def test_resonance_pc_business_sources_and_assets_are_physically_separate():

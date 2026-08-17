@@ -182,6 +182,47 @@ def test_tax_purchase_quantity_and_product_unlock_formula():
     assert locked_all["status"] == "no_plan"
 
 
+@pytest.mark.parametrize("backend", ["dense", "sparse"])
+def test_required_end_city_filters_final_state_without_changing_profit_model(backend):
+    solver = _solver(
+        cities=["1", "2", "3"],
+        costs={
+            "1": {"2": 1, "3": 1},
+            "2": {"1": 1, "3": 1},
+            "3": {"1": 1, "2": 1},
+        },
+        buy_lot={"1": {"p": 1}, "2": {}, "3": {}},
+        prices={"p": {"buy": {"1": 100}, "sell": {"2": 300, "3": 200}}},
+    )
+
+    unconstrained = _solve(solver, fatigue_budget=1, _backend=backend)
+    constrained = _solve(
+        solver,
+        fatigue_budget=1,
+        required_end_city_ids=["3"],
+        _backend=backend,
+    )
+    either = _solve(
+        solver,
+        fatigue_budget=1,
+        required_end_city_ids=["2", "3"],
+        _backend=backend,
+    )
+    unreachable = _solve(
+        solver,
+        fatigue_budget=1,
+        required_end_city_ids=["1"],
+        _backend=backend,
+    )
+
+    assert unconstrained["selected_end_city_id"] == "2"
+    assert constrained["selected_end_city_id"] == "3"
+    assert constrained["city_path_ids"] == ["1", "3"]
+    assert either["selected_end_city_id"] == "2"
+    assert unreachable["status"] == "no_plan"
+    assert unreachable["selected_end_city_id"] is None
+
+
 def test_product_unlocks_only_gate_reputation_products():
     solver = _solver(
         cities=["1", "2"],
@@ -492,15 +533,22 @@ def test_public_read_only_action_integrates_profile_rules_city_resolution_and_ca
     assert result["assumptions"]["rule_model_version"] == (
         "resonance_pc_trade_binary_to_cap_2026_07_19"
     )
+    constrained_inputs = dict(action_inputs, required_end_city_ids=["8"])
+    constrained = resonance_pc_trade_plan_optimal_route(**constrained_inputs)
+    assert constrained["selected_end_city_id"] == "8"
+    assert len(service._optimal_route_cache) == 2
     result["route"].clear()
+    constrained["route"].clear()
     monkeypatch.setattr(
         ResonancePcExactTradeSolver,
         "solve",
         lambda *_args, **_kwargs: pytest.fail("completed plan was not cached"),
     )
     cached = resonance_pc_trade_plan_optimal_route(**action_inputs)
+    cached_constrained = resonance_pc_trade_plan_optimal_route(**constrained_inputs)
     assert cached["route"]
-    assert len(service._optimal_route_cache) == 1
+    assert cached_constrained["route"]
+    assert len(service._optimal_route_cache) == 2
 
 
 def test_optimal_route_defaults_to_enabled_cities_and_accepts_explicit_subset():

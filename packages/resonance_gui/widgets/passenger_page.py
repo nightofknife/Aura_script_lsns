@@ -7,6 +7,7 @@ from typing import Any, Mapping
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from ..passenger_catalog import PassengerRouteEstimate, load_passenger_route_catalog
 from ..logic import (
     PassengerProgressState,
     extract_final_result,
@@ -43,6 +45,8 @@ class PassengerPage(QWidget):
         self._current_cid = ""
         self._elapsed_seconds = 0
         self._progress = PassengerProgressState()
+        self._route_catalog = load_passenger_route_catalog()
+        self._route_estimate: PassengerRouteEstimate | None = None
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
@@ -104,10 +108,10 @@ class PassengerPage(QWidget):
         title = QLabel("客运任务", panel)
         title.setObjectName("pageTitle")
         layout.addWidget(title)
-        subtitle = QLabel("海角城  ↔  岚心城", panel)
-        subtitle.setObjectName("passengerRouteTitle")
-        layout.addWidget(subtitle)
-        route_note = QLabel("固定线路 · 传单揽客 · 可选倒货", panel)
+        self.route_title = QLabel(panel)
+        self.route_title.setObjectName("passengerRouteTitle")
+        layout.addWidget(self.route_title)
+        route_note = QLabel("自选线路 · 传单揽客 · 可选倒货", panel)
         route_note.setObjectName("passengerRouteNote")
         route_note.setProperty("caption", True)
         layout.addWidget(route_note)
@@ -116,18 +120,26 @@ class PassengerPage(QWidget):
         input_title = QLabel("运行设置", panel)
         input_title.setObjectName("sectionTitle")
         layout.addWidget(input_title)
-        input_note = QLabel("设置往返次数，并按需启用倒货或自动归位。", panel)
+        input_note = QLabel("设置单程次数，并按需启用倒货或自动归位。", panel)
         input_note.setProperty("caption", True)
         layout.addWidget(input_note)
         layout.addSpacing(10)
 
         form = QFormLayout()
         form.setSpacing(12)
-        self.round_trips = QSpinBox(panel)
-        self.round_trips.setRange(1, 99)
-        self.round_trips.setSuffix(" 次")
-        self.round_trips.valueChanged.connect(self._refresh_expected_fatigue)
-        form.addRow("往返次数", self.round_trips)
+        self.city_a = QComboBox(panel)
+        self.city_b = QComboBox(panel)
+        for city in self._route_catalog.cities:
+            self.city_a.addItem(city.name, city.city_id)
+            self.city_b.addItem(city.name, city.city_id)
+        form.addRow("线路城市 A", self.city_a)
+        form.addRow("线路城市 B", self.city_b)
+
+        self.trip_count = QSpinBox(panel)
+        self.trip_count.setRange(1, 198)
+        self.trip_count.setSuffix(" 次")
+        self.trip_count.valueChanged.connect(self._refresh_expected_fatigue)
+        form.addRow("客运次数", self.trip_count)
 
         self.trade_during_trip = QCheckBox("启用", panel)
         self.trade_during_trip.setChecked(False)
@@ -136,22 +148,21 @@ class PassengerPage(QWidget):
 
         self.auto_reposition = QCheckBox("启用", panel)
         self.auto_reposition.setChecked(True)
-        self.auto_reposition.setToolTip("不在线路端点时，前往疲劳消耗较低的端点")
-        form.addRow("自动前往起点", self.auto_reposition)
+        self.auto_reposition.setToolTip("当前不在线路端点时，前往疲劳消耗较低的端点")
+        form.addRow("自动前往线路", self.auto_reposition)
         layout.addLayout(form)
+        self.city_a.currentIndexChanged.connect(self._route_changed)
+        self.city_b.currentIndexChanged.connect(self._route_changed)
 
         layout.addSpacing(22)
         self.expected_fatigue = QLabel(panel)
         self.expected_fatigue.setWordWrap(True)
         self.expected_fatigue.setObjectName("passengerEstimate")
         layout.addWidget(self.expected_fatigue)
-        policy = QLabel(
-            "倒货只购买强制刷新行情中税后预计盈利的商品，不使用砍价、抬价或进货书。关闭自动前往起点时，若当前不在海角城或岚心城，任务会直接停止。",
-            panel,
-        )
-        policy.setWordWrap(True)
-        policy.setObjectName("passengerPolicy")
-        layout.addWidget(policy)
+        self.policy_label = QLabel(panel)
+        self.policy_label.setWordWrap(True)
+        self.policy_label.setObjectName("passengerPolicy")
+        layout.addWidget(self.policy_label)
         layout.addStretch(1)
         return panel
 
@@ -173,7 +184,7 @@ class PassengerPage(QWidget):
         route_layout = QVBoxLayout(route_band)
         route_layout.setContentsMargins(20, 16, 20, 16)
         route_layout.setSpacing(8)
-        self.timeline_value = QLabel("海角城   ●━━━━━━━━▶   岚心城   ●━━━━━━━━▶   海角城", route_band)
+        self.timeline_value = QLabel(route_band)
         self.timeline_value.setObjectName("passengerTimeline")
         self.timeline_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
         route_layout.addWidget(self.timeline_value)
@@ -194,14 +205,12 @@ class PassengerPage(QWidget):
         self.leg_value = QLabel("0 / 0", summary)
         self.passenger_value = QLabel("--", summary)
         self.fatigue_value = QLabel("0 / 0", summary)
-        self.revenue_value = QLabel("0", summary)
         self.manual_value = QLabel("否", summary)
         for value in (
             self.route_value,
             self.leg_value,
             self.passenger_value,
             self.fatigue_value,
-            self.revenue_value,
             self.manual_value,
         ):
             value.setProperty("metricValue", True)
@@ -209,7 +218,6 @@ class PassengerPage(QWidget):
         form.addRow("完成单程", self.leg_value)
         form.addRow("本程乘客", self.passenger_value)
         form.addRow("预计疲劳", self.fatigue_value)
-        form.addRow("累计收益", self.revenue_value)
         form.addRow("需要人工处理", self.manual_value)
         layout.addWidget(summary)
 
@@ -239,14 +247,19 @@ class PassengerPage(QWidget):
         return bar
 
     def set_inputs(self, values: Mapping[str, Any]) -> None:
-        self.round_trips.setValue(int(values.get("round_trips", 1)))
+        self._set_combo_data(self.city_a, str(values.get("passenger_city_a_id") or "11"))
+        self._set_combo_data(self.city_b, str(values.get("passenger_city_b_id") or "15"))
+        self.trip_count.setValue(int(values.get("trip_count", 1)))
         self.trade_during_trip.setChecked(bool(values.get("trade_during_trip", False)))
         self.auto_reposition.setChecked(bool(values.get("reposition_to_route", True)))
         self._refresh_expected_fatigue()
 
     def collect_inputs(self) -> dict[str, Any]:
+        estimate = self._current_route_estimate()
         inputs = {
-            "round_trips": self.round_trips.value(),
+            "passenger_city_a_id": estimate.city_a.city_id,
+            "passenger_city_b_id": estimate.city_b.city_id,
+            "trip_count": self.trip_count.value(),
             "trade_during_trip": self.trade_during_trip.isChecked(),
             "reposition_to_route": self.auto_reposition.isChecked(),
         }
@@ -257,11 +270,45 @@ class PassengerPage(QWidget):
         self.startRequested.emit(self.collect_inputs(), 0.0)
 
     def _refresh_expected_fatigue(self) -> None:
-        value = self.round_trips.value() * 152
-        self.expected_fatigue.setText(
-            f"预计疲劳  {value}\n"
-            f"{self.round_trips.value() * 2} 个客运单程 · 每程 76"
+        try:
+            estimate = self._current_route_estimate()
+        except ValueError as exc:
+            self._route_estimate = None
+            self.expected_fatigue.setText(str(exc))
+            return
+        self._route_estimate = estimate
+        trips = self.trip_count.value()
+        total = estimate.trip_fatigue * trips
+        self.route_title.setText(f"{estimate.city_a.name}  ↔  {estimate.city_b.name}")
+        self.timeline_value.setText(self._route_timeline())
+        self.policy_label.setText(
+            "倒货只购买强制刷新行情中税后预计盈利的商品，不使用砍价、抬价或进货书。"
+            f"关闭自动前往起点时，若当前不在{estimate.city_a.name}或{estimate.city_b.name}，任务会直接停止。"
         )
+        self.expected_fatigue.setText(
+            f"预计疲劳  {total}\n"
+            f"{trips} 次 × 单次疲劳 {estimate.trip_fatigue}"
+        )
+
+    def _route_changed(self, _index: int = -1) -> None:
+        self._refresh_expected_fatigue()
+
+    def _current_route_estimate(self) -> PassengerRouteEstimate:
+        return self._route_catalog.estimate(
+            str(self.city_a.currentData() or ""),
+            str(self.city_b.currentData() or ""),
+        )
+
+    def _route_timeline(self, *, completed: bool = False) -> str:
+        estimate = self._route_estimate or self._current_route_estimate()
+        trips = self.trip_count.value()
+        suffix = "已完成" if completed else f"共 {trips} 次"
+        return f"{estimate.city_a.name}   ●━━━━━━━━●   {estimate.city_b.name} · {suffix}"
+
+    @staticmethod
+    def _set_combo_data(combo: QComboBox, value: str) -> None:
+        index = combo.findData(str(value))
+        combo.setCurrentIndex(max(index, 0))
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         target = payload.get("target") if isinstance(payload.get("target"), Mapping) else {}
@@ -276,7 +323,7 @@ class PassengerPage(QWidget):
         self.run_status_value.setText("运行中")
         self.stage_value.setText("准备启动")
         self.stage_detail.setText("正在识别当前城市")
-        self.timeline_value.setText("海角城   ●━━━━━━━━▶   岚心城   ●━━━━━━━━▶   海角城")
+        self.timeline_value.setText(self._route_timeline())
         self.result_view.clear()
         self._elapsed_seconds = 0
         self.elapsed_value.setText("00:00")
@@ -309,7 +356,6 @@ class PassengerPage(QWidget):
             else "--"
         )
         self.fatigue_value.setText(f"{state.expected_fatigue_used} / {state.expected_fatigue_total}")
-        self.revenue_value.setText(f"{state.total_revenue:,}")
         self.manual_value.setText("是" if state.requires_manual_completion else "否")
 
     def update_run(self, payload: Mapping[str, Any]) -> None:
@@ -324,10 +370,20 @@ class PassengerPage(QWidget):
         self.stage_value.setText("任务结束")
         self.stage_detail.setText(str(result.get("reason") or "客运往返已完成"))
         if success:
-            self.timeline_value.setText("海角城   ●━━━━━━━━●   岚心城   ●━━━━━━━━●   往返完成")
-        self.leg_value.setText(f"{len(result.get('completed_legs') or [])} / {int(result.get('requested_round_trips') or 0) * 2}")
+            route = result.get("passenger_route") if isinstance(result.get("passenger_route"), Mapping) else {}
+            city_a = route.get("city_a") if isinstance(route.get("city_a"), Mapping) else {}
+            city_b = route.get("city_b") if isinstance(route.get("city_b"), Mapping) else {}
+            city_a_id = str(city_a.get("city_id") or "")
+            city_b_id = str(city_b.get("city_id") or "")
+            if city_a_id and city_b_id:
+                self._set_combo_data(self.city_a, city_a_id)
+                self._set_combo_data(self.city_b, city_b_id)
+                self._refresh_expected_fatigue()
+            self.timeline_value.setText(self._route_timeline(completed=True))
+        self.leg_value.setText(
+            f"{len(result.get('completed_legs') or [])} / {int(result.get('requested_trips') or 0)}"
+        )
         self.fatigue_value.setText(str(result.get("expected_fatigue_used") or 0))
-        self.revenue_value.setText(f"{int(result.get('total_revenue') or 0):,}")
         self.manual_value.setText("是" if result.get("requires_manual_completion") else "否")
         self.result_view.setPlainText(render_result_text(payload))
         self._finish_common()
@@ -352,7 +408,9 @@ class PassengerPage(QWidget):
 
     def set_busy(self, busy: bool) -> None:
         self._busy = bool(busy)
-        self.round_trips.setEnabled(not self._busy)
+        self.city_a.setEnabled(not self._busy)
+        self.city_b.setEnabled(not self._busy)
+        self.trip_count.setEnabled(not self._busy)
         self.trade_during_trip.setEnabled(not self._busy)
         self.auto_reposition.setEnabled(not self._busy)
         self._sync_actions()
