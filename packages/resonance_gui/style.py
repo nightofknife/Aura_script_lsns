@@ -249,15 +249,16 @@ QFrame#workflowPanel {
     border-radius: 6px;
 }
 QLabel#workflowTitle { color: #38342e; font-size: 19px; font-weight: 700; }
-QLabel#workflowProgress { color: #66745c; font-size: 16px; font-weight: 700; padding: 7px 0; }
-QLabel#workflowInternalProgress { color: #514c43; font-weight: 600; padding: 3px 0; }
+QLabel#workflowProgressCaption { color: #514c43; font-size: 12px; font-weight: 700; }
+QLabel#workflowProgress { color: #66745c; font-size: 14px; font-weight: 700; padding: 1px 0; }
+QLabel#workflowInternalProgress { color: #514c43; font-size: 12px; font-weight: 600; padding: 1px 0; }
 QProgressBar#workflowTaskProgressBar, QProgressBar#workflowInternalProgressBar {
     background: #e8decc;
     color: #38342e;
     border: 1px solid #c9b99d;
     border-radius: 4px;
-    min-height: 15px;
-    max-height: 15px;
+    min-height: 8px;
+    max-height: 8px;
     text-align: center;
     font-size: 10px;
     font-weight: 700;
@@ -323,8 +324,95 @@ QFrame#linenInset, QLabel#linenInsetLabel {
     border-radius: 5px;
     padding: 9px;
 }
-QTreeWidget#workflowRunTree { background: #fffaf0; }
+QTreeWidget#workflowRunTree {
+    background: #fffaf0;
+    border-radius: 5px;
+    padding: 4px;
+}
+QTreeWidget#workflowRunTree::item {
+    padding: 1px 5px;
+    border-bottom: 2px solid #fffaf0;
+}
+QTreeWidget#workflowRunTree::item:selected {
+    color: #38342e;
+    border: 1px solid #77866b;
+}
+QPushButton#workflowLogToggle {
+    background: #f4edde;
+    border-color: #c9b99d;
+    text-align: left;
+    font-weight: 600;
+    padding: 6px 10px;
+}
+QPushButton#workflowLogToggle:hover { background: #eee5d5; }
 QTextBrowser#workflowLog { background: #f4edde; font-family: "Cascadia Mono", "Consolas"; font-size: 11px; }
+QStackedWidget#workflowProgressStack { background: transparent; border: 0; }
+QScrollArea#workflowTimeline,
+QWidget#workflowTimelineContent,
+QScrollArea#workflowTimeline > QWidget > QWidget { background: transparent; border: 0; }
+QFrame#timelineCityCard {
+    border: 1px solid #d4c6ad;
+    border-radius: 6px;
+    background: #eee9df;
+}
+QFrame#timelineCityCard[progressState="completed"] {
+    background: #e1eadc;
+    border-color: #c8d6c1;
+}
+QFrame#timelineCityCard[progressState="running"] {
+    background: #f5e4b6;
+    border-color: #d8b34b;
+}
+QFrame#timelineCityCard[progressState="waiting"] {
+    background: #eee9df;
+    border-color: #d6cec0;
+}
+QFrame#timelineCityCard[progressState="failed"] {
+    background: #f1ddd4;
+    border-color: #c89580;
+}
+QWidget#timelineCityHeader { background: transparent; border: 0; }
+QLabel#timelineCityTitle { color: #4f4a42; font-size: 13px; font-weight: 600; }
+QLabel#timelineCityStatus { font-size: 12px; font-weight: 700; }
+QLabel#timelineCityStatus[progressState="completed"] { color: #4d6847; }
+QLabel#timelineCityStatus[progressState="running"] { color: #8b6200; }
+QLabel#timelineCityStatus[progressState="waiting"] { color: #6f685e; }
+QLabel#timelineCityStatus[progressState="failed"] { color: #984b39; }
+QFrame#timelinePhasePanel {
+    background: #fffaf0;
+    border: 1px solid #d8cdb9;
+    border-radius: 4px;
+    margin: 0 8px 8px 8px;
+}
+QWidget#timelinePhaseItem {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #ede5d7;
+}
+QLabel#timelinePhaseName { color: #4f4a42; font-size: 12px; }
+QLabel#timelinePhaseBadge {
+    min-width: 44px;
+    padding: 3px 7px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+QLabel#timelinePhaseBadge[progressState="completed"] {
+    color: #4d6847;
+    background: #e1eadc;
+}
+QLabel#timelinePhaseBadge[progressState="running"] {
+    color: #8b6200;
+    background: #f5e4b6;
+}
+QLabel#timelinePhaseBadge[progressState="waiting"] {
+    color: #6f685e;
+    background: #eee9df;
+}
+QLabel#timelinePhaseBadge[progressState="failed"] {
+    color: #984b39;
+    background: #f1ddd4;
+}
 QPushButton#quietButton { background: transparent; border-color: #c9b99d; }
 QListWidget#settingsCategories::item { padding: 12px 10px; border-left: 3px solid transparent; }
 QListWidget#settingsCategories::item:selected {

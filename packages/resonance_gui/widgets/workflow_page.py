@@ -4,20 +4,36 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from PySide6.QtCore import QEasingCurve, QEvent, QMimeData, QPoint, QPropertyAnimation, QRect, Qt, Signal
-from PySide6.QtGui import QDrag
+from PySide6.QtCore import (
+    QEasingCurve,
+    QEvent,
+    QMimeData,
+    QPoint,
+    QPropertyAnimation,
+    QRect,
+    QSize,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import QBrush, QColor, QDrag, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QComboBox,
     QFormLayout,
     QFrame,
+    QGridLayout,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QStackedWidget,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTabWidget,
     QTextBrowser,
     QTreeWidget,
@@ -42,6 +58,254 @@ WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("battle", "自动战斗"),
     ("close", "关闭游戏"),
 )
+
+_PROGRESS_STATE_ROLE = int(Qt.ItemDataRole.UserRole) + 20
+
+
+class _ProgressStateDelegate(QStyledItemDelegate):
+    """Paint semantic state backgrounds without fighting the global Qt stylesheet."""
+
+    PALETTE = {
+        "completed": ("#d9e8d4", "#40513b"),
+        "running": ("#f2dda3", "#6d4b08"),
+        "waiting": ("#e9e4da", "#655f56"),
+        "failed": ("#f1d8ce", "#8b4032"),
+    }
+
+    def paint(self, painter, option, index) -> None:  # noqa: ANN001
+        semantic = str(index.data(_PROGRESS_STATE_ROLE) or "")
+        if semantic not in self.PALETTE:
+            super().paint(painter, option, index)
+            return
+        background, foreground = self.PALETTE[semantic]
+        styled = QStyleOptionViewItem(option)
+        styled.backgroundBrush = QBrush(QColor(background))
+        styled.palette.setColor(QPalette.ColorRole.Text, QColor(foreground))
+        styled.palette.setColor(QPalette.ColorRole.HighlightedText, QColor(foreground))
+        painter.save()
+        painter.fillRect(styled.rect, QColor(background))
+        painter.restore()
+        super().paint(painter, styled, index)
+
+
+def _timeline_semantic_state(state: str) -> str:
+    return {
+        "completed": "completed",
+        "success": "completed",
+        "skipped": "completed",
+        "running": "running",
+        "progress": "running",
+        "failed": "failed",
+        "blocked": "failed",
+        "error": "failed",
+        "cancelled": "failed",
+    }.get(str(state).lower(), "waiting")
+
+
+def _timeline_state_text(state: str) -> str:
+    return {
+        "completed": "已完成",
+        "success": "已完成",
+        "skipped": "已跳过",
+        "running": "进行中",
+        "progress": "进行中",
+        "failed": "失败",
+        "blocked": "失败",
+        "error": "失败",
+        "cancelled": "已停止",
+    }.get(str(state).lower(), "待做")
+
+
+class _TimelineRail(QWidget):
+    """Native Qt timeline rail matching the selected city-progress design."""
+
+    def __init__(
+        self,
+        state: str,
+        *,
+        first: bool,
+        last: bool,
+        parent: QWidget,
+    ) -> None:
+        super().__init__(parent)
+        self._semantic = _timeline_semantic_state(state)
+        self._first = bool(first)
+        self._last = bool(last)
+        self.setFixedWidth(30)
+
+    def paintEvent(self, event) -> None:  # noqa: N802, ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        center_x = self.width() // 2
+        center_y = 22
+        radius = 8
+        line_color = QColor("#bdb5a6")
+        if not self._first:
+            painter.setPen(QPen(line_color, 2))
+            painter.drawLine(center_x, 0, center_x, center_y - radius)
+        if not self._last:
+            painter.setPen(QPen(line_color, 2))
+            painter.drawLine(center_x, center_y + radius, center_x, self.height())
+
+        if self._semantic == "completed":
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor("#6f8f65"))
+            painter.drawEllipse(QPoint(center_x, center_y), radius, radius)
+            painter.setPen(QPen(QColor("#ffffff"), 1.8))
+            painter.drawLine(center_x - 4, center_y, center_x - 1, center_y + 3)
+            painter.drawLine(center_x - 1, center_y + 3, center_x + 5, center_y - 4)
+        elif self._semantic == "running":
+            painter.setPen(QPen(QColor("#c99100"), 3))
+            painter.setBrush(QColor("#fffaf0"))
+            painter.drawEllipse(QPoint(center_x, center_y), radius, radius)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor("#c99100"))
+            painter.drawEllipse(QPoint(center_x, center_y), 3, 3)
+        elif self._semantic == "failed":
+            painter.setPen(QPen(QColor("#b9785d"), 2))
+            painter.setBrush(QColor("#fffaf0"))
+            painter.drawEllipse(QPoint(center_x, center_y), radius, radius)
+        else:
+            painter.setPen(QPen(line_color, 2))
+            painter.setBrush(QColor("#f8f3e8"))
+            painter.drawEllipse(QPoint(center_x, center_y), radius, radius)
+
+
+class _TimelinePhaseItem(QWidget):
+    def __init__(self, label: str, state: str, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("timelinePhaseItem")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(8)
+        name = QLabel(label, self)
+        name.setObjectName("timelinePhaseName")
+        badge = QLabel(_timeline_state_text(state), self)
+        badge.setObjectName("timelinePhaseBadge")
+        badge.setProperty("progressState", _timeline_semantic_state(state))
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(name, 1)
+        layout.addWidget(badge)
+
+
+class _CityTimelineRow(QWidget):
+    ROLE_LABELS = {"initial": "起点", "intermediate": "途经", "terminal": "终点"}
+
+    def __init__(
+        self,
+        city,
+        *,
+        active: bool,
+        first: bool,
+        last: bool,
+        parent: QWidget,
+    ) -> None:
+        super().__init__(parent)
+        self.city = city
+        self.phase_keys = [phase.key for phase in city.phases]
+        display_state = (
+            "running"
+            if active and _timeline_semantic_state(city.state) == "waiting"
+            else city.state
+        )
+        semantic = _timeline_semantic_state(display_state)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+        rail = _TimelineRail(display_state, first=first, last=last, parent=self)
+        root.addWidget(rail)
+
+        card = QFrame(self)
+        card.setObjectName("timelineCityCard")
+        card.setProperty("progressState", semantic)
+        card.setProperty("active", bool(active))
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+        header = QWidget(card)
+        header.setObjectName("timelineCityHeader")
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(12, 8, 12, 8)
+        header_layout.setSpacing(8)
+        role = self.ROLE_LABELS.get(city.role, city.role)
+        title = QLabel(
+            f"城市  {city.index + 1}/{city.count} · {city.name}（{role}）",
+            header,
+        )
+        title.setObjectName("timelineCityTitle")
+        title.setToolTip(f"{city.name} · {role}")
+        status = QLabel(_timeline_state_text(display_state), header)
+        status.setObjectName("timelineCityStatus")
+        status.setProperty("progressState", semantic)
+        header_layout.addWidget(title, 1)
+        header_layout.addWidget(status)
+        card_layout.addWidget(header)
+
+        if active:
+            phase_panel = QFrame(card)
+            phase_panel.setObjectName("timelinePhasePanel")
+            phase_grid = QGridLayout(phase_panel)
+            phase_grid.setContentsMargins(8, 8, 8, 8)
+            phase_grid.setHorizontalSpacing(0)
+            phase_grid.setVerticalSpacing(0)
+            for phase, (row, column) in self._phase_positions(city.phases):
+                phase_grid.addWidget(
+                    _TimelinePhaseItem(phase.detail or phase.label, phase.state, phase_panel),
+                    row,
+                    column,
+                )
+            phase_grid.setColumnStretch(0, 1)
+            phase_grid.setColumnStretch(1, 1)
+            card_layout.addWidget(phase_panel)
+        root.addWidget(card, 1)
+
+    @staticmethod
+    def _phase_positions(phases) -> list[tuple[object, tuple[int, int]]]:
+        by_key = {phase.key: phase for phase in phases}
+        ordered_keys: list[str]
+        if "investment" in by_key:
+            ordered_keys = ["arrival", "buy", "investment", "travel", "sell", "final_sale"]
+        else:
+            ordered_keys = ["arrival", "buy", "sell", "travel", "final_sale"]
+        ordered = [by_key[key] for key in ordered_keys if key in by_key]
+        return [(phase, divmod(index, 2)) for index, phase in enumerate(ordered)]
+
+
+class _CityTimelineView(QScrollArea):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("workflowTimeline")
+        self.setWidgetResizable(True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._content = QWidget(self)
+        self._content.setObjectName("workflowTimelineContent")
+        self._layout = QVBoxLayout(self._content)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(6)
+        self._layout.addStretch(1)
+        self.setWidget(self._content)
+        self.rows: list[_CityTimelineRow] = []
+
+    def clear(self) -> None:
+        for row in self.rows:
+            self._layout.removeWidget(row)
+            row.deleteLater()
+        self.rows.clear()
+
+    def set_progress(self, progress: WorkflowFreightProgressState) -> None:
+        self.clear()
+        cities = list(progress.cities)
+        for index, city in enumerate(cities):
+            row = _CityTimelineRow(
+                city,
+                active=city.index == progress.active_city_index,
+                first=index == 0,
+                last=index == len(cities) - 1,
+                parent=self._content,
+            )
+            self._layout.insertWidget(self._layout.count() - 1, row)
+            self.rows.append(row)
 
 
 class _TaskRow(QFrame):
@@ -545,7 +809,8 @@ class WorkflowPage(QWidget):
         panel = QFrame(self)
         panel.setObjectName("workflowPanel")
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(14, 16, 14, 14)
+        layout.setContentsMargins(12, 14, 12, 12)
+        layout.setSpacing(7)
         header = QHBoxLayout()
         title = QLabel("运行状态", panel)
         title.setObjectName("workflowTitle")
@@ -556,45 +821,83 @@ class WorkflowPage(QWidget):
         self.run_button.clicked.connect(self._toggle_run)
         header.addWidget(self.run_button)
         layout.addLayout(header)
+        task_progress_row = QHBoxLayout()
+        task_progress_row.setContentsMargins(0, 0, 0, 0)
         task_progress_title = QLabel("任务进度", panel)
-        task_progress_title.setObjectName("sectionTitle")
-        layout.addWidget(task_progress_title)
+        task_progress_title.setObjectName("workflowProgressCaption")
+        task_progress_row.addWidget(task_progress_title)
+        task_progress_row.addStretch(1)
         self.task_progress_label = QLabel("0 / 0 · 等待开始", panel)
         self.task_progress_label.setObjectName("workflowProgress")
+        self.task_progress_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.progress_label = self.task_progress_label
-        layout.addWidget(self.task_progress_label)
+        task_progress_row.addWidget(self.task_progress_label)
+        layout.addLayout(task_progress_row)
         self.task_progress_bar = QProgressBar(panel)
         self.task_progress_bar.setObjectName("workflowTaskProgressBar")
         self.task_progress_bar.setRange(0, 1)
         self.task_progress_bar.setValue(0)
-        self.task_progress_bar.setFormat("0 / 0")
+        self.task_progress_bar.setFormat("")
         layout.addWidget(self.task_progress_bar)
+        internal_progress_row = QHBoxLayout()
+        internal_progress_row.setContentsMargins(0, 0, 0, 0)
         internal_progress_title = QLabel("任务内进度", panel)
-        internal_progress_title.setObjectName("sectionTitle")
-        layout.addWidget(internal_progress_title)
+        internal_progress_title.setObjectName("workflowProgressCaption")
+        internal_progress_row.addWidget(internal_progress_title)
+        internal_progress_row.addStretch(1)
         self.internal_progress_label = QLabel("等待任务开始", panel)
         self.internal_progress_label.setObjectName("workflowInternalProgress")
-        layout.addWidget(self.internal_progress_label)
+        self.internal_progress_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        internal_progress_row.addWidget(self.internal_progress_label)
+        layout.addLayout(internal_progress_row)
         self.internal_progress_bar = QProgressBar(panel)
         self.internal_progress_bar.setObjectName("workflowInternalProgressBar")
         self.internal_progress_bar.setRange(0, 100)
         self.internal_progress_bar.setValue(0)
-        self.internal_progress_bar.setFormat("%p%")
+        self.internal_progress_bar.setFormat("")
         layout.addWidget(self.internal_progress_bar)
         self.run_tree = QTreeWidget(panel)
         self.run_tree.setObjectName("workflowRunTree")
         self.run_tree.setHeaderLabels(["任务与阶段", "状态"])
+        self.run_tree.setHeaderHidden(True)
+        self.run_tree.setIndentation(14)
+        self.run_tree.setAnimated(False)
+        self.run_tree.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.run_tree.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.run_tree.setItemDelegate(_ProgressStateDelegate(self.run_tree))
         self.run_tree.header().setStretchLastSection(False)
-        self.run_tree.header().resizeSection(0, 260)
-        layout.addWidget(self.run_tree, 3)
-        log_title = QLabel("详细日志", panel)
-        log_title.setObjectName("sectionTitle")
-        layout.addWidget(log_title)
+        self.run_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.run_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.run_tree.setColumnWidth(1, 68)
+        self.timeline_view = _CityTimelineView(panel)
+        self.progress_stack = QStackedWidget(panel)
+        self.progress_stack.setObjectName("workflowProgressStack")
+        self.progress_stack.addWidget(self.run_tree)
+        self.progress_stack.addWidget(self.timeline_view)
+        self.progress_stack.setCurrentWidget(self.run_tree)
+        layout.addWidget(self.progress_stack, 1)
+        self._log_count = 0
+        self.log_toggle = QPushButton("详细日志 · 0 条  ›", panel)
+        self.log_toggle.setObjectName("workflowLogToggle")
+        self.log_toggle.setCheckable(True)
+        self.log_toggle.toggled.connect(self._toggle_log)
+        layout.addWidget(self.log_toggle)
         self.log_view = QTextBrowser(panel)
         self.log_view.setObjectName("workflowLog")
         self.log_view.setPlaceholderText("流程事件和失败原因会显示在这里。")
-        layout.addWidget(self.log_view, 2)
+        self.log_view.setMaximumHeight(150)
+        self.log_view.hide()
+        layout.addWidget(self.log_view)
         return panel
+
+    def _toggle_log(self, visible: bool) -> None:
+        self.log_view.setVisible(visible)
+        arrow = "﹀" if visible else "›"
+        self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {arrow}")
 
     def _select_row(self, row: int) -> None:
         if 0 <= row < len(self._task_order):
@@ -755,6 +1058,11 @@ class WorkflowPage(QWidget):
         self.run_button.style().polish(self.run_button)
         self._set_editing_enabled(False)
         self.log_view.clear()
+        self._log_count = 0
+        self.log_toggle.setChecked(False)
+        self._toggle_log(False)
+        self.timeline_view.clear()
+        self.progress_stack.setCurrentWidget(self.run_tree)
         self.run_tree.clear()
         self._tree_items.clear()
         self._progress_items.clear()
@@ -783,7 +1091,7 @@ class WorkflowPage(QWidget):
         self.task_progress_label.setText(f"0 / {len(steps)} · 准备执行")
         self.task_progress_bar.setRange(0, max(len(steps), 1))
         self.task_progress_bar.setValue(0)
-        self.task_progress_bar.setFormat(f"0 / {len(steps)}")
+        self.task_progress_bar.setFormat("")
         self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
 
@@ -808,7 +1116,7 @@ class WorkflowPage(QWidget):
         self.task_progress_label.setText(f"{done} / {len(top_steps)} · {current}")
         self.task_progress_bar.setRange(0, max(len(top_steps), 1))
         self.task_progress_bar.setValue(done)
-        self.task_progress_bar.setFormat(f"{done} / {len(top_steps)}")
+        self.task_progress_bar.setFormat("")
         if state == "running":
             self._set_internal_progress(detail or state_text, None)
         elif state == "success" and step in {"startup", "battle", "close", "passenger", "trade"}:
@@ -897,21 +1205,24 @@ class WorkflowPage(QWidget):
             self._set_internal_progress("当前流程已完成", 100)
         else:
             self._set_internal_terminal(message, "failed")
+            self.log_toggle.setChecked(True)
         self.append_log(message)
 
     def _set_internal_progress(
         self, label: str, percent: int | None, *, state: str = "running"
     ) -> None:
-        self.internal_progress_label.setText(str(label or "等待任务开始"))
+        base_label = str(label or "等待任务开始")
         self.internal_progress_bar.setProperty("runState", state)
         if percent is None:
+            self.internal_progress_label.setText(base_label)
             self.internal_progress_bar.setRange(0, 0)
             self.internal_progress_bar.setFormat("")
         else:
             value = max(0, min(int(percent), 100))
+            self.internal_progress_label.setText(f"{base_label} · {value}%")
             self.internal_progress_bar.setRange(0, 100)
             self.internal_progress_bar.setValue(value)
-            self.internal_progress_bar.setFormat(f"{value}%")
+            self.internal_progress_bar.setFormat("")
         self.internal_progress_bar.style().unpolish(self.internal_progress_bar)
         self.internal_progress_bar.style().polish(self.internal_progress_bar)
 
@@ -932,6 +1243,11 @@ class WorkflowPage(QWidget):
             ["准备与路线规划", self._tree_state_text(self._freight_progress.preparation_state)]
         )
         preparation.setToolTip(0, self._freight_progress.preparation_detail)
+        self._style_progress_item(
+            preparation,
+            self._freight_progress.preparation_state,
+            row_kind="phase",
+        )
         parent.addChild(preparation)
         active_item: QTreeWidgetItem | None = None
         for city in self._freight_progress.cities:
@@ -943,22 +1259,28 @@ class WorkflowPage(QWidget):
                 ]
             )
             city_item.setData(0, Qt.ItemDataRole.UserRole, f"trade_city:{city.index}")
+            city_item.setToolTip(0, f"{city.name} · {role}")
+            self._style_progress_item(city_item, city.state, row_kind="city")
             parent.addChild(city_item)
             for phase in city.phases:
                 phase_item = QTreeWidgetItem(
                     [phase.detail or phase.label, self._tree_state_text(phase.state)]
                 )
                 phase_item.setToolTip(0, phase.detail)
+                self._style_progress_item(phase_item, phase.state, row_kind="phase")
                 city_item.addChild(phase_item)
             is_active = city.index == self._freight_progress.active_city_index
             city_item.setExpanded(is_active or city.state == "failed")
             if is_active:
                 active_item = city_item
         parent.setExpanded(True)
+        self.timeline_view.set_progress(self._freight_progress)
+        self.progress_stack.setCurrentWidget(self.timeline_view)
         if active_item is not None:
             self.run_tree.scrollToItem(active_item)
 
     def _render_passenger_progress(self) -> None:
+        self.progress_stack.setCurrentWidget(self.run_tree)
         parent = self._tree_items.get("passenger")
         if parent is None:
             return
@@ -970,8 +1292,46 @@ class WorkflowPage(QWidget):
             parent.addChild(item)
             self._progress_items[key] = item
         item.setText(1, self._tree_state_text(self._passenger_progress.state))
+        self._style_progress_item(item, self._passenger_progress.state, row_kind="phase")
         parent.setExpanded(True)
         self.run_tree.scrollToItem(item)
+
+    @staticmethod
+    def _style_progress_item(
+        item: QTreeWidgetItem,
+        state: str,
+        *,
+        row_kind: str,
+    ) -> None:
+        semantic = {
+            "completed": "completed",
+            "success": "completed",
+            "skipped": "completed",
+            "running": "running",
+            "progress": "running",
+            "failed": "failed",
+            "blocked": "failed",
+            "error": "failed",
+            "cancelled": "failed",
+        }.get(str(state).lower(), "waiting")
+        palette = {
+            "completed": ("#dce8d7", "#40513b"),
+            "running": ("#f3e4b8", "#6d4b08"),
+            "waiting": ("#eee9df", "#655f56"),
+            "failed": ("#f1ddd4", "#8b4032"),
+        }
+        background, foreground = palette[semantic]
+        height = 30 if row_kind == "city" else 24
+        for column in range(2):
+            item.setData(column, _PROGRESS_STATE_ROLE, semantic)
+            item.setBackground(column, QBrush(QColor(background)))
+            item.setForeground(column, QBrush(QColor(foreground)))
+            item.setSizeHint(column, QSize(0, height))
+        if row_kind == "city":
+            for column in range(2):
+                font = item.font(column)
+                font.setBold(True)
+                item.setFont(column, font)
 
     def _passenger_percent(self) -> int | None:
         state = self._passenger_progress
@@ -995,12 +1355,12 @@ class WorkflowPage(QWidget):
     @staticmethod
     def _tree_state_text(state: str) -> str:
         return {
-            "waiting": "等待",
-            "running": "执行中",
-            "progress": "执行中",
-            "completed": "完成",
-            "success": "完成",
-            "skipped": "跳过",
+            "waiting": "待做",
+            "running": "进行中",
+            "progress": "进行中",
+            "completed": "已完成",
+            "success": "已完成",
+            "skipped": "已跳过",
             "failed": "失败",
             "blocked": "失败",
             "error": "失败",
@@ -1015,6 +1375,9 @@ class WorkflowPage(QWidget):
 
     def append_log(self, message: str) -> None:
         self.log_view.append(str(message))
+        self._log_count += 1
+        arrow = "﹀" if self.log_toggle.isChecked() else "›"
+        self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {arrow}")
 
     def is_running(self) -> bool:
         return self._busy
