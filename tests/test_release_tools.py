@@ -411,7 +411,8 @@ def test_workflow_only_publishes_commits_reachable_from_main():
 
     assert "publish_allowed: ${{ steps.release_source.outputs.publish_allowed }}" in workflow
     assert "git fetch --no-tags origin main:refs/remotes/origin/main" in workflow
-    assert "git merge-base --is-ancestor $env:GITHUB_SHA refs/remotes/origin/main" in workflow
+    assert "$mergeBase = (git merge-base $env:GITHUB_SHA refs/remotes/origin/main).Trim()" in workflow
+    assert "git merge-base --is-ancestor" not in workflow
     assert "needs.scope.outputs.publish_allowed == 'true'" in workflow
 
 

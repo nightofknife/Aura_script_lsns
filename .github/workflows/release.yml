@@ -53,13 +53,14 @@ jobs:
           git fetch --no-tags origin main:refs/remotes/origin/main
           if ($LASTEXITCODE -ne 0) { throw "Failed to fetch origin/main for release source validation." }
 
-          git merge-base --is-ancestor $env:GITHUB_SHA refs/remotes/origin/main
-          if ($LASTEXITCODE -eq 0) {
+          $mergeBase = (git merge-base $env:GITHUB_SHA refs/remotes/origin/main).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to compare $env:GITHUB_SHA with origin/main."
+          }
+          if ($mergeBase -eq $env:GITHUB_SHA) {
             "publish_allowed=true" >> $env:GITHUB_OUTPUT
-          } elseif ($LASTEXITCODE -eq 1) {
-            "publish_allowed=false" >> $env:GITHUB_OUTPUT
           } else {
-            throw "Failed to determine whether $env:GITHUB_SHA belongs to origin/main."
+            "publish_allowed=false" >> $env:GITHUB_OUTPUT
           }
 
       - name: Read release policy
