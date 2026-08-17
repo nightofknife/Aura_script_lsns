@@ -405,6 +405,31 @@ def test_workflow_has_no_plan_only_release_path():
     assert "onnxruntime_providers_cuda.dll" not in reusable
 
 
+def test_workflow_only_publishes_commits_reachable_from_main():
+    repo_root = Path(__file__).resolve().parents[1]
+    workflow = (repo_root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert "publish_allowed: ${{ steps.release_source.outputs.publish_allowed }}" in workflow
+    assert "git fetch --no-tags origin main:refs/remotes/origin/main" in workflow
+    assert "$sourceCommit = (git rev-parse \"$env:GITHUB_SHA^{commit}\").Trim()" in workflow
+    assert "$mergeBase = (git merge-base $sourceCommit refs/remotes/origin/main).Trim()" in workflow
+    assert "git merge-base --is-ancestor" not in workflow
+    assert "needs.scope.outputs.publish_allowed == 'true'" in workflow
+
+
+def test_workflow_temporarily_builds_cpu_release_only():
+    repo_root = Path(__file__).resolve().parents[1]
+    workflow = (repo_root / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert "build-cpu:" in workflow
+    assert "profile: cpu" in workflow
+    assert "profile: [cpu, gpu, overlay]" not in workflow
+    assert "gpu-smoke:" not in workflow
+    assert "run_gpu_smoke:" not in workflow
+    assert "name: release-full-cpu" in workflow
+    assert "Expected CPU release archive and SHA256SUMS.txt" in workflow
+
+
 def test_cpu_and_gpu_locks_only_swap_onnxruntime_distribution():
     repo_root = Path(__file__).resolve().parents[1]
     cpu = parse_hashed_lock(repo_root / "requirements" / "release-cpu.lock.txt")
