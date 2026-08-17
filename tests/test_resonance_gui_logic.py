@@ -500,7 +500,23 @@ def test_workflow_freight_progress_builds_city_stages_and_tracks_business_progre
     assert [city.name for city in state.cities] == ["A", "海角城", "A"]
     assert [city.index for city in state.cities] == [0, 1, 2]
     assert any(phase.key == "investment" for phase in state.cities[1].phases)
+    assert all(
+        phase.key != "investment"
+        for city_index in (0, 2)
+        for phase in state.cities[city_index].phases
+    )
     assert next(phase for phase in state.cities[1].phases if phase.key == "buy").state == "skipped"
+
+    without_investment = reduce_workflow_freight_progress(
+        WorkflowFreightProgressState(investment_enabled=False),
+        event(1, "planning", "completed", data={"route": route}),
+        investment_enabled=False,
+    )
+    assert all(
+        phase.key != "investment"
+        for city in without_investment.cities
+        for phase in city.phases
+    )
 
     state = reduce_workflow_freight_progress(
         state, event(2, "sell", "started", city_index=0, city_count=3, leg_index=0)

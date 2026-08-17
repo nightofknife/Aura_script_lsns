@@ -618,7 +618,59 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
         assert trade.child(2).isExpanded()
         assert "海角城" in page.internal_progress_label.text()
         assert any("城市投资" in trade.child(2).child(i).text(0) for i in range(trade.child(2).childCount()))
+
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-city-tree",
+                    "sequence": 3,
+                    "stage": "investment",
+                    "state": "started",
+                    "leg_index": 0,
+                    "city_index": 1,
+                    "city_count": 2,
+                    "current_city": "海角城",
+                },
+            },
+        )
+        assert page.run_tree.isHeaderHidden()
+        assert not page.log_view.isVisible()
+        assert trade.child(2).text(1) == "进行中"
+        assert trade.child(2).background(0).color().name() == "#f3e4b8"
+        assert page.progress_stack.currentWidget() is page.timeline_view
+        assert len(page.timeline_view.rows) == 2
+        assert "investment" not in page.timeline_view.rows[0].phase_keys
+        assert "investment" in page.timeline_view.rows[1].phase_keys
         page.finish_workflow(success=False, message="测试结束")
+        assert page.log_view.isVisible()
+
+        page.begin_workflow(
+            ["commerce"],
+            ["trade"],
+            {"auto_cape_island_investment": False},
+        )
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-city-tree-no-investment",
+                    "sequence": 1,
+                    "stage": "planning",
+                    "state": "completed",
+                    "city_count": 2,
+                    "data": {"route": route},
+                },
+            },
+        )
+        assert all(
+            "investment" not in row.phase_keys
+            for row in page.timeline_view.rows
+        )
     finally:
         window.close()
 
