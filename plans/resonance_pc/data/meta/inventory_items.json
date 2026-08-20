@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "default_stack_policy": "merge",
+  "layout": {
+    "template_size": [100, 70],
+    "template_offset_from_card": [10, 23],
+    "card_size": [122, 121],
+    "grid_region": [407, 104, 650, 616],
+    "match_threshold": 0.82,
+    "scroll_start": [1000, 620],
+    "scroll_end": [1000, 300],
+    "expiry_roi_from_template": [48, -23, 52, 23],
+    "count_roi_from_template": [82, 68, 30, 29]
+  },
+  "items": [
+    {
+      "item_id": "cactus_energy_lollipop",
+      "name": "仙人掌能量棒棒糖",
+      "template": "templates/inventory/items/cactus_energy_lollipop.png",
+      "stack_policy": "split_by_expiry"
+    },
+    {
+      "item_id": "stamina_lollipop",
+      "name": "提神棒棒糖",
+      "template": "templates/inventory/items/stamina_lollipop.png",
+      "stack_policy": "split_by_expiry"
+    }
+  ]
+}

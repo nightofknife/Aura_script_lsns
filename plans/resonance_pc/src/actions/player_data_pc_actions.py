@@ -3,22 +3,42 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.utils.exceptions import StopTaskException
 
+from .inventory_pc_actions import read_inventory_items
+
 Region = Tuple[int, int, int, int]
+
+_PLAN_ROOT = Path(__file__).resolve().parents[2]
+_PLAYER_CACHE_ROOT = _PLAN_ROOT / "data" / "cache" / "player"
+_PLAYER_LATEST_FILE = _PLAYER_CACHE_ROOT / "latest.json"
+
+_DATA_STAGES = ("location", "profile", "currencies", "clarity", "fatigue", "inventory")
+_STAGE_ORDER = (*_DATA_STAGES, "persist")
+_PROFILE_PANEL_STAGES = frozenset(
+    {"profile", "currencies", "clarity", "fatigue", "inventory"}
+)
+
+_scan_inventory_stage = read_inventory_items
 
 _CLICK_PROFILE = (150, 655)
 _CLICK_CURRENCY_EYE = (329, 217)
 _CLICK_CONFIRM = (946, 644)
 _CLICK_BACK = (82, 34)
+_CLICK_PROFILE_CLOSE = (900, 150)
 _CLICK_CLARITY = (190, 276)
 _CLICK_FATIGUE = (385, 276)
+_CLICK_INVENTORY = (165, 615)
+_WAREHOUSE_ICON_OFFSET_FROM_LABEL = (0, -45)
+_WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
 
 _MAIN_CITY_REGION: Region = (65, 105, 150, 70)
 _PROFILE_REGION: Region = (90, 0, 600, 340)
@@ -26,6 +46,8 @@ _CURRENCY_POPUP_REGION: Region = (700, 245, 485, 410)
 _CLARITY_PAGE_REGION: Region = (0, 0, 1280, 720)
 _FATIGUE_PAGE_REGION: Region = (0, 0, 1280, 720)
 _MAIN_PAGE_REGION: Region = (0, 0, 1280, 720)
+_INVENTORY_PAGE_REGION: Region = (1050, 0, 230, 520)
+_WAREHOUSE_ENTRY_REGION: Region = (110, 560, 140, 150)
 _MAIN_PAGE_MARKERS = ("访问城市", "访问地区", "启程", "STARTENGINE")
 
 _PROFILE_FIELD_REGIONS: Dict[str, Region] = {
@@ -33,7 +55,7 @@ _PROFILE_FIELD_REGIONS: Dict[str, Region] = {
     "level": (105, 120, 80, 35),
     "nickname": (105, 150, 385, 45),
     "iron_coins": (170, 198, 135, 40),
-    "birch_stone": (430, 198, 80, 40),
+    "birch_stone": (420, 193, 105, 50),
     "clarity": (145, 250, 125, 45),
     "fatigue": (360, 250, 125, 45),
     "cargo": (545, 250, 125, 45),
@@ -44,61 +66,7 @@ _CURRENCY_FIELD_REGIONS: Dict[str, Region] = {
 }
 
 _CLARITY_RATIO_REGION: Region = (150, 395, 230, 80)
-_FATIGUE_RATIO_REGION: Region = (90, 585, 130, 65)
-
-_CLARITY_OPTIONS = [
-    {
-        "name": "仙人掌能量棒棒糖",
-        "delta": 40,
-        "slot_region": (55, 535, 285, 120),
-        "count_region": (55, 610, 70, 45),
-    },
-    {
-        "name": "仙人掌跳跳卷",
-        "delta": 60,
-        "slot_region": (355, 535, 300, 120),
-        "count_region": (360, 610, 80, 45),
-    },
-    {
-        "name": "仙人掌能量跳糖",
-        "delta": 180,
-        "slot_region": (660, 535, 300, 120),
-        "count_region": (660, 610, 80, 45),
-    },
-    {
-        "name": "桦石",
-        "delta": 100,
-        "slot_region": (960, 515, 270, 140),
-        "limit_region": (955, 515, 120, 35),
-    },
-]
-
-_FATIGUE_OPTIONS = [
-    {
-        "name": "提神棒棒糖",
-        "delta": -60,
-        "slot_region": (575, 155, 170, 205),
-        "count_region": (720, 280, 28, 40),
-    },
-    {
-        "name": "提神口香糖",
-        "delta": -100,
-        "slot_region": (815, 155, 175, 205),
-        "count_region": (944, 280, 45, 40),
-    },
-    {
-        "name": "仙人掌提神跳糖",
-        "delta": -900,
-        "slot_region": (575, 410, 175, 205),
-        "count_region": (690, 525, 80, 70),
-    },
-    {
-        "name": "桦石",
-        "delta": -150,
-        "slot_region": (815, 410, 175, 205),
-        "limit_region": (815, 410, 140, 40),
-    },
-]
+_FATIGUE_RATIO_REGION: Region = (85, 580, 160, 75)
 
 
 def _normalize_text(text: str) -> str:
@@ -143,18 +111,6 @@ def _extract_first_int(text: str, default: int = 0) -> int:
     return ints[0] if ints else default
 
 
-def _extract_count_int(text: str, default: int = 0) -> int:
-    compact = re.sub(r"\s+", "", str(text or "")).upper()
-    if compact in {"T", "I", "L", "市", "丨"}:
-        return 1
-    if compact and re.fullmatch(r"[0-9A-Z:：]+", compact):
-        compact = compact.translate(str.maketrans({"O": "0", "Q": "0", "D": "0", "I": "1", "L": "1", "T": "1", "B": "3"}))
-        ints = _extract_ints(compact)
-        if ints:
-            return ints[0]
-    return _extract_first_int(text, default)
-
-
 def _extract_uid(text: str) -> str:
     match = re.search(r"UID\s*[:：]?\s*(\d{4,})", str(text or ""), re.IGNORECASE)
     if match:
@@ -179,21 +135,6 @@ def _extract_ratio(text: str) -> Dict[str, int]:
     if len(ints) >= 2:
         return {"current": ints[0], "max": ints[1]}
     return {"current": 0, "max": 0}
-
-
-def _extract_daily_limit(text: str) -> Optional[str]:
-    compact = re.sub(r"[\s:：,，.。\\|_-]+", "", str(text or ""))
-    match = re.search(r"每日限购(\d+)/(\d+)", compact)
-    if not match:
-        match = re.search(r"(\d+)/(\d+)", compact)
-    if not match:
-        return None
-    return f"{int(match.group(1))}/{int(match.group(2))}"
-
-
-def _looks_unavailable(text: str) -> bool:
-    compact = _normalize_text(text)
-    return "获取途径" in compact or "獲取途徑" in compact
 
 
 def _capture_ocr_items(app: Any, ocr: Any, region: Optional[Region] = None, *, scale: float = 1.0) -> List[Dict[str, Any]]:
@@ -239,6 +180,66 @@ def _wait_for_any_marker(
     )
 
 
+def _find_text_item(items: Iterable[Mapping[str, Any]], marker: str) -> Optional[Dict[str, Any]]:
+    normalized_marker = _normalize_text(marker)
+    for item in items:
+        if normalized_marker and normalized_marker in _normalize_text(_text_of(item)):
+            return dict(item)
+    return None
+
+
+def _has_all_markers(items: Iterable[Any], markers: Iterable[str]) -> bool:
+    normalized_text = _normalize_text(_join_text(items))
+    return all(
+        normalized_marker and normalized_marker in normalized_text
+        for normalized_marker in (_normalize_text(marker) for marker in markers)
+    )
+
+
+def _enter_warehouse_page(
+    app: Any,
+    ocr: Any,
+    *,
+    timeout_sec: float = _WAREHOUSE_ENTRY_TIMEOUT_SEC,
+    interval_sec: float = 0.15,
+    click_interval_sec: float = 0.55,
+) -> None:
+    """Continuously locate, click and verify the warehouse entry for up to 3s."""
+
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    next_click_at = 0.0
+    last_page_text = ""
+    last_entry_text = ""
+    while time.monotonic() < deadline:
+        page_items = _capture_ocr_items(app, ocr, _INVENTORY_PAGE_REGION)
+        last_page_text = _join_text(page_items)
+        if _has_all_markers(page_items, ("道具", "材料", "装备")):
+            return
+
+        now = time.monotonic()
+        if now >= next_click_at:
+            entry_items = _capture_ocr_items(app, ocr, _WAREHOUSE_ENTRY_REGION)
+            last_entry_text = _join_text(entry_items)
+            warehouse_item = _find_text_item(entry_items, "仓库")
+            if warehouse_item is not None:
+                center = warehouse_item.get("center") or [
+                    _CLICK_INVENTORY[0],
+                    _CLICK_INVENTORY[1] - _WAREHOUSE_ICON_OFFSET_FROM_LABEL[1],
+                ]
+                click_x = int(center[0]) + _WAREHOUSE_ICON_OFFSET_FROM_LABEL[0]
+                click_y = int(center[1]) + _WAREHOUSE_ICON_OFFSET_FROM_LABEL[1]
+                app.click(x=click_x, y=click_y)
+                next_click_at = now + max(float(click_interval_sec), 0.1)
+        time.sleep(max(float(interval_sec), 0.05))
+
+    raise StopTaskException(
+        "Player data refresh failed: warehouse page was not confirmed within "
+        f"{float(timeout_sec):.1f}s. Last page OCR: {_normalize_text(last_page_text)[:120]}; "
+        f"last entry OCR: {_normalize_text(last_entry_text)[:80]}",
+        success=False,
+    )
+
+
 def _read_region_text(app: Any, ocr: Any, region: Region, *, scale: float = 1.0) -> str:
     return _join_text(_capture_ocr_items(app, ocr, region, scale=scale))
 
@@ -267,12 +268,10 @@ def _parse_city_name(items: List[Dict[str, Any]]) -> str:
     return _join_text(items).strip()
 
 
-def _parse_profile_panel(app: Any, ocr: Any) -> Dict[str, Any]:
+def _read_profile_stage(app: Any, ocr: Any) -> Dict[str, Any]:
     uid_text = _read_region_text(app, ocr, (95, 8, 160, 35), scale=4.0)
     nickname = _extract_nickname(_read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["nickname"]))
     level_text = _read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["level"])
-    clarity = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["clarity"])
-    fatigue = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["fatigue"])
     cargo = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["cargo"])
     return {
         "profile": {
@@ -280,67 +279,19 @@ def _parse_profile_panel(app: Any, ocr: Any) -> Dict[str, Any]:
             "nickname": nickname,
             "level": _extract_first_int(level_text),
         },
-        "currencies": {
-            "iron_coins": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["iron_coins"]),
-            "birch_stone": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["birch_stone"]),
-        },
-        "status": {
-            "clarity": clarity,
-            "fatigue": fatigue,
-            "cargo": cargo,
-        },
+        "cargo": cargo,
     }
 
 
-def _parse_recovery_option(
-    *,
-    name: str,
-    delta: int,
-    slot_text: str,
-    count_text: str = "",
-    limit_text: str = "",
-) -> Dict[str, Any]:
-    daily_limit = _extract_daily_limit(" ".join([limit_text, slot_text]))
-    unavailable = _looks_unavailable(slot_text)
-    result: Dict[str, Any] = {
-        "name": name,
-        "delta": int(delta),
+def _read_currencies_stage(app: Any, ocr: Any) -> Dict[str, int]:
+    return {
+        "iron_coins": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["iron_coins"]),
+        "birch_stone": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["birch_stone"]),
     }
-    if daily_limit is not None:
-        result["daily_limit"] = daily_limit
-        current, max_count = [int(part) for part in daily_limit.split("/", 1)]
-        result["available"] = current > 0 and max_count > 0
-        return result
-
-    count = _extract_count_int(count_text, default=0)
-    if count == 0 and not unavailable:
-        ints = [value for value in _extract_ints(slot_text) if value != abs(int(delta))]
-        count = ints[-1] if ints else 0
-    result["count"] = int(count)
-    result["available"] = bool(count > 0 and not unavailable)
-    return result
-
-
-def _read_recovery_options(app: Any, ocr: Any, specs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    options: List[Dict[str, Any]] = []
-    for spec in specs:
-        slot_text = _read_region_text(app, ocr, spec["slot_region"])
-        count_text = _read_region_text(app, ocr, spec["count_region"]) if spec.get("count_region") else ""
-        limit_text = _read_region_text(app, ocr, spec["limit_region"]) if spec.get("limit_region") else ""
-        options.append(
-            _parse_recovery_option(
-                name=str(spec["name"]),
-                delta=int(spec["delta"]),
-                slot_text=slot_text,
-                count_text=count_text,
-                limit_text=limit_text,
-            )
-        )
-    return options
 
 
 def _close_profile_panel_to_main(app: Any, ocr: Any) -> None:
-    app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+    app.click(x=_CLICK_PROFILE_CLOSE[0], y=_CLICK_PROFILE_CLOSE[1])
     _wait_for_any_marker(
         app,
         ocr,
@@ -351,23 +302,167 @@ def _close_profile_panel_to_main(app: Any, ocr: Any) -> None:
     )
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _normalize_stages(stages: Any = None) -> Tuple[str, ...]:
+    if stages is None:
+        return _STAGE_ORDER
+    if not isinstance(stages, list):
+        raise ValueError("stages must be a list of stage names")
+
+    requested: set[str] = set()
+    for stage in stages:
+        if not isinstance(stage, str) or stage not in _STAGE_ORDER:
+            raise ValueError(
+                "stages contains an unsupported value; supported stages are: "
+                + ", ".join(_STAGE_ORDER)
+            )
+        requested.add(stage)
+
+    if not requested:
+        raise ValueError("stages must select at least one data stage")
+    if not requested.intersection(_DATA_STAGES):
+        raise ValueError("persist cannot run without at least one data stage")
+    return tuple(stage for stage in _STAGE_ORDER if stage in requested)
+
+
+def _load_latest(*, cache_file: Optional[Path] = None) -> Dict[str, Any]:
+    cache_file = Path(cache_file or _PLAYER_LATEST_FILE)
+    if not cache_file.is_file():
+        raise RuntimeError("No cached Resonance PC player data is available.")
+    try:
+        payload = json.loads(cache_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Cached Resonance PC player data is not valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("Cached Resonance PC player data must be a JSON object.")
+    return payload
+
+
+def _merge_latest(
+    existing: Dict[str, Any],
+    fresh: Dict[str, Any],
+    *,
+    section_updated_at: Dict[str, str],
+    updated_at: str,
+) -> Dict[str, Any]:
+    merged = copy.deepcopy(existing)
+
+    if "location" in section_updated_at:
+        merged["location"] = copy.deepcopy(fresh["location"])
+    if "profile" in section_updated_at:
+        merged["profile"] = copy.deepcopy(fresh["profile"])
+        status = merged.get("status")
+        if not isinstance(status, dict):
+            status = {}
+            merged["status"] = status
+        status["cargo"] = copy.deepcopy(fresh["status"]["cargo"])
+    if "currencies" in section_updated_at:
+        merged["currencies"] = copy.deepcopy(fresh["currencies"])
+
+    for stage in ("clarity", "fatigue"):
+        if stage not in section_updated_at:
+            continue
+        status = merged.get("status")
+        if not isinstance(status, dict):
+            status = {}
+            merged["status"] = status
+        status[stage] = copy.deepcopy(fresh["status"][stage])
+
+    if "inventory" in section_updated_at:
+        merged["inventory"] = copy.deepcopy(fresh["inventory"])
+
+    metadata = merged.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    else:
+        metadata = copy.deepcopy(metadata)
+    previous_section_times = metadata.get("section_updated_at")
+    if not isinstance(previous_section_times, dict):
+        previous_section_times = {}
+    else:
+        previous_section_times = copy.deepcopy(previous_section_times)
+    previous_section_times.update(section_updated_at)
+    metadata.update(
+        {
+            "source": "ocr",
+            "updated_at": updated_at,
+            "section_updated_at": previous_section_times,
+        }
+    )
+    merged["metadata"] = metadata
+    return merged
+
+
+def _persist_latest(
+    fresh: Dict[str, Any],
+    *,
+    section_updated_at: Dict[str, str],
+    cache_file: Optional[Path] = None,
+) -> Dict[str, Any]:
+    cache_file = Path(cache_file or _PLAYER_LATEST_FILE)
+    existing = _load_latest(cache_file=cache_file) if cache_file.is_file() else {}
+    updated_at = _utc_now_iso()
+    merged = _merge_latest(
+        existing,
+        fresh,
+        section_updated_at=section_updated_at,
+        updated_at=updated_at,
+    )
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cache_file.with_suffix(cache_file.suffix + ".tmp")
+    tmp.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(cache_file)
+    return merged
+
+
+def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
+    try:
+        if page == "currency":
+            app.click(x=_CLICK_CONFIRM[0], y=_CLICK_CONFIRM[1])
+            page = "profile"
+        elif page in {"clarity", "fatigue", "inventory"}:
+            app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+            page = "profile"
+        if page == "profile":
+            app.click(x=_CLICK_PROFILE_CLOSE[0], y=_CLICK_PROFILE_CLOSE[1])
+        _wait_for_any_marker(
+            app,
+            ocr,
+            markers=_MAIN_PAGE_MARKERS,
+            region=_MAIN_PAGE_REGION,
+            timeout_sec=3.0,
+            label="main page during player data cleanup",
+        )
+    except Exception:
+        return
+
+
 @action_info(
     name="resonance_pc.player_data_refresh",
     public=True,
     read_only=False,
-    timeout=180,
-    description="Refresh Resonance profile, currencies, clarity, fatigue, cargo and recovery options.",
+    timeout=300,
+    description="Selectively refresh and optionally persist Resonance PC player data.",
 )
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
 )
 def resonance_pc_player_data_refresh(
+    stages: Any = None,
     app: Any = None,
     ocr: Any = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None:
         raise RuntimeError("app/ocr service is required")
+
+    selected_stages = _normalize_stages(stages)
+    selected = set(selected_stages)
+    section_updated_at: Dict[str, str] = {}
+    result: Dict[str, Any] = {}
 
     _wait_for_any_marker(
         app,
@@ -377,98 +472,158 @@ def resonance_pc_player_data_refresh(
         label="main page before player data refresh",
     )
 
-    main_items = _capture_ocr_items(app, ocr, _MAIN_CITY_REGION)
-    current_city = _parse_city_name(main_items)
+    if "location" in selected:
+        main_items = _capture_ocr_items(app, ocr, _MAIN_CITY_REGION)
+        result["location"] = {"current_city": _parse_city_name(main_items)}
+        section_updated_at["location"] = _utc_now_iso()
 
-    app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("UID", "资产", "查看更多信息"),
-        region=_PROFILE_REGION,
-        label="profile panel",
-    )
+    panel_required = bool(selected.intersection(_PROFILE_PANEL_STAGES))
+    current_page = "main"
+    if panel_required:
+        try:
+            app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
+            current_page = "unknown"
+            _wait_for_any_marker(
+                app,
+                ocr,
+                markers=("UID", "资产", "查看更多信息"),
+                region=_PROFILE_REGION,
+                label="profile panel",
+            )
+            current_page = "profile"
 
-    parsed = _parse_profile_panel(app, ocr)
+            if "profile" in selected:
+                profile_data = _read_profile_stage(app, ocr)
+                result["profile"] = profile_data["profile"]
+                result.setdefault("status", {})["cargo"] = profile_data["cargo"]
+                section_updated_at["profile"] = _utc_now_iso()
 
-    app.click(x=_CLICK_CURRENCY_EYE[0], y=_CLICK_CURRENCY_EYE[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("所有货币",),
-        region=_CURRENCY_POPUP_REGION,
-        label="currency popup",
-    )
-    popup_iron_coins = _read_int_region(app, ocr, _CURRENCY_FIELD_REGIONS["iron_coins"])
-    if popup_iron_coins:
-        parsed["currencies"]["iron_coins"] = popup_iron_coins
+            if "currencies" in selected:
+                currencies = _read_currencies_stage(app, ocr)
+                app.click(x=_CLICK_CURRENCY_EYE[0], y=_CLICK_CURRENCY_EYE[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("所有货币",),
+                    region=_CURRENCY_POPUP_REGION,
+                    label="currency popup",
+                )
+                current_page = "currency"
+                currencies["iron_coins"] = _read_int_region(
+                    app,
+                    ocr,
+                    _CURRENCY_FIELD_REGIONS["iron_coins"],
+                )
+                result["currencies"] = currencies
+                app.click(x=_CLICK_CONFIRM[0], y=_CLICK_CONFIRM[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("UID", "资产", "查看更多信息"),
+                    region=_PROFILE_REGION,
+                    label="profile panel after currency popup",
+                )
+                current_page = "profile"
+                section_updated_at["currencies"] = _utc_now_iso()
 
-    app.click(x=_CLICK_CONFIRM[0], y=_CLICK_CONFIRM[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("UID", "资产", "查看更多信息"),
-        region=_PROFILE_REGION,
-        label="profile panel after currency popup",
-    )
+            if "clarity" in selected:
+                app.click(x=_CLICK_CLARITY[0], y=_CLICK_CLARITY[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("澄明度", "CLARITY", "请选择恢复方式"),
+                    region=_CLARITY_PAGE_REGION,
+                    label="clarity page",
+                )
+                current_page = "clarity"
+                time.sleep(0.5)
+                clarity = _read_ratio_region(app, ocr, _CLARITY_RATIO_REGION)
+                result.setdefault("status", {})["clarity"] = clarity
+                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("UID", "资产", "查看更多信息"),
+                    region=_PROFILE_REGION,
+                    label="profile panel after clarity page",
+                )
+                current_page = "profile"
+                section_updated_at["clarity"] = _utc_now_iso()
 
-    app.click(x=_CLICK_CLARITY[0], y=_CLICK_CLARITY[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("澄明度", "CLARITY", "请选择恢复方式"),
-        region=_CLARITY_PAGE_REGION,
-        label="clarity page",
-    )
-    time.sleep(0.5)
-    clarity = _read_ratio_region(app, ocr, _CLARITY_RATIO_REGION)
-    clarity["recovery_options"] = _read_recovery_options(app, ocr, _CLARITY_OPTIONS)
+            if "fatigue" in selected:
+                app.click(x=_CLICK_FATIGUE[0], y=_CLICK_FATIGUE[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("FATIGUE", "疲劳值", "请选择恢复疲劳值方式"),
+                    region=_FATIGUE_PAGE_REGION,
+                    label="fatigue page",
+                )
+                current_page = "fatigue"
+                time.sleep(0.5)
+                fatigue = _read_ratio_region(app, ocr, _FATIGUE_RATIO_REGION)
+                result.setdefault("status", {})["fatigue"] = fatigue
+                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+                current_page = "unknown"
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("UID", "资产", "查看更多信息"),
+                    region=_PROFILE_REGION,
+                    label="profile panel after fatigue page",
+                )
+                current_page = "profile"
+                section_updated_at["fatigue"] = _utc_now_iso()
 
-    app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("UID", "资产", "查看更多信息"),
-        region=_PROFILE_REGION,
-        label="profile panel after clarity page",
-    )
+            if "inventory" in selected:
+                current_page = "inventory"
+                _enter_warehouse_page(app, ocr)
+                time.sleep(0.5)
+                result["inventory"] = _scan_inventory_stage(app, ocr)
+                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("UID", "资产", "查看更多信息"),
+                    region=_PROFILE_REGION,
+                    label="profile panel after warehouse item page",
+                )
+                current_page = "profile"
+                section_updated_at["inventory"] = _utc_now_iso()
 
-    app.click(x=_CLICK_FATIGUE[0], y=_CLICK_FATIGUE[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("FATIGUE", "疲劳值", "请选择恢复疲劳值方式"),
-        region=_FATIGUE_PAGE_REGION,
-        label="fatigue page",
-    )
-    time.sleep(0.5)
-    fatigue = _read_ratio_region(app, ocr, _FATIGUE_RATIO_REGION)
-    fatigue["recovery_options"] = _read_recovery_options(app, ocr, _FATIGUE_OPTIONS)
+            current_page = "unknown"
+            _close_profile_panel_to_main(app, ocr)
+            current_page = "main"
+        except Exception:
+            _best_effort_return_to_main(app, ocr, current_page)
+            raise
 
-    app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=("UID", "资产", "查看更多信息"),
-        region=_PROFILE_REGION,
-        label="profile panel after fatigue page",
-    )
+    persisted = False
+    if "persist" in selected:
+        _persist_latest(result, section_updated_at=section_updated_at)
+        persisted = True
 
-    _close_profile_panel_to_main(app, ocr)
-
-    result = {
-        "profile": parsed["profile"],
-        "location": {"current_city": current_city},
-        "currencies": parsed["currencies"],
-        "status": {
-            "clarity": clarity,
-            "fatigue": fatigue,
-            "cargo": parsed["status"]["cargo"],
-        },
-        "metadata": {
-            "refreshed_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-            "source": "ocr",
-        },
+    result["metadata"] = {
+        "refreshed_at": _utc_now_iso(),
+        "source": "ocr",
+        "executed_stages": list(selected_stages),
+        "skipped_stages": [stage for stage in _STAGE_ORDER if stage not in selected],
+        "persisted": persisted,
+        "section_updated_at": copy.deepcopy(section_updated_at),
     }
-
     return copy.deepcopy(result)
+
+
+@action_info(
+    name="resonance_pc.player_data_get_latest",
+    public=True,
+    read_only=True,
+    description="Get latest cached Resonance PC player data.",
+)
+def resonance_pc_player_data_get_latest() -> Dict[str, Any]:
+    return copy.deepcopy(_load_latest())
