@@ -1,16 +1,40 @@
 player_data_refresh:
   meta:
     title: Resonance Player Data Refresh (PC)
-    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery options from the PC client.
+    description: Refresh profile, currencies, clarity, fatigue, inventory and cargo from the PC client.
     entry_point: true
     concurrency: exclusive
-    inputs: []
+    inputs:
+      - name: stages
+        type: list
+        required: false
+        default: [location, profile, currencies, clarity, fatigue, inventory, persist]
+        item:
+          name: stage
+          type: enum
+          required: true
+          enum: [location, profile, currencies, clarity, fatigue, inventory, persist]
 
   steps:
     refresh:
       action: resonance_pc.player_data_refresh
-      timeout_sec: 180
-      params: {}
+      timeout_sec: 300
+      params:
+        stages: "{{ inputs.stages }}"
 
   returns:
     player_data: "{{ nodes.refresh.output }}"
+
+player_data_get_latest:
+  meta:
+    title: Resonance Player Data Latest (PC)
+    description: Read latest cached Resonance PC player data.
+    inputs: []
+
+  steps:
+    get_latest:
+      action: resonance_pc.player_data_get_latest
+      params: {}
+
+  returns:
+    player_data: "{{ nodes.get_latest.output }}"

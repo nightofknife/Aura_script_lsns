@@ -1463,9 +1463,20 @@ exports:
     function: resonance_pc_player_data_refresh
     public: true
     read_only: false
-    timeout: 180
-    description: Refresh Resonance profile, currencies, clarity, fatigue, cargo and
-      recovery options.
+    timeout: 300
+    description: Selectively refresh and optionally persist Resonance PC player data.
+    parameters:
+    - name: stages
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.player_data_get_latest
+    module: plans.resonance_pc.src.actions.player_data_pc_actions
+    function: resonance_pc_player_data_get_latest
+    public: true
+    read_only: true
+    timeout: null
+    description: Get latest cached Resonance PC player data.
     parameters: []
   - name: resonance_pc.use_purchase_books
     module: plans.resonance_pc.src.actions.purchase_book_pc_actions
@@ -2235,8 +2246,12 @@ exports:
   - id: player_data_pc/player_data_refresh
     title: Resonance Player Data Refresh (PC)
     source: tasks/player_data_pc.yaml
-    description: Refresh profile, currencies, clarity, fatigue, cargo and recovery
-      options from the PC client.
+    description: Refresh profile, currencies, clarity, fatigue, inventory and cargo
+      from the PC client.
+  - id: player_data_pc/player_data_get_latest
+    title: Resonance Player Data Latest (PC)
+    source: tasks/player_data_pc.yaml
+    description: Read latest cached Resonance PC player data.
   - id: preview_trade_plan_pc/preview_trade_plan_pc
     title: Preview Exact Trade Plan (PC)
     source: tasks/preview_trade_plan_pc.yaml
@@ -2249,4 +2264,4 @@ exports:
       start city.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-17T12:46:40Z'
+  generated_at: '2026-08-20T16:27:02Z'
