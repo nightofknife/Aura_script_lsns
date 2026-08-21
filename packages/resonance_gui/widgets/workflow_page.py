@@ -48,8 +48,10 @@ from ..logic import (
     PASSENGER_STAGE_LABELS,
     PassengerProgressState,
     WorkflowFreightProgressState,
+    expected_profit_per_fatigue,
     reduce_passenger_progress,
     reduce_workflow_freight_progress,
+    route_product_lines,
 )
 
 
@@ -567,9 +569,11 @@ class WorkflowPage(QWidget):
             self.passenger_editor_header,
         ) = self._build_embedded_editor_page("完整客运参数")
         self.trade_preview_page = self._build_trade_preview_page()
+        self.runtime_trade_plan_page = self._build_runtime_trade_plan_page()
         self.center_stack.addWidget(self.trade_editor_page)
         self.center_stack.addWidget(self.passenger_editor_page)
         self.center_stack.addWidget(self.trade_preview_page)
+        self.center_stack.addWidget(self.runtime_trade_plan_page)
         layout.addWidget(self.center_stack)
         return panel
 
@@ -612,6 +616,106 @@ class WorkflowPage(QWidget):
         self.trade_preview_rerun_button = rerun
         return page
 
+    def _build_runtime_trade_plan_page(self) -> QWidget:
+        page = QWidget(self)
+        page.setObjectName("runtimeTradePlanPage")
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        header = QHBoxLayout()
+        heading_box = QVBoxLayout()
+        heading = QLabel("本次运行方案", page)
+        heading.setObjectName("workflowTitle")
+        note = QLabel("正式运行采用的计算结果会保留在这里。", page)
+        note.setProperty("caption", True)
+        heading_box.addWidget(heading)
+        heading_box.addWidget(note)
+        header.addLayout(heading_box)
+        header.addStretch(1)
+        self.runtime_plan_badge = QLabel("等待规划", page)
+        self.runtime_plan_badge.setObjectName("runtimePlanBadge")
+        self.runtime_plan_badge.setProperty("progressState", "waiting")
+        self.runtime_plan_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.addWidget(self.runtime_plan_badge)
+        layout.addLayout(header)
+
+        summary = QFrame(page)
+        summary.setObjectName("runtimePlanSummary")
+        summary_layout = QGridLayout(summary)
+        summary_layout.setContentsMargins(14, 12, 14, 12)
+        summary_layout.setHorizontalSpacing(18)
+        summary_layout.setVerticalSpacing(8)
+        self.runtime_plan_values: dict[str, QLabel] = {}
+        fields = (
+            ("expected_profit", "预计收益"),
+            ("profit_per_fatigue", "疲劳收益比"),
+            ("fatigue", "预计疲劳 / 预算"),
+            ("route", "路线规模"),
+        )
+        for column, (key, title) in enumerate(fields):
+            box = QVBoxLayout()
+            caption = QLabel(title, summary)
+            caption.setObjectName("runtimePlanMetricLabel")
+            value = QLabel("--", summary)
+            value.setObjectName(
+                "runtimePlanProfit" if key == "expected_profit" else "runtimePlanMetricValue"
+            )
+            value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            box.addWidget(caption)
+            box.addWidget(value)
+            summary_layout.addLayout(box, 0, column)
+            summary_layout.setColumnStretch(column, 1)
+            self.runtime_plan_values[key] = value
+        layout.addWidget(summary)
+
+        self.runtime_plan_path = QLabel("路线 · 等待计算", page)
+        self.runtime_plan_path.setObjectName("runtimePlanPath")
+        self.runtime_plan_path.setWordWrap(True)
+        self.runtime_plan_path.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        layout.addWidget(self.runtime_plan_path)
+
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(8)
+        self.runtime_plan_meta: dict[str, QLabel] = {}
+        for key in ("remaining_fatigue", "books", "negotiations"):
+            value = QLabel(page)
+            value.setObjectName("runtimePlanMeta")
+            meta_row.addWidget(value)
+            self.runtime_plan_meta[key] = value
+        meta_row.addStretch(1)
+        layout.addLayout(meta_row)
+
+        route_title = QLabel("逐段方案", page)
+        route_title.setObjectName("sectionTitle")
+        layout.addWidget(route_title)
+        self.runtime_plan_route = QScrollArea(page)
+        self.runtime_plan_route.setObjectName("runtimePlanRoute")
+        self.runtime_plan_route.setWidgetResizable(True)
+        self.runtime_plan_route.setFrameShape(QFrame.Shape.NoFrame)
+        self.runtime_plan_route.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.runtime_plan_route_content = QWidget(self.runtime_plan_route)
+        self.runtime_plan_route_content.setObjectName("runtimePlanRouteContent")
+        self.runtime_plan_route_layout = QVBoxLayout(self.runtime_plan_route_content)
+        self.runtime_plan_route_layout.setContentsMargins(0, 0, 0, 0)
+        self.runtime_plan_route_layout.setSpacing(7)
+        self.runtime_plan_route_layout.addStretch(1)
+        self.runtime_plan_route.setWidget(self.runtime_plan_route_content)
+        self.runtime_plan_leg_cards: list[QFrame] = []
+        layout.addWidget(self.runtime_plan_route, 1)
+
+        self.runtime_plan_empty = QLabel("路线规划完成后，这里会显示正式运行采用的方案。", page)
+        self.runtime_plan_empty.setObjectName("runtimePlanEmpty")
+        self.runtime_plan_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.runtime_plan_empty.setWordWrap(True)
+        layout.addWidget(self.runtime_plan_empty, 1)
+        self._clear_runtime_trade_plan()
+        return page
+
     def attach_parameter_editors(
         self, trade_panel: QWidget, passenger_panel: QWidget, trade_result_panel: QWidget
     ) -> None:
@@ -632,6 +736,9 @@ class WorkflowPage(QWidget):
 
     def show_trade_preview(self) -> None:
         self.center_stack.setCurrentWidget(self.trade_preview_page)
+
+    def show_runtime_trade_plan(self) -> None:
+        self.center_stack.setCurrentWidget(self.runtime_trade_plan_page)
 
     def _request_trade_preview(self) -> None:
         if self._busy:
@@ -1174,6 +1281,9 @@ class WorkflowPage(QWidget):
         commerce_steps: list[str],
         trade_inputs: Mapping[str, Any] | None = None,
     ) -> None:
+        if self.center_stack.currentWidget() is self.runtime_trade_plan_page:
+            self._select_task(self._selected_task)
+        self._clear_runtime_trade_plan()
         self._busy = True
         self.run_button.setText("停止")
         self.run_button.setObjectName("dangerButton")
@@ -1280,6 +1390,12 @@ class WorkflowPage(QWidget):
             if self.step_is_waiting(kind):
                 self.mark_step(kind, "running", "开始货运")
             self._render_freight_progress()
+            if (
+                str(payload.get("stage") or "") == "planning"
+                and str(payload.get("state") or "").lower() == "completed"
+            ):
+                self._render_runtime_trade_plan()
+                self.show_runtime_trade_plan()
             percent = self._freight_progress.percent
             self._set_internal_progress(
                 self._freight_progress.current_label,
@@ -1405,6 +1521,172 @@ class WorkflowPage(QWidget):
         self.progress_stack.setCurrentWidget(self.timeline_view)
         if active_item is not None:
             self.run_tree.scrollToItem(active_item)
+
+    def _render_runtime_trade_plan(self) -> None:
+        route = list(self._freight_progress.route)
+        summary = dict(self._freight_progress.summary)
+        if not route and not summary:
+            return
+
+        status = str(summary.get("status") or "").lower()
+        plan_ready = bool(route) and status not in {
+            "blocked",
+            "failed",
+            "error",
+            "no_plan",
+            "no_positive_profit_route",
+        }
+        fallback_market = self._freight_progress.market_source == "fallback_cache"
+        self.runtime_plan_badge.setText(
+            "方案已采用 · 缓存行情"
+            if plan_ready and fallback_market
+            else "方案已采用"
+            if plan_ready
+            else "无可执行方案"
+        )
+        badge_state = (
+            "running" if plan_ready and fallback_market else "completed" if plan_ready else "failed"
+        )
+        self.runtime_plan_badge.setProperty("progressState", badge_state)
+        self.runtime_plan_badge.style().unpolish(self.runtime_plan_badge)
+        self.runtime_plan_badge.style().polish(self.runtime_plan_badge)
+
+        self.runtime_plan_values["expected_profit"].setText(
+            self._display_plan_value(summary.get("expected_profit"))
+        )
+        ratio = expected_profit_per_fatigue(summary)
+        self.runtime_plan_values["profit_per_fatigue"].setText(
+            f"{ratio:,.2f} / 疲劳" if ratio is not None else "--"
+        )
+        fatigue_used = self._plan_int(summary.get("expected_fatigue_used"))
+        remaining_fatigue = self._plan_int(summary.get("remaining_expected_fatigue"))
+        fatigue_budget = fatigue_used + remaining_fatigue
+        self.runtime_plan_values["fatigue"].setText(
+            f"{fatigue_used:,} / {fatigue_budget:,}"
+            if fatigue_budget > 0
+            else self._display_plan_value(summary.get("expected_fatigue_used"))
+        )
+        city_count = len(route) + 1 if route else 0
+        self.runtime_plan_values["route"].setText(
+            f"{len(route)} 段 / {city_count} 城" if route else "--"
+        )
+
+        city_path: list[str] = []
+        if route:
+            city_path.append(str(route[0].get("from_city") or "起点"))
+            city_path.extend(str(leg.get("to_city") or "下一城市") for leg in route)
+        self.runtime_plan_path.setText(
+            "路线 · " + "  →  ".join(city_path) if city_path else "路线 · 无可执行路线"
+        )
+        self.runtime_plan_meta["remaining_fatigue"].setText(
+            f"剩余疲劳  {self._display_plan_value(summary.get('remaining_expected_fatigue'))}"
+        )
+        self.runtime_plan_meta["books"].setText(
+            f"进货书  {self._display_plan_value(summary.get('books_used'))}"
+        )
+        self.runtime_plan_meta["negotiations"].setText(
+            "协商  砍 "
+            f"{self._display_plan_value(summary.get('full_bargain_count'))} / 抬 "
+            f"{self._display_plan_value(summary.get('full_raise_count'))}"
+        )
+
+        self._clear_runtime_plan_legs()
+        for index, leg in enumerate(route):
+            products = "、".join(route_product_lines(leg)) or "仅迁移"
+            fatigue = self._display_plan_value(leg.get("expected_fatigue_cost"))
+            negotiations: list[str] = []
+            if leg.get("bargain_to_cap"):
+                negotiations.append("买入砍价")
+            if leg.get("raise_to_cap"):
+                negotiations.append("到站抬价")
+            card = QFrame(self.runtime_plan_route_content)
+            card.setObjectName("runtimePlanLegCard")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(11, 9, 11, 9)
+            card_layout.setSpacing(6)
+
+            leg_header = QHBoxLayout()
+            route_label = QLabel(
+                f"{index + 1}. {leg.get('from_city', '--')}  →  {leg.get('to_city', '--')}",
+                card,
+            )
+            route_label.setObjectName("runtimePlanLegRoute")
+            profit_label = QLabel(
+                f"预计收益  {self._display_plan_value(leg.get('expected_profit'))}", card
+            )
+            profit_label.setObjectName("runtimePlanLegProfit")
+            profit_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            leg_header.addWidget(route_label, 1)
+            leg_header.addWidget(profit_label)
+            card_layout.addLayout(leg_header)
+
+            products_label = QLabel(f"计划买入 · {products}", card)
+            products_label.setObjectName("runtimePlanLegProducts")
+            products_label.setWordWrap(True)
+            products_label.setToolTip(products)
+            card_layout.addWidget(products_label)
+
+            meta = QLabel(
+                f"疲劳 {fatigue}  ·  进货书 {self._plan_int(leg.get('books_used'))}"
+                f"  ·  {' / '.join(negotiations) or '无需协商'}",
+                card,
+            )
+            meta.setObjectName("runtimePlanLegMeta")
+            card_layout.addWidget(meta)
+
+            card.route_label = route_label
+            card.profit_label = profit_label
+            card.products_label = products_label
+            card.meta_label = meta
+            self.runtime_plan_route_layout.insertWidget(
+                self.runtime_plan_route_layout.count() - 1, card
+            )
+            self.runtime_plan_leg_cards.append(card)
+        self.runtime_plan_route.setVisible(bool(route))
+        self.runtime_plan_empty.setVisible(not route)
+        if not route:
+            self.runtime_plan_empty.setText("本次计算没有得到可执行路线。")
+
+    def _clear_runtime_trade_plan(self) -> None:
+        if not hasattr(self, "runtime_plan_values"):
+            return
+        self.runtime_plan_badge.setText("等待规划")
+        self.runtime_plan_badge.setProperty("progressState", "waiting")
+        for label in self.runtime_plan_values.values():
+            label.setText("--")
+        self.runtime_plan_path.setText("路线 · 等待计算")
+        self.runtime_plan_meta["remaining_fatigue"].setText("剩余疲劳  --")
+        self.runtime_plan_meta["books"].setText("进货书  --")
+        self.runtime_plan_meta["negotiations"].setText("协商  砍 -- / 抬 --")
+        self._clear_runtime_plan_legs()
+        self.runtime_plan_route.hide()
+        self.runtime_plan_empty.setText("路线规划完成后，这里会显示正式运行采用的方案。")
+        self.runtime_plan_empty.show()
+
+    def _clear_runtime_plan_legs(self) -> None:
+        if not hasattr(self, "runtime_plan_leg_cards"):
+            return
+        for card in self.runtime_plan_leg_cards:
+            self.runtime_plan_route_layout.removeWidget(card)
+            card.deleteLater()
+        self.runtime_plan_leg_cards.clear()
+
+    @staticmethod
+    def _plan_int(value: Any) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _display_plan_value(value: Any) -> str:
+        if value in (None, ""):
+            return "--"
+        if isinstance(value, float):
+            return f"{value:,.2f}"
+        if isinstance(value, int):
+            return f"{value:,}"
+        return str(value)
 
     def _render_passenger_progress(self) -> None:
         self.progress_stack.setCurrentWidget(self.run_tree)

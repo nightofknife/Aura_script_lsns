@@ -516,9 +516,15 @@ def test_workflow_freight_progress_builds_city_stages_and_tracks_business_progre
 
     state = reduce_workflow_freight_progress(
         WorkflowFreightProgressState(investment_enabled=True),
-        event(1, "planning", "completed", data={"route": route}),
+        event(
+            1,
+            "planning",
+            "completed",
+            data={"route": route, "summary": {"expected_profit": 123456}},
+        ),
         investment_enabled=True,
     )
+    assert state.summary["expected_profit"] == 123456
     assert [city.name for city in state.cities] == ["A", "海角城", "A"]
     assert [city.index for city in state.cities] == [0, 1, 2]
     assert any(phase.key == "investment" for phase in state.cities[1].phases)
