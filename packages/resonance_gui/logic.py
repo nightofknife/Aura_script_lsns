@@ -104,6 +104,8 @@ class WorkflowFreightProgressState:
     preparation_state: str = "waiting"
     preparation_detail: str = "等待读取目标与规划路线"
     route: list[dict[str, Any]] = field(default_factory=list)
+    summary: dict[str, Any] = field(default_factory=dict)
+    market_source: str = ""
     cities: list[FreightCityStage] = field(default_factory=list)
     active_city_index: int | None = None
     active_phase: str = ""
@@ -182,9 +184,13 @@ def reduce_workflow_freight_progress(
         state.state = "running"
         state.preparation_detail = TRADE_STAGE_LABELS.get(stage, "准备货运")
         state.preparation_state = "completed" if stage == "planning" and event_state == "completed" else "running"
+        if stage == "market" and data.get("source"):
+            state.market_source = str(data["source"])
         if stage == "planning" and event_state == "completed":
             route = [dict(item) for item in data.get("route", []) if isinstance(item, Mapping)]
             state.route = route
+            if isinstance(data.get("summary"), Mapping):
+                state.summary = dict(data["summary"])
             state.cities = _build_freight_city_stages(route, state.investment_enabled)
         return state
 

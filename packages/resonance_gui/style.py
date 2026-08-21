@@ -224,6 +224,64 @@ QHeaderView::section {
 QTreeWidget::item, QTableWidget::item { padding: 6px; }
 QTreeWidget::item:selected, QTableWidget::item:selected { background: #dce3d5; color: #384335; }
 QFrame#resultBand { background: #f8f3e8; border-top: 1px solid #c9b99d; }
+QFrame#runtimePlanSummary {
+    background: #f2ebdd;
+    border: 1px solid #d4c6ad;
+    border-radius: 7px;
+}
+QLabel#runtimePlanMetricLabel { color: #716a5e; font-size: 11px; font-weight: 600; }
+QLabel#runtimePlanMetricValue { color: #38342e; font-size: 15px; font-weight: 700; }
+QLabel#runtimePlanProfit { color: #4f6848; font-size: 19px; font-weight: 800; }
+QLabel#runtimePlanBadge {
+    min-width: 76px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+QLabel#runtimePlanBadge[progressState="waiting"] { color: #6f685e; background: #eee9df; }
+QLabel#runtimePlanBadge[progressState="completed"] { color: #4d6847; background: #e1eadc; }
+QLabel#runtimePlanBadge[progressState="running"] { color: #8b6200; background: #f5e4b6; }
+QLabel#runtimePlanBadge[progressState="failed"] { color: #984b39; background: #f1ddd4; }
+QLabel#runtimePlanPath {
+    color: #4f4a42;
+    background: #fffaf0;
+    border: 1px solid #d4c6ad;
+    border-radius: 5px;
+    padding: 9px 11px;
+    font-weight: 600;
+}
+QLabel#runtimePlanMeta {
+    color: #5d574e;
+    background: #eee5d5;
+    border: 1px solid #d4c6ad;
+    border-radius: 9px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+QScrollArea#runtimePlanRoute,
+QWidget#runtimePlanRouteContent,
+QScrollArea#runtimePlanRoute > QWidget > QWidget {
+    background: transparent;
+    border: 0;
+}
+QFrame#runtimePlanLegCard {
+    background: #fffaf0;
+    border: 1px solid #d4c6ad;
+    border-radius: 6px;
+}
+QLabel#runtimePlanLegRoute { color: #38342e; font-size: 13px; font-weight: 700; }
+QLabel#runtimePlanLegProfit { color: #4f6848; font-size: 13px; font-weight: 700; }
+QLabel#runtimePlanLegProducts { color: #514c43; font-size: 12px; }
+QLabel#runtimePlanLegMeta { color: #716a5e; font-size: 11px; font-weight: 600; }
+QLabel#runtimePlanEmpty {
+    color: #716a5e;
+    background: #fffaf0;
+    border: 1px dashed #c9b99d;
+    border-radius: 5px;
+    padding: 20px;
+}
 QLabel[status="success"] { color: #287a3c; }
 QLabel[status="warning"] { color: #a45f00; }
 QLabel[status="error"] { color: #b3261e; }

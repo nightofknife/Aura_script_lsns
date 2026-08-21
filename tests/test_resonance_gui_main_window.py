@@ -974,6 +974,10 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
                 "to_city": "海角城",
                 "to_city_id": "11",
                 "buy_products": ["货物"],
+                "expected_fatigue_cost": 40,
+                "books_used": 1,
+                "bargain_to_cap": True,
+                "expected_profit": 34567.0,
             }
         ]
         page.apply_progress_event(
@@ -987,7 +991,18 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
                     "stage": "planning",
                     "state": "completed",
                     "city_count": 2,
-                    "data": {"route": route},
+                    "data": {
+                        "route": route,
+                        "summary": {
+                            "status": "ok",
+                            "expected_profit": 34567.0,
+                            "expected_fatigue_used": 40,
+                            "remaining_expected_fatigue": 60,
+                            "books_used": 1,
+                            "full_bargain_count": 1,
+                            "full_raise_count": 0,
+                        },
+                    },
                 },
             },
         )
@@ -996,6 +1011,18 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
         assert trade.child(1).text(0).startswith("城市 1/2 · 澄明数据中心")
         assert trade.child(2).text(0).startswith("城市 2/2 · 海角城")
         assert page.internal_progress_bar.maximum() == 100
+        assert page.center_stack.currentWidget() is page.runtime_trade_plan_page
+        assert page.runtime_plan_badge.text() == "方案已采用"
+        assert page.runtime_plan_values["expected_profit"].text() == "34,567.00"
+        assert page.runtime_plan_values["profit_per_fatigue"].text() == "864.17 / 疲劳"
+        assert page.runtime_plan_values["fatigue"].text() == "40 / 100"
+        assert page.runtime_plan_values["route"].text() == "1 段 / 2 城"
+        assert "澄明数据中心" in page.runtime_plan_path.text()
+        assert "海角城" in page.runtime_plan_path.text()
+        assert len(page.runtime_plan_leg_cards) == 1
+        assert page.runtime_plan_leg_cards[0].profit_label.text() == "预计收益  34,567.00"
+        assert "货物" in page.runtime_plan_leg_cards[0].products_label.text()
+        runtime_plan_card = page.runtime_plan_leg_cards[0]
 
         page.apply_progress_event(
             "trade",
@@ -1016,6 +1043,7 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
         )
         assert trade.child(2).isExpanded()
         assert "海角城" in page.internal_progress_label.text()
+        assert page.runtime_plan_leg_cards[0] is runtime_plan_card
         assert any("城市投资" in trade.child(2).child(i).text(0) for i in range(trade.child(2).childCount()))
 
         page.apply_progress_event(
@@ -1070,6 +1098,62 @@ def test_workflow_trade_status_uses_city_tree_and_dual_progress(tmp_path):
             "investment" not in row.phase_keys
             for row in page.timeline_view.rows
         )
+    finally:
+        window.close()
+
+
+def test_workflow_runtime_trade_plan_handles_no_route_and_cached_market(tmp_path):
+    window = _window(tmp_path)
+    try:
+        page = window.workflow_page
+        page.begin_workflow(["commerce"], ["trade"])
+        page.set_active_progress_cid("trade", "cid-no-route")
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-no-route",
+                    "sequence": 1,
+                    "stage": "market",
+                    "state": "completed",
+                    "data": {"source": "fallback_cache"},
+                },
+            },
+        )
+        page.apply_progress_event(
+            "trade",
+            {
+                "name": TRADE_PROGRESS_EVENT,
+                "payload": {
+                    "schema": TRADE_PROGRESS_SCHEMA,
+                    "cid": "cid-no-route",
+                    "sequence": 2,
+                    "stage": "planning",
+                    "state": "completed",
+                    "data": {
+                        "route": [],
+                        "summary": {
+                            "status": "no_positive_profit_route",
+                            "expected_profit": 0.0,
+                            "expected_fatigue_used": 0,
+                            "remaining_expected_fatigue": 300,
+                            "books_used": 0,
+                            "full_bargain_count": 0,
+                            "full_raise_count": 0,
+                        },
+                    },
+                },
+            },
+        )
+
+        assert page.center_stack.currentWidget() is page.runtime_trade_plan_page
+        assert page.runtime_plan_badge.text() == "无可执行方案"
+        assert page.runtime_plan_badge.property("progressState") == "failed"
+        assert not page.runtime_plan_route.isVisible()
+        assert page.runtime_plan_empty.isVisible()
+        assert "没有得到可执行路线" in page.runtime_plan_empty.text()
     finally:
         window.close()
 
