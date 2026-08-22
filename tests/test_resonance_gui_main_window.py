@@ -993,6 +993,12 @@ def test_full_commerce_parameters_open_inside_workflow_center(tmp_path):
         assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.trade_editor_page
         assert window.trade_page.parameter_panel.parent() is window.workflow_page.trade_editor_page
         window.workflow_page.show_commerce_summary()
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.config_stack
+        assert (
+            window.workflow_page.config_stack.currentWidget()
+            is window.workflow_page.commerce_config_page
+        )
+        assert window.workflow_page._selected_task == "commerce"
         window.workflow_page.openPassengerRequested.emit()
         assert window.page_stack.currentWidget() is window.workflow_page
         assert (
@@ -1000,6 +1006,34 @@ def test_full_commerce_parameters_open_inside_workflow_center(tmp_path):
             is window.workflow_page.passenger_editor_page
         )
         assert window.passenger_page.parameter_panel.parent() is window.workflow_page.passenger_editor_page
+        window.workflow_page.show_commerce_summary()
+        assert window.workflow_page.center_stack.currentWidget() is window.workflow_page.config_stack
+        assert (
+            window.workflow_page.config_stack.currentWidget()
+            is window.workflow_page.commerce_config_page
+        )
+        assert window.workflow_page._selected_task == "commerce"
+    finally:
+        window.close()
+
+
+def test_workflow_task_navigation_uses_registered_config_pages(tmp_path):
+    window = _window(tmp_path)
+    try:
+        page = window.workflow_page
+        assert set(page._task_config_pages) == {
+            "startup",
+            "player_data",
+            "commerce",
+            "battle",
+            "close",
+        }
+
+        for task_id, config_page in page._task_config_pages.items():
+            page._select_task(task_id)
+            assert page.center_stack.currentWidget() is page.config_stack
+            assert page.config_stack.currentWidget() is config_page
+            assert page._selected_task == task_id
     finally:
         window.close()
 
