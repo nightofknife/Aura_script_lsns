@@ -1,0 +1,567 @@
+{
+  "schema_version": 1,
+  "category": "materials",
+  "default_stack_policy": "merge",
+  "layout": {
+    "template_size": [100, 70],
+    "template_offset_from_card": [10, 23],
+    "card_size": [122, 121],
+    "grid_region": [397, 94, 680, 626],
+    "match_threshold": 0.94,
+    "scroll_start": [1000, 620],
+    "scroll_end": [1000, 310],
+    "expiry_roi_from_template": [48, -23, 52, 23]
+  },
+  "materials": [
+    {
+      "material_id": "origin_string",
+      "name": "本源之弦",
+      "template": "templates/inventory/materials/origin_string.png"
+    },
+    {
+      "material_id": "echo_string",
+      "name": "回响之弦",
+      "template": "templates/inventory/materials/echo_string.png"
+    },
+    {
+      "material_id": "solo_string",
+      "name": "独奏之弦",
+      "template": "templates/inventory/materials/solo_string.png"
+    },
+    {
+      "material_id": "unique_stone_fragment",
+      "name": "独石碎片",
+      "template": "templates/inventory/materials/unique_stone_fragment.png"
+    },
+    {
+      "material_id": "primitive_thought",
+      "name": "原始思维",
+      "template": "templates/inventory/materials/primitive_thought.png"
+    },
+    {
+      "material_id": "digital_thought",
+      "name": "数字化思维",
+      "template": "templates/inventory/materials/digital_thought.png"
+    },
+    {
+      "material_id": "combat_memory_8_titanium",
+      "name": "战斗记忆体（8钛）",
+      "template": "templates/inventory/materials/combat_memory_8_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_4_titanium",
+      "name": "战斗记忆体（4钛）",
+      "template": "templates/inventory/materials/combat_memory_4_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_2_titanium",
+      "name": "战斗记忆体（2钛）",
+      "template": "templates/inventory/materials/combat_memory_2_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_1_titanium",
+      "name": "战斗记忆体（1钛）",
+      "template": "templates/inventory/materials/combat_memory_1_titanium.png"
+    },
+    {
+      "material_id": "nebula_matter_8_titanium",
+      "name": "星云物质（8钛）",
+      "template": "templates/inventory/materials/nebula_matter_8_titanium.png"
+    },
+    {
+      "material_id": "nebula_matter_4_titanium",
+      "name": "星云物质（4钛）",
+      "template": "templates/inventory/materials/nebula_matter_4_titanium.png"
+    },
+    {
+      "material_id": "nebula_matter_2_titanium",
+      "name": "星云物质（2钛）",
+      "template": "templates/inventory/materials/nebula_matter_2_titanium.png"
+    },
+    {
+      "material_id": "nebula_matter_1_titanium",
+      "name": "星云物质（1钛）",
+      "template": "templates/inventory/materials/nebula_matter_1_titanium.png"
+    },
+    {
+      "material_id": "swamp_sharp_horn",
+      "name": "魔沼锐角",
+      "template": "templates/inventory/materials/swamp_sharp_horn.png"
+    },
+    {
+      "material_id": "swamp_claw",
+      "name": "魔沼利爪",
+      "template": "templates/inventory/materials/swamp_claw.png"
+    },
+    {
+      "material_id": "heroic_iron_cannon",
+      "name": "英武铁炮",
+      "template": "templates/inventory/materials/heroic_iron_cannon.png"
+    },
+    {
+      "material_id": "calamity_folding_fan",
+      "name": "灾流折扇",
+      "template": "templates/inventory/materials/calamity_folding_fan.png"
+    },
+    {
+      "material_id": "bone_dragon_medulla",
+      "name": "骨龙延髓",
+      "template": "templates/inventory/materials/bone_dragon_medulla.png"
+    },
+    {
+      "material_id": "countermeasure_system_carrier",
+      "name": "对策系统载体",
+      "template": "templates/inventory/materials/countermeasure_system_carrier.png"
+    },
+    {
+      "material_id": "thunder_greatsword",
+      "name": "雷震巨剑",
+      "template": "templates/inventory/materials/thunder_greatsword.png"
+    },
+    {
+      "material_id": "slaughter_mask",
+      "name": "屠戮面罩",
+      "template": "templates/inventory/materials/slaughter_mask.png"
+    },
+    {
+      "material_id": "studious_lamp_wick",
+      "name": "笃学灯芯",
+      "template": "templates/inventory/materials/studious_lamp_wick.png"
+    },
+    {
+      "material_id": "bone_dragon_tailbone",
+      "name": "骨龙尾骨",
+      "template": "templates/inventory/materials/bone_dragon_tailbone.png"
+    },
+    {
+      "material_id": "bone_dragon_spine",
+      "name": "骨龙脊骨",
+      "template": "templates/inventory/materials/bone_dragon_spine.png"
+    },
+    {
+      "material_id": "bone_dragon_skull",
+      "name": "骨龙头骨",
+      "template": "templates/inventory/materials/bone_dragon_skull.png"
+    },
+    {
+      "material_id": "wandering_star_eye",
+      "name": "游星之眼",
+      "template": "templates/inventory/materials/wandering_star_eye.png"
+    },
+    {
+      "material_id": "twilight_hard_spike",
+      "name": "薄暮坚棘刺",
+      "template": "templates/inventory/materials/twilight_hard_spike.png"
+    },
+    {
+      "material_id": "dull_head_shell",
+      "name": "昏聩头壳",
+      "template": "templates/inventory/materials/dull_head_shell.png"
+    },
+    {
+      "material_id": "parallax_hard_spike_shell",
+      "name": "视差坚棘壳",
+      "template": "templates/inventory/materials/parallax_hard_spike_shell.png"
+    },
+    {
+      "material_id": "superconducting_coil",
+      "name": "超导线圈",
+      "template": "templates/inventory/materials/superconducting_coil.png"
+    },
+    {
+      "material_id": "fire_control_unit",
+      "name": "火控单元",
+      "template": "templates/inventory/materials/fire_control_unit.png"
+    },
+    {
+      "material_id": "power_unit",
+      "name": "动力单元",
+      "template": "templates/inventory/materials/power_unit.png"
+    },
+    {
+      "material_id": "pure_gold_part",
+      "name": "纯金零件",
+      "template": "templates/inventory/materials/pure_gold_part.png"
+    },
+    {
+      "material_id": "dust_howl_hard_bone",
+      "name": "尘鸣坚骨",
+      "template": "templates/inventory/materials/dust_howl_hard_bone.png"
+    },
+    {
+      "material_id": "exploding_insect_sound_sac",
+      "name": "爆虫鸣袋",
+      "template": "templates/inventory/materials/exploding_insect_sound_sac.png"
+    },
+    {
+      "material_id": "birch_tentacle",
+      "name": "桦树触手",
+      "template": "templates/inventory/materials/birch_tentacle.png"
+    },
+    {
+      "material_id": "noise_kinase",
+      "name": "噪音激酶",
+      "template": "templates/inventory/materials/noise_kinase.png"
+    },
+    {
+      "material_id": "birch_kernel",
+      "name": "桦树核仁",
+      "template": "templates/inventory/materials/birch_kernel.png"
+    },
+    {
+      "material_id": "deep_sleep_wood",
+      "name": "深眠木",
+      "template": "templates/inventory/materials/deep_sleep_wood.png"
+    },
+    {
+      "material_id": "nether_thunder_fragment",
+      "name": "冥霆碎片",
+      "template": "templates/inventory/materials/nether_thunder_fragment.png"
+    },
+    {
+      "material_id": "nether_thunder_remains",
+      "name": "冥霆遗存",
+      "template": "templates/inventory/materials/nether_thunder_remains.png"
+    },
+    {
+      "material_id": "night_illuminating_twin_blades",
+      "name": "照夜双刃",
+      "template": "templates/inventory/materials/night_illuminating_twin_blades.png"
+    },
+    {
+      "material_id": "slaughter_chain_saw",
+      "name": "屠戮链锯",
+      "template": "templates/inventory/materials/slaughter_chain_saw.png"
+    },
+    {
+      "material_id": "raiding_saw_wheel",
+      "name": "劫掠锯轮",
+      "template": "templates/inventory/materials/raiding_saw_wheel.png"
+    },
+    {
+      "material_id": "calamity_chain_entwined_branch",
+      "name": "祸链缠枝",
+      "template": "templates/inventory/materials/calamity_chain_entwined_branch.png"
+    },
+    {
+      "material_id": "deep_sleep_entwined_branch",
+      "name": "深眠缠枝",
+      "template": "templates/inventory/materials/deep_sleep_entwined_branch.png"
+    },
+    {
+      "material_id": "split_head_bone_dragon_sternum",
+      "name": "裂首骨龙胸骨",
+      "template": "templates/inventory/materials/split_head_bone_dragon_sternum.png"
+    },
+    {
+      "material_id": "split_head_bone_dragon_skull",
+      "name": "裂首骨龙头骨",
+      "template": "templates/inventory/materials/split_head_bone_dragon_skull.png"
+    },
+    {
+      "material_id": "ancestor_repentance",
+      "name": "远祖的悔罪",
+      "template": "templates/inventory/materials/ancestor_repentance.png"
+    },
+    {
+      "material_id": "ancestor_root_system",
+      "name": "远祖的根系",
+      "template": "templates/inventory/materials/ancestor_root_system.png"
+    },
+    {
+      "material_id": "mole_sunglasses",
+      "name": "鼹鼠的墨镜",
+      "template": "templates/inventory/materials/mole_sunglasses.png"
+    },
+    {
+      "material_id": "special_armament_modification_permit",
+      "name": "特殊武装改造特许",
+      "template": "templates/inventory/materials/special_armament_modification_permit.png"
+    },
+    {
+      "material_id": "large_saw_disc",
+      "name": "大型锯盘",
+      "template": "templates/inventory/materials/large_saw_disc.png"
+    },
+    {
+      "material_id": "swamp_mire_turbid_fluid",
+      "name": "沼泞浊液",
+      "template": "templates/inventory/materials/swamp_mire_turbid_fluid.png"
+    },
+    {
+      "material_id": "swamp_mire_tangled_roots",
+      "name": "沼泞盘结",
+      "template": "templates/inventory/materials/swamp_mire_tangled_roots.png"
+    },
+    {
+      "material_id": "shiranui_single_foot",
+      "name": "不知火单足",
+      "template": "templates/inventory/materials/shiranui_single_foot.png"
+    },
+    {
+      "material_id": "shiranui_burning_branch",
+      "name": "不知火燃枝",
+      "template": "templates/inventory/materials/shiranui_burning_branch.png"
+    },
+    {
+      "material_id": "pleiades_pipeline",
+      "name": "昴宿管线",
+      "template": "templates/inventory/materials/pleiades_pipeline.png"
+    },
+    {
+      "material_id": "sea_dragon_tail_fin",
+      "name": "海龙尾鳍",
+      "template": "templates/inventory/materials/sea_dragon_tail_fin.png"
+    },
+    {
+      "material_id": "lost_wood_reef",
+      "name": "迷失木礁",
+      "template": "templates/inventory/materials/lost_wood_reef.png"
+    },
+    {
+      "material_id": "twilight_hard_shell",
+      "name": "暮光坚壳",
+      "template": "templates/inventory/materials/twilight_hard_shell.png"
+    },
+    {
+      "material_id": "vortex_thorn_flower",
+      "name": "漩涡棘花",
+      "template": "templates/inventory/materials/vortex_thorn_flower.png"
+    },
+    {
+      "material_id": "pain_sickle_claw",
+      "name": "苦痛镰爪",
+      "template": "templates/inventory/materials/pain_sickle_claw.png"
+    },
+    {
+      "material_id": "mourning_sharp_beak",
+      "name": "报丧尖喙",
+      "template": "templates/inventory/materials/mourning_sharp_beak.png"
+    },
+    {
+      "material_id": "high_conductivity_capacitor",
+      "name": "高导电容",
+      "template": "templates/inventory/materials/high_conductivity_capacitor.png"
+    },
+    {
+      "material_id": "weapon_pipeline",
+      "name": "武器管线",
+      "template": "templates/inventory/materials/weapon_pipeline.png"
+    },
+    {
+      "material_id": "power_pipeline",
+      "name": "动力管线",
+      "template": "templates/inventory/materials/power_pipeline.png"
+    },
+    {
+      "material_id": "gold_plated_part",
+      "name": "镀金零件",
+      "template": "templates/inventory/materials/gold_plated_part.png"
+    },
+    {
+      "material_id": "birch_hard_bone",
+      "name": "桦树坚骨",
+      "template": "templates/inventory/materials/birch_hard_bone.png"
+    },
+    {
+      "material_id": "exploding_insect_paralysis_spike",
+      "name": "爆虫麻痹刺",
+      "template": "templates/inventory/materials/exploding_insect_paralysis_spike.png"
+    },
+    {
+      "material_id": "birch_stinging_cell_sac",
+      "name": "桦树刺丝囊",
+      "template": "templates/inventory/materials/birch_stinging_cell_sac.png"
+    },
+    {
+      "material_id": "heavy_birch_stone",
+      "name": "重桦石",
+      "template": "templates/inventory/materials/heavy_birch_stone.png"
+    },
+    {
+      "material_id": "noise_marrow_fluid",
+      "name": "噪音髓液",
+      "template": "templates/inventory/materials/noise_marrow_fluid.png"
+    },
+    {
+      "material_id": "mixed_flavor_pet_food",
+      "name": "混合口味宠物口粮",
+      "template": "templates/inventory/materials/mixed_flavor_pet_food.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_bear",
+      "name": "毛绒联盟海报·熊款",
+      "template": "templates/inventory/materials/fluffy_union_poster_bear.png"
+    },
+    {
+      "material_id": "deep_sleep_branch",
+      "name": "深眠枝条",
+      "template": "templates/inventory/materials/deep_sleep_branch.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_rabbit",
+      "name": "毛绒联盟海报·兔款",
+      "template": "templates/inventory/materials/fluffy_union_poster_rabbit.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_raccoon",
+      "name": "毛绒联盟海报·浣熊款",
+      "template": "templates/inventory/materials/fluffy_union_poster_raccoon.png"
+    },
+    {
+      "material_id": "birch_primordial_substance",
+      "name": "桦树原质",
+      "template": "templates/inventory/materials/birch_primordial_substance.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_elephant",
+      "name": "毛绒联盟海报·大象款",
+      "template": "templates/inventory/materials/fluffy_union_poster_elephant.png"
+    },
+    {
+      "material_id": "surging_electric_viscera_mass",
+      "name": "涌电内脏团",
+      "template": "templates/inventory/materials/surging_electric_viscera_mass.png"
+    },
+    {
+      "material_id": "surging_electric_sac",
+      "name": "涌电囊袋",
+      "template": "templates/inventory/materials/surging_electric_sac.png"
+    },
+    {
+      "material_id": "standard_armament_modification_voucher",
+      "name": "一般武装改造凭证",
+      "template": "templates/inventory/materials/standard_armament_modification_voucher.png"
+    },
+    {
+      "material_id": "swamp_mire_beak_shell",
+      "name": "沼泞喙壳",
+      "template": "templates/inventory/materials/swamp_mire_beak_shell.png"
+    },
+    {
+      "material_id": "swamp_mire_snail_shell",
+      "name": "沼泞螺壳",
+      "template": "templates/inventory/materials/swamp_mire_snail_shell.png"
+    },
+    {
+      "material_id": "pleiades_part",
+      "name": "昴宿零件",
+      "template": "templates/inventory/materials/pleiades_part.png"
+    },
+    {
+      "material_id": "sea_dragon_fin_ray",
+      "name": "海龙鳍条",
+      "template": "templates/inventory/materials/sea_dragon_fin_ray.png"
+    },
+    {
+      "material_id": "misfortune_thorn_crown",
+      "name": "厄运棘冠",
+      "template": "templates/inventory/materials/misfortune_thorn_crown.png"
+    },
+    {
+      "material_id": "dizziness_carapace",
+      "name": "眩晕甲壳",
+      "template": "templates/inventory/materials/dizziness_carapace.png"
+    },
+    {
+      "material_id": "amnesia_thorn",
+      "name": "失忆荆刺",
+      "template": "templates/inventory/materials/amnesia_thorn.png"
+    },
+    {
+      "material_id": "precision_part",
+      "name": "精密零件",
+      "template": "templates/inventory/materials/precision_part.png"
+    },
+    {
+      "material_id": "birch_tail_whisker",
+      "name": "桦树尾须",
+      "template": "templates/inventory/materials/birch_tail_whisker.png"
+    },
+    {
+      "material_id": "exploding_insect_sac",
+      "name": "爆虫囊袋",
+      "template": "templates/inventory/materials/exploding_insect_sac.png"
+    },
+    {
+      "material_id": "birch_tendril",
+      "name": "桦树触须",
+      "template": "templates/inventory/materials/birch_tendril.png"
+    },
+    {
+      "material_id": "noise_gland_hormone",
+      "name": "噪音腺素",
+      "template": "templates/inventory/materials/noise_gland_hormone.png"
+    },
+    {
+      "material_id": "deep_sleep_fibrous_root",
+      "name": "深眠须根",
+      "template": "templates/inventory/materials/deep_sleep_fibrous_root.png"
+    },
+    {
+      "material_id": "balanced_nutrition_pet_food",
+      "name": "均衡营养宠物口粮",
+      "template": "templates/inventory/materials/balanced_nutrition_pet_food.png"
+    },
+    {
+      "material_id": "inferior_birch_stone",
+      "name": "劣桦石",
+      "template": "templates/inventory/materials/inferior_birch_stone.png"
+    },
+    {
+      "material_id": "birch_gland",
+      "name": "桦树腺体",
+      "template": "templates/inventory/materials/birch_gland.png"
+    },
+    {
+      "material_id": "surging_electric_tendril",
+      "name": "涌电触须",
+      "template": "templates/inventory/materials/surging_electric_tendril.png"
+    },
+    {
+      "material_id": "cat_treat",
+      "name": "猫条",
+      "template": "templates/inventory/materials/cat_treat.png"
+    },
+    {
+      "material_id": "cactus",
+      "name": "仙人球",
+      "template": "templates/inventory/materials/cactus.png"
+    },
+    {
+      "material_id": "brain_fog_spore",
+      "name": "脑雾孢子",
+      "template": "templates/inventory/materials/brain_fog_spore.png"
+    },
+    {
+      "material_id": "broken_part",
+      "name": "残破零件",
+      "template": "templates/inventory/materials/broken_part.png"
+    },
+    {
+      "material_id": "birch_cartilage",
+      "name": "桦树软骨",
+      "template": "templates/inventory/materials/birch_cartilage.png"
+    },
+    {
+      "material_id": "exploding_insect_sac_fluid",
+      "name": "爆虫囊液",
+      "template": "templates/inventory/materials/exploding_insect_sac_fluid.png"
+    },
+    {
+      "material_id": "birch_flagellum",
+      "name": "桦树鞭毛",
+      "template": "templates/inventory/materials/birch_flagellum.png"
+    },
+    {
+      "material_id": "deep_sleep_withered_leaf",
+      "name": "深眠枯叶",
+      "template": "templates/inventory/materials/deep_sleep_withered_leaf.png"
+    },
+    {
+      "material_id": "classic_pet_food",
+      "name": "经典宠物口粮",
+      "template": "templates/inventory/materials/classic_pet_food.png"
+    }
+  ]
+}

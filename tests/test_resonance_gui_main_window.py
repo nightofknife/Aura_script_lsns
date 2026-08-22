@@ -28,6 +28,8 @@ from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.logic import (
     PASSENGER_PROGRESS_EVENT,
     PASSENGER_PROGRESS_SCHEMA,
+    PC_PLAYER_DATA_LATEST_TASK_REF,
+    PC_PLAYER_DATA_REFRESH_TASK_REF,
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
 )
@@ -252,18 +254,18 @@ def test_browsing_game_path_does_not_run_detection(tmp_path, monkeypatch):
         window.close()
 
 
-def test_main_window_opens_with_four_task_workflow_and_independent_commerce_order(tmp_path):
+def test_main_window_opens_with_player_data_workflow_and_independent_commerce_order(tmp_path):
     window = _window(tmp_path)
     try:
         assert window.page_stack.currentWidget() is window.workflow_page
         assert window.workflow_page.workflow_steps() == [
-            "startup", "commerce", "battle", "close"
+            "startup", "player_data", "commerce", "battle", "close"
         ]
         assert window.workflow_page.commerce_steps() == ["trade", "passenger"]
         window.workflow_page._select_task("commerce")
         window.workflow_page._move_current(-1)
         assert window.workflow_page.workflow_steps() == [
-            "commerce", "startup", "battle", "close"
+            "startup", "commerce", "player_data", "battle", "close"
         ]
         assert "客运预留" in window.workflow_page.combined_budget_summary.text()
         window.workflow_page._swap_commerce_order()
@@ -273,6 +275,115 @@ def test_main_window_opens_with_four_task_workflow_and_independent_commerce_orde
         assert window.page_stack.currentWidget() is window.settings_page
         window.settings_page.backRequested.emit()
         assert window.page_stack.currentWidget() is window.workflow_page
+    finally:
+        window.close()
+
+
+def test_player_data_workflow_dispatches_selected_pc_stages_and_renders_result(tmp_path):
+    window = _window(tmp_path)
+    requests: list[tuple[str, dict, str]] = []
+    try:
+        window.requestRunPcTask.disconnect()
+        window.requestRunPcTask.connect(
+            lambda task_ref, inputs, label, _timeout: requests.append(
+                (str(task_ref), dict(inputs), str(label))
+            )
+        )
+        for step in ("startup", "commerce", "battle", "close"):
+            window.workflow_page._task_checks[step].setChecked(False)
+        panel = window.workflow_page.player_data_panel
+        panel._select_stages(("location", "inventory"))
+
+        window.workflow_page.run_button.click()
+
+        assert requests == [(
+            PC_PLAYER_DATA_REFRESH_TASK_REF,
+            {
+                "stages": ["location", "inventory"],
+                "inventory_categories": ["items"],
+            },
+            "更新用户数据",
+        )]
+        item = {
+            "game_name": "resonance_pc",
+            "kind": "workflow_task",
+            "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
+            "label": "更新用户数据",
+        }
+        window._on_busy_changed(True)
+        window._on_task_started(item)
+        window._on_task_finished({
+            "status": "success",
+            "gui_item": item,
+            "final_result": {"user_data": {"player_data": {
+                "location": {"current_city": "岚心城"},
+                "inventory": {
+                    "items": [{"item_id": "sample", "name": "测试道具", "count": 7}],
+                    "matched_stack_count": 1,
+                    "pages_scanned": 1,
+                },
+                "metadata": {
+                    "refreshed_at": "2026-08-22T01:02:03+00:00",
+                    "persisted": True,
+                    "section_updated_at": {
+                        "location": "2026-08-22T01:01:01+00:00",
+                        "inventory": "2026-08-22T01:02:02+00:00",
+                    },
+                },
+            }}},
+        })
+        window._on_busy_changed(False)
+
+        assert "岚心城" in panel.identity_label.text()
+        assert panel.inventory_table.rowCount() == 1
+        assert panel.inventory_table.item(0, 0).text() == "测试道具"
+        assert "已合并保存" in panel.snapshot_message.text()
+    finally:
+        window.close()
+
+
+def test_player_data_cache_button_routes_to_pc_latest_task(tmp_path):
+    window = _window(tmp_path)
+    requests: list[tuple[str, dict, str]] = []
+    try:
+        window.requestRunPcTask.disconnect()
+        window.requestRunPcTask.connect(
+            lambda task_ref, inputs, label, _timeout: requests.append(
+                (str(task_ref), dict(inputs), str(label))
+            )
+        )
+
+        window.workflow_page.player_data_panel.cache_button.click()
+
+        assert requests == [(PC_PLAYER_DATA_LATEST_TASK_REF, {}, "读取用户数据缓存")]
+    finally:
+        window.close()
+
+
+def test_player_data_cache_failure_replaces_loading_message(tmp_path):
+    window = _window(tmp_path)
+    try:
+        panel = window.workflow_page.player_data_panel
+        panel.snapshot_message.setText("正在读取本地缓存……")
+        item = {
+            "game_name": "resonance_pc",
+            "kind": "workflow_task",
+            "task_ref": PC_PLAYER_DATA_LATEST_TASK_REF,
+            "label": "读取用户数据缓存",
+        }
+        window._on_task_started(item)
+
+        window._on_task_finished({
+            "status": "failed",
+            "gui_item": item,
+            "final_result": {"user_data": {"error": (
+                "{'message': 'No cached Resonance PC player data is available.', "
+                "'traceback': 'Traceback: internal details'}"
+            )}},
+        })
+
+        assert panel.snapshot_message.text() == "没有可读缓存。"
+        assert "Traceback" not in panel.snapshot_message.text()
     finally:
         window.close()
 
@@ -508,6 +619,7 @@ def test_workflow_runs_startup_combined_commerce_and_close_in_order(tmp_path):
             lambda inputs, _timeout: combined_requests.append(dict(inputs))
         )
         window.workflow_page._task_checks["battle"].setChecked(False)
+        window.workflow_page._task_checks["player_data"].setChecked(False)
 
         window.workflow_page.run_button.click()
         assert pc_tasks == ["tasks:game_startup_pc.yaml:enter_main"]
@@ -566,7 +678,7 @@ def test_combined_workflow_passenger_first_derives_trade_budget_after_reposition
         window.requestRunPcCombinedCommerce.connect(
             lambda inputs, _timeout: combined_requests.append(dict(inputs))
         )
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
         window.workflow_page._swap_commerce_order()
         window.workflow_page.trade_fatigue.setValue(200)
@@ -621,7 +733,7 @@ def test_combined_passenger_first_rejects_unavailable_endpoint_before_dispatch(
         window.requestRunPcPassenger.connect(
             lambda inputs, _timeout: passenger_requests.append(dict(inputs))
         )
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
         window.workflow_page._swap_commerce_order()
         window.workflow_page.passenger_city_b.setCurrentIndex(
@@ -654,7 +766,7 @@ def test_combined_passenger_first_rejects_insufficient_total_fatigue_before_disp
         window.requestRunPcPassenger.connect(
             lambda inputs, _timeout: passenger_requests.append(dict(inputs))
         )
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
         window.workflow_page._swap_commerce_order()
         window.workflow_page.trade_fatigue.setValue(76)
@@ -684,7 +796,7 @@ def test_workflow_single_commerce_modes_keep_independent_inputs(tmp_path):
         window.requestRunPcPassenger.connect(
             lambda inputs, _timeout: passenger_requests.append(dict(inputs))
         )
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
         window.workflow_page._commerce_checks["passenger"].setChecked(False)
         window.workflow_page.trade_fatigue.setValue(321)
@@ -716,7 +828,7 @@ def test_combined_trade_handoff_failure_is_rendered_from_plan_result(tmp_path):
         window.requestRunPcCombinedCommerce.connect(
             lambda inputs, _timeout: combined_requests.append(dict(inputs))
         )
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
 
         window.workflow_page.run_button.click()
@@ -759,7 +871,7 @@ def test_combined_workflow_binds_trade_and_passenger_progress_to_same_cid(tmp_pa
     try:
         window.requestRunPcCombinedCommerce.disconnect()
         window.requestRunPcCombinedCommerce.connect(lambda _inputs, _timeout: None)
-        for step in ("startup", "battle", "close"):
+        for step in ("startup", "player_data", "battle", "close"):
             window.workflow_page._task_checks[step].setChecked(False)
 
         window.workflow_page.run_button.click()
@@ -832,7 +944,7 @@ def test_workflow_task_and_commerce_order_persist(tmp_path):
     reopened = _window(tmp_path)
     try:
         assert reopened.workflow_page.workflow_steps() == [
-            "commerce", "startup", "battle", "close"
+            "startup", "commerce", "player_data", "battle", "close"
         ]
         assert reopened.workflow_page.commerce_steps() == ["passenger", "trade"]
         assert all(row.isVisible() for row in reopened.workflow_page._task_rows.values())
@@ -848,12 +960,12 @@ def test_workflow_task_drop_reorders_without_move_buttons(tmp_path):
         assert not hasattr(window.workflow_page, "down_button")
         window.workflow_page._drop_task("close", 0)
         assert window.workflow_page.workflow_steps() == [
-            "close", "startup", "commerce", "battle"
+            "close", "startup", "player_data", "commerce", "battle"
         ]
         assert [
             window.workflow_page._task_rows[task_id].number_label.text()
             for task_id in window.workflow_page._task_order
-        ] == ["1", "2", "3", "4"]
+        ] == ["1", "2", "3", "4", "5"]
     finally:
         window.close()
 
@@ -1172,6 +1284,7 @@ def test_workflow_failure_remains_failed_after_close_cleanup(tmp_path):
             lambda task_ref, _inputs, _label, _timeout: pc_tasks.append(str(task_ref))
         )
         window.workflow_page._task_checks["startup"].setChecked(False)
+        window.workflow_page._task_checks["player_data"].setChecked(False)
         window.workflow_page._task_checks["battle"].setChecked(False)
         window.workflow_page._commerce_checks["passenger"].setChecked(False)
         window.settings_page.close_on_failure.setChecked(True)

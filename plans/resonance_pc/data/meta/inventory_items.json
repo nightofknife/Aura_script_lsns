@@ -5,12 +5,11 @@
     "template_size": [100, 70],
     "template_offset_from_card": [10, 23],
     "card_size": [122, 121],
-    "grid_region": [407, 104, 650, 616],
+    "grid_region": [397, 94, 680, 626],
     "match_threshold": 0.82,
     "scroll_start": [1000, 620],
-    "scroll_end": [1000, 300],
-    "expiry_roi_from_template": [48, -23, 52, 23],
-    "count_roi_from_template": [82, 68, 30, 29]
+    "scroll_end": [1000, 310],
+    "expiry_roi_from_template": [48, -23, 52, 23]
   },
   "items": [
     {
@@ -24,6 +23,201 @@
       "name": "提神棒棒糖",
       "template": "templates/inventory/items/stamina_lollipop.png",
       "stack_policy": "split_by_expiry"
+    },
+    {
+      "item_id": "birch_crystal",
+      "name": "桦石",
+      "template": "templates/inventory/items/birch_crystal.png"
+    },
+    {
+      "item_id": "jiaozi",
+      "name": "交子",
+      "template": "templates/inventory/items/jiaozi.png"
+    },
+    {
+      "item_id": "iron_alliance_coin",
+      "name": "铁盟币",
+      "template": "templates/inventory/items/iron_alliance_coin.png"
+    },
+    {
+      "item_id": "desperate_badge",
+      "name": "绝命奖章",
+      "template": "templates/inventory/items/desperate_badge.png"
+    },
+    {
+      "item_id": "duty_badge",
+      "name": "赴命奖章",
+      "template": "templates/inventory/items/duty_badge.png"
+    },
+    {
+      "item_id": "resume_intelligence",
+      "name": "履历情报",
+      "template": "templates/inventory/items/resume_intelligence.png"
+    },
+    {
+      "item_id": "purchase_order_book",
+      "name": "进货采购书",
+      "template": "templates/inventory/items/purchase_order_book.png"
+    },
+    {
+      "item_id": "cactus_jump_roll",
+      "name": "仙人掌跳跳卷",
+      "template": "templates/inventory/items/cactus_jump_roll.png"
+    },
+    {
+      "item_id": "cactus_stamina_popping_candy",
+      "name": "仙人掌提神跳糖",
+      "template": "templates/inventory/items/cactus_stamina_popping_candy.png"
+    },
+    {
+      "item_id": "stamina_chewing_gum",
+      "name": "提神口香糖",
+      "template": "templates/inventory/items/stamina_chewing_gum.png"
+    },
+    {
+      "item_id": "magpie_pastry",
+      "name": "喜鹊酥",
+      "template": "templates/inventory/items/magpie_pastry.png"
+    },
+    {
+      "item_id": "white_day_chocolate_iliad_2026",
+      "name": "2026白情巧克力·伊利亚德",
+      "template": "templates/inventory/items/white_day_chocolate_iliad_2026.png"
+    },
+    {
+      "item_id": "white_day_chocolate_falcon_2026",
+      "name": "2026白情巧克力·隼",
+      "template": "templates/inventory/items/white_day_chocolate_falcon_2026.png"
+    },
+    {
+      "item_id": "white_day_chocolate_simon_2026",
+      "name": "2026白情巧克力·西蒙",
+      "template": "templates/inventory/items/white_day_chocolate_simon_2026.png"
+    },
+    {
+      "item_id": "decorated_fondant_cake",
+      "name": "造型翻糖蛋糕",
+      "template": "templates/inventory/items/decorated_fondant_cake.png"
+    },
+    {
+      "item_id": "cheesecake",
+      "name": "芝士蛋糕",
+      "template": "templates/inventory/items/cheesecake.png"
+    },
+    {
+      "item_id": "imperial_standard_equipment_crate",
+      "name": "帝国标准装备箱",
+      "template": "templates/inventory/items/imperial_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "anita_standard_equipment_crate",
+      "name": "阿妮塔标准装备箱",
+      "template": "templates/inventory/items/anita_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "black_moon_standard_equipment_crate",
+      "name": "黑月标准装备箱",
+      "template": "templates/inventory/items/black_moon_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "iron_alliance_standard_equipment_crate",
+      "name": "铁盟标准装备箱",
+      "template": "templates/inventory/items/iron_alliance_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "self_exploration_film_roll",
+      "name": "自探索胶卷",
+      "template": "templates/inventory/items/self_exploration_film_roll.png"
+    },
+    {
+      "item_id": "self_observation_film_roll",
+      "name": "自观测胶卷",
+      "template": "templates/inventory/items/self_observation_film_roll.png"
+    },
+    {
+      "item_id": "axolotl_alliance_badge",
+      "name": "娃娃鱼同盟徽章",
+      "template": "templates/inventory/items/axolotl_alliance_badge.png"
+    },
+    {
+      "item_id": "additional_capital_injection_application",
+      "name": "追加注资申请书",
+      "template": "templates/inventory/items/additional_capital_injection_application.png"
+    },
+    {
+      "item_id": "survey_beacon",
+      "name": "勘测信标",
+      "template": "templates/inventory/items/survey_beacon.png"
+    },
+    {
+      "item_id": "brawl_arcade_coin",
+      "name": "乱斗街机币",
+      "template": "templates/inventory/items/brawl_arcade_coin.png"
+    },
+    {
+      "item_id": "blank_videotape",
+      "name": "空白录像带",
+      "template": "templates/inventory/items/blank_videotape.png"
+    },
+    {
+      "item_id": "material_ticket",
+      "name": "资材券",
+      "template": "templates/inventory/items/material_ticket.png"
+    },
+    {
+      "item_id": "quadratic_one_variable",
+      "name": "“一元二次”",
+      "template": "templates/inventory/items/quadratic_one_variable.png"
+    },
+    {
+      "item_id": "seal_ticket",
+      "name": "海豹券",
+      "template": "templates/inventory/items/seal_ticket.png"
+    },
+    {
+      "item_id": "advertising_ticket",
+      "name": "广告投放券",
+      "template": "templates/inventory/items/advertising_ticket.png"
+    },
+    {
+      "item_id": "decoy_explosive_balloon",
+      "name": "诱饵爆炸气球",
+      "template": "templates/inventory/items/decoy_explosive_balloon.png"
+    },
+    {
+      "item_id": "cardamom_ginger_lily",
+      "name": "“豆蔻姜百合”",
+      "template": "templates/inventory/items/cardamom_ginger_lily.png"
+    },
+    {
+      "item_id": "renegotiation_request",
+      "name": "再交涉请求书",
+      "template": "templates/inventory/items/renegotiation_request.png"
+    },
+    {
+      "item_id": "arrest_warrant",
+      "name": "逮捕令",
+      "template": "templates/inventory/items/arrest_warrant.png"
+    },
+    {
+      "item_id": "silver_branch_mint",
+      "name": "银枝薄荷糖",
+      "template": "templates/inventory/items/silver_branch_mint.png"
+    },
+    {
+      "item_id": "decoy_balloon",
+      "name": "诱饵气球",
+      "template": "templates/inventory/items/decoy_balloon.png"
+    },
+    {
+      "item_id": "task_commission_letter",
+      "name": "任务委托书",
+      "template": "templates/inventory/items/task_commission_letter.png"
+    },
+    {
+      "item_id": "order_request",
+      "name": "订单请求书",
+      "template": "templates/inventory/items/order_request.png"
     }
   ]
 }

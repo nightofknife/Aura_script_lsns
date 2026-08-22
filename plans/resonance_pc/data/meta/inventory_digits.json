@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "template_root": "templates/inventory/digits",
+  "digits": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+  "count_band_from_card": [0, 80, 122, 41],
+  "white_min": 165,
+  "white_min_candidates": [165, 180, 195],
+  "max_channel_spread": 55,
+  "component_width": [3, 12],
+  "component_height": [12, 15],
+  "component_top_min": 8,
+  "component_area_min": 20,
+  "normalized_size": [18, 22],
+  "shift_tolerance": 1,
+  "baseline_tolerance": 2,
+  "digit_gap": [1, 7],
+  "right_edge_gap": [4, 15],
+  "max_digits": 10,
+  "min_digit_score": 0.75,
+  "min_digit_margin": 0.02
+}

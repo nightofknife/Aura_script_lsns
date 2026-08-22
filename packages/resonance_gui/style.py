@@ -376,6 +376,21 @@ QLabel#taskDragHandle {
 }
 QLabel#taskDragHandle:hover { color: #66745c; background: #e8decc; border-radius: 3px; }
 QFrame#taskDropIndicator { background: #77866b; border: 0; border-radius: 1px; }
+QFrame#playerDataStageRow {
+    background: #fffaf0;
+    border: 1px solid #d4c6ad;
+    border-radius: 5px;
+}
+QLabel#playerDataStageTime { color: #716a5e; font-size: 10px; }
+QLabel#playerDataSelectionSummary {
+    background: #f2ebdd;
+    border-left: 3px solid #77866b;
+    padding: 8px 10px;
+    font-weight: 600;
+}
+QLabel#playerDataSelectionSummary[status="error"] { border-left-color: #b9785d; color: #984b39; }
+QLabel#playerDataSnapshotUpdated { color: #66745c; font-weight: 700; }
+QLabel#playerDataIdentity { color: #38342e; font-size: 14px; font-weight: 700; }
 QFrame#linenInset, QLabel#linenInsetLabel {
     background: #f2ebdd;
     border: 1px solid #d4c6ad;

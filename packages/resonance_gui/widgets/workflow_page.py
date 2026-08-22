@@ -53,10 +53,12 @@ from ..logic import (
     reduce_workflow_freight_progress,
     route_product_lines,
 )
+from .player_data_panel import PlayerDataPanel
 
 
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
+    ("player_data", "更新用户数据"),
     ("commerce", "跑商"),
     ("battle", "自动战斗"),
     ("close", "关闭游戏"),
@@ -549,6 +551,8 @@ class WorkflowPage(QWidget):
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.config_stack.addWidget(self._build_startup_config())
+        self.player_data_panel = PlayerDataPanel(self._settings, self.config_stack)
+        self.config_stack.addWidget(self.player_data_panel)
         self.config_stack.addWidget(self._build_commerce_config())
         self.config_stack.addWidget(self._build_battle_config())
         self.config_stack.addWidget(self._build_close_config())
@@ -1051,7 +1055,9 @@ class WorkflowPage(QWidget):
         for row_id, row in self._task_rows.items():
             row.set_selected(row_id == task_id)
         self.config_stack.setCurrentIndex(
-            {"startup": 0, "commerce": 1, "battle": 2, "close": 3}[task_id]
+            {"startup": 0, "player_data": 1, "commerce": 2, "battle": 3, "close": 4}[
+                task_id
+            ]
         )
         self._sync_move_buttons()
 
@@ -1152,6 +1158,9 @@ class WorkflowPage(QWidget):
             "max_settle_rounds": self.startup_rounds.value(),
             "round_interval_sec": 1.0,
         }
+
+    def player_data_inputs(self) -> dict[str, Any]:
+        return self.player_data_panel.collect_inputs()
 
     def close_inputs(self) -> dict[str, Any]:
         return {
@@ -1352,7 +1361,14 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setFormat("")
         if state == "running":
             self._set_internal_progress(detail or state_text, None)
-        elif state == "success" and step in {"startup", "battle", "close", "passenger", "trade"}:
+        elif state == "success" and step in {
+            "startup",
+            "player_data",
+            "battle",
+            "close",
+            "passenger",
+            "trade",
+        }:
             self._set_internal_progress(detail or state_text, 100)
         elif state in {"failed", "cancelled"}:
             self._set_internal_terminal(detail or state_text, state)
@@ -1810,11 +1826,15 @@ class WorkflowPage(QWidget):
 
     def _load_state(self) -> None:
         self._loading_state = True
-        raw_order = str(self._settings.value("workflow/task_order", "startup,commerce,battle,close") or "")
+        default_order = "startup,player_data,commerce,battle,close"
+        raw_order = str(self._settings.value("workflow/task_order", default_order) or "")
         order = [value for value in raw_order.split(",") if value in dict(WORKFLOW_TASKS)]
+        if set(order) == {"startup", "commerce", "battle", "close"}:
+            insertion = order.index("startup") + 1 if "startup" in order else 0
+            order.insert(insertion, "player_data")
         if set(order) == set(dict(WORKFLOW_TASKS)):
             self._task_order = order
-        enabled_raw = str(self._settings.value("workflow/enabled", "startup,commerce,battle,close") or "")
+        enabled_raw = str(self._settings.value("workflow/enabled", default_order) or "")
         enabled = set(enabled_raw.split(","))
         for task_id, check in self._task_checks.items():
             check.setChecked(task_id in enabled)

@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import cv2
+import numpy as np
 import pytest
 import yaml
 
@@ -19,11 +22,7 @@ MANIFEST_PATH = REPO_ROOT / "plans" / "resonance_pc" / "manifest.yaml"
 ALL_STAGES = [
     "location",
     "profile",
-    "currencies",
-    "clarity",
-    "fatigue",
     "inventory",
-    "persist",
 ]
 NOW = "2026-08-20T02:30:00+00:00"
 INVENTORY_PAYLOAD = {
@@ -33,11 +32,30 @@ INVENTORY_PAYLOAD = {
             "name": "仙人掌能量棒棒糖",
             "count": 3,
             "expiry": {"kind": "days_remaining", "value": 5, "raw": "5天"},
-        }
+        },
+        {
+            "item_id": "iron_alliance_coin",
+            "name": "铁盟币",
+            "count": 9132364,
+        },
+        {
+            "item_id": "birch_crystal",
+            "name": "桦石",
+            "count": 615,
+        },
     ],
     "pages_scanned": 2,
     "complete": True,
     "stop_reason": "all_supported_items_found",
+}
+MATERIAL_PAYLOAD = {
+    "category": "materials",
+    "materials": [
+        {"material_id": "sample_material", "name": "测试材料", "count": 12}
+    ],
+    "matched_stack_count": 1,
+    "pages_scanned": 1,
+    "scan_complete": True,
 }
 
 
@@ -68,47 +86,40 @@ def _install_successful_flow(monkeypatch):
         return {
             "profile": {"uid": "8820206170", "nickname": "面包猫南北", "level": 71},
             "cargo": {"current": 20, "max": 650},
+            "clarity": {"current": 292, "max": 292},
+            "fatigue": {"current": 0, "max": 824},
         }
-
-    def fake_currencies(_app, _ocr):
-        trace.append("currencies")
-        return {"iron_coins": 12, "birch_stone": 615}
-
-    def fake_int(_app, _ocr, region):
-        assert region == pc_actions._CURRENCY_FIELD_REGIONS["iron_coins"]
-        trace.append("currency_popup")
-        return 9132364
-
-    def fake_ratio(_app, _ocr, region):
-        if region == pc_actions._CLARITY_RATIO_REGION:
-            trace.append("clarity_ratio")
-            return {"current": 292, "max": 292}
-        assert region == pc_actions._FATIGUE_RATIO_REGION
-        trace.append("fatigue_ratio")
-        return {"current": 0, "max": 824}
 
     def fake_enter_warehouse(_app, _ocr, **_kwargs):
         marker_labels.append("warehouse item page")
         _app.click(x=pc_actions._CLICK_INVENTORY[0], y=pc_actions._CLICK_INVENTORY[1])
 
-    def fake_inventory(_app, _ocr, **_kwargs):
+    def fake_inventory(_app, _ocr, _vision, **kwargs):
         trace.append("inventory")
+        if kwargs.get("category") == "materials":
+            return copy.deepcopy(MATERIAL_PAYLOAD)
         return copy.deepcopy(INVENTORY_PAYLOAD)
+
+    def fake_select_inventory_category(_app, category, **_kwargs):
+        point = pc_actions._CLICK_INVENTORY_CATEGORY[category]
+        _app.click(x=point[0], y=point[1])
 
     monkeypatch.setattr(pc_actions, "_wait_for_any_marker", fake_wait)
     monkeypatch.setattr(pc_actions, "_capture_ocr_items", fake_capture)
     monkeypatch.setattr(pc_actions, "_read_profile_stage", fake_profile)
-    monkeypatch.setattr(pc_actions, "_read_currencies_stage", fake_currencies)
-    monkeypatch.setattr(pc_actions, "_read_int_region", fake_int)
-    monkeypatch.setattr(pc_actions, "_read_ratio_region", fake_ratio)
     monkeypatch.setattr(pc_actions, "_enter_warehouse_page", fake_enter_warehouse)
+    monkeypatch.setattr(
+        pc_actions,
+        "_select_inventory_category",
+        fake_select_inventory_category,
+    )
     monkeypatch.setattr(pc_actions, "_scan_inventory_stage", fake_inventory)
     monkeypatch.setattr(pc_actions, "_utc_now_iso", lambda: NOW)
     monkeypatch.setattr(pc_actions.time, "sleep", lambda _seconds: None)
     return app, trace, marker_labels
 
 
-def test_enter_warehouse_page_continuously_locates_clicks_and_strictly_verifies(monkeypatch):
+def test_enter_warehouse_page_continuously_template_matches_clicks_and_strictly_verifies(monkeypatch):
     app = _FakeApp()
     page_calls = 0
 
@@ -119,18 +130,22 @@ def test_enter_warehouse_page_continuously_locates_clicks_and_strictly_verifies(
             if page_calls == 1:
                 return [{"text": "道具"}]
             return [{"text": "道具 材料 装备"}]
-        assert region == pc_actions._WAREHOUSE_ENTRY_REGION
-        return [{"text": "仓库", "center": [165, 660]}]
+        raise AssertionError(f"unexpected OCR region: {region}")
 
     ticks = iter(index * 0.1 for index in range(100))
     monkeypatch.setattr(pc_actions, "_capture_ocr_items", fake_capture)
+    monkeypatch.setattr(
+        pc_actions,
+        "_match_warehouse_entry",
+        lambda _app: {"found": True, "confidence": 0.99, "center": [157, 619]},
+    )
     monkeypatch.setattr(pc_actions.time, "monotonic", lambda: next(ticks))
     monkeypatch.setattr(pc_actions.time, "sleep", lambda _seconds: None)
 
     pc_actions._enter_warehouse_page(app, object())
 
     assert pc_actions._WAREHOUSE_ENTRY_TIMEOUT_SEC == 3.0
-    assert app.clicks == [(165, 615)]
+    assert app.clicks == [(157, 619)]
     assert page_calls == 2
 
 
@@ -140,10 +155,15 @@ def test_enter_warehouse_page_times_out_without_strict_markers(monkeypatch):
     def fake_capture(_app, _ocr, region=None, **_kwargs):
         if region == pc_actions._INVENTORY_PAGE_REGION:
             return [{"text": "道具"}]
-        return [{"text": "仓库", "center": [165, 660]}]
+        raise AssertionError(f"unexpected OCR region: {region}")
 
     ticks = iter(index * 0.25 for index in range(100))
     monkeypatch.setattr(pc_actions, "_capture_ocr_items", fake_capture)
+    monkeypatch.setattr(
+        pc_actions,
+        "_match_warehouse_entry",
+        lambda _app: {"found": True, "confidence": 0.98, "center": [157, 619]},
+    )
     monkeypatch.setattr(pc_actions.time, "monotonic", lambda: next(ticks))
     monkeypatch.setattr(pc_actions.time, "sleep", lambda _seconds: None)
 
@@ -153,53 +173,145 @@ def test_enter_warehouse_page_times_out_without_strict_markers(monkeypatch):
     assert 1 <= len(app.clicks) <= 6
 
 
+def test_select_inventory_category_clicks_and_verifies_without_ocr(monkeypatch):
+    class _CategoryApp(_FakeApp):
+        selected = "items"
+
+        def click(self, x=None, y=None, **kwargs):
+            super().click(x=x, y=y, **kwargs)
+            if (int(x), int(y)) == pc_actions._CLICK_INVENTORY_CATEGORY["materials"]:
+                self.selected = "materials"
+
+        def capture(self, rect=None):
+            category = next(
+                key for key, value in pc_actions._INVENTORY_CATEGORY_REGIONS.items()
+                if value == rect
+            )
+            value = 220 if category == self.selected else 40
+            return SimpleNamespace(
+                success=True,
+                image=np.full((rect[3], rect[2], 3), value, dtype=np.uint8),
+            )
+
+    app = _CategoryApp()
+    monkeypatch.setattr(pc_actions.time, "sleep", lambda _seconds: None)
+
+    pc_actions._select_inventory_category(app, "materials")
+
+    assert app.clicks == [pc_actions._CLICK_INVENTORY_CATEGORY["materials"]]
+
+
+def test_warehouse_entry_template_contains_only_square_icon_region():
+    image = cv2.imread(str(pc_actions._WAREHOUSE_ENTRY_TEMPLATE), cv2.IMREAD_COLOR)
+
+    assert image is not None
+    assert image.shape[:2] == (60, 60)
+    assert int(image[-5:].max()) < 200
+    assert pc_actions._WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD == 0.82
+
+
+def test_warehouse_entry_template_match_returns_absolute_center():
+    template = cv2.imread(str(pc_actions._WAREHOUSE_ENTRY_TEMPLATE), cv2.IMREAD_COLOR)
+    source = np.zeros((150, 140, 3), dtype=np.uint8)
+    source[9:69, 12:72] = template
+
+    class _CaptureApp:
+        def capture(self, rect=None):
+            assert rect == pc_actions._WAREHOUSE_ENTRY_REGION
+            return SimpleNamespace(success=True, image=source)
+
+    match = pc_actions._match_warehouse_entry(_CaptureApp())
+
+    assert match["found"] is True
+    assert match["confidence"] > 0.999
+    assert match["center"] == [152, 599]
+
+
 def _redirect_cache(monkeypatch, cache_file: Path) -> None:
     monkeypatch.setattr(pc_actions, "_PLAYER_LATEST_FILE", cache_file)
 
 
-def test_pc_player_data_coordinates_match_mumu_except_expanded_numeric_regions():
+def test_profile_stage_reads_account_and_all_status_from_profile_panel(monkeypatch):
+    values = {
+        (95, 8, 160, 35): "UID: 8820206170",
+        pc_actions._PROFILE_FIELD_REGIONS["nickname"]: "面包猫南北",
+        pc_actions._PROFILE_FIELD_REGIONS["level"]: "LV 74",
+        pc_actions._PROFILE_FIELD_REGIONS["cargo"]: "3/748",
+        pc_actions._PROFILE_FIELD_REGIONS["clarity"]: "96/282",
+        pc_actions._PROFILE_FIELD_REGIONS["fatigue"]: "399/848",
+    }
+    monkeypatch.setattr(
+        pc_actions,
+        "_read_region_text",
+        lambda _app, _ocr, region, **_kwargs: values[region],
+    )
+
+    result = pc_actions._read_profile_stage(_FakeApp(), object())
+
+    assert result == {
+        "profile": {"uid": "8820206170", "nickname": "面包猫南北", "level": 74},
+        "cargo": {"current": 3, "max": 748},
+        "clarity": {"current": 96, "max": 282},
+        "fatigue": {"current": 399, "max": 848},
+    }
+
+
+def test_inventory_currency_values_are_derived_by_item_id_and_merge_partially():
+    inventory = {
+        "schema_version": 2,
+        "categories": {
+            "items": {
+                "items": [
+                    {"item_id": "iron_alliance_coin", "name": "铁盟币", "count": 99},
+                    {"item_id": "birch_crystal", "name": "桦石", "count": "bad"},
+                    {"item_id": "other", "name": "其他", "count": 1000},
+                ]
+            }
+        },
+    }
+
+    assert pc_actions._currencies_from_inventory(inventory) == {"iron_coins": 99}
+
+    merged = pc_actions._merge_latest(
+        {
+            "currencies": {"iron_coins": 1, "birch_stone": 2},
+            "metadata": {
+                "section_updated_at": {
+                    "currencies": "legacy-currency-time",
+                    "inventory": "old-inventory-time",
+                }
+            },
+        },
+        {
+            "inventory": inventory,
+            "currencies": {"iron_coins": 99},
+        },
+        section_updated_at={"inventory": NOW},
+        updated_at=NOW,
+    )
+
+    assert merged["currencies"] == {"iron_coins": 99, "birch_stone": 2}
+    assert merged["metadata"]["section_updated_at"] == {"inventory": NOW}
+
+
+def test_pc_player_data_coordinates_keep_only_shared_profile_and_navigation_regions():
     names = (
         "_CLICK_PROFILE",
-        "_CLICK_CURRENCY_EYE",
-        "_CLICK_CONFIRM",
         "_CLICK_BACK",
-        "_CLICK_CLARITY",
-        "_CLICK_FATIGUE",
         "_MAIN_CITY_REGION",
         "_PROFILE_REGION",
-        "_CURRENCY_POPUP_REGION",
-        "_CLARITY_PAGE_REGION",
-        "_FATIGUE_PAGE_REGION",
         "_MAIN_PAGE_REGION",
         "_MAIN_PAGE_MARKERS",
-        "_CURRENCY_FIELD_REGIONS",
-        "_CLARITY_RATIO_REGION",
     )
 
     for name in names:
         assert getattr(pc_actions, name) == getattr(mumu_actions, name), name
 
-    for field, region in mumu_actions._PROFILE_FIELD_REGIONS.items():
-        if field != "birch_stone":
-            assert pc_actions._PROFILE_FIELD_REGIONS[field] == region
-
-    def contains(outer, inner):
-        outer_x, outer_y, outer_w, outer_h = outer
-        inner_x, inner_y, inner_w, inner_h = inner
-        return (
-            outer_x <= inner_x
-            and outer_y <= inner_y
-            and outer_x + outer_w >= inner_x + inner_w
-            and outer_y + outer_h >= inner_y + inner_h
-        )
-
-    pc_birch = pc_actions._PROFILE_FIELD_REGIONS["birch_stone"]
-    mumu_birch = mumu_actions._PROFILE_FIELD_REGIONS["birch_stone"]
-    assert pc_birch == (420, 193, 105, 50)
-    assert contains(pc_birch, mumu_birch)
-
-    assert pc_actions._FATIGUE_RATIO_REGION == (85, 580, 160, 75)
-    assert contains(pc_actions._FATIGUE_RATIO_REGION, mumu_actions._FATIGUE_RATIO_REGION)
+    for field in ("uid", "level", "nickname", "clarity", "fatigue", "cargo"):
+        assert pc_actions._PROFILE_FIELD_REGIONS[field] == mumu_actions._PROFILE_FIELD_REGIONS[field]
+    assert set(pc_actions._PROFILE_FIELD_REGIONS) == {
+        "uid", "level", "nickname", "clarity", "fatigue", "cargo"
+    }
 
 
 @pytest.mark.parametrize(
@@ -213,48 +325,16 @@ def test_pc_player_data_coordinates_match_mumu_except_expanded_numeric_regions()
             {"profile", "status", "metadata"},
         ),
         (
-            "currencies",
-            [
-                pc_actions._CLICK_PROFILE,
-                pc_actions._CLICK_CURRENCY_EYE,
-                pc_actions._CLICK_CONFIRM,
-                pc_actions._CLICK_PROFILE_CLOSE,
-            ],
-            ["currencies", "currency_popup"],
-            {"currencies", "metadata"},
-        ),
-        (
-            "clarity",
-            [
-                pc_actions._CLICK_PROFILE,
-                pc_actions._CLICK_CLARITY,
-                pc_actions._CLICK_BACK,
-                pc_actions._CLICK_PROFILE_CLOSE,
-            ],
-            ["clarity_ratio"],
-            {"status", "metadata"},
-        ),
-        (
-            "fatigue",
-            [
-                pc_actions._CLICK_PROFILE,
-                pc_actions._CLICK_FATIGUE,
-                pc_actions._CLICK_BACK,
-                pc_actions._CLICK_PROFILE_CLOSE,
-            ],
-            ["fatigue_ratio"],
-            {"status", "metadata"},
-        ),
-        (
             "inventory",
             [
                 pc_actions._CLICK_PROFILE,
                 pc_actions._CLICK_INVENTORY,
+                pc_actions._CLICK_INVENTORY_CATEGORY["items"],
                 pc_actions._CLICK_BACK,
                 pc_actions._CLICK_PROFILE_CLOSE,
             ],
             ["inventory"],
-            {"inventory", "metadata"},
+            {"currencies", "inventory", "metadata"},
         ),
     ],
 )
@@ -266,6 +346,7 @@ def test_each_data_stage_uses_only_its_own_ui_and_ocr_path(
     expected_keys,
 ):
     app, trace, marker_labels = _install_successful_flow(monkeypatch)
+    monkeypatch.setattr(pc_actions, "_persist_latest", lambda *_args, **_kwargs: None)
 
     result = pc_actions.resonance_pc_player_data_refresh(
         stages=[stage],
@@ -277,30 +358,44 @@ def test_each_data_stage_uses_only_its_own_ui_and_ocr_path(
     assert trace == expected_trace
     assert set(result) == expected_keys
     assert marker_labels[0] == "main page before player data refresh"
-    assert result["metadata"] == {
+    expected_metadata = {
         "refreshed_at": NOW,
         "source": "ocr",
         "executed_stages": [stage],
         "skipped_stages": [item for item in ALL_STAGES if item != stage],
-        "persisted": False,
+        "persisted": True,
         "section_updated_at": {stage: NOW},
     }
+    if stage == "inventory":
+        expected_metadata["inventory_category_updated_at"] = {"items": NOW}
+    assert result["metadata"] == expected_metadata
     if stage == "profile":
-        assert result["status"] == {"cargo": {"current": 20, "max": 650}}
-    elif stage in {"clarity", "fatigue"}:
-        assert set(result["status"]) == {stage}
+        assert result["status"] == {
+            "cargo": {"current": 20, "max": 650},
+            "clarity": {"current": 292, "max": 292},
+            "fatigue": {"current": 0, "max": 824},
+        }
     elif stage == "inventory":
-        assert result["inventory"] == INVENTORY_PAYLOAD
+        assert result["inventory"] == {
+            "schema_version": 2,
+            "categories": {"items": INVENTORY_PAYLOAD},
+        }
+        assert result["currencies"] == {"iron_coins": 9132364, "birch_stone": 615}
+        assert result["metadata"]["inventory_category_updated_at"] == {"items": NOW}
 
 
 def test_default_stages_run_full_flow_and_persist(monkeypatch):
     app, trace, marker_labels = _install_successful_flow(monkeypatch)
-    persisted: list[tuple[dict, dict]] = []
+    persisted: list[tuple[dict, dict, dict]] = []
     monkeypatch.setattr(
         pc_actions,
         "_persist_latest",
-        lambda fresh, *, section_updated_at: persisted.append(
-            (copy.deepcopy(fresh), copy.deepcopy(section_updated_at))
+        lambda fresh, *, section_updated_at, inventory_category_updated_at=None: persisted.append(
+            (
+                copy.deepcopy(fresh),
+                copy.deepcopy(section_updated_at),
+                copy.deepcopy(inventory_category_updated_at or {}),
+            )
         ),
     )
 
@@ -308,34 +403,19 @@ def test_default_stages_run_full_flow_and_persist(monkeypatch):
 
     assert app.clicks == [
         pc_actions._CLICK_PROFILE,
-        pc_actions._CLICK_CURRENCY_EYE,
-        pc_actions._CLICK_CONFIRM,
-        pc_actions._CLICK_CLARITY,
-        pc_actions._CLICK_BACK,
-        pc_actions._CLICK_FATIGUE,
-        pc_actions._CLICK_BACK,
         pc_actions._CLICK_INVENTORY,
+        pc_actions._CLICK_INVENTORY_CATEGORY["items"],
         pc_actions._CLICK_BACK,
         pc_actions._CLICK_PROFILE_CLOSE,
     ]
     assert trace == [
         "location",
         "profile",
-        "currencies",
-        "currency_popup",
-        "clarity_ratio",
-        "fatigue_ratio",
         "inventory",
     ]
     assert marker_labels == [
         "main page before player data refresh",
         "profile panel",
-        "currency popup",
-        "profile panel after currency popup",
-        "clarity page",
-        "profile panel after clarity page",
-        "fatigue page",
-        "profile panel after fatigue page",
         "warehouse item page",
         "profile panel after warehouse item page",
         "main page after player data refresh",
@@ -346,7 +426,10 @@ def test_default_stages_run_full_flow_and_persist(monkeypatch):
     assert result["status"]["cargo"] == {"current": 20, "max": 650}
     assert result["status"]["clarity"]["current"] == 292
     assert result["status"]["fatigue"]["max"] == 824
-    assert result["inventory"] == INVENTORY_PAYLOAD
+    assert result["inventory"] == {
+        "schema_version": 2,
+        "categories": {"items": INVENTORY_PAYLOAD},
+    }
     assert result["metadata"]["executed_stages"] == ALL_STAGES
     assert result["metadata"]["skipped_stages"] == []
     assert result["metadata"]["persisted"] is True
@@ -356,7 +439,8 @@ def test_default_stages_run_full_flow_and_persist(monkeypatch):
                 key: copy.deepcopy(result[key])
                 for key in ("location", "profile", "currencies", "status", "inventory")
             },
-            {stage: NOW for stage in ALL_STAGES[:-1]},
+            {stage: NOW for stage in ALL_STAGES},
+            {"items": NOW},
         )
     ]
 
@@ -367,24 +451,21 @@ def test_stage_order_is_canonical_and_duplicates_are_removed(monkeypatch):
     monkeypatch.setattr(
         pc_actions,
         "_persist_latest",
-        lambda _fresh, *, section_updated_at: persisted.append(copy.deepcopy(section_updated_at)),
+        lambda _fresh, *, section_updated_at, **_kwargs: persisted.append(
+            copy.deepcopy(section_updated_at)
+        ),
     )
 
     result = pc_actions.resonance_pc_player_data_refresh(
-        stages=["fatigue", "persist", "location", "fatigue"],
+        stages=["inventory", "location", "inventory"],
         app=app,
         ocr=object(),
     )
 
-    assert trace == ["location", "fatigue_ratio"]
-    assert result["metadata"]["executed_stages"] == ["location", "fatigue", "persist"]
-    assert result["metadata"]["skipped_stages"] == [
-        "profile",
-        "currencies",
-        "clarity",
-        "inventory",
-    ]
-    assert persisted == [{"location": NOW, "fatigue": NOW}]
+    assert trace == ["location", "inventory"]
+    assert result["metadata"]["executed_stages"] == ["location", "inventory"]
+    assert result["metadata"]["skipped_stages"] == ["profile"]
+    assert persisted == [{"location": NOW, "inventory": NOW}]
 
 
 @pytest.mark.parametrize(
@@ -407,6 +488,51 @@ def test_invalid_stage_selection_is_rejected_before_game_access(stages):
     assert app.clicks == []
 
 
+@pytest.mark.parametrize(
+    "categories",
+    [[], ["unknown"], "items", [None]],
+)
+def test_invalid_inventory_category_selection_is_rejected_before_game_access(categories):
+    app = _FakeApp()
+
+    with pytest.raises(ValueError):
+        pc_actions.resonance_pc_player_data_refresh(
+            stages=["inventory"],
+            inventory_categories=categories,
+            app=app,
+            ocr=object(),
+        )
+
+    assert app.clicks == []
+
+
+def test_inventory_categories_execute_in_canonical_order_and_dedupe(monkeypatch):
+    app, trace, _marker_labels = _install_successful_flow(monkeypatch)
+    monkeypatch.setattr(pc_actions, "_persist_latest", lambda *_args, **_kwargs: None)
+
+    result = pc_actions.resonance_pc_player_data_refresh(
+        stages=["inventory"],
+        inventory_categories=["materials", "items", "materials"],
+        app=app,
+        ocr=object(),
+    )
+
+    assert trace == ["inventory", "inventory"]
+    assert app.clicks == [
+        pc_actions._CLICK_PROFILE,
+        pc_actions._CLICK_INVENTORY,
+        pc_actions._CLICK_INVENTORY_CATEGORY["items"],
+        pc_actions._CLICK_INVENTORY_CATEGORY["materials"],
+        pc_actions._CLICK_BACK,
+        pc_actions._CLICK_PROFILE_CLOSE,
+    ]
+    assert list(result["inventory"]["categories"]) == ["items", "materials"]
+    assert result["metadata"]["inventory_category_updated_at"] == {
+        "items": NOW,
+        "materials": NOW,
+    }
+
+
 def test_pc_player_data_refresh_stops_before_clicking_when_not_on_main(monkeypatch):
     app = _FakeApp()
 
@@ -417,7 +543,7 @@ def test_pc_player_data_refresh_stops_before_clicking_when_not_on_main(monkeypat
 
     with pytest.raises(StopTaskException, match="main page missing"):
         pc_actions.resonance_pc_player_data_refresh(
-            stages=["location", "persist"],
+            stages=["location"],
             app=app,
             ocr=object(),
         )
@@ -429,19 +555,19 @@ def test_stage_failure_preserves_original_error_and_does_not_persist(monkeypatch
     app, _trace, _marker_labels = _install_successful_flow(monkeypatch)
     persist_calls: list[dict] = []
 
-    def fail_clarity(*_args, **_kwargs):
-        raise StopTaskException("clarity OCR failed", success=False)
+    def fail_profile(*_args, **_kwargs):
+        raise StopTaskException("profile status OCR failed", success=False)
 
-    monkeypatch.setattr(pc_actions, "_read_ratio_region", fail_clarity)
+    monkeypatch.setattr(pc_actions, "_read_profile_stage", fail_profile)
     monkeypatch.setattr(
         pc_actions,
         "_persist_latest",
         lambda *_args, **_kwargs: persist_calls.append({"called": True}),
     )
 
-    with pytest.raises(StopTaskException, match="clarity OCR failed"):
+    with pytest.raises(StopTaskException, match="profile status OCR failed"):
         pc_actions.resonance_pc_player_data_refresh(
-            stages=["clarity", "persist"],
+            stages=["profile"],
             app=app,
             ocr=object(),
         )
@@ -449,8 +575,6 @@ def test_stage_failure_preserves_original_error_and_does_not_persist(monkeypatch
     assert persist_calls == []
     assert app.clicks == [
         pc_actions._CLICK_PROFILE,
-        pc_actions._CLICK_CLARITY,
-        pc_actions._CLICK_BACK,
         pc_actions._CLICK_PROFILE_CLOSE,
     ]
 
@@ -477,17 +601,21 @@ def test_inventory_failure_returns_to_main_and_does_not_persist(monkeypatch):
 
     with pytest.raises(StopTaskException, match="inventory scan failed"):
         pc_actions.resonance_pc_player_data_refresh(
-            stages=["inventory", "persist"],
+            stages=["inventory"],
             app=app,
             ocr=object(),
         )
 
     assert cleanup_pages == ["inventory"]
     assert persist_calls == []
-    assert app.clicks == [pc_actions._CLICK_PROFILE, pc_actions._CLICK_INVENTORY]
+    assert app.clicks == [
+        pc_actions._CLICK_PROFILE,
+        pc_actions._CLICK_INVENTORY,
+        pc_actions._CLICK_INVENTORY_CATEGORY["items"],
+    ]
 
 
-def test_inventory_partial_merge_replaces_snapshot_as_a_whole():
+def test_inventory_partial_category_merge_migrates_legacy_items_and_preserves_them():
     old_inventory = {
         "items": [
             {
@@ -516,21 +644,33 @@ def test_inventory_partial_merge_replaces_snapshot_as_a_whole():
             }
         },
     }
-    fresh = {"inventory": copy.deepcopy(INVENTORY_PAYLOAD)}
+    fresh = {
+        "inventory": {
+            "schema_version": 2,
+            "categories": {"materials": copy.deepcopy(MATERIAL_PAYLOAD)},
+        }
+    }
 
     merged = pc_actions._merge_latest(
         existing,
         fresh,
         section_updated_at={"inventory": NOW},
         updated_at=NOW,
+        inventory_category_updated_at={"materials": NOW},
     )
 
-    assert merged["inventory"] == INVENTORY_PAYLOAD
-    assert merged["inventory"] is not fresh["inventory"]
+    assert merged["inventory"]["schema_version"] == 2
+    assert merged["inventory"]["categories"] == {
+        "items": old_inventory,
+        "materials": MATERIAL_PAYLOAD,
+    }
     assert merged["profile"] == {"uid": "keep-me"}
     assert merged["metadata"]["section_updated_at"] == {
         "profile": "2026-08-19T00:00:00+00:00",
         "inventory": NOW,
+    }
+    assert merged["metadata"]["inventory_category_updated_at"] == {
+        "materials": NOW
     }
 
 
@@ -563,7 +703,7 @@ def test_partial_refresh_merges_cache_and_preserves_other_section_times(monkeypa
     app, _trace, _marker_labels = _install_successful_flow(monkeypatch)
 
     result = pc_actions.resonance_pc_player_data_refresh(
-        stages=["location", "persist"],
+        stages=["location"],
         app=app,
         ocr=object(),
     )
@@ -576,11 +716,10 @@ def test_partial_refresh_merges_cache_and_preserves_other_section_times(monkeypa
         assert cached[key] == old_cache[key]
     assert cached["metadata"]["updated_at"] == NOW
     assert cached["metadata"]["section_updated_at"]["location"] == NOW
-    for stage in ("profile", "currencies", "clarity", "fatigue"):
-        assert (
-            cached["metadata"]["section_updated_at"][stage]
-            == old_cache["metadata"]["section_updated_at"][stage]
-        )
+    assert cached["metadata"]["section_updated_at"] == {
+        "location": NOW,
+        "profile": "2026-08-19T00:00:00+00:00",
+    }
     assert not cache_file.with_suffix(".json.tmp").exists()
 
 
@@ -590,14 +729,18 @@ def test_first_partial_persist_creates_only_refreshed_section(monkeypatch, tmp_p
     app, _trace, _marker_labels = _install_successful_flow(monkeypatch)
 
     pc_actions.resonance_pc_player_data_refresh(
-        stages=["profile", "persist"],
+        stages=["profile"],
         app=app,
         ocr=object(),
     )
     cached = json.loads(cache_file.read_text(encoding="utf-8"))
 
     assert set(cached) == {"profile", "status", "metadata"}
-    assert cached["status"] == {"cargo": {"current": 20, "max": 650}}
+    assert cached["status"] == {
+        "cargo": {"current": 20, "max": 650},
+        "clarity": {"current": 292, "max": 292},
+        "fatigue": {"current": 0, "max": 824},
+    }
     assert cached["metadata"] == {
         "source": "ocr",
         "updated_at": NOW,
@@ -605,11 +748,11 @@ def test_first_partial_persist_creates_only_refreshed_section(monkeypatch, tmp_p
     }
 
 
-def test_refresh_without_persist_does_not_touch_existing_cache(monkeypatch, tmp_path):
+def test_successful_refresh_always_persists_and_preserves_unrelated_cache(monkeypatch, tmp_path):
     cache_file = tmp_path / "player" / "latest.json"
     cache_file.parent.mkdir(parents=True)
-    original = '{"sentinel": "保持原样"}\n'
-    cache_file.write_text(original, encoding="utf-8")
+    original = {"sentinel": "保持原样"}
+    cache_file.write_text(json.dumps(original, ensure_ascii=False), encoding="utf-8")
     _redirect_cache(monkeypatch, cache_file)
     app, _trace, _marker_labels = _install_successful_flow(monkeypatch)
 
@@ -619,8 +762,10 @@ def test_refresh_without_persist_does_not_touch_existing_cache(monkeypatch, tmp_
         ocr=object(),
     )
 
-    assert result["metadata"]["persisted"] is False
-    assert cache_file.read_text(encoding="utf-8") == original
+    assert result["metadata"]["persisted"] is True
+    cached = json.loads(cache_file.read_text(encoding="utf-8"))
+    assert cached["sentinel"] == "保持原样"
+    assert cached["location"] == {"current_city": "修格里城"}
 
 
 @pytest.mark.parametrize("contents", ["[]", "not-json"])
@@ -636,7 +781,7 @@ def test_invalid_cache_is_rejected_and_not_overwritten(monkeypatch, tmp_path, co
     app, _trace, _marker_labels = _install_successful_flow(monkeypatch)
     with pytest.raises(RuntimeError):
         pc_actions.resonance_pc_player_data_refresh(
-            stages=["location", "persist"],
+            stages=["location"],
             app=app,
             ocr=object(),
         )
@@ -688,8 +833,13 @@ def test_pc_player_data_task_schema_and_manifest_exports():
     assert refresh["meta"]["inputs"][0]["name"] == "stages"
     assert refresh["meta"]["inputs"][0]["type"] == "list"
     assert refresh["meta"]["inputs"][0]["default"] == ALL_STAGES
+    assert refresh["meta"]["inputs"][1]["name"] == "inventory_categories"
+    assert refresh["meta"]["inputs"][1]["default"] == ["items"]
     assert refresh["steps"]["refresh"]["action"] == "resonance_pc.player_data_refresh"
     assert refresh["steps"]["refresh"]["params"]["stages"] == "{{ inputs.stages }}"
+    assert refresh["steps"]["refresh"]["params"]["inventory_categories"] == (
+        "{{ inputs.inventory_categories }}"
+    )
     assert refresh["returns"]["player_data"] == "{{ nodes.refresh.output }}"
     assert latest["meta"]["inputs"] == []
     assert latest["steps"]["get_latest"] == {
@@ -703,6 +853,9 @@ def test_pc_player_data_task_schema_and_manifest_exports():
     task_ids = {item["id"] for item in manifest["exports"]["tasks"]}
     assert actions["resonance_pc.player_data_refresh"]["parameters"][0]["name"] == "stages"
     assert actions["resonance_pc.player_data_refresh"]["parameters"][0]["default"] is None
+    assert actions["resonance_pc.player_data_refresh"]["parameters"][1]["name"] == (
+        "inventory_categories"
+    )
     assert actions["resonance_pc.player_data_get_latest"]["read_only"] is True
     assert actions["resonance_pc.player_data_get_latest"]["parameters"] == []
     assert "player_data_pc/player_data_refresh" in task_ids
