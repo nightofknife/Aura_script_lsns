@@ -550,12 +550,20 @@ class WorkflowPage(QWidget):
         layout.setContentsMargins(18, 16, 18, 14)
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
-        self.config_stack.addWidget(self._build_startup_config())
+        self.startup_config_page = self._build_startup_config()
         self.player_data_panel = PlayerDataPanel(self._settings, self.config_stack)
-        self.config_stack.addWidget(self.player_data_panel)
-        self.config_stack.addWidget(self._build_commerce_config())
-        self.config_stack.addWidget(self._build_battle_config())
-        self.config_stack.addWidget(self._build_close_config())
+        self.commerce_config_page = self._build_commerce_config()
+        self.battle_config_page = self._build_battle_config()
+        self.close_config_page = self._build_close_config()
+        self._task_config_pages = {
+            "startup": self.startup_config_page,
+            "player_data": self.player_data_panel,
+            "commerce": self.commerce_config_page,
+            "battle": self.battle_config_page,
+            "close": self.close_config_page,
+        }
+        for config_page in self._task_config_pages.values():
+            self.config_stack.addWidget(config_page)
         self.center_stack.addWidget(self.config_stack)
         (
             self.trade_editor_page,
@@ -751,8 +759,7 @@ class WorkflowPage(QWidget):
         self.previewTradeRequested.emit()
 
     def show_commerce_summary(self) -> None:
-        self.center_stack.setCurrentWidget(self.config_stack)
-        self.config_stack.setCurrentIndex(1)
+        self._select_task("commerce")
 
     def _page_heading(self, title: str, description: str, parent: QWidget) -> QVBoxLayout:
         box = QVBoxLayout()
@@ -1054,11 +1061,7 @@ class WorkflowPage(QWidget):
         self.center_stack.setCurrentWidget(self.config_stack)
         for row_id, row in self._task_rows.items():
             row.set_selected(row_id == task_id)
-        self.config_stack.setCurrentIndex(
-            {"startup": 0, "player_data": 1, "commerce": 2, "battle": 3, "close": 4}[
-                task_id
-            ]
-        )
+        self.config_stack.setCurrentWidget(self._task_config_pages[task_id])
         self._sync_move_buttons()
 
     def _move_current(self, delta: int) -> None:
