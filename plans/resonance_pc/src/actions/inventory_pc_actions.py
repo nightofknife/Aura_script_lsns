@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import copy
 import json
-import re
+import os
 import time
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import median
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -29,11 +29,24 @@ _SUPPORTED_STACK_POLICIES = frozenset(
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _INVENTORY_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "inventory_items.json"
-_DEFAULT_GRID_REGION: Region = (407, 104, 650, 616)
+_INVENTORY_MATERIAL_CATALOG_FILE = (
+    _PLAN_ROOT / "data" / "meta" / "inventory_materials.json"
+)
+_INVENTORY_DIGIT_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "inventory_digits.json"
+_INVENTORY_EXPIRY_DIGIT_CATALOG_FILE = (
+    _PLAN_ROOT / "data" / "meta" / "inventory_expiry_digits.json"
+)
+_DEFAULT_GRID_REGION: Region = (397, 94, 680, 626)
 _DEFAULT_SCROLL_START = (1000, 620)
-_DEFAULT_SCROLL_END = (1000, 300)
+_DEFAULT_SCROLL_END = (1000, 310)
 _DEFAULT_MATCH_THRESHOLD = 0.94
-_DEFAULT_MAX_SCROLLS = 12
+_DEFAULT_MAX_SCROLLS = 30
+_SCROLL_HOLD_BEFORE_RELEASE_SEC = 0.5
+_DEBUG_CAPTURE_DIR_ENV = "AURA_INVENTORY_DEBUG_CAPTURE_DIR"
+_PLAN_KEY = "resonance_pc"
+# Temporary live-test switch: keep recognizing item stacks/counts, but do not
+# read or persist expiry values until the expiry digit templates are revisited.
+_EXPIRY_RECOGNITION_ENABLED = False
 
 
 def _inventory_error(message: str) -> StopTaskException:
@@ -57,18 +70,28 @@ def _coerce_int_sequence(value: Any, *, length: int, label: str) -> Tuple[int, .
         raise ValueError(f"inventory catalog {label} must contain integers") from exc
 
 
+def _catalog_category(catalog: Mapping[str, Any]) -> str:
+    category = str(catalog.get("category") or "items").strip()
+    if category not in {"items", "materials"}:
+        raise ValueError(f"unsupported inventory catalog category: {category}")
+    return category
+
+
 def _catalog_by_item_id(catalog: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    category = _catalog_category(catalog)
+    entry_key = "materials" if category == "materials" else "items"
+    id_key = "material_id" if category == "materials" else "item_id"
     default_policy = str(catalog.get("default_stack_policy") or STACK_POLICY_MERGE)
     if default_policy not in _SUPPORTED_STACK_POLICIES:
         raise ValueError(f"unsupported default inventory stack policy: {default_policy}")
     result: Dict[str, Dict[str, Any]] = {}
-    items = catalog.get("items", [])
+    items = catalog.get(entry_key, catalog.get("items", []))
     if not isinstance(items, list):
         raise ValueError("inventory item catalog items must be a list")
     for raw_item in items:
         if not isinstance(raw_item, Mapping):
             raise ValueError("inventory item catalog entries must be objects")
-        item_id = str(raw_item.get("item_id") or "").strip()
+        item_id = str(raw_item.get(id_key) or raw_item.get("item_id") or "").strip()
         if not item_id:
             raise ValueError("inventory item catalog entry is missing item_id")
         if item_id in result:
@@ -77,8 +100,259 @@ def _catalog_by_item_id(catalog: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]
         if policy not in _SUPPORTED_STACK_POLICIES:
             raise ValueError(f"unsupported inventory stack policy for {item_id}: {policy}")
         entry = dict(raw_item)
+        entry["item_id"] = item_id
         entry["stack_policy"] = policy
         result[item_id] = entry
+    return result
+
+
+def load_inventory_digit_catalog(
+    catalog_path: Optional[Path] = None,
+    *,
+    plan_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Load the normalized 0-9 templates and count segmentation parameters."""
+
+    path = Path(catalog_path or _INVENTORY_DIGIT_CATALOG_FILE)
+    root = Path(plan_root or _PLAN_ROOT).resolve()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"unable to load inventory digit catalog: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("inventory digit catalog must be a JSON object")
+
+    template_root_ref = str(payload.get("template_root") or "").strip()
+    if not template_root_ref:
+        raise ValueError("inventory digit catalog is missing template_root")
+    template_root = (root / template_root_ref).resolve()
+    if not _path_is_within(template_root, root) or not template_root.is_dir():
+        raise ValueError(f"inventory digit template root is unavailable: {template_root}")
+
+    digits = payload.get("digits")
+    if digits != list("0123456789"):
+        raise ValueError("inventory digit catalog digits must be exactly 0 through 9")
+    count_band = _coerce_int_sequence(
+        payload.get("count_band_from_card"), length=4, label="count_band_from_card"
+    )
+    component_width = _coerce_int_sequence(
+        payload.get("component_width"), length=2, label="component_width"
+    )
+    component_height = _coerce_int_sequence(
+        payload.get("component_height"), length=2, label="component_height"
+    )
+    normalized_size = _coerce_int_sequence(
+        payload.get("normalized_size"), length=2, label="normalized_size"
+    )
+    digit_gap = _coerce_int_sequence(
+        payload.get("digit_gap"), length=2, label="digit_gap"
+    )
+    right_edge_gap = _coerce_int_sequence(
+        payload.get("right_edge_gap"), length=2, label="right_edge_gap"
+    )
+    if any(
+        value <= 0
+        for value in (
+            count_band[2],
+            count_band[3],
+            *component_width,
+            *component_height,
+            *normalized_size,
+        )
+    ):
+        raise ValueError("inventory digit catalog dimensions must be positive")
+    white_min = int(payload.get("white_min", 165))
+    raw_white_min_candidates = payload.get("white_min_candidates", [white_min])
+    if not isinstance(raw_white_min_candidates, list) or not raw_white_min_candidates:
+        raise ValueError("inventory digit white_min_candidates must be a non-empty list")
+    try:
+        white_min_candidates = [int(value) for value in raw_white_min_candidates]
+    except (TypeError, ValueError) as exc:
+        raise ValueError("inventory digit white_min_candidates must contain integers") from exc
+    if (
+        not 0 <= white_min <= 255
+        or any(not 0 <= value <= 255 for value in white_min_candidates)
+        or len(white_min_candidates) != len(set(white_min_candidates))
+        or white_min not in white_min_candidates
+    ):
+        raise ValueError(
+            "inventory digit white_min_candidates must contain unique 0-255 values "
+            "including white_min"
+        )
+
+    templates: Dict[str, List[np.ndarray]] = {}
+    template_paths: Dict[str, List[str]] = {}
+    expected_width, expected_height = normalized_size
+    for digit in digits:
+        digit_dir = (template_root / digit).resolve()
+        if not _path_is_within(digit_dir, template_root) or not digit_dir.is_dir():
+            raise ValueError(f"inventory digit template directory is unavailable: {digit_dir}")
+        paths = sorted(digit_dir.glob("*.png"))
+        if not paths:
+            raise ValueError(f"inventory digit {digit} has no templates")
+        samples: List[np.ndarray] = []
+        for template_path in paths:
+            if not _path_is_within(template_path.resolve(), digit_dir):
+                raise ValueError(f"inventory digit template escapes digit directory: {template_path}")
+            image = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                raise ValueError(f"unable to read inventory digit template: {template_path}")
+            if image.shape[:2] != (expected_height, expected_width):
+                raise ValueError(
+                    f"inventory digit template {template_path} must be "
+                    f"{expected_width}x{expected_height}"
+                )
+            _, binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+            samples.append(binary)
+        templates[digit] = samples
+        template_paths[digit] = [str(item) for item in paths]
+
+    result = copy.deepcopy(payload)
+    result.update(
+        {
+            "count_band_from_card": count_band,
+            "component_width": component_width,
+            "component_height": component_height,
+            "normalized_size": normalized_size,
+            "digit_gap": digit_gap,
+            "right_edge_gap": right_edge_gap,
+            "white_min": white_min,
+            "white_min_candidates": white_min_candidates,
+            "_templates": templates,
+            "_template_paths": template_paths,
+        }
+    )
+    return result
+
+
+def load_inventory_expiry_digit_catalog(
+    catalog_path: Optional[Path] = None,
+    *,
+    plan_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Load the currently available expiry digit templates and segmentation rules."""
+
+    path = Path(catalog_path or _INVENTORY_EXPIRY_DIGIT_CATALOG_FILE)
+    root = Path(plan_root or _PLAN_ROOT).resolve()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"unable to load inventory expiry digit catalog: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("inventory expiry digit catalog must be a JSON object")
+
+    template_root_ref = str(payload.get("template_root") or "").strip()
+    if not template_root_ref:
+        raise ValueError("inventory expiry digit catalog is missing template_root")
+    template_root = (root / template_root_ref).resolve()
+    if not _path_is_within(template_root, root) or not template_root.is_dir():
+        raise ValueError(
+            f"inventory expiry digit template root is unavailable: {template_root}"
+        )
+
+    raw_digits = payload.get("available_digits")
+    if not isinstance(raw_digits, list):
+        raise ValueError("inventory expiry available_digits must be a list")
+    digits = [str(digit) for digit in raw_digits]
+    if len(digits) < 2 or len(digits) != len(set(digits)):
+        raise ValueError(
+            "inventory expiry available_digits must contain at least two unique digits"
+        )
+    if any(digit not in set("0123456789") for digit in digits):
+        raise ValueError("inventory expiry available_digits must contain only 0 through 9")
+
+    digit_x_range = _coerce_int_sequence(
+        payload.get("digit_x_range"), length=2, label="expiry digit_x_range"
+    )
+    component_width = _coerce_int_sequence(
+        payload.get("component_width"), length=2, label="expiry component_width"
+    )
+    component_height = _coerce_int_sequence(
+        payload.get("component_height"), length=2, label="expiry component_height"
+    )
+    component_top = _coerce_int_sequence(
+        payload.get("component_top"), length=2, label="expiry component_top"
+    )
+    normalized_size = _coerce_int_sequence(
+        payload.get("normalized_size"), length=2, label="expiry normalized_size"
+    )
+    digit_gap = _coerce_int_sequence(
+        payload.get("digit_gap"), length=2, label="expiry digit_gap"
+    )
+    similarity_mode = str(payload.get("similarity_mode") or "").strip()
+    if similarity_mode != "gaussian_cosine":
+        raise ValueError(
+            "inventory expiry similarity_mode must be gaussian_cosine"
+        )
+    gaussian_sigma = float(payload.get("gaussian_sigma", 0.0))
+    if not (0.0 < gaussian_sigma <= 3.0):
+        raise ValueError("inventory expiry gaussian_sigma must be between 0 and 3")
+    max_digits = int(payload.get("max_digits", 2))
+    if max_digits != 2:
+        raise ValueError("inventory expiry max_digits must be exactly 2")
+    if (
+        digit_x_range[0] < 0
+        or digit_x_range[0] >= digit_x_range[1]
+        or component_top[0] < 0
+        or component_top[0] > component_top[1]
+        or digit_gap[0] < 0
+        or digit_gap[0] > digit_gap[1]
+        or any(value <= 0 for value in (*component_width, *component_height, *normalized_size))
+    ):
+        raise ValueError("inventory expiry digit catalog dimensions are invalid")
+
+    templates: Dict[str, List[np.ndarray]] = {}
+    template_paths: Dict[str, List[str]] = {}
+    expected_width, expected_height = normalized_size
+    for digit in digits:
+        digit_dir = (template_root / digit).resolve()
+        if not _path_is_within(digit_dir, template_root) or not digit_dir.is_dir():
+            raise ValueError(
+                f"inventory expiry digit template directory is unavailable: {digit_dir}"
+            )
+        paths = sorted(digit_dir.glob("*.png"))
+        if len(paths) != 1:
+            raise ValueError(
+                f"inventory expiry digit {digit} must contain exactly one template"
+            )
+        samples: List[np.ndarray] = []
+        for template_path in paths:
+            if not _path_is_within(template_path.resolve(), digit_dir):
+                raise ValueError(
+                    f"inventory expiry digit template escapes digit directory: {template_path}"
+                )
+            image = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+            if image is None:
+                raise ValueError(
+                    f"unable to read inventory expiry digit template: {template_path}"
+                )
+            if image.shape[:2] != (expected_height, expected_width):
+                raise ValueError(
+                    f"inventory expiry digit template {template_path} must be "
+                    f"{expected_width}x{expected_height}"
+                )
+            _, binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+            samples.append(binary)
+        templates[digit] = samples
+        template_paths[digit] = [str(item) for item in paths]
+
+    result = copy.deepcopy(payload)
+    result.update(
+        {
+            "available_digits": digits,
+            "digit_x_range": digit_x_range,
+            "component_width": component_width,
+            "component_height": component_height,
+            "component_top": component_top,
+            "normalized_size": normalized_size,
+            "digit_gap": digit_gap,
+            "similarity_mode": similarity_mode,
+            "gaussian_sigma": gaussian_sigma,
+            "max_digits": max_digits,
+            "_templates": templates,
+            "_template_paths": template_paths,
+        }
+    )
     return result
 
 
@@ -86,8 +360,10 @@ def load_inventory_catalog(
     catalog_path: Optional[Path] = None,
     *,
     plan_root: Optional[Path] = None,
+    digit_catalog_path: Optional[Path] = None,
+    expiry_digit_catalog_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    """Load and validate the supported item catalog and its 100x70 templates."""
+    """Load and validate one supported inventory category catalog."""
 
     path = Path(catalog_path or _INVENTORY_CATALOG_FILE)
     root = Path(plan_root or _PLAN_ROOT).resolve()
@@ -122,42 +398,28 @@ def load_inventory_catalog(
         length=4,
         label="expiry_roi_from_template",
     )
-    count_roi = _coerce_int_sequence(
-        layout.get("count_roi_from_template"),
-        length=4,
-        label="count_roi_from_template",
-    )
     if template_size != (100, 70):
         raise ValueError("inventory templates must be exactly 100x70")
     if any(value <= 0 for value in (*template_size, *card_size, grid_region[2], grid_region[3])):
         raise ValueError("inventory catalog dimensions must be positive")
 
+    category = _catalog_category(payload)
     items_by_id = _catalog_by_item_id(payload)
     if not items_by_id:
-        raise ValueError("inventory item catalog must contain at least one supported item")
+        raise ValueError(
+            f"inventory {category} catalog must contain at least one supported entry"
+        )
     normalized_items: List[Dict[str, Any]] = []
     for item_id, raw_entry in items_by_id.items():
         template_ref = str(raw_entry.get("template") or "").strip()
         if not template_ref:
             raise ValueError(f"inventory item {item_id} is missing template")
-        template_path = (root / template_ref).resolve()
-        if not _path_is_within(template_path, root):
-            raise ValueError(f"inventory item template escapes plan root: {item_id}")
-        template_image = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
-        if template_image is None:
-            raise ValueError(f"unable to read inventory item template: {template_path}")
-        actual_size = (int(template_image.shape[1]), int(template_image.shape[0]))
-        if actual_size != template_size:
-            raise ValueError(
-                f"inventory item template {item_id} must be {template_size[0]}x{template_size[1]}, "
-                f"got {actual_size[0]}x{actual_size[1]}"
-            )
         entry = dict(raw_entry)
-        entry["_template_path"] = str(template_path)
-        entry["_template_image"] = template_image
+        entry["template"] = template_ref
         normalized_items.append(entry)
 
     result = copy.deepcopy(payload)
+    result["category"] = category
     result["layout"] = {
         **layout,
         "template_size": template_size,
@@ -165,11 +427,45 @@ def load_inventory_catalog(
         "card_size": card_size,
         "grid_region": grid_region,
         "expiry_roi_from_template": expiry_roi,
-        "count_roi_from_template": count_roi,
     }
     result["items"] = normalized_items
     result["_items_by_id"] = {item["item_id"]: item for item in normalized_items}
+    result["_digit_reader"] = load_inventory_digit_catalog(
+        digit_catalog_path,
+        plan_root=root,
+    )
+    result["_expiry_digit_reader"] = load_inventory_expiry_digit_catalog(
+        expiry_digit_catalog_path,
+        plan_root=root,
+    )
     return result
+
+
+def _resolve_inventory_template_paths(
+    catalog: Dict[str, Any],
+    vision: Any,
+    *,
+    plan_key: str = _PLAN_KEY,
+    plan_root: Path = _PLAN_ROOT,
+) -> List[str]:
+    """Resolve catalog template references through the framework vision service."""
+
+    if vision is None or not callable(getattr(vision, "resolve_template", None)):
+        raise RuntimeError("framework vision service is required for inventory matching")
+    items = catalog.get("items")
+    if not isinstance(items, list):
+        raise ValueError("inventory catalog items must be a list")
+    resolved_paths: List[str] = []
+    for item in items:
+        template_ref = str(item.get("template") or "").strip()
+        if not template_ref:
+            raise ValueError(f"inventory item {item.get('item_id')} is missing template")
+        template_path = Path(
+            vision.resolve_template(str(plan_key), template_ref, Path(plan_root))
+        ).resolve()
+        resolved_paths.append(str(template_path))
+    catalog["_template_paths"] = resolved_paths
+    return resolved_paths
 
 
 def relative_roi(
@@ -194,106 +490,464 @@ def relative_roi(
     return (x, y, width, height)
 
 
-def parse_count_text(text: str) -> Optional[int]:
-    runs = re.findall(r"\d+", str(text or ""))
-    if not runs:
-        return None
-    value = int(max(runs, key=len))
-    return value if value > 0 else None
-
-
-def parse_expiry_text(text: str) -> Optional[Dict[str, Any]]:
-    raw = str(text or "").strip()
-    compact = re.sub(r"\s+", "", raw)
-    for pattern, kind in (
-        (r"(\d+)(?:小时|时)", "hours_remaining"),
-        (r"(\d+)(?:分钟|分)", "minutes_remaining"),
-        (r"(\d+)天", "days_remaining"),
-    ):
-        match = re.search(pattern, compact)
-        if match:
-            return {"kind": kind, "value": int(match.group(1)), "raw": raw}
-    fallback = re.search(r"\d+", compact)
-    if fallback:
-        return {"kind": "days_remaining", "value": int(fallback.group(0)), "raw": raw}
-    return None
-
-
-def _text_of_ocr_result(item: Any) -> str:
-    if isinstance(item, Mapping):
-        return str(item.get("text") or "")
-    return str(getattr(item, "text", "") or "")
-
-
-def _ocr_variants(image: np.ndarray) -> List[np.ndarray]:
-    enlarged = cv2.resize(image, None, fx=4.0, fy=4.0, interpolation=cv2.INTER_CUBIC)
-    gray = cv2.cvtColor(enlarged, cv2.COLOR_BGR2GRAY) if enlarged.ndim == 3 else enlarged
-    _, thresholded = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return [enlarged, gray, thresholded]
-
-
-def _read_parsed_ocr(
+def build_quantity_white_mask(
     image: np.ndarray,
-    ocr: Any,
-    parser: Callable[[str], Any],
-    *,
-    label: str,
-) -> Any:
-    observed: List[str] = []
-    for variant in _ocr_variants(image):
-        try:
-            multi = ocr.recognize_all(source_image=variant)
-        except Exception as exc:
-            observed.append(f"<ocr-error:{exc}>")
-            continue
-        text = " ".join(
-            part
-            for part in (
-                _text_of_ocr_result(item).strip()
-                for item in getattr(multi, "results", [])
-            )
-            if part
-        )
-        observed.append(text)
-        parsed = parser(text)
-        if parsed is not None:
-            return parsed
-    raise _inventory_error(f"unable to read {label}; OCR={observed}")
+    digit_reader: Mapping[str, Any],
+) -> np.ndarray:
+    """Extract low-saturation white quantity glyphs from a card-bottom band."""
 
-
-def _find_template_instances(
-    source_image: np.ndarray,
-    template_image: np.ndarray,
-    *,
-    threshold: float,
-) -> List[Dict[str, Any]]:
-    """Find every instance with local-peak suppression scoped to this reader."""
-
-    score_map = cv2.matchTemplate(source_image, template_image, cv2.TM_CCOEFF_NORMED)
-    local_max = cv2.dilate(score_map, np.ones((3, 3), dtype=np.uint8))
-    ys, xs = np.where((score_map >= float(threshold)) & (score_map >= local_max - 1e-7))
-    candidates = sorted(
-        ((float(score_map[y, x]), int(x), int(y)) for y, x in zip(ys, xs)),
-        reverse=True,
+    if image is None or not isinstance(image, np.ndarray) or image.size == 0:
+        raise ValueError("inventory quantity band is empty")
+    if image.ndim == 2:
+        blue = green = red = image
+    elif image.ndim == 3 and image.shape[2] >= 3:
+        blue, green, red = cv2.split(image[:, :, :3])
+    else:
+        raise ValueError("inventory quantity band has an unsupported shape")
+    white_min = int(digit_reader.get("white_min", 165))
+    max_channel_spread = int(digit_reader.get("max_channel_spread", 55))
+    maximum = np.maximum.reduce((blue, green, red)).astype(np.int16)
+    minimum = np.minimum.reduce((blue, green, red)).astype(np.int16)
+    mask = (
+        (blue >= white_min)
+        & (green >= white_min)
+        & (red >= white_min)
+        & ((maximum - minimum) <= max_channel_spread)
     )
-    template_width = int(template_image.shape[1])
-    template_height = int(template_image.shape[0])
-    kept: List[Dict[str, Any]] = []
-    for confidence, x, y in candidates:
-        if any(
-            abs(x - int(item["top_left"][0])) < template_width // 2
-            and abs(y - int(item["top_left"][1])) < template_height // 2
-            for item in kept
-        ):
+    return mask.astype(np.uint8) * 255
+
+
+def segment_quantity_digits(
+    card_image: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Return the right-aligned digit run from one fully visible inventory card."""
+
+    count_band = tuple(int(value) for value in digit_reader["count_band_from_card"])
+    region = relative_roi((0, 0), count_band, card_image.shape)
+    if region is None:
+        return []
+    band_x, band_y, band_width, band_height = region
+    band = card_image[band_y : band_y + band_height, band_x : band_x + band_width]
+
+    raw_white_mins = digit_reader.get(
+        "white_min_candidates",
+        [digit_reader.get("white_min", 165)],
+    )
+    if not isinstance(raw_white_mins, (list, tuple)) or not raw_white_mins:
+        raw_white_mins = [digit_reader.get("white_min", 165)]
+    runs: List[List[Dict[str, Any]]] = []
+    for raw_white_min in raw_white_mins:
+        candidate_reader = dict(digit_reader)
+        candidate_reader["white_min"] = int(raw_white_min)
+        mask = build_quantity_white_mask(band, candidate_reader)
+        run = _segment_quantity_mask(mask, digit_reader, band_width)
+        if run:
+            runs.append(run)
+    if not runs:
+        return []
+
+    min_score = float(digit_reader.get("min_digit_score", 0.75))
+    min_margin = float(digit_reader.get("min_digit_margin", 0.02))
+
+    def run_rank(run: List[Dict[str, Any]]) -> Tuple[int, int, float]:
+        try:
+            matches = [
+                match_quantity_digit(component["glyph"], digit_reader)
+                for component in run
+            ]
+        except Exception:
+            return (0, len(run), 0.0)
+        valid = all(
+            float(match["score"]) >= min_score
+            and float(match["margin"]) >= min_margin
+            for match in matches
+        )
+        average_score = sum(float(match["score"]) for match in matches) / len(matches)
+        return (int(valid), len(run), average_score)
+
+    return max(runs, key=run_rank)
+
+
+def _segment_quantity_mask(
+    mask: np.ndarray,
+    digit_reader: Mapping[str, Any],
+    band_width: int,
+) -> List[Dict[str, Any]]:
+    """Segment one thresholded quantity mask into a right-aligned digit run."""
+
+    component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(mask, 8)
+    min_width, max_width = (int(value) for value in digit_reader["component_width"])
+    min_height, max_height = (int(value) for value in digit_reader["component_height"])
+    min_top = int(digit_reader.get("component_top_min", 0))
+    min_area = int(digit_reader.get("component_area_min", 1))
+    candidates: List[Dict[str, Any]] = []
+    for component_index in range(1, component_count):
+        left, top, width, height, area = (
+            int(value) for value in stats[component_index]
+        )
+        if not (min_width <= width <= max_width):
             continue
-        kept.append(
+        if not (min_height <= height <= max_height):
+            continue
+        if top < min_top or area < min_area:
+            continue
+        candidates.append(
             {
-                "top_left": (x, y),
-                "confidence": confidence,
-                "rect": (x, y, template_width, template_height),
+                "rect": [left, top, width, height],
+                "glyph": mask[top : top + height, left : left + width],
+                "bottom": top + height,
             }
         )
-    return kept
+    if not candidates:
+        return []
+
+    rightmost = max(candidates, key=lambda entry: entry["rect"][0] + entry["rect"][2])
+    right_edge = int(rightmost["rect"][0]) + int(rightmost["rect"][2])
+    right_gap = band_width - right_edge
+    min_right_gap, max_right_gap = (
+        int(value) for value in digit_reader["right_edge_gap"]
+    )
+    if not (min_right_gap <= right_gap <= max_right_gap):
+        return []
+
+    baseline_tolerance = int(digit_reader.get("baseline_tolerance", 2))
+    baseline = int(rightmost["bottom"])
+    aligned = sorted(
+        (
+            entry
+            for entry in candidates
+            if abs(int(entry["bottom"]) - baseline) <= baseline_tolerance
+        ),
+        key=lambda entry: entry["rect"][0],
+    )
+    rightmost_index = next(
+        index for index, entry in enumerate(aligned) if entry is rightmost
+    )
+    min_gap, max_gap = (int(value) for value in digit_reader["digit_gap"])
+    run = [rightmost]
+    for candidate in reversed(aligned[:rightmost_index]):
+        candidate_right = int(candidate["rect"][0]) + int(candidate["rect"][2])
+        gap = int(run[0]["rect"][0]) - candidate_right
+        if min_gap <= gap <= max_gap:
+            run.insert(0, candidate)
+            continue
+        break
+    return run
+
+
+def normalize_quantity_digit(
+    glyph: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> np.ndarray:
+    target_width, target_height = (
+        int(value) for value in digit_reader["normalized_size"]
+    )
+    source_height, source_width = glyph.shape[:2]
+    if source_width <= 0 or source_height <= 0:
+        raise ValueError("inventory quantity glyph is empty")
+    scale = min(
+        (target_width - 4) / source_width,
+        (target_height - 4) / source_height,
+    )
+    resized_width = max(1, int(round(source_width * scale)))
+    resized_height = max(1, int(round(source_height * scale)))
+    resized = cv2.resize(
+        glyph,
+        (resized_width, resized_height),
+        interpolation=cv2.INTER_NEAREST,
+    )
+    canvas = np.zeros((target_height, target_width), dtype=np.uint8)
+    offset_x = (target_width - resized_width) // 2
+    offset_y = (target_height - resized_height) // 2
+    canvas[offset_y : offset_y + resized_height, offset_x : offset_x + resized_width] = resized
+    return canvas
+
+
+def _digit_dice_score(left: np.ndarray, right: np.ndarray) -> float:
+    left_mask = left > 0
+    right_mask = right > 0
+    denominator = int(left_mask.sum()) + int(right_mask.sum())
+    if denominator == 0:
+        return 0.0
+    return float(2 * np.logical_and(left_mask, right_mask).sum() / denominator)
+
+
+def _shifted_digit_score(
+    glyph: np.ndarray,
+    template: np.ndarray,
+    tolerance: int,
+) -> float:
+    best = 0.0
+    for offset_y in range(-tolerance, tolerance + 1):
+        for offset_x in range(-tolerance, tolerance + 1):
+            transform = np.float32([[1, 0, offset_x], [0, 1, offset_y]])
+            shifted = cv2.warpAffine(
+                glyph,
+                transform,
+                (glyph.shape[1], glyph.shape[0]),
+                flags=cv2.INTER_NEAREST,
+                borderValue=0,
+            )
+            best = max(best, _digit_dice_score(shifted, template))
+    return best
+
+
+def match_quantity_digit(
+    glyph: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> Dict[str, Any]:
+    normalized = normalize_quantity_digit(glyph, digit_reader)
+    templates = digit_reader.get("_templates")
+    if not isinstance(templates, Mapping):
+        raise ValueError("inventory digit templates are not loaded")
+    tolerance = max(int(digit_reader.get("shift_tolerance", 1)), 0)
+    scores = {
+        str(digit): max(
+            _shifted_digit_score(normalized, template, tolerance)
+            for template in samples
+        )
+        for digit, samples in templates.items()
+    }
+    ranking = sorted(scores.items(), key=lambda entry: entry[1], reverse=True)
+    if len(ranking) < 2:
+        raise ValueError("inventory digit catalog must contain at least two digit classes")
+    best_digit, best_score = ranking[0]
+    second_digit, second_score = ranking[1]
+    return {
+        "digit": best_digit,
+        "score": float(best_score),
+        "margin": float(best_score - second_score),
+        "second_digit": second_digit,
+        "second_score": float(second_score),
+    }
+
+
+def _gaussian_blur_digit(image: np.ndarray, sigma: float) -> np.ndarray:
+    return cv2.GaussianBlur(
+        image.astype(np.float32) / 255.0,
+        (0, 0),
+        sigmaX=sigma,
+        sigmaY=sigma,
+    )
+
+
+def _shifted_gaussian_cosine_score(
+    glyph: np.ndarray,
+    template: np.ndarray,
+    tolerance: int,
+    sigma: float,
+) -> float:
+    blurred_template = _gaussian_blur_digit(template, sigma)
+    template_norm = float(np.linalg.norm(blurred_template))
+    if template_norm <= 0:
+        return 0.0
+    best = 0.0
+    for offset_y in range(-tolerance, tolerance + 1):
+        for offset_x in range(-tolerance, tolerance + 1):
+            transform = np.float32([[1, 0, offset_x], [0, 1, offset_y]])
+            shifted = cv2.warpAffine(
+                glyph,
+                transform,
+                (glyph.shape[1], glyph.shape[0]),
+                flags=cv2.INTER_NEAREST,
+                borderValue=0,
+            )
+            blurred_glyph = _gaussian_blur_digit(shifted, sigma)
+            glyph_norm = float(np.linalg.norm(blurred_glyph))
+            if glyph_norm <= 0:
+                continue
+            score = float(
+                np.sum(blurred_glyph * blurred_template)
+                / (glyph_norm * template_norm)
+            )
+            best = max(best, score)
+    return best
+
+
+def match_expiry_digit(
+    glyph: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Match an expiry digit while tolerating small rasterization differences."""
+
+    normalized = normalize_quantity_digit(glyph, digit_reader)
+    templates = digit_reader.get("_templates")
+    if not isinstance(templates, Mapping):
+        raise ValueError("inventory expiry digit templates are not loaded")
+    tolerance = max(int(digit_reader.get("shift_tolerance", 1)), 0)
+    sigma = float(digit_reader.get("gaussian_sigma", 0.9))
+    scores = {
+        str(digit): max(
+            _shifted_gaussian_cosine_score(
+                normalized,
+                template,
+                tolerance,
+                sigma,
+            )
+            for template in samples
+        )
+        for digit, samples in templates.items()
+    }
+    ranking = sorted(scores.items(), key=lambda entry: entry[1], reverse=True)
+    if len(ranking) < 2:
+        raise ValueError("inventory expiry catalog must contain at least two digit classes")
+    best_digit, best_score = ranking[0]
+    second_digit, second_score = ranking[1]
+    return {
+        "digit": best_digit,
+        "score": float(best_score),
+        "margin": float(best_score - second_score),
+        "second_digit": second_digit,
+        "second_score": float(second_score),
+    }
+
+
+def read_inventory_count(
+    card_image: np.ndarray,
+    digit_reader: Mapping[str, Any],
+    *,
+    item_id: str,
+) -> int:
+    components = segment_quantity_digits(card_image, digit_reader)
+    if not components:
+        raise _inventory_error(
+            f"unable to segment count digits for {item_id}; reason=no_right_aligned_digit_run"
+        )
+    max_digits = int(digit_reader.get("max_digits", 10))
+    if len(components) > max_digits:
+        raise _inventory_error(
+            f"unable to segment count digits for {item_id}; "
+            f"reason=too_many_digits count={len(components)} max={max_digits}"
+        )
+
+    matches = [match_quantity_digit(component["glyph"], digit_reader) for component in components]
+    min_score = float(digit_reader.get("min_digit_score", 0.75))
+    min_margin = float(digit_reader.get("min_digit_margin", 0.02))
+    for index, match in enumerate(matches):
+        if float(match["score"]) < min_score or float(match["margin"]) < min_margin:
+            raise _inventory_error(
+                f"unable to match count digit for {item_id}; index={index} "
+                f"best={match['digit']} score={float(match['score']):.3f} "
+                f"second={match['second_digit']} second_score={float(match['second_score']):.3f} "
+                f"margin={float(match['margin']):.3f}"
+            )
+    digits = "".join(str(match["digit"]) for match in matches)
+    value = int(digits)
+    if value <= 0:
+        raise _inventory_error(f"inventory count must be positive for {item_id}; digits={digits}")
+    logger.info(
+        "Inventory digit-template count: item_id=%s count=%s scores=%s margins=%s",
+        item_id,
+        value,
+        [round(float(match["score"]), 4) for match in matches],
+        [round(float(match["margin"]), 4) for match in matches],
+    )
+    return value
+
+
+def segment_expiry_digits(
+    expiry_image: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Extract the one- or two-digit day count between the clock icon and 天."""
+
+    mask = build_quantity_white_mask(expiry_image, digit_reader)
+    component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(mask, 8)
+    min_x, max_right = (int(value) for value in digit_reader["digit_x_range"])
+    min_width, max_width = (int(value) for value in digit_reader["component_width"])
+    min_height, max_height = (int(value) for value in digit_reader["component_height"])
+    min_top, max_top = (int(value) for value in digit_reader["component_top"])
+    min_area = int(digit_reader.get("component_area_min", 1))
+    candidates: List[Dict[str, Any]] = []
+    for component_index in range(1, component_count):
+        left, top, width, height, area = (
+            int(value) for value in stats[component_index]
+        )
+        if left < min_x or left + width > max_right:
+            continue
+        if not (min_width <= width <= max_width):
+            continue
+        if not (min_height <= height <= max_height):
+            continue
+        if not (min_top <= top <= max_top) or area < min_area:
+            continue
+        candidates.append(
+            {
+                "rect": [left, top, width, height],
+                "glyph": mask[top : top + height, left : left + width],
+                "bottom": top + height,
+            }
+        )
+    if not candidates:
+        return []
+
+    candidates.sort(key=lambda entry: int(entry["rect"][0]))
+    baseline = int(candidates[-1]["bottom"])
+    baseline_tolerance = int(digit_reader.get("baseline_tolerance", 2))
+    aligned = [
+        entry
+        for entry in candidates
+        if abs(int(entry["bottom"]) - baseline) <= baseline_tolerance
+    ]
+    min_gap, max_gap = (int(value) for value in digit_reader["digit_gap"])
+    for left, right in zip(aligned, aligned[1:]):
+        left_right = int(left["rect"][0]) + int(left["rect"][2])
+        gap = int(right["rect"][0]) - left_right
+        if not (min_gap <= gap <= max_gap):
+            return []
+    return aligned
+
+
+def read_inventory_expiry(
+    expiry_image: np.ndarray,
+    digit_reader: Mapping[str, Any],
+    *,
+    item_id: str,
+) -> Dict[str, Any]:
+    """Read a fixed days-only expiry using the currently available digit templates."""
+
+    components = segment_expiry_digits(expiry_image, digit_reader)
+    if not components:
+        raise _inventory_error(
+            f"unable to segment expiry digits for {item_id}; reason=no_digit_run"
+        )
+    max_digits = int(digit_reader.get("max_digits", 2))
+    if len(components) > max_digits:
+        raise _inventory_error(
+            f"unable to segment expiry digits for {item_id}; "
+            f"reason=too_many_digits count={len(components)} max={max_digits}"
+        )
+
+    matches = [match_expiry_digit(component["glyph"], digit_reader) for component in components]
+    min_score = float(digit_reader.get("min_digit_score", 0.9))
+    min_margin = float(digit_reader.get("min_digit_margin", 0.05))
+    for index, match in enumerate(matches):
+        if float(match["score"]) < min_score or float(match["margin"]) < min_margin:
+            raise _inventory_error(
+                f"unable to match expiry digit for {item_id}; index={index} "
+                f"best={match['digit']} score={float(match['score']):.3f} "
+                f"second={match['second_digit']} second_score={float(match['second_score']):.3f} "
+                f"margin={float(match['margin']):.3f}"
+            )
+    digits = "".join(str(match["digit"]) for match in matches)
+    value = int(digits)
+    if not (1 <= value <= 99):
+        raise _inventory_error(
+            f"inventory expiry must be between 1 and 99 days for {item_id}; digits={digits}"
+        )
+    logger.info(
+        "Inventory expiry digit-template count: item_id=%s days=%s scores=%s margins=%s",
+        item_id,
+        value,
+        [round(float(match["score"]), 4) for match in matches],
+        [round(float(match["margin"]), 4) for match in matches],
+    )
+    return {
+        "kind": "days_remaining",
+        "value": value,
+        "raw": f"digit_template:{digits}",
+    }
 
 
 def _suppress_cross_template_overlaps(
@@ -316,6 +970,9 @@ def scan_inventory_page(
     page_image: np.ndarray,
     catalog: Mapping[str, Any],
     ocr: Any,
+    vision: Any,
+    *,
+    expiry_recognition_enabled: bool = _EXPIRY_RECOGNITION_ENABLED,
 ) -> List[Dict[str, Any]]:
     """Recognize all fully visible supported cards in one warehouse frame."""
 
@@ -323,54 +980,83 @@ def scan_inventory_page(
         raise _inventory_error("warehouse grid capture is empty")
     layout = catalog.get("layout")
     items = catalog.get("items")
-    if not isinstance(layout, Mapping) or not isinstance(items, list):
+    template_paths = catalog.get("_template_paths")
+    digit_reader = catalog.get("_digit_reader")
+    expiry_digit_reader = catalog.get("_expiry_digit_reader")
+    if (
+        not isinstance(layout, Mapping)
+        or not isinstance(items, list)
+        or not isinstance(template_paths, list)
+        or len(template_paths) != len(items)
+        or not isinstance(digit_reader, Mapping)
+        or not isinstance(expiry_digit_reader, Mapping)
+    ):
         raise ValueError("inventory catalog must be loaded with load_inventory_catalog")
     template_offset = tuple(int(value) for value in layout["template_offset_from_card"])
     card_width, card_height = (int(value) for value in layout["card_size"])
     threshold = float(layout.get("match_threshold", _DEFAULT_MATCH_THRESHOLD))
 
-    candidates: List[Dict[str, Any]] = []
-    for item in items:
-        template_image = item.get("_template_image")
-        if not isinstance(template_image, np.ndarray):
-            template_image = cv2.imread(str(item.get("_template_path") or ""), cv2.IMREAD_COLOR)
-        if template_image is None:
-            raise ValueError(f"inventory item template is unavailable: {item.get('item_id')}")
-        score_map = cv2.matchTemplate(page_image, template_image, cv2.TM_CCOEFF_NORMED)
-        best_confidence = float(cv2.minMaxLoc(score_map)[1])
-        matches = _find_template_instances(
-            page_image,
-            template_image,
-            threshold=float(item.get("match_threshold", threshold)),
+    if vision is None or not callable(getattr(vision, "find_all_templates_batch", None)):
+        raise RuntimeError("framework vision service is required for inventory matching")
+    batch_results = vision.find_all_templates_batch(
+        source_image=page_image,
+        template_images=[str(path) for path in template_paths],
+        threshold=threshold,
+        nms_threshold=0.5,
+        use_grayscale=False,
+        match_method=cv2.TM_CCOEFF_NORMED,
+        preprocess="none",
+    )
+    if not isinstance(batch_results, list) or len(batch_results) != len(items):
+        raise _inventory_error(
+            "framework vision batch result count does not match inventory templates"
         )
-        logger.info(
-            "Inventory template scan: item_id=%s best_confidence=%.4f matches=%s",
+
+    candidates: List[Dict[str, Any]] = []
+    for item, multi_match_result in zip(items, batch_results, strict=True):
+        matches = list(getattr(multi_match_result, "matches", []) or [])
+        best_confidence = max(
+            (float(getattr(match, "confidence", 0.0)) for match in matches),
+            default=0.0,
+        )
+        log_template_scan = logger.info if matches else logger.debug
+        log_template_scan(
+            "Inventory framework template scan: item_id=%s best_match_confidence=%.4f matches=%s",
             item.get("item_id"),
             best_confidence,
             len(matches),
         )
         for match in matches:
-            match_x, match_y = match["top_left"]
+            match_top_left = getattr(match, "top_left", None)
+            if not isinstance(match_top_left, (tuple, list)) or len(match_top_left) != 2:
+                continue
+            match_x, match_y = (int(value) for value in match_top_left)
             card_top_left = (int(match_x) - template_offset[0], int(match_y) - template_offset[1])
             if relative_roi(card_top_left, (0, 0, card_width, card_height), page_image.shape) is None:
                 continue
-            candidates.append({**match, "item": item, "card_top_left": card_top_left})
+            candidates.append(
+                {
+                    "top_left": (match_x, match_y),
+                    "confidence": float(getattr(match, "confidence", 0.0)),
+                    "rect": getattr(match, "rect", None),
+                    "item": item,
+                    "card_top_left": card_top_left,
+                }
+            )
 
     observations: List[Dict[str, Any]] = []
     for candidate in _suppress_cross_template_overlaps(candidates):
         match_top_left = candidate["top_left"]
         item = candidate["item"]
-        count_region = relative_roi(
-            match_top_left, layout["count_roi_from_template"], page_image.shape
-        )
-        if count_region is None:
-            continue
-        count_x, count_y, count_width, count_height = count_region
-        count = _read_parsed_ocr(
-            page_image[count_y : count_y + count_height, count_x : count_x + count_width],
-            ocr,
-            parse_count_text,
-            label=f"count for {item['item_id']}",
+        card_x, card_y = (int(value) for value in candidate["card_top_left"])
+        card_image = page_image[
+            card_y : card_y + card_height,
+            card_x : card_x + card_width,
+        ]
+        count = read_inventory_count(
+            card_image,
+            digit_reader,
+            item_id=str(item["item_id"]),
         )
         observation: Dict[str, Any] = {
             "item_id": str(item["item_id"]),
@@ -379,18 +1065,20 @@ def scan_inventory_page(
             "confidence": float(candidate["confidence"]),
             "card_top_left": [int(candidate["card_top_left"][0]), int(candidate["card_top_left"][1])],
         }
-        if item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY:
+        if (
+            expiry_recognition_enabled
+            and item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY
+        ):
             expiry_region = relative_roi(
                 match_top_left, layout["expiry_roi_from_template"], page_image.shape
             )
             if expiry_region is None:
                 continue
             expiry_x, expiry_y, expiry_width, expiry_height = expiry_region
-            observation["expiry"] = _read_parsed_ocr(
+            observation["expiry"] = read_inventory_expiry(
                 page_image[expiry_y : expiry_y + expiry_height, expiry_x : expiry_x + expiry_width],
-                ocr,
-                parse_expiry_text,
-                label=f"expiry for {item['item_id']}",
+                expiry_digit_reader,
+                item_id=str(item["item_id"]),
             )
         observations.append(observation)
         logger.info(
@@ -428,6 +1116,27 @@ def _capture_stable_grid(
     return previous
 
 
+def _save_debug_scan_image(
+    page_image: np.ndarray,
+    *,
+    category: str,
+    page_number: int,
+) -> Optional[Path]:
+    """Save the exact stable grid frame used by one recognition pass when enabled."""
+
+    raw_directory = str(os.environ.get(_DEBUG_CAPTURE_DIR_ENV) or "").strip()
+    if not raw_directory:
+        return None
+    output_directory = Path(raw_directory).expanduser().resolve()
+    output_directory.mkdir(parents=True, exist_ok=True)
+    output_path = output_directory / f"{category}_page_{int(page_number):03d}.png"
+    image_bgr = cv2.cvtColor(page_image, cv2.COLOR_RGB2BGR)
+    if not cv2.imwrite(str(output_path), image_bgr):
+        raise _inventory_error(f"unable to save inventory debug capture: {output_path}")
+    logger.info("Inventory debug scan image saved: %s", output_path)
+    return output_path
+
+
 def _observation_content_key(observation: Mapping[str, Any]) -> Tuple[Any, ...]:
     expiry = observation.get("expiry")
     expiry_key = (
@@ -459,8 +1168,8 @@ def _estimate_scroll_delta(
     if content_deltas:
         return int(round(float(median(content_deltas)))), 1.0
 
-    previous_gray = cv2.cvtColor(previous_image, cv2.COLOR_BGR2GRAY)
-    current_gray = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY)
+    previous_gray = cv2.cvtColor(previous_image, cv2.COLOR_RGB2GRAY)
+    current_gray = cv2.cvtColor(current_image, cv2.COLOR_RGB2GRAY)
     height = previous_gray.shape[0]
     strip_height = min(160, max(height // 4, 40))
     strip_bottom = max(height - 20, strip_height)
@@ -511,6 +1220,8 @@ def _expiry_key(observation: Mapping[str, Any]) -> Tuple[str, Any, str]:
 def aggregate_inventory_observations(
     observations: Iterable[Mapping[str, Any]],
     catalog: Mapping[str, Any],
+    *,
+    expiry_recognition_enabled: bool = True,
 ) -> List[Dict[str, Any]]:
     """Aggregate de-duplicated observations according to catalog policy."""
 
@@ -531,7 +1242,7 @@ def aggregate_inventory_observations(
         entry = catalog_items[item_id]
         policy = str(entry["stack_policy"])
         expiry = None
-        if policy == STACK_POLICY_SPLIT_BY_EXPIRY:
+        if policy == STACK_POLICY_SPLIT_BY_EXPIRY and expiry_recognition_enabled:
             expiry_key = _expiry_key(raw_observation)
             key: Tuple[Any, ...] = (item_id, *expiry_key[:2])
             expiry = {"kind": expiry_key[0], "value": expiry_key[1], "raw": expiry_key[2]}
@@ -550,58 +1261,86 @@ def aggregate_inventory_observations(
     return [dict(item) for item in grouped.values()]
 
 
-def read_inventory_items(
+def read_inventory_category(
     app: Any,
     ocr: Any,
+    vision: Any,
     *,
+    category: str,
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
-    """Read supported items, stopping immediately once every type is found."""
+    """Read one supported category until three scans add no new physical stacks."""
 
-    catalog = load_inventory_catalog(catalog_path)
+    normalized_category = str(category or "").strip()
+    if normalized_category not in {"items", "materials"}:
+        raise ValueError("inventory category must be items or materials")
+    default_catalog_path = (
+        _INVENTORY_CATALOG_FILE
+        if normalized_category == "items"
+        else _INVENTORY_MATERIAL_CATALOG_FILE
+    )
+    catalog = load_inventory_catalog(catalog_path or default_catalog_path)
+    catalog_category = _catalog_category(catalog)
+    if catalog_category != normalized_category:
+        raise ValueError(
+            f"inventory catalog category mismatch: expected {normalized_category}, "
+            f"got {catalog_category}"
+        )
+    _resolve_inventory_template_paths(catalog, vision)
     layout = catalog["layout"]
     region = tuple(int(value) for value in layout["grid_region"])
     scroll_start = tuple(int(value) for value in layout.get("scroll_start", _DEFAULT_SCROLL_START))
     scroll_end = tuple(int(value) for value in layout.get("scroll_end", _DEFAULT_SCROLL_END))
     supported_ids = {str(item["item_id"]) for item in catalog["items"]}
-    seen_ids: set[str] = set()
     all_observations: List[Dict[str, Any]] = []
     previous_image: Optional[np.ndarray] = None
     previous_observations: List[Dict[str, Any]] = []
     virtual_scroll_y = 0
-    stationary_scrolls = 0
+    scans_without_new_items = 0
     pages_scanned = 0
     completion_reason = ""
     page_image = _capture_stable_grid(app, region)
 
     while True:
-        page_observations = scan_inventory_page(page_image, catalog, ocr)
+        _save_debug_scan_image(
+            page_image,
+            category=normalized_category,
+            page_number=pages_scanned + 1,
+        )
+        page_observations = scan_inventory_page(page_image, catalog, ocr, vision)
         pages_scanned += 1
         if previous_image is not None:
             scroll_delta, confidence = _estimate_scroll_delta(
                 previous_image, page_image, previous_observations, page_observations
             )
-            if scroll_delta <= 2:
-                stationary_scrolls += 1
-            else:
-                stationary_scrolls = 0
+            if scroll_delta > 2:
                 virtual_scroll_y += int(scroll_delta)
             if scroll_delta > 2 and confidence < 0.55:
                 raise _inventory_error(
                     f"unable to align overlapping warehouse pages (confidence={confidence:.3f})"
                 )
+        unique_count_before_page = len(_dedupe_physical_observations(all_observations))
         for observation in page_observations:
             item = dict(observation)
             card_x, card_y = item["card_top_left"]
             item["_virtual_card_top_left"] = [int(card_x), int(card_y) + int(virtual_scroll_y)]
             all_observations.append(item)
-            seen_ids.add(str(item["item_id"]))
-        if supported_ids.issubset(seen_ids):
-            completion_reason = "all_supported_items_found"
-            break
-        if stationary_scrolls >= 2:
-            completion_reason = "warehouse_bottom_reached"
+        unique_count_after_page = len(_dedupe_physical_observations(all_observations))
+        new_item_count = unique_count_after_page - unique_count_before_page
+        if new_item_count > 0:
+            scans_without_new_items = 0
+        else:
+            scans_without_new_items += 1
+        logger.info(
+            "Inventory scan progress: page=%s new_physical_items=%s "
+            "consecutive_scans_without_new_items=%s",
+            pages_scanned,
+            new_item_count,
+            scans_without_new_items,
+        )
+        if scans_without_new_items >= 3:
+            completion_reason = "three_consecutive_scans_without_new_items"
             break
         if pages_scanned > max(int(max_scrolls), 0):
             raise _inventory_error("warehouse scan exceeded maximum scroll count")
@@ -613,8 +1352,8 @@ def read_inventory_items(
             int(scroll_end[0]),
             int(scroll_end[1]),
             duration=0.5,
+            hold_before_release_sec=_SCROLL_HOLD_BEFORE_RELEASE_SEC,
         )
-        time.sleep(0.4)
         page_image = _capture_stable_grid(app, region)
 
     unique_observations = _dedupe_physical_observations(all_observations)
@@ -626,16 +1365,85 @@ def read_inventory_items(
         }
         for observation in unique_observations
     ]
+    aggregated = aggregate_inventory_observations(
+        public_observations,
+        catalog,
+        expiry_recognition_enabled=_EXPIRY_RECOGNITION_ENABLED,
+    )
+    result_key = "items" if normalized_category == "items" else "materials"
+    supported_key = (
+        "supported_item_count"
+        if normalized_category == "items"
+        else "supported_material_count"
+    )
+    if normalized_category == "materials":
+        aggregated = [
+            {
+                **{key: value for key, value in entry.items() if key != "item_id"},
+                "material_id": entry["item_id"],
+            }
+            for entry in aggregated
+        ]
+    has_expiry_entries = _EXPIRY_RECOGNITION_ENABLED and any(
+        item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY
+        for item in catalog["items"]
+    )
     return {
-        "category": "items",
+        "category": normalized_category,
         "scan_scope": "catalog_only",
         "catalog_schema_version": int(catalog.get("schema_version", 1)),
-        "supported_item_count": len(supported_ids),
+        supported_key: len(supported_ids),
         "matched_stack_count": len(unique_observations),
         "pages_scanned": pages_scanned,
         "scan_complete": True,
         "completion_reason": completion_reason,
-        "source": "template+ocr",
+        "consecutive_scans_without_new_items": scans_without_new_items,
+        "expiry_recognition_enabled": _EXPIRY_RECOGNITION_ENABLED,
+        "source": (
+            "item_template+count_digit_template+expiry_digit_template"
+            if has_expiry_entries
+            else "item_template+count_digit_template"
+        ),
         "scanned_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "items": aggregate_inventory_observations(public_observations, catalog),
+        result_key: aggregated,
     }
+
+
+def read_inventory_items(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    *,
+    catalog_path: Optional[Path] = None,
+    max_scrolls: int = _DEFAULT_MAX_SCROLLS,
+) -> Dict[str, Any]:
+    """Read supported warehouse items."""
+
+    return read_inventory_category(
+        app,
+        ocr,
+        vision,
+        category="items",
+        catalog_path=catalog_path,
+        max_scrolls=max_scrolls,
+    )
+
+
+def read_inventory_materials(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    *,
+    catalog_path: Optional[Path] = None,
+    max_scrolls: int = _DEFAULT_MAX_SCROLLS,
+) -> Dict[str, Any]:
+    """Read supported warehouse materials."""
+
+    return read_inventory_category(
+        app,
+        ocr,
+        vision,
+        category="materials",
+        catalog_path=catalog_path,
+        max_scrolls=max_scrolls,
+    )

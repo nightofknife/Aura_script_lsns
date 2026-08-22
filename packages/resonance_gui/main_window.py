@@ -35,6 +35,8 @@ from .bridge import RunnerBridge
 from .config_repository import GuiPreferences, ResonanceConfigRepository
 from .logic import (
     PC_GAME_NAME,
+    PC_PLAYER_DATA_LATEST_TASK_REF,
+    PC_PLAYER_DATA_REFRESH_TASK_REF,
     extract_final_result,
     extract_run_id,
     extract_status,
@@ -214,6 +216,9 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._switch_page(self.BATTLE_PAGE_INDEX))
         self.workflow_page.previewTradeRequested.connect(self._preview_workflow_trade)
+        self.workflow_page.player_data_panel.cacheRequested.connect(
+            self._read_player_data_cache
+        )
         self.workflow_page.settingsRequested.connect(lambda: self._switch_page(self.SETTINGS_PAGE_INDEX))
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
@@ -621,6 +626,8 @@ class ResonanceMainWindow(QMainWindow):
 
         snapshots: dict[str, dict[str, Any]] = {}
         try:
+            if "player_data" in steps:
+                snapshots["player_data"] = self.workflow_page.player_data_inputs()
             if "commerce" in steps:
                 if "trade" in commerce_steps:
                     snapshots["trade"] = self.workflow_page.merge_trade_inputs(
@@ -674,6 +681,14 @@ class ResonanceMainWindow(QMainWindow):
                     "task_ref": "tasks:game_startup_pc.yaml:enter_main",
                     "inputs": self.workflow_page.startup_inputs(),
                     "label": "进入主界面",
+                    "dispatch": "pc_task",
+                })
+            elif step == "player_data":
+                pending.append({
+                    "step": "player_data",
+                    "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
+                    "inputs": dict(snapshots["player_data"]),
+                    "label": "更新用户数据",
                     "dispatch": "pc_task",
                 })
             elif step == "commerce":
@@ -762,6 +777,17 @@ class ResonanceMainWindow(QMainWindow):
             self.requestRunPcTask.emit(
                 str(current["task_ref"]), dict(current["inputs"]), current["label"], timeout
             )
+
+    def _read_player_data_cache(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            self.workflow_page.player_data_panel.show_error("当前有任务正在运行，请稍后再试。")
+            return
+        self.requestRunPcTask.emit(
+            PC_PLAYER_DATA_LATEST_TASK_REF,
+            {},
+            "读取用户数据缓存",
+            float(self.timeout_spin.value()),
+        )
 
     def _stop_workflow(self) -> None:
         if not self._workflow_active:
@@ -1126,6 +1152,26 @@ class ResonanceMainWindow(QMainWindow):
         if self._active_game_name == PC_GAME_NAME:
             item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
             kind = str(item.get("kind") or self._active_kind)
+            task_ref = str(item.get("task_ref") or "")
+            player_data_result = extract_final_result(payload)
+            player_data = player_data_result.get("player_data")
+            if isinstance(player_data, dict):
+                if task_ref == PC_PLAYER_DATA_REFRESH_TASK_REF:
+                    self.workflow_page.player_data_panel.apply_refresh_result(player_data)
+                elif task_ref == PC_PLAYER_DATA_LATEST_TASK_REF:
+                    self.workflow_page.player_data_panel.set_snapshot(player_data)
+            elif task_ref in {
+                PC_PLAYER_DATA_REFRESH_TASK_REF,
+                PC_PLAYER_DATA_LATEST_TASK_REF,
+            }:
+                self.workflow_page.player_data_panel.show_error(
+                    str(
+                        player_data_result.get("reason")
+                        or player_data_result.get("error")
+                        or payload.get("error")
+                        or "任务未成功完成。"
+                    )
+                )
             finished_kind = kind
             if kind == "trade_preview":
                 self.trade_page.finish_preview(payload)
@@ -1186,6 +1232,12 @@ class ResonanceMainWindow(QMainWindow):
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
+        failed_task_ref = str(payload.get("task_ref") or "")
+        if failed_task_ref in {
+            PC_PLAYER_DATA_REFRESH_TASK_REF,
+            PC_PLAYER_DATA_LATEST_TASK_REF,
+        }:
+            self.workflow_page.player_data_panel.show_error(str(payload.get("error") or "未知错误"))
         if self._commerce_active:
             self._abort_commerce_sequence(
                 cancel_current=stage != "cancel_task" and bool(self._commerce_current_kind)
@@ -1229,6 +1281,7 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.set_busy(busy or self._commerce_active)
         self.passenger_page.set_busy(busy or self._commerce_active)
         self.battle_page.set_busy(busy)
+        self.workflow_page.player_data_panel.set_runner_busy(busy)
         self.commerce_page.overview_page.set_external_busy(busy)
         self.run_button.setEnabled(not busy and not self._commerce_active)
         self.enqueue_button.setEnabled(not self._commerce_active)

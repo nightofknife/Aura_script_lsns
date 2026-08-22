@@ -10,10 +10,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+import cv2
+
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.utils.exceptions import StopTaskException
 
-from .inventory_pc_actions import read_inventory_items
+from .inventory_pc_actions import read_inventory_items, read_inventory_materials
 
 Region = Tuple[int, int, int, int]
 
@@ -21,52 +23,62 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _PLAYER_CACHE_ROOT = _PLAN_ROOT / "data" / "cache" / "player"
 _PLAYER_LATEST_FILE = _PLAYER_CACHE_ROOT / "latest.json"
 
-_DATA_STAGES = ("location", "profile", "currencies", "clarity", "fatigue", "inventory")
-_STAGE_ORDER = (*_DATA_STAGES, "persist")
-_PROFILE_PANEL_STAGES = frozenset(
-    {"profile", "currencies", "clarity", "fatigue", "inventory"}
-)
+_DATA_STAGES = ("location", "profile", "inventory")
+_STAGE_ORDER = _DATA_STAGES
+_PROFILE_PANEL_STAGES = frozenset({"profile", "inventory"})
 
-_scan_inventory_stage = read_inventory_items
+_INVENTORY_CATEGORY_ORDER = ("items", "materials")
+_CURRENCY_ITEM_IDS = {
+    "iron_alliance_coin": "iron_coins",
+    "birch_crystal": "birch_stone",
+}
+
+
+def _scan_inventory_stage(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    *,
+    category: str,
+) -> Dict[str, Any]:
+    if category == "items":
+        return read_inventory_items(app, ocr, vision)
+    if category == "materials":
+        return read_inventory_materials(app, ocr, vision)
+    raise ValueError(f"unsupported inventory category: {category}")
 
 _CLICK_PROFILE = (150, 655)
-_CLICK_CURRENCY_EYE = (329, 217)
-_CLICK_CONFIRM = (946, 644)
 _CLICK_BACK = (82, 34)
 _CLICK_PROFILE_CLOSE = (900, 150)
-_CLICK_CLARITY = (190, 276)
-_CLICK_FATIGUE = (385, 276)
 _CLICK_INVENTORY = (165, 615)
-_WAREHOUSE_ICON_OFFSET_FROM_LABEL = (0, -45)
+_CLICK_INVENTORY_CATEGORY = {
+    "items": (1205, 51),
+    "materials": (1205, 127),
+}
 _WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
+_WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates" / "player_data_warehouse_entry.png"
+_WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD = 0.82
+_INVENTORY_CATEGORY_TIMEOUT_SEC = 3.0
 
 _MAIN_CITY_REGION: Region = (65, 105, 150, 70)
 _PROFILE_REGION: Region = (90, 0, 600, 340)
-_CURRENCY_POPUP_REGION: Region = (700, 245, 485, 410)
-_CLARITY_PAGE_REGION: Region = (0, 0, 1280, 720)
-_FATIGUE_PAGE_REGION: Region = (0, 0, 1280, 720)
 _MAIN_PAGE_REGION: Region = (0, 0, 1280, 720)
 _INVENTORY_PAGE_REGION: Region = (1050, 0, 230, 520)
 _WAREHOUSE_ENTRY_REGION: Region = (110, 560, 140, 150)
+_INVENTORY_CATEGORY_REGIONS: Dict[str, Region] = {
+    "items": (1110, 22, 170, 58),
+    "materials": (1110, 98, 170, 58),
+}
 _MAIN_PAGE_MARKERS = ("访问城市", "访问地区", "启程", "STARTENGINE")
 
 _PROFILE_FIELD_REGIONS: Dict[str, Region] = {
     "uid": (105, 10, 180, 30),
     "level": (105, 120, 80, 35),
     "nickname": (105, 150, 385, 45),
-    "iron_coins": (170, 198, 135, 40),
-    "birch_stone": (420, 193, 105, 50),
     "clarity": (145, 250, 125, 45),
     "fatigue": (360, 250, 125, 45),
     "cargo": (545, 250, 125, 45),
 }
-
-_CURRENCY_FIELD_REGIONS: Dict[str, Region] = {
-    "iron_coins": (1065, 305, 115, 45),
-}
-
-_CLARITY_RATIO_REGION: Region = (150, 395, 230, 80)
-_FATIGUE_RATIO_REGION: Region = (85, 580, 160, 75)
 
 
 def _normalize_text(text: str) -> str:
@@ -196,6 +208,45 @@ def _has_all_markers(items: Iterable[Any], markers: Iterable[str]) -> bool:
     )
 
 
+def _match_warehouse_entry(app: Any) -> Dict[str, Any]:
+    capture = app.capture(rect=_WAREHOUSE_ENTRY_REGION)
+    if not getattr(capture, "success", False):
+        return {"found": False, "confidence": 0.0, "reason": "capture_failed"}
+
+    source = getattr(capture, "image", None)
+    template = cv2.imread(str(_WAREHOUSE_ENTRY_TEMPLATE), cv2.IMREAD_GRAYSCALE)
+    if source is None:
+        return {"found": False, "confidence": 0.0, "reason": "capture_empty"}
+    if template is None:
+        raise StopTaskException(
+            f"Player data refresh failed: warehouse entry template is unavailable: {_WAREHOUSE_ENTRY_TEMPLATE}",
+            success=False,
+        )
+
+    if source.ndim == 2:
+        source_gray = source
+    elif source.shape[2] == 4:
+        source_gray = cv2.cvtColor(source, cv2.COLOR_BGRA2GRAY)
+    else:
+        source_gray = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+    template_height, template_width = template.shape[:2]
+    source_height, source_width = source_gray.shape[:2]
+    if source_width < template_width or source_height < template_height:
+        return {"found": False, "confidence": 0.0, "reason": "capture_too_small"}
+
+    score_map = cv2.matchTemplate(source_gray, template, cv2.TM_CCOEFF_NORMED)
+    _, confidence, _, top_left = cv2.minMaxLoc(score_map)
+    center = [
+        int(_WAREHOUSE_ENTRY_REGION[0] + top_left[0] + template_width // 2),
+        int(_WAREHOUSE_ENTRY_REGION[1] + top_left[1] + template_height // 2),
+    ]
+    return {
+        "found": float(confidence) >= _WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD,
+        "confidence": float(confidence),
+        "center": center,
+    }
+
+
 def _enter_warehouse_page(
     app: Any,
     ocr: Any,
@@ -204,48 +255,88 @@ def _enter_warehouse_page(
     interval_sec: float = 0.15,
     click_interval_sec: float = 0.55,
 ) -> None:
-    """Continuously locate, click and verify the warehouse entry for up to 3s."""
+    """Continuously template-match, click and verify the warehouse entry for up to 3s."""
 
     deadline = time.monotonic() + max(float(timeout_sec), 0.1)
     next_click_at = 0.0
     last_page_text = ""
-    last_entry_text = ""
+    last_entry_match: Dict[str, Any] = {"found": False, "confidence": 0.0}
     while time.monotonic() < deadline:
+        now = time.monotonic()
+        if now >= next_click_at:
+            last_entry_match = _match_warehouse_entry(app)
+            if last_entry_match.get("found"):
+                center = last_entry_match["center"]
+                app.click(x=int(center[0]), y=int(center[1]))
+                next_click_at = now + max(float(click_interval_sec), 0.1)
+
         page_items = _capture_ocr_items(app, ocr, _INVENTORY_PAGE_REGION)
         last_page_text = _join_text(page_items)
         if _has_all_markers(page_items, ("道具", "材料", "装备")):
             return
-
-        now = time.monotonic()
-        if now >= next_click_at:
-            entry_items = _capture_ocr_items(app, ocr, _WAREHOUSE_ENTRY_REGION)
-            last_entry_text = _join_text(entry_items)
-            warehouse_item = _find_text_item(entry_items, "仓库")
-            if warehouse_item is not None:
-                center = warehouse_item.get("center") or [
-                    _CLICK_INVENTORY[0],
-                    _CLICK_INVENTORY[1] - _WAREHOUSE_ICON_OFFSET_FROM_LABEL[1],
-                ]
-                click_x = int(center[0]) + _WAREHOUSE_ICON_OFFSET_FROM_LABEL[0]
-                click_y = int(center[1]) + _WAREHOUSE_ICON_OFFSET_FROM_LABEL[1]
-                app.click(x=click_x, y=click_y)
-                next_click_at = now + max(float(click_interval_sec), 0.1)
         time.sleep(max(float(interval_sec), 0.05))
 
     raise StopTaskException(
         "Player data refresh failed: warehouse page was not confirmed within "
         f"{float(timeout_sec):.1f}s. Last page OCR: {_normalize_text(last_page_text)[:120]}; "
-        f"last entry OCR: {_normalize_text(last_entry_text)[:80]}",
+        f"last entry template confidence: {float(last_entry_match.get('confidence') or 0.0):.3f}",
+        success=False,
+    )
+
+
+def _inventory_category_brightness(app: Any, category: str) -> float:
+    region = _INVENTORY_CATEGORY_REGIONS[category]
+    capture = app.capture(rect=region)
+    if not getattr(capture, "success", False) or getattr(capture, "image", None) is None:
+        return 0.0
+    image = capture.image
+    if image.ndim == 2:
+        gray = image
+    elif image.shape[2] == 4:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+    else:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return float(gray.mean())
+
+
+def _select_inventory_category(
+    app: Any,
+    category: str,
+    *,
+    timeout_sec: float = _INVENTORY_CATEGORY_TIMEOUT_SEC,
+    interval_sec: float = 0.15,
+    click_interval_sec: float = 0.55,
+) -> None:
+    """Select a warehouse category and verify its bright selected button without OCR."""
+
+    if category not in _INVENTORY_CATEGORY_ORDER:
+        raise ValueError(f"unsupported inventory category: {category}")
+    other = "materials" if category == "items" else "items"
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    next_click_at = 0.0
+    target_brightness = 0.0
+    other_brightness = 0.0
+    while time.monotonic() < deadline:
+        now = time.monotonic()
+        if now >= next_click_at:
+            point = _CLICK_INVENTORY_CATEGORY[category]
+            app.click(x=point[0], y=point[1])
+            next_click_at = now + max(float(click_interval_sec), 0.1)
+        target_brightness = _inventory_category_brightness(app, category)
+        other_brightness = _inventory_category_brightness(app, other)
+        if target_brightness >= 145.0 and target_brightness - other_brightness >= 35.0:
+            return
+        time.sleep(max(float(interval_sec), 0.05))
+    raise StopTaskException(
+        "Player data refresh failed: warehouse category was not confirmed within "
+        f"{float(timeout_sec):.1f}s; category={category}; "
+        f"target_brightness={target_brightness:.1f}; other_brightness={other_brightness:.1f}",
         success=False,
     )
 
 
 def _read_region_text(app: Any, ocr: Any, region: Region, *, scale: float = 1.0) -> str:
     return _join_text(_capture_ocr_items(app, ocr, region, scale=scale))
-
-
-def _read_int_region(app: Any, ocr: Any, region: Region) -> int:
-    return _extract_first_int(_read_region_text(app, ocr, region))
 
 
 def _read_ratio_region(app: Any, ocr: Any, region: Region) -> Dict[str, int]:
@@ -273,6 +364,8 @@ def _read_profile_stage(app: Any, ocr: Any) -> Dict[str, Any]:
     nickname = _extract_nickname(_read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["nickname"]))
     level_text = _read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["level"])
     cargo = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["cargo"])
+    clarity = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["clarity"])
+    fatigue = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["fatigue"])
     return {
         "profile": {
             "uid": _extract_uid(uid_text),
@@ -280,13 +373,8 @@ def _read_profile_stage(app: Any, ocr: Any) -> Dict[str, Any]:
             "level": _extract_first_int(level_text),
         },
         "cargo": cargo,
-    }
-
-
-def _read_currencies_stage(app: Any, ocr: Any) -> Dict[str, int]:
-    return {
-        "iron_coins": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["iron_coins"]),
-        "birch_stone": _read_int_region(app, ocr, _PROFILE_FIELD_REGIONS["birch_stone"]),
+        "clarity": clarity,
+        "fatigue": fatigue,
     }
 
 
@@ -323,9 +411,63 @@ def _normalize_stages(stages: Any = None) -> Tuple[str, ...]:
 
     if not requested:
         raise ValueError("stages must select at least one data stage")
-    if not requested.intersection(_DATA_STAGES):
-        raise ValueError("persist cannot run without at least one data stage")
     return tuple(stage for stage in _STAGE_ORDER if stage in requested)
+
+
+def _normalize_inventory_categories(categories: Any = None) -> Tuple[str, ...]:
+    if categories is None:
+        return ("items",)
+    if not isinstance(categories, list):
+        raise ValueError("inventory_categories must be a list")
+    requested: set[str] = set()
+    for category in categories:
+        if not isinstance(category, str) or category not in _INVENTORY_CATEGORY_ORDER:
+            raise ValueError(
+                "inventory_categories contains an unsupported value; supported values are: "
+                + ", ".join(_INVENTORY_CATEGORY_ORDER)
+            )
+        requested.add(category)
+    if not requested:
+        raise ValueError("inventory_categories must select at least one category")
+    return tuple(category for category in _INVENTORY_CATEGORY_ORDER if category in requested)
+
+
+def _inventory_categories(payload: Any) -> Dict[str, Dict[str, Any]]:
+    if not isinstance(payload, Mapping):
+        return {}
+    raw_categories = payload.get("categories")
+    if isinstance(raw_categories, Mapping):
+        return {
+            category: copy.deepcopy(dict(raw_categories[category]))
+            for category in _INVENTORY_CATEGORY_ORDER
+            if isinstance(raw_categories.get(category), Mapping)
+        }
+    category = str(payload.get("category") or "").strip()
+    if category in _INVENTORY_CATEGORY_ORDER:
+        return {category: copy.deepcopy(dict(payload))}
+    if isinstance(payload.get("items"), list):
+        return {"items": copy.deepcopy(dict(payload))}
+    return {}
+
+
+def _currencies_from_inventory(payload: Any) -> Dict[str, int]:
+    items_payload = _inventory_categories(payload).get("items")
+    if not isinstance(items_payload, Mapping):
+        return {}
+    raw_items = items_payload.get("items")
+    if not isinstance(raw_items, list):
+        return {}
+
+    currencies: Dict[str, int] = {}
+    for raw_item in raw_items:
+        if not isinstance(raw_item, Mapping):
+            continue
+        currency_key = _CURRENCY_ITEM_IDS.get(str(raw_item.get("item_id") or ""))
+        count = raw_item.get("count")
+        if currency_key is None or isinstance(count, bool) or not isinstance(count, (int, float)):
+            continue
+        currencies[currency_key] = int(count)
+    return currencies
 
 
 def _load_latest(*, cache_file: Optional[Path] = None) -> Dict[str, Any]:
@@ -347,6 +489,7 @@ def _merge_latest(
     *,
     section_updated_at: Dict[str, str],
     updated_at: str,
+    inventory_category_updated_at: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     merged = copy.deepcopy(existing)
 
@@ -358,21 +501,28 @@ def _merge_latest(
         if not isinstance(status, dict):
             status = {}
             merged["status"] = status
-        status["cargo"] = copy.deepcopy(fresh["status"]["cargo"])
-    if "currencies" in section_updated_at:
-        merged["currencies"] = copy.deepcopy(fresh["currencies"])
-
-    for stage in ("clarity", "fatigue"):
-        if stage not in section_updated_at:
-            continue
-        status = merged.get("status")
-        if not isinstance(status, dict):
-            status = {}
-            merged["status"] = status
-        status[stage] = copy.deepcopy(fresh["status"][stage])
+        for status_key in ("cargo", "clarity", "fatigue"):
+            status[status_key] = copy.deepcopy(fresh["status"][status_key])
 
     if "inventory" in section_updated_at:
-        merged["inventory"] = copy.deepcopy(fresh["inventory"])
+        fresh_inventory = fresh["inventory"]
+        fresh_categories = _inventory_categories(fresh_inventory)
+        if fresh_categories:
+            categories = _inventory_categories(merged.get("inventory"))
+            categories.update(fresh_categories)
+            merged["inventory"] = {
+                "schema_version": 2,
+                "categories": categories,
+            }
+        else:
+            merged["inventory"] = copy.deepcopy(fresh_inventory)
+        fresh_currencies = fresh.get("currencies")
+        if isinstance(fresh_currencies, Mapping) and fresh_currencies:
+            currencies = merged.get("currencies")
+            if not isinstance(currencies, dict):
+                currencies = {}
+                merged["currencies"] = currencies
+            currencies.update(copy.deepcopy(dict(fresh_currencies)))
 
     metadata = merged.get("metadata")
     if not isinstance(metadata, dict):
@@ -385,6 +535,18 @@ def _merge_latest(
     else:
         previous_section_times = copy.deepcopy(previous_section_times)
     previous_section_times.update(section_updated_at)
+    previous_section_times = {
+        stage: previous_section_times[stage]
+        for stage in _DATA_STAGES
+        if stage in previous_section_times
+    }
+    previous_category_times = metadata.get("inventory_category_updated_at")
+    if not isinstance(previous_category_times, dict):
+        previous_category_times = {}
+    else:
+        previous_category_times = copy.deepcopy(previous_category_times)
+    if inventory_category_updated_at:
+        previous_category_times.update(inventory_category_updated_at)
     metadata.update(
         {
             "source": "ocr",
@@ -392,6 +554,8 @@ def _merge_latest(
             "section_updated_at": previous_section_times,
         }
     )
+    if previous_category_times:
+        metadata["inventory_category_updated_at"] = previous_category_times
     merged["metadata"] = metadata
     return merged
 
@@ -400,6 +564,7 @@ def _persist_latest(
     fresh: Dict[str, Any],
     *,
     section_updated_at: Dict[str, str],
+    inventory_category_updated_at: Optional[Dict[str, str]] = None,
     cache_file: Optional[Path] = None,
 ) -> Dict[str, Any]:
     cache_file = Path(cache_file or _PLAYER_LATEST_FILE)
@@ -410,6 +575,7 @@ def _persist_latest(
         fresh,
         section_updated_at=section_updated_at,
         updated_at=updated_at,
+        inventory_category_updated_at=inventory_category_updated_at,
     )
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     tmp = cache_file.with_suffix(cache_file.suffix + ".tmp")
@@ -420,10 +586,7 @@ def _persist_latest(
 
 def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
     try:
-        if page == "currency":
-            app.click(x=_CLICK_CONFIRM[0], y=_CLICK_CONFIRM[1])
-            page = "profile"
-        elif page in {"clarity", "fatigue", "inventory"}:
+        if page == "inventory":
             app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
             page = "profile"
         if page == "profile":
@@ -444,24 +607,29 @@ def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
     name="resonance_pc.player_data_refresh",
     public=True,
     read_only=False,
-    timeout=300,
-    description="Selectively refresh and optionally persist Resonance PC player data.",
+    timeout=900,
+    description="Selectively refresh and automatically persist three Resonance PC player-data sections.",
 )
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
+    vision="plans/aura_base/vision",
 )
 def resonance_pc_player_data_refresh(
     stages: Any = None,
+    inventory_categories: Any = None,
     app: Any = None,
     ocr: Any = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None:
         raise RuntimeError("app/ocr service is required")
 
     selected_stages = _normalize_stages(stages)
+    selected_inventory_categories = _normalize_inventory_categories(inventory_categories)
     selected = set(selected_stages)
     section_updated_at: Dict[str, str] = {}
+    inventory_category_updated_at: Dict[str, str] = {}
     result: Dict[str, Any] = {}
 
     _wait_for_any_marker(
@@ -495,96 +663,34 @@ def resonance_pc_player_data_refresh(
             if "profile" in selected:
                 profile_data = _read_profile_stage(app, ocr)
                 result["profile"] = profile_data["profile"]
-                result.setdefault("status", {})["cargo"] = profile_data["cargo"]
+                result["status"] = {
+                    "cargo": profile_data["cargo"],
+                    "clarity": profile_data["clarity"],
+                    "fatigue": profile_data["fatigue"],
+                }
                 section_updated_at["profile"] = _utc_now_iso()
-
-            if "currencies" in selected:
-                currencies = _read_currencies_stage(app, ocr)
-                app.click(x=_CLICK_CURRENCY_EYE[0], y=_CLICK_CURRENCY_EYE[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("所有货币",),
-                    region=_CURRENCY_POPUP_REGION,
-                    label="currency popup",
-                )
-                current_page = "currency"
-                currencies["iron_coins"] = _read_int_region(
-                    app,
-                    ocr,
-                    _CURRENCY_FIELD_REGIONS["iron_coins"],
-                )
-                result["currencies"] = currencies
-                app.click(x=_CLICK_CONFIRM[0], y=_CLICK_CONFIRM[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
-                    label="profile panel after currency popup",
-                )
-                current_page = "profile"
-                section_updated_at["currencies"] = _utc_now_iso()
-
-            if "clarity" in selected:
-                app.click(x=_CLICK_CLARITY[0], y=_CLICK_CLARITY[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("澄明度", "CLARITY", "请选择恢复方式"),
-                    region=_CLARITY_PAGE_REGION,
-                    label="clarity page",
-                )
-                current_page = "clarity"
-                time.sleep(0.5)
-                clarity = _read_ratio_region(app, ocr, _CLARITY_RATIO_REGION)
-                result.setdefault("status", {})["clarity"] = clarity
-                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
-                    label="profile panel after clarity page",
-                )
-                current_page = "profile"
-                section_updated_at["clarity"] = _utc_now_iso()
-
-            if "fatigue" in selected:
-                app.click(x=_CLICK_FATIGUE[0], y=_CLICK_FATIGUE[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("FATIGUE", "疲劳值", "请选择恢复疲劳值方式"),
-                    region=_FATIGUE_PAGE_REGION,
-                    label="fatigue page",
-                )
-                current_page = "fatigue"
-                time.sleep(0.5)
-                fatigue = _read_ratio_region(app, ocr, _FATIGUE_RATIO_REGION)
-                result.setdefault("status", {})["fatigue"] = fatigue
-                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                current_page = "unknown"
-                _wait_for_any_marker(
-                    app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
-                    label="profile panel after fatigue page",
-                )
-                current_page = "profile"
-                section_updated_at["fatigue"] = _utc_now_iso()
 
             if "inventory" in selected:
                 current_page = "inventory"
                 _enter_warehouse_page(app, ocr)
-                time.sleep(0.5)
-                result["inventory"] = _scan_inventory_stage(app, ocr)
+                category_results: Dict[str, Dict[str, Any]] = {}
+                for category in selected_inventory_categories:
+                    _select_inventory_category(app, category)
+                    time.sleep(0.5)
+                    category_results[category] = _scan_inventory_stage(
+                        app,
+                        ocr,
+                        vision,
+                        category=category,
+                    )
+                    inventory_category_updated_at[category] = _utc_now_iso()
+                result["inventory"] = {
+                    "schema_version": 2,
+                    "categories": category_results,
+                }
+                currencies = _currencies_from_inventory(result["inventory"])
+                if currencies:
+                    result["currencies"] = currencies
                 app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
                 _wait_for_any_marker(
                     app,
@@ -603,10 +709,12 @@ def resonance_pc_player_data_refresh(
             _best_effort_return_to_main(app, ocr, current_page)
             raise
 
-    persisted = False
-    if "persist" in selected:
-        _persist_latest(result, section_updated_at=section_updated_at)
-        persisted = True
+    _persist_latest(
+        result,
+        section_updated_at=section_updated_at,
+        inventory_category_updated_at=inventory_category_updated_at,
+    )
+    persisted = True
 
     result["metadata"] = {
         "refreshed_at": _utc_now_iso(),
@@ -616,6 +724,10 @@ def resonance_pc_player_data_refresh(
         "persisted": persisted,
         "section_updated_at": copy.deepcopy(section_updated_at),
     }
+    if inventory_category_updated_at:
+        result["metadata"]["inventory_category_updated_at"] = copy.deepcopy(
+            inventory_category_updated_at
+        )
     return copy.deepcopy(result)
 
 

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "template_root": "templates/inventory/expiry_digits",
+  "available_digits": ["3", "4", "6", "7"],
+  "white_min": 165,
+  "max_channel_spread": 55,
+  "digit_x_range": [25, 41],
+  "component_width": [3, 8],
+  "component_height": [8, 11],
+  "component_top": [7, 10],
+  "component_area_min": 12,
+  "normalized_size": [14, 18],
+  "similarity_mode": "gaussian_cosine",
+  "gaussian_sigma": 0.9,
+  "shift_tolerance": 1,
+  "baseline_tolerance": 2,
+  "digit_gap": [0, 4],
+  "max_digits": 2,
+  "min_digit_score": 0.9,
+  "min_digit_margin": 0.05
+}

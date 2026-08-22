@@ -93,6 +93,17 @@ DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
     "arrival_timeout_seconds": 1800,
 }
 
+PLAYER_DATA_STAGE_ORDER: tuple[str, ...] = (
+    "location",
+    "profile",
+    "inventory",
+)
+PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = ("items", "materials")
+DEFAULT_PLAYER_DATA_INPUTS: dict[str, Any] = {
+    "stages": [*PLAYER_DATA_STAGE_ORDER],
+    "inventory_categories": ["items"],
+}
+
 DEFAULT_BATTLE_INPUTS: dict[str, Any] = {
     "jobs": [],
     "stop_on_failure": True,
@@ -219,6 +230,25 @@ class ResonanceConfigRepository:
         self.settings.setValue("passenger/inputs_json", json.dumps(normalized, ensure_ascii=False))
         self.settings.sync()
 
+    def load_player_data_inputs(self) -> dict[str, Any]:
+        raw = self.settings.value("player_data/inputs_json", "")
+        if raw:
+            try:
+                parsed = json.loads(str(raw))
+                if isinstance(parsed, dict):
+                    return _merge_player_data_inputs(parsed)
+            except (TypeError, ValueError):
+                pass
+        return _merge_player_data_inputs({})
+
+    def save_player_data_inputs(self, inputs: dict[str, Any]) -> None:
+        normalized = _merge_player_data_inputs(inputs)
+        self.settings.setValue(
+            "player_data/inputs_json",
+            json.dumps(normalized, ensure_ascii=False),
+        )
+        self.settings.sync()
+
     def load_battle_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("battle/inputs_json", "")
         if raw:
@@ -304,6 +334,40 @@ def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         merged["arrival_timeout_seconds"] = 1800
     return merged
+
+
+def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
+    raw_stages = values.get("stages")
+    if not isinstance(raw_stages, list):
+        return json.loads(json.dumps(DEFAULT_PLAYER_DATA_INPUTS, ensure_ascii=False))
+
+    selected = {str(value).strip() for value in raw_stages}
+    if selected.intersection({"clarity", "fatigue"}):
+        selected.add("profile")
+    if "currencies" in selected:
+        selected.add("inventory")
+    data_stages = [stage for stage in PLAYER_DATA_STAGE_ORDER if stage in selected]
+    if not data_stages:
+        return json.loads(json.dumps(DEFAULT_PLAYER_DATA_INPUTS, ensure_ascii=False))
+    raw_categories = values.get("inventory_categories")
+    selected_categories = (
+        {str(value).strip() for value in raw_categories}
+        if isinstance(raw_categories, list)
+        else {"items"}
+    )
+    inventory_categories = [
+        category
+        for category in PLAYER_DATA_INVENTORY_CATEGORY_ORDER
+        if category in selected_categories
+    ]
+    if not inventory_categories:
+        inventory_categories = ["items"]
+    if "currencies" in selected and "items" not in inventory_categories:
+        inventory_categories.insert(0, "items")
+    return {
+        "stages": data_stages,
+        "inventory_categories": inventory_categories,
+    }
 
 
 def _merge_battle_inputs(values: dict[str, Any]) -> dict[str, Any]:
