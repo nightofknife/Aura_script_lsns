@@ -166,6 +166,8 @@ _CITY_MAIN_BUTTON_TEMPLATE = "templates/nav_city_main_button.png"
 _BACK_BUTTON_REGION = [0, 0, 170, 80]
 _CITY_MAIN_BUTTON_REGION = [140, 0, 130, 80]
 _NAV_BUTTON_THRESHOLD = 0.86
+_NAV_BUTTON_TIMEOUT_SEC = 3.0
+_NAV_BUTTON_INTERVAL_SEC = 0.4
 _SHOP_MENU_READY_TEMPLATE = "templates/trade_shop_menu_ready.png"
 _SHOP_MENU_READY_REGION = [720, 350, 220, 120]
 _SHOP_MENU_READY_THRESHOLD = 0.86
@@ -502,8 +504,8 @@ def _click_required_nav_button(
         template,
         region,
         threshold=_NAV_BUTTON_THRESHOLD,
-        timeout_sec=1.0,
-        interval_sec=0.2,
+        timeout_sec=_NAV_BUTTON_TIMEOUT_SEC,
+        interval_sec=_NAV_BUTTON_INTERVAL_SEC,
     )
     center = match.get("center")
     if not match.get("found") or not isinstance(center, list) or len(center) != 2:

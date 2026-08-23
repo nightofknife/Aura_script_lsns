@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
+import cv2
 import pytest
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as actions
@@ -712,6 +714,72 @@ def test_shop_menu_ready_timeout_blocks_followup_click(monkeypatch):
 
     assert exc_info.value.code == "shop_menu_not_ready"
     assert exc_info.value.detail["template"] == "templates/trade_shop_menu_ready.png"
+
+
+@pytest.mark.parametrize(
+    ("navigate", "expected_template"),
+    [
+        (actions.resonance_pc_tap_back_once, "templates/nav_back_button.png"),
+        (actions.resonance_pc_go_city_main_direct, "templates/nav_city_main_button.png"),
+    ],
+)
+def test_navigation_buttons_use_extended_template_wait(
+    monkeypatch,
+    navigate,
+    expected_template,
+):
+    calls: list[dict] = []
+
+    def wait_template(_app, _vision, template, region, **kwargs):
+        calls.append({"template": template, "region": region, **kwargs})
+        return {"found": True, "center": [80, 35], "confidence": 0.99}
+
+    class App:
+        def click(self, **_kwargs):
+            return None
+
+    monkeypatch.setattr(actions, "_wait_template", wait_template)
+    monkeypatch.setattr(actions.time, "sleep", lambda _seconds: None)
+
+    result = navigate(app=App(), vision=object())
+
+    assert result["success"] is True
+    assert calls == [
+        {
+            "template": expected_template,
+            "region": (
+                actions._BACK_BUTTON_REGION
+                if expected_template.endswith("nav_back_button.png")
+                else actions._CITY_MAIN_BUTTON_REGION
+            ),
+            "threshold": 0.86,
+            "timeout_sec": 3.0,
+            "interval_sec": 0.4,
+        }
+    ]
+
+
+def test_buy_settlement_center_template_matches_dynamic_cost_ring_fixture():
+    repo_root = Path(__file__).resolve().parents[1]
+    template = cv2.imread(
+        str(repo_root / "plans/resonance_pc/templates/buy_settlement_scale_badge.png"),
+        cv2.IMREAD_GRAYSCALE,
+    )
+    source = cv2.imread(
+        str(
+            repo_root
+            / "tests/fixtures/resonance_pc/trade_settlement/buy_dynamic_cost_ring.png"
+        ),
+        cv2.IMREAD_GRAYSCALE,
+    )
+
+    assert template is not None
+    assert source is not None
+    assert template.shape == (84, 84)
+    match = cv2.matchTemplate(source, template, cv2.TM_CCOEFF_NORMED)
+    confidence = float(cv2.minMaxLoc(match)[1])
+
+    assert confidence >= 0.82
 
 
 def test_bargain_request_without_buy_products_fails_before_shop_input(monkeypatch):
