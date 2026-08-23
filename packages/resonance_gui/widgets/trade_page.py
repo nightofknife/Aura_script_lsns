@@ -424,6 +424,8 @@ class TradePage(QWidget):
 
         self.auto_cape_island_investment = QCheckBox("是否自动进行蜃息岛投资", content)
         form_stack.addWidget(self.auto_cape_island_investment)
+        self.auto_rubbish_recycling = QCheckBox("是否自动倒垃圾", content)
+        form_stack.addWidget(self.auto_rubbish_recycling)
 
         self.advanced_toggle = QToolButton(content)
         self.advanced_toggle.setText("高级规划参数")
@@ -796,6 +798,9 @@ class TradePage(QWidget):
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
+        self.auto_rubbish_recycling.setChecked(
+            bool(values.get("auto_rubbish_recycling", True))
+        )
         self._sync_city_controls()
         self._sync_medicine_controls()
 
@@ -831,6 +836,7 @@ class TradePage(QWidget):
             "allowed_fatigue_medicines": self._parse_text_list(self.allowed_medicines.text()),
             "fatigue_medicine_max_uses": self.medicine_max_uses.value(),
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
+            "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         }
 
     def _request_start(self) -> None:
@@ -1057,6 +1063,7 @@ class TradePage(QWidget):
             self.arrival_timeout_minutes,
             self.use_medicine,
             self.auto_cape_island_investment,
+            self.auto_rubbish_recycling,
             self.advanced_toggle,
             self.advanced_panel,
             self.city_selector,

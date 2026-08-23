@@ -1,0 +1,25 @@
+rubbish_recycling_pc:
+  meta:
+    title: Rubbish Recycling (PC)
+    description: Recycle all rubbish from an eligible city's city panel and return to that panel.
+    entry_point: true
+    inputs:
+      - name: city_name
+        type: string
+        required: true
+  steps:
+    recycle:
+      action: resonance_pc.execute_rubbish_recycling_from_city_panel
+      params:
+        city_name: "{{ inputs.city_name }}"
+  returns:
+    success: "{{ nodes.recycle.output.success }}"
+    status: "{{ nodes.recycle.output.status }}"
+    reason: "{{ nodes.recycle.output.reason }}"
+    city_id: "{{ nodes.recycle.output.city_id }}"
+    city_name: "{{ nodes.recycle.output.city_name }}"
+    initial_state: "{{ nodes.recycle.output.initial_state }}"
+    final_state: "{{ nodes.recycle.output.final_state }}"
+    reward_overlay_seen: "{{ nodes.recycle.output.reward_overlay_seen }}"
+    elapsed_ms: "{{ nodes.recycle.output.elapsed_ms }}"
+    page_state: "{{ nodes.recycle.output.page_state }}"

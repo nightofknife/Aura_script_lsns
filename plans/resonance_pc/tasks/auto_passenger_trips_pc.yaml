@@ -20,7 +20,7 @@ auto_passenger_trips_pc:
       - name: trade_during_trip
         type: boolean
         required: false
-        default: false
+        default: true
       - name: reposition_to_route
         type: boolean
         required: false
@@ -50,7 +50,7 @@ auto_passenger_trips_pc:
         passenger_city_a_id: "{{ inputs.passenger_city_a_id | default('11') }}"
         passenger_city_b_id: "{{ inputs.passenger_city_b_id | default('15') }}"
         trip_count: "{{ inputs.trip_count | default(1) }}"
-        trade_during_trip: "{{ inputs.trade_during_trip | default(false) }}"
+        trade_during_trip: "{{ inputs.trade_during_trip | default(true) }}"
         reposition_to_route: "{{ inputs.reposition_to_route | default(true) }}"
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"

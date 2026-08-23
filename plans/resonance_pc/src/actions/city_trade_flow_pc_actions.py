@@ -31,6 +31,10 @@ from .cape_island_investment_pc_actions import (
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
+from .rubbish_recycling_pc_actions import (
+    is_rubbish_recycling_arrival,
+    resonance_pc_execute_rubbish_recycling_from_city_panel,
+)
 from .trade_negotiation_pc_actions import (
     DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
     MAX_NEGOTIATION_MAX_ATTEMPTS,
@@ -1086,6 +1090,7 @@ async def _execute_route(
     city_shop_data: ResonancePcCityShopDataService,
     state_store: StateStoreService,
     auto_cape_island_investment: bool = False,
+    auto_rubbish_recycling: bool = True,
     engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
@@ -1093,6 +1098,7 @@ async def _execute_route(
     route_run_key = str(route_state.get("run_key") or "")
     page_state = start_page_state
     leg_results: List[Dict[str, Any]] = []
+    rubbish_recycling_attempted = False
     try:
         for index, leg in enumerate(route):
             progress_fields = {
@@ -1125,9 +1131,16 @@ async def _execute_route(
                 city_shop_data=city_shop_data,
                 progress_fields=progress_fields,
                 auto_cape_island_investment=bool(auto_cape_island_investment),
+                auto_rubbish_recycling=bool(
+                    auto_rubbish_recycling
+                    and not rubbish_recycling_attempted
+                    and is_rubbish_recycling_arrival(leg)
+                ),
                 engine=engine,
             )
             page_state = str(leg_result.get("page_state") or "city_main")
+            if bool((leg_result.get("rubbish_recycling") or {}).get("triggered")):
+                rubbish_recycling_attempted = True
             travel = dict(leg_result.get("travel") or {})
             update = await resonance_pc_trade_route_execution_update(
                 run_key=route_run_key,
@@ -1167,6 +1180,23 @@ async def _execute_route(
         summary["cape_island_skipped_count"] = sum(
             1 for item in island_results if str(item.get("status") or "") == "skipped"
         )
+        rubbish_results = [
+            dict(item.get("rubbish_recycling") or {})
+            for item in leg_results
+            if bool((item.get("rubbish_recycling") or {}).get("triggered"))
+        ]
+        summary["rubbish_recycling_triggered_count"] = len(rubbish_results)
+        summary["rubbish_recycling_status"] = (
+            str(rubbish_results[0].get("status") or "unknown")
+            if rubbish_results
+            else "not_triggered"
+        )
+        summary["rubbish_recycling_city_id"] = (
+            str(rubbish_results[0].get("city_id") or "") if rubbish_results else None
+        )
+        summary["rubbish_recycling_city_name"] = (
+            str(rubbish_results[0].get("city_name") or "") if rubbish_results else None
+        )
         return summary
     finally:
         if route_run_key:
@@ -1191,6 +1221,7 @@ async def _execute_trade_leg(
     city_shop_data: ResonancePcCityShopDataService,
     progress_fields: Optional[Dict[str, Any]] = None,
     auto_cape_island_investment: bool = False,
+    auto_rubbish_recycling: bool = True,
     engine: ExecutionEngine | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
@@ -1262,6 +1293,7 @@ async def _execute_trade_leg(
             data={"travel": dict(travel)},
         )
     travel_status = str(travel.get("status") or "ok").lower()
+    page_state = "city_main"
     cape_island_investment: Dict[str, Any] = {
         "triggered": False,
         "status": "not_applicable",
@@ -1290,6 +1322,7 @@ async def _execute_trade_leg(
                 city_shop_data=city_shop_data,
                 engine=engine,
             )
+            page_state = str(cape_island_investment.get("page_state") or "city_main")
         except Exception as exc:
             if reporter is not None:
                 await reporter.emit(
@@ -1307,6 +1340,52 @@ async def _execute_trade_leg(
                 **investment_fields,
                 data={"investment": dict(cape_island_investment)},
             )
+    rubbish_recycling: Dict[str, Any] = {
+        "triggered": False,
+        "attempted": False,
+        "status": "not_applicable",
+        "reason": None,
+    }
+    if (
+        bool(auto_rubbish_recycling)
+        and travel_status != "blocked"
+        and bool(travel.get("success", True))
+        and is_rubbish_recycling_arrival(leg)
+    ):
+        rubbish_fields = dict(progress_fields)
+        rubbish_fields.update(
+            city_index=int(progress_fields.get("city_index", index)) + 1,
+            current_city=str(leg.get("to_city") or ""),
+        )
+        if reporter is not None:
+            await reporter.emit("rubbish_recycling", "started", **rubbish_fields)
+        try:
+            rubbish_recycling = await _execute_rubbish_recycling_after_arrival(
+                leg_index=index,
+                leg=leg,
+                app=app,
+                ocr=ocr,
+                vision=vision,
+                city_shop_data=city_shop_data,
+            )
+            page_state = str(rubbish_recycling.get("page_state") or "city_panel")
+        except Exception as exc:
+            if reporter is not None:
+                await reporter.emit(
+                    "rubbish_recycling",
+                    "failed",
+                    **rubbish_fields,
+                    data={"error_type": type(exc).__name__, "message": str(exc)},
+                )
+            raise
+        if reporter is not None:
+            rubbish_status = str(rubbish_recycling.get("status") or "").lower()
+            await reporter.emit(
+                "rubbish_recycling",
+                "skipped" if rubbish_status == "empty" else "completed",
+                **rubbish_fields,
+                data={"rubbish_recycling": dict(rubbish_recycling)},
+            )
     return {
         "index": int(index),
         "status": "pending",
@@ -1314,7 +1393,8 @@ async def _execute_trade_leg(
         "city_trade": city_trade,
         "travel": travel,
         "cape_island_investment": cape_island_investment,
-        "page_state": "city_main",
+        "rubbish_recycling": rubbish_recycling,
+        "page_state": page_state,
     }
 
 
@@ -1398,6 +1478,74 @@ async def _execute_cape_island_investment_after_arrival(
         selected.get("slot"),
         selected.get("category"),
         selected.get("grade"),
+        result["page_state"],
+        result["elapsed_ms"],
+    )
+    return result
+
+
+async def _execute_rubbish_recycling_after_arrival(
+    *,
+    leg_index: int,
+    leg: Dict[str, Any],
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    city_shop_data: ResonancePcCityShopDataService,
+) -> Dict[str, Any]:
+    started_at = time.monotonic()
+    arrival_city = str(leg.get("to_city") or "")
+    logger.info(
+        "Rubbish recycling route hook triggered leg_index=%s from_city=%s to_city=%s to_city_id=%s",
+        int(leg_index),
+        leg.get("from_city"),
+        arrival_city,
+        leg.get("to_city_id"),
+    )
+    try:
+        open_city = await asyncio.to_thread(
+            resonance_pc_open_city_panel_from_main,
+            app=app,
+            ocr=ocr,
+        )
+        recycling = await asyncio.to_thread(
+            resonance_pc_execute_rubbish_recycling_from_city_panel,
+            city_name=arrival_city,
+            app=app,
+            vision=vision,
+            resonance_pc_city_shop_data=city_shop_data,
+        )
+    except Exception as exc:
+        code = str(getattr(exc, "code", type(exc).__name__))
+        logger.exception(
+            "Rubbish recycling route hook failed leg_index=%s city=%s code=%s elapsed_ms=%s",
+            int(leg_index),
+            arrival_city,
+            code,
+            int((time.monotonic() - started_at) * 1000),
+        )
+        raise
+    result = {
+        "triggered": True,
+        "attempted": True,
+        "status": str(recycling.get("status") or "unknown"),
+        "reason": recycling.get("reason"),
+        "city_id": str(recycling.get("city_id") or leg.get("to_city_id") or ""),
+        "city_name": str(recycling.get("city_name") or arrival_city),
+        "initial_state": recycling.get("initial_state"),
+        "final_state": recycling.get("final_state"),
+        "reward_overlay_seen": bool(recycling.get("reward_overlay_seen")),
+        "open_city": open_city,
+        "recycling": recycling,
+        "page_state": str(recycling.get("page_state") or "city_panel"),
+        "elapsed_ms": int((time.monotonic() - started_at) * 1000),
+    }
+    logger.info(
+        "Rubbish recycling route result leg_index=%s city=%s status=%s reason=%s page_state=%s elapsed_ms=%s",
+        int(leg_index),
+        result["city_name"],
+        result["status"],
+        result["reason"],
         result["page_state"],
         result["elapsed_ms"],
     )
@@ -1702,6 +1850,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     fatigue_medicine_max_uses: int = 4,
     arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = False,
+    auto_rubbish_recycling: bool = True,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -1865,6 +2014,10 @@ async def resonance_pc_auto_cycle_trade_flow(
         "cape_island_triggered_count": 0,
         "cape_island_invested_count": 0,
         "cape_island_skipped_count": 0,
+        "rubbish_recycling_triggered_count": 0,
+        "rubbish_recycling_status": "not_triggered",
+        "rubbish_recycling_city_id": None,
+        "rubbish_recycling_city_name": None,
     }
     final_sale: Optional[Dict[str, Any]] = None
 
@@ -1884,6 +2037,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
             auto_cape_island_investment=bool(auto_cape_island_investment),
+            auto_rubbish_recycling=bool(auto_rubbish_recycling),
             engine=engine,
         )
         page_state = str(execution.get("page_state") or "city_main")

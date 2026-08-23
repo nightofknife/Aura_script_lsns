@@ -209,6 +209,7 @@ class RunnerBridge(QObject):
             "fatigue_medicine_max_uses",
             "arrival_timeout_seconds",
             "auto_cape_island_investment",
+            "auto_rubbish_recycling",
         ):
             preview_inputs.pop(key, None)
         item = self._make_item(

@@ -79,13 +79,14 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_medicine_max_uses": 4,
     "arrival_timeout_seconds": 3600,
     "auto_cape_island_investment": True,
+    "auto_rubbish_recycling": True,
 }
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
     "passenger_city_a_id": "11",
     "passenger_city_b_id": "15",
     "trip_count": 1,
-    "trade_during_trip": False,
+    "trade_during_trip": True,
     "reposition_to_route": True,
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
@@ -290,6 +291,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
     merged["available_city_ids"] = normalized_city_ids
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
+    merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     try:
         merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
     except (TypeError, ValueError):

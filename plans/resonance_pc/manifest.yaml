@@ -1056,6 +1056,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_rubbish_recycling
+      type: Any
+      required: false
+      default: true
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -1398,7 +1402,7 @@ exports:
     - name: trade_during_trip
       type: Any
       required: false
-      default: false
+      default: true
     - name: reposition_to_route
       type: Any
       required: false
@@ -1626,6 +1630,23 @@ exports:
       type: Any
       required: false
       default: 0.5
+  - name: resonance_pc.execute_rubbish_recycling_from_city_panel
+    module: plans.resonance_pc.src.actions.rubbish_recycling_pc_actions
+    function: resonance_pc_execute_rubbish_recycling_from_city_panel
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter an eligible city's rubbish station, recycle all rubbish once,
+      and return to the city panel.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: location_file_path
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.trade_plan_optimal_route
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_optimal_route
@@ -2267,6 +2288,16 @@ exports:
     source: tasks/preview_trade_plan_pc.yaml
     description: Refresh market data and calculate one exact route from a user-selected
       start city.
+  - id: rubbish_recycling_pc/rubbish_recycling_pc
+    title: Rubbish Recycling (PC)
+    source: tasks/rubbish_recycling_pc.yaml
+    description: Recycle all rubbish from an eligible city's city panel and return
+      to that panel.
+  - id: rubbish_recycling_pc
+    title: Rubbish Recycling (PC)
+    source: tasks/rubbish_recycling_pc.yaml
+    description: Recycle all rubbish from an eligible city's city panel and return
+      to that panel.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-22T19:32:21Z'
+  generated_at: '2026-08-23T15:48:56Z'

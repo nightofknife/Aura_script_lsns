@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "eligible_cities": {
+    "7": {
+      "city_name": "荒原站",
+      "city_key": "wilderness_station",
+      "shop_name": "垃圾处理中心"
+    },
+    "14": {
+      "city_name": "远星大桥",
+      "city_key": "farstar_bridge",
+      "shop_name": "垃圾处理中心"
+    }
+  }
+}

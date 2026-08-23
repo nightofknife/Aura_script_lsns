@@ -25,6 +25,7 @@ from .passenger_flow_pc_actions import (
     _read_current_city,
     resonance_pc_auto_passenger_trips_flow,
 )
+from .rubbish_recycling_pc_actions import is_rubbish_recycling_arrival
 
 
 _ORDERS = {"trade_first", "passenger_first"}
@@ -47,6 +48,7 @@ _TRADE_INPUT_KEYS = {
     "fatigue_medicine_max_uses",
     "arrival_timeout_seconds",
     "auto_cape_island_investment",
+    "auto_rubbish_recycling",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "negotiation_max_attempts",
@@ -55,6 +57,7 @@ _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "fatigue_medicine_max_uses",
     "arrival_timeout_seconds",
     "auto_cape_island_investment",
+    "auto_rubbish_recycling",
 }
 _PASSENGER_INPUT_KEYS = {
     "passenger_city_a_id",
@@ -202,6 +205,7 @@ def _trade_handoff_error(
     *,
     allowed_end_city_ids: Optional[set[str]],
     auto_cape_island_investment: bool,
+    auto_rubbish_recycling: bool,
 ) -> Optional[str]:
     if trade.get("success") is False or str(trade.get("status") or "") != "completed":
         return "trade task did not complete"
@@ -234,6 +238,10 @@ def _trade_handoff_error(
         )
         if int(execution.get("cape_island_triggered_count") or 0) != arrivals:
             return "trade cape-island investment stages did not complete"
+    if auto_rubbish_recycling:
+        expected = 1 if any(is_rubbish_recycling_arrival(row) for row in route) else 0
+        if int(execution.get("rubbish_recycling_triggered_count") or 0) != expected:
+            return "trade rubbish-recycling stage did not complete"
     return None
 
 
@@ -503,6 +511,9 @@ async def resonance_pc_auto_combined_commerce_flow(
             auto_cape_island_investment=bool(
                 effective_trade.get("auto_cape_island_investment", False)
             ),
+            auto_rubbish_recycling=bool(
+                effective_trade.get("auto_rubbish_recycling", True)
+            ),
         )
         if trade_error:
             reason = "trade_failed" if str(trade.get("status") or "") != "completed" else "trade_handoff_invalid"
@@ -684,6 +695,9 @@ async def resonance_pc_auto_combined_commerce_flow(
             allowed_end_city_ids=None,
             auto_cape_island_investment=bool(
                 effective_trade.get("auto_cape_island_investment", False)
+            ),
+            auto_rubbish_recycling=bool(
+                effective_trade.get("auto_rubbish_recycling", True)
             ),
         )
         if trade_error:

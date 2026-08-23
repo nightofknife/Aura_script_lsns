@@ -142,7 +142,7 @@ class PassengerPage(QWidget):
         form.addRow("客运次数", self.trip_count)
 
         self.trade_during_trip = QCheckBox("启用", panel)
-        self.trade_during_trip.setChecked(False)
+        self.trade_during_trip.setChecked(True)
         self.trade_during_trip.setToolTip("每程揽客前强制刷新行情，先卖后买；末站只清仓")
         form.addRow("中途买卖货", self.trade_during_trip)
 
@@ -254,7 +254,7 @@ class PassengerPage(QWidget):
         self._set_combo_data(self.city_a, str(values.get("passenger_city_a_id") or "11"))
         self._set_combo_data(self.city_b, str(values.get("passenger_city_b_id") or "15"))
         self.trip_count.setValue(int(values.get("trip_count", 1)))
-        self.trade_during_trip.setChecked(bool(values.get("trade_during_trip", False)))
+        self.trade_during_trip.setChecked(bool(values.get("trade_during_trip", True)))
         self.auto_reposition.setChecked(bool(values.get("reposition_to_route", True)))
         self._refresh_expected_fatigue()
 

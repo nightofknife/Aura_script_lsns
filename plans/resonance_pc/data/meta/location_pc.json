@@ -43,6 +43,10 @@
                 980,
                 250
             ],
+            "waste_processing_center": [
+                325,
+                115
+            ],
             "is_main": false
         },
         "anita_energy_research_institute": {

@@ -842,7 +842,7 @@ async def resonance_pc_auto_passenger_trips_flow(
     trip_count: int = 1,
     passenger_city_a_id: str = "11",
     passenger_city_b_id: str = "15",
-    trade_during_trip: bool = False,
+    trade_during_trip: bool = True,
     reposition_to_route: bool = True,
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
