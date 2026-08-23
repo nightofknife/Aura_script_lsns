@@ -18,6 +18,7 @@ from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 
+from ....aura_base.src.actions.input_actions import drag as aura_base_drag
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
 from ..services.resonance_pc_trade_exact_solver import (
@@ -537,16 +538,17 @@ def _click_required_nav_button(
 
 
 def _drag_buy_list(app: Any, controller: Any) -> None:
+    del controller
     app.move_to(x=_BUY_SCROLL_START[0], y=_BUY_SCROLL_START[1], duration=0.1)
-    pressed = False
-    try:
-        controller.mouse_down("left")
-        pressed = True
-        app.move_to(x=_BUY_SCROLL_END[0], y=_BUY_SCROLL_END[1], duration=0.5)
-        time.sleep(0.5)
-    finally:
-        if pressed:
-            controller.mouse_up("left")
+    aura_base_drag(
+        app=app,
+        start_x=_BUY_SCROLL_START[0],
+        start_y=_BUY_SCROLL_START[1],
+        end_x=_BUY_SCROLL_END[0],
+        end_y=_BUY_SCROLL_END[1],
+        duration=0.5,
+        hold_before_release_sec=0.5,
+    )
     time.sleep(0.2)
 
 

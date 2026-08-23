@@ -11,6 +11,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 
+from ....aura_base.src.actions.input_actions import drag as aura_base_drag
+
 
 class ReformingCenterNavigationError(RuntimeError):
     """Structured failure raised by Reforming Center navigation actions."""
@@ -978,21 +980,17 @@ def _perform_room_drag(
     duration_sec: float,
     hold_sec: float,
 ) -> None:
+    del controller
     app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
-    pressed = False
-    try:
-        controller.mouse_down("left")
-        pressed = True
-        app.move_to(
-            x=int(end[0]),
-            y=int(end[1]),
-            duration=max(float(duration_sec), 0.05),
-        )
-        if float(hold_sec) > 0:
-            time.sleep(float(hold_sec))
-    finally:
-        if pressed:
-            controller.mouse_up("left")
+    aura_base_drag(
+        app=app,
+        start_x=int(start[0]),
+        start_y=int(start[1]),
+        end_x=int(end[0]),
+        end_y=int(end[1]),
+        duration=max(float(duration_sec), 0.05),
+        hold_before_release_sec=max(float(hold_sec), 0.0),
+    )
 
 
 @action_info(

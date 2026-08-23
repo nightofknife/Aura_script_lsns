@@ -15,6 +15,8 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
+from ....aura_base.src.actions.input_actions import drag as aura_base_drag
+
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -671,18 +673,17 @@ def _perform_drag_with_hold(
     drag_duration_sec: float,
     drag_hold_sec: float,
 ) -> None:
+    del controller
     app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
-    pressed = False
-    try:
-        controller.mouse_down("left")
-        pressed = True
-        app.move_to(x=int(end[0]), y=int(end[1]), duration=max(float(drag_duration_sec), 0.01))
-        hold = max(float(drag_hold_sec), 0.0)
-        if hold > 0:
-            time.sleep(hold)
-    finally:
-        if pressed:
-            controller.mouse_up("left")
+    aura_base_drag(
+        app=app,
+        start_x=int(start[0]),
+        start_y=int(start[1]),
+        end_x=int(end[0]),
+        end_y=int(end[1]),
+        duration=max(float(drag_duration_sec), 0.01),
+        hold_before_release_sec=max(float(drag_hold_sec), 0.0),
+    )
 
 
 def _resolve_plan_template_path(template: str) -> str:
