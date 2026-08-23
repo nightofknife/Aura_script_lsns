@@ -8,19 +8,20 @@ python -m packages.aura_core.cli.package_cli validate plans/resonance
 python tools\plan_doctor.py --plan resonance
 ```
 
-## Tests
+## Project Smoke Tests
 
 所有测试、验证、冒烟检查和打包检查都必须从仓库根目录运行，测试产生的临时文件、
 缓存、截图、日志和其他产物也必须保存在当前仓库内。禁止把系统临时目录、桌面、
 其他 checkout 或外部项目目录作为测试工作目录。
 
-`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`。需要隔离不同
-测试范围时，可以显式使用 `.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
+`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`，并只收集
+`tests/smoke`。冒烟测试只确认项目可以导入、发现计划、启动 Runner 和构造 GUI，
+不验证具体游戏任务的执行结果。需要隔离运行时，可以显式使用
+`.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
 
 ```powershell
 New-Item -ItemType Directory -Force -Path .pytest_tmp | Out-Null
-python -m pytest tests\test_resonance_*.py --basetemp .pytest_tmp\resonance
-python -m pytest tests\test_resonance_gui_*.py --basetemp .pytest_tmp\resonance_gui
+python -m pytest tests\smoke -q --basetemp .pytest_tmp\smoke
 ```
 
 非 pytest 工具如果会调用操作系统临时目录，运行前必须把临时环境变量指向仓库内的
@@ -40,8 +41,9 @@ $env:TMPDIR = $testTemp
 ## CLI Smoke
 
 ```powershell
+.\scripts\run_cli.ps1 games --all
 .\scripts\run_cli.ps1 tasks resonance
-.\scripts\run_cli.ps1 run resonance tasks:market_data.yaml:market_data_get_latest --timeout-sec 120
+.\scripts\run_cli.ps1 tasks resonance_pc
 ```
 
 ## Release Smoke

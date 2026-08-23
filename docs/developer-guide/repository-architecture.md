@@ -8,7 +8,7 @@ packages/aura_game      embedded/subprocess runner facade
 packages/resonance_gui  Qt desktop GUI for Resonance tasks
 plans/aura_base         shared runtime actions and platform adapters
 plans/resonance         Resonance actions, services, tasks and data
-tests/                  framework and Resonance tests
+tests/smoke/            project import, discovery, runner and GUI startup smoke tests
 ```
 
 `plans/resonance/manifest.yaml` is generated from the package source. Do not hand-maintain generated exports when adding actions, services or tasks; run:

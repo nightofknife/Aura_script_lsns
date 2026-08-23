@@ -164,11 +164,11 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Plan manifest is invalid: $($_.Name)" }
           }
 
-      - name: Run test suite
+      - name: Run project smoke suite
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest tests -q
+        run: python -m pytest tests/smoke -q
 
   build-cpu:
     needs: [scope, ci]

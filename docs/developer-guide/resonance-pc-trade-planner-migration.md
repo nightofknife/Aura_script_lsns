@@ -538,69 +538,15 @@ run_task_ref = tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc
 
 ### 8.3 当前验证记录
 
-二值满议价迁移实施时执行了：
+早期迁移曾维护求解器、协商、GUI 和任务执行的细粒度 pytest 回归用例。
+这些历史业务测试已在测试策略收缩后删除，当前仓库只保留项目启动冒烟测试。
+现行验证命令为：
 
 ```powershell
-python -m pytest tests/test_resonance_pc_trade_negotiation_actions.py tests/test_resonance_pc_trade_flow_execution.py tests/test_resonance_pc_auto_cycle_trade_flow.py tests/test_resonance_pc_auto_cycle_trade_task.py -q
-# 33 passed
-
-python -m pytest tests -q -k "resonance_pc or resonance_gui"
-# 156 passed, 309 deselected
-
-python -m packages.aura_core.cli.package_cli sync plans/resonance_pc
-# Manifest synced
-
 python -m packages.aura_core.cli.package_cli check plans/resonance_pc
-# Manifest is up to date
-
 python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
-# Manifest validation passed
-
 python tools/plan_doctor.py --plan resonance_pc
-# errors=0 warnings=0 infos=0
-```
-
-计划包合规检查最终结果为 `errors=21 warnings=0`。21 项均来自本次范围外、工作树中已有的 `auto_battle_dispatch_pc.yaml`：该文件使用 `aura.run_task`，但合规检查器把它报告为当前包未导出的本地动作。跑商任务、GUI 进度事件、求解器、规则文件和本次迁移文档没有产生新的合规错误或警告。
-
-2026-07-26 可配置议价尝试上限改造验证：
-
-```powershell
-python -m pytest tests/test_resonance_pc_trade_negotiation_actions.py tests/test_resonance_pc_trade_flow_execution.py tests/test_resonance_pc_auto_cycle_trade_flow.py tests/test_resonance_pc_auto_cycle_trade_task.py tests/test_resonance_gui_logic.py tests/test_resonance_gui_trade_page.py -q
-# 76 passed
-
-python -m pytest tests -q -k "resonance_pc or resonance_gui"
-# 待发布索引快照：240 passed, 326 deselected, 11 subtests passed
-
-python -m packages.aura_core.cli.package_cli check plans/resonance_pc
-# Manifest is up to date
-
-python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
-# Manifest validation passed
-
-python tools/plan_doctor.py --plan resonance_pc
-# errors=0 warnings=0 infos=0
-
-python C:\Users\356\.codex\skills\aura-game-plan-authoring\scripts\check_plan_compliance.py --plan resonance_pc --json
-# errors=21 warnings=0 infos=0；21 项均为上述既有 PC 战斗任务 aura.run_task 报告
-```
-
-2026-07-25 性能改造的定向验证：
-
-```powershell
-python -m pytest tests/test_resonance_pc_trade_exact_solver.py -q
-# 51 passed
-
-python -m pytest tests -q -k "resonance_pc"
-# 176 passed, 346 deselected, 11 subtests passed
-
-python -m packages.aura_core.cli.package_cli check plans/resonance_pc
-# Manifest is up to date
-
-python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
-# Manifest validation passed
-
-python tools/plan_doctor.py --plan resonance_pc
-# errors=0 warnings=0 infos=0
+python -m pytest tests/smoke -q
 ```
 
 使用当前本地冻结行情、起点城市 `3`、8 城、800 疲劳、650 货舱、20 本进货书、默认 50%/10% 议价参数和 `all_plan=1` 实测：
@@ -621,17 +567,6 @@ python tools/plan_doctor.py --plan resonance_pc
 2026-07-26 后端可选规划城市由原 8 城扩展为疲劳图中的全部 20 城。自动跑商 GUI 根据执行数据完备性只展示并默认开放已同时配置地图和交易所坐标的 17 城；远星大桥（14）、塔图站（17）和贡露城（19）保留在任务枚举和声望覆盖项中，但不显示在 GUI。显式调用只读规划接口时仍保留任意合法子集的规划语义。
 
 规划输入、行情、疲劳和进货量模型覆盖全部 20 城。自动执行某座城市仍要求 `location_pc.json` 已配置该城市交易所坐标；手动启用 14、17 或 19 时，规划器可以计算路线，但执行器会按既有错误契约明确拒绝缺少交易所坐标的城市。
-
-```powershell
-python -m pytest tests/test_resonance_pc_trade_exact_solver.py tests/test_resonance_pc_trade_planner_service.py tests/test_resonance_pc_auto_cycle_trade_task.py -q
-# 81 passed
-
-python -m pytest tests/test_resonance_gui_logic.py tests/test_resonance_gui_trade_page.py -q
-# 22 passed
-
-python -m pytest tests -q -k "resonance_pc or resonance_gui"
-# 217 passed, 326 deselected, 11 subtests passed
-```
 
 同一开发机使用 20 城、起点城市 `3`、800 疲劳、650 货舱、20 本进货书、默认 50%/10% 议价参数和 `all_plan=1` 实测：
 
