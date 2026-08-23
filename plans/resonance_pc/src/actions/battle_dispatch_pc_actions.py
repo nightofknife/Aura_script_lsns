@@ -2162,47 +2162,6 @@ def resonance_pc_wait_and_click_back_button(
 
 
 @action_info(
-    name="resonance_pc.check_pixel_color_range",
-    public=True,
-    read_only=True,
-    description="Check whether one pixel color is inside an inclusive RGB range.",
-)
-@requires_services(
-    app="plans/aura_base/app",
-)
-def resonance_pc_check_pixel_color_range(
-    x: int,
-    y: int,
-    rgb_min: List[int],
-    rgb_max: List[int],
-    app: Any = None,
-) -> Dict[str, Any]:
-    if app is None:
-        _raise_error("missing_service", "app service is required")
-    if not isinstance(rgb_min, list) or not isinstance(rgb_max, list) or len(rgb_min) != 3 or len(rgb_max) != 3:
-        _raise_error("invalid_rgb_range", "rgb_min/rgb_max must both be [r, g, b]")
-
-    color = app.get_pixel_color(int(x), int(y))
-    if not isinstance(color, (list, tuple)) or len(color) < 3:
-        _raise_error("pixel_read_failed", f"failed to read pixel color at ({x}, {y})")
-
-    r = int(color[0])
-    g = int(color[1])
-    b = int(color[2])
-    selected = (
-        int(rgb_min[0]) <= r <= int(rgb_max[0])
-        and int(rgb_min[1]) <= g <= int(rgb_max[1])
-        and int(rgb_min[2]) <= b <= int(rgb_max[2])
-    )
-    return {
-        "x": int(x),
-        "y": int(y),
-        "rgb": [r, g, b],
-        "selected": selected,
-    }
-
-
-@action_info(
     name="resonance_pc.reconcile_structural_selection",
     public=True,
     read_only=False,

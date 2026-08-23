@@ -501,30 +501,6 @@ exports:
       type: Any
       required: false
       default: 2
-  - name: resonance_pc.check_pixel_color_range
-    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
-    function: resonance_pc_check_pixel_color_range
-    public: true
-    read_only: true
-    timeout: null
-    description: Check whether one pixel color is inside an inclusive RGB range.
-    parameters:
-    - name: x
-      type: Any
-      required: true
-      default: null
-    - name: y
-      type: Any
-      required: true
-      default: null
-    - name: rgb_min
-      type: Any
-      required: true
-      default: null
-    - name: rgb_max
-      type: Any
-      required: true
-      default: null
   - name: resonance_pc.reconcile_structural_selection
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_reconcile_structural_selection
@@ -2300,4 +2276,4 @@ exports:
       to that panel.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-23T15:48:56Z'
+  generated_at: '2026-08-23T18:30:18Z'

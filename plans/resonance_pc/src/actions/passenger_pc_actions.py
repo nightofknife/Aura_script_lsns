@@ -13,6 +13,8 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
+from ....aura_base.src.actions.input_actions import drag as aura_base_drag
+
 
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
@@ -411,17 +413,18 @@ def _visit_city_entry_evidence(app: Any, ocr: Any) -> Dict[str, Any]:
 
 
 def _drag(app: Any, controller: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
+    del controller
     _check_cancelled()
     app.move_to(x=start[0], y=start[1], duration=0.1)
-    pressed = False
-    try:
-        controller.mouse_down("left")
-        pressed = True
-        app.move_to(x=end[0], y=end[1], duration=0.55)
-        time.sleep(0.25)
-    finally:
-        if pressed:
-            controller.mouse_up("left")
+    aura_base_drag(
+        app=app,
+        start_x=start[0],
+        start_y=start[1],
+        end_x=end[0],
+        end_y=end[1],
+        duration=0.55,
+        hold_before_release_sec=0.25,
+    )
     time.sleep(0.5)
 
 
