@@ -98,8 +98,10 @@ PLAYER_DATA_STAGE_ORDER: tuple[str, ...] = (
     "location",
     "profile",
     "inventory",
+    "characters",
 )
 PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = ("items", "materials")
+PLAYER_DATA_INPUTS_SCHEMA_VERSION = 2
 DEFAULT_PLAYER_DATA_INPUTS: dict[str, Any] = {
     "stages": [*PLAYER_DATA_STAGE_ORDER],
     "inventory_categories": ["items"],
@@ -233,20 +235,50 @@ class ResonanceConfigRepository:
 
     def load_player_data_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("player_data/inputs_json", "")
+        try:
+            schema_version = int(
+                self.settings.value("player_data/inputs_schema_version", 0) or 0
+            )
+        except (TypeError, ValueError):
+            schema_version = 0
+        parsed: dict[str, Any] = {}
         if raw:
             try:
-                parsed = json.loads(str(raw))
-                if isinstance(parsed, dict):
-                    return _merge_player_data_inputs(parsed)
+                candidate = json.loads(str(raw))
+                if isinstance(candidate, dict):
+                    parsed = candidate
             except (TypeError, ValueError):
                 pass
-        return _merge_player_data_inputs({})
+        if schema_version < PLAYER_DATA_INPUTS_SCHEMA_VERSION:
+            if parsed:
+                migrated_stages = list(parsed.get("stages") or [])
+                if "characters" not in migrated_stages:
+                    migrated_stages.append("characters")
+                parsed["stages"] = migrated_stages
+                normalized = _merge_player_data_inputs(parsed)
+            else:
+                normalized = _merge_player_data_inputs({})
+            self.settings.setValue(
+                "player_data/inputs_json",
+                json.dumps(normalized, ensure_ascii=False),
+            )
+            self.settings.setValue(
+                "player_data/inputs_schema_version",
+                PLAYER_DATA_INPUTS_SCHEMA_VERSION,
+            )
+            self.settings.sync()
+            return normalized
+        return _merge_player_data_inputs(parsed)
 
     def save_player_data_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_player_data_inputs(inputs)
         self.settings.setValue(
             "player_data/inputs_json",
             json.dumps(normalized, ensure_ascii=False),
+        )
+        self.settings.setValue(
+            "player_data/inputs_schema_version",
+            PLAYER_DATA_INPUTS_SCHEMA_VERSION,
         )
         self.settings.sync()
 

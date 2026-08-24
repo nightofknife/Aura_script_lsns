@@ -15,6 +15,11 @@ import cv2
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.utils.exceptions import StopTaskException
 
+from .character_pc_actions import (
+    enter_character_page,
+    load_character_catalog,
+    read_player_characters,
+)
 from .inventory_pc_actions import read_inventory_items, read_inventory_materials
 
 Region = Tuple[int, int, int, int]
@@ -23,9 +28,9 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _PLAYER_CACHE_ROOT = _PLAN_ROOT / "data" / "cache" / "player"
 _PLAYER_LATEST_FILE = _PLAYER_CACHE_ROOT / "latest.json"
 
-_DATA_STAGES = ("location", "profile", "inventory")
+_DATA_STAGES = ("location", "profile", "inventory", "characters")
 _STAGE_ORDER = _DATA_STAGES
-_PROFILE_PANEL_STAGES = frozenset({"profile", "inventory"})
+_PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
 
 _INVENTORY_CATEGORY_ORDER = ("items", "materials")
 _CURRENCY_ITEM_IDS = {
@@ -524,6 +529,9 @@ def _merge_latest(
                 merged["currencies"] = currencies
             currencies.update(copy.deepcopy(dict(fresh_currencies)))
 
+    if "characters" in section_updated_at:
+        merged["characters"] = copy.deepcopy(fresh["characters"])
+
     metadata = merged.get("metadata")
     if not isinstance(metadata, dict):
         metadata = {}
@@ -586,7 +594,7 @@ def _persist_latest(
 
 def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
     try:
-        if page == "inventory":
+        if page in {"inventory", "characters"}:
             app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
             page = "profile"
         if page == "profile":
@@ -608,7 +616,7 @@ def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
     public=True,
     read_only=False,
     timeout=900,
-    description="Selectively refresh and automatically persist three Resonance PC player-data sections.",
+    description="Selectively refresh and automatically persist four Resonance PC player-data sections.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -628,6 +636,11 @@ def resonance_pc_player_data_refresh(
     selected_stages = _normalize_stages(stages)
     selected_inventory_categories = _normalize_inventory_categories(inventory_categories)
     selected = set(selected_stages)
+    character_catalog: Optional[Dict[str, Any]] = None
+    if "characters" in selected:
+        if vision is None:
+            raise RuntimeError("vision service is required for character refresh")
+        character_catalog = load_character_catalog(vision=vision)
     section_updated_at: Dict[str, str] = {}
     inventory_category_updated_at: Dict[str, str] = {}
     result: Dict[str, Any] = {}
@@ -701,6 +714,32 @@ def resonance_pc_player_data_refresh(
                 )
                 current_page = "profile"
                 section_updated_at["inventory"] = _utc_now_iso()
+
+            if "characters" in selected:
+                if character_catalog is None:
+                    raise RuntimeError("character catalog was not loaded")
+                current_page = "characters"
+                first_page_image = enter_character_page(
+                    app,
+                    vision,
+                    character_catalog,
+                )
+                result["characters"] = read_player_characters(
+                    app,
+                    vision,
+                    character_catalog,
+                    first_page_image=first_page_image,
+                )
+                app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
+                _wait_for_any_marker(
+                    app,
+                    ocr,
+                    markers=("UID", "资产", "查看更多信息"),
+                    region=_PROFILE_REGION,
+                    label="profile panel after character page",
+                )
+                current_page = "profile"
+                section_updated_at["characters"] = _utc_now_iso()
 
             current_page = "unknown"
             _close_profile_panel_to_main(app, ocr)
