@@ -1444,8 +1444,8 @@ exports:
     public: true
     read_only: false
     timeout: 900
-    description: Selectively refresh and automatically persist three Resonance PC
-      player-data sections.
+    description: Selectively refresh and automatically persist four Resonance PC player-data
+      sections.
     parameters:
     - name: stages
       type: Any
@@ -2248,8 +2248,8 @@ exports:
   - id: player_data_pc/player_data_refresh
     title: Resonance Player Data Refresh (PC)
     source: tasks/player_data_pc.yaml
-    description: Refresh location, player profile/status and warehouse data from the
-      PC client.
+    description: Refresh location, player profile/status, warehouse and character
+      data from the PC client.
   - id: player_data_pc/player_data_get_latest
     title: Resonance Player Data Latest (PC)
     source: tasks/player_data_pc.yaml
@@ -2276,4 +2276,4 @@ exports:
       to that panel.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-23T18:30:18Z'
+  generated_at: '2026-08-24T15:07:02Z'

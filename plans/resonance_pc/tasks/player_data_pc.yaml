@@ -1,19 +1,19 @@
 player_data_refresh:
   meta:
     title: Resonance Player Data Refresh (PC)
-    description: Refresh location, player profile/status and warehouse data from the PC client.
+    description: Refresh location, player profile/status, warehouse and character data from the PC client.
     entry_point: true
     concurrency: exclusive
     inputs:
       - name: stages
         type: list
         required: false
-        default: [location, profile, inventory]
+        default: [location, profile, inventory, characters]
         item:
           name: stage
           type: enum
           required: true
-          enum: [location, profile, inventory]
+          enum: [location, profile, inventory, characters]
       - name: inventory_categories
         type: list
         required: false

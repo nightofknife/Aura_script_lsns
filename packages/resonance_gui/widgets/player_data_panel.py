@@ -40,6 +40,7 @@ STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
         "仓库",
         "按所选分类扫描模板目录内已支持的内容；期限识别暂时关闭，耗时较长",
     ),
+    ("characters", "角色", "模板识别已收录角色及点亮星级"),
 )
 
 INVENTORY_CATEGORY_LABELS = {
@@ -123,8 +124,9 @@ class PlayerDataPanel(QWidget):
         shortcuts.addStretch(1)
         for text, stages in (
             ("全部", PLAYER_DATA_STAGE_ORDER),
-            ("基础信息", PLAYER_DATA_STAGE_ORDER[:-1]),
+            ("基础信息", ("location", "profile")),
             ("仅仓库", ("inventory",)),
+            ("仅角色", ("characters",)),
         ):
             button = QPushButton(text, page)
             button.setObjectName("quietButton")
@@ -222,12 +224,18 @@ class PlayerDataPanel(QWidget):
         layout.addWidget(self.status_label)
         layout.addWidget(self.currency_label)
 
+        self.snapshot_details_tabs = QTabWidget(page)
+
+        inventory_page = QWidget(self.snapshot_details_tabs)
+        inventory_layout = QVBoxLayout(inventory_page)
+        inventory_layout.setContentsMargins(6, 8, 6, 6)
+        inventory_layout.setSpacing(8)
         inventory_header = QHBoxLayout()
-        inventory_title = QLabel("仓库", page)
+        inventory_title = QLabel("仓库", inventory_page)
         inventory_title.setObjectName("sectionTitle")
-        self.inventory_summary = QLabel("尚无数据", page)
+        self.inventory_summary = QLabel("尚无数据", inventory_page)
         self.inventory_summary.setProperty("caption", True)
-        self.inventory_category_combo = QComboBox(page)
+        self.inventory_category_combo = QComboBox(inventory_page)
         for category in PLAYER_DATA_INVENTORY_CATEGORY_ORDER:
             self.inventory_category_combo.addItem(
                 INVENTORY_CATEGORY_LABELS[category], category
@@ -235,7 +243,7 @@ class PlayerDataPanel(QWidget):
         self.inventory_category_combo.currentIndexChanged.connect(
             lambda _index: self._render_inventory()
         )
-        self.inventory_search = QLineEdit(page)
+        self.inventory_search = QLineEdit(inventory_page)
         self.inventory_search.setPlaceholderText("搜索仓库内容")
         self.inventory_search.setClearButtonEnabled(True)
         self.inventory_search.setMaximumWidth(180)
@@ -245,9 +253,9 @@ class PlayerDataPanel(QWidget):
         inventory_header.addStretch(1)
         inventory_header.addWidget(self.inventory_category_combo)
         inventory_header.addWidget(self.inventory_search)
-        layout.addLayout(inventory_header)
+        inventory_layout.addLayout(inventory_header)
 
-        self.inventory_table = QTableWidget(0, 3, page)
+        self.inventory_table = QTableWidget(0, 3, inventory_page)
         self.inventory_table.setHorizontalHeaderLabels(("道具", "数量", "期限"))
         self.inventory_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.inventory_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -257,7 +265,34 @@ class PlayerDataPanel(QWidget):
         header_view.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header_view.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        layout.addWidget(self.inventory_table, 1)
+        inventory_layout.addWidget(self.inventory_table, 1)
+        self.snapshot_details_tabs.addTab(inventory_page, "仓库")
+
+        character_page = QWidget(self.snapshot_details_tabs)
+        character_layout = QVBoxLayout(character_page)
+        character_layout.setContentsMargins(6, 8, 6, 6)
+        character_layout.setSpacing(8)
+        character_header = QHBoxLayout()
+        character_title = QLabel("角色", character_page)
+        character_title.setObjectName("sectionTitle")
+        self.character_summary = QLabel("尚无数据", character_page)
+        self.character_summary.setProperty("caption", True)
+        character_header.addWidget(character_title)
+        character_header.addWidget(self.character_summary)
+        character_header.addStretch(1)
+        character_layout.addLayout(character_header)
+        self.character_table = QTableWidget(0, 2, character_page)
+        self.character_table.setHorizontalHeaderLabels(("角色", "星级"))
+        self.character_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.character_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.character_table.setAlternatingRowColors(True)
+        self.character_table.verticalHeader().hide()
+        character_header_view = self.character_table.horizontalHeader()
+        character_header_view.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        character_header_view.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        character_layout.addWidget(self.character_table, 1)
+        self.snapshot_details_tabs.addTab(character_page, "角色")
+        layout.addWidget(self.snapshot_details_tabs, 1)
 
         self.snapshot_message = QLabel("", page)
         self.snapshot_message.setWordWrap(True)
@@ -383,6 +418,8 @@ class PlayerDataPanel(QWidget):
                 "schema_version": 2,
                 "categories": categories,
             }
+        if "characters" in fresh:
+            merged["characters"] = copy.deepcopy(fresh["characters"])
         fresh_status = fresh.get("status")
         if isinstance(fresh_status, Mapping):
             status = merged.setdefault("status", {})
@@ -468,6 +505,7 @@ class PlayerDataPanel(QWidget):
         self.currency_label.setText(f"货币：铁盟币 {iron_text}   桦石 {birch_text}")
 
         self._render_inventory()
+        self._render_characters()
 
     @staticmethod
     def _inventory_categories(payload: Any) -> dict[str, dict[str, Any]]:
@@ -552,6 +590,45 @@ class PlayerDataPanel(QWidget):
             name_item = self.inventory_table.item(row, 0)
             name = name_item.text().lower() if name_item is not None else ""
             self.inventory_table.setRowHidden(row, bool(needle and needle not in name))
+
+    def _render_characters(self) -> None:
+        if not hasattr(self, "character_table"):
+            return
+        payload = self._snapshot.get("characters")
+        payload = payload if isinstance(payload, Mapping) else {}
+        raw_entries = payload.get("entries")
+        entries = list(raw_entries) if isinstance(raw_entries, list) else []
+        self.character_table.setRowCount(len(entries))
+        for row, raw_entry in enumerate(entries):
+            entry = raw_entry if isinstance(raw_entry, Mapping) else {}
+            name = entry.get("name") or entry.get("character_id") or "--"
+            raw_stars = entry.get("stars")
+            try:
+                stars = max(0, min(int(raw_stars), 5))
+                star_text = f"{'★' * stars}{'☆' * (5 - stars)}（{stars}/5）"
+            except (TypeError, ValueError):
+                star_text = "--"
+            name_item = QTableWidgetItem(str(name))
+            star_item = QTableWidgetItem(star_text)
+            star_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
+            self.character_table.setItem(row, 0, name_item)
+            self.character_table.setItem(row, 1, star_item)
+
+        pages = payload.get("pages_scanned")
+        details = [f"{len(entries)} 个角色"] if entries else ["尚无数据"]
+        if pages is not None:
+            details.append(f"{pages} 页")
+        metadata = (
+            self._snapshot.get("metadata")
+            if isinstance(self._snapshot.get("metadata"), Mapping)
+            else {}
+        )
+        section_times = metadata.get("section_updated_at")
+        if isinstance(section_times, Mapping) and section_times.get("characters"):
+            details.append(f"更新于 {_format_timestamp(section_times.get('characters'))}")
+        self.character_summary.setText(" · ".join(details))
 
 
 __all__ = ["PlayerDataPanel", "STAGE_DEFINITIONS"]
