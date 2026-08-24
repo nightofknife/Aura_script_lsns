@@ -148,6 +148,7 @@ _CITY_ALIAS_TO_KEY: Dict[str, str] = {
 
 _CITY_OCR_TEXT_REPLACEMENTS: Dict[str, str] = {
     # Temporary compatibility for a recurring intercity-map OCR confusion.
+    "图站": "塔图站",
     "云帅桥基地": "云岫桥基地",
     "云崎桥基地": "云岫桥基地",
     "云帕桥基地": "云岫桥基地",
