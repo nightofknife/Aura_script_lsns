@@ -555,35 +555,6 @@ exports:
       type: Any
       required: false
       default: 0.5
-  - name: resonance_pc.wait_and_click_any_text
-    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
-    function: resonance_pc_wait_and_click_any_text
-    public: true
-    read_only: false
-    timeout: null
-    description: Continuously OCR a region until any target text is found, then click
-      its center.
-    parameters:
-    - name: targets
-      type: Any
-      required: true
-      default: null
-    - name: region
-      type: Any
-      required: false
-      default: null
-    - name: timeout_sec
-      type: Any
-      required: false
-      default: 10.0
-    - name: interval_sec
-      type: Any
-      required: false
-      default: 0.5
-    - name: match_mode
-      type: Any
-      required: false
-      default: contains
   - name: resonance_pc.detect_and_cancel_insufficient_stamina
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_detect_and_cancel_insufficient_stamina
@@ -2276,4 +2247,4 @@ exports:
       to that panel.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-24T15:07:02Z'
+  generated_at: '2026-08-25T03:00:39Z'

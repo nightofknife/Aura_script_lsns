@@ -297,7 +297,6 @@ async def _run_trade(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     market_data: ResonancePcMarketDataService,
     trade_planner: ResonancePcTradePlannerService,
@@ -311,7 +310,6 @@ async def _run_trade(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
         resonance_pc_city_shop_data=city_shop_data,
         resonance_pc_market_data=market_data,
         resonance_pc_trade_planner=trade_planner,
@@ -328,7 +326,6 @@ async def _run_passenger(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     market_data: ResonancePcMarketDataService,
     trade_planner: ResonancePcTradePlannerService,
@@ -340,7 +337,6 @@ async def _run_passenger(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
         resonance_pc_city_shop_data=city_shop_data,
         resonance_pc_market_data=market_data,
         resonance_pc_trade_planner=trade_planner,
@@ -359,7 +355,6 @@ async def _run_passenger(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
     resonance_pc_city_shop_data="resonance_pc_city_shop_data",
     resonance_pc_market_data="resonance_pc_market_data",
     resonance_pc_trade_planner="resonance_pc_trade_planner",
@@ -374,7 +369,6 @@ async def resonance_pc_auto_combined_commerce_flow(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
@@ -403,7 +397,6 @@ async def resonance_pc_auto_combined_commerce_flow(
         app is None
         or ocr is None
         or vision is None
-        or controller is None
         or resonance_pc_city_shop_data is None
         or resonance_pc_market_data is None
         or resonance_pc_trade_planner is None
@@ -412,7 +405,7 @@ async def resonance_pc_auto_combined_commerce_flow(
         or context is None
         or engine is None
     ):
-        raise RuntimeError("combined commerce requires app/ocr/vision/controller/data/planner/state services")
+        raise RuntimeError("combined commerce requires app/ocr/vision/data/planner/state services")
 
     if trade_inputs is not None and not isinstance(trade_inputs, dict):
         return _blocked(result, "invalid_trade_inputs", "preflight")
@@ -491,7 +484,6 @@ async def resonance_pc_auto_combined_commerce_flow(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
                 market_data=resonance_pc_market_data,
                 trade_planner=resonance_pc_trade_planner,
@@ -525,7 +517,6 @@ async def resonance_pc_auto_combined_commerce_flow(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
                 market_data=resonance_pc_market_data,
                 trade_planner=resonance_pc_trade_planner,
@@ -611,7 +602,6 @@ async def resonance_pc_auto_combined_commerce_flow(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
                 market_data=resonance_pc_market_data,
                 trade_planner=resonance_pc_trade_planner,
@@ -664,7 +654,6 @@ async def resonance_pc_auto_combined_commerce_flow(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
                 market_data=resonance_pc_market_data,
                 trade_planner=resonance_pc_trade_planner,

@@ -11,9 +11,6 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 
-from ....aura_base.src.actions.input_actions import drag as aura_base_drag
-
-
 class ReformingCenterNavigationError(RuntimeError):
     """Structured failure raised by Reforming Center navigation actions."""
 
@@ -973,17 +970,14 @@ def _plan_room_drag(
 
 def _perform_room_drag(
     app: Any,
-    controller: Any,
     *,
     start: Sequence[int],
     end: Sequence[int],
     duration_sec: float,
     hold_sec: float,
 ) -> None:
-    del controller
     app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
-    aura_base_drag(
-        app=app,
+    app.drag(
         start_x=int(start[0]),
         start_y=int(start[1]),
         end_x=int(end[0]),
@@ -1002,7 +996,6 @@ def _perform_room_drag(
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
-    controller="plans/aura_base/controller",
 )
 def resonance_pc_navigate_reforming_center_room(
     room_name: str,
@@ -1019,10 +1012,9 @@ def resonance_pc_navigate_reforming_center_room(
     after_click_sec: float = 0.5,
     app: Any = None,
     ocr: Any = None,
-    controller: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or controller is None:
-        _raise_error("missing_service", "app/ocr/controller services are required")
+    if app is None or ocr is None:
+        _raise_error("missing_service", "app/ocr services are required")
 
     window_size = app.get_window_size() or (1280, 720)
     if not isinstance(window_size, tuple) or len(window_size) != 2:
@@ -1197,7 +1189,6 @@ def resonance_pc_navigate_reforming_center_room(
         )
         _perform_room_drag(
             app,
-            controller,
             start=drag_plan["start"],
             end=drag_plan["end"],
             duration_sec=drag_duration_sec,

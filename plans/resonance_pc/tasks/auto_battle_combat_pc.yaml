@@ -24,21 +24,17 @@ auto_battle_combat_pc:
       depends_on: log_combat_job
 
     click_start_entry:
-      action: resonance_pc.wait_and_click_any_text
+      action: plans/aura_base/find_text_and_click
       params:
-        targets: ["\u5f00\u59cb", "\u4f5c\u6218", "START BATTLE"]
+        text_to_find: ["\u5f00\u59cb", "\u4f5c\u6218", "START BATTLE"]
         region: [1150, 300, 110, 150]
-        timeout_sec: 10.0
-        interval_sec: 0.5
         match_mode: "contains"
+        normalize: true
+        timeout: 10.0
+        interval: 0.5
+        move_duration: 0.0
+        required: true
       depends_on: prepare_formation
-
-    assert_start_battle_clicked:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.click_start_entry.output.found | default(false) }}"
-        message: "failed to click combat start entry"
-      depends_on: click_start_entry
 
     detect_stamina_after_start:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
@@ -52,7 +48,7 @@ auto_battle_combat_pc:
         timeout_sec: 2.0
         interval_sec: 0.2
         stable_scans: 2
-      depends_on: assert_start_battle_clicked
+      depends_on: click_start_entry
 
     resolve_battle_result:
       action: resonance_pc.run_battle_resolution

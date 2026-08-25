@@ -30,8 +30,54 @@ async def wait_for_any_template_in_set(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    stable_scans: int = 1,
+    stable_center_tolerance_px: int | None = None,
 ) -> dict[str, object]:
     logger.info("Waiting for any template in '%s' (timeout=%s).", templates_ref, timeout)
+    required_stable_scans = max(int(stable_scans), 1)
+    tolerance = (
+        None
+        if stable_center_tolerance_px is None
+        else max(int(stable_center_tolerance_px), 0)
+    )
+    consecutive_matches = 0
+    last_template: str | None = None
+    last_center: tuple[int, int] | None = None
+
+    def is_stable_match(value) -> bool:
+        nonlocal consecutive_matches, last_template, last_center
+        matches = value["matches"]
+        if not matches:
+            consecutive_matches = 0
+            last_template = None
+            last_center = None
+            return False
+
+        best_match = max(matches, key=lambda item: item["match"].confidence)
+        current_template = str(best_match["template"])
+        center = getattr(best_match["match"], "center_point", None)
+        current_center = (
+            (int(center[0]), int(center[1]))
+            if isinstance(center, (list, tuple)) and len(center) == 2
+            else None
+        )
+        position_is_stable = bool(
+            tolerance is None
+            or last_center is None
+            or (
+                current_center is not None
+                and abs(current_center[0] - last_center[0]) <= tolerance
+                and abs(current_center[1] - last_center[1]) <= tolerance
+            )
+        )
+        if current_template == last_template and position_is_stable:
+            consecutive_matches += 1
+        else:
+            consecutive_matches = 1
+        last_template = current_template
+        last_center = current_center
+        return consecutive_matches >= required_stable_scans
+
     found, result = await poll_until(
         timeout=timeout,
         interval=interval,
@@ -46,7 +92,7 @@ async def wait_for_any_template_in_set(
             match_method,
             preprocess,
         ),
-        predicate=lambda value: value["count"] > 0,
+        predicate=is_stable_match,
     )
     if found:
         best_match = max(result["matches"], key=lambda item: item["match"].confidence)
@@ -70,8 +116,20 @@ async def wait_for_templates_in_set_to_disappear(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    stable_scans: int = 1,
 ) -> bool:
     logger.info("Waiting for templates in '%s' to disappear (timeout=%s).", templates_ref, timeout)
+    required_stable_scans = max(int(stable_scans), 1)
+    consecutive_absent = 0
+
+    def is_stably_absent(value) -> bool:
+        nonlocal consecutive_absent
+        if value["count"] == 0:
+            consecutive_absent += 1
+        else:
+            consecutive_absent = 0
+        return consecutive_absent >= required_stable_scans
+
     disappeared, _ = await poll_until(
         timeout=timeout,
         interval=interval,
@@ -86,7 +144,7 @@ async def wait_for_templates_in_set_to_disappear(
             match_method,
             preprocess,
         ),
-        predicate=lambda value: value["count"] == 0,
+        predicate=is_stably_absent,
     )
     if disappeared:
         logger.info("Templates in '%s' disappeared.", templates_ref)
@@ -101,18 +159,48 @@ async def wait_for_text(
     app: AppProviderService,
     ocr: OcrService,
     engine: ExecutionEngine,
-    text_to_find: str,
+    text_to_find: str | list[str],
     timeout: float = 10.0,
     interval: float = 1.0,
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "contains",
+    stable_scans: int = 1,
+    normalize: bool = False,
+    min_confidence: float = 0.0,
 ) -> OcrResult:
     logger.info("开始等待文本 '%s' 出现，最长等待 %s 秒...", text_to_find, timeout)
+    required_stable_scans = max(int(stable_scans), 1)
+    consecutive_matches = 0
+    last_target: str | None = None
+
+    def is_stable_match(value: OcrResult) -> bool:
+        nonlocal consecutive_matches, last_target
+        if not value.found:
+            consecutive_matches = 0
+            last_target = None
+            return False
+        matched_target = str(value.debug_info.get("matched_target") or text_to_find)
+        if matched_target == last_target:
+            consecutive_matches += 1
+        else:
+            last_target = matched_target
+            consecutive_matches = 1
+        return consecutive_matches >= required_stable_scans
+
     found, ocr_result = await poll_until(
         timeout=timeout,
         interval=interval,
-        probe=lambda: find_text(app, ocr, engine, text_to_find, region, match_mode),
-        predicate=lambda value: value.found,
+        probe=lambda: find_text(
+            app,
+            ocr,
+            engine,
+            text_to_find,
+            region,
+            match_mode,
+            normalize,
+            min_confidence,
+        ),
+        predicate=is_stable_match,
     )
     if found:
         logger.info("成功等到文本 '%s'！", ocr_result.text)
@@ -127,18 +215,41 @@ async def wait_for_text_to_disappear(
     app: AppProviderService,
     ocr: OcrService,
     engine: ExecutionEngine,
-    text_to_monitor: str,
+    text_to_monitor: str | list[str],
     timeout: float = 10.0,
     interval: float = 1.0,
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "contains",
+    stable_scans: int = 1,
+    normalize: bool = False,
+    min_confidence: float = 0.0,
 ) -> bool:
     logger.info("开始等待文本 '%s' 消失，最长等待 %s 秒...", text_to_monitor, timeout)
+    required_stable_scans = max(int(stable_scans), 1)
+    consecutive_absent = 0
+
+    def is_stably_absent(value: OcrResult) -> bool:
+        nonlocal consecutive_absent
+        if value.found:
+            consecutive_absent = 0
+        else:
+            consecutive_absent += 1
+        return consecutive_absent >= required_stable_scans
+
     disappeared, _ = await poll_until(
         timeout=timeout,
         interval=interval,
-        probe=lambda: find_text(app, ocr, engine, text_to_monitor, region, match_mode),
-        predicate=lambda value: not value.found,
+        probe=lambda: find_text(
+            app,
+            ocr,
+            engine,
+            text_to_monitor,
+            region,
+            match_mode,
+            normalize,
+            min_confidence,
+        ),
+        predicate=is_stably_absent,
     )
     if disappeared:
         logger.info("文本 '%s' 已消失。等待成功！", text_to_monitor)
@@ -161,8 +272,44 @@ async def wait_for_image(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    stable_scans: int = 1,
+    stable_center_tolerance_px: int | None = None,
 ) -> MatchResult:
     logger.info("开始等待图像 '%s' 出现，最长等待 %s 秒...", template, timeout)
+    required_stable_scans = max(int(stable_scans), 1)
+    tolerance = (
+        None
+        if stable_center_tolerance_px is None
+        else max(int(stable_center_tolerance_px), 0)
+    )
+    consecutive_matches = 0
+    last_center: tuple[int, int] | None = None
+
+    def is_stable_match(value: MatchResult) -> bool:
+        nonlocal consecutive_matches, last_center
+        if not value.found:
+            consecutive_matches = 0
+            last_center = None
+            return False
+        center = getattr(value, "center_point", None)
+        current_center = (
+            (int(center[0]), int(center[1]))
+            if isinstance(center, (list, tuple)) and len(center) == 2
+            else None
+        )
+        position_is_stable = bool(
+            tolerance is None
+            or last_center is None
+            or (
+                current_center is not None
+                and abs(current_center[0] - last_center[0]) <= tolerance
+                and abs(current_center[1] - last_center[1]) <= tolerance
+            )
+        )
+        consecutive_matches = consecutive_matches + 1 if position_is_stable else 1
+        last_center = current_center
+        return consecutive_matches >= required_stable_scans
+
     found, match_result = await poll_until(
         timeout=timeout,
         interval=interval,
@@ -177,7 +324,7 @@ async def wait_for_image(
             match_method,
             preprocess,
         ),
-        predicate=lambda value: value.found,
+        predicate=is_stable_match,
     )
     if found:
         logger.info("成功等到图像 '%s'！", template)
