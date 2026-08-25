@@ -537,16 +537,19 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.first_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_first_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_first_tie_an_batch: "success|failed|skipped"
@@ -624,16 +627,19 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.second_category == 'regional_ops_center' and (nodes.group_ct_jobs.output.regional_ops_jobs | length) > 0 }}"
 
     click_back_after_single_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_first_tie_an_batch: "success|failed|skipped"
@@ -641,16 +647,19 @@ auto_battle_ct_batch_pc:
       when: "{{ nodes.prepare_ct_category_order.first_category != '' and nodes.prepare_ct_category_order.second_category == '' }}"
 
     click_back_after_second_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_second_tie_an_batch: "success|failed|skipped"
@@ -861,16 +870,19 @@ auto_battle_gp_action_summary_run_group_pc:
       when: "{{ nodes.select_stage_and_enter.output.success }}"
 
     click_back_to_action_summary:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - select_stage_and_enter: "success"
@@ -1134,16 +1146,19 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.first_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
 
     click_back_after_first_gp_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_first_action_summary_batch: "success|failed|skipped"
@@ -1209,16 +1224,19 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.second_category == 'structural_exploration' and (nodes.group_gp_jobs.output.structural_exploration_jobs | length) > 0 }}"
 
     click_back_after_single_gp_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_first_action_summary_batch: "success|failed|skipped"
@@ -1226,16 +1244,19 @@ auto_battle_gp_batch_pc:
       when: "{{ nodes.prepare_gp_category_order.first_category != '' and nodes.prepare_gp_category_order.second_category == '' }}"
 
     click_back_after_second_gp_batch:
-      action: resonance_pc.wait_and_click_back_button
+      action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
         template: "templates/battle_back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
-        timeout_sec: 8.0
-        interval_sec: 0.2
+        timeout: 8.0
+        interval: 0.2
         stable_scans: 2
+        stable_center_tolerance_px: 2
+        move_duration: 0.1
+        required: true
       depends_on:
         all:
           - run_second_action_summary_batch: "success|failed|skipped"

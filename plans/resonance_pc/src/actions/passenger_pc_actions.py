@@ -13,9 +13,6 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
-from ....aura_base.src.actions.input_actions import drag as aura_base_drag
-
-
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
 
@@ -412,12 +409,10 @@ def _visit_city_entry_evidence(app: Any, ocr: Any) -> Dict[str, Any]:
     return {"found": hit is not None, "hit": hit, "ocr_items": items}
 
 
-def _drag(app: Any, controller: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
-    del controller
+def _drag(app: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
     _check_cancelled()
     app.move_to(x=start[0], y=start[1], duration=0.1)
-    aura_base_drag(
-        app=app,
+    app.drag(
         start_x=start[0],
         start_y=start[1],
         end_x=end[0],
@@ -432,7 +427,6 @@ def _select_destination_city(
     to_city_name: str,
     app: Any,
     ocr: Any,
-    controller: Any,
     *,
     max_search_steps: int,
 ) -> Dict[str, Any]:
@@ -464,7 +458,7 @@ def _select_destination_city(
             direction = "up"
             repeated = 0
         drag_path = _DESTINATION_DRAG_UP if direction == "down" else _DESTINATION_DRAG_DOWN
-        _drag(app, controller, drag_path[0], drag_path[1])
+        _drag(app, drag_path[0], drag_path[1])
     _raise(
         "destination_not_found",
         f"passenger destination '{to_city_name}' was not found after vertical search",
@@ -745,7 +739,6 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
 )
 def resonance_pc_recruit_passengers_by_flyer(
     to_city_name: str,
@@ -753,10 +746,9 @@ def resonance_pc_recruit_passengers_by_flyer(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None or controller is None:
-        raise RuntimeError("app/ocr/vision/controller services are required")
+    if app is None or ocr is None or vision is None:
+        raise RuntimeError("app/ocr/vision services are required")
 
     if not _match_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION).get("found"):
         resonance_pc_open_passenger_management(app=app, vision=vision)
@@ -776,7 +768,6 @@ def resonance_pc_recruit_passengers_by_flyer(
         to_city_name,
         app,
         ocr,
-        controller,
         max_search_steps=max_search_steps,
     )
     _click_template_required(

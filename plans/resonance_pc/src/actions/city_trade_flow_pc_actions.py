@@ -18,7 +18,6 @@ from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 
-from ....aura_base.src.actions.input_actions import drag as aura_base_drag
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
 from ..services.resonance_pc_trade_exact_solver import (
@@ -537,11 +536,9 @@ def _click_required_nav_button(
     }
 
 
-def _drag_buy_list(app: Any, controller: Any) -> None:
-    del controller
+def _drag_buy_list(app: Any) -> None:
     app.move_to(x=_BUY_SCROLL_START[0], y=_BUY_SCROLL_START[1], duration=0.1)
-    aura_base_drag(
-        app=app,
+    app.drag(
         start_x=_BUY_SCROLL_START[0],
         start_y=_BUY_SCROLL_START[1],
         end_x=_BUY_SCROLL_END[0],
@@ -707,7 +704,6 @@ def resonance_pc_click_shop_menu_node(node_index: int, wait_sec: float = 1.0, ap
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
 )
 def resonance_pc_buy_goods_on_buy_page(
     product_list: Optional[List[str]] = None,
@@ -718,10 +714,9 @@ def resonance_pc_buy_goods_on_buy_page(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None or controller is None:
-        raise RuntimeError("app/ocr/vision/controller services are required")
+    if app is None or ocr is None or vision is None:
+        raise RuntimeError("app/ocr/vision services are required")
 
     requested_products = [str(item).strip() for item in (product_list or []) if str(item).strip()]
     _report_worker(
@@ -772,7 +767,7 @@ def resonance_pc_buy_goods_on_buy_page(
         if not pending:
             break
         if round_index < rounds - 1:
-            _drag_buy_list(app, controller)
+            _drag_buy_list(app)
 
     if bool(bargain_to_cap) and not selected:
         _raise_error(
@@ -984,7 +979,6 @@ def _execute_city_trade_inside_current_city(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     progress_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -1000,7 +994,6 @@ def _execute_city_trade_inside_current_city(
             app=app,
             ocr=ocr,
             vision=vision,
-            controller=controller,
             city_shop_data=city_shop_data,
         )
     finally:
@@ -1018,7 +1011,6 @@ def _execute_city_trade_inside_current_city_scoped(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
 ) -> Dict[str, Any]:
     products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
@@ -1055,7 +1047,6 @@ def _execute_city_trade_inside_current_city_scoped(
             app=app,
             ocr=ocr,
             vision=vision,
-            controller=controller,
         )
     else:
         buy_node = None
@@ -1088,7 +1079,6 @@ async def _execute_route(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     state_store: StateStoreService,
     auto_cape_island_investment: bool = False,
@@ -1129,7 +1119,6 @@ async def _execute_route(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=city_shop_data,
                 progress_fields=progress_fields,
                 auto_cape_island_investment=bool(auto_cape_island_investment),
@@ -1219,7 +1208,6 @@ async def _execute_trade_leg(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     progress_fields: Optional[Dict[str, Any]] = None,
     auto_cape_island_investment: bool = False,
@@ -1249,7 +1237,6 @@ async def _execute_trade_leg(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
         city_shop_data=city_shop_data,
         progress_context=progress_fields,
     )
@@ -1277,7 +1264,6 @@ async def _execute_trade_leg(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
     )
     if reporter is not None:
         travel_status = str(travel.get("status") or "ok").lower()
@@ -1823,7 +1809,6 @@ async def resonance_pc_preview_trade_plan_flow(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
     resonance_pc_city_shop_data="resonance_pc_city_shop_data",
     resonance_pc_market_data="resonance_pc_market_data",
     resonance_pc_trade_planner="resonance_pc_trade_planner",
@@ -1856,7 +1841,6 @@ async def resonance_pc_auto_cycle_trade_flow(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
@@ -1899,13 +1883,12 @@ async def resonance_pc_auto_cycle_trade_flow(
         app is None
         or ocr is None
         or vision is None
-        or controller is None
         or resonance_pc_city_shop_data is None
         or resonance_pc_market_data is None
         or resonance_pc_trade_planner is None
         or state_store is None
     ):
-        raise RuntimeError("auto_cycle_trade_flow requires app/ocr/vision/controller/data/planner/state services")
+        raise RuntimeError("auto_cycle_trade_flow requires app/ocr/vision/data/planner/state services")
 
     # The only market refresh for this task happens after current-city recognition
     # and before the exact full-route plan is built.
@@ -2035,7 +2018,6 @@ async def resonance_pc_auto_cycle_trade_flow(
             app=app,
             ocr=ocr,
             vision=vision,
-            controller=controller,
             city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
             auto_cape_island_investment=bool(auto_cape_island_investment),
@@ -2070,7 +2052,6 @@ async def resonance_pc_auto_cycle_trade_flow(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=resonance_pc_city_shop_data,
                 progress_context={
                     "leg_index": len(route),

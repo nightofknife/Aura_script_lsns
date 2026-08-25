@@ -412,7 +412,6 @@ def _execute_passenger_trade_at_city(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     market_data: ResonancePcMarketDataService,
     trade_planner: ResonancePcTradePlannerService,
@@ -442,7 +441,6 @@ def _execute_passenger_trade_at_city(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
         city_shop_data=city_shop_data,
     )
     return {
@@ -469,7 +467,6 @@ def _run_passenger_trips_sync(
     app: Any,
     ocr: Any,
     vision: Any,
-    controller: Any,
     city_shop_data: ResonancePcCityShopDataService,
     market_data: ResonancePcMarketDataService,
     trade_planner: Optional[ResonancePcTradePlannerService],
@@ -551,7 +548,6 @@ def _run_passenger_trips_sync(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
             )
         except IntercityDestinationError as exc:
             return _block(result, exc.code, "reposition", detail=exc.to_dict())
@@ -617,7 +613,6 @@ def _run_passenger_trips_sync(
                     app=app,
                     ocr=ocr,
                     vision=vision,
-                    controller=controller,
                     city_shop_data=city_shop_data,
                     market_data=market_data,
                     trade_planner=trade_planner,
@@ -657,7 +652,6 @@ def _run_passenger_trips_sync(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
             )
         except PassengerPcError as exc:
             result["fatigue_medicine_used"] = _medicine_rows(medicine_usage)
@@ -692,7 +686,6 @@ def _run_passenger_trips_sync(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
             )
         except IntercityDestinationError as exc:
             result["fatigue_medicine_used"] = _medicine_rows(medicine_usage)
@@ -787,7 +780,6 @@ def _run_passenger_trips_sync(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                controller=controller,
                 city_shop_data=city_shop_data,
                 market_data=market_data,
                 trade_planner=trade_planner,
@@ -831,7 +823,6 @@ def _run_passenger_trips_sync(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
     resonance_pc_city_shop_data="resonance_pc_city_shop_data",
     resonance_pc_market_data="resonance_pc_market_data",
     resonance_pc_trade_planner="resonance_pc_trade_planner",
@@ -851,7 +842,6 @@ async def resonance_pc_auto_passenger_trips_flow(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
@@ -874,12 +864,11 @@ async def resonance_pc_auto_passenger_trips_flow(
         app is None
         or ocr is None
         or vision is None
-        or controller is None
         or resonance_pc_city_shop_data is None
         or resonance_pc_market_data is None
         or (bool(trade_during_trip) and resonance_pc_trade_planner is None)
     ):
-        raise RuntimeError("passenger flow requires app/ocr/vision/controller/city/market services")
+        raise RuntimeError("passenger flow requires app/ocr/vision/city/market services")
 
     return await asyncio.to_thread(
         _run_passenger_trips_sync,
@@ -897,7 +886,6 @@ async def resonance_pc_auto_passenger_trips_flow(
         app=app,
         ocr=ocr,
         vision=vision,
-        controller=controller,
         city_shop_data=resonance_pc_city_shop_data,
         market_data=resonance_pc_market_data,
         trade_planner=resonance_pc_trade_planner,

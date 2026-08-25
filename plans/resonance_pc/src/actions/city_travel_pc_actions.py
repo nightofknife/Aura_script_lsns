@@ -15,9 +15,6 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
-from ....aura_base.src.actions.input_actions import drag as aura_base_drag
-
-
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
 
@@ -668,16 +665,13 @@ def _choose_anchor_route(
 
 def _perform_drag_with_hold(
     app: Any,
-    controller: Any,
     start: Tuple[int, int],
     end: Tuple[int, int],
     drag_duration_sec: float,
     drag_hold_sec: float,
 ) -> None:
-    del controller
     app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
-    aura_base_drag(
-        app=app,
+    app.drag(
         start_x=int(start[0]),
         start_y=int(start[1]),
         end_x=int(end[0]),
@@ -1166,7 +1160,6 @@ def _wait_departure_gate(
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
-    controller="plans/aura_base/controller",
 )
 def resonance_pc_select_intercity_destination(
     to_city_name: str,
@@ -1182,10 +1175,9 @@ def resonance_pc_select_intercity_destination(
     drag_hold_sec: float = 0.5,
     app: Any = None,
     ocr: Any = None,
-    controller: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or controller is None:
-        raise RuntimeError("app/ocr/controller services are required for select_intercity_destination.")
+    if app is None or ocr is None:
+        raise RuntimeError("app/ocr services are required for select_intercity_destination.")
 
     region = _coerce_region(city_search_region, _DEFAULT_CITY_SEARCH_REGION)
     center = _coerce_point(drag_center, _DEFAULT_DRAG_CENTER)
@@ -1419,7 +1411,6 @@ def resonance_pc_select_intercity_destination(
         )
         _perform_drag_with_hold(
             app=app,
-            controller=controller,
             start=start,
             end=end,
             drag_duration_sec=drag_duration_sec,
@@ -1454,7 +1445,6 @@ def resonance_pc_select_intercity_destination(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
-    controller="plans/aura_base/controller",
 )
 def resonance_pc_intercity_depart_and_wait(
     to_city_name: str,
@@ -1476,10 +1466,9 @@ def resonance_pc_intercity_depart_and_wait(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
-    controller: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None or controller is None:
-        raise RuntimeError("app/ocr/vision/controller services are required for intercity_depart_and_wait.")
+    if app is None or ocr is None or vision is None:
+        raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
 
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
     medicine_limit = max(int(fatigue_medicine_max_uses), 0)
@@ -1520,7 +1509,6 @@ def resonance_pc_intercity_depart_and_wait(
             drag_hold_sec=drag_hold_sec,
             app=app,
             ocr=ocr,
-            controller=controller,
         )
 
         go_result = _wait_and_click_go_destination(

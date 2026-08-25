@@ -1,16 +1,59 @@
 from __future__ import annotations
 
+import asyncio
+import time
+
 import cv2
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.exceptions import StopTaskException
 
 from ..services.app_provider_service import AppProviderService
 from ..services.ocr_service import OcrService
 from ..services.vision_service import MatchResult, VisionService
 from .ocr_actions import find_text
 from .vision_actions import find_all_images, find_image
+
+
+def _check_cancelled() -> None:
+    if is_current_task_cancel_requested():
+        raise asyncio.CancelledError
+
+
+def _sleep_sync_cancellable(seconds: float) -> None:
+    deadline = time.monotonic() + max(float(seconds), 0.0)
+    while True:
+        _check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        time.sleep(min(0.05, remaining))
+        _check_cancelled()
+
+
+def _poll_sync(*, probe, predicate, timeout: float, interval: float):
+    deadline = time.monotonic() + max(float(timeout), 0.0)
+    poll_interval = max(float(interval), 0.01)
+    while True:
+        _check_cancelled()
+        result = probe()
+        _check_cancelled()
+        matched = predicate(result)
+        _check_cancelled()
+        if matched:
+            return True, result
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False, result
+        _sleep_sync_cancellable(min(poll_interval, remaining))
+
+
+def _required_failure(required: bool, message: str) -> None:
+    if bool(required):
+        raise StopTaskException(message, success=False)
 
 
 @action_info(name="find_image_and_click", public=True)
@@ -27,26 +70,81 @@ def find_image_and_click(
     use_grayscale: bool = True,
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
+    timeout: float = 0.0,
+    interval: float = 0.2,
+    stable_scans: int = 1,
+    stable_center_tolerance_px: int | None = None,
+    after_click_sec: float = 0.0,
+    required: bool = False,
+    failure_message: str | None = None,
 ) -> bool:
-    match_result = find_image(
-        app,
-        vision,
-        engine,
-        template,
-        region,
-        threshold,
-        use_grayscale,
-        match_method,
-        preprocess,
+    required_stable_scans = max(int(stable_scans), 1)
+    tolerance = (
+        None
+        if stable_center_tolerance_px is None
+        else max(int(stable_center_tolerance_px), 0)
     )
-    if match_result.found:
+    consecutive_matches = 0
+    last_center: tuple[int, int] | None = None
+
+    def probe() -> MatchResult:
+        return find_image(
+            app,
+            vision,
+            engine,
+            template,
+            region,
+            threshold,
+            use_grayscale,
+            match_method,
+            preprocess,
+        )
+
+    def is_stable_match(value: MatchResult) -> bool:
+        nonlocal consecutive_matches, last_center
+        if not value.found:
+            consecutive_matches = 0
+            last_center = None
+            return False
+        center = getattr(value, "center_point", None)
+        current_center = (
+            (int(center[0]), int(center[1]))
+            if isinstance(center, (list, tuple)) and len(center) == 2
+            else None
+        )
+        position_is_stable = bool(
+            tolerance is None
+            or last_center is None
+            or (
+                current_center is not None
+                and abs(current_center[0] - last_center[0]) <= tolerance
+                and abs(current_center[1] - last_center[1]) <= tolerance
+            )
+        )
+        consecutive_matches = consecutive_matches + 1 if position_is_stable else 1
+        last_center = current_center
+        return consecutive_matches >= required_stable_scans
+
+    found, match_result = _poll_sync(
+        probe=probe,
+        predicate=is_stable_match,
+        timeout=timeout,
+        interval=interval,
+    )
+    if found and match_result.found and match_result.center_point is not None:
         found_x, found_y = match_result.center_point
         logger.info("图像找到，位于窗口坐标 (%s, %s)，置信度: %.2f", found_x, found_y, match_result.confidence)
+        _check_cancelled()
         app.move_to(found_x, found_y, duration=move_duration)
+        _check_cancelled()
         app.click(x=found_x, y=found_y, button=button)
+        if float(after_click_sec) > 0:
+            _sleep_sync_cancellable(float(after_click_sec))
         logger.info("点击操作完成。")
         return True
-    logger.warning("未能在指定区域找到图像 '%s'。", template)
+    resolved_failure_message = failure_message or f"未能在指定区域找到图像 '{template}'。"
+    logger.warning("%s", resolved_failure_message)
+    _required_failure(bool(required), resolved_failure_message)
     return False
 
 
@@ -56,18 +154,65 @@ def find_text_and_click(
     app: AppProviderService,
     ocr: OcrService,
     engine: ExecutionEngine,
-    text_to_find: str,
+    text_to_find: str | list[str],
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "contains",
     button: str = "left",
     move_duration: float = 0.2,
+    timeout: float = 0.0,
+    interval: float = 0.2,
+    stable_scans: int = 1,
+    normalize: bool = False,
+    min_confidence: float = 0.0,
+    after_click_sec: float = 0.0,
+    required: bool = False,
+    failure_message: str | None = None,
 ) -> bool:
-    ocr_result = find_text(app, ocr, engine, text_to_find, region, match_mode)
-    if ocr_result.found:
+    required_stable_scans = max(int(stable_scans), 1)
+    consecutive_matches = 0
+    last_target: str | None = None
+
+    def probe():
+        return find_text(
+            app,
+            ocr,
+            engine,
+            text_to_find,
+            region,
+            match_mode,
+            normalize,
+            min_confidence,
+        )
+
+    def is_stable_match(value) -> bool:
+        nonlocal consecutive_matches, last_target
+        if not value.found:
+            consecutive_matches = 0
+            last_target = None
+            return False
+        matched_target = str(value.debug_info.get("matched_target") or text_to_find)
+        if matched_target == last_target:
+            consecutive_matches += 1
+        else:
+            last_target = matched_target
+            consecutive_matches = 1
+        return consecutive_matches >= required_stable_scans
+
+    found, ocr_result = _poll_sync(
+        probe=probe,
+        predicate=is_stable_match,
+        timeout=timeout,
+        interval=interval,
+    )
+    if found and ocr_result.found and ocr_result.center_point is not None:
         found_x, found_y = ocr_result.center_point
         logger.info("文本找到: '%s'，位于窗口坐标 (%s, %s)，置信度: %.2f", ocr_result.text, found_x, found_y, ocr_result.confidence)
+        _check_cancelled()
         app.move_to(found_x, found_y, duration=move_duration)
+        _check_cancelled()
         app.click(x=found_x, y=found_y, button=button)
+        if float(after_click_sec) > 0:
+            _sleep_sync_cancellable(float(after_click_sec))
         logger.info("点击操作完成。")
         return True
 
@@ -81,7 +226,9 @@ def find_text_and_click(
         )
     else:
         logger.warning("OCR recognized no text in current capture.")
-    logger.warning("未能在指定区域找到文本 '%s'。", text_to_find)
+    resolved_failure_message = failure_message or f"未能在指定区域找到文本 '{text_to_find}'。"
+    logger.warning("%s", resolved_failure_message)
+    _required_failure(bool(required), resolved_failure_message)
     return False
 
 

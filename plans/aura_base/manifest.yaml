@@ -862,6 +862,34 @@ exports:
       type: Any
       required: false
       default: none
+    - name: timeout
+      type: Any
+      required: false
+      default: 0.0
+    - name: interval
+      type: Any
+      required: false
+      default: 0.2
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: stable_center_tolerance_px
+      type: Any
+      required: false
+      default: null
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.0
+    - name: required
+      type: Any
+      required: false
+      default: false
+    - name: failure_message
+      type: Any
+      required: false
+      default: null
   - name: find_text_and_click
     module: plans.aura_base.src.actions.interaction_actions
     function: find_text_and_click
@@ -890,6 +918,38 @@ exports:
       type: Any
       required: false
       default: 0.2
+    - name: timeout
+      type: Any
+      required: false
+      default: 0.0
+    - name: interval
+      type: Any
+      required: false
+      default: 0.2
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: normalize
+      type: Any
+      required: false
+      default: false
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
+    - name: after_click_sec
+      type: Any
+      required: false
+      default: 0.0
+    - name: required
+      type: Any
+      required: false
+      default: false
+    - name: failure_message
+      type: Any
+      required: false
+      default: null
   - name: drag_to_find
     module: plans.aura_base.src.actions.interaction_actions
     function: drag_to_find
@@ -1002,6 +1062,14 @@ exports:
       type: Any
       required: false
       default: exact
+    - name: normalize
+      type: Any
+      required: false
+      default: false
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
   - name: recognize_all_text
     module: plans.aura_base.src.actions.ocr_actions
     function: recognize_all_text
@@ -1898,6 +1966,14 @@ exports:
       type: Any
       required: false
       default: none
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: stable_center_tolerance_px
+      type: Any
+      required: false
+      default: null
   - name: wait_for_templates_in_set_to_disappear
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_templates_in_set_to_disappear
@@ -1938,6 +2014,10 @@ exports:
       type: Any
       required: false
       default: none
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
   - name: wait_for_text
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_text
@@ -1966,6 +2046,18 @@ exports:
       type: Any
       required: false
       default: contains
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: normalize
+      type: Any
+      required: false
+      default: false
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
   - name: wait_for_text_to_disappear
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_text_to_disappear
@@ -1994,6 +2086,18 @@ exports:
       type: Any
       required: false
       default: contains
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: normalize
+      type: Any
+      required: false
+      default: false
+    - name: min_confidence
+      type: Any
+      required: false
+      default: 0.0
   - name: wait_for_image
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_image
@@ -2034,6 +2138,14 @@ exports:
       type: Any
       required: false
       default: none
+    - name: stable_scans
+      type: Any
+      required: false
+      default: 1
+    - name: stable_center_tolerance_px
+      type: Any
+      required: false
+      default: null
   - name: sleep
     module: plans.aura_base.src.actions.wait_actions
     function: sleep
@@ -2681,4 +2793,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-05T04:19:41Z'
+  generated_at: '2026-08-25T01:59:37Z'

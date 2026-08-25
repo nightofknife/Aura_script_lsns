@@ -12,6 +12,48 @@ from ..services.app_provider_service import AppProviderService
 from ..services.ocr_service import MultiOcrResult, OcrResult, OcrService
 
 
+_COMPACT_TEXT_PATTERN = re.compile(
+    r"[\s\u3000\|:：,，。.!！?？（）()\[\]【】<>《》'\"`~\-]+"
+)
+
+
+def _normalize_match_text(value: Any) -> str:
+    return _COMPACT_TEXT_PATTERN.sub("", str(value or "")).casefold()
+
+
+def _normalize_targets(text_to_find: str | list[str]) -> list[str]:
+    if isinstance(text_to_find, str):
+        targets = [text_to_find]
+    elif isinstance(text_to_find, list):
+        targets = [str(value) for value in text_to_find]
+    else:
+        raise TypeError("text_to_find must be a string or a list of strings")
+    targets = [target for target in targets if target.strip()]
+    if not targets:
+        raise ValueError("text_to_find must contain at least one non-empty target")
+    return targets
+
+
+def _matches_text(actual: str, target: str, match_mode: str, *, normalize: bool) -> bool:
+    if normalize:
+        actual_value = _normalize_match_text(actual)
+        target_value = target if match_mode == "regex" else _normalize_match_text(target)
+    else:
+        actual_value = str(actual or "")
+        target_value = str(target or "")
+    if match_mode == "exact":
+        return actual_value == target_value
+    if match_mode == "contains":
+        return target_value in actual_value
+    if match_mode == "regex":
+        try:
+            return bool(re.search(target_value, actual_value))
+        except re.error:
+            logger.warning("Invalid OCR regex %r; falling back to contains matching.", target_value)
+            return target_value in actual_value
+    return False
+
+
 def _offset_ocr_result(
     ocr_result: OcrResult,
     *,
@@ -76,18 +118,58 @@ def find_text(
     app: AppProviderService,
     ocr: OcrService,
     engine: ExecutionEngine,
-    text_to_find: str,
+    text_to_find: str | list[str],
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "exact",
+    normalize: bool = False,
+    min_confidence: float = 0.0,
 ) -> OcrResult:
     is_inspect_mode = engine.root_context.data.get("initial", {}).get("__is_inspect_mode__", False)
+    confidence_floor = float(min_confidence)
+    if not 0.0 <= confidence_floor <= 1.0:
+        raise ValueError("min_confidence must be between 0.0 and 1.0")
+    targets = _normalize_targets(text_to_find)
     capture = app.capture(rect=region)
     if not capture.success:
         logger.error("行为 'find_text' 失败：无法截图。")
         return OcrResult(found=False)
 
     source_image_for_debug = capture.image.copy()
-    ocr_result = ocr.find_text(source_image=source_image_for_debug, text_to_find=text_to_find, match_mode=match_mode)
+    use_legacy_lookup = (
+        isinstance(text_to_find, str)
+        and not bool(normalize)
+        and confidence_floor == 0.0
+    )
+    if use_legacy_lookup:
+        ocr_result = ocr.find_text(
+            source_image=source_image_for_debug,
+            text_to_find=text_to_find,
+            match_mode=match_mode,
+        )
+        if ocr_result.found:
+            ocr_result.debug_info.setdefault("matched_target", text_to_find)
+    else:
+        recognized = ocr.recognize_all(source_image=source_image_for_debug)
+        recognized_results = list(getattr(recognized, "results", []) or [])
+        candidates: list[tuple[float, OcrResult, str]] = []
+        for result in recognized_results:
+            confidence = float(getattr(result, "confidence", 0.0) or 0.0)
+            if confidence < confidence_floor:
+                continue
+            actual = str(getattr(result, "text", "") or "")
+            for target in targets:
+                if _matches_text(actual, target, match_mode, normalize=bool(normalize)):
+                    candidates.append((confidence, result, target))
+                    break
+        if candidates:
+            _, ocr_result, matched_target = max(candidates, key=lambda item: item[0])
+            ocr_result.found = True
+            ocr_result.debug_info["matched_target"] = matched_target
+        else:
+            ocr_result = OcrResult(
+                found=False,
+                debug_info={"all_recognized_results": recognized_results},
+            )
 
     _offset_ocr_result(ocr_result, region=region)
 
@@ -99,6 +181,8 @@ def find_text(
                     "text_to_find": text_to_find,
                     "region": region,
                     "match_mode": match_mode,
+                    "normalize": bool(normalize),
+                    "min_confidence": confidence_floor,
                 },
             }
         )
