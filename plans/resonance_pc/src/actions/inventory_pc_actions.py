@@ -32,6 +32,9 @@ _INVENTORY_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "inventory_items.json"
 _INVENTORY_MATERIAL_CATALOG_FILE = (
     _PLAN_ROOT / "data" / "meta" / "inventory_materials.json"
 )
+_INVENTORY_EQUIPMENT_CATALOG_FILE = (
+    _PLAN_ROOT / "data" / "meta" / "inventory_equipment.json"
+)
 _INVENTORY_DIGIT_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "inventory_digits.json"
 _INVENTORY_EXPIRY_DIGIT_CATALOG_FILE = (
     _PLAN_ROOT / "data" / "meta" / "inventory_expiry_digits.json"
@@ -44,6 +47,40 @@ _DEFAULT_MAX_SCROLLS = 30
 _SCROLL_HOLD_BEFORE_RELEASE_SEC = 0.5
 _DEBUG_CAPTURE_DIR_ENV = "AURA_INVENTORY_DEBUG_CAPTURE_DIR"
 _PLAN_KEY = "resonance_pc"
+_COUNT_MODE_DIGIT_TEMPLATE = "digit_template"
+_COUNT_MODE_CARD_INSTANCES = "card_instances"
+_CATEGORY_SPECS: Dict[str, Dict[str, Any]] = {
+    "items": {
+        "catalog_path": _INVENTORY_CATALOG_FILE,
+        "entry_key": "items",
+        "id_key": "item_id",
+        "result_key": "items",
+        "supported_key": "supported_item_count",
+        "template_size": (100, 70),
+        "count_mode": _COUNT_MODE_DIGIT_TEMPLATE,
+        "supports_expiry": True,
+    },
+    "materials": {
+        "catalog_path": _INVENTORY_MATERIAL_CATALOG_FILE,
+        "entry_key": "materials",
+        "id_key": "material_id",
+        "result_key": "materials",
+        "supported_key": "supported_material_count",
+        "template_size": (100, 70),
+        "count_mode": _COUNT_MODE_DIGIT_TEMPLATE,
+        "supports_expiry": False,
+    },
+    "equipment": {
+        "catalog_path": _INVENTORY_EQUIPMENT_CATALOG_FILE,
+        "entry_key": "equipment",
+        "id_key": "equipment_id",
+        "result_key": "equipment",
+        "supported_key": "supported_equipment_count",
+        "template_size": (100, 60),
+        "count_mode": _COUNT_MODE_CARD_INSTANCES,
+        "supports_expiry": False,
+    },
+}
 # Temporary live-test switch: keep recognizing item stacks/counts, but do not
 # read or persist expiry values until the expiry digit templates are revisited.
 _EXPIRY_RECOGNITION_ENABLED = False
@@ -72,15 +109,16 @@ def _coerce_int_sequence(value: Any, *, length: int, label: str) -> Tuple[int, .
 
 def _catalog_category(catalog: Mapping[str, Any]) -> str:
     category = str(catalog.get("category") or "items").strip()
-    if category not in {"items", "materials"}:
+    if category not in _CATEGORY_SPECS:
         raise ValueError(f"unsupported inventory catalog category: {category}")
     return category
 
 
 def _catalog_by_item_id(catalog: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
     category = _catalog_category(catalog)
-    entry_key = "materials" if category == "materials" else "items"
-    id_key = "material_id" if category == "materials" else "item_id"
+    spec = _CATEGORY_SPECS[category]
+    entry_key = str(spec["entry_key"])
+    id_key = str(spec["id_key"])
     default_policy = str(catalog.get("default_stack_policy") or STACK_POLICY_MERGE)
     if default_policy not in _SUPPORTED_STACK_POLICIES:
         raise ValueError(f"unsupported default inventory stack policy: {default_policy}")
@@ -373,6 +411,15 @@ def load_inventory_catalog(
         raise ValueError(f"unable to load inventory item catalog: {path}") from exc
     if not isinstance(payload, dict):
         raise ValueError("inventory item catalog must be a JSON object")
+    category = _catalog_category(payload)
+    spec = _CATEGORY_SPECS[category]
+    if category == "equipment" and str(payload.get("aggregation") or "").strip() != (
+        "count_cards_by_equipment_id"
+    ):
+        raise ValueError(
+            "inventory equipment catalog aggregation must be "
+            "count_cards_by_equipment_id"
+        )
     layout = payload.get("layout")
     if not isinstance(layout, dict):
         raise ValueError("inventory item catalog is missing layout")
@@ -393,17 +440,28 @@ def load_inventory_catalog(
         length=4,
         label="grid_region",
     )
-    expiry_roi = _coerce_int_sequence(
-        layout.get("expiry_roi_from_template"),
-        length=4,
-        label="expiry_roi_from_template",
-    )
-    if template_size != (100, 70):
-        raise ValueError("inventory templates must be exactly 100x70")
+    expiry_roi: Optional[Tuple[int, ...]] = None
+    if bool(spec["supports_expiry"]):
+        expiry_roi = _coerce_int_sequence(
+            layout.get("expiry_roi_from_template"),
+            length=4,
+            label="expiry_roi_from_template",
+        )
+    elif layout.get("expiry_roi_from_template") is not None:
+        expiry_roi = _coerce_int_sequence(
+            layout.get("expiry_roi_from_template"),
+            length=4,
+            label="expiry_roi_from_template",
+        )
+    expected_template_size = tuple(int(value) for value in spec["template_size"])
+    if template_size != expected_template_size:
+        raise ValueError(
+            f"inventory {category} templates must be exactly "
+            f"{expected_template_size[0]}x{expected_template_size[1]}"
+        )
     if any(value <= 0 for value in (*template_size, *card_size, grid_region[2], grid_region[3])):
         raise ValueError("inventory catalog dimensions must be positive")
 
-    category = _catalog_category(payload)
     items_by_id = _catalog_by_item_id(payload)
     if not items_by_id:
         raise ValueError(
@@ -420,23 +478,37 @@ def load_inventory_catalog(
 
     result = copy.deepcopy(payload)
     result["category"] = category
-    result["layout"] = {
+    normalized_layout = {
         **layout,
         "template_size": template_size,
         "template_offset_from_card": template_offset,
         "card_size": card_size,
         "grid_region": grid_region,
-        "expiry_roi_from_template": expiry_roi,
     }
+    if expiry_roi is not None:
+        normalized_layout["expiry_roi_from_template"] = expiry_roi
+    else:
+        normalized_layout.pop("expiry_roi_from_template", None)
+    result["layout"] = normalized_layout
     result["items"] = normalized_items
     result["_items_by_id"] = {item["item_id"]: item for item in normalized_items}
-    result["_digit_reader"] = load_inventory_digit_catalog(
-        digit_catalog_path,
-        plan_root=root,
+    result["_count_mode"] = str(spec["count_mode"])
+    result["_supports_expiry"] = bool(spec["supports_expiry"])
+    result["_digit_reader"] = (
+        load_inventory_digit_catalog(
+            digit_catalog_path,
+            plan_root=root,
+        )
+        if spec["count_mode"] == _COUNT_MODE_DIGIT_TEMPLATE
+        else None
     )
-    result["_expiry_digit_reader"] = load_inventory_expiry_digit_catalog(
-        expiry_digit_catalog_path,
-        plan_root=root,
+    result["_expiry_digit_reader"] = (
+        load_inventory_expiry_digit_catalog(
+            expiry_digit_catalog_path,
+            plan_root=root,
+        )
+        if spec["supports_expiry"]
+        else None
     )
     return result
 
@@ -455,6 +527,13 @@ def _resolve_inventory_template_paths(
     items = catalog.get("items")
     if not isinstance(items, list):
         raise ValueError("inventory catalog items must be a list")
+    root = Path(plan_root).resolve()
+    layout = catalog.get("layout")
+    if not isinstance(layout, Mapping):
+        raise ValueError("inventory catalog is missing layout")
+    template_width, template_height = (
+        int(value) for value in layout["template_size"]
+    )
     resolved_paths: List[str] = []
     for item in items:
         template_ref = str(item.get("template") or "").strip()
@@ -463,9 +542,68 @@ def _resolve_inventory_template_paths(
         template_path = Path(
             vision.resolve_template(str(plan_key), template_ref, Path(plan_root))
         ).resolve()
+        if not _path_is_within(template_path, root):
+            raise ValueError(
+                f"inventory template escapes plan root for {item.get('item_id')}: "
+                f"{template_path}"
+            )
+        if not template_path.is_file():
+            raise ValueError(
+                f"inventory template is unavailable for {item.get('item_id')}: "
+                f"{template_path}"
+            )
+        template_image = cv2.imread(str(template_path), cv2.IMREAD_UNCHANGED)
+        if template_image is None:
+            raise ValueError(
+                f"unable to read inventory template for {item.get('item_id')}: "
+                f"{template_path}"
+            )
+        if template_image.shape[:2] != (template_height, template_width):
+            raise ValueError(
+                f"inventory template {template_path} must be exactly "
+                f"{template_width}x{template_height}"
+            )
         resolved_paths.append(str(template_path))
     catalog["_template_paths"] = resolved_paths
     return resolved_paths
+
+
+def prepare_inventory_catalog(
+    category: str,
+    vision: Any,
+    *,
+    catalog_path: Optional[Path] = None,
+    plan_root: Optional[Path] = None,
+    digit_catalog_path: Optional[Path] = None,
+    expiry_digit_catalog_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Load, validate and resolve one warehouse category without UI input."""
+
+    normalized_category = str(category or "").strip()
+    if normalized_category not in _CATEGORY_SPECS:
+        raise ValueError(
+            "inventory category must be items, materials or equipment"
+        )
+    root = Path(plan_root or _PLAN_ROOT).resolve()
+    default_catalog_path = Path(_CATEGORY_SPECS[normalized_category]["catalog_path"])
+    catalog = load_inventory_catalog(
+        catalog_path or default_catalog_path,
+        plan_root=root,
+        digit_catalog_path=digit_catalog_path,
+        expiry_digit_catalog_path=expiry_digit_catalog_path,
+    )
+    actual_category = _catalog_category(catalog)
+    if actual_category != normalized_category:
+        raise ValueError(
+            f"inventory catalog category mismatch: expected {normalized_category}, "
+            f"got {actual_category}"
+        )
+    _resolve_inventory_template_paths(
+        catalog,
+        vision,
+        plan_root=root,
+    )
+    return catalog
 
 
 def relative_roi(
@@ -983,15 +1121,21 @@ def scan_inventory_page(
     template_paths = catalog.get("_template_paths")
     digit_reader = catalog.get("_digit_reader")
     expiry_digit_reader = catalog.get("_expiry_digit_reader")
+    count_mode = str(catalog.get("_count_mode") or "")
+    supports_expiry = bool(catalog.get("_supports_expiry"))
     if (
         not isinstance(layout, Mapping)
         or not isinstance(items, list)
         or not isinstance(template_paths, list)
         or len(template_paths) != len(items)
-        or not isinstance(digit_reader, Mapping)
-        or not isinstance(expiry_digit_reader, Mapping)
+        or count_mode not in {_COUNT_MODE_DIGIT_TEMPLATE, _COUNT_MODE_CARD_INSTANCES}
+        or (
+            count_mode == _COUNT_MODE_DIGIT_TEMPLATE
+            and not isinstance(digit_reader, Mapping)
+        )
+        or (supports_expiry and not isinstance(expiry_digit_reader, Mapping))
     ):
-        raise ValueError("inventory catalog must be loaded with load_inventory_catalog")
+        raise ValueError("inventory catalog must be prepared before page scanning")
     template_offset = tuple(int(value) for value in layout["template_offset_from_card"])
     card_width, card_height = (int(value) for value in layout["card_size"])
     threshold = float(layout.get("match_threshold", _DEFAULT_MATCH_THRESHOLD))
@@ -1053,10 +1197,14 @@ def scan_inventory_page(
             card_y : card_y + card_height,
             card_x : card_x + card_width,
         ]
-        count = read_inventory_count(
-            card_image,
-            digit_reader,
-            item_id=str(item["item_id"]),
+        count = (
+            1
+            if count_mode == _COUNT_MODE_CARD_INSTANCES
+            else read_inventory_count(
+                card_image,
+                digit_reader,
+                item_id=str(item["item_id"]),
+            )
         )
         observation: Dict[str, Any] = {
             "item_id": str(item["item_id"]),
@@ -1067,6 +1215,7 @@ def scan_inventory_page(
         }
         if (
             expiry_recognition_enabled
+            and supports_expiry
             and item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY
         ):
             expiry_region = relative_roi(
@@ -1267,32 +1416,37 @@ def read_inventory_category(
     vision: Any,
     *,
     category: str,
+    catalog: Optional[Dict[str, Any]] = None,
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
     """Read one supported category until three scans add no new physical stacks."""
 
     normalized_category = str(category or "").strip()
-    if normalized_category not in {"items", "materials"}:
-        raise ValueError("inventory category must be items or materials")
-    default_catalog_path = (
-        _INVENTORY_CATALOG_FILE
-        if normalized_category == "items"
-        else _INVENTORY_MATERIAL_CATALOG_FILE
+    if normalized_category not in _CATEGORY_SPECS:
+        raise ValueError("inventory category must be items, materials or equipment")
+    prepared_catalog = (
+        catalog
+        if catalog is not None
+        else prepare_inventory_catalog(
+            normalized_category,
+            vision,
+            catalog_path=catalog_path,
+        )
     )
-    catalog = load_inventory_catalog(catalog_path or default_catalog_path)
-    catalog_category = _catalog_category(catalog)
+    catalog_category = _catalog_category(prepared_catalog)
     if catalog_category != normalized_category:
         raise ValueError(
             f"inventory catalog category mismatch: expected {normalized_category}, "
             f"got {catalog_category}"
         )
-    _resolve_inventory_template_paths(catalog, vision)
-    layout = catalog["layout"]
+    if not isinstance(prepared_catalog.get("_template_paths"), list):
+        _resolve_inventory_template_paths(prepared_catalog, vision)
+    layout = prepared_catalog["layout"]
     region = tuple(int(value) for value in layout["grid_region"])
     scroll_start = tuple(int(value) for value in layout.get("scroll_start", _DEFAULT_SCROLL_START))
     scroll_end = tuple(int(value) for value in layout.get("scroll_end", _DEFAULT_SCROLL_END))
-    supported_ids = {str(item["item_id"]) for item in catalog["items"]}
+    supported_ids = {str(item["item_id"]) for item in prepared_catalog["items"]}
     all_observations: List[Dict[str, Any]] = []
     previous_image: Optional[np.ndarray] = None
     previous_observations: List[Dict[str, Any]] = []
@@ -1308,7 +1462,12 @@ def read_inventory_category(
             category=normalized_category,
             page_number=pages_scanned + 1,
         )
-        page_observations = scan_inventory_page(page_image, catalog, ocr, vision)
+        page_observations = scan_inventory_page(
+            page_image,
+            prepared_catalog,
+            ocr,
+            vision,
+        )
         pages_scanned += 1
         if previous_image is not None:
             scroll_delta, confidence = _estimate_scroll_delta(
@@ -1367,39 +1526,46 @@ def read_inventory_category(
     ]
     aggregated = aggregate_inventory_observations(
         public_observations,
-        catalog,
+        prepared_catalog,
         expiry_recognition_enabled=_EXPIRY_RECOGNITION_ENABLED,
     )
-    result_key = "items" if normalized_category == "items" else "materials"
-    supported_key = (
-        "supported_item_count"
-        if normalized_category == "items"
-        else "supported_material_count"
-    )
-    if normalized_category == "materials":
+    spec = _CATEGORY_SPECS[normalized_category]
+    result_key = str(spec["result_key"])
+    supported_key = str(spec["supported_key"])
+    if normalized_category in {"materials", "equipment"}:
+        public_id_key = str(spec["id_key"])
         aggregated = [
             {
                 **{key: value for key, value in entry.items() if key != "item_id"},
-                "material_id": entry["item_id"],
+                public_id_key: entry["item_id"],
             }
             for entry in aggregated
         ]
+    if normalized_category == "equipment":
+        catalog_order = {
+            str(item["item_id"]): index
+            for index, item in enumerate(prepared_catalog["items"])
+        }
+        aggregated.sort(
+            key=lambda entry: catalog_order.get(str(entry.get("equipment_id") or ""), 10**9)
+        )
     has_expiry_entries = _EXPIRY_RECOGNITION_ENABLED and any(
         item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY
-        for item in catalog["items"]
+        for item in prepared_catalog["items"]
     )
-    return {
+    result: Dict[str, Any] = {
         "category": normalized_category,
         "scan_scope": "catalog_only",
-        "catalog_schema_version": int(catalog.get("schema_version", 1)),
+        "catalog_schema_version": int(prepared_catalog.get("schema_version", 1)),
         supported_key: len(supported_ids),
-        "matched_stack_count": len(unique_observations),
         "pages_scanned": pages_scanned,
         "scan_complete": True,
         "completion_reason": completion_reason,
         "consecutive_scans_without_new_items": scans_without_new_items,
         "expiry_recognition_enabled": _EXPIRY_RECOGNITION_ENABLED,
-        "source": (
+        "source": "equipment_template"
+        if normalized_category == "equipment"
+        else (
             "item_template+count_digit_template+expiry_digit_template"
             if has_expiry_entries
             else "item_template+count_digit_template"
@@ -1407,6 +1573,13 @@ def read_inventory_category(
         "scanned_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         result_key: aggregated,
     }
+    if normalized_category == "equipment":
+        result["matched_card_count"] = len(unique_observations)
+        result["matched_equipment_count"] = len(aggregated)
+        result.pop("expiry_recognition_enabled", None)
+    else:
+        result["matched_stack_count"] = len(unique_observations)
+    return result
 
 
 def read_inventory_items(
@@ -1414,6 +1587,7 @@ def read_inventory_items(
     ocr: Any,
     vision: Any,
     *,
+    catalog: Optional[Dict[str, Any]] = None,
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
@@ -1424,6 +1598,7 @@ def read_inventory_items(
         ocr,
         vision,
         category="items",
+        catalog=catalog,
         catalog_path=catalog_path,
         max_scrolls=max_scrolls,
     )
@@ -1434,6 +1609,7 @@ def read_inventory_materials(
     ocr: Any,
     vision: Any,
     *,
+    catalog: Optional[Dict[str, Any]] = None,
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
@@ -1444,6 +1620,29 @@ def read_inventory_materials(
         ocr,
         vision,
         category="materials",
+        catalog=catalog,
+        catalog_path=catalog_path,
+        max_scrolls=max_scrolls,
+    )
+
+
+def read_inventory_equipment(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    *,
+    catalog: Optional[Dict[str, Any]] = None,
+    catalog_path: Optional[Path] = None,
+    max_scrolls: int = _DEFAULT_MAX_SCROLLS,
+) -> Dict[str, Any]:
+    """Read supported warehouse equipment by counting physical cards."""
+
+    return read_inventory_category(
+        app,
+        ocr,
+        vision,
+        category="equipment",
+        catalog=catalog,
         catalog_path=catalog_path,
         max_scrolls=max_scrolls,
     )

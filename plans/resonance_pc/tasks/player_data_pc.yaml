@@ -22,7 +22,7 @@ player_data_refresh:
           name: inventory_category
           type: enum
           required: true
-          enum: [items, materials]
+          enum: [items, materials, equipment]
 
   steps:
     refresh:

@@ -20,7 +20,12 @@ from .character_pc_actions import (
     load_character_catalog,
     read_player_characters,
 )
-from .inventory_pc_actions import read_inventory_items, read_inventory_materials
+from .inventory_pc_actions import (
+    prepare_inventory_catalog,
+    read_inventory_equipment,
+    read_inventory_items,
+    read_inventory_materials,
+)
 
 Region = Tuple[int, int, int, int]
 
@@ -32,7 +37,7 @@ _DATA_STAGES = ("location", "profile", "inventory", "characters")
 _STAGE_ORDER = _DATA_STAGES
 _PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
 
-_INVENTORY_CATEGORY_ORDER = ("items", "materials")
+_INVENTORY_CATEGORY_ORDER = ("items", "materials", "equipment")
 _CURRENCY_ITEM_IDS = {
     "iron_alliance_coin": "iron_coins",
     "birch_crystal": "birch_stone",
@@ -45,11 +50,14 @@ def _scan_inventory_stage(
     vision: Any,
     *,
     category: str,
+    catalog: Dict[str, Any],
 ) -> Dict[str, Any]:
     if category == "items":
-        return read_inventory_items(app, ocr, vision)
+        return read_inventory_items(app, ocr, vision, catalog=catalog)
     if category == "materials":
-        return read_inventory_materials(app, ocr, vision)
+        return read_inventory_materials(app, ocr, vision, catalog=catalog)
+    if category == "equipment":
+        return read_inventory_equipment(app, ocr, vision, catalog=catalog)
     raise ValueError(f"unsupported inventory category: {category}")
 
 _CLICK_PROFILE = (150, 655)
@@ -59,6 +67,7 @@ _CLICK_INVENTORY = (165, 615)
 _CLICK_INVENTORY_CATEGORY = {
     "items": (1205, 51),
     "materials": (1205, 127),
+    "equipment": (1205, 203),
 }
 _WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
 _WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates" / "player_data_warehouse_entry.png"
@@ -73,6 +82,7 @@ _WAREHOUSE_ENTRY_REGION: Region = (110, 560, 140, 150)
 _INVENTORY_CATEGORY_REGIONS: Dict[str, Region] = {
     "items": (1110, 22, 170, 58),
     "materials": (1110, 98, 170, 58),
+    "equipment": (1110, 174, 170, 58),
 }
 _MAIN_PAGE_MARKERS = ("访问城市", "访问地区", "启程", "STARTENGINE")
 
@@ -316,11 +326,13 @@ def _select_inventory_category(
 
     if category not in _INVENTORY_CATEGORY_ORDER:
         raise ValueError(f"unsupported inventory category: {category}")
-    other = "materials" if category == "items" else "items"
+    other_categories = tuple(
+        candidate for candidate in _INVENTORY_CATEGORY_ORDER if candidate != category
+    )
     deadline = time.monotonic() + max(float(timeout_sec), 0.1)
     next_click_at = 0.0
     target_brightness = 0.0
-    other_brightness = 0.0
+    other_brightness: Dict[str, float] = {}
     while time.monotonic() < deadline:
         now = time.monotonic()
         if now >= next_click_at:
@@ -328,14 +340,19 @@ def _select_inventory_category(
             app.click(x=point[0], y=point[1])
             next_click_at = now + max(float(click_interval_sec), 0.1)
         target_brightness = _inventory_category_brightness(app, category)
-        other_brightness = _inventory_category_brightness(app, other)
-        if target_brightness >= 145.0 and target_brightness - other_brightness >= 35.0:
+        other_brightness = {
+            candidate: _inventory_category_brightness(app, candidate)
+            for candidate in other_categories
+        }
+        brightest_other = max(other_brightness.values(), default=0.0)
+        if target_brightness >= 145.0 and target_brightness - brightest_other >= 35.0:
             return
         time.sleep(max(float(interval_sec), 0.05))
     raise StopTaskException(
         "Player data refresh failed: warehouse category was not confirmed within "
         f"{float(timeout_sec):.1f}s; category={category}; "
-        f"target_brightness={target_brightness:.1f}; other_brightness={other_brightness:.1f}",
+        f"target_brightness={target_brightness:.1f}; "
+        f"other_brightness={other_brightness}",
         success=False,
     )
 
@@ -641,6 +658,14 @@ def resonance_pc_player_data_refresh(
         if vision is None:
             raise RuntimeError("vision service is required for character refresh")
         character_catalog = load_character_catalog(vision=vision)
+    prepared_inventory_catalogs: Dict[str, Dict[str, Any]] = {}
+    if "inventory" in selected:
+        if vision is None:
+            raise RuntimeError("vision service is required for inventory refresh")
+        prepared_inventory_catalogs = {
+            category: prepare_inventory_catalog(category, vision)
+            for category in selected_inventory_categories
+        }
     section_updated_at: Dict[str, str] = {}
     inventory_category_updated_at: Dict[str, str] = {}
     result: Dict[str, Any] = {}
@@ -695,6 +720,7 @@ def resonance_pc_player_data_refresh(
                         ocr,
                         vision,
                         category=category,
+                        catalog=prepared_inventory_catalogs[category],
                     )
                     inventory_category_updated_at[category] = _utc_now_iso()
                 result["inventory"] = {

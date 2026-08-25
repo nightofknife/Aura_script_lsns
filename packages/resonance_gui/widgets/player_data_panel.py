@@ -46,6 +46,7 @@ STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
 INVENTORY_CATEGORY_LABELS = {
     "items": "道具",
     "materials": "材料",
+    "equipment": "装备",
 }
 
 _NO_CACHE_ERROR_MARKER = "No cached Resonance PC player data is available"
@@ -366,7 +367,7 @@ class PlayerDataPanel(QWidget):
             raise ValueError("用户数据更新至少需要选择一个读取阶段。")
         categories = self.selected_inventory_categories()
         if "inventory" in stages and not categories:
-            raise ValueError("仓库阶段至少需要选择道具或材料中的一项。")
+            raise ValueError("仓库阶段至少需要选择道具、材料或装备中的一项。")
         inputs = {
             "stages": stages,
             "inventory_categories": categories or ["items"],
@@ -535,7 +536,11 @@ class PlayerDataPanel(QWidget):
         categories = self._inventory_categories(inventory)
         category = str(self.inventory_category_combo.currentData() or "items")
         category_payload = categories.get(category, {})
-        result_key = "items" if category == "items" else "materials"
+        result_key = {
+            "items": "items",
+            "materials": "materials",
+            "equipment": "equipment",
+        }.get(category, "items")
         entries = category_payload.get(result_key)
         items = list(entries) if isinstance(entries, list) else []
         expiry_recognition_disabled = (
@@ -547,7 +552,7 @@ class PlayerDataPanel(QWidget):
         )
         self.inventory_table.setColumnHidden(
             2,
-            category == "materials" or expiry_recognition_disabled,
+            category != "items" or expiry_recognition_disabled,
         )
         self.inventory_table.setRowCount(len(items))
         for row, item in enumerate(items):
@@ -567,11 +572,23 @@ class PlayerDataPanel(QWidget):
                 if column in {1, 2}:
                     table_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 self.inventory_table.setItem(row, column, table_item)
-        stack_count = category_payload.get("matched_stack_count")
         pages = category_payload.get("pages_scanned")
-        details = [f"{len(items)} 种记录"] if items else ["尚无数据"]
-        if stack_count is not None:
-            details.append(f"{stack_count} 个物品堆")
+        if category == "equipment":
+            matched_equipment_count = category_payload.get("matched_equipment_count")
+            matched_card_count = category_payload.get("matched_card_count")
+            equipment_count = (
+                int(matched_equipment_count)
+                if isinstance(matched_equipment_count, (int, float))
+                else len(items)
+            )
+            details = [f"{equipment_count} 种装备"] if items else ["尚无数据"]
+            if isinstance(matched_card_count, (int, float)):
+                details.append(f"{int(matched_card_count)} 件")
+        else:
+            stack_count = category_payload.get("matched_stack_count")
+            details = [f"{len(items)} 种记录"] if items else ["尚无数据"]
+            if stack_count is not None:
+                details.append(f"{stack_count} 个物品堆")
         if pages is not None:
             details.append(f"{pages} 页")
         if expiry_recognition_disabled:
