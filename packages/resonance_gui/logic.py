@@ -24,6 +24,9 @@ PC_PLAYER_DATA_LATEST_TASK_REF = "tasks:player_data_pc.yaml:player_data_get_late
 PC_TEAM_RECOMMENDATION_TASK_REF = (
     "tasks:team_recommendation_pc.yaml:team_recommendation_pc"
 )
+PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF = (
+    "tasks:consciousness_deep_dive_pc.yaml:consciousness_deep_dive_pc"
+)
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"

@@ -133,23 +133,27 @@ QLabel#smallTaskRunStatus[status="running"] { color: #8b6200; }
 QLabel#smallTaskRunStatus[status="success"] { color: #4d6847; }
 QLabel#smallTaskRunStatus[status="error"] { color: #984b39; }
 QStackedWidget#smallTaskDetailStack { background: transparent; border: 0; }
-QLabel#teamRecommendationStatus {
+QLabel#teamRecommendationStatus, QLabel#deepDiveStatus {
     color: #716a5e;
     background: #f2ebdd;
     border-left: 3px solid #c9b99d;
     padding: 8px 10px;
     font-weight: 600;
 }
-QLabel#teamRecommendationStatus[resultState="running"] {
+QLabel#teamRecommendationStatus[resultState="running"],
+QLabel#deepDiveStatus[resultState="running"] {
     color: #8b6200;
     border-left-color: #d8b34b;
 }
-QLabel#teamRecommendationStatus[resultState="success"] {
+QLabel#teamRecommendationStatus[resultState="success"],
+QLabel#deepDiveStatus[resultState="success"] {
     color: #4d6847;
     border-left-color: #77866b;
 }
 QLabel#teamRecommendationStatus[resultState="blocked"],
-QLabel#teamRecommendationStatus[resultState="error"] {
+QLabel#teamRecommendationStatus[resultState="error"],
+QLabel#deepDiveStatus[resultState="blocked"],
+QLabel#deepDiveStatus[resultState="error"] {
     color: #984b39;
     border-left-color: #b9785d;
 }
