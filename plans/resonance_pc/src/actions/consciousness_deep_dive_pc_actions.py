@@ -15,7 +15,6 @@ from packages.aura_core.utils.exceptions import StopTaskException
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ....aura_base.src.actions.input_actions import drag as aura_drag
 from ....aura_base.src.actions.system_actions import get_window_size as aura_get_window_size
-from ....aura_base.src.actions.vision_actions import find_image as aura_find_image
 from ....aura_base.src.actions.wait_actions import sleep as aura_sleep
 from ....aura_base.src.actions.wait_actions import wait_for_image as aura_wait_for_image
 
@@ -160,21 +159,25 @@ def _match_payload(match: Any, target: _TemplateTarget) -> Dict[str, Any]:
     return payload
 
 
-def _find_target(
+async def _find_target(
     target: _TemplateTarget,
     *,
     app: Any,
     vision: Any,
     engine: ExecutionEngine,
 ) -> Any:
-    return aura_find_image(
+    return await aura_wait_for_image(
         app=app,
         vision=vision,
         engine=engine,
         template=target.template,
+        timeout=0.0,
+        interval=0.0,
         region=target.region,
         threshold=target.threshold,
         use_grayscale=True,
+        stable_scans=1,
+        stable_center_tolerance_px=_STABLE_CENTER_TOLERANCE_PX,
     )
 
 
@@ -262,7 +265,12 @@ async def _click_until_original_absent(
         attempts += 1
         aura_click(app=app, x=x, y=y)
         await aura_sleep(_CLICK_RECHECK_DELAY_SEC)
-        recheck = _find_target(target, app=app, vision=vision, engine=engine)
+        recheck = await _find_target(
+            target,
+            app=app,
+            vision=vision,
+            engine=engine,
+        )
         click_record = {
             "attempt": attempts,
             "point": {"x": x, "y": y},
@@ -299,7 +307,7 @@ async def _ensure_difficulty_one(
 
     while True:
         _check_cancelled()
-        selected = _find_target(
+        selected = await _find_target(
             _DIFFICULTY_1_SELECTED,
             app=app,
             vision=vision,
@@ -332,7 +340,7 @@ async def _ensure_difficulty_one(
             )
             return result
 
-        unselected = _find_target(
+        unselected = await _find_target(
             _DIFFICULTY_1_UNSELECTED,
             app=app,
             vision=vision,
