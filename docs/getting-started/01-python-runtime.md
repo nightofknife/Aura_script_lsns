@@ -51,19 +51,19 @@ CPU-only 开发机使用：
 ### 查看游戏模块
 
 ```powershell
-.venv\Scripts\python.exe cli.py games --all
+.\.venv\Scripts\python.exe cli.py games --all
 ```
 
 ### 查看任务
 
 ```powershell
-.venv\Scripts\python.exe cli.py tasks aura_benchmark
+.\.venv\Scripts\python.exe cli.py tasks aura_benchmark
 ```
 
 ### 运行任务
 
 ```powershell
-.venv\Scripts\python.exe cli.py run aura_benchmark tasks:single_sleep.yaml --inputs "{\"duration_ms\": 50, \"scenario\": \"demo\"}"
+.\.venv\Scripts\python.exe cli.py run aura_benchmark tasks:single_sleep.yaml --inputs "{\"duration_ms\": 50, \"scenario\": \"demo\"}"
 ```
 
 在 PowerShell 下，推荐把输入写入 JSON 文件后配合 `--inputs-file` 使用，避免命令行引号转义问题。
@@ -71,7 +71,7 @@ CPU-only 开发机使用：
 ### TUI
 
 ```powershell
-.venv\Scripts\python.exe cli.py tui
+.\.venv\Scripts\python.exe cli.py tui
 ```
 
 说明：
@@ -119,11 +119,11 @@ if __name__ == "__main__":
 - `requirements/optional-yolo-cpu.txt`
   YOLO 兼容入口，转向共享 ONNX Runtime CPU 推理依赖。
 - `requirements/optional-yolo-cuda.txt`
-  YOLO 兼容入口，转向共享 ONNX Runtime CUDA 12 推理依赖。
+  YOLO 兼容入口，转向共享 ONNX Runtime CUDA 13 推理依赖。
 - `requirements/optional-vision-onnx-cpu.txt`
   OCR/YOLO 共享的 ONNX Runtime CPU 推理依赖。
 - `requirements/optional-vision-onnx-cuda.txt`
-  OCR/YOLO 共享的 ONNX Runtime CUDA 12 推理依赖。
+  OCR/YOLO 共享的 ONNX Runtime CUDA 13 推理依赖。
 - `requirements/optional-ocr-export.txt`
   OCR Paddle inference 模型导出为 ONNX 部署包的导出机依赖。
 
@@ -138,13 +138,13 @@ if __name__ == "__main__":
 
 CPU 环境安装 `requirements/optional-vision-onnx-cpu.txt`，CUDA 环境安装 `requirements/optional-vision-onnx-cuda.txt`。`requirements/optional-yolo-cpu.txt` 和 `requirements/optional-yolo-cuda.txt` 仍保留为兼容入口。
 
-完整说明见：
-
-- [YOLO ONNX Runtime 部署与使用指南](../project-reference/yolo-onnx-runtime.md)
+版本、provider 和可选运行库以 `requirements/optional-vision-onnx-*.txt`、
+`requirements/optional-nvidia-runtime-cu13.txt` 与
+`packaging/release-contract.json` 为准。
 
 ## 7. GPU 栈
 
-当前仓库默认统一到 CUDA 12 + ONNX Runtime 路线：
+当前仓库默认统一到 CUDA 13 + ONNX Runtime 路线：
 
 - OCR 和 YOLO 运行时共用 `onnxruntime-gpu` 的 `CUDAExecutionProvider`
 - Paddle/PaddleOCR/Paddle2ONNX 只属于 OCR 导出机，不再属于部署机运行时
@@ -155,17 +155,17 @@ CPU 环境安装 `requirements/optional-vision-onnx-cpu.txt`，CUDA 环境安装
 可以使用以下命令快速检查当前环境里的 GPU 栈、YOLO 运行时和 OCR 运行时：
 
 ```powershell
-.venv\Scripts\python.exe tools\gpu_runtime_diagnostics.py --probe-ocr --onnx-model .runtime\smoke_yolo\smoke_yolo11n.onnx
+.\.venv\Scripts\python.exe tools\gpu_runtime_diagnostics.py --probe-ocr --onnx-model .runtime\smoke_yolo\smoke_yolo11n.onnx
 ```
 
-## CUDA12 说明
+## CUDA 13 说明
 
 - 对 OCR 和 YOLO，运行时只安装一个 ONNX Runtime 包：CPU 用 `requirements/optional-vision-onnx-cpu.txt`，CUDA 用 `requirements/optional-vision-onnx-cuda.txt`。
 - `requirements/optional-ocr-export.txt` 只用于 OCR 导出工具链，不要把导出依赖当成部署机运行时依赖。
 - 如果 GPU 探测结果不符合预期，重新运行：
 
 ```powershell
-.venv\Scripts\python.exe tools\gpu_runtime_diagnostics.py --probe-ocr --onnx-model .runtime\smoke_yolo\smoke_yolo11n.onnx --json
+.\.venv\Scripts\python.exe tools\gpu_runtime_diagnostics.py --probe-ocr --onnx-model .runtime\smoke_yolo\smoke_yolo11n.onnx --json
 ```
 
-`scripts/setup_python_runtime.ps1` 不再安装 Paddle/PaddleOCR 作为运行时依赖。OCR 和 YOLO 现在共享 ONNX Runtime。CUDA12 部署使用 `-VisionProvider cuda`，CPU-only 部署使用 `-VisionProvider cpu`，只安装基础框架、不安装视觉推理依赖时使用 `-VisionProvider none`。
+`scripts/setup_python_runtime.ps1` 不再安装 Paddle/PaddleOCR 作为运行时依赖。OCR 和 YOLO 现在共享 ONNX Runtime。CUDA 13 部署使用 `-VisionProvider cuda`，CPU-only 部署使用 `-VisionProvider cpu`，只安装基础框架、不安装视觉推理依赖时使用 `-VisionProvider none`。需要随包提供 CUDA 13 运行库时，使用独立的 `nvidia-cu13` overlay。

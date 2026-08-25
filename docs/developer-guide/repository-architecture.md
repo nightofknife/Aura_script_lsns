@@ -7,14 +7,21 @@ packages/aura_core      runtime, scheduler, manifests, observability
 packages/aura_game      embedded/subprocess runner facade
 packages/resonance_gui  Qt desktop GUI for Resonance tasks
 plans/aura_base         shared runtime actions and platform adapters
-plans/resonance         Resonance actions, services, tasks and data
-tests/smoke/            project import, discovery, runner and GUI startup smoke tests
+plans/resonance         MuMu/Android Resonance actions, services, tasks and data
+plans/resonance_pc      Windows-client Resonance actions, services, tasks and data
+plans/aura_benchmark    scheduler and DAG benchmark tasks
+tests/smoke/            startup smoke tests plus selected framework/PC contract tests
 ```
 
-`plans/resonance/manifest.yaml` is generated from the package source. Do not hand-maintain generated exports when adding actions, services or tasks; run:
+Plan manifests are generated from package source. Do not hand-maintain generated
+exports when adding actions, services or tasks; sync the plan that changed:
 
 ```powershell
 python -m packages.aura_core.cli.package_cli sync plans/resonance
+python -m packages.aura_core.cli.package_cli sync plans/resonance_pc
 ```
 
-The GUI intentionally remains game-specific in this first migration pass. Obvious shared parts such as runner bridge, queue, history and settings can later be extracted into a framework GUI package.
+The GUI intentionally remains game-specific. Its primary guided surfaces use
+`resonance_pc`; the lower-level workbench still exposes selected `resonance`
+tasks. Shared runner, queue, history and settings pieces may later be extracted
+into a framework GUI package.

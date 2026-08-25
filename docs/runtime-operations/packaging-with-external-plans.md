@@ -1,4 +1,13 @@
-# 框架打包与外置 Plans 方案
+# 框架打包与外置 Plans 方案（架构备忘）
+
+> 当前状态
+>
+> 本文前半部分保留了 `runtime/ + workspace/` 分离布局的未来设计思路，
+> 不是当前正式发布格式。当前唯一受支持的发布入口是
+> `scripts/package_release.ps1`，实际归档把 `plans/`、`models/`、
+> `config.yaml` 和 `run.ps1` 放在发布根目录。正式契约以
+> `docs/project-reference/release-packaging.md` 与
+> `packaging/release-contract.json` 为准。
 
 ## 目标
 
@@ -34,9 +43,9 @@
 > 例如 `.\plans\aura_base\...` 的 OCR 模型路径，发布时应把 `plans/` 放在发布根目录，
 > 而不是 `workspace/plans/` 这种下一层目录。
 
-## 推荐方案
+## 未来可选方案
 
-推荐使用“双层发布”：
+如果未来实现多工作区支持，可以考虑“双层发布”：
 
 - 第一层：`runtime/`
   只放打包后的框架运行时，可整体替换升级
@@ -87,7 +96,7 @@ release/
 1. 当前框架大量依赖真实目录结构
    `PackageManager`、`TaskLoader`、热重载、日志目录都更适合稳定的文件系统路径。
 2. 依赖较重
-   当前运行时依赖包含 `pywin32`、`dxcam`、`opencv-python`、`av`、`paddleocr`、`paddlepaddle-gpu`，单文件模式通常会带来更慢启动、更复杂的动态库提取和更高的不确定性。
+   当前运行时依赖包含 `pywin32`、`dxcam`、`windows-capture`、`opencv-python`、`av` 和 ONNX Runtime。Paddle/PaddleOCR 属于导出工具链，不进入正式运行时。单文件模式仍会带来更慢启动、更复杂的动态库提取和更高的不确定性。
 3. 外置 plan 的需求本身就意味着“真实文件夹”
    既然 `plans/` 要外置可编辑，目录式分发的收益更高，也更符合当前架构。
 
@@ -235,9 +244,9 @@ package:
 
 如果发布包里不带 `watchdog`，那就建议用户修改后重启运行时，而不是依赖热重载。
 
-## 推荐的发布流程
+## 未来多工作区方案的发布流程
 
-建议把发布拆成两个产物：
+如果未来正式支持 `workspace/` 搜索路径，可以把发布拆成两个产物：
 
 1. `runtime.zip`
    只包含打包后的运行时
@@ -252,9 +261,9 @@ package:
 
 这比把所有内容混在一个目录里更利于长期维护。
 
-## 当前代码下的最小实现路径
+## 实现未来多工作区方案的最小路径
 
-如果尽量不改现有代码，推荐顺序如下：
+如果要在当前框架上实验该布局，可以按以下顺序验证：
 
 1. 先采用 `PyInstaller onedir` 打包 `cli.py`
 2. 使用方案 A 组织发布目录：`runtime/ + workspace/`
@@ -300,14 +309,11 @@ package:
 
 ## 结论
 
-结论很明确：
-
-- 可以打包框架，同时把 `plans/` 保持为独立可编辑文件夹
-- 最适合当前项目的方式是“目录式运行时 + 外置工作区”
-- 最推荐的落地形态是 `runtime/ + workspace/ + 启动脚本`
-- 不建议把可编辑 plan 和重依赖运行时一起塞进单文件包
-
-如果后续要真正落地实施，下一步最值得做的是：
-
-- 增加一个发布组装脚本
-- 或者直接补一个 `PyInstaller` 的 `.spec` 和 `run.ps1` 模板
+- 当前正式发布已经采用 PyInstaller `onedir`、根目录外置 `plans/` 和
+  `runtime/` 子目录，并由 `scripts/package_release.ps1` 完成组装、验证和归档。
+- `runtime/ + workspace/` 是尚未产品化的多工作区备选设计；当前 CLI 没有
+  `--workspace` 参数，正式包也不生成独立 `runtime.zip` 或
+  `workspace-template.zip`。
+- 现有 `packaging/pyinstaller/aura.spec`、`packaging/templates/run.ps1` 和发布
+  组装脚本已经落地，不再是待办项。
+- 不建议把可编辑 plan 和重依赖运行时一起塞进 PyInstaller `onefile` 包。

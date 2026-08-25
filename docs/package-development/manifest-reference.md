@@ -11,7 +11,7 @@ Aura 的 package / plan 装载依赖 `manifest.yaml`。`PackageManager` 会根�
 - `package`
 - `requires`
 - `dependencies`
-- `pypi_dependencies`
+- `pypi-dependencies`
 - `exports`
 - `extends`
 - `overrides`
@@ -20,7 +20,7 @@ Aura 的 package / plan 装载依赖 `manifest.yaml`。`PackageManager` 会根�
 - `resources`
 - `build`
 - `trust`
-- `task_config`
+- `task_paths`
 - `metadata`
 
 ## 2. 最小示例
@@ -151,19 +151,17 @@ requires:
 - `get_data_path()`
 - `get_asset_path()`
 
-## 10. `task_config`
+## 10. `task_paths`
 
-当前最关键字段：
-
-- `task_paths`
+`task_paths` 是 manifest 的顶层字段，用于声明任务搜索目录。它不是
+`task_config` 下的嵌套字段。
 
 示例：
 
 ```yaml
-task_config:
-  task_paths:
-    - tasks
-    - extra_tasks
+task_paths:
+  - tasks
+  - extra_tasks
 ```
 
 安全限制：
