@@ -78,7 +78,7 @@
 关键语义：
 
 - 普通字符串依赖：依赖某个 step 完成
-- 列表依赖：隐式 `all`
+- 列表简写已移除；多依赖必须显式写成 `{ all: [...] }`
 - 逻辑依赖：`all / any / none`
 - 状态依赖：读取上游 step 的 `run_state.status`
 - 循环依赖会在构图阶段直接报错
@@ -129,7 +129,7 @@
 task 最终返回一个对象：
 
 - `status`
-  `SUCCESS` / `FAILED` / `ERROR`
+  `SUCCESS` / `FAILED` / `ERROR`；取消中的任务事件还可能是 `CANCELLED`
 - `user_data`
   `returns` 的渲染结果；若未配置默认是 `true`
 - `framework_data`

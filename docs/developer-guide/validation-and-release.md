@@ -6,6 +6,10 @@
 python -m packages.aura_core.cli.package_cli check plans/resonance
 python -m packages.aura_core.cli.package_cli validate plans/resonance
 python tools\plan_doctor.py --plan resonance
+
+python -m packages.aura_core.cli.package_cli check plans/resonance_pc
+python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
+python tools\plan_doctor.py --plan resonance_pc
 ```
 
 ## Project Smoke Tests
@@ -15,8 +19,9 @@ python tools\plan_doctor.py --plan resonance
 其他 checkout 或外部项目目录作为测试工作目录。
 
 `pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`，并只收集
-`tests/smoke`。冒烟测试只确认项目可以导入、发现计划、启动 Runner 和构造 GUI，
-不验证具体游戏任务的执行结果。需要隔离运行时，可以显式使用
+`tests/smoke`。测试覆盖项目导入、计划发现、Runner、GUI 构造，以及选定的
+Aura base action、PC 角色识别和任务复用契约。它不执行依赖真实游戏画面的完整
+自动化流程；这部分仍需发布自检和实机验证。需要隔离运行时，可以显式使用
 `.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
 
 ```powershell
@@ -35,7 +40,7 @@ $env:TMP = $testTemp
 $env:TMPDIR = $testTemp
 ```
 
-日常验证应使用 `.venv\Scripts\python.exe`，不要从历史 `.venv-*` 或
+日常验证应使用 `.\.venv\Scripts\python.exe`，不要从历史 `.venv-*` 或
 `.runtime-*` 目录中挑选解释器。
 
 ## CLI Smoke
@@ -61,7 +66,10 @@ $env:TMPDIR = $testTemp
 ```powershell
 pwsh -NoProfile -File <release>\run.ps1 games --all
 pwsh -NoProfile -File <release>\run.ps1 tasks resonance
+pwsh -NoProfile -File <release>\run.ps1 tasks resonance_pc
+pwsh -NoProfile -File <release>\run.ps1 doctor --ocr --ocr-provider cpu
 & <release>\runtime\AuraResonanceRuntime.exe --self-check
+& <release>\更新.exe --self-check
 ```
 
 When GUI packaging is enabled, the release root should contain `AuraResonanceGui.exe` and `runtime\AuraResonanceRuntime.exe`.

@@ -73,7 +73,15 @@ Aura 的运行时不是单纯同步调用模型，而是：
 
 ## 5. Runtime Profile
 
-当前内置两个 profile：
+当前内置三个 profile：
+
+### `embedded_full`
+
+- 启用 schedule loop
+- 启用 interrupt loop
+- 启用 event triggers
+
+这是本地 SDK、CLI 和 runner 的默认 profile。
 
 ### `api_full`
 
@@ -81,7 +89,7 @@ Aura 的运行时不是单纯同步调用模型，而是：
 - 启用 interrupt loop
 - 启用 event triggers
 
-适合 API 服务模式。
+行为与 `embedded_full` 相同，当前作为兼容名称保留。
 
 ### `tui_manual`
 
