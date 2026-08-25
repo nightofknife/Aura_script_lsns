@@ -130,9 +130,9 @@ def test_character_assets_are_discovered_from_named_unicode_folders() -> None:
     character_root = REPO_ROOT / "plans" / "resonance_pc" / "templates" / "characters"
     named_folders = [item for item in character_root.iterdir() if item.is_dir()]
 
-    assert len(named_folders) == 98
-    assert len(catalog["characters"]) == 56
-    assert len(catalog["templates"]) == 56
+    assert len(named_folders) == 100
+    assert len(catalog["characters"]) == 77
+    assert len(catalog["templates"]) == 95
     assert {item["name"] for item in catalog["characters"]} >= {
         "夏娜",
         "冯·里奈",
