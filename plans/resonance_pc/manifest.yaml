@@ -1192,6 +1192,15 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.consciousness_deep_dive_enter_stage
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_pc_actions
+    function: resonance_pc_consciousness_deep_dive_enter_stage
+    public: true
+    read_only: false
+    timeout: 300
+    description: Enter the Consciousness Deep Dive board using fixed strategy and
+      middle boon selection.
+    parameters: []
   - name: resonance_pc.enter_main
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
     function: resonance_pc_enter_main
@@ -2204,6 +2213,14 @@ exports:
     source: tasks/cape_island_investment_pc.yaml
     description: Enter Mirage Island from the Cape City main screen, invest once when
       possible, and return.
+  - id: consciousness_deep_dive_pc/consciousness_deep_dive_pc
+    title: Consciousness Deep Dive (PC)
+    source: tasks/consciousness_deep_dive_pc.yaml
+    description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+  - id: consciousness_deep_dive_pc
+    title: Consciousness Deep Dive (PC)
+    source: tasks/consciousness_deep_dive_pc.yaml
+    description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -2271,4 +2288,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-25T10:02:50Z'
+  generated_at: '2026-08-25T14:58:29Z'

@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 from .bridge import RunnerBridge
 from .config_repository import GuiPreferences, ResonanceConfigRepository
 from .logic import (
+    PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF,
     PC_GAME_NAME,
     PC_PLAYER_DATA_LATEST_TASK_REF,
     PC_PLAYER_DATA_REFRESH_TASK_REF,
@@ -255,6 +256,9 @@ class ResonanceMainWindow(QMainWindow):
         )
         self.small_tasks_page.runTeamRecommendationRequested.connect(
             self._run_small_task_team_recommendation
+        )
+        self.small_tasks_page.runConsciousnessDeepDiveRequested.connect(
+            self._run_small_task_consciousness_deep_dive
         )
         self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.small_tasks_page.cacheRequested.connect(
@@ -848,6 +852,21 @@ class ResonanceMainWindow(QMainWindow):
             float(self.timeout_spin.value()),
         )
 
+    def _run_small_task_consciousness_deep_dive(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            self.small_tasks_page.show_consciousness_deep_dive_error(
+                "当前有任务正在运行，请稍后再试。"
+            )
+            return
+        self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF
+        self.small_tasks_page.begin_consciousness_deep_dive_run()
+        self.requestRunPcTask.emit(
+            PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF,
+            {},
+            "识海深潜",
+            float(self.timeout_spin.value()),
+        )
+
     def _read_small_task_player_data_cache(self) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
             self.small_tasks_page.show_player_data_error("当前有任务正在运行，请稍后再试。")
@@ -863,6 +882,8 @@ class ResonanceMainWindow(QMainWindow):
     def _show_small_task_error(self, task_ref: str, message: str) -> None:
         if task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
             self.small_tasks_page.show_team_recommendation_error(message)
+        elif task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF:
+            self.small_tasks_page.show_consciousness_deep_dive_error(message)
         else:
             self.small_tasks_page.show_player_data_error(message)
 
@@ -1266,6 +1287,22 @@ class ResonanceMainWindow(QMainWindow):
                             or player_data_result.get("error")
                             or payload.get("error")
                             or "任务未返回可用配队推荐结果。"
+                        )
+                    )
+                self._small_task_active_ref = ""
+            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF:
+                deep_dive_result = player_data_result.get("deep_dive")
+                if isinstance(deep_dive_result, dict):
+                    self.small_tasks_page.apply_consciousness_deep_dive_result(
+                        deep_dive_result
+                    )
+                else:
+                    self.small_tasks_page.show_consciousness_deep_dive_error(
+                        str(
+                            player_data_result.get("reason")
+                            or player_data_result.get("error")
+                            or payload.get("error")
+                            or "任务未返回可用识海深潜结果。"
                         )
                     )
                 self._small_task_active_ref = ""

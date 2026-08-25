@@ -1,0 +1,13 @@
+consciousness_deep_dive_pc:
+  meta:
+    title: Consciousness Deep Dive (PC)
+    description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+    entry_point: true
+    inputs: []
+
+  steps:
+    enter_stage:
+      action: resonance_pc.consciousness_deep_dive_enter_stage
+
+  returns:
+    deep_dive: "{{ nodes.enter_stage.output }}"

@@ -2,6 +2,7 @@
 from .battle_page import BattlePage
 from .commerce_page import CommercePage
 from .commerce_overview_page import CommerceOverviewPage
+from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
 from .passenger_page import PassengerPage
 from .player_data_panel import PlayerDataPanel
 from .trade_page import TradePage
@@ -14,6 +15,7 @@ __all__ = [
     "BattlePage",
     "CommerceOverviewPage",
     "CommercePage",
+    "ConsciousnessDeepDivePanel",
     "PassengerPage",
     "PlayerDataPanel",
     "TradePage",
