@@ -100,8 +100,12 @@ PLAYER_DATA_STAGE_ORDER: tuple[str, ...] = (
     "inventory",
     "characters",
 )
-PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = ("items", "materials")
-PLAYER_DATA_INPUTS_SCHEMA_VERSION = 2
+PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = (
+    "items",
+    "materials",
+    "equipment",
+)
+PLAYER_DATA_INPUTS_SCHEMA_VERSION = 3
 DEFAULT_PLAYER_DATA_INPUTS: dict[str, Any] = {
     "stages": [*PLAYER_DATA_STAGE_ORDER],
     "inventory_categories": ["items"],
@@ -251,10 +255,11 @@ class ResonanceConfigRepository:
                 pass
         if schema_version < PLAYER_DATA_INPUTS_SCHEMA_VERSION:
             if parsed:
-                migrated_stages = list(parsed.get("stages") or [])
-                if "characters" not in migrated_stages:
-                    migrated_stages.append("characters")
-                parsed["stages"] = migrated_stages
+                if schema_version < 2:
+                    migrated_stages = list(parsed.get("stages") or [])
+                    if "characters" not in migrated_stages:
+                        migrated_stages.append("characters")
+                    parsed["stages"] = migrated_stages
                 normalized = _merge_player_data_inputs(parsed)
             else:
                 normalized = _merge_player_data_inputs({})

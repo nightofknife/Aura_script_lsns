@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "category": "equipment",
+  "aggregation": "count_cards_by_equipment_id",
+  "layout": {
+    "template_size": [100, 60],
+    "template_offset_from_card": [10, 35],
+    "card_size": [122, 121],
+    "grid_region": [397, 94, 680, 626],
+    "match_threshold": 0.82,
+    "scroll_start": [1000, 620],
+    "scroll_end": [1000, 310]
+  },
+  "equipment": [
+    {
+      "equipment_id": "mi_cao_long_que",
+      "name": "靡草龙雀",
+      "template": "templates/inventory/equipment/mi_cao_long_que.png"
+    },
+    {
+      "equipment_id": "supercausal_dice",
+      "name": "超因果之骰",
+      "template": "templates/inventory/equipment/supercausal_dice.png"
+    },
+    {
+      "equipment_id": "spring_autumn_sincerity_seal",
+      "name": "春秋合诚印",
+      "template": "templates/inventory/equipment/spring_autumn_sincerity_seal.png"
+    },
+    {
+      "equipment_id": "enchanted_dagger",
+      "name": "附魔短剑",
+      "template": "templates/inventory/equipment/enchanted_dagger.png"
+    },
+    {
+      "equipment_id": "viscera_collector_mk0",
+      "name": "内脏采集器MK0",
+      "template": "templates/inventory/equipment/viscera_collector_mk0.png"
+    },
+    {
+      "equipment_id": "harrison_device",
+      "name": "哈里森装置",
+      "template": "templates/inventory/equipment/harrison_device.png"
+    },
+    {
+      "equipment_id": "beta_worldline_box",
+      "name": "β世界线之盒",
+      "template": "templates/inventory/equipment/beta_worldline_box.png"
+    },
+    {
+      "equipment_id": "treasure_hunting_gun",
+      "name": "探宝枪",
+      "template": "templates/inventory/equipment/treasure_hunting_gun.png"
+    },
+    {
+      "equipment_id": "machine_god_armor",
+      "name": "机神甲胄",
+      "template": "templates/inventory/equipment/machine_god_armor.png"
+    },
+    {
+      "equipment_id": "spatial_tangent",
+      "name": "空间切线",
+      "template": "templates/inventory/equipment/spatial_tangent.png"
+    },
+    {
+      "equipment_id": "extended_timeline",
+      "name": "延展时间线",
+      "template": "templates/inventory/equipment/extended_timeline.png"
+    },
+    {
+      "equipment_id": "hurton_balloon",
+      "name": "胡尔顿气球",
+      "template": "templates/inventory/equipment/hurton_balloon.png"
+    },
+    {
+      "equipment_id": "simulated_stars",
+      "name": "模拟星辰",
+      "template": "templates/inventory/equipment/simulated_stars.png"
+    },
+    {
+      "equipment_id": "cunning_betrayal",
+      "name": "狡诈背叛",
+      "template": "templates/inventory/equipment/cunning_betrayal.png"
+    },
+    {
+      "equipment_id": "mobius",
+      "name": "莫比乌斯",
+      "template": "templates/inventory/equipment/mobius.png"
+    },
+    {
+      "equipment_id": "reverse_entropy_harsh_winter",
+      "name": "逆熵严冬",
+      "template": "templates/inventory/equipment/reverse_entropy_harsh_winter.png"
+    },
+    {
+      "equipment_id": "blazing_erosion",
+      "name": "炽焰侵蚀者",
+      "template": "templates/inventory/equipment/blazing_erosion.png"
+    },
+    {
+      "equipment_id": "garden_guardian",
+      "name": "花园守护",
+      "template": "templates/inventory/equipment/garden_guardian.png"
+    },
+    {
+      "equipment_id": "thunder_summoning_coil_mk1",
+      "name": "唤雷线圈MK1",
+      "template": "templates/inventory/equipment/thunder_summoning_coil_mk1.png"
+    },
+    {
+      "equipment_id": "resonance_fiber",
+      "name": "共振体纤维",
+      "template": "templates/inventory/equipment/resonance_fiber.png"
+    },
+    {
+      "equipment_id": "veteran_rifle",
+      "name": "老兵步枪",
+      "template": "templates/inventory/equipment/veteran_rifle.png"
+    },
+    {
+      "equipment_id": "spirit_spring",
+      "name": "灵泉",
+      "template": "templates/inventory/equipment/spirit_spring.png"
+    },
+    {
+      "equipment_id": "hunting_revolver",
+      "name": "狩猎左轮",
+      "template": "templates/inventory/equipment/hunting_revolver.png"
+    },
+    {
+      "equipment_id": "blackstone_armor",
+      "name": "黑石护甲",
+      "template": "templates/inventory/equipment/blackstone_armor.png"
+    },
+    {
+      "equipment_id": "yuchang_dagger",
+      "name": "鱼肠短刀",
+      "template": "templates/inventory/equipment/yuchang_dagger.png"
+    },
+    {
+      "equipment_id": "moonset_red_cloud_seal",
+      "name": "月落红云宝玺",
+      "template": "templates/inventory/equipment/moonset_red_cloud_seal.png"
+    },
+    {
+      "equipment_id": "nuclear_radiation",
+      "name": "核子辐射",
+      "template": "templates/inventory/equipment/nuclear_radiation.png"
+    },
+    {
+      "equipment_id": "exile_code",
+      "name": "放逐代码",
+      "template": "templates/inventory/equipment/exile_code.png"
+    },
+    {
+      "equipment_id": "endless_incineration",
+      "name": "无尽焚灭",
+      "template": "templates/inventory/equipment/endless_incineration.png"
+    },
+    {
+      "equipment_id": "thunder_god",
+      "name": "雷神",
+      "template": "templates/inventory/equipment/thunder_god.png"
+    },
+    {
+      "equipment_id": "insulated_charge_armor",
+      "name": "绝缘冲甲",
+      "template": "templates/inventory/equipment/insulated_charge_armor.png"
+    },
+    {
+      "equipment_id": "tiangang_demon_suppressing_sword",
+      "name": "天罡伏魔剑",
+      "template": "templates/inventory/equipment/tiangang_demon_suppressing_sword.png"
+    },
+    {
+      "equipment_id": "seven_string_bow",
+      "name": "七弦弓",
+      "template": "templates/inventory/equipment/seven_string_bow.png"
+    },
+    {
+      "equipment_id": "niktar_final_solution",
+      "name": "尼克塔尔最后解",
+      "template": "templates/inventory/equipment/niktar_final_solution.png"
+    },
+    {
+      "equipment_id": "healing_bulletproof_vest",
+      "name": "治愈防弹衣",
+      "template": "templates/inventory/equipment/healing_bulletproof_vest.png"
+    },
+    {
+      "equipment_id": "quick_leave_candy",
+      "name": "快速请假糖",
+      "template": "templates/inventory/equipment/quick_leave_candy.png"
+    },
+    {
+      "equipment_id": "radiance_pursuer",
+      "name": "光芒追击者",
+      "template": "templates/inventory/equipment/radiance_pursuer.png"
+    },
+    {
+      "equipment_id": "st_elmos_fire",
+      "name": "艾尔摩之火",
+      "template": "templates/inventory/equipment/st_elmos_fire.png"
+    }
+  ]
+}
