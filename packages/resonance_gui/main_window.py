@@ -37,6 +37,7 @@ from .logic import (
     PC_GAME_NAME,
     PC_PLAYER_DATA_LATEST_TASK_REF,
     PC_PLAYER_DATA_REFRESH_TASK_REF,
+    PC_TEAM_RECOMMENDATION_TASK_REF,
     extract_final_result,
     extract_run_id,
     extract_status,
@@ -47,8 +48,8 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
-from .update_checker import find_available_update
-from .widgets import BattlePage, CommercePage, SettingsHubPage, WorkflowPage
+from .update_checker import current_version_label, find_available_update
+from .widgets import BattlePage, CommercePage, SettingsHubPage, SmallTasksPage, WorkflowPage
 from .widgets.run_detail import RunDetailView
 
 
@@ -59,6 +60,7 @@ class ResonanceMainWindow(QMainWindow):
     WORKBENCH_PAGE_INDEX = 3
     HISTORY_PAGE_INDEX = 4
     SETTINGS_PAGE_INDEX = 5
+    SMALL_TASKS_PAGE_INDEX = 6
 
     updateCheckCompleted = Signal(str)
     requestInitialize = Signal()
@@ -108,6 +110,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending: list[dict[str, Any]] = []
         self._workflow_current: dict[str, Any] | None = None
         self._workflow_failed_message = ""
+        self._small_task_active_ref = ""
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
         self._base_window_title = "Aura 雷索纳斯控制台"
@@ -153,29 +156,58 @@ class ResonanceMainWindow(QMainWindow):
         layout.setSpacing(0)
         top_bar = QFrame(root)
         top_bar.setObjectName("commerceHeader")
-        top_layout = QHBoxLayout(top_bar)
-        top_layout.setContentsMargins(18, 9, 18, 9)
+        top_layout = QVBoxLayout(top_bar)
+        top_layout.setContentsMargins(18, 9, 18, 8)
+        top_layout.setSpacing(7)
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(7)
         brand = QLabel("AURA", top_bar)
         brand.setObjectName("brandTitle")
         title = QLabel("雷索纳斯控制台", top_bar)
         title.setObjectName("commerceTitle")
-        badge = QLabel("开发中", top_bar)
-        badge.setObjectName("developmentBadge")
-        top_layout.addWidget(brand)
-        top_layout.addWidget(title)
-        top_layout.addWidget(badge)
-        top_layout.addStretch(1)
+        self.version_badge = QLabel(current_version_label(), top_bar)
+        self.version_badge.setObjectName("versionBadge")
+        title_row.addWidget(brand)
+        title_row.addWidget(title)
+        title_row.addWidget(self.version_badge)
+        title_row.addStretch(1)
         self.back_to_workflow_button = QPushButton("← 返回任务流程", top_bar)
         self.back_to_workflow_button.clicked.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.back_to_workflow_button.hide()
-        top_layout.addWidget(self.back_to_workflow_button)
+        title_row.addWidget(self.back_to_workflow_button)
         self.refresh_target_button = QPushButton("刷新目标", top_bar)
         self.refresh_target_button.setObjectName("quietButton")
         self.refresh_target_button.clicked.connect(self.requestRefreshTarget.emit)
-        top_layout.addWidget(self.refresh_target_button)
-        self.global_target_label = QLabel("● 等待连接", top_bar)
+        title_row.addWidget(self.refresh_target_button)
+        self.global_target_label = QLabel("● 未连接窗口", top_bar)
         self.global_target_label.setProperty("caption", True)
-        top_layout.addWidget(self.global_target_label)
+        self.global_target_label.setProperty("status", "warning")
+        title_row.addWidget(self.global_target_label)
+        top_layout.addLayout(title_row)
+
+        nav_row = QHBoxLayout()
+        nav_row.setContentsMargins(0, 0, 0, 0)
+        nav_row.setSpacing(6)
+        self.primary_nav_group = QButtonGroup(self)
+        self.primary_nav_group.setExclusive(True)
+        self.primary_nav_buttons: dict[int, QPushButton] = {}
+        for page_index, text in (
+            (self.WORKFLOW_PAGE_INDEX, "工作流程"),
+            (self.SMALL_TASKS_PAGE_INDEX, "小任务"),
+            (self.SETTINGS_PAGE_INDEX, "设置"),
+        ):
+            button = QPushButton(text, top_bar)
+            button.setCheckable(True)
+            button.setProperty("primaryNav", True)
+            button.clicked.connect(
+                lambda checked=False, target=page_index: self._switch_page(target)
+            )
+            self.primary_nav_group.addButton(button, page_index)
+            self.primary_nav_buttons[page_index] = button
+            nav_row.addWidget(button)
+        nav_row.addStretch(1)
+        top_layout.addLayout(nav_row)
         layout.addWidget(top_bar)
 
         self.page_stack = QStackedWidget(root)
@@ -192,6 +224,7 @@ class ResonanceMainWindow(QMainWindow):
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
         self.settings_page = SettingsHubPage(self._settings, self.page_stack)
+        self.small_tasks_page = SmallTasksPage(self._settings, self.page_stack)
         for page in (
             self.workflow_page,
             self.commerce_page,
@@ -199,6 +232,7 @@ class ResonanceMainWindow(QMainWindow):
             self.workbench_page,
             self.history_page,
             self.settings_page,
+            self.small_tasks_page,
         ):
             self.page_stack.addWidget(page)
         layout.addWidget(self.page_stack, 1)
@@ -216,8 +250,15 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._switch_page(self.BATTLE_PAGE_INDEX))
         self.workflow_page.previewTradeRequested.connect(self._preview_workflow_trade)
-        self.workflow_page.player_data_panel.cacheRequested.connect(
-            self._read_player_data_cache
+        self.small_tasks_page.runPlayerDataRequested.connect(
+            self._run_small_task_player_data
+        )
+        self.small_tasks_page.runTeamRecommendationRequested.connect(
+            self._run_small_task_team_recommendation
+        )
+        self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
+        self.small_tasks_page.cacheRequested.connect(
+            self._read_small_task_player_data_cache
         )
         self.workflow_page.settingsRequested.connect(lambda: self._switch_page(self.SETTINGS_PAGE_INDEX))
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
@@ -283,8 +324,19 @@ class ResonanceMainWindow(QMainWindow):
         if hasattr(self, "nav_buttons") and 0 <= index < len(self.nav_buttons):
             self.nav_buttons[index].setChecked(True)
         self.back_to_workflow_button.setVisible(
-            index not in {self.WORKFLOW_PAGE_INDEX, self.SETTINGS_PAGE_INDEX}
+            index
+            not in {
+                self.WORKFLOW_PAGE_INDEX,
+                self.SMALL_TASKS_PAGE_INDEX,
+                self.SETTINGS_PAGE_INDEX,
+            }
         )
+        primary_index = (
+            index
+            if index in {self.SMALL_TASKS_PAGE_INDEX, self.SETTINGS_PAGE_INDEX}
+            else self.WORKFLOW_PAGE_INDEX
+        )
+        self.primary_nav_buttons[primary_index].setChecked(True)
         if index == self.HISTORY_PAGE_INDEX:
             self.requestRefreshHistory.emit()
 
@@ -626,8 +678,6 @@ class ResonanceMainWindow(QMainWindow):
 
         snapshots: dict[str, dict[str, Any]] = {}
         try:
-            if "player_data" in steps:
-                snapshots["player_data"] = self.workflow_page.player_data_inputs()
             if "commerce" in steps:
                 if "trade" in commerce_steps:
                     snapshots["trade"] = self.workflow_page.merge_trade_inputs(
@@ -681,14 +731,6 @@ class ResonanceMainWindow(QMainWindow):
                     "task_ref": "tasks:game_startup_pc.yaml:enter_main",
                     "inputs": self.workflow_page.startup_inputs(),
                     "label": "进入主界面",
-                    "dispatch": "pc_task",
-                })
-            elif step == "player_data":
-                pending.append({
-                    "step": "player_data",
-                    "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
-                    "inputs": dict(snapshots["player_data"]),
-                    "label": "更新用户数据",
                     "dispatch": "pc_task",
                 })
             elif step == "commerce":
@@ -778,16 +820,51 @@ class ResonanceMainWindow(QMainWindow):
                 str(current["task_ref"]), dict(current["inputs"]), current["label"], timeout
             )
 
-    def _read_player_data_cache(self) -> None:
+    def _run_small_task_player_data(self, inputs: object) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
-            self.workflow_page.player_data_panel.show_error("当前有任务正在运行，请稍后再试。")
+            self.small_tasks_page.show_player_data_error("当前有任务正在运行，请稍后再试。")
             return
+        self._small_task_active_ref = PC_PLAYER_DATA_REFRESH_TASK_REF
+        self.small_tasks_page.begin_player_data_run()
+        self.requestRunPcTask.emit(
+            PC_PLAYER_DATA_REFRESH_TASK_REF,
+            inputs,
+            "刷新用户数据",
+            float(self.timeout_spin.value()),
+        )
+
+    def _run_small_task_team_recommendation(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            self.small_tasks_page.show_team_recommendation_error(
+                "当前有任务正在运行，请稍后再试。"
+            )
+            return
+        self._small_task_active_ref = PC_TEAM_RECOMMENDATION_TASK_REF
+        self.small_tasks_page.begin_team_recommendation_run()
+        self.requestRunPcTask.emit(
+            PC_TEAM_RECOMMENDATION_TASK_REF,
+            {},
+            "配队推荐",
+            float(self.timeout_spin.value()),
+        )
+
+    def _read_small_task_player_data_cache(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            self.small_tasks_page.show_player_data_error("当前有任务正在运行，请稍后再试。")
+            return
+        self._small_task_active_ref = PC_PLAYER_DATA_LATEST_TASK_REF
         self.requestRunPcTask.emit(
             PC_PLAYER_DATA_LATEST_TASK_REF,
             {},
             "读取用户数据缓存",
             float(self.timeout_spin.value()),
         )
+
+    def _show_small_task_error(self, task_ref: str, message: str) -> None:
+        if task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
+            self.small_tasks_page.show_team_recommendation_error(message)
+        else:
+            self.small_tasks_page.show_player_data_error(message)
 
     def _stop_workflow(self) -> None:
         if not self._workflow_active:
@@ -1155,23 +1232,43 @@ class ResonanceMainWindow(QMainWindow):
             task_ref = str(item.get("task_ref") or "")
             player_data_result = extract_final_result(payload)
             player_data = player_data_result.get("player_data")
+            small_task_owns_result = self._small_task_active_ref == task_ref
             if isinstance(player_data, dict):
                 if task_ref == PC_PLAYER_DATA_REFRESH_TASK_REF:
-                    self.workflow_page.player_data_panel.apply_refresh_result(player_data)
+                    self.small_tasks_page.apply_refresh_result(
+                        player_data,
+                        mark_complete=small_task_owns_result,
+                    )
                 elif task_ref == PC_PLAYER_DATA_LATEST_TASK_REF:
-                    self.workflow_page.player_data_panel.set_snapshot(player_data)
+                    self.small_tasks_page.set_snapshot(player_data)
             elif task_ref in {
                 PC_PLAYER_DATA_REFRESH_TASK_REF,
                 PC_PLAYER_DATA_LATEST_TASK_REF,
             }:
-                self.workflow_page.player_data_panel.show_error(
-                    str(
-                        player_data_result.get("reason")
-                        or player_data_result.get("error")
-                        or payload.get("error")
-                        or "任务未成功完成。"
-                    )
+                message = str(
+                    player_data_result.get("reason")
+                    or player_data_result.get("error")
+                    or payload.get("error")
+                    or "任务未成功完成。"
                 )
+                if small_task_owns_result:
+                    self._show_small_task_error(task_ref, message)
+            if small_task_owns_result:
+                self._small_task_active_ref = ""
+            team_result = player_data_result.get("team_recommendations")
+            if task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
+                if isinstance(team_result, dict):
+                    self.small_tasks_page.apply_team_recommendation_result(team_result)
+                else:
+                    self.small_tasks_page.show_team_recommendation_error(
+                        str(
+                            player_data_result.get("reason")
+                            or player_data_result.get("error")
+                            or payload.get("error")
+                            or "任务未返回可用配队推荐结果。"
+                        )
+                    )
+                self._small_task_active_ref = ""
             finished_kind = kind
             if kind == "trade_preview":
                 self.trade_page.finish_preview(payload)
@@ -1233,11 +1330,20 @@ class ResonanceMainWindow(QMainWindow):
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
         failed_task_ref = str(payload.get("task_ref") or "")
-        if failed_task_ref in {
-            PC_PLAYER_DATA_REFRESH_TASK_REF,
-            PC_PLAYER_DATA_LATEST_TASK_REF,
-        }:
-            self.workflow_page.player_data_panel.show_error(str(payload.get("error") or "未知错误"))
+        if failed_task_ref and failed_task_ref == self._small_task_active_ref:
+            message = str(payload.get("error") or "未知错误")
+            self._show_small_task_error(failed_task_ref, message)
+            self._small_task_active_ref = ""
+        elif (
+            self._small_task_active_ref
+            and stage == "poll_run"
+            and payload.get("recoverable") is False
+        ):
+            self._show_small_task_error(
+                self._small_task_active_ref,
+                str(payload.get("error") or "任务状态读取失败"),
+            )
+            self._small_task_active_ref = ""
         if self._commerce_active:
             self._abort_commerce_sequence(
                 cancel_current=stage != "cancel_task" and bool(self._commerce_current_kind)
@@ -1278,10 +1384,16 @@ class ResonanceMainWindow(QMainWindow):
         if not busy:
             self._active_game_name = ""
             self._active_kind = ""
+            if self._small_task_active_ref:
+                self._show_small_task_error(
+                    self._small_task_active_ref,
+                    "任务已停止，但没有返回可用结果。",
+                )
+                self._small_task_active_ref = ""
         self.trade_page.set_busy(busy or self._commerce_active)
         self.passenger_page.set_busy(busy or self._commerce_active)
         self.battle_page.set_busy(busy)
-        self.workflow_page.player_data_panel.set_runner_busy(busy)
+        self.small_tasks_page.set_runner_busy(busy)
         self.commerce_page.overview_page.set_external_busy(busy)
         self.run_button.setEnabled(not busy and not self._commerce_active)
         self.enqueue_button.setEnabled(not self._commerce_active)

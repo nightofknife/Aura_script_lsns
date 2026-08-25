@@ -53,12 +53,8 @@ from ..logic import (
     reduce_workflow_freight_progress,
     route_product_lines,
 )
-from .player_data_panel import PlayerDataPanel
-
-
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
-    ("player_data", "更新用户数据"),
     ("commerce", "跑商"),
     ("battle", "自动战斗"),
     ("close", "关闭游戏"),
@@ -557,13 +553,11 @@ class WorkflowPage(QWidget):
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.startup_config_page = self._build_startup_config()
-        self.player_data_panel = PlayerDataPanel(self._settings, self.config_stack)
         self.commerce_config_page = self._build_commerce_config()
         self.battle_config_page = self._build_battle_config()
         self.close_config_page = self._build_close_config()
         self._task_config_pages = {
             "startup": self.startup_config_page,
-            "player_data": self.player_data_panel,
             "commerce": self.commerce_config_page,
             "battle": self.battle_config_page,
             "close": self.close_config_page,
@@ -1174,9 +1168,6 @@ class WorkflowPage(QWidget):
             "round_interval_sec": 1.0,
         }
 
-    def player_data_inputs(self) -> dict[str, Any]:
-        return self.player_data_panel.collect_inputs()
-
     def close_inputs(self) -> dict[str, Any]:
         return {
             "graceful_timeout_sec": self.close_timeout.value(),
@@ -1388,7 +1379,6 @@ class WorkflowPage(QWidget):
             self._set_internal_progress(detail or state_text, None)
         elif state == "success" and step in {
             "startup",
-            "player_data",
             "battle",
             "close",
             "passenger",
@@ -1852,16 +1842,25 @@ class WorkflowPage(QWidget):
 
     def _load_state(self) -> None:
         self._loading_state = True
-        default_order = "startup,player_data,commerce,battle,close"
+        default_order = "startup,commerce,battle,close"
         raw_order = str(self._settings.value("workflow/task_order", default_order) or "")
-        order = [value for value in raw_order.split(",") if value in dict(WORKFLOW_TASKS)]
-        if set(order) == {"startup", "commerce", "battle", "close"}:
-            insertion = order.index("startup") + 1 if "startup" in order else 0
-            order.insert(insertion, "player_data")
-        if set(order) == set(dict(WORKFLOW_TASKS)):
-            self._task_order = order
+        order = [value for value in raw_order.split(",") if value]
+        expected_tasks = set(dict(WORKFLOW_TASKS))
+        if len(order) != len(expected_tasks) or set(order) != expected_tasks:
+            raise ValueError(
+                "workflow/task_order 必须且只能包含："
+                + ",".join(task_id for task_id, _title in WORKFLOW_TASKS)
+            )
+        self._task_order = order
         enabled_raw = str(self._settings.value("workflow/enabled", default_order) or "")
-        enabled = set(enabled_raw.split(","))
+        enabled_values = [value for value in enabled_raw.split(",") if value]
+        unsupported_enabled = set(enabled_values) - expected_tasks
+        if unsupported_enabled:
+            raise ValueError(
+                "workflow/enabled 包含未定义任务："
+                + ",".join(sorted(unsupported_enabled))
+            )
+        enabled = set(enabled_values)
         for task_id, check in self._task_checks.items():
             check.setChecked(task_id in enabled)
         commerce_raw = str(self._settings.value("workflow/commerce_order", "trade,passenger") or "")

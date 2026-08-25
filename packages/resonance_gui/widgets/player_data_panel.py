@@ -81,9 +81,12 @@ class PlayerDataPanel(QWidget):
         self,
         settings: ResonanceConfigRepository,
         parent: QWidget | None = None,
+        *,
+        title_text: str = "更新用户数据",
     ) -> None:
         super().__init__(parent)
         self._settings = settings
+        self._title_text = str(title_text)
         self._snapshot: dict[str, Any] = {}
         self._stage_checks: dict[str, QCheckBox] = {}
         self._stage_times: dict[str, QLabel] = {}
@@ -97,7 +100,7 @@ class PlayerDataPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        heading = QLabel("更新用户数据", self)
+        heading = QLabel(self._title_text, self)
         heading.setObjectName("workflowTitle")
         note = QLabel(
             "任务开始时只校验主界面，不会启动游戏或自动恢复页面。勾选需要读取的数据即可。",
