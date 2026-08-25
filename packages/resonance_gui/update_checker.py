@@ -7,6 +7,7 @@ import re
 from typing import Any, Callable
 import urllib.request
 
+from . import __version__
 from .paths import resolve_application_root
 
 
@@ -42,6 +43,20 @@ def _read_current_tag(root: Path) -> str:
         return ""
     payload = json.loads(info_path.read_text(encoding="utf-8-sig"))
     return str(payload.get("release_label") or "").strip()
+
+
+def current_version_label(*, base_path: Path | None = None) -> str:
+    """Return the packaged release label, with a source-tree version fallback."""
+
+    root = Path(base_path).resolve() if base_path is not None else resolve_application_root()
+    try:
+        packaged_tag = _read_current_tag(root)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        packaged_tag = ""
+    if _parse_version(packaged_tag) is not None:
+        return packaged_tag if packaged_tag.lower().startswith("v") else f"v{packaged_tag}"
+    source_version = str(__version__).strip().lstrip("vV")
+    return f"v{source_version}"
 
 
 def _read_latest_tag(contents: bytes) -> str:

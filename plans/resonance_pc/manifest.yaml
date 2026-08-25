@@ -1594,6 +1594,22 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.team_recommendations
+    module: plans.resonance_pc.src.actions.team_recommendation_pc_actions
+    function: resonance_pc_team_recommendations
+    public: true
+    read_only: true
+    timeout: null
+    description: Match cached characters and weapons against fixed BWIKI team guides.
+    parameters:
+    - name: player_cache_file
+      type: Any
+      required: false
+      default: null
+    - name: catalog_file
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.trade_plan_optimal_route
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_optimal_route
@@ -2245,6 +2261,14 @@ exports:
     source: tasks/rubbish_recycling_pc.yaml
     description: Recycle all rubbish from an eligible city's city panel and return
       to that panel.
+  - id: team_recommendation_pc/team_recommendation_pc
+    title: Fixed Team Recommendations (PC)
+    source: tasks/team_recommendation_pc.yaml
+    description: Match cached player characters and weapons against fixed team guides.
+  - id: team_recommendation_pc
+    title: Fixed Team Recommendations (PC)
+    source: tasks/team_recommendation_pc.yaml
+    description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-25T03:00:39Z'
+  generated_at: '2026-08-25T10:02:50Z'

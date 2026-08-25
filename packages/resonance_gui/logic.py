@@ -21,6 +21,9 @@ PC_BATTLE_PREVIEW_TASK_REF = (
 )
 PC_PLAYER_DATA_REFRESH_TASK_REF = "tasks:player_data_pc.yaml:player_data_refresh"
 PC_PLAYER_DATA_LATEST_TASK_REF = "tasks:player_data_pc.yaml:player_data_get_latest"
+PC_TEAM_RECOMMENDATION_TASK_REF = (
+    "tasks:team_recommendation_pc.yaml:team_recommendation_pc"
+)
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"

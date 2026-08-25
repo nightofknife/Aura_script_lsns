@@ -56,7 +56,7 @@ QFrame#commerceOverviewPanel {
     border-radius: 8px;
 }
 QLabel#commerceOverviewTitle { color: #20252b; font-size: 22px; font-weight: 700; }
-QLabel#developmentBadge {
+QLabel#developmentBadge, QLabel#versionBadge {
     color: #805d09;
     background: #fff1bf;
     border: 1px solid #e2c45f;
@@ -65,6 +65,95 @@ QLabel#developmentBadge {
     font-size: 11px;
     font-weight: 700;
 }
+QPushButton[primaryNav="true"] {
+    min-width: 72px;
+    min-height: 24px;
+    padding: 5px 14px;
+    color: #554f46;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+QPushButton[primaryNav="true"]:hover {
+    color: #38342e;
+    background: #eee5d5;
+    border-color: #d4c6ad;
+}
+QPushButton[primaryNav="true"]:checked {
+    color: #805d09;
+    background: #fff7df;
+    border-color: #d8b34b;
+    font-weight: 700;
+}
+QFrame#smallTaskPanel {
+    background: #f8f3e8;
+    border: 1px solid #c9b99d;
+    border-radius: 6px;
+}
+QLabel#smallTaskColumnTitle {
+    color: #38342e;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d4c6ad;
+    font-size: 16px;
+    font-weight: 700;
+}
+QLabel#smallTaskEmptyState {
+    color: #8d8578;
+    background: transparent;
+    border: 0;
+    padding: 24px;
+    font-size: 12px;
+}
+QListWidget#smallTaskCategoryList, QListWidget#smallTaskList {
+    background: transparent;
+    border: 0;
+    outline: 0;
+}
+QListWidget#smallTaskCategoryList::item, QListWidget#smallTaskList::item {
+    color: #554f46;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 10px 12px;
+}
+QListWidget#smallTaskCategoryList::item:selected,
+QListWidget#smallTaskList::item:selected {
+    color: #384335;
+    background: #e1e6d8;
+    border-color: #9eaa93;
+    font-weight: 700;
+}
+QFrame#smallTaskRunBand {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d4c6ad;
+}
+QLabel#smallTaskRunStatus { color: #716a5e; font-weight: 600; }
+QLabel#smallTaskRunStatus[status="running"] { color: #8b6200; }
+QLabel#smallTaskRunStatus[status="success"] { color: #4d6847; }
+QLabel#smallTaskRunStatus[status="error"] { color: #984b39; }
+QStackedWidget#smallTaskDetailStack { background: transparent; border: 0; }
+QLabel#teamRecommendationStatus {
+    color: #716a5e;
+    background: #f2ebdd;
+    border-left: 3px solid #c9b99d;
+    padding: 8px 10px;
+    font-weight: 600;
+}
+QLabel#teamRecommendationStatus[resultState="running"] {
+    color: #8b6200;
+    border-left-color: #d8b34b;
+}
+QLabel#teamRecommendationStatus[resultState="success"] {
+    color: #4d6847;
+    border-left-color: #77866b;
+}
+QLabel#teamRecommendationStatus[resultState="blocked"],
+QLabel#teamRecommendationStatus[resultState="error"] {
+    color: #984b39;
+    border-left-color: #b9785d;
+}
+QTreeWidget#teamRecommendationTree { font-size: 11px; }
 QCheckBox[commerceSwitch="true"] {
     color: #273038;
     font-size: 16px;
