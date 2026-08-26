@@ -107,6 +107,15 @@ def _coerce_int_sequence(value: Any, *, length: int, label: str) -> Tuple[int, .
         raise ValueError(f"inventory catalog {label} must contain integers") from exc
 
 
+def _coerce_float_sequence(value: Any, *, label: str) -> Tuple[float, ...]:
+    if not isinstance(value, (list, tuple)) or not value:
+        raise ValueError(f"inventory catalog {label} must be a non-empty list")
+    try:
+        return tuple(float(item) for item in value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"inventory catalog {label} must contain numbers") from exc
+
+
 def _catalog_category(catalog: Mapping[str, Any]) -> str:
     category = str(catalog.get("category") or "items").strip()
     if category not in _CATEGORY_SPECS:
@@ -149,7 +158,7 @@ def load_inventory_digit_catalog(
     *,
     plan_root: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    """Load the normalized 0-9 templates and count segmentation parameters."""
+    """Load 0-9 glyphs and prepare direct raw-ROI template variants."""
 
     path = Path(catalog_path or _INVENTORY_DIGIT_CATALOG_FILE)
     root = Path(plan_root or _PLAN_ROOT).resolve()
@@ -170,17 +179,31 @@ def load_inventory_digit_catalog(
     digits = payload.get("digits")
     if digits != list("0123456789"):
         raise ValueError("inventory digit catalog digits must be exactly 0 through 9")
+    if int(payload.get("schema_version", 0)) != 2:
+        raise ValueError("inventory digit catalog schema_version must be 2")
+    if str(payload.get("recognition_mode") or "").strip() != (
+        "raw_grayscale_multiscale_template"
+    ):
+        raise ValueError(
+            "inventory digit recognition_mode must be "
+            "raw_grayscale_multiscale_template"
+        )
     count_band = _coerce_int_sequence(
         payload.get("count_band_from_card"), length=4, label="count_band_from_card"
     )
-    component_width = _coerce_int_sequence(
-        payload.get("component_width"), length=2, label="component_width"
+    search_region = _coerce_int_sequence(
+        payload.get("search_region_from_band"),
+        length=4,
+        label="search_region_from_band",
     )
-    component_height = _coerce_int_sequence(
-        payload.get("component_height"), length=2, label="component_height"
+    source_template_size = _coerce_int_sequence(
+        payload.get("source_template_size"),
+        length=2,
+        label="source_template_size",
     )
-    normalized_size = _coerce_int_sequence(
-        payload.get("normalized_size"), length=2, label="normalized_size"
+    template_scales = _coerce_float_sequence(
+        payload.get("template_scales"),
+        label="template_scales",
     )
     digit_gap = _coerce_int_sequence(
         payload.get("digit_gap"), length=2, label="digit_gap"
@@ -193,34 +216,76 @@ def load_inventory_digit_catalog(
         for value in (
             count_band[2],
             count_band[3],
-            *component_width,
-            *component_height,
-            *normalized_size,
+            search_region[2],
+            search_region[3],
+            *source_template_size,
         )
     ):
         raise ValueError("inventory digit catalog dimensions must be positive")
-    white_min = int(payload.get("white_min", 165))
-    raw_white_min_candidates = payload.get("white_min_candidates", [white_min])
-    if not isinstance(raw_white_min_candidates, list) or not raw_white_min_candidates:
-        raise ValueError("inventory digit white_min_candidates must be a non-empty list")
-    try:
-        white_min_candidates = [int(value) for value in raw_white_min_candidates]
-    except (TypeError, ValueError) as exc:
-        raise ValueError("inventory digit white_min_candidates must contain integers") from exc
     if (
-        not 0 <= white_min <= 255
-        or any(not 0 <= value <= 255 for value in white_min_candidates)
-        or len(white_min_candidates) != len(set(white_min_candidates))
-        or white_min not in white_min_candidates
+        count_band[0] < 0
+        or count_band[1] < 0
+        or search_region[0] < 0
+        or search_region[1] < 0
+        or search_region[0] + search_region[2] > count_band[2]
+        or search_region[1] + search_region[3] > count_band[3]
     ):
         raise ValueError(
-            "inventory digit white_min_candidates must contain unique 0-255 values "
-            "including white_min"
+            "inventory digit search_region_from_band must stay inside count_band_from_card"
         )
+    if (
+        any(not 0.0 < scale <= 1.0 for scale in template_scales)
+        or len(template_scales) != len(set(template_scales))
+    ):
+        raise ValueError(
+            "inventory digit template_scales must contain unique values between 0 and 1"
+        )
+    match_method = str(payload.get("match_method") or "").strip()
+    preprocess = str(payload.get("preprocess") or "").strip()
+    if match_method != "TM_CCOEFF_NORMED" or preprocess != "none":
+        raise ValueError(
+            "inventory digit matching must use TM_CCOEFF_NORMED with preprocess=none"
+        )
+
+    candidate_threshold = float(payload.get("candidate_threshold", 0.0))
+    per_template_nms_threshold = float(
+        payload.get("per_template_nms_threshold", 0.0)
+    )
+    cross_template_overlap_threshold = float(
+        payload.get("cross_template_overlap_threshold", 0.0)
+    )
+    minimum_run_average_score = float(
+        payload.get("minimum_run_average_score", 0.0)
+    )
+    if not (
+        0.0 < candidate_threshold <= 1.0
+        and 0.0 < per_template_nms_threshold <= 1.0
+        and 0.0 < cross_template_overlap_threshold <= 1.0
+        and 0.0 < minimum_run_average_score <= 1.0
+    ):
+        raise ValueError("inventory digit matching thresholds must be between 0 and 1")
+    max_digits = int(payload.get("max_digits", 0))
+    sheet_separator = int(payload.get("sheet_separator", 0))
+    baseline_tolerance = int(payload.get("baseline_tolerance", -1))
+    preferred_digit_gap = int(payload.get("preferred_digit_gap", 0))
+    digit_gap_penalty = float(payload.get("digit_gap_penalty", -1.0))
+    if (
+        max_digits <= 0
+        or sheet_separator <= 0
+        or baseline_tolerance < 0
+        or digit_gap[0] > digit_gap[1]
+        or right_edge_gap[0] < 0
+        or right_edge_gap[0] > right_edge_gap[1]
+        or not digit_gap[0] <= preferred_digit_gap <= digit_gap[1]
+        or digit_gap_penalty < 0.0
+    ):
+        raise ValueError("inventory digit layout and joining parameters are invalid")
 
     templates: Dict[str, List[np.ndarray]] = {}
     template_paths: Dict[str, List[str]] = {}
-    expected_width, expected_height = normalized_size
+    direct_templates: List[np.ndarray] = []
+    direct_template_meta: List[Dict[str, Any]] = []
+    expected_width, expected_height = source_template_size
     for digit in digits:
         digit_dir = (template_root / digit).resolve()
         if not _path_is_within(digit_dir, template_root) or not digit_dir.is_dir():
@@ -240,8 +305,29 @@ def load_inventory_digit_catalog(
                     f"inventory digit template {template_path} must be "
                     f"{expected_width}x{expected_height}"
                 )
-            _, binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
-            samples.append(binary)
+            unique_values = set(int(value) for value in np.unique(image))
+            if not unique_values.issubset({0, 255}):
+                raise ValueError(
+                    f"inventory digit template {template_path} must be binary 0/255"
+                )
+            samples.append(image)
+            for scale in template_scales:
+                scaled_width = max(1, int(round(expected_width * scale)))
+                scaled_height = max(1, int(round(expected_height * scale)))
+                scaled = cv2.resize(
+                    image,
+                    (scaled_width, scaled_height),
+                    interpolation=cv2.INTER_AREA,
+                )
+                direct_templates.append(scaled)
+                direct_template_meta.append(
+                    {
+                        "digit": digit,
+                        "source_path": str(template_path),
+                        "scale": float(scale),
+                        "size": (scaled_width, scaled_height),
+                    }
+                )
         templates[digit] = samples
         template_paths[digit] = [str(item) for item in paths]
 
@@ -249,15 +335,15 @@ def load_inventory_digit_catalog(
     result.update(
         {
             "count_band_from_card": count_band,
-            "component_width": component_width,
-            "component_height": component_height,
-            "normalized_size": normalized_size,
+            "search_region_from_band": search_region,
+            "source_template_size": source_template_size,
+            "template_scales": template_scales,
             "digit_gap": digit_gap,
             "right_edge_gap": right_edge_gap,
-            "white_min": white_min,
-            "white_min_candidates": white_min_candidates,
             "_templates": templates,
             "_template_paths": template_paths,
+            "_direct_templates": direct_templates,
+            "_direct_template_meta": direct_template_meta,
         }
     )
     return result
@@ -655,123 +741,298 @@ def build_quantity_white_mask(
     return mask.astype(np.uint8) * 255
 
 
-def segment_quantity_digits(
-    card_image: np.ndarray,
-    digit_reader: Mapping[str, Any],
-) -> List[Dict[str, Any]]:
-    """Return the right-aligned digit run from one fully visible inventory card."""
-
-    count_band = tuple(int(value) for value in digit_reader["count_band_from_card"])
-    region = relative_roi((0, 0), count_band, card_image.shape)
-    if region is None:
-        return []
-    band_x, band_y, band_width, band_height = region
-    band = card_image[band_y : band_y + band_height, band_x : band_x + band_width]
-
-    raw_white_mins = digit_reader.get(
-        "white_min_candidates",
-        [digit_reader.get("white_min", 165)],
+def _quantity_overlap_ratio(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> float:
+    left_x, left_y, left_width, left_height = (
+        int(value) for value in left["rect"]
     )
-    if not isinstance(raw_white_mins, (list, tuple)) or not raw_white_mins:
-        raw_white_mins = [digit_reader.get("white_min", 165)]
-    runs: List[List[Dict[str, Any]]] = []
-    for raw_white_min in raw_white_mins:
-        candidate_reader = dict(digit_reader)
-        candidate_reader["white_min"] = int(raw_white_min)
-        mask = build_quantity_white_mask(band, candidate_reader)
-        run = _segment_quantity_mask(mask, digit_reader, band_width)
-        if run:
-            runs.append(run)
-    if not runs:
-        return []
-
-    min_score = float(digit_reader.get("min_digit_score", 0.75))
-    min_margin = float(digit_reader.get("min_digit_margin", 0.02))
-
-    def run_rank(run: List[Dict[str, Any]]) -> Tuple[int, int, float]:
-        try:
-            matches = [
-                match_quantity_digit(component["glyph"], digit_reader)
-                for component in run
-            ]
-        except Exception:
-            return (0, len(run), 0.0)
-        valid = all(
-            float(match["score"]) >= min_score
-            and float(match["margin"]) >= min_margin
-            for match in matches
-        )
-        average_score = sum(float(match["score"]) for match in matches) / len(matches)
-        return (int(valid), len(run), average_score)
-
-    return max(runs, key=run_rank)
+    right_x, right_y, right_width, right_height = (
+        int(value) for value in right["rect"]
+    )
+    intersection_width = max(
+        0,
+        min(left_x + left_width, right_x + right_width) - max(left_x, right_x),
+    )
+    intersection_height = max(
+        0,
+        min(left_y + left_height, right_y + right_height) - max(left_y, right_y),
+    )
+    intersection = intersection_width * intersection_height
+    if intersection <= 0:
+        return 0.0
+    return float(
+        intersection
+        / min(left_width * left_height, right_width * right_height)
+    )
 
 
-def _segment_quantity_mask(
-    mask: np.ndarray,
-    digit_reader: Mapping[str, Any],
-    band_width: int,
+def _suppress_quantity_template_overlaps(
+    candidates: Iterable[Dict[str, Any]],
+    *,
+    overlap_threshold: float,
 ) -> List[Dict[str, Any]]:
-    """Segment one thresholded quantity mask into a right-aligned digit run."""
+    """Keep the strongest digit class/template for each physical glyph."""
 
-    component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(mask, 8)
-    min_width, max_width = (int(value) for value in digit_reader["component_width"])
-    min_height, max_height = (int(value) for value in digit_reader["component_height"])
-    min_top = int(digit_reader.get("component_top_min", 0))
-    min_area = int(digit_reader.get("component_area_min", 1))
-    candidates: List[Dict[str, Any]] = []
-    for component_index in range(1, component_count):
-        left, top, width, height, area = (
-            int(value) for value in stats[component_index]
-        )
-        if not (min_width <= width <= max_width):
+    kept: List[Dict[str, Any]] = []
+    for candidate in sorted(
+        candidates,
+        key=lambda entry: float(entry["score"]),
+        reverse=True,
+    ):
+        if any(
+            _quantity_overlap_ratio(candidate, previous) >= overlap_threshold
+            for previous in kept
+        ):
             continue
-        if not (min_height <= height <= max_height):
-            continue
-        if top < min_top or area < min_area:
-            continue
-        candidates.append(
-            {
-                "rect": [left, top, width, height],
-                "glyph": mask[top : top + height, left : left + width],
-                "bottom": top + height,
-            }
-        )
+        kept.append(candidate)
+    return kept
+
+
+def _select_quantity_digit_run(
+    candidates: Sequence[Dict[str, Any]],
+    digit_reader: Mapping[str, Any],
+    *,
+    band_width: int,
+) -> Tuple[List[Dict[str, Any]], float]:
+    """Join direct digit matches from right to left using the fixed count layout."""
+
     if not candidates:
-        return []
-
-    rightmost = max(candidates, key=lambda entry: entry["rect"][0] + entry["rect"][2])
-    right_edge = int(rightmost["rect"][0]) + int(rightmost["rect"][2])
-    right_gap = band_width - right_edge
+        return [], 0.0
     min_right_gap, max_right_gap = (
         int(value) for value in digit_reader["right_edge_gap"]
     )
-    if not (min_right_gap <= right_gap <= max_right_gap):
-        return []
-
-    baseline_tolerance = int(digit_reader.get("baseline_tolerance", 2))
-    baseline = int(rightmost["bottom"])
-    aligned = sorted(
-        (
-            entry
-            for entry in candidates
-            if abs(int(entry["bottom"]) - baseline) <= baseline_tolerance
-        ),
-        key=lambda entry: entry["rect"][0],
-    )
-    rightmost_index = next(
-        index for index, entry in enumerate(aligned) if entry is rightmost
-    )
     min_gap, max_gap = (int(value) for value in digit_reader["digit_gap"])
-    run = [rightmost]
-    for candidate in reversed(aligned[:rightmost_index]):
-        candidate_right = int(candidate["rect"][0]) + int(candidate["rect"][2])
-        gap = int(run[0]["rect"][0]) - candidate_right
-        if min_gap <= gap <= max_gap:
-            run.insert(0, candidate)
-            continue
-        break
-    return run
+    baseline_tolerance = int(digit_reader.get("baseline_tolerance", 4))
+    max_digits = int(digit_reader.get("max_digits", 10))
+    rightmost_candidates: List[Dict[str, Any]] = []
+    for candidate in candidates:
+        x, _y, width, _height = (int(value) for value in candidate["rect"])
+        right_gap = band_width - (x + width)
+        if min_right_gap <= right_gap <= max_right_gap:
+            rightmost_candidates.append(candidate)
+    if not rightmost_candidates:
+        return [], 0.0
+
+    rightmost = max(
+        rightmost_candidates,
+        key=lambda candidate: (
+            int(candidate["rect"][0]) + int(candidate["rect"][2]),
+            float(candidate["score"]),
+        ),
+    )
+    _rightmost_x, rightmost_y, _rightmost_width, rightmost_height = (
+        int(value) for value in rightmost["rect"]
+    )
+    baseline = rightmost_y + rightmost_height
+    run: List[Dict[str, Any]] = [rightmost]
+    preferred_gap = int(digit_reader.get("preferred_digit_gap", 2))
+    gap_penalty = float(digit_reader.get("digit_gap_penalty", 0.012))
+
+    while len(run) < max_digits:
+        first_x = int(run[0]["rect"][0])
+        choices: List[Tuple[float, Dict[str, Any]]] = []
+        for candidate in candidates:
+            if candidate in run:
+                continue
+            x, y, width, height = (
+                int(value) for value in candidate["rect"]
+            )
+            if x >= first_x:
+                continue
+            gap = first_x - (x + width)
+            if not (min_gap <= gap <= max_gap):
+                continue
+            if abs((y + height) - baseline) > baseline_tolerance:
+                continue
+            adjusted_score = float(candidate["score"]) - (
+                abs(gap - preferred_gap) * gap_penalty
+            )
+            choices.append((adjusted_score, candidate))
+        if not choices:
+            break
+        _adjusted_score, selected = max(choices, key=lambda entry: entry[0])
+        run.insert(0, selected)
+
+    average = sum(float(candidate["score"]) for candidate in run) / len(run)
+    minimum_average = float(
+        digit_reader.get("minimum_run_average_score", 0.52)
+    )
+    if average < minimum_average:
+        return [], average
+    return run, average
+
+
+def _extract_quantity_search_roi(
+    card_image: np.ndarray,
+    digit_reader: Mapping[str, Any],
+) -> np.ndarray:
+    count_band = tuple(int(value) for value in digit_reader["count_band_from_card"])
+    band_region = relative_roi((0, 0), count_band, card_image.shape)
+    if band_region is None:
+        raise ValueError("inventory card does not contain the configured count band")
+    band_x, band_y, band_width, band_height = band_region
+    band = card_image[
+        band_y : band_y + band_height,
+        band_x : band_x + band_width,
+    ]
+    search_region = tuple(
+        int(value) for value in digit_reader["search_region_from_band"]
+    )
+    search_x, search_y, search_width, search_height = search_region
+    return band[
+        search_y : search_y + search_height,
+        search_x : search_x + search_width,
+    ].copy()
+
+
+def read_inventory_counts(
+    card_images: Sequence[np.ndarray],
+    digit_reader: Mapping[str, Any],
+    vision: Any,
+    *,
+    item_ids: Sequence[str],
+) -> List[int]:
+    """Read card-bottom counts by direct matching on untouched source pixels."""
+
+    if len(card_images) != len(item_ids):
+        raise ValueError("inventory count card_images and item_ids must have equal length")
+    if not card_images:
+        return []
+    direct_templates = digit_reader.get("_direct_templates")
+    direct_template_meta = digit_reader.get("_direct_template_meta")
+    if (
+        not isinstance(direct_templates, list)
+        or not isinstance(direct_template_meta, list)
+        or not direct_templates
+        or len(direct_templates) != len(direct_template_meta)
+    ):
+        raise ValueError("inventory direct digit templates are not loaded")
+    if vision is None or not callable(
+        getattr(vision, "find_all_templates_batch", None)
+    ):
+        raise RuntimeError("framework vision service is required for inventory count matching")
+
+    search_rois = [
+        _extract_quantity_search_roi(card_image, digit_reader)
+        for card_image in card_images
+    ]
+    search_height, search_width = search_rois[0].shape[:2]
+    if any(roi.shape != search_rois[0].shape for roi in search_rois):
+        raise ValueError("inventory count search ROIs must have identical shapes")
+    separator = int(digit_reader.get("sheet_separator", 8))
+    pitch = search_height + separator
+    sheet_height = len(search_rois) * search_height + (len(search_rois) - 1) * separator
+    if search_rois[0].ndim == 2:
+        sheet = np.zeros((sheet_height, search_width), dtype=search_rois[0].dtype)
+    else:
+        sheet = np.zeros(
+            (sheet_height, search_width, search_rois[0].shape[2]),
+            dtype=search_rois[0].dtype,
+        )
+    for index, roi in enumerate(search_rois):
+        offset_y = index * pitch
+        sheet[offset_y : offset_y + search_height, :search_width] = roi
+
+    batch_results = vision.find_all_templates_batch(
+        source_image=sheet,
+        template_images=direct_templates,
+        threshold=float(digit_reader.get("candidate_threshold", 0.48)),
+        nms_threshold=float(
+            digit_reader.get("per_template_nms_threshold", 0.45)
+        ),
+        use_grayscale=True,
+        match_method=cv2.TM_CCOEFF_NORMED,
+        preprocess="none",
+    )
+    if not isinstance(batch_results, list) or len(batch_results) != len(
+        direct_templates
+    ):
+        raise _inventory_error(
+            "framework vision batch result count does not match direct digit templates"
+        )
+
+    search_x, search_y, _configured_width, _configured_height = (
+        int(value) for value in digit_reader["search_region_from_band"]
+    )
+    candidates_by_card: List[List[Dict[str, Any]]] = [
+        [] for _item_id in item_ids
+    ]
+    for template, metadata, multi_match_result in zip(
+        direct_templates,
+        direct_template_meta,
+        batch_results,
+        strict=True,
+    ):
+        template_height, template_width = template.shape[:2]
+        for match in list(getattr(multi_match_result, "matches", []) or []):
+            top_left = getattr(match, "top_left", None)
+            if not isinstance(top_left, (tuple, list)) or len(top_left) != 2:
+                continue
+            match_x, match_y = (int(value) for value in top_left)
+            card_index = match_y // pitch
+            if not (0 <= card_index < len(card_images)):
+                continue
+            local_y = match_y - card_index * pitch
+            if (
+                match_x < 0
+                or local_y < 0
+                or match_x + template_width > search_width
+                or local_y + template_height > search_height
+            ):
+                continue
+            candidates_by_card[card_index].append(
+                {
+                    "digit": str(metadata["digit"]),
+                    "score": float(getattr(match, "confidence", 0.0)),
+                    "rect": [
+                        match_x + search_x,
+                        local_y + search_y,
+                        template_width,
+                        template_height,
+                    ],
+                    "scale": float(metadata["scale"]),
+                    "source_path": str(metadata["source_path"]),
+                }
+            )
+
+    overlap_threshold = float(
+        digit_reader.get("cross_template_overlap_threshold", 0.45)
+    )
+    band_width = int(digit_reader["count_band_from_card"][2])
+    counts: List[int] = []
+    for item_id, raw_candidates in zip(item_ids, candidates_by_card, strict=True):
+        candidates = _suppress_quantity_template_overlaps(
+            raw_candidates,
+            overlap_threshold=overlap_threshold,
+        )
+        run, average_score = _select_quantity_digit_run(
+            candidates,
+            digit_reader,
+            band_width=band_width,
+        )
+        if not run:
+            raise _inventory_error(
+                f"unable to match raw count digits for {item_id}; "
+                f"candidates={len(candidates)} average={average_score:.3f}"
+            )
+        digits = "".join(str(candidate["digit"]) for candidate in run)
+        value = int(digits)
+        if value <= 0:
+            raise _inventory_error(
+                f"inventory count must be positive for {item_id}; digits={digits}"
+            )
+        logger.info(
+            "Inventory raw-template count: item_id=%s count=%s scores=%s scales=%s average=%.4f",
+            item_id,
+            value,
+            [round(float(candidate["score"]), 4) for candidate in run],
+            [round(float(candidate["scale"]), 2) for candidate in run],
+            average_score,
+        )
+        counts.append(value)
+    return counts
 
 
 def normalize_quantity_digit(
@@ -800,65 +1061,6 @@ def normalize_quantity_digit(
     offset_y = (target_height - resized_height) // 2
     canvas[offset_y : offset_y + resized_height, offset_x : offset_x + resized_width] = resized
     return canvas
-
-
-def _digit_dice_score(left: np.ndarray, right: np.ndarray) -> float:
-    left_mask = left > 0
-    right_mask = right > 0
-    denominator = int(left_mask.sum()) + int(right_mask.sum())
-    if denominator == 0:
-        return 0.0
-    return float(2 * np.logical_and(left_mask, right_mask).sum() / denominator)
-
-
-def _shifted_digit_score(
-    glyph: np.ndarray,
-    template: np.ndarray,
-    tolerance: int,
-) -> float:
-    best = 0.0
-    for offset_y in range(-tolerance, tolerance + 1):
-        for offset_x in range(-tolerance, tolerance + 1):
-            transform = np.float32([[1, 0, offset_x], [0, 1, offset_y]])
-            shifted = cv2.warpAffine(
-                glyph,
-                transform,
-                (glyph.shape[1], glyph.shape[0]),
-                flags=cv2.INTER_NEAREST,
-                borderValue=0,
-            )
-            best = max(best, _digit_dice_score(shifted, template))
-    return best
-
-
-def match_quantity_digit(
-    glyph: np.ndarray,
-    digit_reader: Mapping[str, Any],
-) -> Dict[str, Any]:
-    normalized = normalize_quantity_digit(glyph, digit_reader)
-    templates = digit_reader.get("_templates")
-    if not isinstance(templates, Mapping):
-        raise ValueError("inventory digit templates are not loaded")
-    tolerance = max(int(digit_reader.get("shift_tolerance", 1)), 0)
-    scores = {
-        str(digit): max(
-            _shifted_digit_score(normalized, template, tolerance)
-            for template in samples
-        )
-        for digit, samples in templates.items()
-    }
-    ranking = sorted(scores.items(), key=lambda entry: entry[1], reverse=True)
-    if len(ranking) < 2:
-        raise ValueError("inventory digit catalog must contain at least two digit classes")
-    best_digit, best_score = ranking[0]
-    second_digit, second_score = ranking[1]
-    return {
-        "digit": best_digit,
-        "score": float(best_score),
-        "margin": float(best_score - second_score),
-        "second_digit": second_digit,
-        "second_score": float(second_score),
-    }
 
 
 def _gaussian_blur_digit(image: np.ndarray, sigma: float) -> np.ndarray:
@@ -944,44 +1146,16 @@ def match_expiry_digit(
 def read_inventory_count(
     card_image: np.ndarray,
     digit_reader: Mapping[str, Any],
+    vision: Any,
     *,
     item_id: str,
 ) -> int:
-    components = segment_quantity_digits(card_image, digit_reader)
-    if not components:
-        raise _inventory_error(
-            f"unable to segment count digits for {item_id}; reason=no_right_aligned_digit_run"
-        )
-    max_digits = int(digit_reader.get("max_digits", 10))
-    if len(components) > max_digits:
-        raise _inventory_error(
-            f"unable to segment count digits for {item_id}; "
-            f"reason=too_many_digits count={len(components)} max={max_digits}"
-        )
-
-    matches = [match_quantity_digit(component["glyph"], digit_reader) for component in components]
-    min_score = float(digit_reader.get("min_digit_score", 0.75))
-    min_margin = float(digit_reader.get("min_digit_margin", 0.02))
-    for index, match in enumerate(matches):
-        if float(match["score"]) < min_score or float(match["margin"]) < min_margin:
-            raise _inventory_error(
-                f"unable to match count digit for {item_id}; index={index} "
-                f"best={match['digit']} score={float(match['score']):.3f} "
-                f"second={match['second_digit']} second_score={float(match['second_score']):.3f} "
-                f"margin={float(match['margin']):.3f}"
-            )
-    digits = "".join(str(match["digit"]) for match in matches)
-    value = int(digits)
-    if value <= 0:
-        raise _inventory_error(f"inventory count must be positive for {item_id}; digits={digits}")
-    logger.info(
-        "Inventory digit-template count: item_id=%s count=%s scores=%s margins=%s",
-        item_id,
-        value,
-        [round(float(match["score"]), 4) for match in matches],
-        [round(float(match["margin"]), 4) for match in matches],
-    )
-    return value
+    return read_inventory_counts(
+        [card_image],
+        digit_reader,
+        vision,
+        item_ids=[item_id],
+    )[0]
 
 
 def segment_expiry_digits(
@@ -1188,24 +1362,35 @@ def scan_inventory_page(
                 }
             )
 
+    selected_candidates = _suppress_cross_template_overlaps(candidates)
+    card_images: List[np.ndarray] = []
+    for candidate in selected_candidates:
+        card_x, card_y = (int(value) for value in candidate["card_top_left"])
+        card_images.append(
+            page_image[
+                card_y : card_y + card_height,
+                card_x : card_x + card_width,
+            ]
+        )
+
+    counts = (
+        [1] * len(selected_candidates)
+        if count_mode == _COUNT_MODE_CARD_INSTANCES
+        else read_inventory_counts(
+            card_images,
+            digit_reader,
+            vision,
+            item_ids=[
+                str(candidate["item"]["item_id"])
+                for candidate in selected_candidates
+            ],
+        )
+    )
+
     observations: List[Dict[str, Any]] = []
-    for candidate in _suppress_cross_template_overlaps(candidates):
+    for candidate, count in zip(selected_candidates, counts, strict=True):
         match_top_left = candidate["top_left"]
         item = candidate["item"]
-        card_x, card_y = (int(value) for value in candidate["card_top_left"])
-        card_image = page_image[
-            card_y : card_y + card_height,
-            card_x : card_x + card_width,
-        ]
-        count = (
-            1
-            if count_mode == _COUNT_MODE_CARD_INSTANCES
-            else read_inventory_count(
-                card_image,
-                digit_reader,
-                item_id=str(item["item_id"]),
-            )
-        )
         observation: Dict[str, Any] = {
             "item_id": str(item["item_id"]),
             "name": str(item.get("name") or item["item_id"]),
