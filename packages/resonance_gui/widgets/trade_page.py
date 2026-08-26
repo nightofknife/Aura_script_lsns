@@ -404,6 +404,10 @@ class TradePage(QWidget):
         common_form.addRow("起始城市", self.start_city)
         self.city_selector = self._build_city_selector(content)
         common_form.addRow("参与规划城市", self.city_selector)
+        self.end_city = QComboBox(content)
+        self.end_city.currentIndexChanged.connect(self._sync_actions)
+        self.end_city.setToolTip("选择“否”时由算法自由选择终点；指定城市必须属于参与规划城市")
+        common_form.addRow("终点城市", self.end_city)
         common_form.addRow("疲劳预算", self.fatigue_budget)
         common_form.addRow("货舱容量", self.cargo_capacity)
         common_form.addRow("进货书", self.book_budget)
@@ -662,6 +666,7 @@ class TradePage(QWidget):
 
     def _sync_city_controls(self) -> None:
         self._sync_start_city_options()
+        self._sync_end_city_options()
 
     def _edit_city_prestige(self) -> None:
         dialog = CityPrestigeDialog(
@@ -745,6 +750,22 @@ class TradePage(QWidget):
         self.start_city.blockSignals(False)
         self._sync_actions()
 
+    def _sync_end_city_options(self) -> None:
+        if not hasattr(self, "end_city"):
+            return
+        current_city_id = str(self.end_city.currentData() or "")
+        selected = set(self.selected_city_ids())
+        self.end_city.blockSignals(True)
+        self.end_city.clear()
+        self.end_city.addItem("否", "")
+        for city_id, city_name in PC_TRADE_CITY_OPTIONS:
+            if city_id in selected:
+                self.end_city.addItem(city_name, city_id)
+        index = self.end_city.findData(current_city_id)
+        self.end_city.setCurrentIndex(max(index, 0))
+        self.end_city.blockSignals(False)
+        self._sync_actions()
+
     def selected_city_ids(self) -> list[str]:
         return [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS if self.city_checks[city_id].isChecked()]
 
@@ -771,6 +792,17 @@ class TradePage(QWidget):
         self._sync_start_city_options()
         start_city_index = self.start_city.findData(str(values.get("start_city_id") or ""))
         self.start_city.setCurrentIndex(max(start_city_index, 0))
+        required_end_city_ids = [
+            str(city_id)
+            for city_id in (values.get("required_end_city_ids") or [])
+            if str(city_id) in selected_city_ids
+        ]
+        self._sync_end_city_options()
+        if required_end_city_ids:
+            end_city_index = self.end_city.findData(required_end_city_ids[0])
+            self.end_city.setCurrentIndex(max(end_city_index, 0))
+        else:
+            self.end_city.setCurrentIndex(0)
         prestige = values.get("city_prestige") if isinstance(values.get("city_prestige"), Mapping) else {}
         self._city_prestige_default = max(1, min(int(prestige.get("default", 20)), 20))
         overrides = prestige.get("overrides") if isinstance(prestige.get("overrides"), Mapping) else {}
@@ -815,6 +847,10 @@ class TradePage(QWidget):
             raise ValueError("请选择起始城市")
         if start_city_id and start_city_id not in selected_city_ids:
             raise ValueError("起始城市必须属于参与规划城市")
+        end_city_id = str(self.end_city.currentData() or "")
+        if end_city_id and end_city_id not in selected_city_ids:
+            raise ValueError("终点城市必须属于参与规划城市")
+        required_end_city_ids = [end_city_id] if end_city_id else None
         return {
             "start_city_id": start_city_id,
             "fatigue_budget": self.fatigue_budget.value(),
@@ -829,6 +865,7 @@ class TradePage(QWidget):
             "raise_step_bps": self.raise_step.value(),
             "trade_level": self.trade_level.value(),
             "available_city_ids": selected_city_ids,
+            "required_end_city_ids": required_end_city_ids,
             "city_prestige": self._city_prestige_payload(),
             "product_unlocks": self._product_unlock_payload(),
             "active_events": self._parse_text_list(self.active_events.text()),
@@ -1068,6 +1105,7 @@ class TradePage(QWidget):
             self.advanced_panel,
             self.city_selector,
             self.start_city,
+            self.end_city,
         ):
             widget.setEnabled(not busy)
         self._sync_actions()

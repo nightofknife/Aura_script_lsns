@@ -71,6 +71,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "raise_step_bps": 1000,
     "trade_level": 20,
     "available_city_ids": DEFAULT_PC_TRADE_CITY_IDS,
+    "required_end_city_ids": None,
     "city_prestige": {"default": 20, "overrides": {}},
     "product_unlocks": {"mode": "all", "product_ids": []},
     "active_events": [],
@@ -327,6 +328,15 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     ):
         normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
     merged["available_city_ids"] = normalized_city_ids
+    raw_end_city_ids = merged.get("required_end_city_ids")
+    normalized_end_city_ids = list(
+        dict.fromkeys(
+            str(city_id)
+            for city_id in (raw_end_city_ids if isinstance(raw_end_city_ids, list) else [])
+            if str(city_id) in normalized_city_ids
+        )
+    )
+    merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     try:
