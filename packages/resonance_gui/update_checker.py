@@ -37,6 +37,11 @@ def _parse_version(value: Any) -> tuple[int, int, int] | None:
     return tuple(int(part) for part in match.groups())
 
 
+def _canonical_version(value: Any) -> str:
+    parsed = _parse_version(value)
+    return f"v{'.'.join(str(part) for part in parsed)}" if parsed is not None else ""
+
+
 def _read_current_tag(root: Path) -> str:
     info_path = root / "BUILD-INFO.json"
     if not info_path.is_file():
@@ -46,17 +51,22 @@ def _read_current_tag(root: Path) -> str:
 
 
 def current_version_label(*, base_path: Path | None = None) -> str:
-    """Return the packaged release label, with a source-tree version fallback."""
+    """Return the canonical ``vX.X.X`` release version shown to users.
+
+    Historical source builds could record a bare numeric version. Keep accepting
+    those builds for updates, but normalize every user-facing label to include
+    the canonical ``v`` prefix.
+    """
 
     root = Path(base_path).resolve() if base_path is not None else resolve_application_root()
     try:
         packaged_tag = _read_current_tag(root)
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         packaged_tag = ""
-    if _parse_version(packaged_tag) is not None:
-        return packaged_tag if packaged_tag.lower().startswith("v") else f"v{packaged_tag}"
-    source_version = str(__version__).strip().lstrip("vV")
-    return f"v{source_version}"
+    packaged_version = _canonical_version(packaged_tag)
+    if packaged_version:
+        return packaged_version
+    return _canonical_version(__version__)
 
 
 def _read_latest_tag(contents: bytes) -> str:
@@ -122,8 +132,8 @@ def check_for_update(
     if latest_version is None:
         return None
     return UpdateCheckResult(
-        current_tag=current_tag,
-        latest_tag=latest_tag,
+        current_tag=_canonical_version(current_tag),
+        latest_tag=_canonical_version(latest_tag),
         update_available=latest_version > current_version,
     )
 

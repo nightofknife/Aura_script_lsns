@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*"
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       scope:
@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: Release tag for a manually published run
+        description: Release tag in vX.X.X format
         type: string
         required: false
 
@@ -86,10 +86,23 @@ jobs:
         run: |
           if ($env:GITHUB_REF -like "refs/tags/*") {
             $label = $env:GITHUB_REF_NAME
+            $releaseVersion = $label
           } elseif ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch" -and $env:MANUAL_TAG) {
             $label = $env:MANUAL_TAG
+            $releaseVersion = $label
           } else {
             $label = $env:GITHUB_SHA.Substring(0, 7)
+            $releaseVersion = ""
+          }
+          if ($releaseVersion) {
+            if ($releaseVersion -notmatch '^v\d+\.\d+\.\d+$') {
+              throw "Release version must use vX.X.X format: '$releaseVersion'."
+            }
+            $sourceVersion = (python -c "from packages.resonance_gui import __version__; print(__version__)").Trim()
+            if ($LASTEXITCODE -ne 0) { throw "Failed to read the application version." }
+            if ($sourceVersion -ne $releaseVersion) {
+              throw "Release version '$releaseVersion' does not match application version '$sourceVersion'."
+            }
           }
           $label = $label -replace '[^A-Za-z0-9._-]', '-'
           "release_label=$label" >> $env:GITHUB_OUTPUT
@@ -104,7 +117,7 @@ jobs:
         run: |
           $base = ""
           $forced = "auto"
-          if ($env:GITHUB_REF -like "refs/tags/v*") {
+          if ($env:GITHUB_REF -like "refs/tags/*") {
             $forced = "full"
           } elseif ($env:GITHUB_EVENT_NAME -eq "pull_request") {
             $base = $env:PR_BASE_SHA
@@ -222,7 +235,7 @@ jobs:
         needs.build-cpu.result == 'success' &&
         needs.verify-cpu.result == 'success' &&
         needs.scope.outputs.publish_allowed == 'true' &&
-        (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
+        (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
       }}
     steps:
       - uses: actions/download-artifact@v4
@@ -240,12 +253,15 @@ jobs:
         run: |
           $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF_NAME } else { $env:MANUAL_TAG }
           if (-not $tag) { throw "A release tag is required for publishing." }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag must use vX.X.X format: '$tag'."
+          }
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create $tag `
               --repo $env:GITHUB_REPOSITORY `
               --target $env:GITHUB_SHA `
-              --title $tag `
+              --title "Aura Resonance $tag" `
               --notes "Automated Aura Resonance package build for $tag."
             if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag." }
           }

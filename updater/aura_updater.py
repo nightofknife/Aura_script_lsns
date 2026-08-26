@@ -596,6 +596,8 @@ def perform_update(
 def self_check() -> None:
     if parse_version("v1.2.3") != (1, 2, 3):
         raise UpdateError("Version parser self-check failed")
+    if parse_version("1.2.3") != (1, 2, 3):
+        raise UpdateError("Legacy version parser compatibility self-check failed")
     if "更新.exe" in MANAGED_PATHS or "gui-settings.ini" in MANAGED_PATHS or "logs" in MANAGED_PATHS:
         raise UpdateError("Portable-data preservation self-check failed")
 
