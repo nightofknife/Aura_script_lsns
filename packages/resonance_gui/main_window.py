@@ -221,6 +221,9 @@ class ResonanceMainWindow(QMainWindow):
             self.passenger_page.parameter_panel,
             self.trade_page.execution_panel,
         )
+        self.workflow_page.tradeEndCityAvailabilityChanged.connect(
+            self.trade_page.set_end_city_constraint_available
+        )
         self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
@@ -269,6 +272,9 @@ class ResonanceMainWindow(QMainWindow):
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
         self.workflow_page.apply_compact_inputs(
             self._settings.load_trade_inputs(), self._settings.load_passenger_inputs()
+        )
+        self.trade_page.set_end_city_constraint_available(
+            self.workflow_page.trade_end_city_constraint_available()
         )
         self.workflow_page.set_battle_count(len(self._settings.load_battle_inputs().get("jobs") or []))
         self._sync_workflow_settings()
