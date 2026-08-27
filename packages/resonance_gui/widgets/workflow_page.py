@@ -463,6 +463,7 @@ class WorkflowPage(QWidget):
     openBattleRequested = Signal()
     previewTradeRequested = Signal()
     settingsRequested = Signal()
+    tradeEndCityAvailabilityChanged = Signal(bool)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1159,6 +1160,10 @@ class WorkflowPage(QWidget):
     def commerce_steps(self) -> list[str]:
         return [kind for kind in self._commerce_order if self._commerce_checks[kind].isChecked()]
 
+    def trade_end_city_constraint_available(self) -> bool:
+        enabled = self.commerce_steps()
+        return not (set(enabled) == {"trade", "passenger"} and enabled[0] == "trade")
+
     def startup_inputs(self) -> dict[str, Any]:
         return {
             "executable_path": str(self._settings.value("game/executable_path", "") or "") or None,
@@ -1260,6 +1265,7 @@ class WorkflowPage(QWidget):
             return
         enabled = self.commerce_steps()
         combined = set(enabled) == {"trade", "passenger"}
+        self.tradeEndCityAvailabilityChanged.emit(self.trade_end_city_constraint_available())
         self.trade_fatigue_label.setText("总疲劳预算" if combined else "货运疲劳预算")
         self.combined_budget_summary.setVisible(combined)
         if not combined:
@@ -1285,7 +1291,7 @@ class WorkflowPage(QWidget):
             self.combined_budget_summary.setText(
                 f"组合流程 · 客运基础消耗 {passenger_fatigue} 疲劳。客运先执行，"
                 "归位消耗也会计入；完成后再从总预算中扣除实际预计消耗，"
-                "剩余疲劳全部交给货运。"
+                "剩余疲劳全部交给货运，货运可使用完整参数中指定的终点。"
             )
 
     @staticmethod

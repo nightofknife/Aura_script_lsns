@@ -40,6 +40,7 @@ _TRADE_INPUT_KEYS = {
     "raise_step_bps",
     "trade_level",
     "available_city_ids",
+    "required_end_city_ids",
     "city_prestige",
     "product_unlocks",
     "active_events",
@@ -647,7 +648,6 @@ async def resonance_pc_auto_combined_commerce_flow(
                 detail={"passenger_fatigue": actual_passenger_fatigue},
             )
         effective_trade.update(fatigue_budget=trade_budget)
-        effective_trade.pop("required_end_city_ids", None)
         try:
             trade = await _run_trade(
                 effective_trade,

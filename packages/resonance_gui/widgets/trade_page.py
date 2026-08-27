@@ -312,6 +312,7 @@ class TradePage(QWidget):
         self._plan_inputs: dict[str, Any] = {}
         self._active_mode = ""
         self._route_statuses: dict[int, str] = {}
+        self._end_city_constraint_available = True
         self._product_groups = load_trade_product_groups()
         self._all_product_ids = set(trade_product_ids(self._product_groups))
         self._unlocked_product_ids: set[str] | None = None
@@ -408,6 +409,14 @@ class TradePage(QWidget):
         self.end_city.currentIndexChanged.connect(self._sync_actions)
         self.end_city.setToolTip("选择“否”时由算法自由选择终点；指定城市必须属于参与规划城市")
         common_form.addRow("终点城市", self.end_city)
+        self.end_city_notice = QLabel(
+            "货运在客运前执行时，终点必须衔接客运线路，因此该参数暂不可用。",
+            content,
+        )
+        self.end_city_notice.setProperty("status", "warning")
+        self.end_city_notice.setWordWrap(True)
+        self.end_city_notice.hide()
+        common_form.addRow("", self.end_city_notice)
         common_form.addRow("疲劳预算", self.fatigue_budget)
         common_form.addRow("货舱容量", self.cargo_capacity)
         common_form.addRow("进货书", self.book_budget)
@@ -1105,10 +1114,23 @@ class TradePage(QWidget):
             self.advanced_panel,
             self.city_selector,
             self.start_city,
-            self.end_city,
         ):
             widget.setEnabled(not busy)
+        self.end_city.setEnabled(not busy and self._end_city_constraint_available)
         self._sync_actions()
+
+    def set_end_city_constraint_available(self, available: bool) -> None:
+        self._end_city_constraint_available = bool(available)
+        self.end_city.setEnabled(not self._busy and self._end_city_constraint_available)
+        self.end_city_notice.setVisible(not self._end_city_constraint_available)
+        if self._end_city_constraint_available:
+            self.end_city.setToolTip(
+                "选择“否”时由算法自由选择终点；指定城市必须属于参与规划城市"
+            )
+        else:
+            self.end_city.setToolTip(
+                "货运在客运前执行时，货运终点由客运线路决定，无法手动指定"
+            )
 
     def is_busy(self) -> bool:
         return self._busy
