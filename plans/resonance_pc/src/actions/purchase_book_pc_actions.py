@@ -27,21 +27,29 @@ class PurchaseBookUseError(RuntimeError):
 
 
 _USE_ITEM_BUTTON_REGION = [1010, 80, 145, 55]
-_ITEM_NAME_REGION = [585, 125, 260, 90]
+_ITEM_IDENTITY_REGION = [640, 115, 250, 110]
 _FIRST_ITEM_USE_BUTTON_REGION = [840, 135, 175, 75]
-_QUANTITY_DIALOG_REGION = [430, 270, 430, 235]
+_QUANTITY_PROMPT_REGION = [420, 400, 430, 90]
+_CANCEL_BUTTON_REGION = [0, 485, 640, 110]
 _CONFIRM_BUTTON_REGION = [650, 500, 620, 85]
-_BUY_PAGE_READY_REGION = [850, 80, 190, 70]
+_BUY_PAGE_READY_REGION = [850, 590, 380, 110]
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _USE_ITEM_BUTTON_TEMPLATE = "templates/purchase_book_use_items_button.png"
+_ITEM_IDENTITY_TEMPLATE = "templates/purchase_book_item_identity.png"
 _FIRST_ITEM_USE_BUTTON_TEMPLATE = "templates/purchase_book_first_use_button.png"
+_QUANTITY_PROMPT_TEMPLATE = "templates/purchase_book_quantity_prompt.png"
+_CANCEL_BUTTON_TEMPLATE = "templates/purchase_book_cancel_button.png"
 _CONFIRM_BUTTON_TEMPLATE = "templates/purchase_book_confirm_button.png"
+_BUY_PAGE_READY_TEMPLATE = "templates/purchase_book_buy_page_ready.png"
 
 _USE_ITEM_BUTTON_POINT = (1080, 105)
 _FIRST_ITEM_USE_BUTTON_POINT = (922, 170)
 _PLUS_ONE_POINT = (828, 407)
 _CONFIRM_POINT = (960, 538)
+
+_DEFAULT_TEMPLATE_THRESHOLD = 0.8
+_STATE_STABLE_COUNT = 2
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
@@ -153,66 +161,122 @@ def _find_template(
     return _offset_template_result(result, region_tuple)
 
 
-def _find_text(
-    app: Any,
-    ocr: Any,
-    text_to_find: str,
+def _template_spec(
+    name: str,
+    template: str,
     region: List[int] | Tuple[int, int, int, int],
     *,
-    match_mode: str = "contains",
-) -> Any:
-    region_tuple = _coerce_region(region)
-    capture = app.capture(rect=region_tuple)
-    if not capture.success:
-        _raise_error("capture_failed", "failed to capture screen region", {"region": list(region_tuple)})
-    result = ocr.find_text(source_image=capture.image, text_to_find=text_to_find, match_mode=match_mode)
-    if getattr(result, "found", False):
-        result.center_point = _offset_center(getattr(result, "center_point", None), region_tuple)
-        rect = getattr(result, "rect", None)
-        if rect is not None:
-            result.rect = (int(rect[0]) + region_tuple[0], int(rect[1]) + region_tuple[1], int(rect[2]), int(rect[3]))
-    return result
+    threshold: float = _DEFAULT_TEMPLATE_THRESHOLD,
+) -> Dict[str, Any]:
+    return {
+        "name": str(name),
+        "template": str(template),
+        "region": list(_coerce_region(region)),
+        "threshold": float(threshold),
+    }
 
 
-def _wait_for_text(
+def _observe_template(app: Any, vision: Any, spec: Dict[str, Any]) -> Dict[str, Any]:
+    result = _find_template(
+        app,
+        vision,
+        str(spec["template"]),
+        spec["region"],
+        threshold=float(spec["threshold"]),
+    )
+    confidence = float(getattr(result, "confidence", 0.0) or 0.0)
+    center = getattr(result, "center_point", None)
+    return {
+        "name": str(spec["name"]),
+        "template": str(spec["template"]),
+        "region": list(spec["region"]),
+        "threshold": float(spec["threshold"]),
+        "found": bool(getattr(result, "found", False)),
+        "confidence": confidence,
+        "center_point": [int(center[0]), int(center[1])] if center is not None else None,
+    }
+
+
+def _wait_for_template_state(
     app: Any,
-    ocr: Any,
-    text_to_find: str,
-    region: List[int] | Tuple[int, int, int, int],
+    vision: Any,
     *,
+    state_name: str,
+    all_of: List[Dict[str, Any]],
+    none_of: Optional[List[Dict[str, Any]]] = None,
     timeout_sec: float,
     interval_sec: float,
-    match_mode: str = "contains",
-) -> Any:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last_result = None
-    while True:
-        last_result = _find_text(app, ocr, text_to_find, region, match_mode=match_mode)
-        if getattr(last_result, "found", False):
-            return last_result
-        if time.monotonic() >= deadline:
-            return last_result
-        time.sleep(max(float(interval_sec), 0.05))
+    stable_count: int = _STATE_STABLE_COUNT,
+) -> Dict[str, Any]:
+    required_absent = list(none_of or [])
+    required_stable = max(int(stable_count), 1)
+    timeout = max(float(timeout_sec), 0.0)
+    interval = max(float(interval_sec), 0.05)
+    started_at = time.monotonic()
+    deadline = started_at + timeout
+    attempts = 0
+    consecutive = 0
+    best_confidences: Dict[str, float] = {
+        str(spec["name"]): 0.0 for spec in [*all_of, *required_absent]
+    }
+    observations: Dict[str, Dict[str, Any]] = {}
 
-
-def _wait_for_text_absent(
-    app: Any,
-    ocr: Any,
-    text_to_find: str,
-    region: List[int] | Tuple[int, int, int, int],
-    *,
-    timeout_sec: float,
-    interval_sec: float,
-    match_mode: str = "contains",
-) -> bool:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
     while True:
-        result = _find_text(app, ocr, text_to_find, region, match_mode=match_mode)
-        if not getattr(result, "found", False):
-            return True
-        if time.monotonic() >= deadline:
-            return False
-        time.sleep(max(float(interval_sec), 0.05))
+        attempts += 1
+        observations = {}
+        for spec in [*all_of, *required_absent]:
+            observation = _observe_template(app, vision, spec)
+            name = str(observation["name"])
+            observations[name] = observation
+            best_confidences[name] = max(best_confidences.get(name, 0.0), float(observation["confidence"]))
+
+        present_ok = all(bool(observations[str(spec["name"])]["found"]) for spec in all_of)
+        absent_ok = all(not bool(observations[str(spec["name"])]["found"]) for spec in required_absent)
+        if present_ok and absent_ok:
+            consecutive += 1
+            if consecutive >= required_stable:
+                elapsed = time.monotonic() - started_at
+                logger.info(
+                    "模板状态已稳定: %s (attempts=%d, stable=%d, elapsed=%.2fs)",
+                    state_name,
+                    attempts,
+                    consecutive,
+                    elapsed,
+                )
+                return {
+                    "matched": True,
+                    "state": state_name,
+                    "attempts": attempts,
+                    "stable_count": consecutive,
+                    "required_stable_count": required_stable,
+                    "elapsed_sec": elapsed,
+                    "observations": observations,
+                    "best_confidences": best_confidences,
+                }
+        else:
+            consecutive = 0
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            elapsed = time.monotonic() - started_at
+            logger.warning(
+                "等待模板状态超时: %s (attempts=%d, elapsed=%.2fs, observations=%s)",
+                state_name,
+                attempts,
+                elapsed,
+                observations,
+            )
+            return {
+                "matched": False,
+                "state": state_name,
+                "attempts": attempts,
+                "stable_count": consecutive,
+                "required_stable_count": required_stable,
+                "elapsed_sec": elapsed,
+                "observations": observations,
+                "best_confidences": best_confidences,
+            }
+        time.sleep(min(interval, remaining))
 
 
 def _click_template_or_point(
@@ -225,6 +289,8 @@ def _click_template_or_point(
     threshold: float = 0.8,
     timeout_sec: float = 0.0,
     retry_interval_sec: float = 0.2,
+    error_code: str = "purchase_book_template_not_found",
+    error_message: str = "failed to find required purchase-book UI template",
 ) -> Dict[str, Any]:
     timeout = max(float(timeout_sec or 0.0), 0.0)
     retry_interval = max(float(retry_interval_sec or 0.0), 0.05)
@@ -277,8 +343,8 @@ def _click_template_or_point(
         best_confidence,
     )
     _raise_error(
-        "purchase_book_template_not_found",
-        "failed to find required purchase-book UI template",
+        error_code,
+        error_message,
         {
             "template": template,
             "region": list(region),
@@ -291,6 +357,69 @@ def _click_template_or_point(
     )
 
 
+def _attempt_quantity_dialog_cleanup(
+    *,
+    dialog_timeout_sec: float,
+    click_interval_sec: float,
+    app: Any,
+    vision: Any,
+) -> Dict[str, Any]:
+    cleanup: Dict[str, Any] = {"attempted": True, "succeeded": False}
+    try:
+        cleanup["cancel_click"] = _click_template_or_point(
+            app,
+            vision,
+            _CANCEL_BUTTON_TEMPLATE,
+            _CANCEL_BUTTON_REGION,
+            (322, 538),
+            threshold=_DEFAULT_TEMPLATE_THRESHOLD,
+            timeout_sec=min(max(float(dialog_timeout_sec), 0.5), 2.0),
+            retry_interval_sec=click_interval_sec,
+            error_code="purchase_book_cleanup_cancel_not_found",
+            error_message="failed to find the purchase-book quantity-dialog cancel button",
+        )
+    except PurchaseBookUseError as exc:
+        cleanup["error"] = exc.to_dict()
+        return cleanup
+    except Exception as exc:  # cleanup must never hide the original batch failure
+        cleanup["error"] = {
+            "code": "purchase_book_cleanup_unexpected_error",
+            "message": str(exc),
+            "detail": {"exception_type": type(exc).__name__},
+        }
+        return cleanup
+
+    try:
+        returned_state = _wait_for_template_state(
+            app,
+            vision,
+            state_name="purchase_book_cleanup_buy_page_ready",
+            all_of=[
+                _template_spec("buy_page_ready", _BUY_PAGE_READY_TEMPLATE, _BUY_PAGE_READY_REGION),
+            ],
+            none_of=[
+                _template_spec("quantity_prompt", _QUANTITY_PROMPT_TEMPLATE, _QUANTITY_PROMPT_REGION),
+                _template_spec("confirm_button", _CONFIRM_BUTTON_TEMPLATE, _CONFIRM_BUTTON_REGION),
+                _template_spec("cancel_button", _CANCEL_BUTTON_TEMPLATE, _CANCEL_BUTTON_REGION),
+            ],
+            timeout_sec=max(float(dialog_timeout_sec), 2.0),
+            interval_sec=click_interval_sec,
+        )
+    except PurchaseBookUseError as exc:
+        cleanup["error"] = exc.to_dict()
+        return cleanup
+    except Exception as exc:  # cleanup must never hide the original batch failure
+        cleanup["error"] = {
+            "code": "purchase_book_cleanup_unexpected_error",
+            "message": str(exc),
+            "detail": {"exception_type": type(exc).__name__},
+        }
+        return cleanup
+    cleanup["returned_state"] = returned_state
+    cleanup["succeeded"] = bool(returned_state["matched"])
+    return cleanup
+
+
 def _use_purchase_book_batch(
     *,
     batch_size: int,
@@ -299,119 +428,201 @@ def _use_purchase_book_batch(
     dialog_timeout_sec: float,
     click_interval_sec: float,
     app: Any,
-    ocr: Any,
     vision: Any,
 ) -> Dict[str, Any]:
     logger.info("执行单批 %s x %d。", item_name, batch_size)
+    state = "buy_page"
+    state_trace: List[Dict[str, Any]] = []
+    quantity_dialog_may_be_open = False
 
-    open_click = _click_template_or_point(
-        app,
-        vision,
-        _USE_ITEM_BUTTON_TEMPLATE,
-        _USE_ITEM_BUTTON_REGION,
-        _USE_ITEM_BUTTON_POINT,
-        threshold=0.82,
-        timeout_sec=open_timeout_sec,
-        retry_interval_sec=click_interval_sec,
-    )
-    time.sleep(max(float(click_interval_sec), 0.1))
+    try:
+        open_click = _click_template_or_point(
+            app,
+            vision,
+            _USE_ITEM_BUTTON_TEMPLATE,
+            _USE_ITEM_BUTTON_REGION,
+            _USE_ITEM_BUTTON_POINT,
+            threshold=0.82,
+            timeout_sec=open_timeout_sec,
+            retry_interval_sec=click_interval_sec,
+            error_code="purchase_book_use_items_button_not_found",
+            error_message="failed to find the use-items button on the buy page",
+        )
+        state = "item_modal"
 
-    item_result = _wait_for_text(
-        app,
-        ocr,
-        item_name,
-        _ITEM_NAME_REGION,
-        timeout_sec=open_timeout_sec,
-        interval_sec=0.3,
-    )
-    if not getattr(item_result, "found", False):
-        _raise_error(
-            "purchase_item_modal_not_found",
-            "failed to find purchase item row after opening item dialog",
-            {"item_name": item_name, "batch_size": batch_size},
+        item_modal_state = _wait_for_template_state(
+            app,
+            vision,
+            state_name=state,
+            all_of=[
+                _template_spec("item_identity", _ITEM_IDENTITY_TEMPLATE, _ITEM_IDENTITY_REGION),
+                _template_spec(
+                    "first_item_use_button",
+                    _FIRST_ITEM_USE_BUTTON_TEMPLATE,
+                    _FIRST_ITEM_USE_BUTTON_REGION,
+                    threshold=0.82,
+                ),
+            ],
+            timeout_sec=open_timeout_sec,
+            interval_sec=click_interval_sec,
+        )
+        state_trace.append(item_modal_state)
+        if not item_modal_state["matched"]:
+            _raise_error(
+                "purchase_item_modal_not_found",
+                "purchase-book item modal did not reach a stable template state",
+                {"item_name": item_name, "batch_size": batch_size, "state_result": item_modal_state},
+            )
+
+        item_use_click = _click_template_or_point(
+            app,
+            vision,
+            _FIRST_ITEM_USE_BUTTON_TEMPLATE,
+            _FIRST_ITEM_USE_BUTTON_REGION,
+            _FIRST_ITEM_USE_BUTTON_POINT,
+            threshold=0.82,
+            timeout_sec=dialog_timeout_sec,
+            retry_interval_sec=click_interval_sec,
+            error_code="purchase_book_first_use_button_not_found",
+            error_message="failed to rematch the first purchase-book use button",
+        )
+        quantity_dialog_may_be_open = True
+        state = "quantity_dialog"
+
+        quantity_state = _wait_for_template_state(
+            app,
+            vision,
+            state_name=state,
+            all_of=[
+                _template_spec("quantity_prompt", _QUANTITY_PROMPT_TEMPLATE, _QUANTITY_PROMPT_REGION),
+                _template_spec("confirm_button", _CONFIRM_BUTTON_TEMPLATE, _CONFIRM_BUTTON_REGION),
+            ],
+            timeout_sec=dialog_timeout_sec,
+            interval_sec=click_interval_sec,
+        )
+        state_trace.append(quantity_state)
+        if not quantity_state["matched"]:
+            _raise_error(
+                "purchase_book_quantity_dialog_not_found",
+                "purchase-book quantity dialog did not reach a stable template state",
+                {"item_name": item_name, "books_used": batch_size, "state_result": quantity_state},
+            )
+        state = "set_quantity"
+        plus_clicks = max(batch_size - 1, 0)
+        for _ in range(plus_clicks):
+            app.click(x=_PLUS_ONE_POINT[0], y=_PLUS_ONE_POINT[1])
+            time.sleep(max(float(click_interval_sec), 0.1))
+
+        quantity_stable_state = _wait_for_template_state(
+            app,
+            vision,
+            state_name="quantity_dialog_after_increment",
+            all_of=[
+                _template_spec("quantity_prompt", _QUANTITY_PROMPT_TEMPLATE, _QUANTITY_PROMPT_REGION),
+                _template_spec("confirm_button", _CONFIRM_BUTTON_TEMPLATE, _CONFIRM_BUTTON_REGION),
+            ],
+            timeout_sec=dialog_timeout_sec,
+            interval_sec=click_interval_sec,
+        )
+        state_trace.append(quantity_stable_state)
+        if not quantity_stable_state["matched"]:
+            _raise_error(
+                "purchase_book_quantity_dialog_unstable",
+                "purchase-book quantity dialog became unstable while setting the batch size",
+                {
+                    "item_name": item_name,
+                    "books_used": batch_size,
+                    "plus_clicks": plus_clicks,
+                    "state_result": quantity_stable_state,
+                },
+            )
+
+        state = "confirm"
+        confirm_click = _click_template_or_point(
+            app,
+            vision,
+            _CONFIRM_BUTTON_TEMPLATE,
+            _CONFIRM_BUTTON_REGION,
+            _CONFIRM_POINT,
+            threshold=_DEFAULT_TEMPLATE_THRESHOLD,
+            timeout_sec=dialog_timeout_sec,
+            retry_interval_sec=click_interval_sec,
+            error_code="purchase_book_confirm_button_not_found",
+            error_message="failed to rematch the purchase-book quantity-dialog confirm button",
         )
 
-    item_use_click = _click_template_or_point(
-        app,
-        vision,
-        _FIRST_ITEM_USE_BUTTON_TEMPLATE,
-        _FIRST_ITEM_USE_BUTTON_REGION,
-        _FIRST_ITEM_USE_BUTTON_POINT,
-        threshold=0.82,
-        timeout_sec=dialog_timeout_sec,
-        retry_interval_sec=click_interval_sec,
-    )
-    time.sleep(max(float(click_interval_sec), 0.1))
-
-    quantity_result = _wait_for_text(
-        app,
-        ocr,
-        "是否使用",
-        _QUANTITY_DIALOG_REGION,
-        timeout_sec=dialog_timeout_sec,
-        interval_sec=0.3,
-    )
-    if not getattr(quantity_result, "found", False):
-        _raise_error(
-            "purchase_book_quantity_dialog_not_found",
-            "failed to find purchase book quantity dialog",
-            {"item_name": item_name, "books_used": batch_size},
+        state = "return_buy_page"
+        returned_state = _wait_for_template_state(
+            app,
+            vision,
+            state_name=state,
+            all_of=[
+                _template_spec("buy_page_ready", _BUY_PAGE_READY_TEMPLATE, _BUY_PAGE_READY_REGION),
+            ],
+            none_of=[
+                _template_spec("quantity_prompt", _QUANTITY_PROMPT_TEMPLATE, _QUANTITY_PROMPT_REGION),
+                _template_spec("confirm_button", _CONFIRM_BUTTON_TEMPLATE, _CONFIRM_BUTTON_REGION),
+                _template_spec("cancel_button", _CANCEL_BUTTON_TEMPLATE, _CANCEL_BUTTON_REGION),
+            ],
+            timeout_sec=max(float(dialog_timeout_sec), 2.0),
+            interval_sec=click_interval_sec,
         )
+        state_trace.append(returned_state)
+        if not returned_state["matched"]:
+            observations = returned_state.get("observations") or {}
+            dialog_remains = any(
+                bool((observations.get(name) or {}).get("found"))
+                for name in ("quantity_prompt", "confirm_button", "cancel_button")
+            )
+            if dialog_remains:
+                _raise_error(
+                    "purchase_book_confirm_not_applied",
+                    "purchase-book quantity dialog remained after clicking confirm",
+                    {
+                        "item_name": item_name,
+                        "books_used": batch_size,
+                        "confirm_click": confirm_click,
+                        "state_result": returned_state,
+                    },
+                )
+            _raise_error(
+                "purchase_book_buy_page_not_restored",
+                "purchase-book dialog closed but the buy page did not reach a stable template state",
+                {
+                    "item_name": item_name,
+                    "books_used": batch_size,
+                    "confirm_click": confirm_click,
+                    "state_result": returned_state,
+                },
+            )
 
-    plus_clicks = max(batch_size - 1, 0)
-    for _ in range(plus_clicks):
-        app.click(x=_PLUS_ONE_POINT[0], y=_PLUS_ONE_POINT[1])
-        time.sleep(max(float(click_interval_sec), 0.1))
-
-    time.sleep(max(float(click_interval_sec), 0.1))
-    confirm_click = _click_template_or_point(
-        app,
-        vision,
-        _CONFIRM_BUTTON_TEMPLATE,
-        _CONFIRM_BUTTON_REGION,
-        _CONFIRM_POINT,
-        threshold=0.8,
-        timeout_sec=dialog_timeout_sec,
-        retry_interval_sec=click_interval_sec,
-    )
-    time.sleep(0.8)
-
-    dialog_closed = _wait_for_text_absent(
-        app,
-        ocr,
-        "是否使用",
-        _QUANTITY_DIALOG_REGION,
-        timeout_sec=2.0,
-        interval_sec=0.3,
-    )
-    if not dialog_closed:
-        _raise_error(
-            "purchase_book_confirm_not_applied",
-            "purchase book quantity dialog remained after clicking confirm",
-            {"item_name": item_name, "books_used": batch_size, "confirm_click": confirm_click},
-        )
-
-    ready_result = _wait_for_text(
-        app,
-        ocr,
-        "预计买入",
-        _BUY_PAGE_READY_REGION,
-        timeout_sec=2.0,
-        interval_sec=0.3,
-    )
-    if not getattr(ready_result, "found", False):
-        logger.warning("使用 %s x %d 后未确认看到预计买入。", item_name, batch_size)
-
-    return {
-        "ok": True,
-        "used": batch_size,
-        "item_name": item_name,
-        "plus_clicks": plus_clicks,
-        "open_click": open_click,
-        "item_use_click": item_use_click,
-        "confirm_click": confirm_click,
-        "buy_page_ready": bool(getattr(ready_result, "found", False)),
-    }
+        return {
+            "ok": True,
+            "used": batch_size,
+            "item_name": item_name,
+            "plus_clicks": plus_clicks,
+            "open_click": open_click,
+            "item_use_click": item_use_click,
+            "confirm_click": confirm_click,
+            "buy_page_ready": True,
+            "state_trace": state_trace,
+        }
+    except PurchaseBookUseError as exc:
+        cleanup = {"attempted": False, "succeeded": False}
+        if quantity_dialog_may_be_open:
+            cleanup = _attempt_quantity_dialog_cleanup(
+                dialog_timeout_sec=dialog_timeout_sec,
+                click_interval_sec=click_interval_sec,
+                app=app,
+                vision=vision,
+            )
+        exc.detail = {
+            **exc.detail,
+            "failed_state": state,
+            "state_trace": state_trace,
+            "cleanup": cleanup,
+        }
+        raise
 
 
 @action_info(
@@ -421,7 +632,6 @@ def _use_purchase_book_batch(
 )
 @requires_services(
     app="plans/aura_base/app",
-    ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
 )
 def resonance_pc_use_purchase_books(
@@ -432,11 +642,10 @@ def resonance_pc_use_purchase_books(
     dialog_timeout_sec: float = 3.0,
     click_interval_sec: float = 0.2,
     app: Any = None,
-    ocr: Any = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None:
-        _raise_error("missing_service", "app, ocr and vision services are required")
+    if app is None or vision is None:
+        _raise_error("missing_service", "app and vision services are required")
 
     requested = _coerce_book_count(books_used, max_books_per_purchase)
     max_books = int(max_books_per_purchase)
@@ -480,7 +689,6 @@ def resonance_pc_use_purchase_books(
                 dialog_timeout_sec=dialog_timeout_sec,
                 click_interval_sec=click_interval_sec,
                 app=app,
-                ocr=ocr,
                 vision=vision,
             )
         except PurchaseBookUseError as exc:

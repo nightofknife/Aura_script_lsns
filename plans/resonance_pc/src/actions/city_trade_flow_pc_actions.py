@@ -736,7 +736,6 @@ def resonance_pc_buy_goods_on_buy_page(
             books_used=int(books_used),
             item_name="进货采买书",
             app=app,
-            ocr=ocr,
             vision=vision,
         )
 
