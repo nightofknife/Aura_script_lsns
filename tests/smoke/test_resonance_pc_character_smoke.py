@@ -33,8 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class _Vision:
-    def __init__(self, *, star_scores: list[float], identity_matches: list[object] | None = None):
-        self.star_scores = list(star_scores)
+    def __init__(self, *, identity_matches: list[object] | None = None):
         self.identity_matches = list(identity_matches or [])
 
     def find_all_templates_batch(self, *, template_images, **_kwargs):
@@ -42,11 +41,6 @@ class _Vision:
         if results and self.identity_matches:
             results[0] = SimpleNamespace(matches=list(self.identity_matches))
         return results
-
-    def find_template(self, *, threshold: float, **_kwargs):
-        score = self.star_scores.pop(0)
-        return SimpleNamespace(found=score >= threshold, confidence=score)
-
 
 class _App:
     def __init__(self) -> None:
@@ -139,13 +133,7 @@ def test_character_assets_are_discovered_from_named_unicode_folders() -> None:
         "圣剑波克士",
     }
     assert all(item["template_image"].shape == (140, 140, 3) for item in catalog["templates"])
-    assert catalog["layout"]["star_slots_from_card"] == (
-        (38, 242),
-        (62, 242),
-        (86, 242),
-        (110, 242),
-        (134, 242),
-    )
+    assert catalog["layout"]["star_row_from_card"] == (28, 238, 138, 32)
 
 
 def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_bad_sizes(
@@ -189,14 +177,17 @@ def test_cross_skin_matches_at_the_same_card_are_suppressed() -> None:
     ]
 
 
-def test_single_page_matches_identity_and_classifies_five_star_slots() -> None:
+def test_single_page_matches_identity_and_counts_white_stars_across_the_row() -> None:
     catalog = characters.load_character_catalog()
     identity_match = SimpleNamespace(top_left=(34, 62), confidence=0.95)
-    vision = _Vision(
-        star_scores=[0.95, 0.9, 0.85, 0.2, 0.1],
-        identity_matches=[identity_match],
-    )
+    vision = _Vision(identity_matches=[identity_match])
     page = np.zeros((650, 1280, 3), dtype=np.uint8)
+    star_template = catalog["lit_star_template_image"]
+    card_top_left = (20, 10)
+    for index in range(3):
+        x = card_top_left[0] + 38 + index * 24
+        y = card_top_left[1] + 242
+        page[y : y + 24, x : x + 24] = star_template
 
     observations = characters.scan_character_page(page, catalog, vision)
 
@@ -205,19 +196,27 @@ def test_single_page_matches_identity_and_classifies_five_star_slots() -> None:
     assert observations[0]["character_id"] == catalog["templates"][0]["character_id"]
 
 
-def test_ambiguous_star_score_fails_the_character_stage() -> None:
+def test_star_row_peak_count_tolerates_small_position_offsets() -> None:
     catalog = characters.load_character_catalog()
-    vision = _Vision(star_scores=[0.95, 0.6, 0.2, 0.2, 0.2])
-    page = np.zeros((650, 1280, 3), dtype=np.uint8)
+    star_template = catalog["lit_star_template_image"]
+    star_mask = catalog["lit_star_mask_image"]
+    row = np.zeros((32, 138, 3), dtype=np.uint8)
+    for index in range(4):
+        x = 12 + index * 24
+        y = 6
+        row[y : y + 24, x : x + 24] = star_template
 
-    with pytest.raises(StopTaskException, match="ambiguous"):
-        characters.read_character_stars(
-            page,
-            (20, 10),
-            catalog,
-            vision,
-            character_name="测试角色",
-        )
+    peaks = characters._find_star_row_peaks(
+        row,
+        star_template,
+        star_mask,
+        threshold=0.8,
+        peak_window_size=5,
+        min_horizontal_distance=16,
+    )
+
+    assert len(peaks) == 4
+    assert [peak["top_left"][0] for peak in peaks] == [12, 36, 60, 84]
 
 
 def test_character_scan_stops_after_three_pages_without_new_ids() -> None:

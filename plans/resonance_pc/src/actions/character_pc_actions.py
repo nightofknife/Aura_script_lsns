@@ -161,15 +161,11 @@ def load_character_catalog(
         length=2,
         label="template_offset_from_card",
     )
-    star_slot_size = _coerce_int_sequence(
-        raw_layout.get("star_slot_size"), length=2, label="star_slot_size"
+    star_template_size = _coerce_int_sequence(
+        raw_layout.get("star_template_size"), length=2, label="star_template_size"
     )
-    raw_star_slots = raw_layout.get("star_slots_from_card")
-    if not isinstance(raw_star_slots, list) or len(raw_star_slots) != 5:
-        raise ValueError("character config star_slots_from_card must contain five slots")
-    star_slots = tuple(
-        _coerce_int_sequence(slot, length=2, label="star_slots_from_card")
-        for slot in raw_star_slots
+    star_row_from_card = _coerce_int_sequence(
+        raw_layout.get("star_row_from_card"), length=4, label="star_row_from_card"
     )
     scroll_start = _coerce_int_sequence(
         raw_layout.get("scroll_start"), length=2, label="scroll_start"
@@ -182,14 +178,19 @@ def load_character_catalog(
         raise ValueError("character recognition currently requires a 1280x720 client")
     if template_size != (140, 140):
         raise ValueError("character identity templates must be exactly 140x140")
-    if star_slot_size != (24, 24):
-        raise ValueError("character star template and slots must be exactly 24x24")
-    if any(value <= 0 for value in (*card_size, *template_size, *star_slot_size)):
+    if star_template_size != (24, 24):
+        raise ValueError("character star template must be exactly 24x24")
+    if any(value <= 0 for value in (*card_size, *template_size, *star_template_size)):
         raise ValueError("character card and template dimensions must be positive")
     if grid_region[2] <= 0 or grid_region[3] <= 0:
         raise ValueError("character grid region must have positive dimensions")
     if entry_region[2] <= 0 or entry_region[3] <= 0:
         raise ValueError("character entry region must have positive dimensions")
+    if (
+        star_row_from_card[2] < star_template_size[0]
+        or star_row_from_card[3] < star_template_size[1]
+    ):
+        raise ValueError("character star row must be at least as large as the star template")
 
     entry_threshold = _coerce_float(
         raw_layout.get("entry_match_threshold"), label="entry_match_threshold"
@@ -198,19 +199,23 @@ def load_character_catalog(
         raw_layout.get("character_match_threshold"),
         label="character_match_threshold",
     )
-    lit_star_threshold = _coerce_float(
-        raw_layout.get("lit_star_threshold"), label="lit_star_threshold"
+    star_match_threshold = _coerce_float(
+        raw_layout.get("star_match_threshold"), label="star_match_threshold"
     )
-    unlit_star_threshold = _coerce_float(
-        raw_layout.get("unlit_star_threshold"), label="unlit_star_threshold"
-    )
-    if not 0.0 <= unlit_star_threshold < lit_star_threshold <= 1.0:
-        raise ValueError(
-            "character star thresholds must satisfy "
-            "0 <= unlit < lit <= 1"
-        )
     if not 0.0 <= entry_threshold <= 1.0 or not 0.0 <= character_threshold <= 1.0:
         raise ValueError("character template thresholds must be between 0 and 1")
+    if not 0.0 <= star_match_threshold <= 1.0:
+        raise ValueError("character star match threshold must be between 0 and 1")
+
+    star_peak_window_size = int(raw_layout.get("star_peak_window_size", 5))
+    star_min_horizontal_distance = int(raw_layout.get("star_min_horizontal_distance", 16))
+    max_stars = int(raw_layout.get("max_stars", 5))
+    if star_peak_window_size <= 0 or star_peak_window_size % 2 == 0:
+        raise ValueError("character star peak window size must be a positive odd integer")
+    if star_min_horizontal_distance <= 0:
+        raise ValueError("character star minimum horizontal distance must be positive")
+    if max_stars <= 0:
+        raise ValueError("character maximum star count must be positive")
 
     no_new_limit = int(raw_layout.get("no_new_scan_limit", 3))
     max_scrolls = int(raw_layout.get("max_scrolls", 30))
@@ -297,8 +302,10 @@ def load_character_catalog(
         plan_root=root,
         vision=vision,
     )
-    _validate_image_size(lit_star_template, star_slot_size, label="lit star template")
-    _validate_image_size(lit_star_mask, star_slot_size, label="lit star mask")
+    _validate_image_size(lit_star_template, star_template_size, label="lit star template")
+    _validate_image_size(lit_star_mask, star_template_size, label="lit star mask")
+    lit_star_template_image = _identity_template_rgb(lit_star_template)
+    lit_star_mask_image = _read_image_file(lit_star_mask, cv2.IMREAD_GRAYSCALE)
     entry_image = _read_image_file(entry_template)
     if entry_image is None or entry_image.size == 0:
         raise ValueError(f"unable to read character entry template: {entry_template}")
@@ -310,12 +317,14 @@ def load_character_catalog(
         "card_size": card_size,
         "template_size": template_size,
         "template_offset_from_card": template_offset,
-        "star_slot_size": star_slot_size,
-        "star_slots_from_card": star_slots,
+        "star_template_size": star_template_size,
+        "star_row_from_card": star_row_from_card,
         "entry_match_threshold": entry_threshold,
         "character_match_threshold": character_threshold,
-        "lit_star_threshold": lit_star_threshold,
-        "unlit_star_threshold": unlit_star_threshold,
+        "star_match_threshold": star_match_threshold,
+        "star_peak_window_size": star_peak_window_size,
+        "star_min_horizontal_distance": star_min_horizontal_distance,
+        "max_stars": max_stars,
         "no_new_scan_limit": no_new_limit,
         "max_scrolls": max_scrolls,
         "scroll_start": scroll_start,
@@ -345,6 +354,8 @@ def load_character_catalog(
         "entry_template_path": str(entry_template),
         "lit_star_template_path": str(lit_star_template),
         "lit_star_mask_path": str(lit_star_mask),
+        "lit_star_template_image": lit_star_template_image,
+        "lit_star_mask_image": lit_star_mask_image,
     }
 
 
@@ -441,66 +452,137 @@ def _match_character_candidates(
     return _suppress_overlapping_cards(candidates)
 
 
+def _find_star_row_peaks(
+    star_row_image: np.ndarray,
+    template_image: np.ndarray,
+    mask_image: np.ndarray,
+    *,
+    threshold: float,
+    peak_window_size: int,
+    min_horizontal_distance: int,
+) -> List[Dict[str, Any]]:
+    """Find unique white-star peaks across one complete character star row."""
+
+    if (
+        star_row_image is None
+        or not isinstance(star_row_image, np.ndarray)
+        or star_row_image.size == 0
+    ):
+        raise ValueError("character star row image must be a non-empty numpy array")
+    if (
+        template_image is None
+        or not isinstance(template_image, np.ndarray)
+        or template_image.size == 0
+    ):
+        raise ValueError("character lit-star template must be a non-empty numpy array")
+    if (
+        mask_image is None
+        or not isinstance(mask_image, np.ndarray)
+        or mask_image.size == 0
+    ):
+        raise ValueError("character lit-star mask must be a non-empty numpy array")
+    if (
+        star_row_image.shape[0] < template_image.shape[0]
+        or star_row_image.shape[1] < template_image.shape[1]
+    ):
+        raise ValueError(
+            "character star row image must be at least as large as the lit-star template"
+        )
+    if mask_image.shape[:2] != template_image.shape[:2]:
+        raise ValueError("character lit-star mask and template sizes must match")
+
+    difference_map = cv2.matchTemplate(
+        star_row_image,
+        template_image,
+        cv2.TM_SQDIFF_NORMED,
+        mask=mask_image,
+    )
+    confidence_map = np.nan_to_num(
+        1.0 - difference_map,
+        nan=-1.0,
+        posinf=-1.0,
+        neginf=-1.0,
+    ).astype(np.float32, copy=False)
+    local_maxima = cv2.dilate(
+        confidence_map,
+        np.ones((int(peak_window_size), int(peak_window_size)), dtype=np.float32),
+    )
+    ys, xs = np.where(
+        (confidence_map >= float(threshold))
+        & (confidence_map >= local_maxima - 1e-7)
+    )
+    candidates = sorted(
+        (
+            {
+                "confidence": float(confidence_map[y, x]),
+                "top_left": (int(x), int(y)),
+            }
+            for y, x in zip(ys, xs, strict=True)
+        ),
+        key=lambda item: float(item["confidence"]),
+        reverse=True,
+    )
+
+    kept: List[Dict[str, Any]] = []
+    for candidate in candidates:
+        candidate_x = int(candidate["top_left"][0])
+        if any(
+            abs(candidate_x - int(other["top_left"][0])) < int(min_horizontal_distance)
+            for other in kept
+        ):
+            continue
+        kept.append(candidate)
+    return sorted(kept, key=lambda item: int(item["top_left"][0]))
+
+
 def read_character_stars(
     page_image: np.ndarray,
     card_top_left: Sequence[int],
     catalog: Mapping[str, Any],
-    vision: Any,
     *,
     character_name: str,
 ) -> int:
-    """Classify the five fixed star slots with a masked brightness-sensitive match."""
+    """Count lit stars by matching across the character's complete star row."""
 
     layout = catalog["layout"]
-    slot_size = tuple(int(value) for value in layout["star_slot_size"])
-    lit_threshold = float(layout["lit_star_threshold"])
-    unlit_threshold = float(layout["unlit_star_threshold"])
-    template_path = str(catalog["lit_star_template_path"])
-    mask_path = str(catalog["lit_star_mask_path"])
-    if vision is None or not callable(getattr(vision, "find_template", None)):
-        raise RuntimeError("framework vision service is required for star matching")
-
-    stars = 0
-    scores: List[float] = []
-    for index, slot_offset in enumerate(layout["star_slots_from_card"]):
-        roi = _relative_roi(card_top_left, slot_offset, slot_size, page_image.shape)
-        if roi is None:
-            raise _character_error(
-                f"star slot {index + 1} is outside the captured card for {character_name}"
-            )
-        x, y, width, height = roi
-        slot_image = page_image[y : y + height, x : x + width]
-        match = vision.find_template(
-            source_image=slot_image,
-            template_image=template_path,
-            mask_image=mask_path,
-            threshold=lit_threshold,
-            use_grayscale=False,
-            match_method=cv2.TM_SQDIFF_NORMED,
-            preprocess="none",
-        )
-        score = float(getattr(match, "confidence", float("nan")))
-        if not math.isfinite(score):
-            raise _character_error(
-                f"star slot {index + 1} produced a non-finite score for {character_name}"
-            )
-        scores.append(score)
-        if score >= lit_threshold:
-            stars += 1
-        elif score <= unlit_threshold:
-            continue
-        else:
-            raise _character_error(
-                f"star slot {index + 1} is ambiguous for {character_name}; "
-                f"score={score:.3f}"
-            )
-    logger.info(
-        "Character star recognition: name=%s stars=%s scores=%s",
-        character_name,
-        stars,
-        [round(value, 4) for value in scores],
+    star_row_region = tuple(int(value) for value in layout["star_row_from_card"])
+    roi = _relative_roi(
+        card_top_left,
+        star_row_region[:2],
+        star_row_region[2:],
+        page_image.shape,
     )
-    return stars
+    if roi is None:
+        raise _character_error(f"star row is outside the captured card for {character_name}")
+    x, y, width, height = roi
+    star_row_image = page_image[y : y + height, x : x + width]
+    peaks = _find_star_row_peaks(
+        star_row_image,
+        catalog["lit_star_template_image"],
+        catalog["lit_star_mask_image"],
+        threshold=float(layout["star_match_threshold"]),
+        peak_window_size=int(layout["star_peak_window_size"]),
+        min_horizontal_distance=int(layout["star_min_horizontal_distance"]),
+    )
+    max_stars = int(layout["max_stars"])
+    if len(peaks) > max_stars:
+        raise _character_error(
+            f"star row produced {len(peaks)} unique white-star matches for "
+            f"{character_name}; maximum is {max_stars}"
+        )
+    logger.info(
+        "Character star recognition: name=%s stars=%s peaks=%s",
+        character_name,
+        len(peaks),
+        [
+            {
+                "top_left": tuple(int(value) for value in peak["top_left"]),
+                "confidence": round(float(peak["confidence"]), 4),
+            }
+            for peak in peaks
+        ],
+    )
+    return len(peaks)
 
 
 def scan_character_page(
@@ -517,7 +599,6 @@ def scan_character_page(
             page_image,
             candidate["card_top_left"],
             catalog,
-            vision,
             character_name=str(candidate["name"]),
         )
         observation = {
