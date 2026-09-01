@@ -1,0 +1,197 @@
+consciousness_deep_dive_capture_pc:
+  meta:
+    title: Consciousness Deep Dive View Capture (PC)
+    description: Capture four calibrated board views for recognition material.
+    entry_point: true
+    inputs: []
+
+  steps:
+    wait_before_first_drag:
+      action: plans/aura_base/sleep
+      params: {seconds: 2.0}
+
+    drag_560_chunk_1:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_before_first_drag
+    wait_560_chunk_1:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_560_chunk_1
+    drag_560_chunk_2:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 240, duration: 0.5}
+      depends_on: wait_560_chunk_1
+    wait_before_560_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.4}
+      depends_on: drag_560_chunk_2
+    capture_560:
+      action: resonance_pc.capture_consciousness_deep_dive_view
+      params: {displacement_px: 560}
+      depends_on: wait_before_560_capture
+    wait_after_560_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: capture_560
+
+    drag_2480_chunk_1:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_after_560_capture
+    wait_2480_chunk_1:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_2480_chunk_1
+    drag_2480_chunk_2:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_2480_chunk_1
+    wait_2480_chunk_2:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_2480_chunk_2
+    drag_2480_chunk_3:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_2480_chunk_2
+    wait_2480_chunk_3:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_2480_chunk_3
+    drag_2480_chunk_4:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_2480_chunk_3
+    wait_2480_chunk_4:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_2480_chunk_4
+    drag_2480_chunk_5:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_2480_chunk_4
+    wait_2480_chunk_5:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_2480_chunk_5
+    drag_2480_chunk_6:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_2480_chunk_5
+    wait_before_2480_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.4}
+      depends_on: drag_2480_chunk_6
+    capture_2480:
+      action: resonance_pc.capture_consciousness_deep_dive_view
+      params: {displacement_px: 2480}
+      depends_on: wait_before_2480_capture
+    wait_after_2480_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: capture_2480
+
+    drag_3680_chunk_1:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_after_2480_capture
+    wait_3680_chunk_1:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_3680_chunk_1
+    drag_3680_chunk_2:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_3680_chunk_1
+    wait_3680_chunk_2:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_3680_chunk_2
+    drag_3680_chunk_3:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_3680_chunk_2
+    wait_3680_chunk_3:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_3680_chunk_3
+    drag_3680_chunk_4:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 240, duration: 0.5}
+      depends_on: wait_3680_chunk_3
+    wait_before_3680_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.4}
+      depends_on: drag_3680_chunk_4
+    capture_3680:
+      action: resonance_pc.capture_consciousness_deep_dive_view
+      params: {displacement_px: 3680}
+      depends_on: wait_before_3680_capture
+    wait_after_3680_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: capture_3680
+
+    drag_5600_chunk_1:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_after_3680_capture
+    wait_5600_chunk_1:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_5600_chunk_1
+    drag_5600_chunk_2:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_5600_chunk_1
+    wait_5600_chunk_2:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_5600_chunk_2
+    drag_5600_chunk_3:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_5600_chunk_2
+    wait_5600_chunk_3:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_5600_chunk_3
+    drag_5600_chunk_4:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_5600_chunk_3
+    wait_5600_chunk_4:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_5600_chunk_4
+    drag_5600_chunk_5:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_5600_chunk_4
+    wait_5600_chunk_5:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.2}
+      depends_on: drag_5600_chunk_5
+    drag_5600_chunk_6:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_5600_chunk_5
+    wait_before_5600_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.4}
+      depends_on: drag_5600_chunk_6
+    capture_5600:
+      action: resonance_pc.capture_consciousness_deep_dive_view
+      params: {displacement_px: 5600}
+      depends_on: wait_before_5600_capture
+
+  returns:
+    success: true
+    status: completed
+    capture_count: 4
+    captures:
+      - "{{ nodes.capture_560.output }}"
+      - "{{ nodes.capture_2480.output }}"
+      - "{{ nodes.capture_3680.output }}"
+      - "{{ nodes.capture_5600.output }}"

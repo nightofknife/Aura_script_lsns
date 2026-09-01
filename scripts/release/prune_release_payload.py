@@ -86,6 +86,10 @@ def classify_runtime_file(relative: Path) -> str | None:
     ):
         return "unused_opencv_video_codec"
     if parts[0] == "_internal" and (
+        parts[-1] == "icuuc.dll" or parts[-1].startswith("icudt")
+    ):
+        return "conflicting_bundled_icu"
+    if parts[0] == "_internal" and (
         relative.suffix.lower()
         in {".a", ".exp", ".h", ".hpp", ".lib", ".pdb", ".pxd", ".pxi", ".pyi", ".pyx"}
         or parts[-1] == "py.typed"

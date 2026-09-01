@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from ..config_repository import ResonanceConfigRepository
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
+from .data_collection_panel import DataCollectionPanel
 from .player_data_panel import PlayerDataPanel
 from .team_recommendation_panel import TeamRecommendationPanel
 
@@ -26,10 +27,16 @@ from .team_recommendation_panel import TeamRecommendationPanel
 USER_DATA_TASK_ID = "player_data_refresh"
 TEAM_RECOMMENDATION_TASK_ID = "team_recommendation"
 CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
+DATA_COLLECTION_TASK_ID = "data_collection"
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
     ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
-    ("activity_play", "活动玩法", ((CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),)),
+    (
+        "activity_play",
+        "活动玩法",
+        ((CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),),
+    ),
+    ("developer_tools", "开发工具", ((DATA_COLLECTION_TASK_ID, "数据采集"),)),
 )
 
 
@@ -59,6 +66,8 @@ class SmallTasksPage(QWidget):
     runPlayerDataRequested = Signal(object)
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
+    runConsciousnessDeepDiveCaptureRequested = Signal()
+    runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
     cancelRequested = Signal()
     cacheRequested = Signal()
 
@@ -136,7 +145,20 @@ class SmallTasksPage(QWidget):
             self.cancelRequested.emit
         )
         self.detail_stack.addWidget(self.consciousness_deep_dive_panel)
-        self._task_pages[CONSCIOUSNESS_DEEP_DIVE_TASK_ID] = self.consciousness_deep_dive_panel
+        self._task_pages[CONSCIOUSNESS_DEEP_DIVE_TASK_ID] = (
+            self.consciousness_deep_dive_panel
+        )
+
+        self.data_collection_panel = DataCollectionPanel(self.detail_stack)
+        self.data_collection_panel.captureRequested.connect(
+            self.runConsciousnessDeepDiveCaptureRequested.emit
+        )
+        self.data_collection_panel.sensitivityProbeRequested.connect(
+            self.runConsciousnessDeepDiveSensitivityProbeRequested.emit
+        )
+        self.data_collection_panel.cancelRequested.connect(self.cancelRequested.emit)
+        self.detail_stack.addWidget(self.data_collection_panel)
+        self._task_pages[DATA_COLLECTION_TASK_ID] = self.data_collection_panel
 
         root.addWidget(self.category_panel, 22)
         root.addWidget(self.task_panel, 30)
@@ -258,9 +280,33 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.begin_run()
         self._sync_controls()
 
+    def begin_consciousness_deep_dive_capture_run(self) -> None:
+        self._active_task_id = DATA_COLLECTION_TASK_ID
+        self.data_collection_panel.begin_capture_run()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_sensitivity_probe_run(self) -> None:
+        self._active_task_id = DATA_COLLECTION_TASK_ID
+        self.data_collection_panel.begin_sensitivity_probe_run()
+        self._sync_controls()
+
     def apply_consciousness_deep_dive_result(self, payload: Mapping[str, Any]) -> None:
         self._active_task_id = ""
         self.consciousness_deep_dive_panel.apply_result(payload)
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_capture_result(
+        self, payload: Mapping[str, Any]
+    ) -> None:
+        self._active_task_id = ""
+        self.data_collection_panel.apply_capture_result(payload)
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_sensitivity_probe_result(
+        self, payload: Mapping[str, Any]
+    ) -> None:
+        self._active_task_id = ""
+        self.data_collection_panel.apply_sensitivity_probe_result(payload)
         self._sync_controls()
 
     def show_consciousness_deep_dive_error(self, message: str) -> None:
@@ -268,11 +314,24 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.show_error(message)
         self._sync_controls()
 
+    def show_consciousness_deep_dive_capture_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.data_collection_panel.show_capture_error(message)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_sensitivity_probe_error(
+        self, message: str
+    ) -> None:
+        self._active_task_id = ""
+        self.data_collection_panel.show_sensitivity_probe_error(message)
+        self._sync_controls()
+
     def set_runner_busy(self, busy: bool) -> None:
         self._runner_busy = bool(busy)
         self.player_data_panel.set_runner_busy(busy)
         self.team_recommendation_panel.set_runner_busy(busy)
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
+        self.data_collection_panel.set_runner_busy(busy)
         self._sync_controls()
 
     def _sync_controls(self) -> None:
@@ -293,6 +352,7 @@ class SmallTasksPage(QWidget):
 __all__ = [
     "CATEGORY_TASKS",
     "CONSCIOUSNESS_DEEP_DIVE_TASK_ID",
+    "DATA_COLLECTION_TASK_ID",
     "SmallTasksPage",
     "TEAM_RECOMMENDATION_TASK_ID",
     "USER_DATA_TASK_ID",
