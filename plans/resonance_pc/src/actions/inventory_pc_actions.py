@@ -98,6 +98,13 @@ def _path_is_within(path: Path, root: Path) -> bool:
         return False
 
 
+def _load_image_file(vision: Any, path: Path, flags: int) -> np.ndarray:
+    loader = getattr(vision, "load_image_file", None)
+    if not callable(loader):
+        raise RuntimeError("framework vision image loader is required for inventory matching")
+    return loader(path, flags)
+
+
 def _coerce_int_sequence(value: Any, *, length: int, label: str) -> Tuple[int, ...]:
     if not isinstance(value, (list, tuple)) or len(value) != length:
         raise ValueError(f"inventory catalog {label} must contain {length} integers")
@@ -148,6 +155,7 @@ def load_inventory_digit_catalog(
     catalog_path: Optional[Path] = None,
     *,
     plan_root: Optional[Path] = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
     """Load the normalized 0-9 templates and count segmentation parameters."""
 
@@ -232,9 +240,12 @@ def load_inventory_digit_catalog(
         for template_path in paths:
             if not _path_is_within(template_path.resolve(), digit_dir):
                 raise ValueError(f"inventory digit template escapes digit directory: {template_path}")
-            image = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
-            if image is None:
-                raise ValueError(f"unable to read inventory digit template: {template_path}")
+            try:
+                image = _load_image_file(vision, template_path, cv2.IMREAD_GRAYSCALE)
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"unable to read inventory digit template: {template_path}"
+                ) from exc
             if image.shape[:2] != (expected_height, expected_width):
                 raise ValueError(
                     f"inventory digit template {template_path} must be "
@@ -267,6 +278,7 @@ def load_inventory_expiry_digit_catalog(
     catalog_path: Optional[Path] = None,
     *,
     plan_root: Optional[Path] = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
     """Load the currently available expiry digit templates and segmentation rules."""
 
@@ -359,11 +371,12 @@ def load_inventory_expiry_digit_catalog(
                 raise ValueError(
                     f"inventory expiry digit template escapes digit directory: {template_path}"
                 )
-            image = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
-            if image is None:
+            try:
+                image = _load_image_file(vision, template_path, cv2.IMREAD_GRAYSCALE)
+            except (OSError, ValueError) as exc:
                 raise ValueError(
                     f"unable to read inventory expiry digit template: {template_path}"
-                )
+                ) from exc
             if image.shape[:2] != (expected_height, expected_width):
                 raise ValueError(
                     f"inventory expiry digit template {template_path} must be "
@@ -400,6 +413,7 @@ def load_inventory_catalog(
     plan_root: Optional[Path] = None,
     digit_catalog_path: Optional[Path] = None,
     expiry_digit_catalog_path: Optional[Path] = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
     """Load and validate one supported inventory category catalog."""
 
@@ -498,6 +512,7 @@ def load_inventory_catalog(
         load_inventory_digit_catalog(
             digit_catalog_path,
             plan_root=root,
+            vision=vision,
         )
         if spec["count_mode"] == _COUNT_MODE_DIGIT_TEMPLATE
         else None
@@ -506,6 +521,7 @@ def load_inventory_catalog(
         load_inventory_expiry_digit_catalog(
             expiry_digit_catalog_path,
             plan_root=root,
+            vision=vision,
         )
         if spec["supports_expiry"]
         else None
@@ -552,12 +568,13 @@ def _resolve_inventory_template_paths(
                 f"inventory template is unavailable for {item.get('item_id')}: "
                 f"{template_path}"
             )
-        template_image = cv2.imread(str(template_path), cv2.IMREAD_UNCHANGED)
-        if template_image is None:
+        try:
+            template_image = _load_image_file(vision, template_path, cv2.IMREAD_UNCHANGED)
+        except (OSError, ValueError) as exc:
             raise ValueError(
                 f"unable to read inventory template for {item.get('item_id')}: "
                 f"{template_path}"
-            )
+            ) from exc
         if template_image.shape[:2] != (template_height, template_width):
             raise ValueError(
                 f"inventory template {template_path} must be exactly "
@@ -591,6 +608,7 @@ def prepare_inventory_catalog(
         plan_root=root,
         digit_catalog_path=digit_catalog_path,
         expiry_digit_catalog_path=expiry_digit_catalog_path,
+        vision=vision,
     )
     actual_category = _catalog_category(catalog)
     if actual_category != normalized_category:

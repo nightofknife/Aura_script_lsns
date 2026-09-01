@@ -223,20 +223,24 @@ def _has_all_markers(items: Iterable[Any], markers: Iterable[str]) -> bool:
     )
 
 
-def _match_warehouse_entry(app: Any) -> Dict[str, Any]:
+def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
     capture = app.capture(rect=_WAREHOUSE_ENTRY_REGION)
     if not getattr(capture, "success", False):
         return {"found": False, "confidence": 0.0, "reason": "capture_failed"}
 
     source = getattr(capture, "image", None)
-    template = cv2.imread(str(_WAREHOUSE_ENTRY_TEMPLATE), cv2.IMREAD_GRAYSCALE)
     if source is None:
         return {"found": False, "confidence": 0.0, "reason": "capture_empty"}
-    if template is None:
+    try:
+        template = vision.load_image_file(
+            _WAREHOUSE_ENTRY_TEMPLATE,
+            cv2.IMREAD_GRAYSCALE,
+        )
+    except (OSError, ValueError) as exc:
         raise StopTaskException(
             f"Player data refresh failed: warehouse entry template is unavailable: {_WAREHOUSE_ENTRY_TEMPLATE}",
             success=False,
-        )
+        ) from exc
 
     if source.ndim == 2:
         source_gray = source
@@ -265,6 +269,7 @@ def _match_warehouse_entry(app: Any) -> Dict[str, Any]:
 def _enter_warehouse_page(
     app: Any,
     ocr: Any,
+    vision: Any,
     *,
     timeout_sec: float = _WAREHOUSE_ENTRY_TIMEOUT_SEC,
     interval_sec: float = 0.15,
@@ -279,7 +284,7 @@ def _enter_warehouse_page(
     while time.monotonic() < deadline:
         now = time.monotonic()
         if now >= next_click_at:
-            last_entry_match = _match_warehouse_entry(app)
+            last_entry_match = _match_warehouse_entry(app, vision)
             if last_entry_match.get("found"):
                 center = last_entry_match["center"]
                 app.click(x=int(center[0]), y=int(center[1]))
@@ -710,7 +715,7 @@ def resonance_pc_player_data_refresh(
 
             if "inventory" in selected:
                 current_page = "inventory"
-                _enter_warehouse_page(app, ocr)
+                _enter_warehouse_page(app, ocr, vision)
                 category_results: Dict[str, Dict[str, Any]] = {}
                 for category in selected_inventory_categories:
                     _select_inventory_category(app, category)

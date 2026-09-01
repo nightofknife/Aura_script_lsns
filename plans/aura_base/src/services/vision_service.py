@@ -530,6 +530,22 @@ class VisionService:
     # Section 3: 内部辅助工具 (同步)
     # =========================================================================
 
+    def load_image_file(
+            self,
+            image_path: str | Path,
+            flags: int = cv2.IMREAD_UNCHANGED,
+    ) -> np.ndarray:
+        """Load an OpenCV image from a filesystem path, including Unicode paths."""
+        path = Path(image_path)
+        try:
+            encoded = np.frombuffer(path.read_bytes(), dtype=np.uint8)
+        except OSError as exc:
+            raise FileNotFoundError(f"无法从路径加载图像: {image_path}") from exc
+        image = cv2.imdecode(encoded, int(flags))
+        if image is None:
+            raise FileNotFoundError(f"无法从路径加载图像: {image_path}")
+        return image
+
     def _prepare_image(self,
                        image: np.ndarray | str | None,
                        use_grayscale: bool = True,
@@ -544,9 +560,7 @@ class VisionService:
 
         input_is_bgr = isinstance(image, str)
         if isinstance(image, str):
-            img = cv2.imread(image, cv2.IMREAD_UNCHANGED)
-            if img is None:
-                raise FileNotFoundError(f"无法从路径加载图像: {image}")
+            img = self.load_image_file(image, cv2.IMREAD_UNCHANGED)
         elif isinstance(image, np.ndarray):
             img = image
         else:

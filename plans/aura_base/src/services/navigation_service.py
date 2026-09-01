@@ -13,6 +13,7 @@ from packages.aura_core.api import service_info
 from packages.aura_core.observability.logging.core_logger import logger
 from .app_provider_service import AppProviderService
 from .config_service import ConfigService
+from .vision_service import VisionService
 
 
 def _normalize_angle_deg(angle: float) -> float:
@@ -34,9 +35,10 @@ def _bw_map_is_black(img_bgr: np.ndarray, v_min: int, v_max: int) -> np.ndarray:
 
 
 class _TemplateHeadingDetector:
-    def __init__(self, template_dir: Path, match_threshold: float):
+    def __init__(self, template_dir: Path, match_threshold: float, vision: VisionService):
         self.template_dir = template_dir
         self.match_threshold = match_threshold
+        self.vision = vision
         self.templates: List[Dict[str, Any]] = []
         self._load_templates()
 
@@ -54,8 +56,9 @@ class _TemplateHeadingDetector:
             if not (0 <= angle < 360):
                 continue
 
-            img = cv2.imread(str(file))
-            if img is None:
+            try:
+                img = self.vision.load_image_file(file, cv2.IMREAD_COLOR)
+            except (OSError, ValueError):
                 continue
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             mask = (gray > 5).astype(np.uint8) * 255
@@ -98,11 +101,16 @@ class _TemplateHeadingDetector:
         return True, float(best_angle), best_score
 
 
-@service_info(alias="navigation", public=True, deps={"app": "app", "config": "core/config"})
+@service_info(
+    alias="navigation",
+    public=True,
+    deps={"app": "app", "config": "core/config", "vision": "vision"},
+)
 class NavigationService:
-    def __init__(self, app: AppProviderService, config: ConfigService):
+    def __init__(self, app: AppProviderService, config: ConfigService, vision: VisionService):
         self.app = app
         self.config = config
+        self.vision = vision
         self._heading_detector: Optional[_TemplateHeadingDetector] = None
         self._heading_template_dir: Optional[Path] = None
         self._circle_mask_cache: Dict[Tuple[int, int], np.ndarray] = {}
@@ -120,13 +128,18 @@ class NavigationService:
         passable_image_path = self._resolve_path(passable_image_path, base_path)
         goals_json_path = self._resolve_path(goals_json_path, base_path)
 
-        map_bgr = cv2.imread(str(map_image_path))
-        if map_bgr is None:
-            raise FileNotFoundError(f"Map image not found: {map_image_path}")
+        try:
+            map_bgr = self.vision.load_image_file(map_image_path, cv2.IMREAD_COLOR)
+        except (OSError, ValueError) as exc:
+            raise FileNotFoundError(f"Map image not found: {map_image_path}") from exc
 
-        passable_gray = cv2.imread(str(passable_image_path), cv2.IMREAD_GRAYSCALE)
-        if passable_gray is None:
-            raise FileNotFoundError(f"Passable image not found: {passable_image_path}")
+        try:
+            passable_gray = self.vision.load_image_file(
+                passable_image_path,
+                cv2.IMREAD_GRAYSCALE,
+            )
+        except (OSError, ValueError) as exc:
+            raise FileNotFoundError(f"Passable image not found: {passable_image_path}") from exc
 
         goals = self._load_goals(goals_json_path)
         if not goals:
@@ -513,7 +526,11 @@ class NavigationService:
     def _ensure_heading_detector(self, template_dir: Path, match_threshold: float):
         if self._heading_detector is None or self._heading_template_dir != template_dir:
             self._heading_template_dir = template_dir
-            self._heading_detector = _TemplateHeadingDetector(template_dir, match_threshold)
+            self._heading_detector = _TemplateHeadingDetector(
+                template_dir,
+                match_threshold,
+                self.vision,
+            )
 
     def _resolve_path(self, value: Any, base_path: Optional[Path]) -> Path:
         path = Path(str(value))
