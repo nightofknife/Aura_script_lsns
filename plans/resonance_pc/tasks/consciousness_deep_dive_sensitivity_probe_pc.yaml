@@ -1,0 +1,34 @@
+consciousness_deep_dive_sensitivity_probe_pc:
+  meta:
+    title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
+    description: Drag the board once by 320px and capture one unlabeled probe image.
+    entry_point: true
+    inputs: []
+
+  steps:
+    wait_before_probe:
+      action: plans/aura_base/sleep
+      params: {seconds: 2.0}
+
+    drag_probe_320:
+      action: plans/aura_base/drag
+      params: {start_x: 640, start_y: 480, end_x: 640, end_y: 160, duration: 0.5}
+      depends_on: wait_before_probe
+
+    wait_after_probe:
+      action: plans/aura_base/sleep
+      params: {seconds: 0.4}
+      depends_on: drag_probe_320
+
+    capture_probe:
+      action: resonance_pc.capture_consciousness_deep_dive_view
+      params: {displacement_px: 320}
+      depends_on: wait_after_probe
+
+  returns:
+    success: true
+    status: completed
+    probe_distance_px: 320
+    output_path: "{{ nodes.capture_probe.output.output_path }}"
+    relative_path: "{{ nodes.capture_probe.output.relative_path }}"
+    capture: "{{ nodes.capture_probe.output }}"

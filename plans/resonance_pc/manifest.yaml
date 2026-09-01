@@ -1192,6 +1192,18 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.capture_consciousness_deep_dive_view
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_capture_pc_actions
+    function: resonance_pc_capture_consciousness_deep_dive_view
+    public: true
+    read_only: false
+    timeout: 15
+    description: Capture one fixed-displacement Consciousness Deep Dive board view.
+    parameters:
+    - name: displacement_px
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.consciousness_deep_dive_enter_stage
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_pc_actions
     function: resonance_pc_consciousness_deep_dive_enter_stage
@@ -2221,6 +2233,14 @@ exports:
     source: tasks/cape_island_investment_pc.yaml
     description: Enter Mirage Island from the Cape City main screen, invest once when
       possible, and return.
+  - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_pc
+    title: Consciousness Deep Dive View Capture (PC)
+    source: tasks/consciousness_deep_dive_capture_pc.yaml
+    description: Capture four calibrated board views for recognition material.
+  - id: consciousness_deep_dive_capture_pc
+    title: Consciousness Deep Dive View Capture (PC)
+    source: tasks/consciousness_deep_dive_capture_pc.yaml
+    description: Capture four calibrated board views for recognition material.
   - id: consciousness_deep_dive_pc/consciousness_deep_dive_pc
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
@@ -2229,6 +2249,14 @@ exports:
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+  - id: consciousness_deep_dive_sensitivity_probe_pc/consciousness_deep_dive_sensitivity_probe_pc
+    title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
+    source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
+    description: Drag the board once by 320px and capture one unlabeled probe image.
+  - id: consciousness_deep_dive_sensitivity_probe_pc
+    title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
+    source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
+    description: Drag the board once by 320px and capture one unlabeled probe image.
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -2296,4 +2324,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-01T08:21:15Z'
+  generated_at: '2026-09-01T17:11:36Z'

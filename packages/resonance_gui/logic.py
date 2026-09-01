@@ -27,6 +27,13 @@ PC_TEAM_RECOMMENDATION_TASK_REF = (
 PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF = (
     "tasks:consciousness_deep_dive_pc.yaml:consciousness_deep_dive_pc"
 )
+PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF = (
+    "tasks:consciousness_deep_dive_capture_pc.yaml:consciousness_deep_dive_capture_pc"
+)
+PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF = (
+    "tasks:consciousness_deep_dive_sensitivity_probe_pc.yaml:"
+    "consciousness_deep_dive_sensitivity_probe_pc"
+)
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
