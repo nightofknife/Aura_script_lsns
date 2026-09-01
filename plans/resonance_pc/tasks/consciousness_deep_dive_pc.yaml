@@ -6,8 +6,12 @@ consciousness_deep_dive_pc:
     inputs: []
 
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     enter_stage:
       action: resonance_pc.consciousness_deep_dive_enter_stage
+      depends_on: require_resolution
 
   returns:
     deep_dive: "{{ nodes.enter_stage.output }}"

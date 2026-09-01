@@ -1370,6 +1370,9 @@ auto_battle_dispatch_pc:
         default: true
 
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     wait_battle_terminal_text:
       action: plans/aura_base/wait_for_text
       params:
@@ -1378,6 +1381,7 @@ auto_battle_dispatch_pc:
         interval: 0.5
         region: [1100, 380, 150, 120]
         match_mode: "contains"
+      depends_on: require_resolution
 
     click_battle_terminal:
       action: plans/aura_base/find_text_and_click

@@ -6,9 +6,13 @@ team_recommendation_pc:
     inputs: []
 
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     recommend:
       action: resonance_pc.team_recommendations
       params: {}
+      depends_on: require_resolution
 
   returns:
     team_recommendations: "{{ nodes.recommend.output }}"

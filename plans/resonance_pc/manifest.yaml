@@ -1192,6 +1192,14 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.require_client_resolution
+    module: plans.resonance_pc.src.actions.runtime_preflight_pc_actions
+    function: resonance_pc_require_client_resolution
+    public: true
+    read_only: true
+    timeout: null
+    description: Require the Resonance PC client area to be exactly 1280x720.
+    parameters: []
   - name: resonance_pc.consciousness_deep_dive_enter_stage
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_pc_actions
     function: resonance_pc_consciousness_deep_dive_enter_stage

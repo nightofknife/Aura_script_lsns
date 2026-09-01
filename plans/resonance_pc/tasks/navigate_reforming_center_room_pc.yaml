@@ -18,8 +18,12 @@ navigate_reforming_center_room_pc:
         default: 0.8
         min: 0.05
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     ensure_reforming_center:
       action: resonance_pc.enter_reforming_center
+      depends_on: require_resolution
 
     navigate:
       action: resonance_pc.navigate_reforming_center_room

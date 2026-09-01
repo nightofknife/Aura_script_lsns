@@ -16,6 +16,8 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_game.executable_locator import validate_executable_path
 
+from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
+
 
 PROCESS_IDENTIFIER = "resonance_pc"
 PROCESS_NAME = "雷索纳斯.exe"
@@ -257,6 +259,7 @@ def resonance_pc_enter_main(
         target = _wait_for_target(windows_diagnostics, window_timeout_sec, launched_pid)
     target_pid = int(target["pid"]) if target.get("pid") is not None else launched_pid
     logger.info("[PcEnterMain] target ready hwnd=%s pid=%s launched=%s", target.get("hwnd"), target_pid, launched)
+    resolution_check = resonance_pc_require_client_resolution(app=app)
 
     region_tuple = _coerce_region(region)
     max_rounds = max(int(max_settle_rounds), 1)
@@ -291,6 +294,7 @@ def resonance_pc_enter_main(
                 "launch_result": launch_result,
                 "pid": target_pid,
                 "hwnd": target.get("hwnd"),
+                "resolution_check": resolution_check,
                 "initial_state": initial_state,
                 "final_state": "main",
                 "rounds": round_index + 1,

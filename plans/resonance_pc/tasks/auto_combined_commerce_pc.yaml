@@ -23,6 +23,9 @@ auto_combined_commerce_pc:
         required: false
         default: {}
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     run:
       action: resonance_pc.auto_combined_commerce_flow
       params:
@@ -30,6 +33,7 @@ auto_combined_commerce_pc:
         total_fatigue_budget: "{{ inputs.total_fatigue_budget | default(700) }}"
         trade_inputs: "{{ inputs.trade_inputs | default({}) }}"
         passenger_inputs: "{{ inputs.passenger_inputs | default({}) }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.run.output.success }}"
     status: "{{ nodes.run.output.status }}"

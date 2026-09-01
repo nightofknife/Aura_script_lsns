@@ -47,6 +47,7 @@ enter_main:
     launched: "{{ nodes.enter_main.output.launched }}"
     pid: "{{ nodes.enter_main.output.pid }}"
     hwnd: "{{ nodes.enter_main.output.hwnd }}"
+    resolution_check: "{{ nodes.enter_main.output.resolution_check }}"
     initial_state: "{{ nodes.enter_main.output.initial_state }}"
     final_state: "{{ nodes.enter_main.output.final_state }}"
     rounds: "{{ nodes.enter_main.output.rounds }}"

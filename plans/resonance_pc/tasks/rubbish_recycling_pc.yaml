@@ -8,10 +8,14 @@ rubbish_recycling_pc:
         type: string
         required: true
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     recycle:
       action: resonance_pc.execute_rubbish_recycling_from_city_panel
       params:
         city_name: "{{ inputs.city_name }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.recycle.output.success }}"
     status: "{{ nodes.recycle.output.status }}"

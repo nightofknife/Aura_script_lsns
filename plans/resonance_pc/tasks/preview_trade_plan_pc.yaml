@@ -156,6 +156,9 @@ preview_trade_plan_pc:
         required: false
         default: []
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     run:
       action: resonance_pc.preview_trade_plan_flow
       params:
@@ -174,6 +177,7 @@ preview_trade_plan_pc:
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         active_events: "{{ inputs.active_events | default([]) }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.run.output.success }}"
     preview: "{{ nodes.run.output.preview }}"

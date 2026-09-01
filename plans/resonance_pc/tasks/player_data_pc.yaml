@@ -25,12 +25,16 @@ player_data_refresh:
           enum: [items, materials, equipment]
 
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     refresh:
       action: resonance_pc.player_data_refresh
       timeout_sec: 900
       params:
         stages: "{{ inputs.stages }}"
         inventory_categories: "{{ inputs.inventory_categories }}"
+      depends_on: require_resolution
 
   returns:
     player_data: "{{ nodes.refresh.output }}"

@@ -4,8 +4,12 @@ cape_island_investment_pc:
     description: Enter Mirage Island from the Cape City main screen, invest once when possible, and return.
     entry_point: true
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     open_city:
       action: resonance_pc.open_city_panel_from_main
+      depends_on: require_resolution
 
     invest:
       action: resonance_pc.execute_cape_island_investment_from_city_panel

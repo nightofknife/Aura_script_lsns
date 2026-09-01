@@ -250,6 +250,9 @@ auto_cycle_trade_pc:
         required: false
         default: true
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     run:
       action: resonance_pc.auto_cycle_trade_flow
       params:
@@ -274,6 +277,7 @@ auto_cycle_trade_pc:
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(3600) }}"
         auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.run.output.success }}"
     status: "{{ nodes.run.output.status }}"

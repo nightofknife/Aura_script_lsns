@@ -14,7 +14,6 @@ from packages.aura_core.utils.exceptions import StopTaskException
 
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ....aura_base.src.actions.input_actions import drag as aura_drag
-from ....aura_base.src.actions.system_actions import get_window_size as aura_get_window_size
 from ....aura_base.src.actions.wait_actions import sleep as aura_sleep
 from ....aura_base.src.actions.wait_actions import wait_for_image as aura_wait_for_image
 
@@ -22,7 +21,6 @@ from ....aura_base.src.actions.wait_actions import wait_for_image as aura_wait_f
 Region = Tuple[int, int, int, int]
 Point = Tuple[int, int]
 
-_EXPECTED_CLIENT_SIZE = (1280, 720)
 _CONTROL_WAIT_TIMEOUT_SEC = 20.0
 _CLICK_EFFECT_TIMEOUT_SEC = 12.0
 _DIFFICULTY_SEARCH_TIMEOUT_SEC = 20.0
@@ -491,13 +489,6 @@ async def resonance_pc_consciousness_deep_dive_enter_stage(
 ) -> Dict[str, Any]:
     if app is None or vision is None or engine is None:
         raise RuntimeError("app/vision services and engine are required")
-    window_size = aura_get_window_size(app=app)
-    if tuple(window_size or ()) != _EXPECTED_CLIENT_SIZE:
-        raise ConsciousnessDeepDiveError(
-            "deep_dive_window_size_mismatch",
-            "识海深潜任务要求游戏客户区为 1280×720。",
-            {"expected": list(_EXPECTED_CLIENT_SIZE), "actual": list(window_size or ())},
-        )
 
     started_at = time.monotonic()
     transitions: list[Dict[str, Any]] = []

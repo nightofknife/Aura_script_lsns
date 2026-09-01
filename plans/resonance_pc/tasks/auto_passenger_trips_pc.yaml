@@ -44,6 +44,9 @@ auto_passenger_trips_pc:
         default: 1800
         min: 1
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     run:
       action: resonance_pc.auto_passenger_trips_flow
       params:
@@ -56,6 +59,7 @@ auto_passenger_trips_pc:
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(1800) }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.run.output.success }}"
     status: "{{ nodes.run.output.status }}"

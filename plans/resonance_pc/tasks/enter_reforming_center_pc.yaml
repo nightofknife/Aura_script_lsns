@@ -25,6 +25,9 @@ enter_reforming_center_pc:
         default: 0.5
         min: 0.05
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     enter:
       action: resonance_pc.enter_reforming_center
       params:
@@ -32,6 +35,7 @@ enter_reforming_center_pc:
         menu_timeout_sec: "{{ inputs.menu_timeout_sec }}"
         entry_timeout_sec: "{{ inputs.entry_timeout_sec }}"
         interval_sec: "{{ inputs.interval_sec }}"
+      depends_on: require_resolution
   returns:
     success: "{{ nodes.enter.output.success }}"
     status: "{{ nodes.enter.output.status }}"

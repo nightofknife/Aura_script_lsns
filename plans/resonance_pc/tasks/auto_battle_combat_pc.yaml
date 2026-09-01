@@ -11,10 +11,14 @@ auto_battle_combat_pc:
         type: number
         required: false
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     log_combat_job:
       action: plans/aura_base/log
       params:
         message: "combat executor: formation={{ inputs.formation_index | default('n/a') }}, capture={{ inputs.capture_count | default('n/a') }}"
+      depends_on: require_resolution
 
     prepare_formation:
       action: resonance_pc.prepare_battle_formation

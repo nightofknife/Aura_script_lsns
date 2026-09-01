@@ -111,10 +111,14 @@ auto_battle_input_preview_pc:
         default: true
 
   steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
     normalize_jobs:
       action: resonance_pc.normalize_battle_jobs
       params:
         jobs: "{{ inputs.jobs }}"
+      depends_on: require_resolution
 
     validate_jobs:
       action: resonance_pc.validate_battle_jobs
