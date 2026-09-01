@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from packages.aura_core.utils.exceptions import StopTaskException
+from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import inventory_pc_actions as inventory
 from plans.resonance_pc.src.actions import player_data_pc_actions as player_data
 
@@ -19,6 +20,8 @@ PLAN_ROOT = REPO_ROOT / "plans" / "resonance_pc"
 
 
 class ResolvingVision:
+    load_image_file = staticmethod(VisionService.load_image_file)
+
     def resolve_template(self, _plan_key: str, template_ref: str, plan_root: Path) -> str:
         return str(Path(plan_root) / template_ref)
 

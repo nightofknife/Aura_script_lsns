@@ -1,4 +1,4 @@
-"""Smoke checks for the canonical user-facing release version format."""
+"""Contract checks for the canonical user-facing release version format."""
 
 from __future__ import annotations
 
@@ -34,10 +34,12 @@ def test_release_tags_are_normalized_for_update_messages() -> None:
     assert _canonical_version("1.8.12") == "v1.8.12"
 
 
-def test_release_workflow_requires_v_prefixed_versions() -> None:
+def test_release_workflow_uses_canonical_tag_as_release_title() -> None:
     workflow = Path(".github/workflows/release.yml").read_text(encoding="utf-8")
 
     assert '- "v*.*.*"' in workflow
     assert "Release version must use vX.X.X format" in workflow
     assert "does not match application version" in workflow
-    assert '--title "Aura Resonance $tag"' in workflow
+    assert "--title $tag" in workflow
+    assert '--title "Aura Resonance $tag"' not in workflow
+    assert "gh release edit $tag --repo $env:GITHUB_REPOSITORY --title $tag" in workflow
