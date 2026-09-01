@@ -112,7 +112,9 @@ class ResonancePcMarketDataService:
     def refresh(self, force: bool = False) -> Dict[str, Any]:
         try:
             raw = self.fetch_raw()
-            buy_lot_payload = self.resolve_buy_lot_payload()
+            # buy_lot is versioned release metadata. Ordinary price refreshes
+            # must not scrape the route page and its JavaScript chunks.
+            buy_lot_payload = self.load_buy_lot_payload()
             normalized = self.normalize(raw, buy_lot_payload=buy_lot_payload)
             persisted = self.persist(normalized, force=bool(force))
             result = copy.deepcopy(persisted)
