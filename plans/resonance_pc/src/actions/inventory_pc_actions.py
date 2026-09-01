@@ -17,7 +17,6 @@ import numpy as np
 
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.observability.logging.core_logger import logger
-from plans.aura_base.src.services.vision_service import VisionService
 
 
 Region = Tuple[int, int, int, int]
@@ -101,9 +100,16 @@ def _path_is_within(path: Path, root: Path) -> bool:
 
 def _load_image_file(vision: Any, path: Path, flags: int) -> np.ndarray:
     loader = getattr(vision, "load_image_file", None)
-    if not callable(loader):
-        loader = VisionService.load_image_file
-    return loader(path, flags)
+    if callable(loader):
+        return loader(path, flags)
+    try:
+        encoded = np.frombuffer(path.read_bytes(), dtype=np.uint8)
+    except OSError as exc:
+        raise FileNotFoundError(f"unable to read inventory template: {path}") from exc
+    image = cv2.imdecode(encoded, int(flags))
+    if image is None:
+        raise ValueError(f"unable to decode inventory template: {path}")
+    return image
 
 
 def _coerce_int_sequence(value: Any, *, length: int, label: str) -> Tuple[int, ...]:
