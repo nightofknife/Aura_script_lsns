@@ -1192,14 +1192,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.require_client_resolution
-    module: plans.resonance_pc.src.actions.runtime_preflight_pc_actions
-    function: resonance_pc_require_client_resolution
-    public: true
-    read_only: true
-    timeout: null
-    description: Require the Resonance PC client area to be exactly 1280x720.
-    parameters: []
   - name: resonance_pc.consciousness_deep_dive_enter_stage
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_pc_actions
     function: resonance_pc_consciousness_deep_dive_enter_stage
@@ -1611,6 +1603,14 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.require_client_resolution
+    module: plans.resonance_pc.src.actions.runtime_preflight_pc_actions
+    function: resonance_pc_require_client_resolution
+    public: true
+    read_only: true
+    timeout: null
+    description: Require the Resonance PC client area to be exactly 1280x720.
+    parameters: []
   - name: resonance_pc.team_recommendations
     module: plans.resonance_pc.src.actions.team_recommendation_pc_actions
     function: resonance_pc_team_recommendations
@@ -2296,4 +2296,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-25T14:58:29Z'
+  generated_at: '2026-09-01T08:21:15Z'

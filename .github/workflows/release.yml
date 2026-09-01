@@ -261,10 +261,12 @@ jobs:
             gh release create $tag `
               --repo $env:GITHUB_REPOSITORY `
               --target $env:GITHUB_SHA `
-              --title "Aura Resonance $tag" `
+              --title $tag `
               --notes "Automated Aura Resonance package build for $tag."
             if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag." }
           }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title $tag
+          if ($LASTEXITCODE -ne 0) { throw "Failed to normalize release title for $tag." }
           $expectedAssets = @(
             "AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip",
             "SHA256SUMS.txt"
