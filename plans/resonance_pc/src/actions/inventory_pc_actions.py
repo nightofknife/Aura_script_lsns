@@ -17,6 +17,7 @@ import numpy as np
 
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.observability.logging.core_logger import logger
+from plans.aura_base.src.services.vision_service import VisionService
 
 
 Region = Tuple[int, int, int, int]
@@ -101,7 +102,7 @@ def _path_is_within(path: Path, root: Path) -> bool:
 def _load_image_file(vision: Any, path: Path, flags: int) -> np.ndarray:
     loader = getattr(vision, "load_image_file", None)
     if not callable(loader):
-        raise RuntimeError("framework vision image loader is required for inventory matching")
+        loader = VisionService.load_image_file
     return loader(path, flags)
 
 

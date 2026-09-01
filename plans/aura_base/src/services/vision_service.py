@@ -530,8 +530,8 @@ class VisionService:
     # Section 3: 内部辅助工具 (同步)
     # =========================================================================
 
+    @staticmethod
     def load_image_file(
-            self,
             image_path: str | Path,
             flags: int = cv2.IMREAD_UNCHANGED,
     ) -> np.ndarray:
