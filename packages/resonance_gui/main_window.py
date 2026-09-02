@@ -881,17 +881,22 @@ class ResonanceMainWindow(QMainWindow):
             float(self.timeout_spin.value()),
         )
 
-    def _run_small_task_consciousness_deep_dive_capture(self) -> None:
+    def _run_small_task_consciousness_deep_dive_capture(
+        self, inputs: dict[str, Any]
+    ) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
             self.small_tasks_page.show_consciousness_deep_dive_capture_error(
                 "当前有任务正在运行，请稍后再试。"
             )
             return
         self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF
-        self.small_tasks_page.begin_consciousness_deep_dive_capture_run()
+        capture_inputs = dict(inputs or {})
+        self.small_tasks_page.begin_consciousness_deep_dive_capture_run(
+            capture_inputs
+        )
         self.requestRunPcTask.emit(
             PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-            {},
+            capture_inputs,
             "识海深潜素材采集",
             float(self.timeout_spin.value()),
         )

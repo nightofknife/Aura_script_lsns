@@ -66,7 +66,7 @@ class SmallTasksPage(QWidget):
     runPlayerDataRequested = Signal(object)
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
-    runConsciousnessDeepDiveCaptureRequested = Signal()
+    runConsciousnessDeepDiveCaptureRequested = Signal(object)
     runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
     cancelRequested = Signal()
     cacheRequested = Signal()
@@ -280,9 +280,13 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.begin_run()
         self._sync_controls()
 
-    def begin_consciousness_deep_dive_capture_run(self) -> None:
+    def begin_consciousness_deep_dive_capture_run(
+        self, inputs: Mapping[str, Any]
+    ) -> None:
         self._active_task_id = DATA_COLLECTION_TASK_ID
-        self.data_collection_panel.begin_capture_run()
+        self.data_collection_panel.begin_capture_run(
+            str(inputs.get("sensitivity") or "slow")
+        )
         self._sync_controls()
 
     def begin_consciousness_deep_dive_sensitivity_probe_run(self) -> None:
