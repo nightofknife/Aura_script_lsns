@@ -1192,6 +1192,34 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.prepare_consciousness_deep_dive_capture_profile
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_capture_pc_actions
+    function: resonance_pc_prepare_consciousness_deep_dive_capture_profile
+    public: false
+    read_only: true
+    timeout: 5
+    description: Resolve one calibrated Deep Dive capture sensitivity profile.
+    parameters:
+    - name: sensitivity
+      type: Any
+      required: false
+      default: slow
+  - name: resonance_pc.collect_consciousness_deep_dive_capture_results
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_capture_pc_actions
+    function: resonance_pc_collect_consciousness_deep_dive_capture_results
+    public: false
+    read_only: true
+    timeout: 5
+    description: Normalize capture outputs returned by sequential view sub-tasks.
+    parameters:
+    - name: profile
+      type: Any
+      required: true
+      default: null
+    - name: runs
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.capture_consciousness_deep_dive_view
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_capture_pc_actions
     function: resonance_pc_capture_consciousness_deep_dive_view
@@ -2233,6 +2261,14 @@ exports:
     source: tasks/cape_island_investment_pc.yaml
     description: Enter Mirage Island from the Cape City main screen, invest once when
       possible, and return.
+  - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_drag_chunk_pc
+    title: Consciousness Deep Dive Capture Drag Chunk (PC)
+    source: tasks/consciousness_deep_dive_capture_pc.yaml
+    description: Perform one bounded board drag and its inter-chunk wait.
+  - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_view_pc
+    title: Consciousness Deep Dive Capture View (PC)
+    source: tasks/consciousness_deep_dive_capture_pc.yaml
+    description: Reach and capture one calibrated board displacement.
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_pc
     title: Consciousness Deep Dive View Capture (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
@@ -2324,4 +2360,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-01T17:11:36Z'
+  generated_at: '2026-09-02T11:52:39Z'
