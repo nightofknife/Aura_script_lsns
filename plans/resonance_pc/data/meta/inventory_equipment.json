@@ -3,204 +3,1084 @@
   "category": "equipment",
   "aggregation": "count_cards_by_equipment_id",
   "layout": {
-    "template_size": [100, 60],
-    "template_offset_from_card": [10, 35],
-    "card_size": [122, 121],
-    "grid_region": [397, 94, 680, 626],
+    "template_size": [
+      100,
+      60
+    ],
+    "template_offset_from_card": [
+      10,
+      35
+    ],
+    "card_size": [
+      122,
+      121
+    ],
+    "grid_region": [
+      397,
+      94,
+      680,
+      626
+    ],
     "match_threshold": 0.82,
-    "scroll_start": [1000, 620],
-    "scroll_end": [1000, 310]
+    "scroll_start": [
+      1000,
+      620
+    ],
+    "scroll_end": [
+      1000,
+      310
+    ]
   },
   "equipment": [
     {
-      "equipment_id": "mi_cao_long_que",
-      "name": "靡草龙雀",
-      "template": "templates/inventory/equipment/mi_cao_long_que.png"
-    },
-    {
-      "equipment_id": "supercausal_dice",
-      "name": "超因果之骰",
-      "template": "templates/inventory/equipment/supercausal_dice.png"
-    },
-    {
-      "equipment_id": "spring_autumn_sincerity_seal",
-      "name": "春秋合诚印",
-      "template": "templates/inventory/equipment/spring_autumn_sincerity_seal.png"
-    },
-    {
-      "equipment_id": "enchanted_dagger",
-      "name": "附魔短剑",
-      "template": "templates/inventory/equipment/enchanted_dagger.png"
-    },
-    {
-      "equipment_id": "viscera_collector_mk0",
-      "name": "内脏采集器MK0",
-      "template": "templates/inventory/equipment/viscera_collector_mk0.png"
-    },
-    {
-      "equipment_id": "harrison_device",
-      "name": "哈里森装置",
-      "template": "templates/inventory/equipment/harrison_device.png"
-    },
-    {
-      "equipment_id": "beta_worldline_box",
-      "name": "β世界线之盒",
-      "template": "templates/inventory/equipment/beta_worldline_box.png"
-    },
-    {
-      "equipment_id": "treasure_hunting_gun",
-      "name": "探宝枪",
-      "template": "templates/inventory/equipment/treasure_hunting_gun.png"
-    },
-    {
-      "equipment_id": "machine_god_armor",
-      "name": "机神甲胄",
-      "template": "templates/inventory/equipment/machine_god_armor.png"
-    },
-    {
-      "equipment_id": "spatial_tangent",
-      "name": "空间切线",
-      "template": "templates/inventory/equipment/spatial_tangent.png"
-    },
-    {
-      "equipment_id": "extended_timeline",
-      "name": "延展时间线",
-      "template": "templates/inventory/equipment/extended_timeline.png"
-    },
-    {
-      "equipment_id": "hurton_balloon",
-      "name": "胡尔顿气球",
-      "template": "templates/inventory/equipment/hurton_balloon.png"
-    },
-    {
-      "equipment_id": "simulated_stars",
-      "name": "模拟星辰",
-      "template": "templates/inventory/equipment/simulated_stars.png"
-    },
-    {
-      "equipment_id": "cunning_betrayal",
-      "name": "狡诈背叛",
-      "template": "templates/inventory/equipment/cunning_betrayal.png"
-    },
-    {
-      "equipment_id": "mobius",
-      "name": "莫比乌斯",
-      "template": "templates/inventory/equipment/mobius.png"
-    },
-    {
-      "equipment_id": "reverse_entropy_harsh_winter",
-      "name": "逆熵严冬",
-      "template": "templates/inventory/equipment/reverse_entropy_harsh_winter.png"
+      "equipment_id": "equipment_11800001",
+      "source_record_id": 11800001,
+      "name": "逻各斯之眼",
+      "template": "templates/inventory/equipment/equipment_11800001.png"
     },
     {
       "equipment_id": "blazing_erosion",
+      "source_record_id": 11800002,
       "name": "炽焰侵蚀者",
       "template": "templates/inventory/equipment/blazing_erosion.png"
     },
     {
-      "equipment_id": "garden_guardian",
-      "name": "花园守护",
-      "template": "templates/inventory/equipment/garden_guardian.png"
+      "equipment_id": "equipment_11800003",
+      "source_record_id": 11800003,
+      "name": "古老偏方三八面体",
+      "template": "templates/inventory/equipment/equipment_11800003.png"
     },
     {
-      "equipment_id": "thunder_summoning_coil_mk1",
-      "name": "唤雷线圈MK1",
-      "template": "templates/inventory/equipment/thunder_summoning_coil_mk1.png"
+      "equipment_id": "equipment_11800006",
+      "source_record_id": 11800006,
+      "name": "蓝色虚幻",
+      "template": "templates/inventory/equipment/equipment_11800006.png"
     },
     {
-      "equipment_id": "resonance_fiber",
-      "name": "共振体纤维",
-      "template": "templates/inventory/equipment/resonance_fiber.png"
+      "equipment_id": "mi_cao_long_que",
+      "source_record_id": 11800007,
+      "name": "靡草龙雀",
+      "template": "templates/inventory/equipment/mi_cao_long_que.png"
     },
     {
-      "equipment_id": "veteran_rifle",
-      "name": "老兵步枪",
-      "template": "templates/inventory/equipment/veteran_rifle.png"
+      "equipment_id": "equipment_11800008",
+      "source_record_id": 11800008,
+      "name": "缩退炸弹3号",
+      "template": "templates/inventory/equipment/equipment_11800008.png"
     },
     {
-      "equipment_id": "spirit_spring",
-      "name": "灵泉",
-      "template": "templates/inventory/equipment/spirit_spring.png"
+      "equipment_id": "equipment_11800009",
+      "source_record_id": 11800009,
+      "name": "断剑之火",
+      "template": "templates/inventory/equipment/equipment_11800009.png"
+    },
+    {
+      "equipment_id": "equipment_11800010",
+      "source_record_id": 11800010,
+      "name": "断火之剑II",
+      "template": "templates/inventory/equipment/equipment_11800010.png"
+    },
+    {
+      "equipment_id": "equipment_11800011",
+      "source_record_id": 11800011,
+      "name": "仙人掌板甲",
+      "template": "templates/inventory/equipment/equipment_11800011.png"
+    },
+    {
+      "equipment_id": "equipment_11800012",
+      "source_record_id": 11800012,
+      "name": "内存清心咒",
+      "template": "templates/inventory/equipment/equipment_11800012.png"
+    },
+    {
+      "equipment_id": "equipment_11800013",
+      "source_record_id": 11800013,
+      "name": "鹅制发射器",
+      "template": "templates/inventory/equipment/equipment_11800013.png"
+    },
+    {
+      "equipment_id": "equipment_11800014",
+      "source_record_id": 11800014,
+      "name": "抗拒从严",
+      "template": "templates/inventory/equipment/equipment_11800014.png"
+    },
+    {
+      "equipment_id": "equipment_11800015",
+      "source_record_id": 11800015,
+      "name": "五雷供电符",
+      "template": "templates/inventory/equipment/equipment_11800015.png"
+    },
+    {
+      "equipment_id": "equipment_11800016",
+      "source_record_id": 11800016,
+      "name": "战术风水无人机",
+      "template": "templates/inventory/equipment/equipment_11800016.png"
+    },
+    {
+      "equipment_id": "equipment_11800017",
+      "source_record_id": 11800017,
+      "name": "雷击深眠木剑",
+      "template": "templates/inventory/equipment/equipment_11800017.png"
+    },
+    {
+      "equipment_id": "equipment_11800018",
+      "source_record_id": 11800018,
+      "name": "八方伏龙阵",
+      "template": "templates/inventory/equipment/equipment_11800018.png"
+    },
+    {
+      "equipment_id": "equipment_11800019",
+      "source_record_id": 11800019,
+      "name": "雷击深眠木甲",
+      "template": "templates/inventory/equipment/equipment_11800019.png"
+    },
+    {
+      "equipment_id": "equipment_11800020",
+      "source_record_id": 11800020,
+      "name": "骨龙护甲",
+      "template": "templates/inventory/equipment/equipment_11800020.png"
+    },
+    {
+      "equipment_id": "equipment_11800021",
+      "source_record_id": 11800021,
+      "name": "逆位斗篷",
+      "template": "templates/inventory/equipment/equipment_11800021.png"
+    },
+    {
+      "equipment_id": "equipment_11800022",
+      "source_record_id": 11800022,
+      "name": "113号没收物品",
+      "template": "templates/inventory/equipment/equipment_11800022.png"
+    },
+    {
+      "equipment_id": "equipment_11800024",
+      "source_record_id": 11800024,
+      "name": "违禁工艺品",
+      "template": "templates/inventory/equipment/equipment_11800024.png"
+    },
+    {
+      "equipment_id": "equipment_11800027",
+      "source_record_id": 11800027,
+      "name": "深红谶言",
+      "template": "templates/inventory/equipment/equipment_11800027.png"
     },
     {
       "equipment_id": "hunting_revolver",
+      "source_record_id": 11800028,
       "name": "狩猎左轮",
       "template": "templates/inventory/equipment/hunting_revolver.png"
     },
     {
-      "equipment_id": "blackstone_armor",
-      "name": "黑石护甲",
-      "template": "templates/inventory/equipment/blackstone_armor.png"
+      "equipment_id": "equipment_11800029",
+      "source_record_id": 11800029,
+      "name": "深海探针",
+      "template": "templates/inventory/equipment/equipment_11800029.png"
     },
     {
-      "equipment_id": "yuchang_dagger",
-      "name": "鱼肠短刀",
-      "template": "templates/inventory/equipment/yuchang_dagger.png"
+      "equipment_id": "equipment_11800030",
+      "source_record_id": 11800030,
+      "name": "简并黑石",
+      "template": "templates/inventory/equipment/equipment_11800030.png"
     },
     {
-      "equipment_id": "moonset_red_cloud_seal",
-      "name": "月落红云宝玺",
-      "template": "templates/inventory/equipment/moonset_red_cloud_seal.png"
+      "equipment_id": "equipment_11800031",
+      "source_record_id": 11800031,
+      "name": "星弧波纹",
+      "template": "templates/inventory/equipment/equipment_11800031.png"
+    },
+    {
+      "equipment_id": "equipment_11800032",
+      "source_record_id": 11800032,
+      "name": "世界团结",
+      "template": "templates/inventory/equipment/equipment_11800032.png"
+    },
+    {
+      "equipment_id": "equipment_11800033",
+      "source_record_id": 11800033,
+      "name": "无限非概率护甲",
+      "template": "templates/inventory/equipment/equipment_11800033.png"
+    },
+    {
+      "equipment_id": "beta_worldline_box",
+      "source_record_id": 11800034,
+      "name": "β世界线之盒",
+      "template": "templates/inventory/equipment/beta_worldline_box.png"
+    },
+    {
+      "equipment_id": "equipment_11800035",
+      "source_record_id": 11800035,
+      "name": "A77航天手枪",
+      "template": "templates/inventory/equipment/equipment_11800035.png"
+    },
+    {
+      "equipment_id": "equipment_11800036",
+      "source_record_id": 11800036,
+      "name": "质量投射器",
+      "template": "templates/inventory/equipment/equipment_11800036.png"
+    },
+    {
+      "equipment_id": "equipment_11800037",
+      "source_record_id": 11800037,
+      "name": "引魔法杖",
+      "template": "templates/inventory/equipment/equipment_11800037.png"
+    },
+    {
+      "equipment_id": "equipment_11800038",
+      "source_record_id": 11800038,
+      "name": "黑月毒镖",
+      "template": "templates/inventory/equipment/equipment_11800038.png"
+    },
+    {
+      "equipment_id": "equipment_11800039",
+      "source_record_id": 11800039,
+      "name": "万用起子",
+      "template": "templates/inventory/equipment/equipment_11800039.png"
+    },
+    {
+      "equipment_id": "equipment_11800040",
+      "source_record_id": 11800040,
+      "name": "祖父反应装甲",
+      "template": "templates/inventory/equipment/equipment_11800040.png"
+    },
+    {
+      "equipment_id": "equipment_11800041",
+      "source_record_id": 11800041,
+      "name": "百万超磁体",
+      "template": "templates/inventory/equipment/equipment_11800041.png"
+    },
+    {
+      "equipment_id": "equipment_11800042",
+      "source_record_id": 11800042,
+      "name": "雷击深眠木护符",
+      "template": "templates/inventory/equipment/equipment_11800042.png"
+    },
+    {
+      "equipment_id": "equipment_11800043",
+      "source_record_id": 11800043,
+      "name": "荒野猎刀",
+      "template": "templates/inventory/equipment/equipment_11800043.png"
+    },
+    {
+      "equipment_id": "equipment_11800044",
+      "source_record_id": 11800044,
+      "name": "高热量军粮",
+      "template": "templates/inventory/equipment/equipment_11800044.png"
     },
     {
       "equipment_id": "nuclear_radiation",
+      "source_record_id": 11800045,
       "name": "核子辐射",
       "template": "templates/inventory/equipment/nuclear_radiation.png"
     },
     {
-      "equipment_id": "exile_code",
-      "name": "放逐代码",
-      "template": "templates/inventory/equipment/exile_code.png"
+      "equipment_id": "equipment_11800046",
+      "source_record_id": 11800046,
+      "name": "特浓功能饮料",
+      "template": "templates/inventory/equipment/equipment_11800046.png"
     },
     {
-      "equipment_id": "endless_incineration",
-      "name": "无尽焚灭",
-      "template": "templates/inventory/equipment/endless_incineration.png"
+      "equipment_id": "equipment_11800047",
+      "source_record_id": 11800047,
+      "name": "破片套",
+      "template": "templates/inventory/equipment/equipment_11800047.png"
     },
     {
-      "equipment_id": "thunder_god",
-      "name": "雷神",
-      "template": "templates/inventory/equipment/thunder_god.png"
+      "equipment_id": "equipment_11800048",
+      "source_record_id": 11800048,
+      "name": "清醒梦纤维",
+      "template": "templates/inventory/equipment/equipment_11800048.png"
     },
     {
-      "equipment_id": "insulated_charge_armor",
-      "name": "绝缘冲甲",
-      "template": "templates/inventory/equipment/insulated_charge_armor.png"
+      "equipment_id": "equipment_11800049",
+      "source_record_id": 11800049,
+      "name": "紫宵宝甲",
+      "template": "templates/inventory/equipment/equipment_11800049.png"
     },
     {
-      "equipment_id": "tiangang_demon_suppressing_sword",
-      "name": "天罡伏魔剑",
-      "template": "templates/inventory/equipment/tiangang_demon_suppressing_sword.png"
+      "equipment_id": "equipment_11800050",
+      "source_record_id": 11800050,
+      "name": "身代勾玉",
+      "template": "templates/inventory/equipment/equipment_11800050.png"
     },
     {
-      "equipment_id": "seven_string_bow",
-      "name": "七弦弓",
-      "template": "templates/inventory/equipment/seven_string_bow.png"
+      "equipment_id": "equipment_11800051",
+      "source_record_id": 11800051,
+      "name": "谎话纸条",
+      "template": "templates/inventory/equipment/equipment_11800051.png"
     },
     {
-      "equipment_id": "niktar_final_solution",
-      "name": "尼克塔尔最后解",
-      "template": "templates/inventory/equipment/niktar_final_solution.png"
+      "equipment_id": "st_elmos_fire",
+      "source_record_id": 11800052,
+      "name": "艾尔摩之火",
+      "template": "templates/inventory/equipment/st_elmos_fire.png"
+    },
+    {
+      "equipment_id": "equipment_11800053",
+      "source_record_id": 11800053,
+      "name": "双星法杖",
+      "template": "templates/inventory/equipment/equipment_11800053.png"
     },
     {
       "equipment_id": "healing_bulletproof_vest",
+      "source_record_id": 11800054,
       "name": "治愈防弹衣",
       "template": "templates/inventory/equipment/healing_bulletproof_vest.png"
     },
     {
+      "equipment_id": "equipment_11800055",
+      "source_record_id": 11800055,
+      "name": "阻燃护甲",
+      "template": "templates/inventory/equipment/equipment_11800055.png"
+    },
+    {
+      "equipment_id": "equipment_11800056",
+      "source_record_id": 11800056,
+      "name": "黑月叛忍护额",
+      "template": "templates/inventory/equipment/equipment_11800056.png"
+    },
+    {
+      "equipment_id": "insulated_charge_armor",
+      "source_record_id": 11800057,
+      "name": "绝缘护甲",
+      "template": "templates/inventory/equipment/insulated_charge_armor.png"
+    },
+    {
+      "equipment_id": "equipment_11800058",
+      "source_record_id": 11800058,
+      "name": "魔抗护甲",
+      "template": "templates/inventory/equipment/equipment_11800058.png"
+    },
+    {
+      "equipment_id": "equipment_11800059",
+      "source_record_id": 11800059,
+      "name": "外部记忆矩阵",
+      "template": "templates/inventory/equipment/equipment_11800059.png"
+    },
+    {
+      "equipment_id": "equipment_11800060",
+      "source_record_id": 11800060,
+      "name": "璀璨星石",
+      "template": "templates/inventory/equipment/equipment_11800060.png"
+    },
+    {
+      "equipment_id": "equipment_11800061",
+      "source_record_id": 11800061,
+      "name": "奥尼兰法杖",
+      "template": "templates/inventory/equipment/equipment_11800061.png"
+    },
+    {
+      "equipment_id": "tiangang_demon_suppressing_sword",
+      "source_record_id": 11800062,
+      "name": "天罡伏魔剑",
+      "template": "templates/inventory/equipment/tiangang_demon_suppressing_sword.png"
+    },
+    {
+      "equipment_id": "equipment_11800063",
+      "source_record_id": 11800063,
+      "name": "光谱破碎",
+      "template": "templates/inventory/equipment/equipment_11800063.png"
+    },
+    {
+      "equipment_id": "equipment_11800064",
+      "source_record_id": 11800064,
+      "name": "液氮喷射器",
+      "template": "templates/inventory/equipment/equipment_11800064.png"
+    },
+    {
+      "equipment_id": "niktar_final_solution",
+      "source_record_id": 11800065,
+      "name": "尼克塔尔最后解",
+      "template": "templates/inventory/equipment/niktar_final_solution.png"
+    },
+    {
+      "equipment_id": "equipment_11800066",
+      "source_record_id": 11800066,
+      "name": "球状闪电",
+      "template": "templates/inventory/equipment/equipment_11800066.png"
+    },
+    {
+      "equipment_id": "equipment_11800067",
+      "source_record_id": 11800067,
+      "name": "克拉尼弧光",
+      "template": "templates/inventory/equipment/equipment_11800067.png"
+    },
+    {
+      "equipment_id": "machine_god_armor",
+      "source_record_id": 11800068,
+      "name": "机神甲胄",
+      "template": "templates/inventory/equipment/machine_god_armor.png"
+    },
+    {
+      "equipment_id": "equipment_11800069",
+      "source_record_id": 11800069,
+      "name": "不休陀螺",
+      "template": "templates/inventory/equipment/equipment_11800069.png"
+    },
+    {
+      "equipment_id": "equipment_11800078",
+      "source_record_id": 11800078,
+      "name": "被封印的四重灾厄",
+      "template": "templates/inventory/equipment/equipment_11800078.png"
+    },
+    {
+      "equipment_id": "equipment_11800079",
+      "source_record_id": 11800079,
+      "name": "凤凰尾羽",
+      "template": "templates/inventory/equipment/equipment_11800079.png"
+    },
+    {
+      "equipment_id": "equipment_11800080",
+      "source_record_id": 11800080,
+      "name": "蕴魔石",
+      "template": "templates/inventory/equipment/equipment_11800080.png"
+    },
+    {
+      "equipment_id": "equipment_11800081",
+      "source_record_id": 11800081,
+      "name": "使魔护具",
+      "template": "templates/inventory/equipment/equipment_11800081.png"
+    },
+    {
+      "equipment_id": "equipment_11800082",
+      "source_record_id": 11800082,
+      "name": "梦境偷渡",
+      "template": "templates/inventory/equipment/equipment_11800082.png"
+    },
+    {
+      "equipment_id": "equipment_11800084",
+      "source_record_id": 11800084,
+      "name": "自抛光餐刀",
+      "template": "templates/inventory/equipment/equipment_11800084.png"
+    },
+    {
+      "equipment_id": "endless_incineration",
+      "source_record_id": 11800089,
+      "name": "无尽焚灭",
+      "template": "templates/inventory/equipment/endless_incineration.png"
+    },
+    {
+      "equipment_id": "equipment_11800090",
+      "source_record_id": 11800090,
+      "name": "受缚之风",
+      "template": "templates/inventory/equipment/equipment_11800090.png"
+    },
+    {
+      "equipment_id": "equipment_11800091",
+      "source_record_id": 11800091,
+      "name": "圣裁螺旋",
+      "template": "templates/inventory/equipment/equipment_11800091.png"
+    },
+    {
       "equipment_id": "quick_leave_candy",
+      "source_record_id": 11800092,
       "name": "快速请假糖",
       "template": "templates/inventory/equipment/quick_leave_candy.png"
     },
     {
+      "equipment_id": "equipment_11800093",
+      "source_record_id": 11800093,
+      "name": "返魂光弧",
+      "template": "templates/inventory/equipment/equipment_11800093.png"
+    },
+    {
+      "equipment_id": "equipment_11800094",
+      "source_record_id": 11800094,
+      "name": "百万吨启示",
+      "template": "templates/inventory/equipment/equipment_11800094.png"
+    },
+    {
+      "equipment_id": "equipment_11800095",
+      "source_record_id": 11800095,
+      "name": "命运之重",
+      "template": "templates/inventory/equipment/equipment_11800095.png"
+    },
+    {
+      "equipment_id": "veteran_rifle",
+      "source_record_id": 11800096,
+      "name": "老兵步枪",
+      "template": "templates/inventory/equipment/veteran_rifle.png"
+    },
+    {
+      "equipment_id": "equipment_11800097",
+      "source_record_id": 11800097,
+      "name": "绝境行者",
+      "template": "templates/inventory/equipment/equipment_11800097.png"
+    },
+    {
+      "equipment_id": "equipment_11800098",
+      "source_record_id": 11800098,
+      "name": "动力伐木斧",
+      "template": "templates/inventory/equipment/equipment_11800098.png"
+    },
+    {
+      "equipment_id": "equipment_11800099",
+      "source_record_id": 11800099,
+      "name": "巨象颅盾",
+      "template": "templates/inventory/equipment/equipment_11800099.png"
+    },
+    {
+      "equipment_id": "equipment_11800100",
+      "source_record_id": 11800100,
+      "name": "千年幻梦",
+      "template": "templates/inventory/equipment/equipment_11800100.png"
+    },
+    {
+      "equipment_id": "equipment_11800101",
+      "source_record_id": 11800101,
+      "name": "宏观形而上材料",
+      "template": "templates/inventory/equipment/equipment_11800101.png"
+    },
+    {
+      "equipment_id": "equipment_11800102",
+      "source_record_id": 11800102,
+      "name": "北阵防御纤维",
+      "template": "templates/inventory/equipment/equipment_11800102.png"
+    },
+    {
+      "equipment_id": "equipment_11800103",
+      "source_record_id": 11800103,
+      "name": "动能回收器",
+      "template": "templates/inventory/equipment/equipment_11800103.png"
+    },
+    {
+      "equipment_id": "extended_timeline",
+      "source_record_id": 11800104,
+      "name": "延展时间线",
+      "template": "templates/inventory/equipment/extended_timeline.png"
+    },
+    {
+      "equipment_id": "blackstone_armor",
+      "source_record_id": 11800105,
+      "name": "黑石护甲",
+      "template": "templates/inventory/equipment/blackstone_armor.png"
+    },
+    {
+      "equipment_id": "equipment_11800106",
+      "source_record_id": 11800106,
+      "name": "升构手术器",
+      "template": "templates/inventory/equipment/equipment_11800106.png"
+    },
+    {
+      "equipment_id": "equipment_11800107",
+      "source_record_id": 11800107,
+      "name": "急救护甲",
+      "template": "templates/inventory/equipment/equipment_11800107.png"
+    },
+    {
+      "equipment_id": "equipment_11800108",
+      "source_record_id": 11800108,
+      "name": "脉冲X-27",
+      "template": "templates/inventory/equipment/equipment_11800108.png"
+    },
+    {
+      "equipment_id": "equipment_11800109",
+      "source_record_id": 11800109,
+      "name": "防暴盾牌",
+      "template": "templates/inventory/equipment/equipment_11800109.png"
+    },
+    {
+      "equipment_id": "equipment_11800113",
+      "source_record_id": 11800113,
+      "name": "独乐琶音",
+      "template": "templates/inventory/equipment/equipment_11800113.png"
+    },
+    {
+      "equipment_id": "equipment_11800114",
+      "source_record_id": 11800114,
+      "name": "白夜·真辉",
+      "template": "templates/inventory/equipment/equipment_11800114.png"
+    },
+    {
+      "equipment_id": "equipment_11800237",
+      "source_record_id": 11800237,
+      "name": "非金属材料镀层",
+      "template": "templates/inventory/equipment/equipment_11800237.png"
+    },
+    {
+      "equipment_id": "equipment_11800238",
+      "source_record_id": 11800238,
+      "name": "便携除颤器",
+      "template": "templates/inventory/equipment/equipment_11800238.png"
+    },
+    {
+      "equipment_id": "thunder_summoning_coil_mk1",
+      "source_record_id": 11800239,
+      "name": "唤雷线圈MK1",
+      "template": "templates/inventory/equipment/thunder_summoning_coil_mk1.png"
+    },
+    {
+      "equipment_id": "viscera_collector_mk0",
+      "source_record_id": 11800240,
+      "name": "内脏采集器MK0",
+      "template": "templates/inventory/equipment/viscera_collector_mk0.png"
+    },
+    {
+      "equipment_id": "resonance_fiber",
+      "source_record_id": 11800241,
+      "name": "共振体纤维",
+      "template": "templates/inventory/equipment/resonance_fiber.png"
+    },
+    {
+      "equipment_id": "equipment_11800242",
+      "source_record_id": 11800242,
+      "name": "“极坐标”指挥无人机",
+      "template": "templates/inventory/equipment/equipment_11800242.png"
+    },
+    {
+      "equipment_id": "reverse_entropy_harsh_winter",
+      "source_record_id": 11800243,
+      "name": "逆熵严冬",
+      "template": "templates/inventory/equipment/reverse_entropy_harsh_winter.png"
+    },
+    {
+      "equipment_id": "equipment_11800244",
+      "source_record_id": 11800244,
+      "name": "活火熔岩",
+      "template": "templates/inventory/equipment/equipment_11800244.png"
+    },
+    {
+      "equipment_id": "simulated_stars",
+      "source_record_id": 11800245,
+      "name": "模拟星辰",
+      "template": "templates/inventory/equipment/simulated_stars.png"
+    },
+    {
+      "equipment_id": "equipment_11800246",
+      "source_record_id": 11800246,
+      "name": "单极磁星",
+      "template": "templates/inventory/equipment/equipment_11800246.png"
+    },
+    {
+      "equipment_id": "exile_code",
+      "source_record_id": 11800247,
+      "name": "放逐代码",
+      "template": "templates/inventory/equipment/exile_code.png"
+    },
+    {
+      "equipment_id": "spatial_tangent",
+      "source_record_id": 11800248,
+      "name": "空间切线",
+      "template": "templates/inventory/equipment/spatial_tangent.png"
+    },
+    {
+      "equipment_id": "equipment_11800249",
+      "source_record_id": 11800249,
+      "name": "伪神低语",
+      "template": "templates/inventory/equipment/equipment_11800249.png"
+    },
+    {
+      "equipment_id": "equipment_11800250",
+      "source_record_id": 11800250,
+      "name": "二号玩具",
+      "template": "templates/inventory/equipment/equipment_11800250.png"
+    },
+    {
+      "equipment_id": "equipment_11800251",
+      "source_record_id": 11800251,
+      "name": "标准防御纤维",
+      "template": "templates/inventory/equipment/equipment_11800251.png"
+    },
+    {
+      "equipment_id": "equipment_11800252",
+      "source_record_id": 11800252,
+      "name": "提神醒脑仪",
+      "template": "templates/inventory/equipment/equipment_11800252.png"
+    },
+    {
+      "equipment_id": "equipment_11800253",
+      "source_record_id": 11800253,
+      "name": "御敌闪光器",
+      "template": "templates/inventory/equipment/equipment_11800253.png"
+    },
+    {
+      "equipment_id": "equipment_11800254",
+      "source_record_id": 11800254,
+      "name": "解剖工具C",
+      "template": "templates/inventory/equipment/equipment_11800254.png"
+    },
+    {
+      "equipment_id": "equipment_11800255",
+      "source_record_id": 11800255,
+      "name": "御险金属",
+      "template": "templates/inventory/equipment/equipment_11800255.png"
+    },
+    {
+      "equipment_id": "equipment_11800256",
+      "source_record_id": 11800256,
+      "name": "无意识学习装置",
+      "template": "templates/inventory/equipment/equipment_11800256.png"
+    },
+    {
+      "equipment_id": "cunning_betrayal",
+      "source_record_id": 11800257,
+      "name": "狡诈背叛",
+      "template": "templates/inventory/equipment/cunning_betrayal.png"
+    },
+    {
+      "equipment_id": "equipment_11800258",
+      "source_record_id": 11800258,
+      "name": "不可见之触",
+      "template": "templates/inventory/equipment/equipment_11800258.png"
+    },
+    {
+      "equipment_id": "equipment_11800259",
+      "source_record_id": 11800259,
+      "name": "高维构造体",
+      "template": "templates/inventory/equipment/equipment_11800259.png"
+    },
+    {
+      "equipment_id": "equipment_11800260",
+      "source_record_id": 11800260,
+      "name": "万变眼眸",
+      "template": "templates/inventory/equipment/equipment_11800260.png"
+    },
+    {
+      "equipment_id": "equipment_11800261",
+      "source_record_id": 11800261,
+      "name": "原型临界不测兵器",
+      "template": "templates/inventory/equipment/equipment_11800261.png"
+    },
+    {
+      "equipment_id": "equipment_11800262",
+      "source_record_id": 11800262,
+      "name": "悔恨之钩",
+      "template": "templates/inventory/equipment/equipment_11800262.png"
+    },
+    {
+      "equipment_id": "equipment_11800263",
+      "source_record_id": 11800263,
+      "name": "赦免织物",
+      "template": "templates/inventory/equipment/equipment_11800263.png"
+    },
+    {
+      "equipment_id": "supercausal_dice",
+      "source_record_id": 11800264,
+      "name": "超因果之骰",
+      "template": "templates/inventory/equipment/supercausal_dice.png"
+    },
+    {
+      "equipment_id": "enchanted_dagger",
+      "source_record_id": 11800265,
+      "name": "附魔短剑",
+      "template": "templates/inventory/equipment/enchanted_dagger.png"
+    },
+    {
+      "equipment_id": "equipment_11800266",
+      "source_record_id": 11800266,
+      "name": "红铜护甲",
+      "template": "templates/inventory/equipment/equipment_11800266.png"
+    },
+    {
+      "equipment_id": "equipment_11800267",
+      "source_record_id": 11800267,
+      "name": "猫纹章",
+      "template": "templates/inventory/equipment/equipment_11800267.png"
+    },
+    {
+      "equipment_id": "equipment_11800268",
+      "source_record_id": 11800268,
+      "name": "光明之愿",
+      "template": "templates/inventory/equipment/equipment_11800268.png"
+    },
+    {
+      "equipment_id": "equipment_11800269",
+      "source_record_id": 11800269,
+      "name": "良夜远星",
+      "template": "templates/inventory/equipment/equipment_11800269.png"
+    },
+    {
+      "equipment_id": "equipment_11800270",
+      "source_record_id": 11800270,
+      "name": "异界星光",
+      "template": "templates/inventory/equipment/equipment_11800270.png"
+    },
+    {
+      "equipment_id": "equipment_11800271",
+      "source_record_id": 11800271,
+      "name": "狮子纹章",
+      "template": "templates/inventory/equipment/equipment_11800271.png"
+    },
+    {
       "equipment_id": "radiance_pursuer",
+      "source_record_id": 11800272,
       "name": "光芒追击者",
       "template": "templates/inventory/equipment/radiance_pursuer.png"
     },
     {
-      "equipment_id": "st_elmos_fire",
-      "name": "艾尔摩之火",
-      "template": "templates/inventory/equipment/st_elmos_fire.png"
+      "equipment_id": "equipment_11800273",
+      "source_record_id": 11800273,
+      "name": "暗夜寻星",
+      "template": "templates/inventory/equipment/equipment_11800273.png"
+    },
+    {
+      "equipment_id": "garden_guardian",
+      "source_record_id": 11800274,
+      "name": "花园守护",
+      "template": "templates/inventory/equipment/garden_guardian.png"
+    },
+    {
+      "equipment_id": "equipment_11800275",
+      "source_record_id": 11800275,
+      "name": "星核余烬",
+      "template": "templates/inventory/equipment/equipment_11800275.png"
+    },
+    {
+      "equipment_id": "equipment_11800276",
+      "source_record_id": 11800276,
+      "name": "外界星辰",
+      "template": "templates/inventory/equipment/equipment_11800276.png"
+    },
+    {
+      "equipment_id": "equipment_11800277",
+      "source_record_id": 11800277,
+      "name": "内向延展",
+      "template": "templates/inventory/equipment/equipment_11800277.png"
+    },
+    {
+      "equipment_id": "equipment_11800278",
+      "source_record_id": 11800278,
+      "name": "黎明回音",
+      "template": "templates/inventory/equipment/equipment_11800278.png"
+    },
+    {
+      "equipment_id": "equipment_11800279",
+      "source_record_id": 11800279,
+      "name": "月神誓约",
+      "template": "templates/inventory/equipment/equipment_11800279.png"
+    },
+    {
+      "equipment_id": "yuchang_dagger",
+      "source_record_id": 11800280,
+      "name": "鱼肠短刀",
+      "template": "templates/inventory/equipment/yuchang_dagger.png"
+    },
+    {
+      "equipment_id": "equipment_11800281",
+      "source_record_id": 11800281,
+      "name": "西装凯夫拉",
+      "template": "templates/inventory/equipment/equipment_11800281.png"
+    },
+    {
+      "equipment_id": "equipment_11800282",
+      "source_record_id": 11800282,
+      "name": "黑月烟雾弹",
+      "template": "templates/inventory/equipment/equipment_11800282.png"
+    },
+    {
+      "equipment_id": "equipment_11800283",
+      "source_record_id": 11800283,
+      "name": "“罪证”",
+      "template": "templates/inventory/equipment/equipment_11800283.png"
+    },
+    {
+      "equipment_id": "equipment_11800284",
+      "source_record_id": 11800284,
+      "name": "“清算”",
+      "template": "templates/inventory/equipment/equipment_11800284.png"
+    },
+    {
+      "equipment_id": "equipment_11800285",
+      "source_record_id": 11800285,
+      "name": "热光学迷彩",
+      "template": "templates/inventory/equipment/equipment_11800285.png"
+    },
+    {
+      "equipment_id": "equipment_11800286",
+      "source_record_id": 11800286,
+      "name": "“四翼妖龙”",
+      "template": "templates/inventory/equipment/equipment_11800286.png"
+    },
+    {
+      "equipment_id": "equipment_11800287",
+      "source_record_id": 11800287,
+      "name": "灵狐名弓",
+      "template": "templates/inventory/equipment/equipment_11800287.png"
+    },
+    {
+      "equipment_id": "equipment_11800288",
+      "source_record_id": 11800288,
+      "name": "雾夜流星",
+      "template": "templates/inventory/equipment/equipment_11800288.png"
+    },
+    {
+      "equipment_id": "equipment_11800289",
+      "source_record_id": 11800289,
+      "name": "天王宝铠",
+      "template": "templates/inventory/equipment/equipment_11800289.png"
+    },
+    {
+      "equipment_id": "spring_autumn_sincerity_seal",
+      "source_record_id": 11800290,
+      "name": "春秋合诚印",
+      "template": "templates/inventory/equipment/spring_autumn_sincerity_seal.png"
+    },
+    {
+      "equipment_id": "equipment_11800291",
+      "source_record_id": 11800291,
+      "name": "天龙揽月锁",
+      "template": "templates/inventory/equipment/equipment_11800291.png"
+    },
+    {
+      "equipment_id": "equipment_11800292",
+      "source_record_id": 11800292,
+      "name": "奔雷破影剑",
+      "template": "templates/inventory/equipment/equipment_11800292.png"
+    },
+    {
+      "equipment_id": "equipment_11800293",
+      "source_record_id": 11800293,
+      "name": "回风轻烟甲",
+      "template": "templates/inventory/equipment/equipment_11800293.png"
+    },
+    {
+      "equipment_id": "moonset_red_cloud_seal",
+      "source_record_id": 11800294,
+      "name": "月落红云宝玺",
+      "template": "templates/inventory/equipment/moonset_red_cloud_seal.png"
+    },
+    {
+      "equipment_id": "equipment_11800295",
+      "source_record_id": 11800295,
+      "name": "错峰出行",
+      "template": "templates/inventory/equipment/equipment_11800295.png"
+    },
+    {
+      "equipment_id": "hurton_balloon",
+      "source_record_id": 11800296,
+      "name": "胡尔顿气球",
+      "template": "templates/inventory/equipment/hurton_balloon.png"
+    },
+    {
+      "equipment_id": "equipment_11800297",
+      "source_record_id": 11800297,
+      "name": "临界质量",
+      "template": "templates/inventory/equipment/equipment_11800297.png"
+    },
+    {
+      "equipment_id": "equipment_11800298",
+      "source_record_id": 11800298,
+      "name": "阿古纳托",
+      "template": "templates/inventory/equipment/equipment_11800298.png"
+    },
+    {
+      "equipment_id": "seven_string_bow",
+      "source_record_id": 11800299,
+      "name": "七弦弓",
+      "template": "templates/inventory/equipment/seven_string_bow.png"
+    },
+    {
+      "equipment_id": "equipment_11800300",
+      "source_record_id": 11800300,
+      "name": "北方荆棘",
+      "template": "templates/inventory/equipment/equipment_11800300.png"
+    },
+    {
+      "equipment_id": "equipment_11800301",
+      "source_record_id": 11800301,
+      "name": "野心",
+      "template": "templates/inventory/equipment/equipment_11800301.png"
+    },
+    {
+      "equipment_id": "thunder_god",
+      "source_record_id": 11800302,
+      "name": "雷神",
+      "template": "templates/inventory/equipment/thunder_god.png"
+    },
+    {
+      "equipment_id": "equipment_11800303",
+      "source_record_id": 11800303,
+      "name": "火山",
+      "template": "templates/inventory/equipment/equipment_11800303.png"
+    },
+    {
+      "equipment_id": "harrison_device",
+      "source_record_id": 11800304,
+      "name": "哈里森装置",
+      "template": "templates/inventory/equipment/harrison_device.png"
+    },
+    {
+      "equipment_id": "equipment_11800305",
+      "source_record_id": 11800305,
+      "name": "接功铁锅",
+      "template": "templates/inventory/equipment/equipment_11800305.png"
+    },
+    {
+      "equipment_id": "equipment_11800306",
+      "source_record_id": 11800306,
+      "name": "锡纸帽",
+      "template": "templates/inventory/equipment/equipment_11800306.png"
+    },
+    {
+      "equipment_id": "equipment_11800307",
+      "source_record_id": 11800307,
+      "name": "掐人中抢救器",
+      "template": "templates/inventory/equipment/equipment_11800307.png"
+    },
+    {
+      "equipment_id": "equipment_11800308",
+      "source_record_id": 11800308,
+      "name": "N射线枪",
+      "template": "templates/inventory/equipment/equipment_11800308.png"
+    },
+    {
+      "equipment_id": "equipment_11800309",
+      "source_record_id": 11800309,
+      "name": "克里安照相机",
+      "template": "templates/inventory/equipment/equipment_11800309.png"
+    },
+    {
+      "equipment_id": "treasure_hunting_gun",
+      "source_record_id": 11800310,
+      "name": "探宝枪",
+      "template": "templates/inventory/equipment/treasure_hunting_gun.png"
+    },
+    {
+      "equipment_id": "equipment_11800311",
+      "source_record_id": 11800311,
+      "name": "紫色星期四",
+      "template": "templates/inventory/equipment/equipment_11800311.png"
+    },
+    {
+      "equipment_id": "equipment_11800312",
+      "source_record_id": 11800312,
+      "name": "洛克维尔金属",
+      "template": "templates/inventory/equipment/equipment_11800312.png"
+    },
+    {
+      "equipment_id": "equipment_11800313",
+      "source_record_id": 11800313,
+      "name": "催眠怀表",
+      "template": "templates/inventory/equipment/equipment_11800313.png"
+    },
+    {
+      "equipment_id": "spirit_spring",
+      "source_record_id": 11800314,
+      "name": "灵泉",
+      "template": "templates/inventory/equipment/spirit_spring.png"
+    },
+    {
+      "equipment_id": "mobius",
+      "source_record_id": 11800315,
+      "name": "莫比乌斯",
+      "template": "templates/inventory/equipment/mobius.png"
+    },
+    {
+      "equipment_id": "equipment_11800316",
+      "source_record_id": 11800316,
+      "name": "二级相变",
+      "template": "templates/inventory/equipment/equipment_11800316.png"
+    },
+    {
+      "equipment_id": "equipment_11800317",
+      "source_record_id": 11800317,
+      "name": "静影沉璧",
+      "template": "templates/inventory/equipment/equipment_11800317.png"
+    },
+    {
+      "equipment_id": "equipment_11800318",
+      "source_record_id": 11800318,
+      "name": "玄铁朱契",
+      "template": "templates/inventory/equipment/equipment_11800318.png"
     }
   ]
 }

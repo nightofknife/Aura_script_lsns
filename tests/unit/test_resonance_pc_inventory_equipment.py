@@ -82,9 +82,9 @@ def test_actual_equipment_catalog_is_prepared_without_digit_readers() -> None:
     assert catalog["_count_mode"] == inventory._COUNT_MODE_CARD_INSTANCES
     assert catalog["_digit_reader"] is None
     assert catalog["_expiry_digit_reader"] is None
-    assert len(catalog["items"]) == 38
-    assert len(catalog["_template_paths"]) == 38
-    assert len({item["item_id"] for item in catalog["items"]}) == 38
+    assert len(catalog["items"]) == 175
+    assert len(catalog["_template_paths"]) == 175
+    assert len({item["item_id"] for item in catalog["items"]}) == 175
     for template_path in catalog["_template_paths"]:
         image = cv2.imread(str(template_path), cv2.IMREAD_UNCHANGED)
         assert image is not None
