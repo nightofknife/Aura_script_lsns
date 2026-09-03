@@ -3,6 +3,7 @@
 import asyncio
 import glob
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Tuple, Optional, Dict, List, Iterable
@@ -46,6 +47,9 @@ class VisionService:
     - 对外保持100%兼容的同步接口。
     - 内部将CPU密集型的图像计算移至后台线程执行，避免阻塞事件循环。
     """
+
+    _BATCH_MATCH_MIN_PARALLEL_SIZE = 4
+    _BATCH_MATCH_MAX_WORKERS = 8
 
     def __init__(self):
         logger.info("视觉服务 (异步核心版) 已初始化。")
@@ -408,37 +412,16 @@ class VisionService:
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
         try:
-            source_prepared = self._prepare_image(
+            return await asyncio.to_thread(
+                self._find_templates_batch_sync,
                 source_image,
-                use_grayscale=use_grayscale,
-                preprocess=preprocess,
+                template_images,
+                mask_images,
+                threshold,
+                use_grayscale,
+                match_method,
+                preprocess,
             )
-            results: List[MatchResult] = []
-            for index, template_image in enumerate(template_images):
-                template_prepared = self._prepare_image(
-                    template_image,
-                    use_grayscale=use_grayscale,
-                    preprocess=preprocess,
-                )
-                mask = None
-                if mask_images is not None:
-                    mask = self._prepare_image(
-                        mask_images[index],
-                        use_grayscale=True,
-                        preprocess="none",
-                    )
-                result = await asyncio.to_thread(
-                    self._match_template_prepared,
-                    source_prepared,
-                    template_prepared,
-                    mask,
-                    threshold,
-                    match_method,
-                    use_grayscale,
-                    preprocess,
-                )
-                results.append(result)
-            return results
         except (FileNotFoundError, TypeError, ValueError) as e:
             logger.error(f"批量模板匹配预处理失败: {e}")
             return [MatchResult(found=False, debug_info={"error": str(e)}) for _ in template_images]
@@ -456,38 +439,17 @@ class VisionService:
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
         try:
-            source_prepared = self._prepare_image(
+            return await asyncio.to_thread(
+                self._find_all_templates_batch_sync,
                 source_image,
-                use_grayscale=use_grayscale,
-                preprocess=preprocess,
+                template_images,
+                mask_images,
+                threshold,
+                nms_threshold,
+                use_grayscale,
+                match_method,
+                preprocess,
             )
-            results: List[MultiMatchResult] = []
-            for index, template_image in enumerate(template_images):
-                template_prepared = self._prepare_image(
-                    template_image,
-                    use_grayscale=use_grayscale,
-                    preprocess=preprocess,
-                )
-                mask = None
-                if mask_images is not None:
-                    mask = self._prepare_image(
-                        mask_images[index],
-                        use_grayscale=True,
-                        preprocess="none",
-                    )
-                matches = await asyncio.to_thread(
-                    self._match_all_templates_prepared,
-                    source_prepared,
-                    template_prepared,
-                    mask,
-                    threshold,
-                    nms_threshold,
-                    match_method,
-                    use_grayscale,
-                    preprocess,
-                )
-                results.append(MultiMatchResult(count=len(matches), matches=matches))
-            return results
         except (FileNotFoundError, TypeError, ValueError) as e:
             logger.error(f"批量模板查找预处理失败: {e}")
             return [MultiMatchResult() for _ in template_images]
@@ -605,6 +567,105 @@ class VisionService:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             return cv2.Canny(img, 50, 150)
         raise ValueError(f"Unsupported preprocess mode: {preprocess}")
+
+    def _prepare_template_batch(self,
+                                source_image: np.ndarray,
+                                template_images: List[np.ndarray | str],
+                                mask_images: Optional[List[np.ndarray | str]],
+                                use_grayscale: bool,
+                                preprocess: str) -> tuple[np.ndarray, list[tuple[np.ndarray, Optional[np.ndarray]]]]:
+        source_prepared = self._prepare_image(
+            source_image,
+            use_grayscale=use_grayscale,
+            preprocess=preprocess,
+        )
+        prepared_templates: list[tuple[np.ndarray, Optional[np.ndarray]]] = []
+        for index, template_image in enumerate(template_images):
+            template_prepared = self._prepare_image(
+                template_image,
+                use_grayscale=use_grayscale,
+                preprocess=preprocess,
+            )
+            mask = None
+            if mask_images is not None:
+                mask = self._prepare_image(
+                    mask_images[index],
+                    use_grayscale=True,
+                    preprocess="none",
+                )
+            prepared_templates.append((template_prepared, mask))
+        return source_prepared, prepared_templates
+
+    def _find_templates_batch_sync(self,
+                                   source_image: np.ndarray,
+                                   template_images: List[np.ndarray | str],
+                                   mask_images: Optional[List[np.ndarray | str]],
+                                   threshold: float,
+                                   use_grayscale: bool,
+                                   match_method: int,
+                                   preprocess: str) -> List[MatchResult]:
+        source_prepared, prepared_templates = self._prepare_template_batch(
+            source_image,
+            template_images,
+            mask_images,
+            use_grayscale,
+            preprocess,
+        )
+
+        def match_one(item: tuple[np.ndarray, Optional[np.ndarray]]) -> MatchResult:
+            template_prepared, mask = item
+            return self._match_template_prepared(
+                source_prepared,
+                template_prepared,
+                mask,
+                threshold,
+                match_method,
+                use_grayscale,
+                preprocess,
+            )
+
+        if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
+            return [match_one(item) for item in prepared_templates]
+        worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
+        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match") as executor:
+            return list(executor.map(match_one, prepared_templates))
+
+    def _find_all_templates_batch_sync(self,
+                                       source_image: np.ndarray,
+                                       template_images: List[np.ndarray | str],
+                                       mask_images: Optional[List[np.ndarray | str]],
+                                       threshold: float,
+                                       nms_threshold: float,
+                                       use_grayscale: bool,
+                                       match_method: int,
+                                       preprocess: str) -> List[MultiMatchResult]:
+        source_prepared, prepared_templates = self._prepare_template_batch(
+            source_image,
+            template_images,
+            mask_images,
+            use_grayscale,
+            preprocess,
+        )
+
+        def match_one(item: tuple[np.ndarray, Optional[np.ndarray]]) -> MultiMatchResult:
+            template_prepared, mask = item
+            matches = self._match_all_templates_prepared(
+                source_prepared,
+                template_prepared,
+                mask,
+                threshold,
+                nms_threshold,
+                match_method,
+                use_grayscale,
+                preprocess,
+            )
+            return MultiMatchResult(count=len(matches), matches=matches)
+
+        if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
+            return [match_one(item) for item in prepared_templates]
+        worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
+        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match-all") as executor:
+            return list(executor.map(match_one, prepared_templates))
 
     def _select_best_match(self, match_method: int, min_val: float, max_val: float,
                            min_loc: tuple[int, int], max_loc: tuple[int, int]) -> tuple[float, tuple[int, int]]:
