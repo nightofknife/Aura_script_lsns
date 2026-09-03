@@ -17,10 +17,12 @@ def test_embedded_runner_starts_and_stops() -> None:
 def test_embedded_runner_discovers_required_games_and_tasks() -> None:
     runner = EmbeddedGameRunner()
     try:
-        games = {row["game_name"] for row in runner.list_games()}
-        assert {"aura_benchmark", "resonance", "resonance_pc"}.issubset(games)
+        games = {row["game_name"]: row for row in runner.list_games()}
+        required_games = {"aura_benchmark", "resonance", "resonance_pc"}
+        assert required_games.issubset(games)
 
-        for game_name in ("resonance", "resonance_pc"):
+        for game_name in required_games:
+            assert games[game_name]["task_error_count"] == 0
             assert runner.list_tasks(game_name)
     finally:
         runner.close()

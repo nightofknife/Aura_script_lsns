@@ -321,6 +321,12 @@
           "type": "string"
         },
         {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DependencySpec"
+          }
+        },
+        {
           "type": "object",
           "oneOf": [
             {
