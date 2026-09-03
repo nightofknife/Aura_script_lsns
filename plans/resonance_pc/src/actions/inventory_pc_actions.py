@@ -66,7 +66,7 @@ _CATEGORY_SPECS: Dict[str, Dict[str, Any]] = {
         "id_key": "material_id",
         "result_key": "materials",
         "supported_key": "supported_material_count",
-        "template_size": (100, 70),
+        "template_size": (50, 35),
         "count_mode": _COUNT_MODE_DIGIT_TEMPLATE,
         "supports_expiry": False,
     },
@@ -454,6 +454,34 @@ def load_inventory_catalog(
         length=4,
         label="grid_region",
     )
+    source_template_size: Optional[Tuple[int, ...]] = None
+    recognition_scale: Optional[float] = None
+    blur_kernel: Optional[Tuple[int, ...]] = None
+    blur_sigma: Optional[float] = None
+    if category == "materials":
+        source_template_size = _coerce_int_sequence(
+            layout.get("source_template_size"),
+            length=2,
+            label="source_template_size",
+        )
+        try:
+            recognition_scale = float(layout.get("recognition_scale"))
+            blur_sigma = float(layout.get("blur_sigma"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "inventory materials recognition_scale and blur_sigma must be numbers"
+            ) from exc
+        blur_kernel = _coerce_int_sequence(
+            layout.get("blur_kernel"), length=2, label="blur_kernel"
+        )
+        if source_template_size != (100, 70):
+            raise ValueError("inventory materials source templates must be exactly 100x70")
+        if recognition_scale != 0.5:
+            raise ValueError("inventory materials recognition_scale must be exactly 0.5")
+        if any(value <= 0 or value % 2 == 0 for value in blur_kernel):
+            raise ValueError("inventory materials blur_kernel values must be positive and odd")
+        if blur_sigma <= 0:
+            raise ValueError("inventory materials blur_sigma must be positive")
     expiry_roi: Optional[Tuple[int, ...]] = None
     if bool(spec["supports_expiry"]):
         expiry_roi = _coerce_int_sequence(
@@ -499,6 +527,15 @@ def load_inventory_catalog(
         "card_size": card_size,
         "grid_region": grid_region,
     }
+    if category == "materials":
+        normalized_layout.update(
+            {
+                "source_template_size": source_template_size,
+                "recognition_scale": recognition_scale,
+                "blur_kernel": blur_kernel,
+                "blur_sigma": blur_sigma,
+            }
+        )
     if expiry_roi is not None:
         normalized_layout["expiry_roi_from_template"] = expiry_roi
     else:
@@ -551,6 +588,7 @@ def _resolve_inventory_template_paths(
         int(value) for value in layout["template_size"]
     )
     resolved_paths: List[str] = []
+    resolved_images: List[np.ndarray] = []
     for item in items:
         template_ref = str(item.get("template") or "").strip()
         if not template_ref:
@@ -581,7 +619,10 @@ def _resolve_inventory_template_paths(
                 f"{template_width}x{template_height}"
             )
         resolved_paths.append(str(template_path))
+        resolved_images.append(template_image)
     catalog["_template_paths"] = resolved_paths
+    if _catalog_category(catalog) == "materials":
+        catalog["_template_images"] = resolved_images
     return resolved_paths
 
 
@@ -1110,7 +1151,13 @@ def _suppress_cross_template_overlaps(
     candidates: Iterable[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     kept: List[Dict[str, Any]] = []
-    for candidate in sorted(candidates, key=lambda item: float(item["confidence"]), reverse=True):
+    for candidate in sorted(
+        candidates,
+        key=lambda item: (
+            -float(item["confidence"]),
+            str(item["item"]["item_id"]),
+        ),
+    ):
         anchor = candidate["card_top_left"]
         if any(
             abs(int(anchor[0]) - int(other["card_top_left"][0])) < 40
@@ -1137,6 +1184,10 @@ def scan_inventory_page(
     layout = catalog.get("layout")
     items = catalog.get("items")
     template_paths = catalog.get("_template_paths")
+    category = _catalog_category(catalog)
+    template_images = (
+        catalog.get("_template_images") if category == "materials" else template_paths
+    )
     digit_reader = catalog.get("_digit_reader")
     expiry_digit_reader = catalog.get("_expiry_digit_reader")
     count_mode = str(catalog.get("_count_mode") or "")
@@ -1146,6 +1197,8 @@ def scan_inventory_page(
         or not isinstance(items, list)
         or not isinstance(template_paths, list)
         or len(template_paths) != len(items)
+        or not isinstance(template_images, list)
+        or len(template_images) != len(items)
         or count_mode not in {_COUNT_MODE_DIGIT_TEMPLATE, _COUNT_MODE_CARD_INSTANCES}
         or (
             count_mode == _COUNT_MODE_DIGIT_TEMPLATE
@@ -1157,12 +1210,36 @@ def scan_inventory_page(
     template_offset = tuple(int(value) for value in layout["template_offset_from_card"])
     card_width, card_height = (int(value) for value in layout["card_size"])
     threshold = float(layout.get("match_threshold", _DEFAULT_MATCH_THRESHOLD))
+    match_image = page_image
+    coordinate_scale = 1.0
+    source_template_size = tuple(int(value) for value in layout["template_size"])
+    if category == "materials":
+        blur_kernel = tuple(int(value) for value in layout["blur_kernel"])
+        blur_sigma = float(layout["blur_sigma"])
+        recognition_scale = float(layout["recognition_scale"])
+        blurred = cv2.GaussianBlur(
+            page_image,
+            blur_kernel,
+            sigmaX=blur_sigma,
+            sigmaY=blur_sigma,
+        )
+        scaled_width = max(1, int(round(page_image.shape[1] * recognition_scale)))
+        scaled_height = max(1, int(round(page_image.shape[0] * recognition_scale)))
+        match_image = cv2.resize(
+            blurred,
+            (scaled_width, scaled_height),
+            interpolation=cv2.INTER_AREA,
+        )
+        coordinate_scale = 1.0 / recognition_scale
+        source_template_size = tuple(
+            int(value) for value in layout["source_template_size"]
+        )
 
     if vision is None or not callable(getattr(vision, "find_all_templates_batch", None)):
         raise RuntimeError("framework vision service is required for inventory matching")
     batch_results = vision.find_all_templates_batch(
-        source_image=page_image,
-        template_images=[str(path) for path in template_paths],
+        source_image=match_image,
+        template_images=template_images,
         threshold=threshold,
         nms_threshold=0.5,
         use_grayscale=False,
@@ -1189,18 +1266,29 @@ def scan_inventory_page(
             len(matches),
         )
         for match in matches:
+            confidence = float(getattr(match, "confidence", 0.0))
+            if confidence < threshold:
+                continue
             match_top_left = getattr(match, "top_left", None)
             if not isinstance(match_top_left, (tuple, list)) or len(match_top_left) != 2:
                 continue
-            match_x, match_y = (int(value) for value in match_top_left)
+            match_x, match_y = (
+                int(round(float(value) * coordinate_scale))
+                for value in match_top_left
+            )
             card_top_left = (int(match_x) - template_offset[0], int(match_y) - template_offset[1])
             if relative_roi(card_top_left, (0, 0, card_width, card_height), page_image.shape) is None:
                 continue
             candidates.append(
                 {
                     "top_left": (match_x, match_y),
-                    "confidence": float(getattr(match, "confidence", 0.0)),
-                    "rect": getattr(match, "rect", None),
+                    "confidence": confidence,
+                    "rect": (
+                        match_x,
+                        match_y,
+                        int(source_template_size[0]),
+                        int(source_template_size[1]),
+                    ),
                     "item": item,
                     "card_top_left": card_top_left,
                 }

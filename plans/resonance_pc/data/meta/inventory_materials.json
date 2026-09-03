@@ -1,567 +1,2162 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "category": "materials",
   "default_stack_policy": "merge",
   "layout": {
-    "template_size": [100, 70],
-    "template_offset_from_card": [10, 23],
-    "card_size": [122, 121],
-    "grid_region": [397, 94, 680, 626],
-    "match_threshold": 0.94,
-    "scroll_start": [1000, 620],
-    "scroll_end": [1000, 310],
-    "expiry_roi_from_template": [48, -23, 52, 23]
+    "template_size": [
+      50,
+      35
+    ],
+    "template_offset_from_card": [
+      10,
+      23
+    ],
+    "card_size": [
+      122,
+      121
+    ],
+    "grid_region": [
+      397,
+      94,
+      680,
+      626
+    ],
+    "match_threshold": 0.85,
+    "scroll_start": [
+      1000,
+      620
+    ],
+    "scroll_end": [
+      1000,
+      310
+    ],
+    "source_template_size": [
+      100,
+      70
+    ],
+    "recognition_scale": 0.5,
+    "blur_kernel": [
+      3,
+      3
+    ],
+    "blur_sigma": 0.8
   },
   "materials": [
     {
-      "material_id": "origin_string",
-      "name": "本源之弦",
-      "template": "templates/inventory/materials/origin_string.png"
+      "material_id": "large_saw_disc",
+      "name": "大型锯盘",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jixie09",
+      "source_record_ids": [
+        11700002
+      ],
+      "template": "templates/inventory/materials/large_saw_disc.png"
     },
     {
-      "material_id": "echo_string",
-      "name": "回响之弦",
-      "template": "templates/inventory/materials/echo_string.png"
+      "material_id": "material_11700003",
+      "name": "霞光红涂料",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/tuliao_red",
+      "source_record_ids": [
+        11700003
+      ],
+      "template": "templates/inventory/materials/material_11700003.png"
     },
     {
-      "material_id": "solo_string",
-      "name": "独奏之弦",
-      "template": "templates/inventory/materials/solo_string.png"
+      "material_id": "cactus",
+      "name": "仙人球",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xianrenqiu",
+      "source_record_ids": [
+        11700004
+      ],
+      "template": "templates/inventory/materials/cactus.png"
     },
     {
-      "material_id": "unique_stone_fragment",
-      "name": "独石碎片",
-      "template": "templates/inventory/materials/unique_stone_fragment.png"
+      "material_id": "resume_supplement_purple",
+      "name": "紫色履历补充",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/bt_sr",
+      "source_record_ids": [
+        11700005,
+        11700007,
+        11700017,
+        11700019,
+        11700024,
+        11700031,
+        11700033,
+        11700041,
+        11700063,
+        11700071,
+        11700072,
+        11700081,
+        11700090,
+        11700092,
+        11700097,
+        11700123,
+        11700127,
+        11700130,
+        11700140
+      ],
+      "template": "templates/inventory/materials/resume_supplement_purple.png"
     },
     {
-      "material_id": "primitive_thought",
-      "name": "原始思维",
-      "template": "templates/inventory/materials/primitive_thought.png"
+      "material_id": "material_11700006",
+      "name": "仙人掌汁",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xianrenzhi",
+      "source_record_ids": [
+        11700006
+      ],
+      "template": "templates/inventory/materials/material_11700006.png"
     },
     {
-      "material_id": "digital_thought",
-      "name": "数字化思维",
-      "template": "templates/inventory/materials/digital_thought.png"
+      "material_id": "material_11700008",
+      "name": "青绿涂料",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tuliao_green",
+      "source_record_ids": [
+        11700008
+      ],
+      "template": "templates/inventory/materials/material_11700008.png"
     },
     {
-      "material_id": "combat_memory_8_titanium",
-      "name": "战斗记忆体（8钛）",
-      "template": "templates/inventory/materials/combat_memory_8_titanium.png"
+      "material_id": "resume_supplement_golden",
+      "name": "金色履历补充",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/bt_ssr",
+      "source_record_ids": [
+        11700009,
+        11700010,
+        11700011,
+        11700020,
+        11700021,
+        11700028,
+        11700030,
+        11700032,
+        11700034,
+        11700036,
+        11700037,
+        11700043,
+        11700056,
+        11700061,
+        11700064,
+        11700068,
+        11700069,
+        11700073,
+        11700082,
+        11700091,
+        11700094,
+        11700124,
+        11700126,
+        11700131,
+        11700141,
+        11700144,
+        11700160,
+        11700220,
+        11700221,
+        11700222,
+        11700227,
+        11700228,
+        11700229,
+        11700232,
+        11700240,
+        11700243,
+        11700244,
+        11700248,
+        11700253,
+        11700254,
+        11700255,
+        11700270,
+        11700271,
+        11700272,
+        11700281,
+        11700282,
+        11700283,
+        11700284,
+        11700285,
+        11700288,
+        11700289,
+        11700290,
+        11700291,
+        11700292,
+        11700294,
+        11700295,
+        11700300,
+        11700301,
+        11700302,
+        11700303,
+        11700304,
+        11700305,
+        11700306,
+        11700307,
+        11700308,
+        11700309,
+        11700310,
+        11700311,
+        11700312,
+        11700313,
+        11700314
+      ],
+      "template": "templates/inventory/materials/resume_supplement_golden.png"
     },
     {
-      "material_id": "combat_memory_4_titanium",
-      "name": "战斗记忆体（4钛）",
-      "template": "templates/inventory/materials/combat_memory_4_titanium.png"
+      "material_id": "resume_supplement_blue",
+      "name": "蓝色履历补充",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/bt_r",
+      "source_record_ids": [
+        11700012,
+        11700018,
+        11700022,
+        11700023,
+        11700035,
+        11700046,
+        11700070,
+        11700074,
+        11700076,
+        11700093,
+        11700095,
+        11700096,
+        11700098,
+        11700099,
+        11700133,
+        11700142,
+        11700231
+      ],
+      "template": "templates/inventory/materials/resume_supplement_blue.png"
     },
     {
-      "material_id": "combat_memory_2_titanium",
-      "name": "战斗记忆体（2钛）",
-      "template": "templates/inventory/materials/combat_memory_2_titanium.png"
+      "material_id": "classic_pet_food",
+      "name": "经典宠物口粮",
+      "quality": "White",
+      "visual_key": "white::item/pet/petfood/small/normalfood",
+      "source_record_ids": [
+        11700013
+      ],
+      "template": "templates/inventory/materials/classic_pet_food.png"
     },
     {
-      "material_id": "combat_memory_1_titanium",
-      "name": "战斗记忆体（1钛）",
-      "template": "templates/inventory/materials/combat_memory_1_titanium.png"
+      "material_id": "cat_treat",
+      "name": "猫条",
+      "quality": "Blue",
+      "visual_key": "blue::item/pet/petfood/small/striptreats",
+      "source_record_ids": [
+        11700014
+      ],
+      "template": "templates/inventory/materials/cat_treat.png"
+    },
+    {
+      "material_id": "material_11700015",
+      "name": "小鱼干",
+      "quality": "Purple",
+      "visual_key": "purple::item/pet/petfood/small/driedfish",
+      "source_record_ids": [
+        11700015
+      ],
+      "template": "templates/inventory/materials/material_11700015.png"
+    },
+    {
+      "material_id": "material_11700016",
+      "name": "奶酪干",
+      "quality": "Golden",
+      "visual_key": "golden::item/pet/petfood/small/cheese",
+      "source_record_ids": [
+        11700016
+      ],
+      "template": "templates/inventory/materials/material_11700016.png"
+    },
+    {
+      "material_id": "special_armament_modification_permit",
+      "name": "特殊武装改造特许",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/carriagedraw",
+      "source_record_ids": [
+        11700025
+      ],
+      "template": "templates/inventory/materials/special_armament_modification_permit.png"
+    },
+    {
+      "material_id": "standard_armament_modification_voucher",
+      "name": "一般武装改造凭证",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/wuqigaizao",
+      "source_record_ids": [
+        11700026
+      ],
+      "template": "templates/inventory/materials/standard_armament_modification_voucher.png"
+    },
+    {
+      "material_id": "material_11700027",
+      "name": "暮光紫涂料",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/tuliao_purple",
+      "source_record_ids": [
+        11700027
+      ],
+      "template": "templates/inventory/materials/material_11700027.png"
+    },
+    {
+      "material_id": "material_11700029",
+      "name": "波克士的履历补充",
+      "quality": "White",
+      "visual_key": "white::item/item/small/bt_n",
+      "source_record_ids": [
+        11700029
+      ],
+      "template": "templates/inventory/materials/material_11700029.png"
+    },
+    {
+      "material_id": "mole_sunglasses",
+      "name": "鼹鼠的墨镜",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yanshu01",
+      "source_record_ids": [
+        11700038
+      ],
+      "template": "templates/inventory/materials/mole_sunglasses.png"
+    },
+    {
+      "material_id": "ancestor_root_system",
+      "name": "远祖的根系",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian08",
+      "source_record_ids": [
+        11700039
+      ],
+      "template": "templates/inventory/materials/ancestor_root_system.png"
+    },
+    {
+      "material_id": "ancestor_repentance",
+      "name": "远祖的悔罪",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian09",
+      "source_record_ids": [
+        11700040
+      ],
+      "template": "templates/inventory/materials/ancestor_repentance.png"
+    },
+    {
+      "material_id": "material_11700042",
+      "name": "深眠精华",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/shenmian07",
+      "source_record_ids": [
+        11700042
+      ],
+      "template": "templates/inventory/materials/material_11700042.png"
+    },
+    {
+      "material_id": "split_head_bone_dragon_skull",
+      "name": "裂首骨龙头骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong07",
+      "source_record_ids": [
+        11700044
+      ],
+      "template": "templates/inventory/materials/split_head_bone_dragon_skull.png"
+    },
+    {
+      "material_id": "split_head_bone_dragon_sternum",
+      "name": "裂首骨龙胸骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong06",
+      "source_record_ids": [
+        11700045
+      ],
+      "template": "templates/inventory/materials/split_head_bone_dragon_sternum.png"
+    },
+    {
+      "material_id": "material_11700047",
+      "name": "航天元器件",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/hangtianqiyuanjian",
+      "source_record_ids": [
+        11700047
+      ],
+      "template": "templates/inventory/materials/material_11700047.png"
+    },
+    {
+      "material_id": "deep_sleep_entwined_branch",
+      "name": "深眠缠枝",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian06",
+      "source_record_ids": [
+        11700048
+      ],
+      "template": "templates/inventory/materials/deep_sleep_entwined_branch.png"
+    },
+    {
+      "material_id": "calamity_chain_entwined_branch",
+      "name": "祸链缠枝",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian05",
+      "source_record_ids": [
+        11700049
+      ],
+      "template": "templates/inventory/materials/calamity_chain_entwined_branch.png"
+    },
+    {
+      "material_id": "raiding_saw_wheel",
+      "name": "劫掠锯轮",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jielue01",
+      "source_record_ids": [
+        11700050
+      ],
+      "template": "templates/inventory/materials/raiding_saw_wheel.png"
+    },
+    {
+      "material_id": "slaughter_chain_saw",
+      "name": "屠戮链锯",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jielue03",
+      "source_record_ids": [
+        11700051
+      ],
+      "template": "templates/inventory/materials/slaughter_chain_saw.png"
+    },
+    {
+      "material_id": "material_11700052",
+      "name": "夜行笠",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wuminghuo01",
+      "source_record_ids": [
+        11700052
+      ],
+      "template": "templates/inventory/materials/material_11700052.png"
+    },
+    {
+      "material_id": "night_illuminating_twin_blades",
+      "name": "照夜双刃",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wuminghuo02",
+      "source_record_ids": [
+        11700053
+      ],
+      "template": "templates/inventory/materials/night_illuminating_twin_blades.png"
+    },
+    {
+      "material_id": "nether_thunder_remains",
+      "name": "冥霆遗存",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huanggu01",
+      "source_record_ids": [
+        11700054
+      ],
+      "template": "templates/inventory/materials/nether_thunder_remains.png"
+    },
+    {
+      "material_id": "nether_thunder_fragment",
+      "name": "冥霆碎片",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huanggu02",
+      "source_record_ids": [
+        11700055
+      ],
+      "template": "templates/inventory/materials/nether_thunder_fragment.png"
+    },
+    {
+      "material_id": "surging_electric_tendril",
+      "name": "涌电触须",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/huanggu03",
+      "source_record_ids": [
+        11700057
+      ],
+      "template": "templates/inventory/materials/surging_electric_tendril.png"
+    },
+    {
+      "material_id": "surging_electric_sac",
+      "name": "涌电囊袋",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/huanggu04",
+      "source_record_ids": [
+        11700058
+      ],
+      "template": "templates/inventory/materials/surging_electric_sac.png"
+    },
+    {
+      "material_id": "surging_electric_viscera_mass",
+      "name": "涌电内脏团",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/huanggu05",
+      "source_record_ids": [
+        11700059
+      ],
+      "template": "templates/inventory/materials/surging_electric_viscera_mass.png"
+    },
+    {
+      "material_id": "material_11700060",
+      "name": "神盾波克士的履历补充",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/bt_r",
+      "source_record_ids": [
+        11700060
+      ],
+      "template": "templates/inventory/materials/material_11700060.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_elephant",
+      "name": "毛绒联盟海报·大象款",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/maorong01",
+      "source_record_ids": [
+        11700062
+      ],
+      "template": "templates/inventory/materials/fluffy_union_poster_elephant.png"
+    },
+    {
+      "material_id": "birch_gland",
+      "name": "桦树腺体",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/gland_s",
+      "source_record_ids": [
+        11700065
+      ],
+      "template": "templates/inventory/materials/birch_gland.png"
+    },
+    {
+      "material_id": "birch_primordial_substance",
+      "name": "桦树原质",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/huashu02",
+      "source_record_ids": [
+        11700066
+      ],
+      "template": "templates/inventory/materials/birch_primordial_substance.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_raccoon",
+      "name": "毛绒联盟海报·浣熊款",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/maorong02",
+      "source_record_ids": [
+        11700067
+      ],
+      "template": "templates/inventory/materials/fluffy_union_poster_raccoon.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_rabbit",
+      "name": "毛绒联盟海报·兔款",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/maorong03",
+      "source_record_ids": [
+        11700075
+      ],
+      "template": "templates/inventory/materials/fluffy_union_poster_rabbit.png"
+    },
+    {
+      "material_id": "deep_sleep_withered_leaf",
+      "name": "深眠枯叶",
+      "quality": "White",
+      "visual_key": "white::item/item/small/shenmian01",
+      "source_record_ids": [
+        11700077
+      ],
+      "template": "templates/inventory/materials/deep_sleep_withered_leaf.png"
     },
     {
       "material_id": "nebula_matter_8_titanium",
       "name": "星云物质（8钛）",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/exp_ssr_small",
+      "source_record_ids": [
+        11700078
+      ],
       "template": "templates/inventory/materials/nebula_matter_8_titanium.png"
+    },
+    {
+      "material_id": "deep_sleep_branch",
+      "name": "深眠枝条",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/shenmian03",
+      "source_record_ids": [
+        11700079
+      ],
+      "template": "templates/inventory/materials/deep_sleep_branch.png"
+    },
+    {
+      "material_id": "deep_sleep_wood",
+      "name": "深眠木",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian04",
+      "source_record_ids": [
+        11700080
+      ],
+      "template": "templates/inventory/materials/deep_sleep_wood.png"
+    },
+    {
+      "material_id": "combat_memory_1_titanium",
+      "name": "战斗记忆体（1钛）",
+      "quality": "White",
+      "visual_key": "white::item/item/small/bai",
+      "source_record_ids": [
+        11700083
+      ],
+      "template": "templates/inventory/materials/combat_memory_1_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_2_titanium",
+      "name": "战斗记忆体（2钛）",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/lan",
+      "source_record_ids": [
+        11700084
+      ],
+      "template": "templates/inventory/materials/combat_memory_2_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_4_titanium",
+      "name": "战斗记忆体（4钛）",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zi",
+      "source_record_ids": [
+        11700085
+      ],
+      "template": "templates/inventory/materials/combat_memory_4_titanium.png"
+    },
+    {
+      "material_id": "combat_memory_8_titanium",
+      "name": "战斗记忆体（8钛）",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jin",
+      "source_record_ids": [
+        11700086
+      ],
+      "template": "templates/inventory/materials/combat_memory_8_titanium.png"
+    },
+    {
+      "material_id": "fluffy_union_poster_bear",
+      "name": "毛绒联盟海报·熊款",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/maorong04",
+      "source_record_ids": [
+        11700087
+      ],
+      "template": "templates/inventory/materials/fluffy_union_poster_bear.png"
+    },
+    {
+      "material_id": "material_11700088",
+      "name": "破誓之刃",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian10",
+      "source_record_ids": [
+        11700088
+      ],
+      "template": "templates/inventory/materials/material_11700088.png"
+    },
+    {
+      "material_id": "material_11700089",
+      "name": "别离之冠",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shenmian11",
+      "source_record_ids": [
+        11700089
+      ],
+      "template": "templates/inventory/materials/material_11700089.png"
+    },
+    {
+      "material_id": "primitive_thought",
+      "name": "原始思维",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xiwang4",
+      "source_record_ids": [
+        11700100
+      ],
+      "template": "templates/inventory/materials/primitive_thought.png"
+    },
+    {
+      "material_id": "material_11700101",
+      "name": "“求知”思维碎片·基底",
+      "quality": "White",
+      "visual_key": "white::item/item/small/qiuzhi1",
+      "source_record_ids": [
+        11700101
+      ],
+      "template": "templates/inventory/materials/material_11700101.png"
+    },
+    {
+      "material_id": "material_11700102",
+      "name": "“求知”思维碎片·塑造",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/qiuzhi2",
+      "source_record_ids": [
+        11700102
+      ],
+      "template": "templates/inventory/materials/material_11700102.png"
+    },
+    {
+      "material_id": "material_11700103",
+      "name": "“求知”思维碎片·转变",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/qiuzhi3",
+      "source_record_ids": [
+        11700103
+      ],
+      "template": "templates/inventory/materials/material_11700103.png"
+    },
+    {
+      "material_id": "material_11700104",
+      "name": "“求知”思维碎片·结合",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/qiuzhi4",
+      "source_record_ids": [
+        11700104
+      ],
+      "template": "templates/inventory/materials/material_11700104.png"
+    },
+    {
+      "material_id": "material_11700105",
+      "name": "“启示”思维碎片·基底",
+      "quality": "White",
+      "visual_key": "white::item/item/small/qishi1",
+      "source_record_ids": [
+        11700105
+      ],
+      "template": "templates/inventory/materials/material_11700105.png"
+    },
+    {
+      "material_id": "material_11700106",
+      "name": "“启示”思维碎片·塑造",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/qishi2",
+      "source_record_ids": [
+        11700106
+      ],
+      "template": "templates/inventory/materials/material_11700106.png"
+    },
+    {
+      "material_id": "material_11700107",
+      "name": "“启示”思维碎片·转变",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/qishi3",
+      "source_record_ids": [
+        11700107
+      ],
+      "template": "templates/inventory/materials/material_11700107.png"
+    },
+    {
+      "material_id": "material_11700108",
+      "name": "“启示”思维碎片·结合",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/qishi4",
+      "source_record_ids": [
+        11700108
+      ],
+      "template": "templates/inventory/materials/material_11700108.png"
+    },
+    {
+      "material_id": "material_11700109",
+      "name": "“信念”思维碎片·基底",
+      "quality": "White",
+      "visual_key": "white::item/item/small/xinnian1",
+      "source_record_ids": [
+        11700109
+      ],
+      "template": "templates/inventory/materials/material_11700109.png"
+    },
+    {
+      "material_id": "material_11700110",
+      "name": "“信念”思维碎片·塑造",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xinnian2",
+      "source_record_ids": [
+        11700110
+      ],
+      "template": "templates/inventory/materials/material_11700110.png"
+    },
+    {
+      "material_id": "material_11700111",
+      "name": "“信念”思维碎片·转变",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xinnian3",
+      "source_record_ids": [
+        11700111
+      ],
+      "template": "templates/inventory/materials/material_11700111.png"
+    },
+    {
+      "material_id": "material_11700112",
+      "name": "“信念”思维碎片·结合",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xinnian4",
+      "source_record_ids": [
+        11700112
+      ],
+      "template": "templates/inventory/materials/material_11700112.png"
+    },
+    {
+      "material_id": "material_11700113",
+      "name": "“希望”思维碎片·基底",
+      "quality": "White",
+      "visual_key": "white::item/item/small/xiwang1",
+      "source_record_ids": [
+        11700113
+      ],
+      "template": "templates/inventory/materials/material_11700113.png"
+    },
+    {
+      "material_id": "material_11700114",
+      "name": "“希望”思维碎片·塑造",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xiwang2",
+      "source_record_ids": [
+        11700114
+      ],
+      "template": "templates/inventory/materials/material_11700114.png"
+    },
+    {
+      "material_id": "material_11700115",
+      "name": "“希望”思维碎片·转变",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xiwang3",
+      "source_record_ids": [
+        11700115
+      ],
+      "template": "templates/inventory/materials/material_11700115.png"
+    },
+    {
+      "material_id": "material_11700116",
+      "name": "“希望”思维碎片·结合",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xiwang4",
+      "source_record_ids": [
+        11700116
+      ],
+      "template": "templates/inventory/materials/material_11700116.png"
+    },
+    {
+      "material_id": "material_11700117",
+      "name": "“责任”思维碎片·基底",
+      "quality": "White",
+      "visual_key": "white::item/item/small/zeren1",
+      "source_record_ids": [
+        11700117
+      ],
+      "template": "templates/inventory/materials/material_11700117.png"
+    },
+    {
+      "material_id": "material_11700118",
+      "name": "“责任”思维碎片·塑造",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/zeren2",
+      "source_record_ids": [
+        11700118
+      ],
+      "template": "templates/inventory/materials/material_11700118.png"
+    },
+    {
+      "material_id": "material_11700119",
+      "name": "“责任”思维碎片·转变",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zeren3",
+      "source_record_ids": [
+        11700119
+      ],
+      "template": "templates/inventory/materials/material_11700119.png"
+    },
+    {
+      "material_id": "material_11700120",
+      "name": "“责任”思维碎片·结合",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zeren4",
+      "source_record_ids": [
+        11700120
+      ],
+      "template": "templates/inventory/materials/material_11700120.png"
+    },
+    {
+      "material_id": "digital_thought",
+      "name": "数字化思维",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/shuzi",
+      "source_record_ids": [
+        11700121
+      ],
+      "template": "templates/inventory/materials/digital_thought.png"
+    },
+    {
+      "material_id": "unique_stone_fragment",
+      "name": "独石碎片",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dushi",
+      "source_record_ids": [
+        11700122
+      ],
+      "template": "templates/inventory/materials/unique_stone_fragment.png"
+    },
+    {
+      "material_id": "inferior_birch_stone",
+      "name": "劣桦石",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/liehuashi",
+      "source_record_ids": [
+        11700125
+      ],
+      "template": "templates/inventory/materials/inferior_birch_stone.png"
+    },
+    {
+      "material_id": "balanced_nutrition_pet_food",
+      "name": "均衡营养宠物口粮",
+      "quality": "Blue",
+      "visual_key": "blue::item/pet/petfood/small/premiumfood",
+      "source_record_ids": [
+        11700128
+      ],
+      "template": "templates/inventory/materials/balanced_nutrition_pet_food.png"
+    },
+    {
+      "material_id": "mixed_flavor_pet_food",
+      "name": "混合口味宠物口粮",
+      "quality": "Purple",
+      "visual_key": "purple::item/pet/petfood/small/luxuryfood",
+      "source_record_ids": [
+        11700129
+      ],
+      "template": "templates/inventory/materials/mixed_flavor_pet_food.png"
+    },
+    {
+      "material_id": "material_11700132",
+      "name": "冻干",
+      "quality": "Golden",
+      "visual_key": "golden::item/pet/petfood/small/commonfreezedriedtreats",
+      "source_record_ids": [
+        11700132
+      ],
+      "template": "templates/inventory/materials/material_11700132.png"
+    },
+    {
+      "material_id": "material_11700134",
+      "name": "鸡胸肉干",
+      "quality": "Golden",
+      "visual_key": "golden::item/pet/petfood/small/chickenjerky",
+      "source_record_ids": [
+        11700134
+      ],
+      "template": "templates/inventory/materials/material_11700134.png"
+    },
+    {
+      "material_id": "material_11700135",
+      "name": "磨牙棒",
+      "quality": "Blue",
+      "visual_key": "blue::item/pet/petfood/small/teether",
+      "source_record_ids": [
+        11700135
+      ],
+      "template": "templates/inventory/materials/material_11700135.png"
+    },
+    {
+      "material_id": "material_11700136",
+      "name": "油葵瓜子",
+      "quality": "Purple",
+      "visual_key": "purple::item/pet/petfood/small/seeds",
+      "source_record_ids": [
+        11700136
+      ],
+      "template": "templates/inventory/materials/material_11700136.png"
+    },
+    {
+      "material_id": "material_11700137",
+      "name": "小玉米",
+      "quality": "Blue",
+      "visual_key": "blue::item/pet/petfood/small/corn",
+      "source_record_ids": [
+        11700137
+      ],
+      "template": "templates/inventory/materials/material_11700137.png"
+    },
+    {
+      "material_id": "material_11700138",
+      "name": "昆虫冻干",
+      "quality": "Purple",
+      "visual_key": "purple::item/pet/petfood/small/driedinsects",
+      "source_record_ids": [
+        11700138
+      ],
+      "template": "templates/inventory/materials/material_11700138.png"
+    },
+    {
+      "material_id": "material_11700139",
+      "name": "花瓣甜甜圈",
+      "quality": "Golden",
+      "visual_key": "golden::item/pet/petfood/small/petaldonut",
+      "source_record_ids": [
+        11700139
+      ],
+      "template": "templates/inventory/materials/material_11700139.png"
+    },
+    {
+      "material_id": "birch_kernel",
+      "name": "桦树核仁",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huashu03",
+      "source_record_ids": [
+        11700143
+      ],
+      "template": "templates/inventory/materials/birch_kernel.png"
+    },
+    {
+      "material_id": "material_11700146",
+      "name": "形而上粒子",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xingershanglizi",
+      "source_record_ids": [
+        11700146
+      ],
+      "template": "templates/inventory/materials/material_11700146.png"
+    },
+    {
+      "material_id": "deep_sleep_fibrous_root",
+      "name": "深眠须根",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/shenmian02",
+      "source_record_ids": [
+        11700147
+      ],
+      "template": "templates/inventory/materials/deep_sleep_fibrous_root.png"
+    },
+    {
+      "material_id": "material_11700148",
+      "name": "许愿灰",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xuyuanhui1",
+      "source_record_ids": [
+        11700148
+      ],
+      "template": "templates/inventory/materials/material_11700148.png"
+    },
+    {
+      "material_id": "noise_marrow_fluid",
+      "name": "噪音髓液",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zaoyin02",
+      "source_record_ids": [
+        11700149
+      ],
+      "template": "templates/inventory/materials/noise_marrow_fluid.png"
+    },
+    {
+      "material_id": "nebula_matter_1_titanium",
+      "name": "星云物质（1钛）",
+      "quality": "White",
+      "visual_key": "white::item/item/small/exp_r_small",
+      "source_record_ids": [
+        11700150
+      ],
+      "template": "templates/inventory/materials/nebula_matter_1_titanium.png"
+    },
+    {
+      "material_id": "heavy_birch_stone",
+      "name": "重桦石",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zhonghuashi",
+      "source_record_ids": [
+        11700151
+      ],
+      "template": "templates/inventory/materials/heavy_birch_stone.png"
+    },
+    {
+      "material_id": "material_11700154",
+      "name": "许愿砂",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xuyuanhui2",
+      "source_record_ids": [
+        11700154
+      ],
+      "template": "templates/inventory/materials/material_11700154.png"
+    },
+    {
+      "material_id": "material_11700155",
+      "name": "许愿石",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/xuyuanhui3",
+      "source_record_ids": [
+        11700155
+      ],
+      "template": "templates/inventory/materials/material_11700155.png"
+    },
+    {
+      "material_id": "material_11700156",
+      "name": "形而上基质",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xingershangjizhi",
+      "source_record_ids": [
+        11700156
+      ],
+      "template": "templates/inventory/materials/material_11700156.png"
+    },
+    {
+      "material_id": "material_11700157",
+      "name": "形而上有机质",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/xingershangyoujizhi",
+      "source_record_ids": [
+        11700157
+      ],
+      "template": "templates/inventory/materials/material_11700157.png"
+    },
+    {
+      "material_id": "noise_gland_hormone",
+      "name": "噪音腺素",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/zaoyin01",
+      "source_record_ids": [
+        11700158
+      ],
+      "template": "templates/inventory/materials/noise_gland_hormone.png"
+    },
+    {
+      "material_id": "noise_kinase",
+      "name": "噪音激酶",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zaoyin03",
+      "source_record_ids": [
+        11700159
+      ],
+      "template": "templates/inventory/materials/noise_kinase.png"
     },
     {
       "material_id": "nebula_matter_4_titanium",
       "name": "星云物质（4钛）",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/exp_sr_small",
+      "source_record_ids": [
+        11700161
+      ],
       "template": "templates/inventory/materials/nebula_matter_4_titanium.png"
     },
     {
       "material_id": "nebula_matter_2_titanium",
       "name": "星云物质（2钛）",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/exp_r_small",
+      "source_record_ids": [
+        11700162
+      ],
       "template": "templates/inventory/materials/nebula_matter_2_titanium.png"
-    },
-    {
-      "material_id": "nebula_matter_1_titanium",
-      "name": "星云物质（1钛）",
-      "template": "templates/inventory/materials/nebula_matter_1_titanium.png"
-    },
-    {
-      "material_id": "swamp_sharp_horn",
-      "name": "魔沼锐角",
-      "template": "templates/inventory/materials/swamp_sharp_horn.png"
-    },
-    {
-      "material_id": "swamp_claw",
-      "name": "魔沼利爪",
-      "template": "templates/inventory/materials/swamp_claw.png"
-    },
-    {
-      "material_id": "heroic_iron_cannon",
-      "name": "英武铁炮",
-      "template": "templates/inventory/materials/heroic_iron_cannon.png"
-    },
-    {
-      "material_id": "calamity_folding_fan",
-      "name": "灾流折扇",
-      "template": "templates/inventory/materials/calamity_folding_fan.png"
-    },
-    {
-      "material_id": "bone_dragon_medulla",
-      "name": "骨龙延髓",
-      "template": "templates/inventory/materials/bone_dragon_medulla.png"
-    },
-    {
-      "material_id": "countermeasure_system_carrier",
-      "name": "对策系统载体",
-      "template": "templates/inventory/materials/countermeasure_system_carrier.png"
-    },
-    {
-      "material_id": "thunder_greatsword",
-      "name": "雷震巨剑",
-      "template": "templates/inventory/materials/thunder_greatsword.png"
-    },
-    {
-      "material_id": "slaughter_mask",
-      "name": "屠戮面罩",
-      "template": "templates/inventory/materials/slaughter_mask.png"
-    },
-    {
-      "material_id": "studious_lamp_wick",
-      "name": "笃学灯芯",
-      "template": "templates/inventory/materials/studious_lamp_wick.png"
-    },
-    {
-      "material_id": "bone_dragon_tailbone",
-      "name": "骨龙尾骨",
-      "template": "templates/inventory/materials/bone_dragon_tailbone.png"
-    },
-    {
-      "material_id": "bone_dragon_spine",
-      "name": "骨龙脊骨",
-      "template": "templates/inventory/materials/bone_dragon_spine.png"
-    },
-    {
-      "material_id": "bone_dragon_skull",
-      "name": "骨龙头骨",
-      "template": "templates/inventory/materials/bone_dragon_skull.png"
-    },
-    {
-      "material_id": "wandering_star_eye",
-      "name": "游星之眼",
-      "template": "templates/inventory/materials/wandering_star_eye.png"
-    },
-    {
-      "material_id": "twilight_hard_spike",
-      "name": "薄暮坚棘刺",
-      "template": "templates/inventory/materials/twilight_hard_spike.png"
-    },
-    {
-      "material_id": "dull_head_shell",
-      "name": "昏聩头壳",
-      "template": "templates/inventory/materials/dull_head_shell.png"
-    },
-    {
-      "material_id": "parallax_hard_spike_shell",
-      "name": "视差坚棘壳",
-      "template": "templates/inventory/materials/parallax_hard_spike_shell.png"
-    },
-    {
-      "material_id": "superconducting_coil",
-      "name": "超导线圈",
-      "template": "templates/inventory/materials/superconducting_coil.png"
-    },
-    {
-      "material_id": "fire_control_unit",
-      "name": "火控单元",
-      "template": "templates/inventory/materials/fire_control_unit.png"
-    },
-    {
-      "material_id": "power_unit",
-      "name": "动力单元",
-      "template": "templates/inventory/materials/power_unit.png"
-    },
-    {
-      "material_id": "pure_gold_part",
-      "name": "纯金零件",
-      "template": "templates/inventory/materials/pure_gold_part.png"
-    },
-    {
-      "material_id": "dust_howl_hard_bone",
-      "name": "尘鸣坚骨",
-      "template": "templates/inventory/materials/dust_howl_hard_bone.png"
-    },
-    {
-      "material_id": "exploding_insect_sound_sac",
-      "name": "爆虫鸣袋",
-      "template": "templates/inventory/materials/exploding_insect_sound_sac.png"
-    },
-    {
-      "material_id": "birch_tentacle",
-      "name": "桦树触手",
-      "template": "templates/inventory/materials/birch_tentacle.png"
-    },
-    {
-      "material_id": "noise_kinase",
-      "name": "噪音激酶",
-      "template": "templates/inventory/materials/noise_kinase.png"
-    },
-    {
-      "material_id": "birch_kernel",
-      "name": "桦树核仁",
-      "template": "templates/inventory/materials/birch_kernel.png"
-    },
-    {
-      "material_id": "deep_sleep_wood",
-      "name": "深眠木",
-      "template": "templates/inventory/materials/deep_sleep_wood.png"
-    },
-    {
-      "material_id": "nether_thunder_fragment",
-      "name": "冥霆碎片",
-      "template": "templates/inventory/materials/nether_thunder_fragment.png"
-    },
-    {
-      "material_id": "nether_thunder_remains",
-      "name": "冥霆遗存",
-      "template": "templates/inventory/materials/nether_thunder_remains.png"
-    },
-    {
-      "material_id": "night_illuminating_twin_blades",
-      "name": "照夜双刃",
-      "template": "templates/inventory/materials/night_illuminating_twin_blades.png"
-    },
-    {
-      "material_id": "slaughter_chain_saw",
-      "name": "屠戮链锯",
-      "template": "templates/inventory/materials/slaughter_chain_saw.png"
-    },
-    {
-      "material_id": "raiding_saw_wheel",
-      "name": "劫掠锯轮",
-      "template": "templates/inventory/materials/raiding_saw_wheel.png"
-    },
-    {
-      "material_id": "calamity_chain_entwined_branch",
-      "name": "祸链缠枝",
-      "template": "templates/inventory/materials/calamity_chain_entwined_branch.png"
-    },
-    {
-      "material_id": "deep_sleep_entwined_branch",
-      "name": "深眠缠枝",
-      "template": "templates/inventory/materials/deep_sleep_entwined_branch.png"
-    },
-    {
-      "material_id": "split_head_bone_dragon_sternum",
-      "name": "裂首骨龙胸骨",
-      "template": "templates/inventory/materials/split_head_bone_dragon_sternum.png"
-    },
-    {
-      "material_id": "split_head_bone_dragon_skull",
-      "name": "裂首骨龙头骨",
-      "template": "templates/inventory/materials/split_head_bone_dragon_skull.png"
-    },
-    {
-      "material_id": "ancestor_repentance",
-      "name": "远祖的悔罪",
-      "template": "templates/inventory/materials/ancestor_repentance.png"
-    },
-    {
-      "material_id": "ancestor_root_system",
-      "name": "远祖的根系",
-      "template": "templates/inventory/materials/ancestor_root_system.png"
-    },
-    {
-      "material_id": "mole_sunglasses",
-      "name": "鼹鼠的墨镜",
-      "template": "templates/inventory/materials/mole_sunglasses.png"
-    },
-    {
-      "material_id": "special_armament_modification_permit",
-      "name": "特殊武装改造特许",
-      "template": "templates/inventory/materials/special_armament_modification_permit.png"
-    },
-    {
-      "material_id": "large_saw_disc",
-      "name": "大型锯盘",
-      "template": "templates/inventory/materials/large_saw_disc.png"
-    },
-    {
-      "material_id": "swamp_mire_turbid_fluid",
-      "name": "沼泞浊液",
-      "template": "templates/inventory/materials/swamp_mire_turbid_fluid.png"
-    },
-    {
-      "material_id": "swamp_mire_tangled_roots",
-      "name": "沼泞盘结",
-      "template": "templates/inventory/materials/swamp_mire_tangled_roots.png"
-    },
-    {
-      "material_id": "shiranui_single_foot",
-      "name": "不知火单足",
-      "template": "templates/inventory/materials/shiranui_single_foot.png"
-    },
-    {
-      "material_id": "shiranui_burning_branch",
-      "name": "不知火燃枝",
-      "template": "templates/inventory/materials/shiranui_burning_branch.png"
-    },
-    {
-      "material_id": "pleiades_pipeline",
-      "name": "昴宿管线",
-      "template": "templates/inventory/materials/pleiades_pipeline.png"
-    },
-    {
-      "material_id": "sea_dragon_tail_fin",
-      "name": "海龙尾鳍",
-      "template": "templates/inventory/materials/sea_dragon_tail_fin.png"
-    },
-    {
-      "material_id": "lost_wood_reef",
-      "name": "迷失木礁",
-      "template": "templates/inventory/materials/lost_wood_reef.png"
-    },
-    {
-      "material_id": "twilight_hard_shell",
-      "name": "暮光坚壳",
-      "template": "templates/inventory/materials/twilight_hard_shell.png"
-    },
-    {
-      "material_id": "vortex_thorn_flower",
-      "name": "漩涡棘花",
-      "template": "templates/inventory/materials/vortex_thorn_flower.png"
-    },
-    {
-      "material_id": "pain_sickle_claw",
-      "name": "苦痛镰爪",
-      "template": "templates/inventory/materials/pain_sickle_claw.png"
-    },
-    {
-      "material_id": "mourning_sharp_beak",
-      "name": "报丧尖喙",
-      "template": "templates/inventory/materials/mourning_sharp_beak.png"
-    },
-    {
-      "material_id": "high_conductivity_capacitor",
-      "name": "高导电容",
-      "template": "templates/inventory/materials/high_conductivity_capacitor.png"
-    },
-    {
-      "material_id": "weapon_pipeline",
-      "name": "武器管线",
-      "template": "templates/inventory/materials/weapon_pipeline.png"
-    },
-    {
-      "material_id": "power_pipeline",
-      "name": "动力管线",
-      "template": "templates/inventory/materials/power_pipeline.png"
-    },
-    {
-      "material_id": "gold_plated_part",
-      "name": "镀金零件",
-      "template": "templates/inventory/materials/gold_plated_part.png"
-    },
-    {
-      "material_id": "birch_hard_bone",
-      "name": "桦树坚骨",
-      "template": "templates/inventory/materials/birch_hard_bone.png"
-    },
-    {
-      "material_id": "exploding_insect_paralysis_spike",
-      "name": "爆虫麻痹刺",
-      "template": "templates/inventory/materials/exploding_insect_paralysis_spike.png"
-    },
-    {
-      "material_id": "birch_stinging_cell_sac",
-      "name": "桦树刺丝囊",
-      "template": "templates/inventory/materials/birch_stinging_cell_sac.png"
-    },
-    {
-      "material_id": "heavy_birch_stone",
-      "name": "重桦石",
-      "template": "templates/inventory/materials/heavy_birch_stone.png"
-    },
-    {
-      "material_id": "noise_marrow_fluid",
-      "name": "噪音髓液",
-      "template": "templates/inventory/materials/noise_marrow_fluid.png"
-    },
-    {
-      "material_id": "mixed_flavor_pet_food",
-      "name": "混合口味宠物口粮",
-      "template": "templates/inventory/materials/mixed_flavor_pet_food.png"
-    },
-    {
-      "material_id": "fluffy_union_poster_bear",
-      "name": "毛绒联盟海报·熊款",
-      "template": "templates/inventory/materials/fluffy_union_poster_bear.png"
-    },
-    {
-      "material_id": "deep_sleep_branch",
-      "name": "深眠枝条",
-      "template": "templates/inventory/materials/deep_sleep_branch.png"
-    },
-    {
-      "material_id": "fluffy_union_poster_rabbit",
-      "name": "毛绒联盟海报·兔款",
-      "template": "templates/inventory/materials/fluffy_union_poster_rabbit.png"
-    },
-    {
-      "material_id": "fluffy_union_poster_raccoon",
-      "name": "毛绒联盟海报·浣熊款",
-      "template": "templates/inventory/materials/fluffy_union_poster_raccoon.png"
-    },
-    {
-      "material_id": "birch_primordial_substance",
-      "name": "桦树原质",
-      "template": "templates/inventory/materials/birch_primordial_substance.png"
-    },
-    {
-      "material_id": "fluffy_union_poster_elephant",
-      "name": "毛绒联盟海报·大象款",
-      "template": "templates/inventory/materials/fluffy_union_poster_elephant.png"
-    },
-    {
-      "material_id": "surging_electric_viscera_mass",
-      "name": "涌电内脏团",
-      "template": "templates/inventory/materials/surging_electric_viscera_mass.png"
-    },
-    {
-      "material_id": "surging_electric_sac",
-      "name": "涌电囊袋",
-      "template": "templates/inventory/materials/surging_electric_sac.png"
-    },
-    {
-      "material_id": "standard_armament_modification_voucher",
-      "name": "一般武装改造凭证",
-      "template": "templates/inventory/materials/standard_armament_modification_voucher.png"
-    },
-    {
-      "material_id": "swamp_mire_beak_shell",
-      "name": "沼泞喙壳",
-      "template": "templates/inventory/materials/swamp_mire_beak_shell.png"
-    },
-    {
-      "material_id": "swamp_mire_snail_shell",
-      "name": "沼泞螺壳",
-      "template": "templates/inventory/materials/swamp_mire_snail_shell.png"
-    },
-    {
-      "material_id": "pleiades_part",
-      "name": "昴宿零件",
-      "template": "templates/inventory/materials/pleiades_part.png"
-    },
-    {
-      "material_id": "sea_dragon_fin_ray",
-      "name": "海龙鳍条",
-      "template": "templates/inventory/materials/sea_dragon_fin_ray.png"
-    },
-    {
-      "material_id": "misfortune_thorn_crown",
-      "name": "厄运棘冠",
-      "template": "templates/inventory/materials/misfortune_thorn_crown.png"
-    },
-    {
-      "material_id": "dizziness_carapace",
-      "name": "眩晕甲壳",
-      "template": "templates/inventory/materials/dizziness_carapace.png"
-    },
-    {
-      "material_id": "amnesia_thorn",
-      "name": "失忆荆刺",
-      "template": "templates/inventory/materials/amnesia_thorn.png"
-    },
-    {
-      "material_id": "precision_part",
-      "name": "精密零件",
-      "template": "templates/inventory/materials/precision_part.png"
-    },
-    {
-      "material_id": "birch_tail_whisker",
-      "name": "桦树尾须",
-      "template": "templates/inventory/materials/birch_tail_whisker.png"
-    },
-    {
-      "material_id": "exploding_insect_sac",
-      "name": "爆虫囊袋",
-      "template": "templates/inventory/materials/exploding_insect_sac.png"
-    },
-    {
-      "material_id": "birch_tendril",
-      "name": "桦树触须",
-      "template": "templates/inventory/materials/birch_tendril.png"
-    },
-    {
-      "material_id": "noise_gland_hormone",
-      "name": "噪音腺素",
-      "template": "templates/inventory/materials/noise_gland_hormone.png"
-    },
-    {
-      "material_id": "deep_sleep_fibrous_root",
-      "name": "深眠须根",
-      "template": "templates/inventory/materials/deep_sleep_fibrous_root.png"
-    },
-    {
-      "material_id": "balanced_nutrition_pet_food",
-      "name": "均衡营养宠物口粮",
-      "template": "templates/inventory/materials/balanced_nutrition_pet_food.png"
-    },
-    {
-      "material_id": "inferior_birch_stone",
-      "name": "劣桦石",
-      "template": "templates/inventory/materials/inferior_birch_stone.png"
-    },
-    {
-      "material_id": "birch_gland",
-      "name": "桦树腺体",
-      "template": "templates/inventory/materials/birch_gland.png"
-    },
-    {
-      "material_id": "surging_electric_tendril",
-      "name": "涌电触须",
-      "template": "templates/inventory/materials/surging_electric_tendril.png"
-    },
-    {
-      "material_id": "cat_treat",
-      "name": "猫条",
-      "template": "templates/inventory/materials/cat_treat.png"
-    },
-    {
-      "material_id": "cactus",
-      "name": "仙人球",
-      "template": "templates/inventory/materials/cactus.png"
-    },
-    {
-      "material_id": "brain_fog_spore",
-      "name": "脑雾孢子",
-      "template": "templates/inventory/materials/brain_fog_spore.png"
-    },
-    {
-      "material_id": "broken_part",
-      "name": "残破零件",
-      "template": "templates/inventory/materials/broken_part.png"
-    },
-    {
-      "material_id": "birch_cartilage",
-      "name": "桦树软骨",
-      "template": "templates/inventory/materials/birch_cartilage.png"
-    },
-    {
-      "material_id": "exploding_insect_sac_fluid",
-      "name": "爆虫囊液",
-      "template": "templates/inventory/materials/exploding_insect_sac_fluid.png"
     },
     {
       "material_id": "birch_flagellum",
       "name": "桦树鞭毛",
+      "quality": "White",
+      "visual_key": "white::item/item/small/chuxu01",
+      "source_record_ids": [
+        11700163
+      ],
       "template": "templates/inventory/materials/birch_flagellum.png"
     },
     {
-      "material_id": "deep_sleep_withered_leaf",
-      "name": "深眠枯叶",
-      "template": "templates/inventory/materials/deep_sleep_withered_leaf.png"
+      "material_id": "exploding_insect_sac_fluid",
+      "name": "爆虫囊液",
+      "quality": "White",
+      "visual_key": "white::item/item/small/baochong01",
+      "source_record_ids": [
+        11700164
+      ],
+      "template": "templates/inventory/materials/exploding_insect_sac_fluid.png"
     },
     {
-      "material_id": "classic_pet_food",
-      "name": "经典宠物口粮",
-      "template": "templates/inventory/materials/classic_pet_food.png"
+      "material_id": "material_11700165",
+      "name": "漆黑涂料",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/tuliao",
+      "source_record_ids": [
+        11700165
+      ],
+      "template": "templates/inventory/materials/material_11700165.png"
+    },
+    {
+      "material_id": "birch_tendril",
+      "name": "桦树触须",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/chuxu02",
+      "source_record_ids": [
+        11700166
+      ],
+      "template": "templates/inventory/materials/birch_tendril.png"
+    },
+    {
+      "material_id": "birch_stinging_cell_sac",
+      "name": "桦树刺丝囊",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/chuxu03",
+      "source_record_ids": [
+        11700167
+      ],
+      "template": "templates/inventory/materials/birch_stinging_cell_sac.png"
+    },
+    {
+      "material_id": "birch_tentacle",
+      "name": "桦树触手",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/chuxu04",
+      "source_record_ids": [
+        11700168
+      ],
+      "template": "templates/inventory/materials/birch_tentacle.png"
+    },
+    {
+      "material_id": "exploding_insect_paralysis_spike",
+      "name": "爆虫麻痹刺",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/baochong02",
+      "source_record_ids": [
+        11700169
+      ],
+      "template": "templates/inventory/materials/exploding_insect_paralysis_spike.png"
+    },
+    {
+      "material_id": "exploding_insect_sac",
+      "name": "爆虫囊袋",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/baochong03",
+      "source_record_ids": [
+        11700170
+      ],
+      "template": "templates/inventory/materials/exploding_insect_sac.png"
+    },
+    {
+      "material_id": "exploding_insect_sound_sac",
+      "name": "爆虫鸣袋",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/baochong04",
+      "source_record_ids": [
+        11700171
+      ],
+      "template": "templates/inventory/materials/exploding_insect_sound_sac.png"
+    },
+    {
+      "material_id": "birch_cartilage",
+      "name": "桦树软骨",
+      "quality": "White",
+      "visual_key": "white::item/item/small/haigu01",
+      "source_record_ids": [
+        11700172
+      ],
+      "template": "templates/inventory/materials/birch_cartilage.png"
+    },
+    {
+      "material_id": "birch_tail_whisker",
+      "name": "桦树尾须",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/haigu02",
+      "source_record_ids": [
+        11700173
+      ],
+      "template": "templates/inventory/materials/birch_tail_whisker.png"
+    },
+    {
+      "material_id": "birch_hard_bone",
+      "name": "桦树坚骨",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/haigu03",
+      "source_record_ids": [
+        11700174
+      ],
+      "template": "templates/inventory/materials/birch_hard_bone.png"
+    },
+    {
+      "material_id": "dust_howl_hard_bone",
+      "name": "尘鸣坚骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/haigu04",
+      "source_record_ids": [
+        11700175
+      ],
+      "template": "templates/inventory/materials/dust_howl_hard_bone.png"
+    },
+    {
+      "material_id": "material_11700176",
+      "name": "骸龙脊骨",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/haigu05",
+      "source_record_ids": [
+        11700176
+      ],
+      "template": "templates/inventory/materials/material_11700176.png"
+    },
+    {
+      "material_id": "material_11700177",
+      "name": "骸龙头骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/haigu06",
+      "source_record_ids": [
+        11700177
+      ],
+      "template": "templates/inventory/materials/material_11700177.png"
+    },
+    {
+      "material_id": "material_11700178",
+      "name": "骸龙尾骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/haigu07",
+      "source_record_ids": [
+        11700178
+      ],
+      "template": "templates/inventory/materials/material_11700178.png"
+    },
+    {
+      "material_id": "broken_part",
+      "name": "残破零件",
+      "quality": "White",
+      "visual_key": "white::item/item/small/jixie01",
+      "source_record_ids": [
+        11700179
+      ],
+      "template": "templates/inventory/materials/broken_part.png"
+    },
+    {
+      "material_id": "precision_part",
+      "name": "精密零件",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/jixie02",
+      "source_record_ids": [
+        11700180
+      ],
+      "template": "templates/inventory/materials/precision_part.png"
+    },
+    {
+      "material_id": "gold_plated_part",
+      "name": "镀金零件",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jixie03",
+      "source_record_ids": [
+        11700181
+      ],
+      "template": "templates/inventory/materials/gold_plated_part.png"
+    },
+    {
+      "material_id": "pure_gold_part",
+      "name": "纯金零件",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jixie04",
+      "source_record_ids": [
+        11700182
+      ],
+      "template": "templates/inventory/materials/pure_gold_part.png"
+    },
+    {
+      "material_id": "power_pipeline",
+      "name": "动力管线",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jixie05",
+      "source_record_ids": [
+        11700183
+      ],
+      "template": "templates/inventory/materials/power_pipeline.png"
+    },
+    {
+      "material_id": "weapon_pipeline",
+      "name": "武器管线",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jixie06",
+      "source_record_ids": [
+        11700184
+      ],
+      "template": "templates/inventory/materials/weapon_pipeline.png"
+    },
+    {
+      "material_id": "power_unit",
+      "name": "动力单元",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jixie07",
+      "source_record_ids": [
+        11700185
+      ],
+      "template": "templates/inventory/materials/power_unit.png"
+    },
+    {
+      "material_id": "fire_control_unit",
+      "name": "火控单元",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jixie08",
+      "source_record_ids": [
+        11700186
+      ],
+      "template": "templates/inventory/materials/fire_control_unit.png"
+    },
+    {
+      "material_id": "high_conductivity_capacitor",
+      "name": "高导电容",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/dianqi01",
+      "source_record_ids": [
+        11700187
+      ],
+      "template": "templates/inventory/materials/high_conductivity_capacitor.png"
+    },
+    {
+      "material_id": "superconducting_coil",
+      "name": "超导线圈",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dianqi02",
+      "source_record_ids": [
+        11700188
+      ],
+      "template": "templates/inventory/materials/superconducting_coil.png"
+    },
+    {
+      "material_id": "brain_fog_spore",
+      "name": "脑雾孢子",
+      "quality": "White",
+      "visual_key": "white::item/item/small/hune01",
+      "source_record_ids": [
+        11700189
+      ],
+      "template": "templates/inventory/materials/brain_fog_spore.png"
+    },
+    {
+      "material_id": "amnesia_thorn",
+      "name": "失忆茎刺",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/hune02",
+      "source_record_ids": [
+        11700190
+      ],
+      "template": "templates/inventory/materials/amnesia_thorn.png"
+    },
+    {
+      "material_id": "dizziness_carapace",
+      "name": "眩晕甲壳",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/hune03",
+      "source_record_ids": [
+        11700191
+      ],
+      "template": "templates/inventory/materials/dizziness_carapace.png"
+    },
+    {
+      "material_id": "misfortune_thorn_crown",
+      "name": "厄运棘冠",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/hune04",
+      "source_record_ids": [
+        11700192
+      ],
+      "template": "templates/inventory/materials/misfortune_thorn_crown.png"
+    },
+    {
+      "material_id": "mourning_sharp_beak",
+      "name": "报丧尖喙",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hune05",
+      "source_record_ids": [
+        11700193
+      ],
+      "template": "templates/inventory/materials/mourning_sharp_beak.png"
+    },
+    {
+      "material_id": "pain_sickle_claw",
+      "name": "苦痛镰爪",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hune06",
+      "source_record_ids": [
+        11700194
+      ],
+      "template": "templates/inventory/materials/pain_sickle_claw.png"
+    },
+    {
+      "material_id": "vortex_thorn_flower",
+      "name": "漩涡棘花",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hune07",
+      "source_record_ids": [
+        11700195
+      ],
+      "template": "templates/inventory/materials/vortex_thorn_flower.png"
+    },
+    {
+      "material_id": "twilight_hard_shell",
+      "name": "暮光坚壳",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hune08",
+      "source_record_ids": [
+        11700196
+      ],
+      "template": "templates/inventory/materials/twilight_hard_shell.png"
+    },
+    {
+      "material_id": "lost_wood_reef",
+      "name": "迷失木礁",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hune09",
+      "source_record_ids": [
+        11700197
+      ],
+      "template": "templates/inventory/materials/lost_wood_reef.png"
+    },
+    {
+      "material_id": "parallax_hard_spike_shell",
+      "name": "视差坚棘壳",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/hune10",
+      "source_record_ids": [
+        11700198
+      ],
+      "template": "templates/inventory/materials/parallax_hard_spike_shell.png"
+    },
+    {
+      "material_id": "dull_head_shell",
+      "name": "昏聩头壳",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/hune11",
+      "source_record_ids": [
+        11700199
+      ],
+      "template": "templates/inventory/materials/dull_head_shell.png"
+    },
+    {
+      "material_id": "twilight_hard_spike",
+      "name": "薄暮坚棘刺",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/hune12",
+      "source_record_ids": [
+        11700200
+      ],
+      "template": "templates/inventory/materials/twilight_hard_spike.png"
+    },
+    {
+      "material_id": "wandering_star_eye",
+      "name": "游星之眼",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/hune13",
+      "source_record_ids": [
+        11700201
+      ],
+      "template": "templates/inventory/materials/wandering_star_eye.png"
+    },
+    {
+      "material_id": "sea_dragon_fin_ray",
+      "name": "海龙鳍条",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/gulong01",
+      "source_record_ids": [
+        11700202
+      ],
+      "template": "templates/inventory/materials/sea_dragon_fin_ray.png"
+    },
+    {
+      "material_id": "sea_dragon_tail_fin",
+      "name": "海龙尾鳍",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/gulong02",
+      "source_record_ids": [
+        11700203
+      ],
+      "template": "templates/inventory/materials/sea_dragon_tail_fin.png"
+    },
+    {
+      "material_id": "bone_dragon_skull",
+      "name": "骨龙头骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong03",
+      "source_record_ids": [
+        11700204
+      ],
+      "template": "templates/inventory/materials/bone_dragon_skull.png"
+    },
+    {
+      "material_id": "bone_dragon_spine",
+      "name": "骨龙脊骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong04",
+      "source_record_ids": [
+        11700205
+      ],
+      "template": "templates/inventory/materials/bone_dragon_spine.png"
+    },
+    {
+      "material_id": "bone_dragon_tailbone",
+      "name": "骨龙尾骨",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong05",
+      "source_record_ids": [
+        11700206
+      ],
+      "template": "templates/inventory/materials/bone_dragon_tailbone.png"
+    },
+    {
+      "material_id": "neutrino_or_negative_scale_wing",
+      "name": "稳态中微子/负片鳞翅",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/temporary",
+      "source_record_ids": [
+        11700207,
+        11700215
+      ],
+      "template": "templates/inventory/materials/neutrino_or_negative_scale_wing.png"
+    },
+    {
+      "material_id": "material_11700208",
+      "name": "螺向之叶",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan06",
+      "source_record_ids": [
+        11700208
+      ],
+      "template": "templates/inventory/materials/material_11700208.png"
+    },
+    {
+      "material_id": "material_11700209",
+      "name": "逆纹之爪",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan07",
+      "source_record_ids": [
+        11700209
+      ],
+      "template": "templates/inventory/materials/material_11700209.png"
+    },
+    {
+      "material_id": "material_11700210",
+      "name": "反曲之帆",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan02",
+      "source_record_ids": [
+        11700210
+      ],
+      "template": "templates/inventory/materials/material_11700210.png"
+    },
+    {
+      "material_id": "material_11700211",
+      "name": "涡旋之眼",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/shiyuan08",
+      "source_record_ids": [
+        11700211
+      ],
+      "template": "templates/inventory/materials/material_11700211.png"
+    },
+    {
+      "material_id": "material_11700212",
+      "name": "二向之触",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/shiyuan01",
+      "source_record_ids": [
+        11700212
+      ],
+      "template": "templates/inventory/materials/material_11700212.png"
+    },
+    {
+      "material_id": "reversal_wing_or_disciple_eye",
+      "name": "反转之翼/门徒之眼",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/temporary",
+      "source_record_ids": [
+        11700213,
+        11700216
+      ],
+      "template": "templates/inventory/materials/reversal_wing_or_disciple_eye.png"
+    },
+    {
+      "material_id": "material_11700214",
+      "name": "负片鳞粉",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/temporary",
+      "source_record_ids": [
+        11700214
+      ],
+      "template": "templates/inventory/materials/material_11700214.png"
+    },
+    {
+      "material_id": "pleiades_part",
+      "name": "昴宿零件",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xuehui01",
+      "source_record_ids": [
+        11700217
+      ],
+      "template": "templates/inventory/materials/pleiades_part.png"
+    },
+    {
+      "material_id": "pleiades_pipeline",
+      "name": "昴宿管线",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xuehui02",
+      "source_record_ids": [
+        11700218
+      ],
+      "template": "templates/inventory/materials/pleiades_pipeline.png"
+    },
+    {
+      "material_id": "studious_lamp_wick",
+      "name": "笃学灯芯",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/duxue",
+      "source_record_ids": [
+        11700219
+      ],
+      "template": "templates/inventory/materials/studious_lamp_wick.png"
+    },
+    {
+      "material_id": "slaughter_mask",
+      "name": "屠戮面罩",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jielue02",
+      "source_record_ids": [
+        11700223
+      ],
+      "template": "templates/inventory/materials/slaughter_mask.png"
+    },
+    {
+      "material_id": "thunder_greatsword",
+      "name": "雷震巨剑",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhenleiming01",
+      "source_record_ids": [
+        11700224
+      ],
+      "template": "templates/inventory/materials/thunder_greatsword.png"
+    },
+    {
+      "material_id": "material_11700225",
+      "name": "镇护盔",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhenleiming02",
+      "source_record_ids": [
+        11700225
+      ],
+      "template": "templates/inventory/materials/material_11700225.png"
+    },
+    {
+      "material_id": "countermeasure_system_carrier",
+      "name": "对策系统载体",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xuehui03",
+      "source_record_ids": [
+        11700226
+      ],
+      "template": "templates/inventory/materials/countermeasure_system_carrier.png"
+    },
+    {
+      "material_id": "material_11700230",
+      "name": "星云物质（无限）",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/exp_ssr_small",
+      "source_record_ids": [
+        11700230
+      ],
+      "template": "templates/inventory/materials/material_11700230.png"
+    },
+    {
+      "material_id": "material_11700233",
+      "name": "反生核心",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan03",
+      "source_record_ids": [
+        11700233
+      ],
+      "template": "templates/inventory/materials/material_11700233.png"
+    },
+    {
+      "material_id": "material_11700234",
+      "name": "反生棘蜕",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan04",
+      "source_record_ids": [
+        11700234
+      ],
+      "template": "templates/inventory/materials/material_11700234.png"
+    },
+    {
+      "material_id": "material_11700235",
+      "name": "反曲翼羽",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shiyuan05",
+      "source_record_ids": [
+        11700235
+      ],
+      "template": "templates/inventory/materials/material_11700235.png"
+    },
+    {
+      "material_id": "material_11700236",
+      "name": "血影骨片",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong08",
+      "source_record_ids": [
+        11700236
+      ],
+      "template": "templates/inventory/materials/material_11700236.png"
+    },
+    {
+      "material_id": "bone_dragon_medulla",
+      "name": "骨龙延髓",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gulong09",
+      "source_record_ids": [
+        11700237
+      ],
+      "template": "templates/inventory/materials/bone_dragon_medulla.png"
+    },
+    {
+      "material_id": "calamity_folding_fan",
+      "name": "灾流折扇",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/cangye02",
+      "source_record_ids": [
+        11700238
+      ],
+      "template": "templates/inventory/materials/calamity_folding_fan.png"
+    },
+    {
+      "material_id": "material_11700239",
+      "name": "碎簪",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/cangye01",
+      "source_record_ids": [
+        11700239
+      ],
+      "template": "templates/inventory/materials/material_11700239.png"
+    },
+    {
+      "material_id": "material_11700241",
+      "name": "赢家之箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhixiangguai01",
+      "source_record_ids": [
+        11700241
+      ],
+      "template": "templates/inventory/materials/material_11700241.png"
+    },
+    {
+      "material_id": "material_11700242",
+      "name": "硬纸板",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zhixiangguai02",
+      "source_record_ids": [
+        11700242
+      ],
+      "template": "templates/inventory/materials/material_11700242.png"
+    },
+    {
+      "material_id": "solo_string",
+      "name": "独奏之弦",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/duzou",
+      "source_record_ids": [
+        11700245
+      ],
+      "template": "templates/inventory/materials/solo_string.png"
+    },
+    {
+      "material_id": "echo_string",
+      "name": "回响之弦",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huixiang",
+      "source_record_ids": [
+        11700246
+      ],
+      "template": "templates/inventory/materials/echo_string.png"
+    },
+    {
+      "material_id": "material_11700247",
+      "name": "联应之弦",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/lianying180",
+      "source_record_ids": [
+        11700247
+      ],
+      "template": "templates/inventory/materials/material_11700247.png"
+    },
+    {
+      "material_id": "shiranui_burning_branch",
+      "name": "不知火燃枝",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/mingdeng01",
+      "source_record_ids": [
+        11700249
+      ],
+      "template": "templates/inventory/materials/shiranui_burning_branch.png"
+    },
+    {
+      "material_id": "shiranui_single_foot",
+      "name": "不知火单足",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/mingdeng02",
+      "source_record_ids": [
+        11700250
+      ],
+      "template": "templates/inventory/materials/shiranui_single_foot.png"
+    },
+    {
+      "material_id": "material_11700251",
+      "name": "金乌雷喙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/mingdeng03",
+      "source_record_ids": [
+        11700251
+      ],
+      "template": "templates/inventory/materials/material_11700251.png"
+    },
+    {
+      "material_id": "material_11700252",
+      "name": "金乌火羽",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/mingdeng04",
+      "source_record_ids": [
+        11700252
+      ],
+      "template": "templates/inventory/materials/material_11700252.png"
+    },
+    {
+      "material_id": "material_11700256",
+      "name": "英武铁甲",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/maorong05",
+      "source_record_ids": [
+        11700256
+      ],
+      "template": "templates/inventory/materials/material_11700256.png"
+    },
+    {
+      "material_id": "heroic_iron_cannon",
+      "name": "英武铁炮",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/maorong06",
+      "source_record_ids": [
+        11700257
+      ],
+      "template": "templates/inventory/materials/heroic_iron_cannon.png"
+    },
+    {
+      "material_id": "material_11700258",
+      "name": "濡湿裙摆",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monv02",
+      "source_record_ids": [
+        11700258
+      ],
+      "template": "templates/inventory/materials/material_11700258.png"
+    },
+    {
+      "material_id": "material_11700259",
+      "name": "哀怜之花",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monv01",
+      "source_record_ids": [
+        11700259
+      ],
+      "template": "templates/inventory/materials/material_11700259.png"
+    },
+    {
+      "material_id": "material_11700260",
+      "name": "金块贴纸",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tiezhi01",
+      "source_record_ids": [
+        11700260
+      ],
+      "template": "templates/inventory/materials/material_11700260.png"
+    },
+    {
+      "material_id": "material_11700261",
+      "name": "拳花贴纸",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tiezhi02",
+      "source_record_ids": [
+        11700261
+      ],
+      "template": "templates/inventory/materials/material_11700261.png"
+    },
+    {
+      "material_id": "material_11700262",
+      "name": "破财书贴纸",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tiezhi03",
+      "source_record_ids": [
+        11700262
+      ],
+      "template": "templates/inventory/materials/material_11700262.png"
+    },
+    {
+      "material_id": "material_11700263",
+      "name": "掀人掌贴纸",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tiezhi04",
+      "source_record_ids": [
+        11700263
+      ],
+      "template": "templates/inventory/materials/material_11700263.png"
+    },
+    {
+      "material_id": "material_11700264",
+      "name": "孔雀绿涂料",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tuliao_green2",
+      "source_record_ids": [
+        11700264
+      ],
+      "template": "templates/inventory/materials/material_11700264.png"
+    },
+    {
+      "material_id": "material_11700265",
+      "name": "静谧蓝涂料",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tuliao_blue",
+      "source_record_ids": [
+        11700265
+      ],
+      "template": "templates/inventory/materials/material_11700265.png"
+    },
+    {
+      "material_id": "material_11700266",
+      "name": "竞速黄涂料",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/tuliao_yellow",
+      "source_record_ids": [
+        11700266
+      ],
+      "template": "templates/inventory/materials/material_11700266.png"
+    },
+    {
+      "material_id": "material_11700267",
+      "name": "钛白涂料",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/tuliao_white",
+      "source_record_ids": [
+        11700267
+      ],
+      "template": "templates/inventory/materials/material_11700267.png"
+    },
+    {
+      "material_id": "material_11700268",
+      "name": "皓月银涂料",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/tuliao_silvery",
+      "source_record_ids": [
+        11700268
+      ],
+      "template": "templates/inventory/materials/material_11700268.png"
+    },
+    {
+      "material_id": "material_11700269",
+      "name": "熔岩橙涂料",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/tuliao_orange",
+      "source_record_ids": [
+        11700269
+      ],
+      "template": "templates/inventory/materials/material_11700269.png"
+    },
+    {
+      "material_id": "material_11700273",
+      "name": "归墟之剑",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xuehui04",
+      "source_record_ids": [
+        11700273
+      ],
+      "template": "templates/inventory/materials/material_11700273.png"
+    },
+    {
+      "material_id": "material_11700274",
+      "name": "破碎的天空",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xuehui05",
+      "source_record_ids": [
+        11700274
+      ],
+      "template": "templates/inventory/materials/material_11700274.png"
+    },
+    {
+      "material_id": "swamp_claw",
+      "name": "魔沼利爪",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhaoning05",
+      "source_record_ids": [
+        11700275
+      ],
+      "template": "templates/inventory/materials/swamp_claw.png"
+    },
+    {
+      "material_id": "swamp_sharp_horn",
+      "name": "魔沼锐角",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhaoning06_180",
+      "source_record_ids": [
+        11700276
+      ],
+      "template": "templates/inventory/materials/swamp_sharp_horn.png"
+    },
+    {
+      "material_id": "swamp_mire_snail_shell",
+      "name": "沼泞螺壳",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/zhaoning01",
+      "source_record_ids": [
+        11700277
+      ],
+      "template": "templates/inventory/materials/swamp_mire_snail_shell.png"
+    },
+    {
+      "material_id": "swamp_mire_beak_shell",
+      "name": "沼泞喙壳",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/zhaoning02",
+      "source_record_ids": [
+        11700278
+      ],
+      "template": "templates/inventory/materials/swamp_mire_beak_shell.png"
+    },
+    {
+      "material_id": "swamp_mire_tangled_roots",
+      "name": "沼泞盘结",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zhaoning03",
+      "source_record_ids": [
+        11700279
+      ],
+      "template": "templates/inventory/materials/swamp_mire_tangled_roots.png"
+    },
+    {
+      "material_id": "swamp_mire_turbid_fluid",
+      "name": "沼泞浊液",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zhaoning04",
+      "source_record_ids": [
+        11700280
+      ],
+      "template": "templates/inventory/materials/swamp_mire_turbid_fluid.png"
+    },
+    {
+      "material_id": "material_11700286",
+      "name": "嗜人巨齿",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/haiguai01",
+      "source_record_ids": [
+        11700286
+      ],
+      "template": "templates/inventory/materials/material_11700286.png"
+    },
+    {
+      "material_id": "material_11700287",
+      "name": "诱惑拟饵",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/haiguai02",
+      "source_record_ids": [
+        11700287
+      ],
+      "template": "templates/inventory/materials/material_11700287.png"
+    },
+    {
+      "material_id": "origin_string",
+      "name": "本源之弦",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/lianying",
+      "source_record_ids": [
+        11700293
+      ],
+      "template": "templates/inventory/materials/origin_string.png"
+    },
+    {
+      "material_id": "material_11700315",
+      "name": "轻桦石",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhonghuashi",
+      "source_record_ids": [
+        11700315
+      ],
+      "template": "templates/inventory/materials/material_11700315.png"
     }
   ]
 }

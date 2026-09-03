@@ -745,7 +745,7 @@ class VisionService:
         locations = np.where(score_map >= threshold)
 
         h, w = template_prepared.shape[:2]
-        rects = [[pt[0], pt[1], pt[0] + w, pt[1] + h] for pt in zip(*locations[::-1])]
+        rects = [[pt[0], pt[1], w, h] for pt in zip(*locations[::-1])]
         scores = [score_map[pt[1], pt[0]] for pt in zip(*locations[::-1])]
 
         if not rects:
