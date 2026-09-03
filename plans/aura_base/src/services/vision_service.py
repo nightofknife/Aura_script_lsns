@@ -207,7 +207,8 @@ class VisionService:
                       threshold: float = 0.8,
                       use_grayscale: bool = True,
                       match_method: int = cv2.TM_CCOEFF_NORMED,
-                      preprocess: str = "none") -> MatchResult:
+                      preprocess: str = "none",
+                      score_scale: Optional[float] = None) -> MatchResult:
         """【同步接口】在源图像中查找最匹配的单个模板。"""
         return self._submit_to_loop_and_wait(
             self.find_template_async(
@@ -218,6 +219,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         )
 
@@ -229,7 +231,8 @@ class VisionService:
                            nms_threshold: float = 0.5,
                            use_grayscale: bool = True,
                            match_method: int = cv2.TM_CCOEFF_NORMED,
-                           preprocess: str = "none") -> MultiMatchResult:
+                           preprocess: str = "none",
+                           score_scale: Optional[float] = None) -> MultiMatchResult:
         """【同步接口】在源图像中查找所有匹配的模板实例。"""
         return self._submit_to_loop_and_wait(
             self.find_all_templates_async(
@@ -241,6 +244,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         )
 
@@ -251,7 +255,8 @@ class VisionService:
                              threshold: float = 0.8,
                              use_grayscale: bool = True,
                              match_method: int = cv2.TM_CCOEFF_NORMED,
-                             preprocess: str = "none") -> List[MatchResult]:
+                             preprocess: str = "none",
+                             score_scale: Optional[float] = None) -> List[MatchResult]:
         """【同步接口】在源图像中批量查找多个模板的最佳匹配。"""
         return self._submit_to_loop_and_wait(
             self.find_templates_batch_async(
@@ -262,6 +267,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         )
 
@@ -273,7 +279,8 @@ class VisionService:
                                  nms_threshold: float = 0.5,
                                  use_grayscale: bool = True,
                                  match_method: int = cv2.TM_CCOEFF_NORMED,
-                                 preprocess: str = "none") -> List[MultiMatchResult]:
+                                 preprocess: str = "none",
+                                 score_scale: Optional[float] = None) -> List[MultiMatchResult]:
         """【同步接口】在源图像中批量查找多个模板的所有匹配。"""
         return self._submit_to_loop_and_wait(
             self.find_all_templates_batch_async(
@@ -285,6 +292,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         )
 
@@ -309,7 +317,8 @@ class VisionService:
                                   threshold: float = 0.8,
                                   use_grayscale: bool = True,
                                   match_method: int = cv2.TM_CCOEFF_NORMED,
-                                  preprocess: str = "none") -> MatchResult:
+                                  preprocess: str = "none",
+                                  score_scale: Optional[float] = None) -> MatchResult:
         """【异步内核】将模板匹配计算调度到后台线程。"""
         try:
             source_prepared = self._prepare_image(
@@ -344,6 +353,7 @@ class VisionService:
                 match_method,
                 use_grayscale,
                 preprocess,
+                score_scale,
             )
         except (FileNotFoundError, TypeError, ValueError) as e:
             logger.error(f"模板匹配预处理失败: {e}")
@@ -357,7 +367,8 @@ class VisionService:
                                        nms_threshold: float = 0.5,
                                        use_grayscale: bool = True,
                                        match_method: int = cv2.TM_CCOEFF_NORMED,
-                                       preprocess: str = "none") -> MultiMatchResult:
+                                       preprocess: str = "none",
+                                       score_scale: Optional[float] = None) -> MultiMatchResult:
         """【异步内核】将查找所有模板的计算调度到后台线程。"""
         try:
             source_prepared = self._prepare_image(
@@ -393,6 +404,7 @@ class VisionService:
                 match_method,
                 use_grayscale,
                 preprocess,
+                score_scale,
             )
             return MultiMatchResult(count=len(matches), matches=matches)
 
@@ -407,7 +419,8 @@ class VisionService:
                                          threshold: float = 0.8,
                                          use_grayscale: bool = True,
                                          match_method: int = cv2.TM_CCOEFF_NORMED,
-                                         preprocess: str = "none") -> List[MatchResult]:
+                                         preprocess: str = "none",
+                                         score_scale: Optional[float] = None) -> List[MatchResult]:
         """【异步内核】批量查找多个模板的最佳匹配。"""
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
@@ -421,6 +434,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         except (FileNotFoundError, TypeError, ValueError) as e:
             logger.error(f"批量模板匹配预处理失败: {e}")
@@ -434,7 +448,8 @@ class VisionService:
                                              nms_threshold: float = 0.5,
                                              use_grayscale: bool = True,
                                              match_method: int = cv2.TM_CCOEFF_NORMED,
-                                             preprocess: str = "none") -> List[MultiMatchResult]:
+                                             preprocess: str = "none",
+                                             score_scale: Optional[float] = None) -> List[MultiMatchResult]:
         """【异步内核】批量查找多个模板的所有匹配。"""
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
@@ -449,6 +464,7 @@ class VisionService:
                 use_grayscale,
                 match_method,
                 preprocess,
+                score_scale,
             )
         except (FileNotFoundError, TypeError, ValueError) as e:
             logger.error(f"批量模板查找预处理失败: {e}")
@@ -530,6 +546,9 @@ class VisionService:
 
         img = self._normalize_color_space(img, input_is_bgr=input_is_bgr)
 
+        if (preprocess or "none").lower() == "lab_chroma_blur" and use_grayscale:
+            raise ValueError("lab_chroma_blur requires use_grayscale=False")
+
         if use_grayscale:
             if img.ndim == 3:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -559,6 +578,13 @@ class VisionService:
             return img
         if preprocess == "blur":
             return cv2.GaussianBlur(img, (3, 3), 0)
+        if preprocess == "lab_chroma_blur":
+            if img.ndim != 3 or img.shape[2] != 3:
+                raise ValueError("lab_chroma_blur requires a three-channel RGB image")
+            blurred = cv2.GaussianBlur(img, (3, 3), 0)
+            lab = cv2.cvtColor(blurred, cv2.COLOR_RGB2LAB).astype(np.float32)
+            lab[:, :, 0] *= 0.2
+            return lab
         if preprocess == "normalize":
             normalized = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
             return normalized.astype(np.uint8) if normalized.dtype != np.uint8 else normalized
@@ -603,7 +629,8 @@ class VisionService:
                                    threshold: float,
                                    use_grayscale: bool,
                                    match_method: int,
-                                   preprocess: str) -> List[MatchResult]:
+                                   preprocess: str,
+                                   score_scale: Optional[float] = None) -> List[MatchResult]:
         source_prepared, prepared_templates = self._prepare_template_batch(
             source_image,
             template_images,
@@ -622,6 +649,7 @@ class VisionService:
                 match_method,
                 use_grayscale,
                 preprocess,
+                score_scale,
             )
 
         if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
@@ -638,7 +666,8 @@ class VisionService:
                                        nms_threshold: float,
                                        use_grayscale: bool,
                                        match_method: int,
-                                       preprocess: str) -> List[MultiMatchResult]:
+                                       preprocess: str,
+                                       score_scale: Optional[float] = None) -> List[MultiMatchResult]:
         source_prepared, prepared_templates = self._prepare_template_batch(
             source_image,
             template_images,
@@ -658,6 +687,7 @@ class VisionService:
                 match_method,
                 use_grayscale,
                 preprocess,
+                score_scale,
             )
             return MultiMatchResult(count=len(matches), matches=matches)
 
@@ -673,17 +703,43 @@ class VisionService:
             return min_val, min_loc
         return max_val, max_loc
 
-    def _normalize_match_score(self, score: float, match_method: int) -> float:
+    def _normalize_match_score(
+            self,
+            score: float,
+            match_method: int,
+            template_shape: Optional[tuple[int, ...]] = None,
+            score_scale: Optional[float] = None,
+    ) -> float:
         if match_method == cv2.TM_SQDIFF_NORMED:
             return 1.0 - float(score)
         if match_method == cv2.TM_SQDIFF:
+            if score_scale is not None:
+                if score_scale <= 0:
+                    raise ValueError("score_scale must be greater than zero")
+                if not template_shape:
+                    raise ValueError("template_shape is required when score_scale is set")
+                mse = float(score) / float(np.prod(template_shape))
+                return 1.0 / (1.0 + mse / float(score_scale))
             return 1.0 / (1.0 + float(score))
         return float(score)
 
-    def _normalize_match_map(self, score_map: np.ndarray, match_method: int) -> np.ndarray:
+    def _normalize_match_map(
+            self,
+            score_map: np.ndarray,
+            match_method: int,
+            template_shape: Optional[tuple[int, ...]] = None,
+            score_scale: Optional[float] = None,
+    ) -> np.ndarray:
         if match_method == cv2.TM_SQDIFF_NORMED:
             return 1.0 - score_map
         if match_method == cv2.TM_SQDIFF:
+            if score_scale is not None:
+                if score_scale <= 0:
+                    raise ValueError("score_scale must be greater than zero")
+                if not template_shape:
+                    raise ValueError("template_shape is required when score_scale is set")
+                mse_map = score_map / float(np.prod(template_shape))
+                return 1.0 / (1.0 + mse_map / float(score_scale))
             return 1.0 / (1.0 + score_map)
         return score_map
 
@@ -694,7 +750,8 @@ class VisionService:
                                  threshold: float,
                                  match_method: int,
                                  use_grayscale: bool,
-                                 preprocess: str) -> MatchResult:
+                                 preprocess: str,
+                                 score_scale: Optional[float] = None) -> MatchResult:
         if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
             raise ValueError(
                 f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
@@ -702,7 +759,12 @@ class VisionService:
         result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         best_val, best_loc = self._select_best_match(match_method, min_val, max_val, min_loc, max_loc)
-        best_confidence = self._normalize_match_score(best_val, match_method)
+        best_confidence = self._normalize_match_score(
+            best_val,
+            match_method,
+            template_prepared.shape,
+            score_scale,
+        )
         h, w = template_prepared.shape[:2]
 
         debug_info = {
@@ -710,6 +772,8 @@ class VisionService:
             "use_grayscale": use_grayscale,
             "preprocess": preprocess,
         }
+        if score_scale is not None:
+            debug_info["score_scale"] = score_scale
 
         if best_confidence >= threshold:
             return MatchResult(
@@ -735,13 +799,19 @@ class VisionService:
                                       nms_threshold: float,
                                       match_method: int,
                                       use_grayscale: bool,
-                                      preprocess: str) -> List[MatchResult]:
+                                      preprocess: str,
+                                      score_scale: Optional[float] = None) -> List[MatchResult]:
         if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
             raise ValueError(
                 f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
             )
         result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
-        score_map = self._normalize_match_map(result, match_method)
+        score_map = self._normalize_match_map(
+            result,
+            match_method,
+            template_prepared.shape,
+            score_scale,
+        )
         locations = np.where(score_map >= threshold)
 
         h, w = template_prepared.shape[:2]
@@ -768,6 +838,7 @@ class VisionService:
                         "match_method": match_method,
                         "use_grayscale": use_grayscale,
                         "preprocess": preprocess,
+                        **({"score_scale": score_scale} if score_scale is not None else {}),
                     },
                 ))
         return final_matches

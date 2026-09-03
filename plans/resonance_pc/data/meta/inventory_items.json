@@ -1,223 +1,4654 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "default_stack_policy": "merge",
   "layout": {
-    "template_size": [100, 70],
-    "template_offset_from_card": [10, 23],
-    "card_size": [122, 121],
-    "grid_region": [397, 94, 680, 626],
+    "template_size": [
+      120,
+      50
+    ],
+    "template_offset_from_card": [
+      0,
+      44
+    ],
+    "card_size": [
+      122,
+      121
+    ],
+    "grid_region": [
+      397,
+      94,
+      680,
+      626
+    ],
     "match_threshold": 0.82,
-    "scroll_start": [1000, 620],
-    "scroll_end": [1000, 310],
-    "expiry_roi_from_template": [48, -23, 52, 23]
+    "scroll_start": [
+      1000,
+      620
+    ],
+    "scroll_end": [
+      1000,
+      310
+    ],
+    "expiry_roi_from_template": [
+      58,
+      -44,
+      52,
+      23
+    ],
+    "preprocess": "lab_chroma_blur",
+    "match_method": "sqdiff",
+    "lab_l_weight": 0.2,
+    "score_scale": 100.0,
+    "blur_kernel": [
+      3,
+      3
+    ]
   },
   "items": [
     {
-      "item_id": "cactus_energy_lollipop",
-      "name": "仙人掌能量棒棒糖",
-      "template": "templates/inventory/items/cactus_energy_lollipop.png",
-      "stack_policy": "split_by_expiry"
-    },
-    {
-      "item_id": "stamina_lollipop",
-      "name": "提神棒棒糖",
-      "template": "templates/inventory/items/stamina_lollipop.png",
-      "stack_policy": "split_by_expiry"
-    },
-    {
-      "item_id": "birch_crystal",
-      "name": "桦石",
-      "template": "templates/inventory/items/birch_crystal.png"
-    },
-    {
-      "item_id": "jiaozi",
-      "name": "交子",
-      "template": "templates/inventory/items/jiaozi.png"
-    },
-    {
       "item_id": "iron_alliance_coin",
-      "name": "铁盟币",
+      "name": "金色通用代币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gold",
+      "source_record_ids": [
+        11400001,
+        11400135,
+        11400139,
+        11400140,
+        11401015,
+        11401055
+      ],
       "template": "templates/inventory/items/iron_alliance_coin.png"
     },
     {
-      "item_id": "desperate_badge",
-      "name": "绝命奖章",
-      "template": "templates/inventory/items/desperate_badge.png"
+      "item_id": "item_11400002",
+      "name": "战令1",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/temporary",
+      "source_record_ids": [
+        11400002,
+        11400957,
+        11401043,
+        11401125
+      ],
+      "template": "templates/inventory/items/item_11400002.png"
+    },
+    {
+      "item_id": "item_11400003",
+      "name": "安提基特拉协议·典藏",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/onepull3",
+      "source_record_ids": [
+        11400003,
+        11400133,
+        11400211,
+        11400365,
+        11400400,
+        11400713,
+        11400903,
+        11400943,
+        11401004,
+        11401079,
+        11401230
+      ],
+      "template": "templates/inventory/items/item_11400003.png"
     },
     {
       "item_id": "duty_badge",
       "name": "赴命奖章",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/fumingjiangzhang",
+      "source_record_ids": [
+        11400004
+      ],
       "template": "templates/inventory/items/duty_badge.png"
     },
     {
-      "item_id": "resume_intelligence",
-      "name": "履历情报",
-      "template": "templates/inventory/items/resume_intelligence.png"
+      "item_id": "birch_crystal",
+      "name": "桦石",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/big/diamond",
+      "source_record_ids": [
+        11400005
+      ],
+      "template": "templates/inventory/items/birch_crystal.png"
     },
     {
-      "item_id": "purchase_order_book",
-      "name": "进货采购书",
-      "template": "templates/inventory/items/purchase_order_book.png"
+      "item_id": "item_11400006",
+      "name": "澄明度",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/energy",
+      "source_record_ids": [
+        11400006
+      ],
+      "template": "templates/inventory/items/item_11400006.png"
     },
     {
-      "item_id": "cactus_jump_roll",
-      "name": "仙人掌跳跳卷",
-      "template": "templates/inventory/items/cactus_jump_roll.png"
+      "item_id": "item_11400007",
+      "name": "拉普拉斯协议",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/onepull",
+      "source_record_ids": [
+        11400007,
+        11400018
+      ],
+      "template": "templates/inventory/items/item_11400007.png"
     },
     {
-      "item_id": "cactus_stamina_popping_candy",
-      "name": "仙人掌提神跳糖",
-      "template": "templates/inventory/items/cactus_stamina_popping_candy.png"
-    },
-    {
-      "item_id": "stamina_chewing_gum",
-      "name": "提神口香糖",
-      "template": "templates/inventory/items/stamina_chewing_gum.png"
-    },
-    {
-      "item_id": "magpie_pastry",
-      "name": "喜鹊酥",
-      "template": "templates/inventory/items/magpie_pastry.png"
-    },
-    {
-      "item_id": "white_day_chocolate_iliad_2026",
-      "name": "2026白情巧克力·伊利亚德",
-      "template": "templates/inventory/items/white_day_chocolate_iliad_2026.png"
-    },
-    {
-      "item_id": "white_day_chocolate_falcon_2026",
-      "name": "2026白情巧克力·隼",
-      "template": "templates/inventory/items/white_day_chocolate_falcon_2026.png"
-    },
-    {
-      "item_id": "white_day_chocolate_simon_2026",
-      "name": "2026白情巧克力·西蒙",
-      "template": "templates/inventory/items/white_day_chocolate_simon_2026.png"
-    },
-    {
-      "item_id": "decorated_fondant_cake",
-      "name": "造型翻糖蛋糕",
-      "template": "templates/inventory/items/decorated_fondant_cake.png"
-    },
-    {
-      "item_id": "cheesecake",
-      "name": "芝士蛋糕",
-      "template": "templates/inventory/items/cheesecake.png"
+      "item_id": "item_11400008",
+      "name": "帝国精良装备箱",
+      "quality": "Purple",
+      "visual_key": "purple::item/weapon/diguo/small/diguoweaponbox",
+      "source_record_ids": [
+        11400008
+      ],
+      "template": "templates/inventory/items/item_11400008.png"
     },
     {
       "item_id": "imperial_standard_equipment_crate",
       "name": "帝国标准装备箱",
+      "quality": "Blue",
+      "visual_key": "blue::item/weapon/diguo/small/diguoweaponbox",
+      "source_record_ids": [
+        11400009
+      ],
       "template": "templates/inventory/items/imperial_standard_equipment_crate.png"
     },
     {
-      "item_id": "anita_standard_equipment_crate",
-      "name": "阿妮塔标准装备箱",
-      "template": "templates/inventory/items/anita_standard_equipment_crate.png"
+      "item_id": "item_11400010",
+      "name": "帝国新月装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/diguo/small/diguoweaponbox",
+      "source_record_ids": [
+        11400010
+      ],
+      "template": "templates/inventory/items/item_11400010.png"
     },
     {
-      "item_id": "black_moon_standard_equipment_crate",
-      "name": "黑月标准装备箱",
-      "template": "templates/inventory/items/black_moon_standard_equipment_crate.png"
+      "item_id": "item_11400011",
+      "name": "票价增幅",
+      "quality": "White",
+      "visual_key": "white::item/item/small/quest_point",
+      "source_record_ids": [
+        11400011
+      ],
+      "template": "templates/inventory/items/item_11400011.png"
     },
     {
-      "item_id": "iron_alliance_standard_equipment_crate",
-      "name": "铁盟标准装备箱",
-      "template": "templates/inventory/items/iron_alliance_standard_equipment_crate.png"
+      "item_id": "item_11400012",
+      "name": "援建指标",
+      "quality": "White",
+      "visual_key": "white::item/item/small/investment_point",
+      "source_record_ids": [
+        11400012
+      ],
+      "template": "templates/inventory/items/item_11400012.png"
     },
     {
-      "item_id": "self_exploration_film_roll",
-      "name": "自探索胶卷",
-      "template": "templates/inventory/items/self_exploration_film_roll.png"
+      "item_id": "item_11400013",
+      "name": "活跃度",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/huoyuedu2",
+      "source_record_ids": [
+        11400013
+      ],
+      "template": "templates/inventory/items/item_11400013.png"
     },
     {
-      "item_id": "self_observation_film_roll",
-      "name": "自观测胶卷",
-      "template": "templates/inventory/items/self_observation_film_roll.png"
+      "item_id": "cactus_jump_roll",
+      "name": "仙人掌跳跳卷",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/sutaminabox",
+      "source_record_ids": [
+        11400014
+      ],
+      "template": "templates/inventory/items/cactus_jump_roll.png"
     },
     {
-      "item_id": "axolotl_alliance_badge",
-      "name": "娃娃鱼同盟徽章",
-      "template": "templates/inventory/items/axolotl_alliance_badge.png"
-    },
-    {
-      "item_id": "additional_capital_injection_application",
-      "name": "追加注资申请书",
-      "template": "templates/inventory/items/additional_capital_injection_application.png"
-    },
-    {
-      "item_id": "survey_beacon",
-      "name": "勘测信标",
-      "template": "templates/inventory/items/survey_beacon.png"
-    },
-    {
-      "item_id": "brawl_arcade_coin",
-      "name": "乱斗街机币",
-      "template": "templates/inventory/items/brawl_arcade_coin.png"
-    },
-    {
-      "item_id": "blank_videotape",
-      "name": "空白录像带",
-      "template": "templates/inventory/items/blank_videotape.png"
-    },
-    {
-      "item_id": "material_ticket",
-      "name": "资材券",
-      "template": "templates/inventory/items/material_ticket.png"
-    },
-    {
-      "item_id": "quadratic_one_variable",
-      "name": "“一元二次”",
-      "template": "templates/inventory/items/quadratic_one_variable.png"
-    },
-    {
-      "item_id": "seal_ticket",
-      "name": "海豹券",
-      "template": "templates/inventory/items/seal_ticket.png"
-    },
-    {
-      "item_id": "advertising_ticket",
-      "name": "广告投放券",
-      "template": "templates/inventory/items/advertising_ticket.png"
-    },
-    {
-      "item_id": "decoy_explosive_balloon",
-      "name": "诱饵爆炸气球",
-      "template": "templates/inventory/items/decoy_explosive_balloon.png"
-    },
-    {
-      "item_id": "cardamom_ginger_lily",
-      "name": "“豆蔻姜百合”",
-      "template": "templates/inventory/items/cardamom_ginger_lily.png"
-    },
-    {
-      "item_id": "renegotiation_request",
-      "name": "再交涉请求书",
-      "template": "templates/inventory/items/renegotiation_request.png"
-    },
-    {
-      "item_id": "arrest_warrant",
-      "name": "逮捕令",
-      "template": "templates/inventory/items/arrest_warrant.png"
-    },
-    {
-      "item_id": "silver_branch_mint",
-      "name": "银枝薄荷糖",
-      "template": "templates/inventory/items/silver_branch_mint.png"
-    },
-    {
-      "item_id": "decoy_balloon",
-      "name": "诱饵气球",
-      "template": "templates/inventory/items/decoy_balloon.png"
-    },
-    {
-      "item_id": "task_commission_letter",
-      "name": "任务委托书",
-      "template": "templates/inventory/items/task_commission_letter.png"
+      "item_id": "item_11400015",
+      "name": "精良工作台制造法",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/book_worktable",
+      "source_record_ids": [
+        11400015,
+        11400079,
+        11400099,
+        11400220,
+        11400314
+      ],
+      "template": "templates/inventory/items/item_11400015.png"
     },
     {
       "item_id": "order_request",
       "name": "订单请求书",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/dingdan",
+      "source_record_ids": [
+        11400016
+      ],
       "template": "templates/inventory/items/order_request.png"
+    },
+    {
+      "item_id": "resume_intelligence",
+      "name": "履历情报",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/qingbao",
+      "source_record_ids": [
+        11400017
+      ],
+      "template": "templates/inventory/items/resume_intelligence.png"
+    },
+    {
+      "item_id": "item_11400019",
+      "name": "基础炼制法",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/book_refiner",
+      "source_record_ids": [
+        11400019,
+        11400043,
+        11400053
+      ],
+      "template": "templates/inventory/items/item_11400019.png"
+    },
+    {
+      "item_id": "item_11400020",
+      "name": "黑月匠造礼品卡",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/token",
+      "source_record_ids": [
+        11400020
+      ],
+      "template": "templates/inventory/items/item_11400020.png"
+    },
+    {
+      "item_id": "item_11400021",
+      "name": "周活跃度",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/huoyuedu",
+      "source_record_ids": [
+        11400021
+      ],
+      "template": "templates/inventory/items/item_11400021.png"
+    },
+    {
+      "item_id": "item_11400022",
+      "name": "插画1",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/gold",
+      "source_record_ids": [
+        11400022
+      ],
+      "template": "templates/inventory/items/item_11400022.png"
+    },
+    {
+      "item_id": "item_11400023",
+      "name": "插画2",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/gold",
+      "source_record_ids": [
+        11400023
+      ],
+      "template": "templates/inventory/items/item_11400023.png"
+    },
+    {
+      "item_id": "item_11400024",
+      "name": "邮票",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/5_stampnew",
+      "source_record_ids": [
+        11400024,
+        11400989,
+        11401042,
+        11401133
+      ],
+      "template": "templates/inventory/items/item_11400024.png"
+    },
+    {
+      "item_id": "item_11400025",
+      "name": "邮票",
+      "quality": "White",
+      "visual_key": "white::item/item/small/1_stampnew",
+      "source_record_ids": [
+        11400025,
+        11400984,
+        11401036,
+        11401135
+      ],
+      "template": "templates/inventory/items/item_11400025.png"
+    },
+    {
+      "item_id": "item_11400026",
+      "name": "补给箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/weaponboxs",
+      "source_record_ids": [
+        11400026,
+        11400027,
+        11400029
+      ],
+      "template": "templates/inventory/items/item_11400026.png"
+    },
+    {
+      "item_id": "item_11400028",
+      "name": "邮票",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/10_stampnew",
+      "source_record_ids": [
+        11400028,
+        11400976,
+        11401040,
+        11401137
+      ],
+      "template": "templates/inventory/items/item_11400028.png"
+    },
+    {
+      "item_id": "item_11400030",
+      "name": "邮票",
+      "quality": "White",
+      "visual_key": "white::item/item/small/3_stampnew",
+      "source_record_ids": [
+        11400030,
+        11400979,
+        11401037,
+        11401134
+      ],
+      "template": "templates/inventory/items/item_11400030.png"
+    },
+    {
+      "item_id": "self_observation_film_roll",
+      "name": "自观测胶卷",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/entrychangeitem_small",
+      "source_record_ids": [
+        11400031,
+        11400107,
+        11400108,
+        11400109,
+        11400110,
+        11400217
+      ],
+      "template": "templates/inventory/items/self_observation_film_roll.png"
+    },
+    {
+      "item_id": "item_11400032",
+      "name": "水下大桥",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/picture",
+      "source_record_ids": [
+        11400032
+      ],
+      "template": "templates/inventory/items/item_11400032.png"
+    },
+    {
+      "item_id": "item_11400034",
+      "name": "邮票",
+      "quality": "White",
+      "visual_key": "white::item/item/small/2_stampnew",
+      "source_record_ids": [
+        11400034,
+        11400981,
+        11401039,
+        11401132
+      ],
+      "template": "templates/inventory/items/item_11400034.png"
+    },
+    {
+      "item_id": "item_11400035",
+      "name": "邮票",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/30_stampnew",
+      "source_record_ids": [
+        11400035,
+        11400982,
+        11401035,
+        11401136
+      ],
+      "template": "templates/inventory/items/item_11400035.png"
+    },
+    {
+      "item_id": "item_11400036",
+      "name": "邮票",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/50_stampnew",
+      "source_record_ids": [
+        11400036,
+        11400959,
+        11401038,
+        11401131
+      ],
+      "template": "templates/inventory/items/item_11400036.png"
+    },
+    {
+      "item_id": "item_11400037",
+      "name": "邮票",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/100_stampnew",
+      "source_record_ids": [
+        11400037,
+        11400965,
+        11401041,
+        11401138
+      ],
+      "template": "templates/inventory/items/item_11400037.png"
+    },
+    {
+      "item_id": "item_11400038",
+      "name": "基础萃取法",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/book_anita",
+      "source_record_ids": [
+        11400038,
+        11400103
+      ],
+      "template": "templates/inventory/items/item_11400038.png"
+    },
+    {
+      "item_id": "item_11400039",
+      "name": "列车长疲劳值",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/energy",
+      "source_record_ids": [
+        11400039
+      ],
+      "template": "templates/inventory/items/item_11400039.png"
+    },
+    {
+      "item_id": "item_11400040",
+      "name": "精良机械加工法",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/book_machininglathe",
+      "source_record_ids": [
+        11400040,
+        11400077,
+        11400228
+      ],
+      "template": "templates/inventory/items/item_11400040.png"
+    },
+    {
+      "item_id": "item_11400041",
+      "name": "战令2",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/temporary",
+      "source_record_ids": [
+        11400041,
+        11400948,
+        11400958,
+        11401044,
+        11401130
+      ],
+      "template": "templates/inventory/items/item_11400041.png"
+    },
+    {
+      "item_id": "item_11400042",
+      "name": "高级机械加工法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_machininglathe",
+      "source_record_ids": [
+        11400042,
+        11400076,
+        11400392,
+        11400698,
+        11400910
+      ],
+      "template": "templates/inventory/items/item_11400042.png"
+    },
+    {
+      "item_id": "renegotiation_request",
+      "name": "再交涉请求书",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jiaoshe",
+      "source_record_ids": [
+        11400044
+      ],
+      "template": "templates/inventory/items/renegotiation_request.png"
+    },
+    {
+      "item_id": "purchase_order_book",
+      "name": "进货采买书",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jinhuo",
+      "source_record_ids": [
+        11400045
+      ],
+      "template": "templates/inventory/items/purchase_order_book.png"
+    },
+    {
+      "item_id": "additional_capital_injection_application",
+      "name": "追加注资申请书",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/touzi",
+      "source_record_ids": [
+        11400046
+      ],
+      "template": "templates/inventory/items/additional_capital_injection_application.png"
+    },
+    {
+      "item_id": "task_commission_letter",
+      "name": "任务委托书",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/renwu",
+      "source_record_ids": [
+        11400047
+      ],
+      "template": "templates/inventory/items/task_commission_letter.png"
+    },
+    {
+      "item_id": "item_11400048",
+      "name": "黑月采购券",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/heishi",
+      "source_record_ids": [
+        11400048
+      ],
+      "template": "templates/inventory/items/item_11400048.png"
+    },
+    {
+      "item_id": "decoy_balloon",
+      "name": "诱饵气球",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/youerqiqiu",
+      "source_record_ids": [
+        11400049
+      ],
+      "template": "templates/inventory/items/decoy_balloon.png"
+    },
+    {
+      "item_id": "item_11400050",
+      "name": "通用招募协议",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/onepull2",
+      "source_record_ids": [
+        11400050,
+        11400587
+      ],
+      "template": "templates/inventory/items/item_11400050.png"
+    },
+    {
+      "item_id": "item_11400051",
+      "name": "精良炼制法",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/book_refiner",
+      "source_record_ids": [
+        11400051,
+        11400101,
+        11400225,
+        11400226,
+        11400393,
+        11400623,
+        11400624,
+        11400625
+      ],
+      "template": "templates/inventory/items/item_11400051.png"
+    },
+    {
+      "item_id": "item_11400052",
+      "name": "黄铜线圈工艺指南",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/book_machininglathe",
+      "source_record_ids": [
+        11400052
+      ],
+      "template": "templates/inventory/items/item_11400052.png"
+    },
+    {
+      "item_id": "item_11400054",
+      "name": "基地建设进度",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/construction",
+      "source_record_ids": [
+        11400054,
+        11400055,
+        11400075,
+        11400097,
+        11400098,
+        11400151,
+        11400356,
+        11400387,
+        11400404,
+        11400621,
+        11400916,
+        11401078
+      ],
+      "template": "templates/inventory/items/item_11400054.png"
+    },
+    {
+      "item_id": "item_11400056",
+      "name": "城市声望",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/sw",
+      "source_record_ids": [
+        11400056
+      ],
+      "template": "templates/inventory/items/item_11400056.png"
+    },
+    {
+      "item_id": "axolotl_alliance_badge",
+      "name": "娃娃鱼同盟徽章",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wawayuhuizhang",
+      "source_record_ids": [
+        11400057
+      ],
+      "template": "templates/inventory/items/axolotl_alliance_badge.png"
+    },
+    {
+      "item_id": "item_11400058",
+      "name": "基础工作台制造法",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/book_worktable",
+      "source_record_ids": [
+        11400058,
+        11400221
+      ],
+      "template": "templates/inventory/items/item_11400058.png"
+    },
+    {
+      "item_id": "item_11400059",
+      "name": "高级工作台制造法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_worktable",
+      "source_record_ids": [
+        11400059,
+        11400060,
+        11400219,
+        11400337,
+        11400340,
+        11400911,
+        11400912
+      ],
+      "template": "templates/inventory/items/item_11400059.png"
+    },
+    {
+      "item_id": "item_11400061",
+      "name": "自选SSR装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zixuanzhuangbeixiang",
+      "source_record_ids": [
+        11400061
+      ],
+      "template": "templates/inventory/items/item_11400061.png"
+    },
+    {
+      "item_id": "cardamom_ginger_lily",
+      "name": "“豆蔻姜百合”",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/perfume",
+      "source_record_ids": [
+        11400062
+      ],
+      "template": "templates/inventory/items/cardamom_ginger_lily.png"
+    },
+    {
+      "item_id": "silver_branch_mint",
+      "name": "银枝薄荷糖",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xianrennao",
+      "source_record_ids": [
+        11400063
+      ],
+      "template": "templates/inventory/items/silver_branch_mint.png"
+    },
+    {
+      "item_id": "stamina_chewing_gum",
+      "name": "提神口香糖",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xianrenkou",
+      "source_record_ids": [
+        11400064
+      ],
+      "template": "templates/inventory/items/stamina_chewing_gum.png"
+    },
+    {
+      "item_id": "cactus_stamina_popping_candy",
+      "name": "仙人掌提神跳糖",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xianrenjiu",
+      "source_record_ids": [
+        11400065
+      ],
+      "template": "templates/inventory/items/cactus_stamina_popping_candy.png"
+    },
+    {
+      "item_id": "stamina_lollipop",
+      "name": "提神棒棒糖",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/xianrenbang",
+      "source_record_ids": [
+        11400066
+      ],
+      "template": "templates/inventory/items/stamina_lollipop.png",
+      "stack_policy": "split_by_expiry"
+    },
+    {
+      "item_id": "cactus_energy_lollipop",
+      "name": "仙人掌能量棒棒糖",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/nengliangbang",
+      "source_record_ids": [
+        11400067
+      ],
+      "template": "templates/inventory/items/cactus_energy_lollipop.png",
+      "stack_policy": "split_by_expiry"
+    },
+    {
+      "item_id": "item_11400068",
+      "name": "仙人掌能量跳糖",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/nengliangtiao",
+      "source_record_ids": [
+        11400068
+      ],
+      "template": "templates/inventory/items/item_11400068.png"
+    },
+    {
+      "item_id": "decoy_explosive_balloon",
+      "name": "诱饵爆炸气球",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/baozhaqiqiu",
+      "source_record_ids": [
+        11400069
+      ],
+      "template": "templates/inventory/items/decoy_explosive_balloon.png"
+    },
+    {
+      "item_id": "item_11400070",
+      "name": "传单",
+      "quality": "White",
+      "visual_key": "white::item/item/small/chandan",
+      "source_record_ids": [
+        11400070
+      ],
+      "template": "templates/inventory/items/item_11400070.png"
+    },
+    {
+      "item_id": "item_11400071",
+      "name": "急行弹丸",
+      "quality": "White",
+      "visual_key": "white::item/item/small/fuel",
+      "source_record_ids": [
+        11400071
+      ],
+      "template": "templates/inventory/items/item_11400071.png"
+    },
+    {
+      "item_id": "advertising_ticket",
+      "name": "广告投放券",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/guanggao",
+      "source_record_ids": [
+        11400072
+      ],
+      "template": "templates/inventory/items/advertising_ticket.png"
+    },
+    {
+      "item_id": "item_11400073",
+      "name": "菜谱",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/caipu",
+      "source_record_ids": [
+        11400073
+      ],
+      "template": "templates/inventory/items/item_11400073.png"
+    },
+    {
+      "item_id": "item_11400074",
+      "name": "饮料配方",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/yingliao",
+      "source_record_ids": [
+        11400074
+      ],
+      "template": "templates/inventory/items/item_11400074.png"
+    },
+    {
+      "item_id": "item_11400078",
+      "name": "宠物外出背包",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/petbag",
+      "source_record_ids": [
+        11400078,
+        11400082,
+        11400113,
+        11400115,
+        11400132,
+        11400170,
+        11400214,
+        11400223,
+        11400256,
+        11400338,
+        11400355,
+        11400362,
+        11400383,
+        11400413,
+        11400552,
+        11400569,
+        11400570,
+        11400609,
+        11400616,
+        11400629,
+        11400675,
+        11400678,
+        11400692,
+        11400718,
+        11400863,
+        11400865,
+        11400902,
+        11400917,
+        11400933,
+        11400945,
+        11400964,
+        11400969,
+        11400970,
+        11400971,
+        11401013,
+        11401139,
+        11401142,
+        11401159,
+        11401271
+      ],
+      "template": "templates/inventory/items/item_11400078.png"
+    },
+    {
+      "item_id": "item_11400080",
+      "name": "噪音髓液提取法",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/book_anita",
+      "source_record_ids": [
+        11400080
+      ],
+      "template": "templates/inventory/items/item_11400080.png"
+    },
+    {
+      "item_id": "item_11400081",
+      "name": "高级萃取法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_anita",
+      "source_record_ids": [
+        11400081,
+        11400134
+      ],
+      "template": "templates/inventory/items/item_11400081.png"
+    },
+    {
+      "item_id": "item_11400083",
+      "name": "成就点数",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/achievement",
+      "source_record_ids": [
+        11400083
+      ],
+      "template": "templates/inventory/items/item_11400083.png"
+    },
+    {
+      "item_id": "item_11400084",
+      "name": "黑月机锋装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/heiyue/small/heiyueweaponbox",
+      "source_record_ids": [
+        11400084
+      ],
+      "template": "templates/inventory/items/item_11400084.png"
+    },
+    {
+      "item_id": "item_11400085",
+      "name": "黑月精良装备箱",
+      "quality": "Purple",
+      "visual_key": "purple::item/weapon/heiyue/small/heiyueweaponbox",
+      "source_record_ids": [
+        11400085
+      ],
+      "template": "templates/inventory/items/item_11400085.png"
+    },
+    {
+      "item_id": "black_moon_standard_equipment_crate",
+      "name": "黑月标准装备箱",
+      "quality": "Blue",
+      "visual_key": "blue::item/weapon/heiyue/small/heiyueweaponbox",
+      "source_record_ids": [
+        11400086
+      ],
+      "template": "templates/inventory/items/black_moon_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "item_11400087",
+      "name": "学会研思装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/xuehui/small/xuehuiweaponbox",
+      "source_record_ids": [
+        11400087
+      ],
+      "template": "templates/inventory/items/item_11400087.png"
+    },
+    {
+      "item_id": "item_11400088",
+      "name": "学会精良装备箱",
+      "quality": "Purple",
+      "visual_key": "purple::item/weapon/xuehui/small/xuehuiweaponbox",
+      "source_record_ids": [
+        11400088
+      ],
+      "template": "templates/inventory/items/item_11400088.png"
+    },
+    {
+      "item_id": "item_11400089",
+      "name": "学会标准装备箱",
+      "quality": "Blue",
+      "visual_key": "blue::item/weapon/xuehui/small/xuehuiweaponbox",
+      "source_record_ids": [
+        11400089
+      ],
+      "template": "templates/inventory/items/item_11400089.png"
+    },
+    {
+      "item_id": "item_11400090",
+      "name": "铁盟特制装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/tiemeng/small/tiemengweaponbox",
+      "source_record_ids": [
+        11400090
+      ],
+      "template": "templates/inventory/items/item_11400090.png"
+    },
+    {
+      "item_id": "item_11400091",
+      "name": "环游纪念册·开拓",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/battlepass_low",
+      "source_record_ids": [
+        11400091
+      ],
+      "template": "templates/inventory/items/item_11400091.png"
+    },
+    {
+      "item_id": "item_11400092",
+      "name": "铁盟精良装备箱",
+      "quality": "Purple",
+      "visual_key": "purple::item/weapon/tiemeng/small/tiemengweaponbox",
+      "source_record_ids": [
+        11400092
+      ],
+      "template": "templates/inventory/items/item_11400092.png"
+    },
+    {
+      "item_id": "iron_alliance_standard_equipment_crate",
+      "name": "铁盟标准装备箱",
+      "quality": "Blue",
+      "visual_key": "blue::item/weapon/tiemeng/small/tiemengweaponbox",
+      "source_record_ids": [
+        11400093
+      ],
+      "template": "templates/inventory/items/iron_alliance_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "item_11400094",
+      "name": "阿妮塔探索装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/anita/small/anitaweaponbox",
+      "source_record_ids": [
+        11400094
+      ],
+      "template": "templates/inventory/items/item_11400094.png"
+    },
+    {
+      "item_id": "item_11400095",
+      "name": "阿妮塔精良装备箱",
+      "quality": "Purple",
+      "visual_key": "purple::item/weapon/anita/small/anitaweaponbox",
+      "source_record_ids": [
+        11400095
+      ],
+      "template": "templates/inventory/items/item_11400095.png"
+    },
+    {
+      "item_id": "anita_standard_equipment_crate",
+      "name": "阿妮塔标准装备箱",
+      "quality": "Blue",
+      "visual_key": "blue::item/weapon/anita/small/anitaweaponbox",
+      "source_record_ids": [
+        11400096
+      ],
+      "template": "templates/inventory/items/anita_standard_equipment_crate.png"
+    },
+    {
+      "item_id": "seal_ticket",
+      "name": "海豹券",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/hbp_small",
+      "source_record_ids": [
+        11400100
+      ],
+      "template": "templates/inventory/items/seal_ticket.png"
+    },
+    {
+      "item_id": "item_11400102",
+      "name": "记事本",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/notebook",
+      "source_record_ids": [
+        11400102
+      ],
+      "template": "templates/inventory/items/item_11400102.png"
+    },
+    {
+      "item_id": "item_11400104",
+      "name": "环游纪念册·无垠",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/battlepass_high",
+      "source_record_ids": [
+        11400104
+      ],
+      "template": "templates/inventory/items/item_11400104.png"
+    },
+    {
+      "item_id": "quadratic_one_variable",
+      "name": "“一元二次”",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/x",
+      "source_record_ids": [
+        11400105
+      ],
+      "template": "templates/inventory/items/quadratic_one_variable.png"
+    },
+    {
+      "item_id": "item_11400106",
+      "name": "里程点数",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/mileage",
+      "source_record_ids": [
+        11400106
+      ],
+      "template": "templates/inventory/items/item_11400106.png"
+    },
+    {
+      "item_id": "item_11400111",
+      "name": "高级形而上合成法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_metaphys",
+      "source_record_ids": [
+        11400111,
+        11400210,
+        11400216
+      ],
+      "template": "templates/inventory/items/item_11400111.png"
+    },
+    {
+      "item_id": "item_11400112",
+      "name": "冗余数据",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/rongyushuju",
+      "source_record_ids": [
+        11400112
+      ],
+      "template": "templates/inventory/items/item_11400112.png"
+    },
+    {
+      "item_id": "item_11400114",
+      "name": "整顿中心经验",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/prisonexp",
+      "source_record_ids": [
+        11400114
+      ],
+      "template": "templates/inventory/items/item_11400114.png"
+    },
+    {
+      "item_id": "self_exploration_film_roll",
+      "name": "自探索胶卷",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zitansuojiaojuan",
+      "source_record_ids": [
+        11400116,
+        11400117,
+        11400118,
+        11400120,
+        11400121,
+        11400122,
+        11400123,
+        11400124,
+        11400125,
+        11400131,
+        11400143,
+        11400144,
+        11400171,
+        11400172,
+        11400190,
+        11400191,
+        11400192,
+        11400193,
+        11400194,
+        11400195,
+        11400196,
+        11400197,
+        11400198,
+        11400206,
+        11400208,
+        11400209,
+        11400257,
+        11400258,
+        11400259,
+        11400260,
+        11400261,
+        11400273,
+        11400274,
+        11400275,
+        11400276,
+        11400280,
+        11400370,
+        11400371,
+        11400372,
+        11400373,
+        11400374,
+        11400375,
+        11400376,
+        11400377,
+        11400378,
+        11400379,
+        11400385,
+        11400448,
+        11400449,
+        11400450,
+        11400455,
+        11400456,
+        11400457,
+        11400458,
+        11400459,
+        11400460,
+        11400461,
+        11400462,
+        11400463,
+        11400464,
+        11400465,
+        11400466,
+        11400467,
+        11400468,
+        11400469,
+        11400470,
+        11400471,
+        11400472,
+        11400473,
+        11400474,
+        11400475,
+        11400476,
+        11400477,
+        11400478,
+        11400479,
+        11400480,
+        11400481,
+        11400482,
+        11400483,
+        11400484,
+        11400485,
+        11400486,
+        11400487,
+        11400488,
+        11400489,
+        11400490,
+        11400491,
+        11400492,
+        11400493,
+        11400494,
+        11400495,
+        11400496,
+        11400497,
+        11400498,
+        11400499,
+        11400500,
+        11400501,
+        11400502,
+        11400503,
+        11400504,
+        11400505,
+        11400506,
+        11400507,
+        11400508,
+        11400509,
+        11400510,
+        11400511,
+        11400512,
+        11400513,
+        11400514,
+        11400515,
+        11400516,
+        11400517,
+        11400518,
+        11400519,
+        11400520,
+        11400521,
+        11400522,
+        11400523,
+        11400524,
+        11400525,
+        11400526,
+        11400527,
+        11400528,
+        11400529,
+        11400530,
+        11400531,
+        11400532,
+        11400533,
+        11400534,
+        11400535,
+        11400536,
+        11400537,
+        11400538,
+        11400539,
+        11400540,
+        11400541,
+        11400542,
+        11400543,
+        11400572,
+        11401005,
+        11401006,
+        11401016,
+        11401017,
+        11401080,
+        11401086,
+        11401088,
+        11401090,
+        11401092,
+        11401094,
+        11401096,
+        11401098,
+        11401100,
+        11401102,
+        11401104,
+        11401106,
+        11401108,
+        11401110,
+        11401112,
+        11401114,
+        11401116,
+        11401118,
+        11401120
+      ],
+      "template": "templates/inventory/items/self_exploration_film_roll.png"
+    },
+    {
+      "item_id": "item_11400119",
+      "name": "整顿中心工票",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/prisondian",
+      "source_record_ids": [
+        11400119
+      ],
+      "template": "templates/inventory/items/item_11400119.png"
+    },
+    {
+      "item_id": "item_11400126",
+      "name": "那由他巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::ui/dailyattendance/cakes/180x180/blackforest",
+      "source_record_ids": [
+        11400126,
+        11400603,
+        11401026
+      ],
+      "template": "templates/inventory/items/item_11400126.png"
+    },
+    {
+      "item_id": "item_11400127",
+      "name": "草莓奶油蛋糕",
+      "quality": "Golden",
+      "visual_key": "golden::ui/dailyattendance/cakes/180x180/creamcake",
+      "source_record_ids": [
+        11400127,
+        11400563
+      ],
+      "template": "templates/inventory/items/item_11400127.png"
+    },
+    {
+      "item_id": "cheesecake",
+      "name": "芝士蛋糕",
+      "quality": "Golden",
+      "visual_key": "golden::ui/dailyattendance/cakes/180x180/cheescake",
+      "source_record_ids": [
+        11400128
+      ],
+      "template": "templates/inventory/items/cheesecake.png"
+    },
+    {
+      "item_id": "item_11400129",
+      "name": "提拉米苏蛋糕",
+      "quality": "Golden",
+      "visual_key": "golden::ui/dailyattendance/cakes/180x180/tiramisu",
+      "source_record_ids": [
+        11400129
+      ],
+      "template": "templates/inventory/items/item_11400129.png"
+    },
+    {
+      "item_id": "decorated_fondant_cake",
+      "name": "造型翻糖蛋糕",
+      "quality": "Golden",
+      "visual_key": "golden::ui/dailyattendance/cakes/180x180/fondantcake",
+      "source_record_ids": [
+        11400130
+      ],
+      "template": "templates/inventory/items/decorated_fondant_cake.png"
+    },
+    {
+      "item_id": "item_11400136",
+      "name": "黑月环大陆特急的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/heiyueteji",
+      "source_record_ids": [
+        11400136
+      ],
+      "template": "templates/inventory/items/item_11400136.png"
+    },
+    {
+      "item_id": "item_11400137",
+      "name": "伊利亚德的推荐信",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/recommendation",
+      "source_record_ids": [
+        11400137
+      ],
+      "template": "templates/inventory/items/item_11400137.png"
+    },
+    {
+      "item_id": "item_11400138",
+      "name": "自坍缩协议",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/onepull4",
+      "source_record_ids": [
+        11400138
+      ],
+      "template": "templates/inventory/items/item_11400138.png"
+    },
+    {
+      "item_id": "item_11400141",
+      "name": "“荚蒾”威士忌酒杯套装",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/arina",
+      "source_record_ids": [
+        11400141
+      ],
+      "template": "templates/inventory/items/item_11400141.png"
+    },
+    {
+      "item_id": "item_11400142",
+      "name": "帮帮券",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/bangbangquan",
+      "source_record_ids": [
+        11400142
+      ],
+      "template": "templates/inventory/items/item_11400142.png"
+    },
+    {
+      "item_id": "item_11400145",
+      "name": "刻录凭证",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/kelupingzheng",
+      "source_record_ids": [
+        11400145
+      ],
+      "template": "templates/inventory/items/item_11400145.png"
+    },
+    {
+      "item_id": "item_11400146",
+      "name": "综合道具包",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/moonthcard",
+      "source_record_ids": [
+        11400146,
+        11400149,
+        11400169,
+        11400222,
+        11400636
+      ],
+      "template": "templates/inventory/items/item_11400146.png"
+    },
+    {
+      "item_id": "item_11400147",
+      "name": "大鹅挂件",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/shire",
+      "source_record_ids": [
+        11400147
+      ],
+      "template": "templates/inventory/items/item_11400147.png"
+    },
+    {
+      "item_id": "item_11400148",
+      "name": "肇事拉环",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/stella",
+      "source_record_ids": [
+        11400148
+      ],
+      "template": "templates/inventory/items/item_11400148.png"
+    },
+    {
+      "item_id": "item_11400150",
+      "name": "熊熊乐园入场凭证",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/tennie",
+      "source_record_ids": [
+        11400150
+      ],
+      "template": "templates/inventory/items/item_11400150.png"
+    },
+    {
+      "item_id": "item_11400152",
+      "name": "无定型胶卷",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wudingxingjiaojuan",
+      "source_record_ids": [
+        11400152,
+        11400153,
+        11400154,
+        11400155,
+        11400156,
+        11400157,
+        11400158,
+        11400159,
+        11400160,
+        11400161,
+        11400162,
+        11400163,
+        11400164,
+        11400165,
+        11400166,
+        11400167,
+        11400168,
+        11400174,
+        11400175,
+        11400176,
+        11400177,
+        11400178,
+        11400179,
+        11400180,
+        11400181,
+        11400182,
+        11400183,
+        11400184,
+        11400185,
+        11400186,
+        11400187,
+        11400188,
+        11400189,
+        11400199,
+        11400263,
+        11400670,
+        11400721,
+        11400722,
+        11400723,
+        11400724,
+        11400725,
+        11400726,
+        11400727,
+        11400728,
+        11400729,
+        11400730,
+        11400731,
+        11400732,
+        11400733,
+        11400734,
+        11400735,
+        11400736,
+        11400737,
+        11400738,
+        11400739,
+        11400740,
+        11400741,
+        11400742,
+        11400743,
+        11400744,
+        11400745,
+        11400746,
+        11400747,
+        11400748,
+        11400749,
+        11400750,
+        11400751,
+        11400752,
+        11400753,
+        11400754,
+        11400755,
+        11400756,
+        11400757,
+        11400758,
+        11400759,
+        11400760,
+        11400761,
+        11400762,
+        11400763,
+        11400764,
+        11400765,
+        11400766,
+        11400767,
+        11400768,
+        11400769,
+        11400770,
+        11400771,
+        11400772,
+        11400773,
+        11400774,
+        11400775,
+        11400776,
+        11400777,
+        11400778,
+        11400779,
+        11400780,
+        11400782,
+        11400783,
+        11400784,
+        11400785,
+        11400786,
+        11400787,
+        11400788,
+        11400789,
+        11400790,
+        11400791,
+        11400792,
+        11400793,
+        11400794,
+        11400795,
+        11400796,
+        11400797,
+        11400798,
+        11400799,
+        11400800,
+        11400801,
+        11400802,
+        11400803,
+        11400804,
+        11400805,
+        11400806,
+        11400807,
+        11400808,
+        11400809,
+        11400810,
+        11400811,
+        11400812,
+        11400813,
+        11400814,
+        11400815,
+        11400816,
+        11400817,
+        11400818,
+        11400819,
+        11400820,
+        11400821,
+        11400822,
+        11400823,
+        11400824,
+        11400825,
+        11400826,
+        11400827,
+        11400828,
+        11400829,
+        11400830,
+        11400831,
+        11400832,
+        11400833,
+        11400834,
+        11400835,
+        11400836,
+        11400837,
+        11400838,
+        11400839,
+        11400840,
+        11400841,
+        11400842,
+        11400843,
+        11400844,
+        11400845,
+        11400846,
+        11400847,
+        11400848,
+        11400849,
+        11400850,
+        11400851,
+        11400852,
+        11400853,
+        11400854,
+        11400855,
+        11400856,
+        11400857,
+        11400858,
+        11400859,
+        11400860,
+        11400867,
+        11401007,
+        11401008,
+        11401018,
+        11401019,
+        11401081,
+        11401087,
+        11401089,
+        11401091,
+        11401093,
+        11401095,
+        11401097,
+        11401099,
+        11401101,
+        11401103,
+        11401105,
+        11401107,
+        11401109,
+        11401111,
+        11401113,
+        11401115,
+        11401117,
+        11401119,
+        11401121
+      ],
+      "template": "templates/inventory/items/item_11400152.png"
+    },
+    {
+      "item_id": "item_11400173",
+      "name": "索玛主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_suoma",
+      "source_record_ids": [
+        11400173
+      ],
+      "template": "templates/inventory/items/item_11400173.png"
+    },
+    {
+      "item_id": "item_11400200",
+      "name": "刻录进程",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/kelujincheng",
+      "source_record_ids": [
+        11400200
+      ],
+      "template": "templates/inventory/items/item_11400200.png"
+    },
+    {
+      "item_id": "item_11400201",
+      "name": "余烬号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zhengqi",
+      "source_record_ids": [
+        11400201
+      ],
+      "template": "templates/inventory/items/item_11400201.png"
+    },
+    {
+      "item_id": "item_11400202",
+      "name": "U33C运输车的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/u33c",
+      "source_record_ids": [
+        11400202
+      ],
+      "template": "templates/inventory/items/item_11400202.png"
+    },
+    {
+      "item_id": "item_11400203",
+      "name": "鹏程62的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/m62",
+      "source_record_ids": [
+        11400203
+      ],
+      "template": "templates/inventory/items/item_11400203.png"
+    },
+    {
+      "item_id": "item_11400204",
+      "name": "万里25B的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dongfeng",
+      "source_record_ids": [
+        11400204
+      ],
+      "template": "templates/inventory/items/item_11400204.png"
+    },
+    {
+      "item_id": "item_11400205",
+      "name": "超级帮帮券",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/chaojibangbangquan",
+      "source_record_ids": [
+        11400205
+      ],
+      "template": "templates/inventory/items/item_11400205.png"
+    },
+    {
+      "item_id": "item_11400207",
+      "name": "夏尔主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_xiaer",
+      "source_record_ids": [
+        11400207
+      ],
+      "template": "templates/inventory/items/item_11400207.png"
+    },
+    {
+      "item_id": "item_11400212",
+      "name": "贝币",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/activitysum",
+      "source_record_ids": [
+        11400212
+      ],
+      "template": "templates/inventory/items/item_11400212.png"
+    },
+    {
+      "item_id": "item_11400213",
+      "name": "回归进度点",
+      "quality": "White",
+      "visual_key": "white::ui/activity/regression/task/icon-bottom",
+      "source_record_ids": [
+        11400213
+      ],
+      "template": "templates/inventory/items/item_11400213.png"
+    },
+    {
+      "item_id": "item_11400215",
+      "name": "静流·逐夏主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_jingliu",
+      "source_record_ids": [
+        11400215
+      ],
+      "template": "templates/inventory/items/item_11400215.png"
+    },
+    {
+      "item_id": "material_ticket",
+      "name": "资材券",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/zicaiquan",
+      "source_record_ids": [
+        11400218
+      ],
+      "template": "templates/inventory/items/material_ticket.png"
+    },
+    {
+      "item_id": "item_11400224",
+      "name": "高级炼制法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_refiner",
+      "source_record_ids": [
+        11400224,
+        11400227,
+        11400238,
+        11400626,
+        11400627,
+        11400628
+      ],
+      "template": "templates/inventory/items/item_11400224.png"
+    },
+    {
+      "item_id": "item_11400229",
+      "name": "妮蔻拉主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_nikoula",
+      "source_record_ids": [
+        11400229
+      ],
+      "template": "templates/inventory/items/item_11400229.png"
+    },
+    {
+      "item_id": "item_11400230",
+      "name": "我造我路工程建设进度",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/wozaowolu",
+      "source_record_ids": [
+        11400230
+      ],
+      "template": "templates/inventory/items/item_11400230.png"
+    },
+    {
+      "item_id": "item_11400231",
+      "name": "折让集章",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/activity01",
+      "source_record_ids": [
+        11400231
+      ],
+      "template": "templates/inventory/items/item_11400231.png"
+    },
+    {
+      "item_id": "item_11400232",
+      "name": "发射中心大桥通行证",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/daqiaotongxing",
+      "source_record_ids": [
+        11400232
+      ],
+      "template": "templates/inventory/items/item_11400232.png"
+    },
+    {
+      "item_id": "item_11400233",
+      "name": "日蚀之镜",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/rishizhijing",
+      "source_record_ids": [
+        11400233
+      ],
+      "template": "templates/inventory/items/item_11400233.png"
+    },
+    {
+      "item_id": "item_11400234",
+      "name": "航天元器件制造详解",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/book_machininglathe",
+      "source_record_ids": [
+        11400234
+      ],
+      "template": "templates/inventory/items/item_11400234.png"
+    },
+    {
+      "item_id": "item_11400235",
+      "name": "仓库扩建许可证",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/cangkukuojian",
+      "source_record_ids": [
+        11400235,
+        11400991
+      ],
+      "template": "templates/inventory/items/item_11400235.png"
+    },
+    {
+      "item_id": "desperate_badge",
+      "name": "绝命奖章",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/fumingjiangzhang2",
+      "source_record_ids": [
+        11400236
+      ],
+      "template": "templates/inventory/items/desperate_badge.png"
+    },
+    {
+      "item_id": "item_11400237",
+      "name": "亚莉奈主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_arina",
+      "source_record_ids": [
+        11400237
+      ],
+      "template": "templates/inventory/items/item_11400237.png"
+    },
+    {
+      "item_id": "item_11400239",
+      "name": "紫色协议胶囊",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/onepull4",
+      "source_record_ids": [
+        11400239,
+        11401049,
+        11401050,
+        11401052
+      ],
+      "template": "templates/inventory/items/item_11400239.png"
+    },
+    {
+      "item_id": "item_11400252",
+      "name": "苔妮主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_taini",
+      "source_record_ids": [
+        11400252
+      ],
+      "template": "templates/inventory/items/item_11400252.png"
+    },
+    {
+      "item_id": "item_11400253",
+      "name": "多萝西主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_duoluoxi",
+      "source_record_ids": [
+        11400253
+      ],
+      "template": "templates/inventory/items/item_11400253.png"
+    },
+    {
+      "item_id": "item_11400254",
+      "name": "火爆生意号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huobaoshengyi",
+      "source_record_ids": [
+        11400254
+      ],
+      "template": "templates/inventory/items/item_11400254.png"
+    },
+    {
+      "item_id": "item_11400255",
+      "name": "“我造我路”建设点数",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jianshedian",
+      "source_record_ids": [
+        11400255
+      ],
+      "template": "templates/inventory/items/item_11400255.png"
+    },
+    {
+      "item_id": "item_11400262",
+      "name": "基础缝纫制造法",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/book_sewingmachine",
+      "source_record_ids": [
+        11400262,
+        11400278,
+        11400279,
+        11400291,
+        11400292,
+        11400293,
+        11400296,
+        11400297,
+        11400303,
+        11400346,
+        11400347,
+        11400348,
+        11400349,
+        11400350
+      ],
+      "template": "templates/inventory/items/item_11400262.png"
+    },
+    {
+      "item_id": "item_11400264",
+      "name": "通缉令",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/tongjiling",
+      "source_record_ids": [
+        11400264
+      ],
+      "template": "templates/inventory/items/item_11400264.png"
+    },
+    {
+      "item_id": "arrest_warrant",
+      "name": "逮捕令",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/daibuling",
+      "source_record_ids": [
+        11400265
+      ],
+      "template": "templates/inventory/items/arrest_warrant.png"
+    },
+    {
+      "item_id": "blank_videotape",
+      "name": "空白录像带",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/kongbailuxiangdai",
+      "source_record_ids": [
+        11400266
+      ],
+      "template": "templates/inventory/items/blank_videotape.png"
+    },
+    {
+      "item_id": "item_11400267",
+      "name": "繁荣指数",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/islandboom",
+      "source_record_ids": [
+        11400267
+      ],
+      "template": "templates/inventory/items/item_11400267.png"
+    },
+    {
+      "item_id": "item_11400268",
+      "name": "排球奖币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/volleyballicon",
+      "source_record_ids": [
+        11400268
+      ],
+      "template": "templates/inventory/items/item_11400268.png"
+    },
+    {
+      "item_id": "item_11400269",
+      "name": "沙滩比赛用球",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/volleyball",
+      "source_record_ids": [
+        11400269,
+        11400270
+      ],
+      "template": "templates/inventory/items/item_11400269.png"
+    },
+    {
+      "item_id": "item_11400271",
+      "name": "乘员时装订制券",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/skinpiao",
+      "source_record_ids": [
+        11400271,
+        11401122
+      ],
+      "template": "templates/inventory/items/item_11400271.png"
+    },
+    {
+      "item_id": "item_11400272",
+      "name": "公国币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/token_official",
+      "source_record_ids": [
+        11400272
+      ],
+      "template": "templates/inventory/items/item_11400272.png"
+    },
+    {
+      "item_id": "item_11400281",
+      "name": "四叶草挂饰",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/ren_s",
+      "source_record_ids": [
+        11400281
+      ],
+      "template": "templates/inventory/items/item_11400281.png"
+    },
+    {
+      "item_id": "item_11400283",
+      "name": "雅莱主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_yalai",
+      "source_record_ids": [
+        11400283
+      ],
+      "template": "templates/inventory/items/item_11400283.png"
+    },
+    {
+      "item_id": "item_11400285",
+      "name": "长盛号的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/mjh",
+      "source_record_ids": [
+        11400285
+      ],
+      "template": "templates/inventory/items/item_11400285.png"
+    },
+    {
+      "item_id": "item_11400286",
+      "name": "静流手作月饼",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/mooncake_shizuru",
+      "source_record_ids": [
+        11400286,
+        11400907
+      ],
+      "template": "templates/inventory/items/item_11400286.png"
+    },
+    {
+      "item_id": "item_11400287",
+      "name": "莉薇娅手作月饼",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/mooncake_livia",
+      "source_record_ids": [
+        11400287,
+        11400908
+      ],
+      "template": "templates/inventory/items/item_11400287.png"
+    },
+    {
+      "item_id": "item_11400289",
+      "name": "大富翁代币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monopolymedal",
+      "source_record_ids": [
+        11400289,
+        11400391
+      ],
+      "template": "templates/inventory/items/item_11400289.png"
+    },
+    {
+      "item_id": "item_11400290",
+      "name": "高级装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/equipmentbox",
+      "source_record_ids": [
+        11400290,
+        11400411
+      ],
+      "template": "templates/inventory/items/item_11400290.png"
+    },
+    {
+      "item_id": "item_11400294",
+      "name": "精良缝纫制造法",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/book_sewingmachine",
+      "source_record_ids": [
+        11400294,
+        11400298,
+        11400299,
+        11400300,
+        11400301,
+        11400306,
+        11400308,
+        11400309,
+        11400312,
+        11400315,
+        11400318,
+        11400320,
+        11400342,
+        11400343,
+        11400351,
+        11400394,
+        11400395,
+        11400397
+      ],
+      "template": "templates/inventory/items/item_11400294.png"
+    },
+    {
+      "item_id": "item_11400295",
+      "name": "高级缝纫制造法",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/book_sewingmachine",
+      "source_record_ids": [
+        11400295,
+        11400302,
+        11400304,
+        11400305,
+        11400307,
+        11400310,
+        11400311,
+        11400313,
+        11400316,
+        11400317,
+        11400319,
+        11400321,
+        11400322,
+        11400323,
+        11400324,
+        11400325,
+        11400326,
+        11400327,
+        11400330,
+        11400331,
+        11400344,
+        11400345,
+        11400352,
+        11400353,
+        11400359,
+        11400396
+      ],
+      "template": "templates/inventory/items/item_11400295.png"
+    },
+    {
+      "item_id": "item_11400328",
+      "name": "顶级缝纫制造法",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/book_sewingmachine",
+      "source_record_ids": [
+        11400328,
+        11400329,
+        11400332
+      ],
+      "template": "templates/inventory/items/item_11400328.png"
+    },
+    {
+      "item_id": "item_11400333",
+      "name": "资金",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monopolyfund",
+      "source_record_ids": [
+        11400333
+      ],
+      "template": "templates/inventory/items/item_11400333.png"
+    },
+    {
+      "item_id": "item_11400334",
+      "name": "遥控骰子",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/controldice",
+      "source_record_ids": [
+        11400334
+      ],
+      "template": "templates/inventory/items/item_11400334.png"
+    },
+    {
+      "item_id": "item_11400335",
+      "name": "骰子",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/dice",
+      "source_record_ids": [
+        11400335
+      ],
+      "template": "templates/inventory/items/item_11400335.png"
+    },
+    {
+      "item_id": "item_11400336",
+      "name": "地格经验",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gridlv",
+      "source_record_ids": [
+        11400336
+      ],
+      "template": "templates/inventory/items/item_11400336.png"
+    },
+    {
+      "item_id": "item_11400339",
+      "name": "环游风尚乘员留影胶片",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/touxiangpiao",
+      "source_record_ids": [
+        11400339
+      ],
+      "template": "templates/inventory/items/item_11400339.png"
+    },
+    {
+      "item_id": "item_11400341",
+      "name": "鱼鳞草标本",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/caroline_s",
+      "source_record_ids": [
+        11400341
+      ],
+      "template": "templates/inventory/items/item_11400341.png"
+    },
+    {
+      "item_id": "item_11400354",
+      "name": "蜜獾小队主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_bcrl",
+      "source_record_ids": [
+        11400354
+      ],
+      "template": "templates/inventory/items/item_11400354.png"
+    },
+    {
+      "item_id": "item_11400357",
+      "name": "光子力无限号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/moshenz",
+      "source_record_ids": [
+        11400357
+      ],
+      "template": "templates/inventory/items/item_11400357.png"
+    },
+    {
+      "item_id": "item_11400358",
+      "name": "波士机器人号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/box",
+      "source_record_ids": [
+        11400358
+      ],
+      "template": "templates/inventory/items/item_11400358.png"
+    },
+    {
+      "item_id": "item_11400360",
+      "name": "帕拉笛主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_paladi",
+      "source_record_ids": [
+        11400360
+      ],
+      "template": "templates/inventory/items/item_11400360.png"
+    },
+    {
+      "item_id": "item_11400361",
+      "name": "生灵节南瓜浓汤",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/pumpkinsoup",
+      "source_record_ids": [
+        11400361
+      ],
+      "template": "templates/inventory/items/item_11400361.png"
+    },
+    {
+      "item_id": "item_11400363",
+      "name": "稀有素材补给箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/qiandaosucaibao180",
+      "source_record_ids": [
+        11400363
+      ],
+      "template": "templates/inventory/items/item_11400363.png"
+    },
+    {
+      "item_id": "item_11400364",
+      "name": "整顿中心仓库扩建书",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/prisoncangkukuojian",
+      "source_record_ids": [
+        11400364
+      ],
+      "template": "templates/inventory/items/item_11400364.png"
+    },
+    {
+      "item_id": "item_11400368",
+      "name": "瓦沙克号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/washake",
+      "source_record_ids": [
+        11400368
+      ],
+      "template": "templates/inventory/items/item_11400368.png"
+    },
+    {
+      "item_id": "item_11400369",
+      "name": "线索",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/xiansuo",
+      "source_record_ids": [
+        11400369
+      ],
+      "template": "templates/inventory/items/item_11400369.png"
+    },
+    {
+      "item_id": "item_11400380",
+      "name": "点数增幅器",
+      "quality": "Blue",
+      "visual_key": "blue::ui/monopoly/buffitem/img/amplifier",
+      "source_record_ids": [
+        11400380,
+        11400549,
+        11400550
+      ],
+      "template": "templates/inventory/items/item_11400380.png"
+    },
+    {
+      "item_id": "item_11400381",
+      "name": "包馅油豆腐",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/frieddoufu",
+      "source_record_ids": [
+        11400381
+      ],
+      "template": "templates/inventory/items/item_11400381.png"
+    },
+    {
+      "item_id": "item_11400382",
+      "name": "金子小姐主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_jzxj",
+      "source_record_ids": [
+        11400382
+      ],
+      "template": "templates/inventory/items/item_11400382.png"
+    },
+    {
+      "item_id": "item_11400384",
+      "name": "佩罗塔主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_pelota",
+      "source_record_ids": [
+        11400384
+      ],
+      "template": "templates/inventory/items/item_11400384.png"
+    },
+    {
+      "item_id": "item_11400386",
+      "name": "甲铁城的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jiatiecheng",
+      "source_record_ids": [
+        11400386
+      ],
+      "template": "templates/inventory/items/item_11400386.png"
+    },
+    {
+      "item_id": "item_11400388",
+      "name": "《雪色胶卷》珍藏卡带",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/stella_s",
+      "source_record_ids": [
+        11400388
+      ],
+      "template": "templates/inventory/items/item_11400388.png"
+    },
+    {
+      "item_id": "item_11400389",
+      "name": "岚纹小判",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/lanwenxiaopan",
+      "source_record_ids": [
+        11400389
+      ],
+      "template": "templates/inventory/items/item_11400389.png"
+    },
+    {
+      "item_id": "item_11400390",
+      "name": "无名主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wumin",
+      "source_record_ids": [
+        11400390
+      ],
+      "template": "templates/inventory/items/item_11400390.png"
+    },
+    {
+      "item_id": "item_11400398",
+      "name": "点数干扰器",
+      "quality": "Blue",
+      "visual_key": "blue::ui/monopoly/buffitem/img/countermeasurer",
+      "source_record_ids": [
+        11400398,
+        11400547,
+        11400548
+      ],
+      "template": "templates/inventory/items/item_11400398.png"
+    },
+    {
+      "item_id": "item_11400399",
+      "name": "掉头拉杆",
+      "quality": "Blue",
+      "visual_key": "blue::ui/monopoly/buffitem/img/lagan",
+      "source_record_ids": [
+        11400399
+      ],
+      "template": "templates/inventory/items/item_11400399.png"
+    },
+    {
+      "item_id": "brawl_arcade_coin",
+      "name": "乱斗街机币",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/randombattlecoin",
+      "source_record_ids": [
+        11400401
+      ],
+      "template": "templates/inventory/items/brawl_arcade_coin.png"
+    },
+    {
+      "item_id": "item_11400402",
+      "name": "蝶翼主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dieyi",
+      "source_record_ids": [
+        11400402
+      ],
+      "template": "templates/inventory/items/item_11400402.png"
+    },
+    {
+      "item_id": "item_11400403",
+      "name": "达斯廷主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/key_dustin",
+      "source_record_ids": [
+        11400403
+      ],
+      "template": "templates/inventory/items/item_11400403.png"
+    },
+    {
+      "item_id": "item_11400405",
+      "name": "阿妮塔天命装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/anita/small/anitaweaponbox 1",
+      "source_record_ids": [
+        11400405
+      ],
+      "template": "templates/inventory/items/item_11400405.png"
+    },
+    {
+      "item_id": "item_11400406",
+      "name": "帝国天命装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/diguo/small/diguoweaponbox 1",
+      "source_record_ids": [
+        11400406
+      ],
+      "template": "templates/inventory/items/item_11400406.png"
+    },
+    {
+      "item_id": "item_11400407",
+      "name": "黑月天命装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/heiyue/small/heiyueweaponbox 1",
+      "source_record_ids": [
+        11400407
+      ],
+      "template": "templates/inventory/items/item_11400407.png"
+    },
+    {
+      "item_id": "item_11400408",
+      "name": "铁盟天命装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/tiemeng/small/tiemengweaponbox 1",
+      "source_record_ids": [
+        11400408
+      ],
+      "template": "templates/inventory/items/item_11400408.png"
+    },
+    {
+      "item_id": "item_11400409",
+      "name": "学会天命装备箱",
+      "quality": "Golden",
+      "visual_key": "golden::item/weapon/xuehui/small/xuehuiweaponbox 1",
+      "source_record_ids": [
+        11400409
+      ],
+      "template": "templates/inventory/items/item_11400409.png"
+    },
+    {
+      "item_id": "item_11400410",
+      "name": "不可读典籍",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/fastpass",
+      "source_record_ids": [
+        11400410,
+        11401260
+      ],
+      "template": "templates/inventory/items/item_11400410.png"
+    },
+    {
+      "item_id": "item_11400414",
+      "name": "清剿许可",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/qingjiaoxuke",
+      "source_record_ids": [
+        11400414
+      ],
+      "template": "templates/inventory/items/item_11400414.png"
+    },
+    {
+      "item_id": "item_11400415",
+      "name": "提灯",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/feitiansaozhou",
+      "source_record_ids": [
+        11400415,
+        11401258
+      ],
+      "template": "templates/inventory/items/item_11400415.png"
+    },
+    {
+      "item_id": "item_11400416",
+      "name": "万花筒·食堂",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongtangguowu",
+      "source_record_ids": [
+        11400416,
+        11401240
+      ],
+      "template": "templates/inventory/items/item_11400416.png"
+    },
+    {
+      "item_id": "item_11400417",
+      "name": "万花筒·调律室",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongxuanzhuanmuma",
+      "source_record_ids": [
+        11400417,
+        11401268
+      ],
+      "template": "templates/inventory/items/item_11400417.png"
+    },
+    {
+      "item_id": "item_11400418",
+      "name": "万花筒·喷泉",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongpenquan",
+      "source_record_ids": [
+        11400418,
+        11401247
+      ],
+      "template": "templates/inventory/items/item_11400418.png"
+    },
+    {
+      "item_id": "item_11400419",
+      "name": "万花筒·哲人釜",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongmotianlun",
+      "source_record_ids": [
+        11400419,
+        11401267
+      ],
+      "template": "templates/inventory/items/item_11400419.png"
+    },
+    {
+      "item_id": "item_11400420",
+      "name": "万花筒·树屋",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongzhanbuwu",
+      "source_record_ids": [
+        11400420,
+        11401248
+      ],
+      "template": "templates/inventory/items/item_11400420.png"
+    },
+    {
+      "item_id": "item_11400421",
+      "name": "窥兆",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/main/seal/yellowsmall",
+      "source_record_ids": [
+        11400421
+      ],
+      "template": "templates/inventory/items/item_11400421.png"
+    },
+    {
+      "item_id": "item_11400422",
+      "name": "血盟",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/main/seal/redsmall",
+      "source_record_ids": [
+        11400422
+      ],
+      "template": "templates/inventory/items/item_11400422.png"
+    },
+    {
+      "item_id": "item_11400423",
+      "name": "静域",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/main/seal/bluesmall",
+      "source_record_ids": [
+        11400423
+      ],
+      "template": "templates/inventory/items/item_11400423.png"
+    },
+    {
+      "item_id": "item_11400424",
+      "name": "幽冥",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/main/seal/purplesmall",
+      "source_record_ids": [
+        11400424
+      ],
+      "template": "templates/inventory/items/item_11400424.png"
+    },
+    {
+      "item_id": "item_11400425",
+      "name": "2025白情巧克力·闻笙",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate10",
+      "source_record_ids": [
+        11400425
+      ],
+      "template": "templates/inventory/items/item_11400425.png"
+    },
+    {
+      "item_id": "item_11400426",
+      "name": "2025白情巧克力·达斯廷",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate9",
+      "source_record_ids": [
+        11400426
+      ],
+      "template": "templates/inventory/items/item_11400426.png"
+    },
+    {
+      "item_id": "item_11400427",
+      "name": "入侵程序",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/intrusionprogram",
+      "source_record_ids": [
+        11400427
+      ],
+      "template": "templates/inventory/items/item_11400427.png"
+    },
+    {
+      "item_id": "item_11400428",
+      "name": "入侵遥控程序",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/intrusionprogrampro",
+      "source_record_ids": [
+        11400428
+      ],
+      "template": "templates/inventory/items/item_11400428.png"
+    },
+    {
+      "item_id": "item_11400429",
+      "name": "路障",
+      "quality": "Blue",
+      "visual_key": "blue::ui/monopoly/buffitem/img/luzhang",
+      "source_record_ids": [
+        11400429
+      ],
+      "template": "templates/inventory/items/item_11400429.png"
+    },
+    {
+      "item_id": "item_11400430",
+      "name": "轨道润滑",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/runhua",
+      "source_record_ids": [
+        11400430
+      ],
+      "template": "templates/inventory/items/item_11400430.png"
+    },
+    {
+      "item_id": "item_11400431",
+      "name": "回退炸弹",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/landmine",
+      "source_record_ids": [
+        11400431
+      ],
+      "template": "templates/inventory/items/item_11400431.png"
+    },
+    {
+      "item_id": "item_11400432",
+      "name": "对化物导弹",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/rpg",
+      "source_record_ids": [
+        11400432
+      ],
+      "template": "templates/inventory/items/item_11400432.png"
+    },
+    {
+      "item_id": "item_11400433",
+      "name": "强风导弹",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/rpg_player",
+      "source_record_ids": [
+        11400433
+      ],
+      "template": "templates/inventory/items/item_11400433.png"
+    },
+    {
+      "item_id": "item_11400434",
+      "name": "备用锦囊",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/sparecard",
+      "source_record_ids": [
+        11400434
+      ],
+      "template": "templates/inventory/items/item_11400434.png"
+    },
+    {
+      "item_id": "item_11400435",
+      "name": "友谊券",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/friendship",
+      "source_record_ids": [
+        11400435
+      ],
+      "template": "templates/inventory/items/item_11400435.png"
+    },
+    {
+      "item_id": "item_11400436",
+      "name": "投资券",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/investment",
+      "source_record_ids": [
+        11400436
+      ],
+      "template": "templates/inventory/items/item_11400436.png"
+    },
+    {
+      "item_id": "item_11400437",
+      "name": "乱斗积分",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/randombattlescore",
+      "source_record_ids": [
+        11400437
+      ],
+      "template": "templates/inventory/items/item_11400437.png"
+    },
+    {
+      "item_id": "item_11400438",
+      "name": "混乱信号灯",
+      "quality": "Blue",
+      "visual_key": "blue::ui/monopoly/buffitem/img/xinghaodeng",
+      "source_record_ids": [
+        11400438
+      ],
+      "template": "templates/inventory/items/item_11400438.png"
+    },
+    {
+      "item_id": "item_11400439",
+      "name": "讨伐许可",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/taofaxuke",
+      "source_record_ids": [
+        11400439
+      ],
+      "template": "templates/inventory/items/item_11400439.png"
+    },
+    {
+      "item_id": "item_11400440",
+      "name": "招财护身符",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/xingyunhufu",
+      "source_record_ids": [
+        11400440
+      ],
+      "template": "templates/inventory/items/item_11400440.png"
+    },
+    {
+      "item_id": "item_11400441",
+      "name": "篝火银行支票",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/cheque",
+      "source_record_ids": [
+        11400441
+      ],
+      "template": "templates/inventory/items/item_11400441.png"
+    },
+    {
+      "item_id": "item_11400442",
+      "name": "股市监控板",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/stock",
+      "source_record_ids": [
+        11400442
+      ],
+      "template": "templates/inventory/items/item_11400442.png"
+    },
+    {
+      "item_id": "item_11400443",
+      "name": "工程标书",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/projecttender",
+      "source_record_ids": [
+        11400443
+      ],
+      "template": "templates/inventory/items/item_11400443.png"
+    },
+    {
+      "item_id": "item_11400444",
+      "name": "反向融资计划",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/reversefinance",
+      "source_record_ids": [
+        11400444
+      ],
+      "template": "templates/inventory/items/item_11400444.png"
+    },
+    {
+      "item_id": "item_11400445",
+      "name": "私人仓库钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/stash",
+      "source_record_ids": [
+        11400445
+      ],
+      "template": "templates/inventory/items/item_11400445.png"
+    },
+    {
+      "item_id": "item_11400446",
+      "name": "不许动手枪",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/dontmoove",
+      "source_record_ids": [
+        11400446
+      ],
+      "template": "templates/inventory/items/item_11400446.png"
+    },
+    {
+      "item_id": "item_11400447",
+      "name": "年年有鱼",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/youyu",
+      "source_record_ids": [
+        11400447
+      ],
+      "template": "templates/inventory/items/item_11400447.png"
+    },
+    {
+      "item_id": "item_11400451",
+      "name": "化物诱饵",
+      "quality": "Purple",
+      "visual_key": "purple::ui/monopoly/buffitem/img/decoy",
+      "source_record_ids": [
+        11400451
+      ],
+      "template": "templates/inventory/items/item_11400451.png"
+    },
+    {
+      "item_id": "item_11400452",
+      "name": "信号屏蔽仪",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/screen",
+      "source_record_ids": [
+        11400452,
+        11400667,
+        11400668
+      ],
+      "template": "templates/inventory/items/item_11400452.png"
+    },
+    {
+      "item_id": "item_11400453",
+      "name": "能量护盾道具",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/rpg_shield",
+      "source_record_ids": [
+        11400453,
+        11400663,
+        11401245
+      ],
+      "template": "templates/inventory/items/item_11400453.png"
+    },
+    {
+      "item_id": "item_11400454",
+      "name": "风险规避计划",
+      "quality": "Golden",
+      "visual_key": "golden::ui/monopoly/buffitem/img/planb",
+      "source_record_ids": [
+        11400454
+      ],
+      "template": "templates/inventory/items/item_11400454.png"
+    },
+    {
+      "item_id": "item_11400544",
+      "name": "万花筒·学生中心",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongchawu",
+      "source_record_ids": [
+        11400544,
+        11401264
+      ],
+      "template": "templates/inventory/items/item_11400544.png"
+    },
+    {
+      "item_id": "item_11400545",
+      "name": "活动代币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jiangjindian",
+      "source_record_ids": [
+        11400545,
+        11400861
+      ],
+      "template": "templates/inventory/items/item_11400545.png"
+    },
+    {
+      "item_id": "item_11400546",
+      "name": "山河风行号的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/xgx",
+      "source_record_ids": [
+        11400546
+      ],
+      "template": "templates/inventory/items/item_11400546.png"
+    },
+    {
+      "item_id": "item_11400551",
+      "name": "乌刹娜主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wuchana",
+      "source_record_ids": [
+        11400551
+      ],
+      "template": "templates/inventory/items/item_11400551.png"
+    },
+    {
+      "item_id": "white_day_chocolate_simon_2026",
+      "name": "西蒙巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate7",
+      "source_record_ids": [
+        11400553,
+        11400980
+      ],
+      "template": "templates/inventory/items/white_day_chocolate_simon_2026.png"
+    },
+    {
+      "item_id": "item_11400554",
+      "name": "万花筒·广场",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatonghuayuan",
+      "source_record_ids": [
+        11400554,
+        11401266
+      ],
+      "template": "templates/inventory/items/item_11400554.png"
+    },
+    {
+      "item_id": "item_11400555",
+      "name": "万花筒·灯油营地",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/wanhuatongxunlianying",
+      "source_record_ids": [
+        11400555,
+        11401238
+      ],
+      "template": "templates/inventory/items/item_11400555.png"
+    },
+    {
+      "item_id": "item_11400556",
+      "name": "指引烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/shiyanlaoyin",
+      "source_record_ids": [
+        11400556,
+        11401269
+      ],
+      "template": "templates/inventory/items/item_11400556.png"
+    },
+    {
+      "item_id": "item_11400557",
+      "name": "才思烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/qishilaoyin",
+      "source_record_ids": [
+        11400557,
+        11401251
+      ],
+      "template": "templates/inventory/items/item_11400557.png"
+    },
+    {
+      "item_id": "item_11400558",
+      "name": "指定采买书",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/jinhuo2",
+      "source_record_ids": [
+        11400558,
+        11400613,
+        11400614
+      ],
+      "template": "templates/inventory/items/item_11400558.png"
+    },
+    {
+      "item_id": "item_11400559",
+      "name": "凝神烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/chengjinglaoyin",
+      "source_record_ids": [
+        11400559,
+        11401261
+      ],
+      "template": "templates/inventory/items/item_11400559.png"
+    },
+    {
+      "item_id": "item_11400560",
+      "name": "履历更新协议",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/bt_select",
+      "source_record_ids": [
+        11400560,
+        11400682,
+        11401003
+      ],
+      "template": "templates/inventory/items/item_11400560.png"
+    },
+    {
+      "item_id": "item_11400561",
+      "name": "求知烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/shenyuanlaoyin",
+      "source_record_ids": [
+        11400561,
+        11401259
+      ],
+      "template": "templates/inventory/items/item_11400561.png"
+    },
+    {
+      "item_id": "item_11400562",
+      "name": "失落之匣",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/meimengzhixia",
+      "source_record_ids": [
+        11400562,
+        11401257
+      ],
+      "template": "templates/inventory/items/item_11400562.png"
+    },
+    {
+      "item_id": "item_11400564",
+      "name": "克瓦基之血（小）",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/monvminiangxiao",
+      "source_record_ids": [
+        11400564,
+        11401265
+      ],
+      "template": "templates/inventory/items/item_11400564.png"
+    },
+    {
+      "item_id": "item_11400565",
+      "name": "克瓦基之血（大）",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/monvminiangda",
+      "source_record_ids": [
+        11400565,
+        11401263
+      ],
+      "template": "templates/inventory/items/item_11400565.png"
+    },
+    {
+      "item_id": "item_11400566",
+      "name": "列车外观方案辑录",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/lcwgfajl",
+      "source_record_ids": [
+        11400566
+      ],
+      "template": "templates/inventory/items/item_11400566.png"
+    },
+    {
+      "item_id": "item_11400567",
+      "name": "无垠号Mk6的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/5-6",
+      "source_record_ids": [
+        11400567
+      ],
+      "template": "templates/inventory/items/item_11400567.png"
+    },
+    {
+      "item_id": "item_11400568",
+      "name": "无垠号Mk7的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/6-7",
+      "source_record_ids": [
+        11400568
+      ],
+      "template": "templates/inventory/items/item_11400568.png"
+    },
+    {
+      "item_id": "item_11400571",
+      "name": "通用邀请函",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan",
+      "source_record_ids": [
+        11400571,
+        11400649,
+        11401237,
+        11401262
+      ],
+      "template": "templates/inventory/items/item_11400571.png"
+    },
+    {
+      "item_id": "item_11400573",
+      "name": "矮人币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/airenbi",
+      "source_record_ids": [
+        11400573
+      ],
+      "template": "templates/inventory/items/item_11400573.png"
+    },
+    {
+      "item_id": "item_11400575",
+      "name": "无垠号Mk8的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/7-8",
+      "source_record_ids": [
+        11400575
+      ],
+      "template": "templates/inventory/items/item_11400575.png"
+    },
+    {
+      "item_id": "item_11400578",
+      "name": "无垠号Mk9的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/8-9",
+      "source_record_ids": [
+        11400578
+      ],
+      "template": "templates/inventory/items/item_11400578.png"
+    },
+    {
+      "item_id": "item_11400585",
+      "name": "特别招募协议·白匣",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/onepull6",
+      "source_record_ids": [
+        11400585,
+        11400881,
+        11400915,
+        11400924,
+        11400972,
+        11401056
+      ],
+      "template": "templates/inventory/items/item_11400585.png"
+    },
+    {
+      "item_id": "item_11400586",
+      "name": "无垠号700的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wyxgx",
+      "source_record_ids": [
+        11400586
+      ],
+      "template": "templates/inventory/items/item_11400586.png"
+    },
+    {
+      "item_id": "item_11400588",
+      "name": "罗洁尔主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/raziel",
+      "source_record_ids": [
+        11400588
+      ],
+      "template": "templates/inventory/items/item_11400588.png"
+    },
+    {
+      "item_id": "item_11400589",
+      "name": "魔眼号的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/moyan",
+      "source_record_ids": [
+        11400589
+      ],
+      "template": "templates/inventory/items/item_11400589.png"
+    },
+    {
+      "item_id": "item_11400590",
+      "name": "草莓奶油蛋糕",
+      "quality": "Orange",
+      "visual_key": "orange::ui/dailyattendance/cakes/180x180/creamcake",
+      "source_record_ids": [
+        11400590
+      ],
+      "template": "templates/inventory/items/item_11400590.png"
+    },
+    {
+      "item_id": "item_11400591",
+      "name": "莉薇娅巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate3",
+      "source_record_ids": [
+        11400591,
+        11401021
+      ],
+      "template": "templates/inventory/items/item_11400591.png"
+    },
+    {
+      "item_id": "item_11400592",
+      "name": "静流巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate1",
+      "source_record_ids": [
+        11400592,
+        11401023
+      ],
+      "template": "templates/inventory/items/item_11400592.png"
+    },
+    {
+      "item_id": "item_11400593",
+      "name": "2025巧克力·亚莉奈",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate6",
+      "source_record_ids": [
+        11400593
+      ],
+      "template": "templates/inventory/items/item_11400593.png"
+    },
+    {
+      "item_id": "item_11400594",
+      "name": "2025巧克力·妮蔻拉",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate4",
+      "source_record_ids": [
+        11400594
+      ],
+      "template": "templates/inventory/items/item_11400594.png"
+    },
+    {
+      "item_id": "item_11400595",
+      "name": "2025巧克力·乌刹娜",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate5",
+      "source_record_ids": [
+        11400595
+      ],
+      "template": "templates/inventory/items/item_11400595.png"
+    },
+    {
+      "item_id": "item_11400596",
+      "name": "那由他巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::ui/dailyattendance/cakes/180x180/blackforest",
+      "source_record_ids": [
+        11400596,
+        11401027
+      ],
+      "template": "templates/inventory/items/item_11400596.png"
+    },
+    {
+      "item_id": "item_11400597",
+      "name": "卡塔斯巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate2",
+      "source_record_ids": [
+        11400597,
+        11401025
+      ],
+      "template": "templates/inventory/items/item_11400597.png"
+    },
+    {
+      "item_id": "item_11400598",
+      "name": "莉薇娅巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate3",
+      "source_record_ids": [
+        11400598,
+        11400695,
+        11401020
+      ],
+      "template": "templates/inventory/items/item_11400598.png"
+    },
+    {
+      "item_id": "item_11400599",
+      "name": "静流巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate1",
+      "source_record_ids": [
+        11400599,
+        11401022
+      ],
+      "template": "templates/inventory/items/item_11400599.png"
+    },
+    {
+      "item_id": "item_11400600",
+      "name": "2025巧克力·亚莉奈",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate6",
+      "source_record_ids": [
+        11400600
+      ],
+      "template": "templates/inventory/items/item_11400600.png"
+    },
+    {
+      "item_id": "item_11400601",
+      "name": "2025巧克力·妮蔻拉",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate4",
+      "source_record_ids": [
+        11400601
+      ],
+      "template": "templates/inventory/items/item_11400601.png"
+    },
+    {
+      "item_id": "item_11400602",
+      "name": "乌刹娜巧克力",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate5",
+      "source_record_ids": [
+        11400602,
+        11400697
+      ],
+      "template": "templates/inventory/items/item_11400602.png"
+    },
+    {
+      "item_id": "item_11400604",
+      "name": "卡塔斯巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate2",
+      "source_record_ids": [
+        11400604,
+        11401024
+      ],
+      "template": "templates/inventory/items/item_11400604.png"
+    },
+    {
+      "item_id": "item_11400605",
+      "name": "御敌枢纽补给口粮",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shipbiscuit",
+      "source_record_ids": [
+        11400605
+      ],
+      "template": "templates/inventory/items/item_11400605.png"
+    },
+    {
+      "item_id": "item_11400606",
+      "name": "春季野餐三明治",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/sandwich",
+      "source_record_ids": [
+        11400606
+      ],
+      "template": "templates/inventory/items/item_11400606.png"
+    },
+    {
+      "item_id": "item_11400607",
+      "name": "尘埃",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/chenai",
+      "source_record_ids": [
+        11400607
+      ],
+      "template": "templates/inventory/items/item_11400607.png"
+    },
+    {
+      "item_id": "item_11400612",
+      "name": "科伦巴商会声望",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/klbsw",
+      "source_record_ids": [
+        11400612
+      ],
+      "template": "templates/inventory/items/item_11400612.png"
+    },
+    {
+      "item_id": "item_11400618",
+      "name": "无垠号Mk10的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/9-10",
+      "source_record_ids": [
+        11400618
+      ],
+      "template": "templates/inventory/items/item_11400618.png"
+    },
+    {
+      "item_id": "item_11400619",
+      "name": "特别招募协议·黑匣",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/onepull5",
+      "source_record_ids": [
+        11400619,
+        11400630,
+        11400696,
+        11400705,
+        11400714,
+        11400904,
+        11400935,
+        11400940,
+        11400955,
+        11400956,
+        11400997,
+        11400999,
+        11401059,
+        11401060,
+        11401061,
+        11401062,
+        11401063,
+        11401075,
+        11401128,
+        11401151,
+        11401160,
+        11401166,
+        11401233
+      ],
+      "template": "templates/inventory/items/item_11400619.png"
+    },
+    {
+      "item_id": "item_11400620",
+      "name": "克洛伊主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_chloe",
+      "source_record_ids": [
+        11400620
+      ],
+      "template": "templates/inventory/items/item_11400620.png"
+    },
+    {
+      "item_id": "item_11400622",
+      "name": "灵感",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/linggan",
+      "source_record_ids": [
+        11400622
+      ],
+      "template": "templates/inventory/items/item_11400622.png"
+    },
+    {
+      "item_id": "item_11400631",
+      "name": "一日局长荣誉证书",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/lycagia_s",
+      "source_record_ids": [
+        11400631
+      ],
+      "template": "templates/inventory/items/item_11400631.png"
+    },
+    {
+      "item_id": "item_11400632",
+      "name": "打捞经验",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dalaojingyan",
+      "source_record_ids": [
+        11400632
+      ],
+      "template": "templates/inventory/items/item_11400632.png"
+    },
+    {
+      "item_id": "item_11400633",
+      "name": "打捞积分",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/dalaojifen",
+      "source_record_ids": [
+        11400633
+      ],
+      "template": "templates/inventory/items/item_11400633.png"
+    },
+    {
+      "item_id": "item_11400634",
+      "name": "打捞心得",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/dalaoxinde",
+      "source_record_ids": [
+        11400634
+      ],
+      "template": "templates/inventory/items/item_11400634.png"
+    },
+    {
+      "item_id": "item_11400635",
+      "name": "结晶",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/small/jiejing",
+      "source_record_ids": [
+        11400635
+      ],
+      "template": "templates/inventory/items/item_11400635.png"
+    },
+    {
+      "item_id": "white_day_chocolate_falcon_2026",
+      "name": "隼巧克力（金）",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate11",
+      "source_record_ids": [
+        11400637,
+        11400985
+      ],
+      "template": "templates/inventory/items/white_day_chocolate_falcon_2026.png"
+    },
+    {
+      "item_id": "item_11400638",
+      "name": "2025白情巧克力·莱卡吉亚",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2025chocolate8",
+      "source_record_ids": [
+        11400638
+      ],
+      "template": "templates/inventory/items/item_11400638.png"
+    },
+    {
+      "item_id": "item_11400639",
+      "name": "2025白情巧克力纪念·闻笙",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate10",
+      "source_record_ids": [
+        11400639
+      ],
+      "template": "templates/inventory/items/item_11400639.png"
+    },
+    {
+      "item_id": "item_11400640",
+      "name": "2025白情巧克力纪念·达斯廷",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate9",
+      "source_record_ids": [
+        11400640
+      ],
+      "template": "templates/inventory/items/item_11400640.png"
+    },
+    {
+      "item_id": "item_11400641",
+      "name": "西蒙纪念巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate7",
+      "source_record_ids": [
+        11400641,
+        11400983
+      ],
+      "template": "templates/inventory/items/item_11400641.png"
+    },
+    {
+      "item_id": "item_11400642",
+      "name": "隼纪念巧克力（橙）",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate11",
+      "source_record_ids": [
+        11400642,
+        11400986
+      ],
+      "template": "templates/inventory/items/item_11400642.png"
+    },
+    {
+      "item_id": "item_11400643",
+      "name": "2025白情巧克力纪念·莱卡吉亚",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2025chocolate8",
+      "source_record_ids": [
+        11400643
+      ],
+      "template": "templates/inventory/items/item_11400643.png"
+    },
+    {
+      "item_id": "item_11400644",
+      "name": "漆黑列车涂装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/black_plan",
+      "source_record_ids": [
+        11400644
+      ],
+      "template": "templates/inventory/items/item_11400644.png"
+    },
+    {
+      "item_id": "item_11400645",
+      "name": "霞光红列车涂装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/red_plan",
+      "source_record_ids": [
+        11400645
+      ],
+      "template": "templates/inventory/items/item_11400645.png"
+    },
+    {
+      "item_id": "item_11400646",
+      "name": "黄金列车涂装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/gold_plan",
+      "source_record_ids": [
+        11400646
+      ],
+      "template": "templates/inventory/items/item_11400646.png"
+    },
+    {
+      "item_id": "item_11400647",
+      "name": "青绿列车涂装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/green_plan",
+      "source_record_ids": [
+        11400647
+      ],
+      "template": "templates/inventory/items/item_11400647.png"
+    },
+    {
+      "item_id": "item_11400648",
+      "name": "暮光紫列车涂装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/purple_plan",
+      "source_record_ids": [
+        11400648
+      ],
+      "template": "templates/inventory/items/item_11400648.png"
+    },
+    {
+      "item_id": "item_11400650",
+      "name": "霜雪邀请函",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_bing",
+      "source_record_ids": [
+        11400650,
+        11401236
+      ],
+      "template": "templates/inventory/items/item_11400650.png"
+    },
+    {
+      "item_id": "item_11400651",
+      "name": "火绒邀请函",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_huo",
+      "source_record_ids": [
+        11400651,
+        11401244
+      ],
+      "template": "templates/inventory/items/item_11400651.png"
+    },
+    {
+      "item_id": "item_11400652",
+      "name": "霹雳邀请函",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_dian",
+      "source_record_ids": [
+        11400652,
+        11401239
+      ],
+      "template": "templates/inventory/items/item_11400652.png"
+    },
+    {
+      "item_id": "item_11400653",
+      "name": "行动点数",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/main/main/action",
+      "source_record_ids": [
+        11400653,
+        11401246
+      ],
+      "template": "templates/inventory/items/item_11400653.png"
+    },
+    {
+      "item_id": "item_11400654",
+      "name": "个性化定制023的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/keyxiaohuoche",
+      "source_record_ids": [
+        11400654
+      ],
+      "template": "templates/inventory/items/item_11400654.png"
+    },
+    {
+      "item_id": "item_11400655",
+      "name": "无垠号Mk2的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/1-2",
+      "source_record_ids": [
+        11400655
+      ],
+      "template": "templates/inventory/items/item_11400655.png"
+    },
+    {
+      "item_id": "item_11400656",
+      "name": "无垠号Mk3的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/2-3",
+      "source_record_ids": [
+        11400656
+      ],
+      "template": "templates/inventory/items/item_11400656.png"
+    },
+    {
+      "item_id": "item_11400657",
+      "name": "无垠号Mk4的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/3-4",
+      "source_record_ids": [
+        11400657
+      ],
+      "template": "templates/inventory/items/item_11400657.png"
+    },
+    {
+      "item_id": "item_11400658",
+      "name": "无垠号Mk5的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/4-5",
+      "source_record_ids": [
+        11400658
+      ],
+      "template": "templates/inventory/items/item_11400658.png"
+    },
+    {
+      "item_id": "item_11400659",
+      "name": "梦境拼图",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/dream",
+      "source_record_ids": [
+        11400659,
+        11401256
+      ],
+      "template": "templates/inventory/items/item_11400659.png"
+    },
+    {
+      "item_id": "item_11400660",
+      "name": "寻踪觅影咒器",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/xunzongmiyingzhouqi",
+      "source_record_ids": [
+        11400660,
+        11401255
+      ],
+      "template": "templates/inventory/items/item_11400660.png"
+    },
+    {
+      "item_id": "item_11400661",
+      "name": "奥莉薇恩主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_olivien",
+      "source_record_ids": [
+        11400661
+      ],
+      "template": "templates/inventory/items/item_11400661.png"
+    },
+    {
+      "item_id": "item_11400662",
+      "name": "追踪咒器",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/zhuizongzhouqi",
+      "source_record_ids": [
+        11400662,
+        11401270
+      ],
+      "template": "templates/inventory/items/item_11400662.png"
+    },
+    {
+      "item_id": "item_11400664",
+      "name": "奇迹扭蛋币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/witches_niudan_reset",
+      "source_record_ids": [
+        11400664,
+        11400919,
+        11401014,
+        11401231,
+        11401272
+      ],
+      "template": "templates/inventory/items/item_11400664.png"
+    },
+    {
+      "item_id": "item_11400665",
+      "name": "马吉拉·星仪主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_margiela",
+      "source_record_ids": [
+        11400665
+      ],
+      "template": "templates/inventory/items/item_11400665.png"
+    },
+    {
+      "item_id": "item_11400666",
+      "name": "魔女奇旅号的车钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monvqilv",
+      "source_record_ids": [
+        11400666
+      ],
+      "template": "templates/inventory/items/item_11400666.png"
+    },
+    {
+      "item_id": "item_11400669",
+      "name": "真咲主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_masaki",
+      "source_record_ids": [
+        11400669
+      ],
+      "template": "templates/inventory/items/item_11400669.png"
+    },
+    {
+      "item_id": "item_11400672",
+      "name": "悖论积分",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/beilun01s",
+      "source_record_ids": [
+        11400672,
+        11400936
+      ],
+      "template": "templates/inventory/items/item_11400672.png"
+    },
+    {
+      "item_id": "item_11400673",
+      "name": "魔女的小礼物",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/witchescookie",
+      "source_record_ids": [
+        11400673
+      ],
+      "template": "templates/inventory/items/item_11400673.png"
+    },
+    {
+      "item_id": "item_11400677",
+      "name": "海伦娜主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_helena",
+      "source_record_ids": [
+        11400677
+      ],
+      "template": "templates/inventory/items/item_11400677.png"
+    },
+    {
+      "item_id": "item_11400679",
+      "name": "环游装束礼盒",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zixuanfuzhuang",
+      "source_record_ids": [
+        11400679,
+        11400680,
+        11400681,
+        11400871,
+        11400872,
+        11400873,
+        11400874,
+        11400875,
+        11400876,
+        11400877,
+        11400878,
+        11400879,
+        11400880,
+        11400884,
+        11400885,
+        11400886,
+        11400887,
+        11400888,
+        11400889
+      ],
+      "template": "templates/inventory/items/item_11400679.png"
+    },
+    {
+      "item_id": "item_11400683",
+      "name": "直觉·渡越",
+      "quality": "Blue",
+      "visual_key": "blue::ui/cuberogue/itemtouzi/500/zhijueduyue",
+      "source_record_ids": [
+        11400683
+      ],
+      "template": "templates/inventory/items/item_11400683.png"
+    },
+    {
+      "item_id": "item_11400684",
+      "name": "直觉·轮转",
+      "quality": "Purple",
+      "visual_key": "purple::ui/cuberogue/itemtouzi/500/zhijuelunzhuan",
+      "source_record_ids": [
+        11400684
+      ],
+      "template": "templates/inventory/items/item_11400684.png"
+    },
+    {
+      "item_id": "item_11400685",
+      "name": "直觉·神会",
+      "quality": "Golden",
+      "visual_key": "golden::ui/cuberogue/itemtouzi/500/zhijueshenhui",
+      "source_record_ids": [
+        11400685
+      ],
+      "template": "templates/inventory/items/item_11400685.png"
+    },
+    {
+      "item_id": "item_11400686",
+      "name": "直觉·时运",
+      "quality": "Blue",
+      "visual_key": "blue::ui/cuberogue/itemtouzi/500/zhijueshiyun",
+      "source_record_ids": [
+        11400686
+      ],
+      "template": "templates/inventory/items/item_11400686.png"
+    },
+    {
+      "item_id": "item_11400687",
+      "name": "直觉·洞悉",
+      "quality": "Purple",
+      "visual_key": "purple::ui/cuberogue/itemtouzi/500/zhijuedongxi",
+      "source_record_ids": [
+        11400687
+      ],
+      "template": "templates/inventory/items/item_11400687.png"
+    },
+    {
+      "item_id": "item_11400688",
+      "name": "直觉·通感",
+      "quality": "Golden",
+      "visual_key": "golden::ui/cuberogue/itemtouzi/500/zhijuetianming",
+      "source_record_ids": [
+        11400688
+      ],
+      "template": "templates/inventory/items/item_11400688.png"
+    },
+    {
+      "item_id": "item_11400689",
+      "name": "直觉·求生",
+      "quality": "Blue",
+      "visual_key": "blue::ui/cuberogue/itemtouzi/500/zhijueqiusheng",
+      "source_record_ids": [
+        11400689
+      ],
+      "template": "templates/inventory/items/item_11400689.png"
+    },
+    {
+      "item_id": "item_11400690",
+      "name": "直觉·坚守",
+      "quality": "Purple",
+      "visual_key": "purple::ui/cuberogue/itemtouzi/500/zhijuejianshou",
+      "source_record_ids": [
+        11400690
+      ],
+      "template": "templates/inventory/items/item_11400690.png"
+    },
+    {
+      "item_id": "item_11400691",
+      "name": "直觉·一心",
+      "quality": "Golden",
+      "visual_key": "golden::ui/cuberogue/itemtouzi/500/zhijueyixin",
+      "source_record_ids": [
+        11400691
+      ],
+      "template": "templates/inventory/items/item_11400691.png"
+    },
+    {
+      "item_id": "item_11400693",
+      "name": "手手喵玩偶",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/ushana",
+      "source_record_ids": [
+        11400693
+      ],
+      "template": "templates/inventory/items/item_11400693.png"
+    },
+    {
+      "item_id": "item_11400694",
+      "name": "恶魔猎人口粮",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/reeva",
+      "source_record_ids": [
+        11400694
+      ],
+      "template": "templates/inventory/items/item_11400694.png"
+    },
+    {
+      "item_id": "item_11400699",
+      "name": "黑月礼金",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/cashgift",
+      "source_record_ids": [
+        11400699
+      ],
+      "template": "templates/inventory/items/item_11400699.png"
+    },
+    {
+      "item_id": "item_11400701",
+      "name": "夏午粽子",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/zongzi",
+      "source_record_ids": [
+        11400701
+      ],
+      "template": "templates/inventory/items/item_11400701.png"
+    },
+    {
+      "item_id": "item_11400702",
+      "name": "新干线800系的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/983key",
+      "source_record_ids": [
+        11400702
+      ],
+      "template": "templates/inventory/items/item_11400702.png"
+    },
+    {
+      "item_id": "item_11400703",
+      "name": "787燕号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/787key",
+      "source_record_ids": [
+        11400703
+      ],
+      "template": "templates/inventory/items/item_11400703.png"
+    },
+    {
+      "item_id": "item_11400704",
+      "name": "指宿玉手箱号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/a6076key",
+      "source_record_ids": [
+        11400704
+      ],
+      "template": "templates/inventory/items/item_11400704.png"
+    },
+    {
+      "item_id": "item_11400706",
+      "name": "直觉·囚徒",
+      "quality": "Purple",
+      "visual_key": "purple::ui/cuberogue/itemtouzi/500/zhijueqiutu",
+      "source_record_ids": [
+        11400706
+      ],
+      "template": "templates/inventory/items/item_11400706.png"
+    },
+    {
+      "item_id": "item_11400707",
+      "name": "直觉·困兽",
+      "quality": "Golden",
+      "visual_key": "golden::ui/cuberogue/itemtouzi/500/zhijuekunshou",
+      "source_record_ids": [
+        11400707
+      ],
+      "template": "templates/inventory/items/item_11400707.png"
+    },
+    {
+      "item_id": "item_11400708",
+      "name": "直觉·隧穿",
+      "quality": "Orange",
+      "visual_key": "orange::ui/cuberogue/itemtouzi/500/zhijuesuichuan",
+      "source_record_ids": [
+        11400708
+      ],
+      "template": "templates/inventory/items/item_11400708.png"
+    },
+    {
+      "item_id": "item_11400710",
+      "name": "大富翁复刻扭蛋币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/monopolymedalreset",
+      "source_record_ids": [
+        11400710,
+        11400925,
+        11401171
+      ],
+      "template": "templates/inventory/items/item_11400710.png"
+    },
+    {
+      "item_id": "item_11400711",
+      "name": "奇迹扭蛋币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/witches_niudan",
+      "source_record_ids": [
+        11400711
+      ],
+      "template": "templates/inventory/items/item_11400711.png"
+    },
+    {
+      "item_id": "item_11400712",
+      "name": "草莓布丁",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/strawberrypudding",
+      "source_record_ids": [
+        11400712,
+        11401124
+      ],
+      "template": "templates/inventory/items/item_11400712.png"
+    },
+    {
+      "item_id": "item_11400716",
+      "name": "不可读典籍·禁忌",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/item/small/fastpass2",
+      "source_record_ids": [
+        11400716,
+        11401243
+      ],
+      "template": "templates/inventory/items/item_11400716.png"
+    },
+    {
+      "item_id": "item_11400719",
+      "name": "伊卡菈主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_ikara",
+      "source_record_ids": [
+        11400719
+      ],
+      "template": "templates/inventory/items/item_11400719.png"
+    },
+    {
+      "item_id": "item_11400720",
+      "name": "涟主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_ren",
+      "source_record_ids": [
+        11400720
+      ],
+      "template": "templates/inventory/items/item_11400720.png"
+    },
+    {
+      "item_id": "item_11400781",
+      "name": "无定型协议",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wudingxingxieyi",
+      "source_record_ids": [
+        11400781
+      ],
+      "template": "templates/inventory/items/item_11400781.png"
+    },
+    {
+      "item_id": "item_11400868",
+      "name": "斯洛卡伊主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_king",
+      "source_record_ids": [
+        11400868
+      ],
+      "template": "templates/inventory/items/item_11400868.png"
+    },
+    {
+      "item_id": "item_11400870",
+      "name": "列车长装束订制方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/fuzhuangfangan",
+      "source_record_ids": [
+        11400870,
+        11400890,
+        11400891
+      ],
+      "template": "templates/inventory/items/item_11400870.png"
+    },
+    {
+      "item_id": "item_11400882",
+      "name": "辉夜号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/huiyehao",
+      "source_record_ids": [
+        11400882
+      ],
+      "template": "templates/inventory/items/item_11400882.png"
+    },
+    {
+      "item_id": "item_11400883",
+      "name": "“圣机油”",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/holyengineoil",
+      "source_record_ids": [
+        11400883
+      ],
+      "template": "templates/inventory/items/item_11400883.png"
+    },
+    {
+      "item_id": "item_11400900",
+      "name": "碧海气泡水",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/blueseabubblewater180",
+      "source_record_ids": [
+        11400900
+      ],
+      "template": "templates/inventory/items/item_11400900.png"
+    },
+    {
+      "item_id": "item_11400901",
+      "name": "朵拉弥丝主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_dramis",
+      "source_record_ids": [
+        11400901
+      ],
+      "template": "templates/inventory/items/item_11400901.png"
+    },
+    {
+      "item_id": "item_11400913",
+      "name": "赫卡蒂主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_hecate",
+      "source_record_ids": [
+        11400913
+      ],
+      "template": "templates/inventory/items/item_11400913.png"
+    },
+    {
+      "item_id": "item_11400914",
+      "name": "树泪",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shulei",
+      "source_record_ids": [
+        11400914
+      ],
+      "template": "templates/inventory/items/item_11400914.png"
+    },
+    {
+      "item_id": "item_11400918",
+      "name": "枯枝甘草糖",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/liquoricecandy180",
+      "source_record_ids": [
+        11400918
+      ],
+      "template": "templates/inventory/items/item_11400918.png"
+    },
+    {
+      "item_id": "item_11400932",
+      "name": "嘉尔主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_carr",
+      "source_record_ids": [
+        11400932
+      ],
+      "template": "templates/inventory/items/item_11400932.png"
+    },
+    {
+      "item_id": "item_11400937",
+      "name": "万象秘钥",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wanxiangyaoshi_s",
+      "source_record_ids": [
+        11400937,
+        11401057,
+        11401073,
+        11401164
+      ],
+      "template": "templates/inventory/items/item_11400937.png"
+    },
+    {
+      "item_id": "item_11400941",
+      "name": "蒂丝塔尔主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_tistar",
+      "source_record_ids": [
+        11400941
+      ],
+      "template": "templates/inventory/items/item_11400941.png"
+    },
+    {
+      "item_id": "item_11400942",
+      "name": "曙光代金券",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/shuguangdaijinquan",
+      "source_record_ids": [
+        11400942
+      ],
+      "template": "templates/inventory/items/item_11400942.png"
+    },
+    {
+      "item_id": "item_11400944",
+      "name": "定制装备箱",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/equipmentbox",
+      "source_record_ids": [
+        11400944
+      ],
+      "template": "templates/inventory/items/item_11400944.png"
+    },
+    {
+      "item_id": "item_11400946",
+      "name": "神秘礼物盒",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/smlwh180",
+      "source_record_ids": [
+        11400946,
+        11400975
+      ],
+      "template": "templates/inventory/items/item_11400946.png"
+    },
+    {
+      "item_id": "item_11400947",
+      "name": "环游家装方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jiazhangfangan",
+      "source_record_ids": [
+        11400947
+      ],
+      "template": "templates/inventory/items/item_11400947.png"
+    },
+    {
+      "item_id": "item_11400951",
+      "name": "萃境号的钥匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/cjhdys",
+      "source_record_ids": [
+        11400951
+      ],
+      "template": "templates/inventory/items/item_11400951.png"
+    },
+    {
+      "item_id": "item_11400953",
+      "name": "卡塔斯·业火主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_katasignis",
+      "source_record_ids": [
+        11400953
+      ],
+      "template": "templates/inventory/items/item_11400953.png"
+    },
+    {
+      "item_id": "item_11400954",
+      "name": "全家福饺子拼盘",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/jiaozi180",
+      "source_record_ids": [
+        11400954
+      ],
+      "template": "templates/inventory/items/item_11400954.png"
+    },
+    {
+      "item_id": "item_11400960",
+      "name": "绩效凭证",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/globalweekly180",
+      "source_record_ids": [
+        11400960
+      ],
+      "template": "templates/inventory/items/item_11400960.png"
+    },
+    {
+      "item_id": "item_11400961",
+      "name": "万象福匙",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/wxfs180",
+      "source_record_ids": [
+        11400961
+      ],
+      "template": "templates/inventory/items/item_11400961.png"
+    },
+    {
+      "item_id": "item_11400962",
+      "name": "不死鸟尾羽",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/fenghuang180",
+      "source_record_ids": [
+        11400962
+      ],
+      "template": "templates/inventory/items/item_11400962.png"
+    },
+    {
+      "item_id": "item_11400966",
+      "name": "夏洛蒂·澄心主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_xldcx",
+      "source_record_ids": [
+        11400966
+      ],
+      "template": "templates/inventory/items/item_11400966.png"
+    },
+    {
+      "item_id": "item_11400967",
+      "name": "时萝手作元宵·2026",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yuanxiao180",
+      "source_record_ids": [
+        11400967
+      ],
+      "template": "templates/inventory/items/item_11400967.png"
+    },
+    {
+      "item_id": "item_11400973",
+      "name": "春日绚烂主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/topic_shana",
+      "source_record_ids": [
+        11400973
+      ],
+      "template": "templates/inventory/items/item_11400973.png"
+    },
+    {
+      "item_id": "item_11400974",
+      "name": "蜜瓜包兑换券",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/melonpan180",
+      "source_record_ids": [
+        11400974
+      ],
+      "template": "templates/inventory/items/item_11400974.png"
+    },
+    {
+      "item_id": "item_11400978",
+      "name": "夏娜主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_xn",
+      "source_record_ids": [
+        11400978
+      ],
+      "template": "templates/inventory/items/item_11400978.png"
+    },
+    {
+      "item_id": "white_day_chocolate_iliad_2026",
+      "name": "2026白情巧克力·伊利亚德",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2026chocolate2_180",
+      "source_record_ids": [
+        11400987
+      ],
+      "template": "templates/inventory/items/white_day_chocolate_iliad_2026.png"
+    },
+    {
+      "item_id": "item_11400988",
+      "name": "2026白情巧克力纪念·伊利亚德",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2026chocolate2_180",
+      "source_record_ids": [
+        11400988
+      ],
+      "template": "templates/inventory/items/item_11400988.png"
+    },
+    {
+      "item_id": "item_11400998",
+      "name": "迪妮莎主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_tenesa",
+      "source_record_ids": [
+        11400998
+      ],
+      "template": "templates/inventory/items/item_11400998.png"
+    },
+    {
+      "item_id": "item_11401000",
+      "name": "专属装备选定装置",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/zhuanshuxd180",
+      "source_record_ids": [
+        11401000
+      ],
+      "template": "templates/inventory/items/item_11401000.png"
+    },
+    {
+      "item_id": "item_11401001",
+      "name": "专属装备泛变装置",
+      "quality": "Orange",
+      "visual_key": "orange::item/item/small/zhuanshufb180",
+      "source_record_ids": [
+        11401001
+      ],
+      "template": "templates/inventory/items/item_11401001.png"
+    },
+    {
+      "item_id": "item_11401002",
+      "name": "桦石福袋",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/fudai180",
+      "source_record_ids": [
+        11401002
+      ],
+      "template": "templates/inventory/items/item_11401002.png"
+    },
+    {
+      "item_id": "survey_beacon",
+      "name": "勘测信标",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/kancexinbiao180",
+      "source_record_ids": [
+        11401012
+      ],
+      "template": "templates/inventory/items/survey_beacon.png"
+    },
+    {
+      "item_id": "item_11401028",
+      "name": "2026巧克力·伊卡菈",
+      "quality": "Golden",
+      "visual_key": "golden::item/keepsake/small/2026chocolate_1_180",
+      "source_record_ids": [
+        11401028
+      ],
+      "template": "templates/inventory/items/item_11401028.png"
+    },
+    {
+      "item_id": "item_11401029",
+      "name": "2026巧克力·伊卡菈",
+      "quality": "Orange",
+      "visual_key": "orange::item/keepsake/small/2026chocolate_1_180",
+      "source_record_ids": [
+        11401029
+      ],
+      "template": "templates/inventory/items/item_11401029.png"
+    },
+    {
+      "item_id": "jiaozi",
+      "name": "交子",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/jiaozi180",
+      "source_record_ids": [
+        11401048
+      ],
+      "template": "templates/inventory/items/jiaozi.png"
+    },
+    {
+      "item_id": "item_11401054",
+      "name": "窟灵纪念币",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/pinggai180",
+      "source_record_ids": [
+        11401054
+      ],
+      "template": "templates/inventory/items/item_11401054.png"
+    },
+    {
+      "item_id": "item_11401058",
+      "name": "副官候补证",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/fghbz180",
+      "source_record_ids": [
+        11401058
+      ],
+      "template": "templates/inventory/items/item_11401058.png"
+    },
+    {
+      "item_id": "item_11401065",
+      "name": "度假村优惠券",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/djj180",
+      "source_record_ids": [
+        11401065
+      ],
+      "template": "templates/inventory/items/item_11401065.png"
+    },
+    {
+      "item_id": "item_11401068",
+      "name": "蓝鹊儿主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_lqe",
+      "source_record_ids": [
+        11401068
+      ],
+      "template": "templates/inventory/items/item_11401068.png"
+    },
+    {
+      "item_id": "item_11401076",
+      "name": "副官室装扮",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/bjty180",
+      "source_record_ids": [
+        11401076,
+        11401077,
+        11401161,
+        11401162,
+        11401163,
+        11401201,
+        11401202,
+        11401203,
+        11401204,
+        11401205,
+        11401206,
+        11401207,
+        11401208,
+        11401209,
+        11401210,
+        11401212,
+        11401213,
+        11401214,
+        11401215,
+        11401216,
+        11401217,
+        11401218,
+        11401219,
+        11401220,
+        11401221,
+        11401222,
+        11401223
+      ],
+      "template": "templates/inventory/items/item_11401076.png"
+    },
+    {
+      "item_id": "item_11401141",
+      "name": "多萝西·瑰晨主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_spdorothy",
+      "source_record_ids": [
+        11401141
+      ],
+      "template": "templates/inventory/items/item_11401141.png"
+    },
+    {
+      "item_id": "item_11401150",
+      "name": "碎布片儿",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/sbp180",
+      "source_record_ids": [
+        11401150
+      ],
+      "template": "templates/inventory/items/item_11401150.png"
+    },
+    {
+      "item_id": "item_11401165",
+      "name": "伊洛娜·暮光主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_ilonatwilight",
+      "source_record_ids": [
+        11401165
+      ],
+      "template": "templates/inventory/items/item_11401165.png"
+    },
+    {
+      "item_id": "item_11401226",
+      "name": "爱弥儿主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_emilie",
+      "source_record_ids": [
+        11401226
+      ],
+      "template": "templates/inventory/items/item_11401226.png"
+    },
+    {
+      "item_id": "magpie_pastry",
+      "name": "喜鹊酥",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/xqs180",
+      "source_record_ids": [
+        11401227
+      ],
+      "template": "templates/inventory/items/magpie_pastry.png"
+    },
+    {
+      "item_id": "item_11401228",
+      "name": "蜡烛蛋糕",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/lzdg180",
+      "source_record_ids": [
+        11401228
+      ],
+      "template": "templates/inventory/items/item_11401228.png"
+    },
+    {
+      "item_id": "item_11401235",
+      "name": "婕丝&西蒙主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_sj",
+      "source_record_ids": [
+        11401235
+      ],
+      "template": "templates/inventory/items/item_11401235.png"
     }
-  ]
+  ],
+  "category": "items"
 }

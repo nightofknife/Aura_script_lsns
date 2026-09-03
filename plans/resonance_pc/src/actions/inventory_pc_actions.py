@@ -496,10 +496,18 @@ def load_inventory_catalog(
             label="expiry_roi_from_template",
         )
     expected_template_size = tuple(int(value) for value in spec["template_size"])
-    if template_size != expected_template_size:
+    allowed_template_sizes = (
+        {expected_template_size, (120, 50)}
+        if category == "items"
+        else {expected_template_size}
+    )
+    if template_size not in allowed_template_sizes:
+        size_description = " or ".join(
+            f"{width}x{height}" for width, height in sorted(allowed_template_sizes)
+        )
         raise ValueError(
             f"inventory {category} templates must be exactly "
-            f"{expected_template_size[0]}x{expected_template_size[1]}"
+            f"{size_description}"
         )
     if any(value <= 0 for value in (*template_size, *card_size, grid_region[2], grid_region[3])):
         raise ValueError("inventory catalog dimensions must be positive")
@@ -1237,14 +1245,47 @@ def scan_inventory_page(
 
     if vision is None or not callable(getattr(vision, "find_all_templates_batch", None)):
         raise RuntimeError("framework vision service is required for inventory matching")
+    batch_match_options: Dict[str, Any] = {
+        "source_image": match_image,
+        "template_images": template_images,
+        "threshold": threshold,
+        "nms_threshold": 0.5,
+        "use_grayscale": False,
+        "match_method": cv2.TM_CCOEFF_NORMED,
+        "preprocess": "none",
+    }
+    if category == "items":
+        preprocess = str(layout.get("preprocess") or "none").strip().lower()
+        match_method_name = str(
+            layout.get("match_method") or "ccoeff_normed"
+        ).strip().lower()
+        match_methods = {
+            "ccoeff_normed": cv2.TM_CCOEFF_NORMED,
+            "sqdiff": cv2.TM_SQDIFF,
+        }
+        if match_method_name not in match_methods:
+            raise ValueError(
+                f"unsupported inventory item match_method: {match_method_name}"
+            )
+        batch_match_options.update(
+            {
+                "match_method": match_methods[match_method_name],
+                "preprocess": preprocess,
+            }
+        )
+        if layout.get("score_scale") is not None:
+            try:
+                score_scale = float(layout["score_scale"])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "inventory item score_scale must be a number"
+                ) from exc
+            if score_scale <= 0:
+                raise ValueError("inventory item score_scale must be greater than zero")
+            batch_match_options["score_scale"] = score_scale
+
     batch_results = vision.find_all_templates_batch(
-        source_image=match_image,
-        template_images=template_images,
-        threshold=threshold,
-        nms_threshold=0.5,
-        use_grayscale=False,
-        match_method=cv2.TM_CCOEFF_NORMED,
-        preprocess="none",
+        **batch_match_options,
     )
     if not isinstance(batch_results, list) or len(batch_results) != len(items):
         raise _inventory_error(
