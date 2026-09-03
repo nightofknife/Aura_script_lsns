@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Mapping
 
 import cv2
 
@@ -17,7 +17,28 @@ from packages.aura_core.utils.exceptions import StopTaskException
 
 
 _EXPECTED_CLIENT_SIZE = (1280, 720)
-_CAPTURE_DISPLACEMENTS = frozenset({320, 560, 2480, 3680, 5600})
+_CAPTURE_PROFILES = {
+    "slow": (
+        (560, (320, 240)),
+        (2480, (320, 320, 320, 320, 320, 320)),
+        (3680, (320, 320, 320, 240)),
+        (5600, (320, 320, 320, 320, 320, 320)),
+    ),
+    "fast": (
+        (280, (280,)),
+        (1280, (320, 320, 320, 40)),
+        (1920, (320, 320)),
+        (2880, (320, 320, 320)),
+    ),
+}
+_CAPTURE_DISPLACEMENTS = frozenset(
+    {320}
+    | {
+        displacement
+        for profile in _CAPTURE_PROFILES.values()
+        for displacement, _chunks in profile
+    }
+)
 
 
 class ConsciousnessDeepDiveCaptureError(RuntimeError):
@@ -47,6 +68,110 @@ def _next_output_path(displacement_px: int) -> tuple[Path, str]:
         "无法生成不重复的识海深潜素材文件名。",
         {"displacement_px": displacement_px, "output_dir": str(output_dir)},
     )
+
+
+@action_info(
+    name="resonance_pc.prepare_consciousness_deep_dive_capture_profile",
+    public=False,
+    read_only=True,
+    timeout=5,
+    description="Resolve one calibrated Deep Dive capture sensitivity profile.",
+)
+def resonance_pc_prepare_consciousness_deep_dive_capture_profile(
+    sensitivity: str = "slow",
+) -> Dict[str, Any]:
+    mode = str(sensitivity or "slow").strip().lower()
+    profile = _CAPTURE_PROFILES.get(mode)
+    if profile is None:
+        raise ConsciousnessDeepDiveCaptureError(
+            "deep_dive_capture_sensitivity_invalid",
+            "识海深潜素材采集灵敏度无效。",
+            {
+                "sensitivity": mode,
+                "supported": sorted(_CAPTURE_PROFILES),
+            },
+        )
+
+    views = [
+        {
+            "displacement_px": displacement,
+            "drag_chunks": list(chunks),
+        }
+        for displacement, chunks in profile
+    ]
+    return {
+        "success": True,
+        "status": "completed",
+        "sensitivity": mode,
+        "capture_displacements": [view["displacement_px"] for view in views],
+        "views": views,
+    }
+
+
+@action_info(
+    name="resonance_pc.collect_consciousness_deep_dive_capture_results",
+    public=False,
+    read_only=True,
+    timeout=5,
+    description="Normalize capture outputs returned by sequential view sub-tasks.",
+)
+def resonance_pc_collect_consciousness_deep_dive_capture_results(
+    profile: Mapping[str, Any],
+    runs: List[Any],
+) -> Dict[str, Any]:
+    expected_views = list(profile.get("views") or [])
+    run_rows = list(runs or [])
+    if len(expected_views) != 4 or len(run_rows) != 4:
+        raise ConsciousnessDeepDiveCaptureError(
+            "deep_dive_capture_result_count_invalid",
+            "识海深潜四角度素材采集结果数量异常。",
+            {
+                "expected_views": len(expected_views),
+                "actual_runs": len(run_rows),
+            },
+        )
+
+    captures: List[Dict[str, Any]] = []
+    for index, (expected_view, run) in enumerate(zip(expected_views, run_rows), 1):
+        nodes = run.get("nodes") if isinstance(run, Mapping) else None
+        capture_node = nodes.get("capture_view") if isinstance(nodes, Mapping) else None
+        capture = (
+            capture_node.get("output")
+            if isinstance(capture_node, Mapping)
+            else None
+        )
+        expected_displacement = int(expected_view["displacement_px"])
+        actual_displacement = (
+            int(capture.get("displacement_px") or 0)
+            if isinstance(capture, Mapping)
+            else 0
+        )
+        if (
+            not isinstance(capture, Mapping)
+            or capture.get("success") is not True
+            or actual_displacement != expected_displacement
+        ):
+            raise ConsciousnessDeepDiveCaptureError(
+                "deep_dive_capture_result_invalid",
+                "识海深潜单个角度的素材采集结果异常。",
+                {
+                    "view_index": index,
+                    "expected_displacement_px": expected_displacement,
+                    "actual_displacement_px": actual_displacement,
+                },
+            )
+        captures.append(dict(capture))
+
+    return {
+        "success": True,
+        "status": "completed",
+        "sensitivity": str(profile.get("sensitivity") or "slow"),
+        "capture_displacements": [
+            int(view["displacement_px"]) for view in expected_views
+        ],
+        "capture_count": len(captures),
+        "captures": captures,
+    }
 
 
 @action_info(
@@ -129,5 +254,7 @@ def resonance_pc_capture_consciousness_deep_dive_view(
 
 __all__ = [
     "ConsciousnessDeepDiveCaptureError",
+    "resonance_pc_collect_consciousness_deep_dive_capture_results",
+    "resonance_pc_prepare_consciousness_deep_dive_capture_profile",
     "resonance_pc_capture_consciousness_deep_dive_view",
 ]
