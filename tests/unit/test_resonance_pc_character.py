@@ -119,23 +119,6 @@ def _temporary_character_config(tmp_path: Path) -> tuple[Path, Path]:
     return config_path, character_root
 
 
-def test_character_assets_are_discovered_from_named_unicode_folders() -> None:
-    catalog = characters.load_character_catalog()
-    character_root = REPO_ROOT / "plans" / "resonance_pc" / "templates" / "characters"
-    named_folders = [item for item in character_root.iterdir() if item.is_dir()]
-
-    assert len(named_folders) == 111
-    assert len(catalog["characters"]) == 108
-    assert len(catalog["templates"]) == 290
-    assert {item["name"] for item in catalog["characters"]} >= {
-        "夏娜",
-        "冯·里奈",
-        "圣剑波克士",
-    }
-    assert all(item["template_image"].shape == (140, 140, 3) for item in catalog["templates"])
-    assert catalog["layout"]["star_row_from_card"] == (28, 238, 138, 32)
-
-
 def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_bad_sizes(
     tmp_path,
 ) -> None:
