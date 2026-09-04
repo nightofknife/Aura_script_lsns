@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import re
 import time
 from pathlib import Path
@@ -239,38 +240,126 @@ def _read_investment_metrics(
     app: Any,
     ocr: Any,
     *,
-    timeout_sec: float,
+    sample_timeout_sec: float,
+    max_rounds: int,
+    total_timeout_sec: float,
     interval_sec: float,
 ) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    normalized_sample_timeout = float(sample_timeout_sec)
+    normalized_total_timeout = float(total_timeout_sec)
+    if not math.isfinite(normalized_sample_timeout) or normalized_sample_timeout <= 0:
+        raise ValueError("sample_timeout_sec must be a positive finite number")
+    if isinstance(max_rounds, bool) or int(max_rounds) != max_rounds or int(max_rounds) < 2:
+        raise ValueError("max_rounds must be an integer greater than or equal to 2")
+    if not math.isfinite(normalized_total_timeout) or normalized_total_timeout <= 0:
+        raise ValueError("total_timeout_sec must be a positive finite number")
+
+    normalized_max_rounds = int(max_rounds)
+    started_at = time.monotonic()
+    deadline = started_at + normalized_total_timeout
     histories: Dict[str, List[Dict[str, Any]]] = {name: [] for name in _METRIC_SPECS}
     stable: Dict[str, float | int] = {}
-    while True:
+    completed_rounds = 0
+    stop_reason = "max_rounds_exhausted"
+    for round_index in range(1, normalized_max_rounds + 1):
+        if time.monotonic() >= deadline:
+            stop_reason = "total_timeout"
+            break
+        round_started_at = time.monotonic()
+        round_completed = True
         for name, spec in _METRIC_SPECS.items():
             if name in stable:
                 continue
+            if time.monotonic() >= deadline:
+                stop_reason = "total_timeout"
+                round_completed = False
+                break
+
+            sample_started_at = time.monotonic()
             rows = _capture_ocr_texts(app, ocr, spec["region"])
             texts = [str(row["text"]) for row in rows]
-            value = _parse_metric_value(str(spec["kind"]), texts)
-            histories[name].append({"texts": texts, "value": value})
-            logger.debug(
-                "Cape island metric OCR metric=%s texts=%s parsed=%s",
+            parsed_value = _parse_metric_value(str(spec["kind"]), texts)
+            sample_elapsed_sec = time.monotonic() - sample_started_at
+            timed_out = sample_elapsed_sec > normalized_sample_timeout
+            accepted_value = None if timed_out else parsed_value
+            histories[name].append(
+                {
+                    "round": round_index,
+                    "texts": texts,
+                    "value": accepted_value,
+                    "parsed_value": parsed_value,
+                    "elapsed_sec": round(sample_elapsed_sec, 3),
+                    "timed_out": timed_out,
+                }
+            )
+            logger.info(
+                "Cape island metric OCR metric=%s round=%s/%s elapsed_sec=%.3f "
+                "sample_timeout_sec=%.3f timed_out=%s parsed=%s accepted=%s texts=%s",
                 name,
+                round_index,
+                normalized_max_rounds,
+                sample_elapsed_sec,
+                normalized_sample_timeout,
+                timed_out,
+                parsed_value,
+                accepted_value,
                 rows,
-                value,
             )
             valid_values = [item["value"] for item in histories[name] if item["value"] is not None]
             if len(valid_values) >= 2 and valid_values[-1] == valid_values[-2]:
                 stable[name] = valid_values[-1]
+                logger.info(
+                    "Cape island metric stabilized metric=%s round=%s value=%s samples=%s",
+                    name,
+                    round_index,
+                    stable[name],
+                    len(histories[name]),
+                )
+
+        round_elapsed_sec = time.monotonic() - round_started_at
+        if round_completed:
+            completed_rounds = round_index
+        logger.info(
+            "Cape island metric round completed round=%s/%s completed=%s elapsed_sec=%.3f "
+            "stable=%s total_elapsed_sec=%.3f",
+            round_index,
+            normalized_max_rounds,
+            round_completed,
+            round_elapsed_sec,
+            stable,
+            time.monotonic() - started_at,
+        )
         if len(stable) == len(_METRIC_SPECS):
-            return {"values": stable, "ocr_history": histories}
+            return {
+                "values": stable,
+                "ocr_history": histories,
+                "completed_rounds": completed_rounds,
+                "elapsed_sec": round(time.monotonic() - started_at, 3),
+                "sample_timeout_sec": normalized_sample_timeout,
+                "max_rounds": normalized_max_rounds,
+                "total_timeout_sec": normalized_total_timeout,
+            }
         if time.monotonic() >= deadline:
-            _raise_error(
-                "investment_metric_unreadable",
-                "unable to read all island investment metrics consistently",
-                {"values": stable, "ocr_history": histories},
-            )
-        time.sleep(max(float(interval_sec), 0.05))
+            stop_reason = "total_timeout"
+            break
+        if round_index < normalized_max_rounds:
+            time.sleep(max(float(interval_sec), 0.05))
+
+    _raise_error(
+        "investment_metric_unreadable",
+        "unable to read all island investment metrics consistently",
+        {
+            "values": stable,
+            "ocr_history": histories,
+            "completed_rounds": completed_rounds,
+            "stop_reason": stop_reason,
+            "elapsed_sec": round(time.monotonic() - started_at, 3),
+            "sample_timeout_sec": normalized_sample_timeout,
+            "max_rounds": normalized_max_rounds,
+            "total_timeout_sec": normalized_total_timeout,
+        },
+    )
+    return {}
 
 
 def _metric_caps(metrics: Dict[str, Any]) -> Dict[str, bool]:
@@ -473,9 +562,12 @@ async def _open_revenue_overview(
 async def resonance_pc_execute_cape_island_investment_from_city_panel(
     location_file_path: str = "data/meta/location_pc.json",
     page_timeout_sec: float = 12.0,
-    metric_timeout_sec: float = 8.0,
+    metric_sample_timeout_sec: float = 8.0,
     interval_sec: float = 0.3,
     transition_attempts: int = 3,
+    metric_max_rounds: int = 3,
+    metric_total_timeout_sec: float = 60.0,
+    metric_timeout_sec: Optional[float] = None,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -490,6 +582,16 @@ async def resonance_pc_execute_cape_island_investment_from_city_panel(
         or engine is None
     ):
         raise RuntimeError("app/ocr/vision/resonance_pc_city_shop_data/engine are required")
+    effective_metric_sample_timeout_sec = (
+        float(metric_timeout_sec)
+        if metric_timeout_sec is not None
+        else float(metric_sample_timeout_sec)
+    )
+    if metric_timeout_sec is not None:
+        logger.warning(
+            "Cape island metric_timeout_sec is a compatibility alias for "
+            "metric_sample_timeout_sec; it no longer limits the full metric phase."
+        )
     started_at = time.monotonic()
     island_entry = await _enter_island(
         app,
@@ -544,7 +646,9 @@ async def resonance_pc_execute_cape_island_investment_from_city_panel(
         _read_investment_metrics,
         app,
         ocr,
-        timeout_sec=metric_timeout_sec,
+        sample_timeout_sec=effective_metric_sample_timeout_sec,
+        max_rounds=metric_max_rounds,
+        total_timeout_sec=metric_total_timeout_sec,
         interval_sec=interval_sec,
     )
     metrics = dict(metric_result["values"])
@@ -560,6 +664,13 @@ async def resonance_pc_execute_cape_island_investment_from_city_panel(
         "investment_tab": investment_tab,
         "investment_page": investment_page,
         "ocr_history": metric_result["ocr_history"],
+        "metric_read": {
+            "completed_rounds": metric_result["completed_rounds"],
+            "elapsed_sec": metric_result["elapsed_sec"],
+            "sample_timeout_sec": metric_result["sample_timeout_sec"],
+            "max_rounds": metric_result["max_rounds"],
+            "total_timeout_sec": metric_result["total_timeout_sec"],
+        },
         "degraded": False,
         "unclassified_slots": [],
         "page_state": "island_investment",
