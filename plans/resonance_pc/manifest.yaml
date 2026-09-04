@@ -1671,10 +1671,6 @@ exports:
     timeout: null
     description: Match cached characters and weapons against fixed BWIKI team guides.
     parameters:
-    - name: player_cache_file
-      type: Any
-      required: false
-      default: null
     - name: catalog_file
       type: Any
       required: false
@@ -2372,4 +2368,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-04T12:37:40Z'
+  generated_at: '2026-09-04T14:44:45Z'

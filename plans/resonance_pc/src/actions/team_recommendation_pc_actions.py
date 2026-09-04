@@ -22,11 +22,13 @@ import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from packages.aura_core.api import action_info
+from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
+
+from ._player_data_persistence import PlayerDataPersistenceError, load_pc_user_info
 
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
-_PLAYER_LATEST_FILE = _PLAN_ROOT / "data" / "cache" / "player" / "latest.json"
 _TEAM_CATALOG_FILE = _PLAN_ROOT / "data" / "meta" / "team_recommendations.json"
 _CHARACTER_STATUS_ORDER = {"complete": 0, "basic": 1}
 _WEAPON_STATUS_ORDER = {"full": 0, "low": 1, "unmet": 2}
@@ -373,20 +375,22 @@ def recommend_fixed_teams(
     read_only=True,
     description="Match cached characters and weapons against fixed BWIKI team guides.",
 )
+@requires_services(persistent_data="core/persistent_data")
 def resonance_pc_team_recommendations(
-    player_cache_file: str | None = None,
     catalog_file: str | None = None,
+    persistent_data: PersistentDataService | None = None,
 ) -> dict[str, Any]:
-    cache_path = Path(player_cache_file) if player_cache_file else _PLAYER_LATEST_FILE
-    if not cache_path.is_file():
-        return _blocked(
-            reason_code="player_data_incomplete",
-            message="请先更新角色数据、武器数据。",
-            missing_sections=("characters", "weapons"),
-        )
+    if persistent_data is None:
+        raise RuntimeError("persistent_data service is required")
     try:
-        player_data = _load_json_object(cache_path, label="player data cache")
-    except TeamRecommendationDataError as exc:
+        player_data = load_pc_user_info(persistent_data)
+    except PlayerDataPersistenceError as exc:
+        if exc.code == "player_data_incomplete":
+            return _blocked(
+                reason_code="player_data_incomplete",
+                message="请先更新角色数据、武器数据。",
+                missing_sections=("characters", "weapons"),
+            )
         return _blocked(
             reason_code="player_data_invalid",
             message=f"用户数据格式无效：{exc}",
