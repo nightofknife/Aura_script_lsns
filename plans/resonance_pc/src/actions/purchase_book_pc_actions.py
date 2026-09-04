@@ -27,6 +27,7 @@ class PurchaseBookUseError(RuntimeError):
 
 
 _USE_ITEM_BUTTON_REGION = [1010, 80, 145, 55]
+_ITEM_MODAL_HEADER_REGION = [580, 60, 260, 80]
 _ITEM_IDENTITY_REGION = [640, 115, 250, 110]
 _FIRST_ITEM_USE_BUTTON_REGION = [840, 135, 175, 75]
 _QUANTITY_PROMPT_REGION = [420, 400, 430, 90]
@@ -36,6 +37,7 @@ _BUY_PAGE_READY_REGION = [850, 590, 380, 110]
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _USE_ITEM_BUTTON_TEMPLATE = "templates/purchase_book_use_items_button.png"
+_ITEM_MODAL_HEADER_TEMPLATE = "templates/purchase_book_item_modal_header.png"
 _ITEM_IDENTITY_TEMPLATE = "templates/purchase_book_item_identity.png"
 _FIRST_ITEM_USE_BUTTON_TEMPLATE = "templates/purchase_book_first_use_button.png"
 _QUANTITY_PROMPT_TEMPLATE = "templates/purchase_book_quantity_prompt.png"
@@ -50,6 +52,7 @@ _CONFIRM_POINT = (960, 538)
 
 _DEFAULT_TEMPLATE_THRESHOLD = 0.8
 _STATE_STABLE_COUNT = 2
+_ITEM_MODAL_OPEN_ATTEMPTS = 3
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
@@ -436,42 +439,89 @@ def _use_purchase_book_batch(
     quantity_dialog_may_be_open = False
 
     try:
-        open_click = _click_template_or_point(
-            app,
-            vision,
-            _USE_ITEM_BUTTON_TEMPLATE,
-            _USE_ITEM_BUTTON_REGION,
-            _USE_ITEM_BUTTON_POINT,
-            threshold=0.82,
-            timeout_sec=open_timeout_sec,
-            retry_interval_sec=click_interval_sec,
-            error_code="purchase_book_use_items_button_not_found",
-            error_message="failed to find the use-items button on the buy page",
-        )
         state = "item_modal"
+        open_attempts: List[Dict[str, Any]] = []
+        item_modal_state: Dict[str, Any] = {"matched": False}
+        open_click: Dict[str, Any] = {}
+        for open_attempt in range(1, _ITEM_MODAL_OPEN_ATTEMPTS + 1):
+            open_click = _click_template_or_point(
+                app,
+                vision,
+                _USE_ITEM_BUTTON_TEMPLATE,
+                _USE_ITEM_BUTTON_REGION,
+                _USE_ITEM_BUTTON_POINT,
+                threshold=0.82,
+                timeout_sec=open_timeout_sec,
+                retry_interval_sec=click_interval_sec,
+                error_code="purchase_book_use_items_button_not_found",
+                error_message="failed to find the use-items button on the buy page",
+            )
+            item_modal_state = _wait_for_template_state(
+                app,
+                vision,
+                state_name=state,
+                all_of=[
+                    _template_spec(
+                        "item_modal_header",
+                        _ITEM_MODAL_HEADER_TEMPLATE,
+                        _ITEM_MODAL_HEADER_REGION,
+                        threshold=0.86,
+                    ),
+                ],
+                timeout_sec=open_timeout_sec,
+                interval_sec=click_interval_sec,
+            )
+            state_trace.append(item_modal_state)
+            open_attempts.append(
+                {
+                    "attempt": open_attempt,
+                    "click": open_click,
+                    "item_modal_state": item_modal_state,
+                }
+            )
+            if item_modal_state["matched"]:
+                break
+            if open_attempt < _ITEM_MODAL_OPEN_ATTEMPTS:
+                logger.warning(
+                    "使用道具窗口未打开，准备重试点击：attempt=%d/%d。",
+                    open_attempt,
+                    _ITEM_MODAL_OPEN_ATTEMPTS,
+                )
 
-        item_modal_state = _wait_for_template_state(
+        if not item_modal_state["matched"]:
+            _raise_error(
+                "purchase_item_modal_not_found",
+                "the use-items modal header did not reach a stable template state",
+                {
+                    "item_name": item_name,
+                    "batch_size": batch_size,
+                    "open_attempts": open_attempts,
+                    "state_result": item_modal_state,
+                },
+            )
+
+        state = "purchase_book_available"
+        item_available_state = _wait_for_template_state(
             app,
             vision,
             state_name=state,
             all_of=[
                 _template_spec("item_identity", _ITEM_IDENTITY_TEMPLATE, _ITEM_IDENTITY_REGION),
-                _template_spec(
-                    "first_item_use_button",
-                    _FIRST_ITEM_USE_BUTTON_TEMPLATE,
-                    _FIRST_ITEM_USE_BUTTON_REGION,
-                    threshold=0.82,
-                ),
             ],
             timeout_sec=open_timeout_sec,
             interval_sec=click_interval_sec,
         )
-        state_trace.append(item_modal_state)
-        if not item_modal_state["matched"]:
+        state_trace.append(item_available_state)
+        if not item_available_state["matched"]:
             _raise_error(
-                "purchase_item_modal_not_found",
-                "purchase-book item modal did not reach a stable template state",
-                {"item_name": item_name, "batch_size": batch_size, "state_result": item_modal_state},
+                "purchase_book_not_available",
+                "the use-items modal opened, but no purchase book was available in the first item slot",
+                {
+                    "item_name": item_name,
+                    "batch_size": batch_size,
+                    "open_attempts": open_attempts,
+                    "state_result": item_available_state,
+                },
             )
 
         item_use_click = _click_template_or_point(
@@ -602,6 +652,7 @@ def _use_purchase_book_batch(
             "item_name": item_name,
             "plus_clicks": plus_clicks,
             "open_click": open_click,
+            "open_attempts": open_attempts,
             "item_use_click": item_use_click,
             "confirm_click": confirm_click,
             "buy_page_ready": True,
