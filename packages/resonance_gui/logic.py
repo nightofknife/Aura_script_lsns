@@ -602,6 +602,10 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "expected_fatigue_used": result.get("expected_fatigue_used"),
         "remaining_expected_fatigue": result.get("remaining_expected_fatigue"),
         "books_used": result.get("books_used"),
+        "book_incremental_profit": result.get("book_incremental_profit"),
+        "book_incremental_profit_exact": result.get("book_incremental_profit_exact"),
+        "average_book_profit": result.get("average_book_profit"),
+        "average_book_profit_exact": result.get("average_book_profit_exact"),
         "remaining_books": result.get("remaining_books"),
         "full_bargain_count": result.get("full_bargain_count"),
         "full_raise_count": result.get("full_raise_count"),
@@ -618,6 +622,16 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_stale_reason": str(result.get("market_stale_reason") or ""),
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
     }
+
+
+def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Build a task payload without losing the user's saved manual book budget."""
+
+    normalized = dict(inputs or {})
+    normalized["auto_book"] = bool(normalized.get("auto_book", False))
+    if normalized["auto_book"]:
+        normalized.pop("book_budget", None)
+    return normalized
 
 
 def expected_profit_per_fatigue(summary: Mapping[str, Any] | None) -> float | None:

@@ -126,6 +126,7 @@ class PreparedSearch:
     negotiation_budget: int
     all_plan: int
     max_legs: int
+    unbounded_books: bool = False
 
 
 def _lcm_denominators(values: Iterable[Fraction]) -> int:
@@ -145,6 +146,7 @@ def prepare_search(
     negotiation_budget: int,
     all_plan: int,
     required_end_city_ids: Optional[Sequence[str]] = None,
+    unbounded_books: bool = False,
 ) -> Optional[PreparedSearch]:
     """Compile exact edge costs into a normalized integer fatigue lattice."""
 
@@ -176,7 +178,10 @@ def prepare_search(
             fatigue = Fraction(option.expected_fatigue_cost)
             if fatigue <= 0 or fatigue > budget_fraction:
                 continue
-            if int(option.books_used) > int(book_budget):
+            if (
+                not unbounded_books
+                and int(option.books_used) > int(book_budget)
+            ):
                 continue
             if all_plan == 0 and int(option.full_negotiation_used) > int(
                 negotiation_budget
@@ -236,6 +241,7 @@ def prepare_search(
         negotiation_budget=int(negotiation_budget),
         all_plan=int(all_plan),
         max_legs=max_legs,
+        unbounded_books=bool(unbounded_books),
     )
 
 
@@ -289,6 +295,11 @@ def solve_prepared_search(
     requested = str(backend or "auto").strip().lower()
     if requested not in {"auto", "dense", "sparse"}:
         raise ValueError("solver backend must be 'auto', 'dense', or 'sparse'")
+
+    if prepared.unbounded_books:
+        from .resonance_pc_trade_solver_sparse import solve_sparse
+
+        return solve_sparse(prepared)
 
     estimate = estimate_dense_shape(prepared)
     dense_safe = (

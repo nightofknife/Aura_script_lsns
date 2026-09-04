@@ -32,6 +32,7 @@ _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
     "cargo_capacity",
     "book_budget",
+    "auto_book",
     "book_profit_threshold",
     "negotiation_max_attempts",
     "bargain_success_rates_bps",
