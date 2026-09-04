@@ -9,6 +9,7 @@ import pytest
 
 from packages.aura_core.utils.updater import FrameworkUpdater
 from scripts.release.prune_release_payload import reset_release_runtime_data
+from updater.aura_updater import MANAGED_PATHS, install_staged_release
 
 
 def test_framework_update_preserves_user_data(tmp_path: Path) -> None:
@@ -29,6 +30,30 @@ def test_framework_update_preserves_user_data(tmp_path: Path) -> None:
     assert hashlib.sha256(user_info.read_bytes()).hexdigest() == before_hash
     assert (install / "replacement.txt").read_text(encoding="utf-8") == "new"
     assert not (install / "obsolete.txt").exists()
+
+
+def test_release_updater_preserves_user_data(tmp_path: Path) -> None:
+    install = tmp_path / "installed"
+    staged = tmp_path / "staged"
+    user_info = install / "user-data" / "user-info.json"
+    user_info.parent.mkdir(parents=True)
+    user_info.write_text('{"daily":{"used":4}}', encoding="utf-8")
+    before_hash = hashlib.sha256(user_info.read_bytes()).hexdigest()
+
+    directory_roots = {"runtime", "plans", "models"}
+    for relative in MANAGED_PATHS:
+        target = staged / relative
+        if relative in directory_roots:
+            target.mkdir(parents=True)
+            (target / "payload.txt").write_text("new", encoding="utf-8")
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("new", encoding="utf-8")
+
+    install_staged_release(staged, install)
+
+    assert "user-data" not in MANAGED_PATHS
+    assert hashlib.sha256(user_info.read_bytes()).hexdigest() == before_hash
 
 
 def test_release_runtime_cleanup_removes_user_data(tmp_path: Path) -> None:
