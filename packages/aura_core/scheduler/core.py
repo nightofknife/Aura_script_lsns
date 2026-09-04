@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Dict, Any, List, Optional
 
 from packages.aura_core.observability.events import EventBus, Event
 from packages.aura_core.context.persistence.store_service import StateStoreService
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.config.service import ConfigService
 from packages.aura_core.scheduler.queues.task_queue import TaskQueue, Tasklet
 from packages.aura_core.observability.logging.core_logger import logger
@@ -119,6 +120,7 @@ class Scheduler:
         self.config_service = ConfigService()
         self.event_bus = EventBus()
         self.state_store = StateStoreService(config=self.config_service)
+        self.persistent_data = PersistentDataService(base_path=self.base_path)
         self.plan_manager = PlanManager(
             str(self.base_path),
             self.pause_event,
@@ -247,6 +249,12 @@ class Scheduler:
 
         service_registry.register_instance('config', self.config_service, public=True, fqid='core/config')
         service_registry.register_instance('state_store', self.state_store, public=True, fqid='core/state_store')
+        service_registry.register_instance(
+            'persistent_data',
+            self.persistent_data,
+            public=True,
+            fqid='core/persistent_data',
+        )
         service_registry.register_instance('event_bus', self.event_bus, public=True, fqid='core/event_bus')
 
         service_registry.register_instance('scheduler', self, public=True, fqid='core/scheduler')

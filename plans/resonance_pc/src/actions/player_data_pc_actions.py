@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import json
 import re
 import time
 from datetime import datetime, timezone
@@ -13,6 +12,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 import cv2
 
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from .character_pc_actions import (
@@ -26,13 +26,15 @@ from .inventory_pc_actions import (
     read_inventory_items,
     read_inventory_materials,
 )
+from ._player_data_persistence import (
+    USER_INFO_FILE,
+    ensure_pc_user_info_migrated,
+    load_pc_user_info,
+)
 
 Region = Tuple[int, int, int, int]
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
-_PLAYER_CACHE_ROOT = _PLAN_ROOT / "data" / "cache" / "player"
-_PLAYER_LATEST_FILE = _PLAYER_CACHE_ROOT / "latest.json"
-
 _DATA_STAGES = ("location", "profile", "inventory", "characters")
 _STAGE_ORDER = _DATA_STAGES
 _PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
@@ -497,19 +499,6 @@ def _currencies_from_inventory(payload: Any) -> Dict[str, int]:
     return currencies
 
 
-def _load_latest(*, cache_file: Optional[Path] = None) -> Dict[str, Any]:
-    cache_file = Path(cache_file or _PLAYER_LATEST_FILE)
-    if not cache_file.is_file():
-        raise RuntimeError("No cached Resonance PC player data is available.")
-    try:
-        payload = json.loads(cache_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError("Cached Resonance PC player data is not valid JSON.") from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError("Cached Resonance PC player data must be a JSON object.")
-    return payload
-
-
 def _merge_latest(
     existing: Dict[str, Any],
     fresh: Dict[str, Any],
@@ -565,11 +554,6 @@ def _merge_latest(
     else:
         previous_section_times = copy.deepcopy(previous_section_times)
     previous_section_times.update(section_updated_at)
-    previous_section_times = {
-        stage: previous_section_times[stage]
-        for stage in _DATA_STAGES
-        if stage in previous_section_times
-    }
     previous_category_times = metadata.get("inventory_category_updated_at")
     if not isinstance(previous_category_times, dict):
         previous_category_times = {}
@@ -587,30 +571,7 @@ def _merge_latest(
     if previous_category_times:
         metadata["inventory_category_updated_at"] = previous_category_times
     merged["metadata"] = metadata
-    return merged
-
-
-def _persist_latest(
-    fresh: Dict[str, Any],
-    *,
-    section_updated_at: Dict[str, str],
-    inventory_category_updated_at: Optional[Dict[str, str]] = None,
-    cache_file: Optional[Path] = None,
-) -> Dict[str, Any]:
-    cache_file = Path(cache_file or _PLAYER_LATEST_FILE)
-    existing = _load_latest(cache_file=cache_file) if cache_file.is_file() else {}
-    updated_at = _utc_now_iso()
-    merged = _merge_latest(
-        existing,
-        fresh,
-        section_updated_at=section_updated_at,
-        updated_at=updated_at,
-        inventory_category_updated_at=inventory_category_updated_at,
-    )
-    cache_file.parent.mkdir(parents=True, exist_ok=True)
-    tmp = cache_file.with_suffix(cache_file.suffix + ".tmp")
-    tmp.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
-    tmp.replace(cache_file)
+    merged.setdefault("schema_version", 1)
     return merged
 
 
@@ -644,6 +605,7 @@ def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
+    persistent_data="core/persistent_data",
 )
 def resonance_pc_player_data_refresh(
     stages: Any = None,
@@ -651,9 +613,12 @@ def resonance_pc_player_data_refresh(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
+    persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None:
-        raise RuntimeError("app/ocr service is required")
+    if app is None or ocr is None or persistent_data is None:
+        raise RuntimeError("app/ocr/persistent_data service is required")
+
+    ensure_pc_user_info_migrated(persistent_data)
 
     selected_stages = _normalize_stages(stages)
     selected_inventory_categories = _normalize_inventory_categories(inventory_categories)
@@ -779,10 +744,16 @@ def resonance_pc_player_data_refresh(
             _best_effort_return_to_main(app, ocr, current_page)
             raise
 
-    _persist_latest(
-        result,
-        section_updated_at=section_updated_at,
-        inventory_category_updated_at=inventory_category_updated_at,
+    updated_at = _utc_now_iso()
+    persistent_data.update(
+        file=USER_INFO_FILE,
+        updater=lambda existing: _merge_latest(
+            existing,
+            result,
+            section_updated_at=section_updated_at,
+            updated_at=updated_at,
+            inventory_category_updated_at=inventory_category_updated_at,
+        ),
     )
     persisted = True
 
@@ -807,5 +778,10 @@ def resonance_pc_player_data_refresh(
     read_only=True,
     description="Get latest cached Resonance PC player data.",
 )
-def resonance_pc_player_data_get_latest() -> Dict[str, Any]:
-    return copy.deepcopy(_load_latest())
+@requires_services(persistent_data="core/persistent_data")
+def resonance_pc_player_data_get_latest(
+    persistent_data: PersistentDataService | None = None,
+) -> Dict[str, Any]:
+    if persistent_data is None:
+        raise RuntimeError("persistent_data service is required")
+    return copy.deepcopy(load_pc_user_info(persistent_data))

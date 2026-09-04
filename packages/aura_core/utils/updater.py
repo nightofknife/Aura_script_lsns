@@ -31,6 +31,7 @@ class FrameworkUpdater:
         self.preserve = set(cfg.get("preserve", [])) | {
             "config.yaml",
             "logs",
+            "user-data",
             "backups",
             "updates",
         }

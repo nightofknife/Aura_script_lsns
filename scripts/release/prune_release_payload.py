@@ -167,7 +167,11 @@ def reset_release_runtime_data(release_root: Path, *, check_only: bool = False) 
 
     logs = resolved / "logs"
     logs.mkdir(exist_ok=True)
-    files = list(iter_files(logs))
+    user_data = resolved / "user-data"
+    runtime_roots = [logs]
+    if user_data.is_dir():
+        runtime_roots.append(user_data)
+    files = [path for root in runtime_roots for path in iter_files(root)]
     total_bytes = sum(_filesystem_path(path).stat().st_size for path in files)
     if check_only and files:
         sample = ", ".join(str(path.relative_to(resolved)) for path in files[:5])
@@ -177,7 +181,10 @@ def reset_release_runtime_data(release_root: Path, *, check_only: bool = False) 
     if not check_only:
         for path in files:
             _filesystem_path(path).unlink()
-        _remove_empty_directories(logs)
+        for root in runtime_roots:
+            _remove_empty_directories(root)
+        if user_data.is_dir() and not any(user_data.iterdir()):
+            user_data.rmdir()
 
     return {
         "root": str(resolved),

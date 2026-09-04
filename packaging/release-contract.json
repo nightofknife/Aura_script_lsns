@@ -79,6 +79,7 @@
       "runtime/_internal/nvidia",
       "plans/resonance/data/cache",
       "plans/resonance_pc/data/cache",
+      "user-data",
       "gui-settings.ini",
       "updates",
       ".update-work"

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.resonance_pc.src.actions.team_recommendation_pc_actions import (
     load_team_recommendation_catalog,
     recommend_fixed_teams,
@@ -186,14 +187,12 @@ def test_actual_catalog_contains_all_fixed_wiki_teams() -> None:
 
 
 def test_task_action_reads_cache_and_returns_stable_envelope(tmp_path) -> None:
-    missing = resonance_pc_team_recommendations(
-        player_cache_file=str(tmp_path / "missing.json")
-    )
+    persistent_data = PersistentDataService(tmp_path)
+    missing = resonance_pc_team_recommendations(persistent_data=persistent_data)
     assert missing["status"] == "blocked"
 
-    cache_file = tmp_path / "latest.json"
     catalog_file = tmp_path / "catalog.json"
-    cache_file.write_text(json.dumps(_player_data(), ensure_ascii=False), encoding="utf-8")
+    persistent_data.set("user-info.json", [], _player_data())
     catalog_payload = _catalog(_team())
     catalog_payload["team_count"] = 1
     catalog_file.write_text(
@@ -202,8 +201,8 @@ def test_task_action_reads_cache_and_returns_stable_envelope(tmp_path) -> None:
     )
 
     result = resonance_pc_team_recommendations(
-        player_cache_file=str(cache_file),
         catalog_file=str(catalog_file),
+        persistent_data=persistent_data,
     )
 
     assert result["status"] == "success"

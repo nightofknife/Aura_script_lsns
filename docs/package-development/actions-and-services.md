@@ -158,7 +158,39 @@ returns:
 
 前提是当前 plan 的 manifest 已声明对 `@Aura/example` 的依赖。
 
-## 9. 常见错误
+## 9. 长期数据持久化
+
+`core/persistent_data` 用于保存跨任务、跨程序重启仍需保留的 JSON 数据，和任务运行期的
+`core/state_store` 相互独立。服务不缓存文件内容；每次调用必须传入 `user-data` 下的相对
+`.json` 文件名和结构化路径。
+
+```python
+@requires_services(persistent_data="core/persistent_data")
+def record_usage(persistent_data):
+    return persistent_data.increment(
+        file="user-info.json",
+        path=["daily", "feature", "used"],
+        maximum=6,
+    ).to_dict()
+```
+
+YAML 可通过 `aura_base` 的公开 action 调用同一能力：
+
+```yaml
+steps:
+  update_usage:
+    action: plans/aura_base/persistent_data_increment
+    params:
+      file: user-info.json
+      path: [daily, feature, used]
+      maximum: 6
+```
+
+`persistent_data_batch` 可在一个文件内原子执行多项修改。一个任务可以依次修改多个文件，
+但不同文件之间不提供共同提交或共同回滚。绝对路径、`..`、非 JSON 文件和越过
+`user-data` 的符号链接都会被拒绝。
+
+## 10. 常见错误
 
 - action 简名解析到外部包，但 manifest 未声明依赖
 - service alias 冲突

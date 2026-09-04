@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import inventory_pc_actions as inventory
 from plans.resonance_pc.src.actions import player_data_pc_actions as player_data
@@ -358,12 +359,12 @@ def test_equipment_categories_normalize_and_merge_without_touching_currencies() 
     }
 
 
-def test_inventory_failure_does_not_persist_partial_category_results(monkeypatch) -> None:
+def test_inventory_failure_does_not_persist_partial_category_results(monkeypatch, tmp_path: Path) -> None:
     class App:
         def click(self, **_kwargs) -> None:
             return None
 
-    persisted: list[dict] = []
+    persistent_data = PersistentDataService(tmp_path)
     monkeypatch.setattr(player_data, "_wait_for_any_marker", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(player_data, "_enter_warehouse_page", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_select_inventory_category", lambda *_args, **_kwargs: None)
@@ -381,12 +382,6 @@ def test_inventory_failure_does_not_persist_partial_category_results(monkeypatch
         return {"category": category, "items": []}
 
     monkeypatch.setattr(player_data, "_scan_inventory_stage", scan)
-    monkeypatch.setattr(
-        player_data,
-        "_persist_latest",
-        lambda *args, **kwargs: persisted.append({"args": args, "kwargs": kwargs}),
-    )
-
     with pytest.raises(RuntimeError, match="equipment failed"):
         player_data.resonance_pc_player_data_refresh(
             stages=["inventory"],
@@ -394,11 +389,12 @@ def test_inventory_failure_does_not_persist_partial_category_results(monkeypatch
             app=App(),
             ocr=object(),
             vision=object(),
+            persistent_data=persistent_data,
         )
-    assert persisted == []
+    assert persistent_data.inspect("user-info.json")["exists"] is False
 
 
-def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeypatch) -> None:
+def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeypatch, tmp_path: Path) -> None:
     class App:
         def click(self, **_kwargs) -> None:
             return None
@@ -406,7 +402,7 @@ def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeyp
     prepared: list[str] = []
     selected: list[str] = []
     scanned: list[str] = []
-    persisted: list[dict] = []
+    persistent_data = PersistentDataService(tmp_path)
     monkeypatch.setattr(player_data, "_wait_for_any_marker", lambda *_args, **_kwargs: [])
     monkeypatch.setattr(player_data, "_enter_warehouse_page", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_close_profile_panel_to_main", lambda *_args, **_kwargs: None)
@@ -438,20 +434,13 @@ def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeyp
     monkeypatch.setattr(player_data, "prepare_inventory_catalog", prepare)
     monkeypatch.setattr(player_data, "_select_inventory_category", select)
     monkeypatch.setattr(player_data, "_scan_inventory_stage", scan)
-    monkeypatch.setattr(
-        player_data,
-        "_persist_latest",
-        lambda fresh, **kwargs: persisted.append(
-            {"fresh": fresh, "kwargs": kwargs}
-        ),
-    )
-
     result = player_data.resonance_pc_player_data_refresh(
         stages=["inventory"],
         inventory_categories=["equipment", "materials", "items", "equipment"],
         app=App(),
         ocr=object(),
         vision=object(),
+        persistent_data=persistent_data,
     )
 
     assert prepared == ["items", "materials", "equipment"]
@@ -461,8 +450,8 @@ def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeyp
     assert result["currencies"] == {"iron_coins": 5}
     assert set(result["metadata"]["inventory_category_updated_at"]) == set(prepared)
     assert result["metadata"]["persisted"] is True
-    assert len(persisted) == 1
-    assert list(persisted[0]["fresh"]["inventory"]["categories"]) == prepared
+    persisted = persistent_data.read("user-info.json")
+    assert list(persisted["inventory"]["categories"]) == prepared
 
 
 def test_equipment_category_selection_compares_both_other_buttons(monkeypatch) -> None:

@@ -1194,6 +1194,171 @@ exports:
       type: Any
       required: false
       default: null
+  - name: persistent_data_read
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_read
+    public: true
+    read_only: true
+    timeout: null
+    description: Read a value from an explicit persistent JSON file and structured
+      path.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: false
+      default: null
+    - name: required
+      type: Any
+      required: false
+      default: true
+    - name: default
+      type: Any
+      required: false
+      default: null
+  - name: persistent_data_exists
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_exists
+    public: true
+    read_only: true
+    timeout: null
+    description: Check whether an explicit persistent JSON file path exists.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: false
+      default: null
+  - name: persistent_data_set
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_set
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically replace a value in an explicit persistent JSON file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: value
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: false
+      default: null
+  - name: persistent_data_merge
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_merge
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically shallow-merge an object in an explicit persistent JSON
+      file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: patch
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: false
+      default: null
+  - name: persistent_data_increment
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_increment
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically increment a bounded number in an explicit persistent JSON
+      file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: true
+      default: null
+    - name: delta
+      type: Any
+      required: false
+      default: 1
+    - name: minimum
+      type: Any
+      required: false
+      default: null
+    - name: maximum
+      type: Any
+      required: false
+      default: null
+  - name: persistent_data_append
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_append
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically append one value to an array in an explicit persistent
+      JSON file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: true
+      default: null
+    - name: value
+      type: Any
+      required: true
+      default: null
+  - name: persistent_data_delete
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_delete
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically delete a path from an explicit persistent JSON file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: path
+      type: Any
+      required: true
+      default: null
+  - name: persistent_data_batch
+    module: plans.aura_base.src.actions.persistent_data_actions
+    function: persistent_data_batch
+    public: true
+    read_only: false
+    timeout: null
+    description: Atomically apply an ordered batch of mutations to one persistent
+      JSON file.
+    parameters:
+    - name: file
+      type: Any
+      required: true
+      default: null
+    - name: operations
+      type: Any
+      required: true
+      default: null
   - name: start_process
     module: plans.aura_base.src.actions.process_actions
     function: start_process
@@ -2793,4 +2958,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-08-25T01:59:37Z'
+  generated_at: '2026-09-04T14:50:39Z'

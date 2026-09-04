@@ -20,6 +20,7 @@ from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.resonance_gui.config_repository import (
     PLAYER_DATA_STAGE_ORDER,
     ResonanceConfigRepository,
@@ -301,8 +302,9 @@ def test_player_data_cache_replaces_character_section_and_defaults_to_four_stage
     assert merged["metadata"]["section_updated_at"]["characters"] == "new"
 
 
-def test_character_failure_does_not_reach_cache_persistence() -> None:
+def test_character_failure_does_not_reach_cache_persistence(tmp_path: Path) -> None:
     app = _App()
+    persistent_data = PersistentDataService(tmp_path)
     with (
         patch.object(player_data, "_wait_for_any_marker"),
         patch.object(player_data, "load_character_catalog", return_value={}),
@@ -316,7 +318,6 @@ def test_character_failure_does_not_reach_cache_persistence() -> None:
             "read_player_characters",
             side_effect=StopTaskException("character failed", success=False),
         ),
-        patch.object(player_data, "_persist_latest") as persist,
     ):
         with pytest.raises(StopTaskException, match="character failed"):
             player_data.resonance_pc_player_data_refresh(
@@ -324,8 +325,9 @@ def test_character_failure_does_not_reach_cache_persistence() -> None:
                 app=app,
                 ocr=object(),
                 vision=object(),
+                persistent_data=persistent_data,
             )
-    persist.assert_not_called()
+    assert persistent_data.inspect("user-info.json")["exists"] is False
 
 
 def test_gui_migrates_old_inputs_once_and_renders_character_snapshot(tmp_path) -> None:
