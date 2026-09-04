@@ -18,6 +18,7 @@ _MODULE_EXPORTS = [
     "input_mapping_actions",
     "interaction_actions",
     "ocr_actions",
+    "persistent_data_actions",
     "process_actions",
     "system_actions",
     "task_actions",

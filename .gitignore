@@ -14,6 +14,7 @@ __pycache__/
 *.pyc
 *.pyo
 logs/
+user-data/
 gui-settings.ini
 updates/
 .update-work/

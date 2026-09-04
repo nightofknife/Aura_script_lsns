@@ -9,6 +9,14 @@
 """
 
 from .strategy import IPersistenceStrategy, StateStorePersistence, DatabasePersistence, NoPersistence
+from .persistent_data_errors import (
+    PersistentDataError,
+    PersistentDataNotFoundError,
+    PersistentDataReadError,
+    PersistentDataValidationError,
+    PersistentDataWriteError,
+)
+from .persistent_data_service import PersistentDataResult, PersistentDataService
 # StateStoreService 需要直接导入以避免循环依赖:
 # from packages.aura_core.context.persistence.store_service import StateStoreService
 
@@ -17,4 +25,11 @@ __all__ = [
     'StateStorePersistence',
     'DatabasePersistence',
     'NoPersistence',
+    'PersistentDataError',
+    'PersistentDataNotFoundError',
+    'PersistentDataReadError',
+    'PersistentDataValidationError',
+    'PersistentDataWriteError',
+    'PersistentDataResult',
+    'PersistentDataService',
 ]
