@@ -689,7 +689,7 @@ exports:
       type: Any
       required: false
       default: 12.0
-    - name: metric_timeout_sec
+    - name: metric_sample_timeout_sec
       type: Any
       required: false
       default: 8.0
@@ -701,6 +701,18 @@ exports:
       type: Any
       required: false
       default: 3
+    - name: metric_max_rounds
+      type: Any
+      required: false
+      default: 3
+    - name: metric_total_timeout_sec
+      type: Any
+      required: false
+      default: 60.0
+    - name: metric_timeout_sec
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.open_city_panel_from_main
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_open_city_panel_from_main
@@ -2360,4 +2372,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-02T11:52:39Z'
+  generated_at: '2026-09-04T12:37:40Z'
