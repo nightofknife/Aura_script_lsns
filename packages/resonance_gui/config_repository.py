@@ -63,7 +63,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
-    "book_profit_threshold": 15000,
+    "auto_book": False,
+    "book_profit_threshold": 500000,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
     "bargain_step_bps": 1000,
@@ -337,6 +338,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         )
     )
     merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
+    merged["auto_book"] = bool(merged["auto_book"])
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     try:

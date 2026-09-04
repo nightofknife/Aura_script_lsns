@@ -40,21 +40,22 @@ negotiation.model = binary_to_cap_expected_fatigue
 
 `resonance_pc_trade_exact_solver.py` 已改为：
 
-- 每条边只枚举进货书数量以及是否砍满、是否抬满。
+- 普通模式下，每条边枚举 `0..book_budget` 本进货书以及是否砍满、是否抬满，整条路线共享书本预算。
+- `auto_book=true` 时，每条城市边和议价组合先按税后边际收益自动确定书数，再把选出的边方案交给全局路线求解器；显式 `book_budget` 被忽略。
 - 砍满时买价按 80% 计算，抬满时卖价按 120% 计算，然后继续使用原有游戏取整和买卖税规则。
 - 成功率和幅度不再参与利润概率分布，只参与期望疲劳计算。
 - 疲劳由整数变为 `Fraction` 有理数，预算比较不提前取整。
 - 边方案会先完成一次商品定价和单位利润排序，再批量生成不同进货书数量的方案。
 - 全局搜索使用下述双后端精确动态规划；后端选择不会改变目标函数、平局规则或返回契约。
-- 继续支持重复城市、开放终点、空载迁移和整条路线共享进货书预算。
+- 继续支持重复城市、开放终点和空载迁移；Auto Book 与路线联合求解，不是路线选定后的补书后处理。
 
 ### 2.3 精确求解器性能架构
 
 2026-07-25 起，求解器内部使用统一的预编译层和两个可互换的精确后端：
 
 1. 将所有边的 `Fraction` 期望疲劳取分母最小公倍数，再以全体边疲劳的最大公约数约分，得到无误差的整数疲劳 tick。转换过程不进行浮点取整。
-2. 常规规模使用 NumPy 稠密后端。状态为 `(疲劳 tick, 城市, 进货书)`；`all_plan=0` 时再增加完整议价次数维度。所有同层边转移通过 max-plus 批量数组运算和 `maximum.reduceat` 合并，不逐标签执行 Python 支配比较。
-3. 如果分数分母导致 tick 轴过长，或估算内存/转移表超过安全阈值，则自动切换到稀疏后端。稀疏后端使用整数 tick、有序疲劳层、精确状态去重和前缀/Fenwick 严格支配查询。
+2. 普通书本预算模式的常规规模使用 NumPy 稠密后端。状态为 `(疲劳 tick, 城市, 进货书)`；`all_plan=0` 时再增加完整议价次数维度。所有同层边转移通过 max-plus 批量数组运算和 `maximum.reduceat` 合并，不逐标签执行 Python 支配比较。
+3. 如果分数分母导致 tick 轴过长，或估算内存/转移表超过安全阈值，则普通模式自动切换到稀疏后端。Auto Book 固定使用不含书本预算维度的稀疏精确搜索，标签仍累计实际 `books_used` 参与返回值和平局排序。
 4. 两个后端都完整枚举可行边，不使用 Beam、Top-K、抽样、近似舍入或启发式剪枝。最终路径仍按“利润、疲劳、进货书、完整议价次数、路径长度、稳定字典序”选择。
 5. 稠密后端的当前自动使用条件为：预算 tick 不超过 50,000、理论最大路线深度不超过 750、展开转移不超过 2,000,000 行、保守内存估算不超过 256 MiB。任一条件不满足即无损回退稀疏后端。
 
@@ -64,12 +65,12 @@ negotiation.model = binary_to_cap_expected_fatigue
 
 ### 2.4 服务、动作和任务
 
-- 公开只读动作 `resonance_pc.trade_plan_optimal_route` 已支持两种 `all_plan` 模式和四项账号议价参数。
+- 公开只读动作 `resonance_pc.trade_plan_optimal_route` 已支持 `auto_book`、两种 `all_plan` 模式和四项账号议价参数。
 - 未传 `available_city_ids` 时，精确规划器默认使用已配置交易所坐标的城市；当前为 17 城，默认排除只有地图坐标的远星大桥（14）、塔图站（17）和贡露城（19）。20 城仍全部允许显式选择。
-- `auto_cycle_trade_pc.yaml` 已公开新输入并返回新的期望疲劳及完整议价计数字段。
+- `auto_cycle_trade_pc.yaml` 和 `preview_trade_plan_pc.yaml` 都公开 `auto_book`，并返回模式、书本预算是否忽略、阈值、书本增量收益和平均每本收益字段。
 - 旧的尝试次数字段和整数疲劳使用量字段已从新契约删除，没有兼容别名。
-- 规划服务保存最多 8 条已完成结果的进程内 LRU 缓存。缓存键覆盖冻结行情、疲劳表、规则数据、进货量数据、当前/可用城市和全部规划输入；返回深拷贝，调用方修改结果不会污染缓存。
-- 行情、规则、疲劳、进货量或任一规划参数变化都会产生新缓存键。取消、异常和仍在计算的结果不会写入缓存。
+- 规划服务保存最多 8 条已完成结果的进程内 LRU 缓存。缓存键覆盖冻结行情、疲劳表、规则数据、进货量数据、当前/可用城市、`auto_book` 和全部有效规划输入；返回深拷贝，调用方修改结果不会污染缓存。
+- Auto Book 下被忽略的 `book_budget` 不进入语义缓存键；普通模式仍按真实书本预算区分。行情、规则、疲劳、进货量或任一有效规划参数变化都会产生新缓存键。取消、异常和仍在计算的结果不会写入缓存。
 - 自动执行已支持路线中的满砍价/满抬价布尔意图。每次操作使用独立的尝试计数，默认最多点击 5 次。
 - 达到尝试上限仍未确认 20% 时，执行器停止议价并按当前页面价格继续成交；页面丢失、按钮缺失和动画异常仍按业务错误中止。
 
@@ -80,6 +81,7 @@ negotiation.model = binary_to_cap_expected_fatigue
 性能改造额外覆盖：
 
 - 稠密/稀疏后端在 `all_plan=0/1` 下完整结果逐字段一致。
+- Auto Book 的严格阈值边界、无书本资源维度稀疏搜索、缓存预算归一化和组合客货运双顺序透传。
 - 非整数期望疲劳的精确 tick 转换和大分母自动稀疏回退。
 - 进度事件终态、合作式取消和缓存深拷贝隔离。
 - 原有小图暴力枚举对拍继续证明正式求解器返回同一最优利润、资源使用和稳定路径。
@@ -98,8 +100,9 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `all_plan` | int | `0` | `0` 或 `1` | 选择完整议价次数预算模式或自动分配模式 |
 | `fatigue_budget` | int | `100` | `>=0` | 旅行疲劳与议价期望疲劳的总预算 |
 | `cargo_capacity` | int | `650` | `>0` | 每段可装载商品数量 |
-| `book_budget` | int | `0` | `>=0` | 整条路线共享的进货书数量 |
-| `book_profit_threshold` | number | `15000` | `>=0` | 第 N 本书相对第 N-1 本书的最低税后边际收益 |
+| `book_budget` | int | `0` | `>=0` | 普通模式下整条路线共享的进货书数量；Auto Book 下忽略 |
+| `auto_book` | bool | `false` | `true` 或 `false` | 开启后按每条候选边及议价组合的税后边际收益自动确定书数 |
+| `book_profit_threshold` | number | `500000` | `>=0` | 自动或普通模式判断第 N 本书相对第 N-1 本书的最低税后边际收益 |
 | `negotiation_budget` | int | `0` | `>=0` | `all_plan=0` 时允许的满砍价/满抬价总次数 |
 | `negotiation_max_attempts` | int | `5` | `1..6` | 自动执行时每次砍价或抬价最多点击次数；每次操作独立重新计数，不影响规划 |
 | `bargain_success_rates_bps` | list[int] | `[5000]` | 非空，每项 `0..10000` | 砍满所需期望疲劳 |
@@ -164,6 +167,23 @@ bargain_success_rates_bps: [6300, 5300]
 完整议价操作，后者只限制执行器为某一次已选择操作最多点击多少次。`all_plan=1` 只忽略前者，
 不会忽略执行上限。
 
+### 3.5 Auto Book 与普通书本模式
+
+`auto_book=false` 保持原有有限预算模型：省略 `book_budget` 仍表示零本；每条边可以枚举到
+全局剩余书本预算，并在单书税后边际收益 `>= book_profit_threshold` 时保留该书数。
+
+`auto_book=true` 时，规划层无条件忽略 `book_budget`，包括任务验证器补出的 `0` 和第三方调用方
+显式传入的非零值。每个 `(from_city, to_city, bargain_to_cap, raise_to_cap)` 组合独立计算：
+
+```text
+P(k) = 该组合使用 k 本书时的税后期望利润
+第 k 本书的边际收益 = P(k) - P(k-1)
+```
+
+只有边际收益严格满足 `> book_profit_threshold` 才使用该书；恰好等于阈值时停止。
+书数搜索以货舱饱和为有限上界并使用精确有理数比较。各组合得到的最终边方案随后进入完整路线精确
+搜索，所以终点城市、城市范围、疲劳、货舱、议价和重复城市约束仍按原语义生效。
+
 ## 4. 期望疲劳与利润计算
 
 满幅度固定为 20%。需要的成功次数：
@@ -222,6 +242,19 @@ expected_fatigue_used       用于普通展示，例如 27.7982
 expected_fatigue_used_exact 用于调试和比较，例如 "1473680/53001"
 ```
 
+书本相关新增字段为：
+
+| 字段 | 含义 |
+|---|---|
+| `auto_book` | 本次规划是否启用 Auto Book |
+| `book_budget_ignored` | `book_budget` 是否因 Auto Book 被忽略 |
+| `book_profit_threshold` | 本次实际使用的单书税后边际收益阈值 |
+| `book_incremental_profit` / `book_incremental_profit_exact` | 最终路线逐边相对同城市边、同议价组合零本基线的增量收益 |
+| `average_book_profit` / `average_book_profit_exact` | `book_incremental_profit / books_used`；零本时为 `null` |
+
+增量收益不能用“有书最优路线利润减去另一次零本最优路线利润”代替，因为两次全局规划可能选择
+不同的城市路径或议价组合。
+
 ### 5.2 成功规划示例
 
 ```json
@@ -237,9 +270,16 @@ expected_fatigue_used_exact 用于调试和比较，例如 "1473680/53001"
   "expected_fatigue_used_exact": "73",
   "remaining_expected_fatigue": 0.0,
   "remaining_expected_fatigue_exact": "0",
+  "auto_book": false,
+  "book_budget_ignored": false,
   "books_budget": 0,
   "books_used": 0,
   "remaining_books": 0,
+  "book_profit_threshold": 500000,
+  "book_incremental_profit": 0,
+  "book_incremental_profit_exact": "0",
+  "average_book_profit": null,
+  "average_book_profit_exact": null,
   "negotiation_budget": 0,
   "negotiation_budget_ignored": true,
   "full_negotiation_used": 2,
@@ -340,9 +380,16 @@ expected_fatigue_used_exact 用于调试和比较，例如 "1473680/53001"
   "expected_fatigue_used_exact": "0",
   "remaining_expected_fatigue": 100.0,
   "remaining_expected_fatigue_exact": "100",
+  "auto_book": false,
+  "book_budget_ignored": false,
   "books_budget": 0,
   "books_used": 0,
   "remaining_books": 0,
+  "book_profit_threshold": 500000,
+  "book_incremental_profit": 0,
+  "book_incremental_profit_exact": "0",
+  "average_book_profit": null,
+  "average_book_profit_exact": null,
   "negotiation_budget": 0,
   "negotiation_budget_ignored": false,
   "full_negotiation_used": 0,

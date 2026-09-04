@@ -19,10 +19,14 @@ auto_cycle_trade_pc:
         required: false
         default: 0
         min: 0
+      - name: auto_book
+        type: boolean
+        required: false
+        default: false
       - name: book_profit_threshold
         type: number
         required: false
-        default: 15000
+        default: 500000
         min: 0
       - name: negotiation_max_attempts
         type: number
@@ -259,7 +263,8 @@ auto_cycle_trade_pc:
         fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
-        book_profit_threshold: "{{ inputs.book_profit_threshold | default(15000) }}"
+        auto_book: "{{ inputs.auto_book | default(false) }}"
+        book_profit_threshold: "{{ inputs.book_profit_threshold | default(500000) }}"
         negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
@@ -296,9 +301,16 @@ auto_cycle_trade_pc:
     expected_fatigue_used_exact: "{{ nodes.run.output.expected_fatigue_used_exact }}"
     remaining_expected_fatigue: "{{ nodes.run.output.remaining_expected_fatigue }}"
     remaining_expected_fatigue_exact: "{{ nodes.run.output.remaining_expected_fatigue_exact }}"
+    auto_book: "{{ nodes.run.output.auto_book }}"
+    book_budget_ignored: "{{ nodes.run.output.book_budget_ignored }}"
     books_budget: "{{ nodes.run.output.books_budget }}"
     books_used: "{{ nodes.run.output.books_used }}"
     remaining_books: "{{ nodes.run.output.remaining_books }}"
+    book_profit_threshold: "{{ nodes.run.output.book_profit_threshold }}"
+    book_incremental_profit: "{{ nodes.run.output.book_incremental_profit }}"
+    book_incremental_profit_exact: "{{ nodes.run.output.book_incremental_profit_exact }}"
+    average_book_profit: "{{ nodes.run.output.average_book_profit }}"
+    average_book_profit_exact: "{{ nodes.run.output.average_book_profit_exact }}"
     negotiation_budget: "{{ nodes.run.output.negotiation_budget }}"
     negotiation_max_attempts: "{{ nodes.run.output.negotiation_max_attempts }}"
     negotiation_budget_ignored: "{{ nodes.run.output.negotiation_budget_ignored }}"

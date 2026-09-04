@@ -63,6 +63,8 @@ def _same_state_better(
 ) -> bool:
     if candidate.profit != existing.profit:
         return candidate.profit > existing.profit
+    if candidate.books_used != existing.books_used:
+        return candidate.books_used < existing.books_used
     if candidate.full_negotiation_used != existing.full_negotiation_used:
         return (
             candidate.full_negotiation_used
@@ -142,6 +144,56 @@ class _Fenwick2Max:
         return result
 
 
+class _Fenwick1Max:
+    """Prefix maximum for the unbounded-book negotiation resource."""
+
+    def __init__(self, negotiation_budget: int) -> None:
+        self.size = int(negotiation_budget) + 1
+        self.values = [-1] * (self.size + 1)
+
+    def update(self, negotiation: int, profit: int) -> None:
+        index = int(negotiation) + 1
+        while index <= self.size:
+            if profit > self.values[index]:
+                self.values[index] = profit
+            index += index & -index
+
+    def query(self, negotiation: int) -> int:
+        result = -1
+        index = int(negotiation) + 1
+        while index:
+            result = max(result, self.values[index])
+            index -= index & -index
+        return result
+
+
+class _Fenwick1Best:
+    """Prefix best by profit then fewer books for one fatigue layer."""
+
+    def __init__(self, negotiation_budget: int) -> None:
+        self.size = int(negotiation_budget) + 1
+        self.values: List[Optional[Tuple[int, int]]] = [
+            None
+        ] * (self.size + 1)
+
+    def update(self, negotiation: int, value: Tuple[int, int]) -> None:
+        index = int(negotiation) + 1
+        while index <= self.size:
+            if self.values[index] is None or value > self.values[index]:
+                self.values[index] = value
+            index += index & -index
+
+    def query(self, negotiation: int) -> Optional[Tuple[int, int]]:
+        result: Optional[Tuple[int, int]] = None
+        index = int(negotiation) + 1
+        while index:
+            value = self.values[index]
+            if value is not None and (result is None or value > result):
+                result = value
+            index -= index & -index
+        return result
+
+
 def _route_from_node(
     prepared: PreparedSearch, node: _Node
 ) -> Tuple[Tuple[str, ...], Tuple[Any, ...]]:
@@ -162,6 +214,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
     started_at = time.perf_counter()
     budget = prepared.scale.budget_ticks
     book_budget = prepared.book_budget
+    unbounded_books = prepared.unbounded_books
     negotiation_limit = (
         0
         if prepared.all_plan == 1
@@ -171,17 +224,21 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
     by_city: List[List[CompiledEdge]] = [[] for _ in range(city_count)]
     for edge in prepared.edges:
         by_city[edge.from_index].append(edge)
-    by_city_remaining_books: List[List[Tuple[CompiledEdge, ...]]] = [
-        [tuple() for _ in range(book_budget + 1)]
-        for _ in range(city_count)
-    ]
-    for city_index in range(city_count):
-        for remaining_books in range(book_budget + 1):
-            by_city_remaining_books[city_index][remaining_books] = tuple(
-                edge
-                for edge in by_city[city_index]
-                if edge.books_used <= remaining_books
-            )
+    by_city_remaining_books: Optional[
+        List[List[Tuple[CompiledEdge, ...]]]
+    ] = None
+    if not unbounded_books:
+        by_city_remaining_books = [
+            [tuple() for _ in range(book_budget + 1)]
+            for _ in range(city_count)
+        ]
+        for city_index in range(city_count):
+            for remaining_books in range(book_budget + 1):
+                by_city_remaining_books[city_index][remaining_books] = tuple(
+                    edge
+                    for edge in by_city[city_index]
+                    if edge.books_used <= remaining_books
+                )
 
     initial = _Node(
         city_index=prepared.start_index,
@@ -196,9 +253,17 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
     )
     path_cache = {initial: ((), ())}
     if prepared.all_plan == 1:
-        initial_key: Tuple[int, ...] = (prepared.start_index, 0)
+        initial_key: Tuple[int, ...] = (
+            (prepared.start_index,)
+            if unbounded_books
+            else (prepared.start_index, 0)
+        )
     else:
-        initial_key = (prepared.start_index, 0, 0)
+        initial_key = (
+            (prepared.start_index, 0)
+            if unbounded_books
+            else (prepared.start_index, 0, 0)
+        )
     pending: Dict[int, Dict[Tuple[int, ...], _Node]] = {
         0: {initial_key: initial}
     }
@@ -220,7 +285,14 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
     progress = SolverProgress(backend="sparse", total=budget)
     progress.emit(0, force=True, pending_states=1)
 
-    if prepared.all_plan == 1:
+    if unbounded_books and prepared.all_plan == 1:
+        global_dominance: Any = [-1] * city_count
+    elif unbounded_books:
+        global_dominance = [
+            _Fenwick1Max(negotiation_limit)
+            for _ in range(city_count)
+        ]
+    elif prepared.all_plan == 1:
         global_dominance: Any = [
             [-1] * (book_budget + 1) for _ in range(city_count)
         ]
@@ -249,7 +321,58 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
             if not nodes:
                 continue
             keepers: List[_Node] = []
-            if prepared.all_plan == 1:
+            if unbounded_books and prepared.all_plan == 1:
+                for node in nodes:
+                    popped_states += 1
+                    if global_dominance[city_index] >= node.profit:
+                        pruned_states += 1
+                        continue
+                    keepers.append(node)
+                    kept_states += 1
+                for node in keepers:
+                    global_dominance[city_index] = max(
+                        global_dominance[city_index],
+                        node.profit,
+                    )
+            elif unbounded_books:
+                local_dominance = _Fenwick1Best(negotiation_limit)
+                for node in sorted(
+                    nodes,
+                    key=lambda item: (
+                        item.full_negotiation_used,
+                        item.books_used,
+                    ),
+                ):
+                    popped_states += 1
+                    if (
+                        global_dominance[city_index].query(
+                            node.full_negotiation_used
+                        )
+                        >= node.profit
+                    ):
+                        pruned_states += 1
+                        continue
+                    local_best = local_dominance.query(
+                        node.full_negotiation_used
+                    )
+                    if local_best is not None and local_best >= (
+                        node.profit,
+                        -node.books_used,
+                    ):
+                        pruned_states += 1
+                        continue
+                    local_dominance.update(
+                        node.full_negotiation_used,
+                        (node.profit, -node.books_used),
+                    )
+                    keepers.append(node)
+                    kept_states += 1
+                for node in keepers:
+                    global_dominance[city_index].update(
+                        node.full_negotiation_used,
+                        node.profit,
+                    )
+            elif prepared.all_plan == 1:
                 same_layer_best = -1
                 for node in sorted(nodes, key=lambda item: item.books_used):
                     popped_states += 1
@@ -326,10 +449,15 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                     )
                 ):
                     best = node
-                remaining_books = book_budget - node.books_used
-                for edge in by_city_remaining_books[city_index][
-                    remaining_books
-                ]:
+                if unbounded_books:
+                    outgoing_edges = by_city[city_index]
+                else:
+                    assert by_city_remaining_books is not None
+                    remaining_books = book_budget - node.books_used
+                    outgoing_edges = by_city_remaining_books[city_index][
+                        remaining_books
+                    ]
+                for edge in outgoing_edges:
                     transition_attempts += 1
                     next_fatigue = node.fatigue_ticks + edge.fatigue_ticks
                     next_negotiation = (
@@ -356,12 +484,20 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                         edge=edge,
                     )
                     if prepared.all_plan == 1:
-                        state_key = (edge.to_index, next_books)
+                        state_key = (
+                            (edge.to_index,)
+                            if unbounded_books
+                            else (edge.to_index, next_books)
+                        )
                     else:
                         state_key = (
-                            edge.to_index,
-                            next_books,
-                            next_negotiation,
+                            (edge.to_index, next_negotiation)
+                            if unbounded_books
+                            else (
+                                edge.to_index,
+                                next_books,
+                                next_negotiation,
+                            )
                         )
                     target = pending.get(next_fatigue)
                     if target is None:

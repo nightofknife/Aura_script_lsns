@@ -464,6 +464,7 @@ class WorkflowPage(QWidget):
     previewTradeRequested = Signal()
     settingsRequested = Signal()
     tradeEndCityAvailabilityChanged = Signal(bool)
+    autoBookChanged = Signal(bool)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -869,6 +870,14 @@ class WorkflowPage(QWidget):
         self.trade_fatigue = QSpinBox(page)
         self.trade_fatigue.setRange(0, 100000)
         self.trade_fatigue.valueChanged.connect(self._refresh_combined_summary)
+        self.trade_auto_book = QCheckBox("", page)
+        self.trade_auto_book.setObjectName("workflowTradeAutoBookCheck")
+        self.trade_auto_book.setAccessibleName("Auto Book 模式")
+        self.trade_auto_book.setToolTip(
+            "开启后由进货书收益阈值自动决定使用书数；"
+            "已填写的进货书数量会保留但不会提交"
+        )
+        self.trade_auto_book.toggled.connect(self._trade_auto_book_toggled)
         self.trade_books = QSpinBox(page)
         self.trade_books.setRange(0, 100000)
         self.trade_books.setToolTip("本次货运规划允许使用的进货书数量")
@@ -879,6 +888,7 @@ class WorkflowPage(QWidget):
         self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
         self.trade_fatigue_label = QLabel("货运疲劳预算", page)
         form.addRow(self.trade_fatigue_label, self.trade_fatigue)
+        form.addRow("Auto Book 模式", self.trade_auto_book)
         form.addRow("进货书数量", self.trade_books)
         form.addRow("货舱容量", self.trade_cargo)
         form.addRow("疲劳恢复", self.trade_medicine)
@@ -1182,6 +1192,7 @@ class WorkflowPage(QWidget):
     def apply_compact_inputs(self, trade: Mapping[str, Any], passenger: Mapping[str, Any]) -> None:
         self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 700)))
         self.trade_books.setValue(int(trade.get("book_budget", 0)))
+        self.set_auto_book(bool(trade.get("auto_book", False)))
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_medicine.setChecked(bool(trade.get("use_fatigue_medicine", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
@@ -1206,12 +1217,28 @@ class WorkflowPage(QWidget):
         merged.update(
             fatigue_budget=self.trade_fatigue.value(),
             book_budget=self.trade_books.value(),
+            auto_book=self.trade_auto_book.isChecked(),
             cargo_capacity=self.trade_cargo.value(),
             use_fatigue_medicine=self.trade_medicine.isChecked(),
             auto_cape_island_investment=self.trade_investment.isChecked(),
             auto_rubbish_recycling=self.trade_rubbish_recycling.isChecked(),
         )
         return merged
+
+    def _trade_auto_book_toggled(self, checked: bool) -> None:
+        self._sync_auto_book_controls()
+        self.autoBookChanged.emit(bool(checked))
+
+    def set_auto_book(self, enabled: bool) -> None:
+        previous = self.trade_auto_book.blockSignals(True)
+        self.trade_auto_book.setChecked(bool(enabled))
+        self.trade_auto_book.blockSignals(previous)
+        self._sync_auto_book_controls()
+
+    def _sync_auto_book_controls(self) -> None:
+        self.trade_books.setEnabled(
+            not self._busy and not self.trade_auto_book.isChecked()
+        )
 
     def merge_passenger_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
         estimate = self._passenger_route_catalog.estimate(
@@ -1840,6 +1867,7 @@ class WorkflowPage(QWidget):
     def _set_editing_enabled(self, enabled: bool) -> None:
         self.task_rows_host.setEnabled(enabled)
         self.center_panel.setEnabled(enabled)
+        self._sync_auto_book_controls()
         self._sync_move_buttons()
         self._rebuild_commerce_rows()
 

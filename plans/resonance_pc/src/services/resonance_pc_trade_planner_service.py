@@ -20,7 +20,7 @@ from .resonance_pc_market_data_service import (
 from .resonance_pc_trade_exact_solver import ResonancePcExactTradeSolver
 
 
-DEFAULT_BOOK_PROFIT_THRESHOLD = 15000
+DEFAULT_BOOK_PROFIT_THRESHOLD = 500000
 
 
 class ResonancePcTradePlannerError(RuntimeError):
@@ -149,6 +149,7 @@ class ResonancePcTradePlannerService:
         fatigue_budget: int = 100,
         cargo_capacity: int = 650,
         book_budget: int = 0,
+        auto_book: bool = False,
         book_profit_threshold: Any = DEFAULT_BOOK_PROFIT_THRESHOLD,
         negotiation_budget: int = 0,
         all_plan: int = 0,
@@ -168,6 +169,17 @@ class ResonancePcTradePlannerService:
         snapshot_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Return the exact best complete route for one frozen market snapshot."""
+
+        if isinstance(auto_book, bool):
+            normalized_auto_book = auto_book
+        elif isinstance(auto_book, int) and auto_book in (0, 1):
+            normalized_auto_book = bool(auto_book)
+        else:
+            raise ResonancePcTradePlannerError(
+                code="invalid_optimal_route_input",
+                message="auto_book must be a boolean.",
+            )
+        effective_book_budget = 0 if normalized_auto_book else book_budget
 
         constraints = self._load_trade_constraints_payload()
         if snapshot_id:
@@ -294,7 +306,8 @@ class ResonancePcTradePlannerService:
             required_end_city_ids=normalized_end_city_ids,
             fatigue_budget=fatigue_budget,
             cargo_capacity=cargo_capacity,
-            book_budget=book_budget,
+            book_budget=None if normalized_auto_book else effective_book_budget,
+            auto_book=normalized_auto_book,
             book_profit_threshold=book_profit_threshold,
             negotiation_budget=negotiation_budget,
             all_plan=all_plan,
@@ -327,7 +340,8 @@ class ResonancePcTradePlannerService:
                 required_end_city_ids=normalized_end_city_ids,
                 fatigue_budget=fatigue_budget,
                 cargo_capacity=cargo_capacity,
-                book_budget=book_budget,
+                book_budget=effective_book_budget,
+                auto_book=normalized_auto_book,
                 book_profit_threshold=book_profit_threshold,
                 negotiation_budget=negotiation_budget,
                 all_plan=all_plan,
@@ -369,6 +383,7 @@ class ResonancePcTradePlannerService:
         fatigue_budget: Any,
         cargo_capacity: Any,
         book_budget: Any,
+        auto_book: bool,
         book_profit_threshold: Any,
         negotiation_budget: Any,
         all_plan: Any,
@@ -393,6 +408,7 @@ class ResonancePcTradePlannerService:
             "fatigue_budget": fatigue_budget,
             "cargo_capacity": cargo_capacity,
             "book_budget": book_budget,
+            "auto_book": auto_book,
             "book_profit_threshold": str(book_profit_threshold),
             "negotiation_budget": negotiation_budget,
             "all_plan": all_plan,
