@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import itertools
 import os
+import threading
 import time
 from typing import Any, Callable
 
 from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
 
 from packages.aura_game import SubprocessGameRunner
+from packages.aura_core.observability.logging.core_logger import logger
 
 from .logic import (
     GAME_NAME,
@@ -49,6 +51,8 @@ class RunnerBridge(QObject):
     cancelRequested = Signal(dict)
     busyChanged = Signal(bool)
     logMessage = Signal(str)
+    closeCompleted = Signal()
+    closeFailed = Signal(str)
 
     def __init__(self, runner_factory: RunnerFactory | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -59,6 +63,8 @@ class RunnerBridge(QObject):
             )
         self._runner_factory = runner_factory
         self._runner: Any | None = None
+        self._shutdown_requested = threading.Event()
+        self._closed = False
         self._queue: list[dict[str, Any]] = []
         self._busy = False
         self._current_cid = ""
@@ -79,12 +85,27 @@ class RunnerBridge(QObject):
         return self._busy
 
     def _runner_instance(self) -> Any:
+        if self._shutdown_requested.is_set():
+            raise RuntimeError("GUI runner is shutting down")
         if self._runner is None:
             self._runner = self._runner_factory()
+        if self._shutdown_requested.is_set():
+            if isinstance(self._runner, SubprocessGameRunner):
+                self._runner.request_shutdown()
+            raise RuntimeError("GUI runner is shutting down")
         return self._runner
+
+    def request_shutdown(self, *, force: bool = False) -> None:
+        """Thread-safe signal only; Qt timers, queues and IPC stay on the bridge thread."""
+        self._shutdown_requested.set()
+        runner = self._runner
+        if isinstance(runner, SubprocessGameRunner):
+            runner.request_shutdown(force=force)
 
     @Slot()
     def initialize(self) -> None:
+        if self._shutdown_requested.is_set():
+            return
         self._ensure_poll_timer()
         self.logMessage.emit("正在加载雷索纳斯任务列表。")
         self.refresh_tasks()
@@ -276,6 +297,8 @@ class RunnerBridge(QObject):
 
     @Slot()
     def poll_current(self) -> None:
+        if self._shutdown_requested.is_set():
+            return
         if not self._current_cid or not self._current_item:
             self._stop_polling()
             return
@@ -321,11 +344,24 @@ class RunnerBridge(QObject):
 
     @Slot()
     def close(self) -> None:
+        self.request_shutdown()
         self._stop_polling()
+        self._queue.clear()
+        if self._closed:
+            self.closeCompleted.emit()
+            return
         runner = self._runner
+        try:
+            if runner is not None and hasattr(runner, "close"):
+                runner.close()
+        except Exception as exc:
+            logger.exception("[GuiShutdown] phase=bridge_close_failed")
+            self.closeFailed.emit(str(exc))
+            return
         self._runner = None
-        if runner is not None and hasattr(runner, "close"):
-            runner.close()
+        self._closed = True
+        logger.info("[GuiShutdown] phase=bridge_closed")
+        self.closeCompleted.emit()
 
     def _make_item(
         self,
@@ -345,6 +381,9 @@ class RunnerBridge(QObject):
         }
 
     def _run_next(self) -> None:
+        if self._shutdown_requested.is_set():
+            self._queue.clear()
+            return
         if not self._queue:
             self._set_busy(False)
             return
@@ -435,6 +474,9 @@ class RunnerBridge(QObject):
         )
 
     def _finish_current(self, run: dict[str, Any]) -> None:
+        if self._shutdown_requested.is_set():
+            self._reset_current()
+            return
         item = dict(self._current_item or {})
         payload = dict(run)
         payload.setdefault("cid", self._current_cid)

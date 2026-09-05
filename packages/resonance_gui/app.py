@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QEventLoop, QSettings
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
 
 from packages.aura_game import SubprocessGameRunner
+from packages.aura_core.observability.logging.core_logger import logger
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
+from packages.resonance_gui.paths import resolve_application_root
 
 
 APP_ICON_RELATIVE_PATH = Path(
@@ -88,12 +91,33 @@ def _import_required_wgc_module() -> object:
 
 
 def launch_resonance_gui() -> int:
+    # GUI shutdown outlives the worker's session log; keep a separate parent log.
+    logger.setup(
+        log_dir=str(resolve_application_root() / "logs"),
+        task_name=f"aura_gui_{os.getpid()}",
+    )
     app = QApplication.instance() or QApplication(sys.argv)
     icon = _configure_application(app)
     window = ResonanceMainWindow()
     window.setWindowIcon(icon)
     window.show()
-    return int(app.exec())
+    try:
+        return int(app.exec())
+    finally:
+        logger.info("[GuiShutdown] phase=gui_event_loop_exited pid=%s", os.getpid())
+        logging.shutdown()
+
+
+def _close_window_and_wait(window: ResonanceMainWindow) -> None:
+    """Keep dispatching Qt shutdown signals for callers without app.exec()."""
+    close_loop = QEventLoop()
+    window._bridge_thread.finished.connect(close_loop.quit)
+    try:
+        window.close()
+        if window._bridge_thread.isRunning():
+            close_loop.exec()
+    finally:
+        window._bridge_thread.finished.disconnect(close_loop.quit)
 
 
 def self_check_resonance_gui() -> int:
@@ -126,12 +150,12 @@ def self_check_resonance_gui() -> int:
                 raise RuntimeError("Resonance main window did not create a central widget.")
             if app.windowIcon().isNull() or window.windowIcon().isNull():
                 raise RuntimeError("Resonance application icon was not applied to the GUI window.")
-            window.close()
+            _close_window_and_wait(window)
             app.processEvents()
         return 0
     finally:
-        if window is not None and window.isVisible():
-            window.close()
+        if window is not None and window._bridge_thread.isRunning():
+            _close_window_and_wait(window)
         runner.close()
 
 

@@ -14,6 +14,7 @@ from packages.aura_core.api import ACTION_REGISTRY, hook_manager, service_regist
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.runtime.bootstrap import create_runtime, peek_runtime, start_runtime, stop_runtime
+from packages.aura_core.observability.logging.core_logger import logger
 
 _TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 _DEFAULT_PROFILE = "embedded_full"
@@ -478,6 +479,21 @@ class SubprocessGameRunner:
         self._ctx = multiprocessing.get_context("spawn")
         self._parent_conn = None
         self._process: Optional[multiprocessing.Process] = None
+        self._shutdown_requested = threading.Event()
+        self._process_lock = threading.RLock()
+
+    def request_shutdown(self, *, force: bool = False) -> None:
+        """Signal shutdown from another thread without touching the IPC pipe."""
+        self._shutdown_requested.set()
+        if not force or not self._process_lock.acquire(blocking=False):
+            return
+        try:
+            process = self._process
+            if process is not None and process.is_alive():
+                logger.warning("[GuiShutdown] phase=force_worker pid=%s", process.pid)
+                process.terminate()
+        finally:
+            self._process_lock.release()
 
     def _start_process_with_env(self, process: multiprocessing.Process) -> None:
         if not self.env_overrides:
@@ -497,6 +513,12 @@ class SubprocessGameRunner:
                         os.environ[key] = value
 
     def _ensure_process(self) -> None:
+        with self._process_lock:
+            if self._shutdown_requested.is_set():
+                raise RuntimeError("Subprocess runner is shutting down")
+            self._ensure_process_locked()
+
+    def _ensure_process_locked(self) -> None:
         if self._process is not None and self._process.is_alive():
             return
 
@@ -535,19 +557,27 @@ class SubprocessGameRunner:
             except Exception:
                 pass
 
-        process = self._process
-        self._process = None
+        with self._process_lock:
+            process = self._process
         if process is None:
             return
         try:
-            if process.is_alive():
-                process.terminate()
+            with self._process_lock:
+                if process.is_alive():
+                    process.terminate()
         except Exception:
             pass
         try:
             process.join(timeout=5)
         except Exception:
             pass
+        with self._process_lock:
+            if process.is_alive():
+                logger.error("[GuiShutdown] phase=discard_worker_still_alive pid=%s", process.pid)
+                raise RuntimeError("Subprocess runner could not be terminated")
+            logger.info("[GuiShutdown] phase=discard_worker_exited pid=%s exitcode=%s", process.pid, process.exitcode)
+            process.close()
+            self._process = None
 
     def _request(self, op: str, **kwargs):
         self._ensure_process()
@@ -649,23 +679,46 @@ class SubprocessGameRunner:
         )
 
     def close(self) -> None:
-        if self._process is None:
-            return
-        try:
-            if self._process.is_alive():
-                self._request("close")
-        except Exception:
-            pass
-        finally:
-            if self._parent_conn is not None:
-                self._parent_conn.close()
-                self._parent_conn = None
+        self.request_shutdown()
+        with self._process_lock:
             process = self._process
-            if process is not None:
-                process.join(timeout=5)
-                if process.is_alive():
-                    process.terminate()
-                    process.join(timeout=5)
+        if process is None:
+            return
+        pid = process.pid
+        connection = self._parent_conn
+        deadline = time.monotonic() + 10.0
+        logger.info("[GuiShutdown] phase=worker_close_requested pid=%s grace_sec=10", pid)
+        try:
+            if process.is_alive() and connection is not None:
+                # Do not use _request: shutdown must never spawn another worker.
+                connection.send({"op": "close", "kwargs": {}})
+                while process.is_alive() and time.monotonic() < deadline:
+                    if connection.poll(min(0.2, max(deadline - time.monotonic(), 0.0))):
+                        reply = connection.recv()
+                        logger.info("[GuiShutdown] phase=worker_close_reply pid=%s reply=%s", pid, reply)
+                        break
+            process.join(timeout=max(deadline - time.monotonic(), 0.0))
+        except Exception as exc:
+            logger.warning("[GuiShutdown] phase=worker_close_error pid=%s error=%s", pid, exc)
+        finally:
+            try:
+                if connection is not None:
+                    connection.close()
+            except Exception as exc:
+                logger.warning("[GuiShutdown] phase=pipe_close_error pid=%s error=%s", pid, exc)
+            finally:
+                self._parent_conn = None
+        with self._process_lock:
+            if process.is_alive():
+                logger.warning("[GuiShutdown] phase=worker_close_timeout pid=%s", pid)
+                process.terminate()
+        process.join(timeout=5)
+        with self._process_lock:
+            if process.is_alive():
+                logger.error("[GuiShutdown] phase=worker_still_alive pid=%s", pid)
+                raise RuntimeError(f"Worker {pid} did not exit after termination")
+            logger.info("[GuiShutdown] phase=worker_exited pid=%s exitcode=%s", pid, process.exitcode)
+            process.close()
             self._process = None
 
     def __enter__(self):

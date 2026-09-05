@@ -31,6 +31,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from packages.aura_core.observability.logging.core_logger import logger
+
 from .bridge import RunnerBridge
 from .config_repository import GuiPreferences, ResonanceConfigRepository
 from .logic import (
@@ -99,6 +101,12 @@ class ResonanceMainWindow(QMainWindow):
         self._update_checker = update_checker if update_checker is not None else find_available_update
         self._update_check_started = False
         self._bridge_thread = QThread(self)
+        self._closing = False
+        self._close_ready = False
+        self._bridge_closed = False
+        self._shutdown_watchdog = QTimer(self)
+        self._shutdown_watchdog.setInterval(15000)
+        self._shutdown_watchdog.timeout.connect(self._on_shutdown_timeout)
         self._task_items: dict[str, QTreeWidgetItem] = {}
         self._history_rows: list[dict[str, Any]] = []
         self._busy = False
@@ -519,6 +527,10 @@ class ResonanceMainWindow(QMainWindow):
         self.requestClearQueue.connect(self._bridge.clear_queue)
         self.requestCancelCurrent.connect(self._bridge.cancel_current)
         self.requestBridgeClose.connect(self._bridge.close)
+        self._bridge.closeCompleted.connect(self._on_bridge_closed)
+        self._bridge.closeFailed.connect(self._on_bridge_close_failed)
+        self._bridge_thread.finished.connect(self._bridge.deleteLater)
+        self._bridge_thread.finished.connect(self._on_bridge_thread_finished)
 
         self._bridge.tasksLoaded.connect(self._on_tasks_loaded)
         self._bridge.historyLoaded.connect(self._on_history_loaded)
@@ -1328,6 +1340,8 @@ class ResonanceMainWindow(QMainWindow):
         self._abort_workflow(reason)
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
+        if self._closing:
+            return
         self.statusBar().showMessage("任务执行结束")
         finished_kind = ""
         if self._active_game_name == PC_GAME_NAME:
@@ -1479,6 +1493,8 @@ class ResonanceMainWindow(QMainWindow):
         self.run_detail.show_text(render_result_text(payload))
 
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
+        if self._closing:
+            return
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
         failed_task_ref = str(payload.get("task_ref") or "")
@@ -1532,6 +1548,8 @@ class ResonanceMainWindow(QMainWindow):
         self.run_detail.show_text(pretty_json(payload))
 
     def _on_busy_changed(self, busy: bool) -> None:
+        if self._closing:
+            return
         self._busy = bool(busy)
         if not busy:
             self._active_game_name = ""
@@ -1605,6 +1623,12 @@ class ResonanceMainWindow(QMainWindow):
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def closeEvent(self, event) -> None:  # noqa: N802
+        if self._close_ready:
+            super().closeEvent(event)
+            return
+        if self._closing:
+            event.ignore()
+            return
         if self._busy or self._workflow_active:
             box = QMessageBox(self)
             box.setWindowTitle("任务仍在运行")
@@ -1615,19 +1639,65 @@ class ResonanceMainWindow(QMainWindow):
             if box.clickedButton() is stay:
                 event.ignore()
                 return
-            if box.clickedButton() is cancel_and_exit:
-                if self._workflow_active:
-                    self._stop_workflow()
-                elif self._busy:
-                    self.requestCancelCurrent.emit()
-            else:
+            if box.clickedButton() is not cancel_and_exit:
                 event.ignore()
                 return
+        # Runner shutdown cancels scheduler work without another blocking IPC
+        # cancellation request ahead of the close request.
         self._save_preferences()
+        event.ignore()
+        self._closing = True
+        self._workflow_active = False
+        self._commerce_active = False
+        self._workflow_pending.clear()
+        self._commerce_pending.clear()
+        self.centralWidget().setEnabled(False)
+        self.setWindowTitle(f"{self._base_window_title} — 正在退出")
+        self.statusBar().showMessage("正在停止后台任务并释放资源，请稍候…")
+        logger.info("[GuiShutdown] phase=gui_close_requested")
+        self._bridge.request_shutdown()
+        self._shutdown_watchdog.start()
         self.requestBridgeClose.emit()
+
+    @Slot()
+    def _on_bridge_closed(self) -> None:
+        self._bridge_closed = True
+        logger.info("[GuiShutdown] phase=bridge_thread_quit_requested")
         self._bridge_thread.quit()
-        self._bridge_thread.wait(5000)
-        super().closeEvent(event)
+
+    @Slot(str)
+    def _on_bridge_close_failed(self, message: str) -> None:
+        self.statusBar().showMessage(f"后台退出未完成，正在重试释放资源：{message}")
+        self._shutdown_watchdog.start(5000)
+
+    @Slot()
+    def _on_shutdown_timeout(self) -> None:
+        logger.warning("[GuiShutdown] phase=gui_shutdown_watchdog bridge_closed=%s", self._bridge_closed)
+        self.statusBar().showMessage("后台退出超时，正在回收本次运行的工作进程…")
+        if self._bridge_closed:
+            self._bridge_thread.quit()
+            return
+        try:
+            self._bridge.request_shutdown(force=True)
+        except Exception as exc:
+            logger.exception("[GuiShutdown] phase=force_worker_failed")
+            self.statusBar().showMessage(f"工作进程回收失败：{exc}")
+        # The queued close slot runs after pending bridge IPC unwinds.
+        self.requestBridgeClose.emit()
+        self._shutdown_watchdog.setInterval(5000)
+
+    @Slot()
+    def _on_bridge_thread_finished(self) -> None:
+        if not self._closing:
+            return
+        if not self._bridge_closed:
+            logger.error("[GuiShutdown] phase=thread_exited_without_worker_confirmation")
+            self.statusBar().showMessage("后台线程意外退出，尚未确认工作进程已释放。")
+            return
+        self._shutdown_watchdog.stop()
+        self._close_ready = True
+        logger.info("[GuiShutdown] phase=qt_thread_finished gui_close_ready=true")
+        self.close()
 
 
 def create_main_window() -> ResonanceMainWindow:
