@@ -7,9 +7,11 @@ import copy
 import hashlib
 import json
 import re
+import socket
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -110,8 +112,23 @@ class ResonancePcMarketDataService:
         return copy.deepcopy(self._load_travel_fatigue_data())
 
     def refresh(self, force: bool = False) -> Dict[str, Any]:
+        started = time.monotonic()
+        logger.info(
+            "[MarketRefresh] start force=%s api_url=%s timeout_seconds=%s "
+            "cache_latest_exists=%s cache_latest=%s",
+            bool(force),
+            self.api_url,
+            self.timeout_seconds,
+            self.latest_file.is_file(),
+            self.latest_file,
+        )
         try:
             raw = self.fetch_raw()
+            logger.info(
+                "[MarketRefresh] remote_payload_ready product_count=%s elapsed_ms=%s",
+                len(raw.get("data") or {}) if isinstance(raw.get("data"), dict) else 0,
+                round((time.monotonic() - started) * 1000, 1),
+            )
             # buy_lot is versioned release metadata. Ordinary price refreshes
             # must not scrape the route page and its JavaScript chunks.
             buy_lot_payload = self.load_buy_lot_payload()
@@ -119,21 +136,61 @@ class ResonancePcMarketDataService:
             persisted = self.persist(normalized, force=bool(force))
             result = copy.deepcopy(persisted)
             result["stale"] = False
+            logger.info(
+                "[MarketRefresh] success snapshot_id=%s fetched_at=%s city_count=%s "
+                "product_count=%s elapsed_ms=%s",
+                result.get("snapshot_id"),
+                result.get("fetched_at"),
+                len(result.get("cities") or {}),
+                len(result.get("products") or {}),
+                round((time.monotonic() - started) * 1000, 1),
+            )
             return result
         except Exception as exc:  # noqa: BLE001
-            logger.warning("ResonancePc market refresh failed, trying stale fallback: %s", exc)
+            logger.warning(
+                "[MarketRefresh] remote_refresh_failed error_type=%s error=%s "
+                "elapsed_ms=%s; trying stale fallback",
+                type(exc).__name__,
+                exc,
+                round((time.monotonic() - started) * 1000, 1),
+                exc_info=True,
+            )
             try:
                 latest = self.load_latest()
             except ResonancePcMarketDataError as fallback_error:
+                logger.error(
+                    "[MarketRefresh] fallback_failed cache_latest=%s cache_latest_exists=%s "
+                    "fallback_code=%s fallback_error=%s",
+                    self.latest_file,
+                    self.latest_file.is_file(),
+                    fallback_error.code,
+                    fallback_error,
+                )
                 raise ResonancePcMarketDataError(
                     code="market_refresh_failed_no_cache",
                     message="Failed to refresh market data and no cached snapshot is available.",
-                    detail={"cause": str(exc), "fallback_cause": fallback_error.to_dict()},
+                    detail={
+                        "cause_type": type(exc).__name__,
+                        "cause": str(exc),
+                        "api_url": self.api_url,
+                        "timeout_seconds": self.timeout_seconds,
+                        "cache_latest": str(self.latest_file),
+                        "cache_latest_exists": self.latest_file.is_file(),
+                        "fallback_cause": fallback_error.to_dict(),
+                    },
                 ) from exc
 
             result = copy.deepcopy(latest)
             result["stale"] = True
             result["stale_reason"] = str(exc)
+            logger.warning(
+                "[MarketRefresh] fallback_success snapshot_id=%s fetched_at=%s stale_reason=%s "
+                "elapsed_ms=%s",
+                result.get("snapshot_id"),
+                result.get("fetched_at"),
+                result.get("stale_reason"),
+                round((time.monotonic() - started) * 1000, 1),
+            )
             return result
 
     def sync_web_constants(self, sync_buy_lot: bool = True) -> Dict[str, Any]:
@@ -270,42 +327,201 @@ class ResonancePcMarketDataService:
         return rows
 
     def fetch_raw(self) -> Dict[str, Any]:
+        parsed_url = urllib.parse.urlsplit(self.api_url)
+        host = str(parsed_url.hostname or "")
+        port = int(parsed_url.port or (443 if parsed_url.scheme == "https" else 80))
+        proxy_summary = self._proxy_summary()
+        logger.info(
+            "[MarketNetwork] request_start url=%s scheme=%s host=%s port=%s "
+            "timeout_seconds=%s proxies=%s",
+            self.api_url,
+            parsed_url.scheme,
+            host,
+            port,
+            self.timeout_seconds,
+            json.dumps(proxy_summary, ensure_ascii=False, sort_keys=True),
+        )
+        dns_started = time.monotonic()
+        try:
+            address_rows = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+            addresses = sorted(
+                {
+                    str(row[4][0])
+                    for row in address_rows
+                    if len(row) > 4 and isinstance(row[4], tuple) and row[4]
+                }
+            )
+            logger.info(
+                "[MarketNetwork] dns_success host=%s addresses=%s elapsed_ms=%s",
+                host,
+                addresses,
+                round((time.monotonic() - dns_started) * 1000, 1),
+            )
+        except Exception as exc:  # noqa: BLE001 - diagnostic probe must not replace urlopen
+            logger.warning(
+                "[MarketNetwork] dns_failed host=%s error_type=%s errno=%s error=%s "
+                "elapsed_ms=%s",
+                host,
+                type(exc).__name__,
+                getattr(exc, "errno", None),
+                exc,
+                round((time.monotonic() - dns_started) * 1000, 1),
+            )
+
         req = urllib.request.Request(
             self.api_url,
             headers={"User-Agent": "Aura-ResonancePc/1.0 (+https://www.resonance-columba.com)"},
             method="GET",
         )
+        request_started = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
-                raw_text = response.read().decode("utf-8")
+                raw_bytes = response.read()
+                raw_text = raw_bytes.decode("utf-8")
+                logger.info(
+                    "[MarketNetwork] response_success status=%s final_url=%s content_type=%s "
+                    "declared_length=%s received_bytes=%s server=%s elapsed_ms=%s",
+                    getattr(response, "status", None),
+                    response.geturl(),
+                    response.headers.get("Content-Type"),
+                    response.headers.get("Content-Length"),
+                    len(raw_bytes),
+                    response.headers.get("Server"),
+                    round((time.monotonic() - request_started) * 1000, 1),
+                )
+        except urllib.error.HTTPError as exc:
+            logger.error(
+                "[MarketNetwork] http_failed status=%s reason=%s url=%s retry_after=%s "
+                "server=%s elapsed_ms=%s",
+                exc.code,
+                exc.reason,
+                exc.geturl(),
+                exc.headers.get("Retry-After") if exc.headers else None,
+                exc.headers.get("Server") if exc.headers else None,
+                round((time.monotonic() - request_started) * 1000, 1),
+            )
+            raise ResonancePcMarketDataError(
+                code="market_fetch_http_failed",
+                message="Market price API returned an HTTP error.",
+                detail={
+                    "status": exc.code,
+                    "reason": str(exc.reason),
+                    "url": exc.geturl(),
+                },
+            ) from exc
         except urllib.error.URLError as exc:
+            reason = getattr(exc, "reason", None)
+            logger.error(
+                "[MarketNetwork] request_failed error_type=%s reason_type=%s errno=%s "
+                "reason=%s url=%s elapsed_ms=%s",
+                type(exc).__name__,
+                type(reason).__name__ if reason is not None else None,
+                getattr(reason, "errno", None),
+                reason,
+                self.api_url,
+                round((time.monotonic() - request_started) * 1000, 1),
+            )
             raise ResonancePcMarketDataError(
                 code="market_fetch_failed",
                 message="Failed to fetch market prices from remote API.",
-                detail={"cause": str(exc), "url": self.api_url},
+                detail={
+                    "exception_type": type(exc).__name__,
+                    "reason_type": type(reason).__name__ if reason is not None else None,
+                    "errno": getattr(reason, "errno", None),
+                    "cause": str(exc),
+                    "url": self.api_url,
+                },
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - retain diagnostics for TLS/socket failures
+            logger.error(
+                "[MarketNetwork] request_failed_unexpected error_type=%s errno=%s error=%s "
+                "url=%s elapsed_ms=%s",
+                type(exc).__name__,
+                getattr(exc, "errno", None),
+                exc,
+                self.api_url,
+                round((time.monotonic() - request_started) * 1000, 1),
+                exc_info=True,
+            )
+            raise ResonancePcMarketDataError(
+                code="market_fetch_failed",
+                message="Failed to fetch market prices from remote API.",
+                detail={
+                    "exception_type": type(exc).__name__,
+                    "errno": getattr(exc, "errno", None),
+                    "cause": str(exc),
+                    "url": self.api_url,
+                },
             ) from exc
 
         try:
             payload = json.loads(raw_text)
         except json.JSONDecodeError as exc:
+            logger.error(
+                "[MarketNetwork] response_invalid_json line=%s column=%s position=%s "
+                "received_chars=%s content_sha256=%s",
+                exc.lineno,
+                exc.colno,
+                exc.pos,
+                len(raw_text),
+                hashlib.sha256(raw_text.encode("utf-8", errors="replace")).hexdigest(),
+            )
             raise ResonancePcMarketDataError(
                 code="market_payload_invalid_json",
                 message="API response is not valid JSON.",
-                detail={"cause": str(exc)},
+                detail={
+                    "cause": str(exc),
+                    "line": exc.lineno,
+                    "column": exc.colno,
+                    "position": exc.pos,
+                    "received_chars": len(raw_text),
+                },
             ) from exc
 
         if not isinstance(payload, dict):
+            logger.error(
+                "[MarketNetwork] response_invalid_root root_type=%s",
+                type(payload).__name__,
+            )
             raise ResonancePcMarketDataError(
                 code="market_payload_invalid_type",
                 message="API response root must be an object.",
             )
         data = payload.get("data")
         if not isinstance(data, dict):
+            logger.error(
+                "[MarketNetwork] response_missing_data keys=%s data_type=%s",
+                sorted(str(key) for key in payload.keys()),
+                type(data).__name__,
+            )
             raise ResonancePcMarketDataError(
                 code="market_payload_missing_data",
                 message="API response is missing 'data' object.",
             )
+        logger.info(
+            "[MarketNetwork] payload_valid product_count=%s",
+            len(data),
+        )
         return payload
+
+    @staticmethod
+    def _proxy_summary() -> Dict[str, str]:
+        summary: Dict[str, str] = {}
+        for scheme, raw_value in urllib.request.getproxies().items():
+            value = str(raw_value or "").strip()
+            if not value:
+                continue
+            parsed = urllib.parse.urlsplit(value if "://" in value else f"//{value}")
+            host = str(parsed.hostname or "")
+            if not host:
+                summary[str(scheme)] = "configured"
+                continue
+            try:
+                port = parsed.port
+            except ValueError:
+                port = None
+            summary[str(scheme)] = f"{host}:{port}" if port else host
+        return summary
 
     def normalize(self, raw: Dict[str, Any], buy_lot_payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         data = raw.get("data")
