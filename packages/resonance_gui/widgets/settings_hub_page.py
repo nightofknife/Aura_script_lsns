@@ -89,6 +89,9 @@ class SettingsHubPage(QWidget):
         note.setProperty("caption", True)
         actions.addWidget(note)
         root.addLayout(actions)
+        self.save_result = QLabel("", self)
+        self.save_result.setWordWrap(True)
+        root.addWidget(self.save_result)
         self.categories.setCurrentRow(0)
 
     def _build_game_page(self) -> QWidget:
@@ -119,6 +122,8 @@ class SettingsHubPage(QWidget):
         program_layout.addLayout(path_row)
         self.detect_result = QLabel("未检测", program)
         self.detect_result.setProperty("caption", True)
+        self.detect_result.setWordWrap(True)
+        self.executable_path.setToolTip("浏览选择或检测成功后自动保存；手动输入后请点击检测或保存设置")
         program_layout.addWidget(self.detect_result)
         layout.addWidget(program)
 
@@ -211,16 +216,27 @@ class SettingsHubPage(QWidget):
         path, _ = QFileDialog.getOpenFileName(self, "选择游戏程序", start, "程序 (*.exe);;所有文件 (*)")
         if path:
             self.executable_path.setText(path)
+            self._save_game_path(path)
+
+    def _save_game_path(self, value: str, *, message: str = "游戏路径已保存") -> bool:
+        path = validate_executable_path(value, executable_name=GAME_EXECUTABLE_NAME)
+        if path is None:
+            self._set_detection_status("路径不存在或不是雷索纳斯.exe，未保存", "warning")
+            return False
+        self.executable_path.setText(str(path))
+        try:
+            self._settings.set_value("game/executable_path", str(path))
+            self._settings.sync_checked()
+        except OSError as exc:
+            self._set_detection_status(f"游戏路径保存失败：{exc}", "warning")
+            return False
+        self._set_detection_status(message, "success")
+        return True
 
     def _detect_executable(self) -> None:
         entered = self.executable_path.text().strip()
         if entered:
-            path = validate_executable_path(entered, executable_name=GAME_EXECUTABLE_NAME)
-            if path is None:
-                self._set_detection_status("路径不存在或不是雷索纳斯.exe", "warning")
-                return
-            self.executable_path.setText(str(path))
-            self._set_detection_status("用户路径验证通过", "success")
+            self._save_game_path(entered, message="用户路径验证通过，已保存")
             return
 
         matches = find_registry_executables(
@@ -230,9 +246,8 @@ class SettingsHubPage(QWidget):
         if not matches:
             self._set_detection_status("注册表中未找到游戏，请使用“浏览…”选择", "warning")
             return
-        self.executable_path.setText(str(matches[0]))
         suffix = "" if len(matches) == 1 else f"（找到 {len(matches)} 个安装记录，已使用第一个）"
-        self._set_detection_status(f"已从注册表检测到游戏{suffix}", "success")
+        self._save_game_path(str(matches[0]), message=f"已从注册表检测到游戏并保存{suffix}")
 
     def _reset_detection_status(self) -> None:
         self._set_detection_status("未检测", "")
@@ -258,16 +273,27 @@ class SettingsHubPage(QWidget):
         )
 
     def save_values(self) -> None:
-        self._settings.set_value("game/executable_path", self.executable_path.text().strip())
-        self._settings.set_value("game/launch_if_not_running", self.launch_if_needed.isChecked())
-        self._settings.set_value("game/window_timeout_sec", self.window_timeout.value())
-        self._settings.set_value("game/max_settle_rounds", self.settle_rounds.value())
-        self._settings.set_value("game/force_after_timeout", bool(self.close_mode.currentData()))
-        self._settings.set_value("game/graceful_timeout_sec", self.close_timeout.value())
-        self._settings.set_value("workflow/close_on_failure", self.close_on_failure.isChecked())
-        trade_inputs = self._settings.load_trade_inputs()
-        trade_inputs["arrival_timeout_seconds"] = self.trade_arrival_timeout.value() * 60
-        self._settings.save_trade_inputs(trade_inputs)
+        path = self.executable_path.text().strip()
+        if path and not self._save_game_path(path):
+            self.save_result.setText("设置未全部保存，请检查游戏路径及保存提示。")
+            return
+        try:
+            if not path:
+                self._settings.set_value("game/executable_path", "")
+            self._settings.set_value("game/launch_if_not_running", self.launch_if_needed.isChecked())
+            self._settings.set_value("game/window_timeout_sec", self.window_timeout.value())
+            self._settings.set_value("game/max_settle_rounds", self.settle_rounds.value())
+            self._settings.set_value("game/force_after_timeout", bool(self.close_mode.currentData()))
+            self._settings.set_value("game/graceful_timeout_sec", self.close_timeout.value())
+            self._settings.set_value("workflow/close_on_failure", self.close_on_failure.isChecked())
+            trade_inputs = self._settings.load_trade_inputs()
+            trade_inputs["arrival_timeout_seconds"] = self.trade_arrival_timeout.value() * 60
+            self._settings.save_trade_inputs(trade_inputs)
+            self._settings.sync_checked()
+        except OSError as exc:
+            self.save_result.setText(f"设置保存失败：{exc}")
+            return
+        self.save_result.setText("设置已保存")
         self.settingsSaved.emit()
 
     def startup_inputs(self) -> dict[str, object]:
@@ -293,6 +319,7 @@ class SettingsHubPage(QWidget):
 
     def _cancel(self) -> None:
         self.load_values()
+        self.save_result.clear()
         self.backRequested.emit()
 
     def _bool_value(self, key: str, default: bool) -> bool:

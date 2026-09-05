@@ -179,6 +179,18 @@ class ResonanceConfigRepository:
         self.settings.setValue(key, value)
         self.settings.sync()
 
+    def sync_checked(self) -> None:
+        """Flush settings and report persistence errors to explicit save callers."""
+        self.settings.sync()
+        status = self.settings.status()
+        if status != QSettings.Status.NoError:
+            reason = (
+                "配置文件或目录不可写"
+                if status == QSettings.Status.AccessError
+                else "配置文件格式错误"
+            )
+            raise OSError(f"{reason}：{self.settings.fileName()}")
+
     def load_trade_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("trade/inputs_json", "")
         if raw:
