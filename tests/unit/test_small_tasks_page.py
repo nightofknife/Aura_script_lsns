@@ -27,9 +27,11 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     page = SmallTasksPage(ResonanceConfigRepository(settings))
 
     labels = {label.text() for label in page.findChildren(QLabel)}
-    assert {"任务分类", "任务列表", "任务详情"}.issubset(labels)
+    assert {"小任务", "任务列表", "任务详情"}.issubset(labels)
     assert page.category_list.currentItem().text() == "用户数据"
-    assert page.task_list.currentItem().text() == "刷新用户数据"
+    assert page.task_list.count() == 0
+    assert page.task_panel.isHidden()
+    assert page.current_task_id == "player_data_refresh"
     assert "独立运行" not in "".join(labels)
 
     requests: list[dict] = []
@@ -122,10 +124,11 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     _application()
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     page = SmallTasksPage(ResonanceConfigRepository(settings))
-    team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
+    team_category = page.category_list.findItems("配队推荐", Qt.MatchFlag.MatchExactly)[0]
     page.category_list.setCurrentItem(team_category)
 
-    assert page.task_list.currentItem().text() == "配队推荐"
+    assert page.task_list.count() == 0
+    assert page.task_panel.isHidden()
     assert page.current_task_id == "team_recommendation"
     requests: list[bool] = []
     page.runTeamRecommendationRequested.connect(lambda: requests.append(True))
@@ -184,7 +187,7 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     )
     root = page.team_recommendation_panel.result_tree.topLevelItem(0)
     assert root.text(2) == "角色完全满足"
-    assert root.text(3) == "武器满足满配"
+    assert root.text(3) == "满配武器都有"
     assert root.childCount() == 5
 
 
@@ -260,7 +263,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window._small_task_active_ref == ""
 
         team_category = window.small_tasks_page.category_list.findItems(
-            "配队工具", Qt.MatchFlag.MatchExactly
+            "配队推荐", Qt.MatchFlag.MatchExactly
         )[0]
         window.small_tasks_page.category_list.setCurrentItem(team_category)
         window.small_tasks_page.team_recommendation_panel.run_button.click()

@@ -124,7 +124,7 @@ def test_character_status_uses_minimum_and_recommended_boundaries() -> None:
     assert unknown["recommendations"][0]["character_status"] == "basic"
 
 
-def test_weapon_status_consumes_copies_and_accepts_mixed_low_configuration() -> None:
+def test_weapon_status_reuses_owned_weapons_and_accepts_mixed_low_configuration() -> None:
     full = recommend_fixed_teams(_player_data(), _catalog(_team()))
     mixed_low = recommend_fixed_teams(
         _player_data(
@@ -138,7 +138,7 @@ def test_weapon_status_consumes_copies_and_accepts_mixed_low_configuration() -> 
         ),
         _catalog(_team()),
     )
-    insufficient = recommend_fixed_teams(
+    shared_low = recommend_fixed_teams(
         _player_data(
             weapons={
                 "共享低配": 1,
@@ -152,6 +152,9 @@ def test_weapon_status_consumes_copies_and_accepts_mixed_low_configuration() -> 
 
     assert full["recommendations"][0]["weapon_status"] == "full"
     assert mixed_low["recommendations"][0]["weapon_status"] == "low"
+    assert shared_low["recommendations"][0]["weapon_status"] == "low"
+    missing_weapon = _player_data(weapons={"共享低配": 1, "低配3": 1, "低配4": 1})
+    insufficient = recommend_fixed_teams(missing_weapon, _catalog(_team()))
     assert insufficient["recommendations"][0]["weapon_status"] == "unmet"
 
 
