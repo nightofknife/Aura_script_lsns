@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -27,9 +29,11 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     page = SmallTasksPage(ResonanceConfigRepository(settings))
 
     labels = {label.text() for label in page.findChildren(QLabel)}
-    assert {"任务分类", "任务列表", "任务详情"}.issubset(labels)
+    assert {"小任务", "任务列表", "任务详情"}.issubset(labels)
     assert page.category_list.currentItem().text() == "用户数据"
-    assert page.task_list.currentItem().text() == "刷新用户数据"
+    assert page.task_list.count() == 0
+    assert page.task_panel.isHidden()
+    assert page.current_task_id == "player_data_refresh"
     assert "独立运行" not in "".join(labels)
 
     requests: list[dict] = []
@@ -112,9 +116,9 @@ def test_player_data_equipment_config_migration_and_snapshot(tmp_path) -> None:
     assert panel.inventory_table.isColumnHidden(2)
     assert panel.inventory_table.rowCount() == 2
     assert panel.inventory_table.item(0, 0).text() == "甲"
-    assert panel.inventory_table.item(0, 1).text() == "2"
+    assert panel.inventory_table.item(0, 1).text() == "已拥有"
     assert "2 种装备" in panel.inventory_summary.text()
-    assert "3 件" in panel.inventory_summary.text()
+    assert "3 件" not in panel.inventory_summary.text()
     assert "4 页" in panel.inventory_summary.text()
 
 
@@ -122,10 +126,11 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     _application()
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     page = SmallTasksPage(ResonanceConfigRepository(settings))
-    team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
+    team_category = page.category_list.findItems("配队推荐", Qt.MatchFlag.MatchExactly)[0]
     page.category_list.setCurrentItem(team_category)
 
-    assert page.task_list.currentItem().text() == "配队推荐"
+    assert page.task_list.count() == 0
+    assert page.task_panel.isHidden()
     assert page.current_task_id == "team_recommendation"
     requests: list[bool] = []
     page.runTeamRecommendationRequested.connect(lambda: requests.append(True))
@@ -184,7 +189,7 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     )
     root = page.team_recommendation_panel.result_tree.topLevelItem(0)
     assert root.text(2) == "角色完全满足"
-    assert root.text(3) == "武器满足满配"
+    assert root.text(3) == "满配武器都有"
     assert root.childCount() == 5
 
 
@@ -260,7 +265,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window._small_task_active_ref == ""
 
         team_category = window.small_tasks_page.category_list.findItems(
-            "配队工具", Qt.MatchFlag.MatchExactly
+            "配队推荐", Qt.MatchFlag.MatchExactly
         )[0]
         window.small_tasks_page.category_list.setCurrentItem(team_category)
         window.small_tasks_page.team_recommendation_panel.run_button.click()
@@ -301,7 +306,11 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window.page_stack.currentWidget() is window.workflow_page
     finally:
         window.close()
-        _application().processEvents()
+        deadline = time.monotonic() + 5.0
+        while not window._close_ready and time.monotonic() < deadline:
+            QTest.qWait(10)
+        assert window._close_ready
+        assert not window._bridge_thread.isRunning()
 
 
 def test_workflow_rejects_removed_player_data_configuration(tmp_path) -> None:

@@ -558,7 +558,7 @@ class PlayerDataPanel(QWidget):
                 )
             ]
         self.inventory_table.setToolTip(
-            "装备数量未知；未列出不代表未拥有。配队时每种按 1 件评估。"
+            "装备数量未知；未列出不代表未拥有。配队仅按是否拥有匹配，同名武器可满足多个成员。"
             if category == "equipment" else ""
         )
         expiry_recognition_disabled = (
