@@ -1600,10 +1600,8 @@ def _read_equipment_presence(
     ocr: Any,
     vision: Any,
     catalog: Dict[str, Any],
-    *,
-    max_scrolls: int,
 ) -> Dict[str, Any]:
-    """Union detected equipment IDs until scrolling no longer changes the grid."""
+    """Union equipment IDs until the catalog is complete or the grid stops moving."""
     layout = catalog["layout"]
     region = tuple(int(value) for value in layout["grid_region"])
     scroll_start = tuple(int(value) for value in layout.get("scroll_start", _DEFAULT_SCROLL_START))
@@ -1611,7 +1609,6 @@ def _read_equipment_presence(
     known_items = _catalog_by_item_id(catalog)
     owned_ids: set[str] = set()
     pages_scanned = 0
-    scrolls = 0
     unchanged_scrolls = 0
     page_image = _capture_stable_grid(app, region)
     while True:
@@ -1628,16 +1625,22 @@ def _read_equipment_presence(
             "Equipment presence scan: page=%s owned_types=%s unchanged_scrolls=%s",
             pages_scanned, len(owned_ids), unchanged_scrolls,
         )
-        if unchanged_scrolls >= 3:
+        if known_items and owned_ids.issuperset(known_items):
+            completion_reason = "all_supported_equipment_found"
+            logger.info(
+                "Equipment presence scan complete: all supported equipment found; "
+                "page=%s owned_types=%s",
+                pages_scanned, len(owned_ids),
+            )
             break
-        if scrolls >= max(int(max_scrolls), 0):
-            raise _inventory_error("equipment presence scan exceeded maximum scroll count")
+        if unchanged_scrolls >= 3:
+            completion_reason = "three_consecutive_unchanged_scrolls"
+            break
         app.drag(
             *scroll_start, *scroll_end,
             duration=0.5,
             hold_before_release_sec=_SCROLL_HOLD_BEFORE_RELEASE_SEC,
         )
-        scrolls += 1
         current = _capture_stable_grid(app, region)
         # Compare pixels, not equipment identities: pages of duplicates still scroll.
         unchanged = (
@@ -1660,7 +1663,7 @@ def _read_equipment_presence(
         "matched_equipment_count": len(equipment),
         "pages_scanned": pages_scanned,
         "scan_complete": True,
-        "completion_reason": "three_consecutive_unchanged_scrolls",
+        "completion_reason": completion_reason,
         "consecutive_unchanged_scrolls": unchanged_scrolls,
         "source": "equipment_template",
         "scanned_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
@@ -1702,7 +1705,7 @@ def read_inventory_category(
         _resolve_inventory_template_paths(prepared_catalog, vision)
     if normalized_category == "equipment":
         return _read_equipment_presence(
-            app, ocr, vision, prepared_catalog, max_scrolls=max_scrolls,
+            app, ocr, vision, prepared_catalog,
         )
     layout = prepared_catalog["layout"]
     region = tuple(int(value) for value in layout["grid_region"])
@@ -1882,7 +1885,7 @@ def read_inventory_equipment(
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
-    """Read whether each detected warehouse equipment type is owned."""
+    """Read equipment ownership; legacy max_scrolls is accepted but ignored."""
 
     return read_inventory_category(
         app,

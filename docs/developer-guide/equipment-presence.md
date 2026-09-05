@@ -29,11 +29,16 @@ first catalog entry is retained, as configured by the user.
 
 The scanner unions IDs across pages. It does not align physical cards across
 pages. It continues through pages containing only previously detected equipment.
+Once every equipment ID in the current catalog has been detected as owned, the
+scan completes immediately before the next drag
+(`all_supported_equipment_found`). This uses the union from the current scan,
+not previously cached ownership.
 Three consecutive scroll attempts with stable grid mean absolute pixel difference
 at most 1.5 end the scan (`three_consecutive_unchanged_scrolls`). This is a visual
 end-of-scroll heuristic, not a game-provided bottom indicator. A failed drag or
-visually identical repeated pages can also satisfy it; reaching `max_scrolls`
-without completion raises an error instead of publishing a partial result.
+visually identical repeated pages can also satisfy it. Equipment scanning has no
+scroll-count limit; the legacy `max_scrolls` argument is accepted but ignored for
+equipment. Items and materials retain their existing scroll limits.
 
 Only the template region must be fully visible for equipment. A clipped card
 border, level label, or avatar does not require rejecting an otherwise complete
@@ -46,6 +51,6 @@ as unlimited copies for simultaneous team slots.
 
 Existing equipment count-oriented tests need to be migrated when testing is
 authorized. Regression coverage should include repeated types across moving
-pages, stationary bottom detection, scroll limit failure, catalog-order duplicate
+pages, stationary bottom detection, scans beyond 30 scrolls, catalog-order duplicate
 ties, clipped cards with complete identity regions, GUI ownership display, and
 legacy count compatibility.
