@@ -114,9 +114,9 @@ def test_player_data_equipment_config_migration_and_snapshot(tmp_path) -> None:
     assert panel.inventory_table.isColumnHidden(2)
     assert panel.inventory_table.rowCount() == 2
     assert panel.inventory_table.item(0, 0).text() == "甲"
-    assert panel.inventory_table.item(0, 1).text() == "2"
+    assert panel.inventory_table.item(0, 1).text() == "已拥有"
     assert "2 种装备" in panel.inventory_summary.text()
-    assert "3 件" in panel.inventory_summary.text()
+    assert "3 件" not in panel.inventory_summary.text()
     assert "4 页" in panel.inventory_summary.text()
 
 

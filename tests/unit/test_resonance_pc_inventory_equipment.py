@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 import yaml
 
-from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import inventory_pc_actions as inventory
@@ -30,7 +29,7 @@ class ResolvingVision:
 def _write_equipment_catalog(
     root: Path,
     *,
-    aggregation: str = "count_cards_by_equipment_id",
+    aggregation: str = "presence_by_equipment_id",
     template_size: tuple[int, int] = (100, 60),
     entries: list[dict[str, str]] | None = None,
 ) -> Path:
@@ -80,7 +79,7 @@ def test_actual_equipment_catalog_is_prepared_without_digit_readers() -> None:
     catalog = inventory.prepare_inventory_catalog("equipment", ResolvingVision())
 
     assert catalog["category"] == "equipment"
-    assert catalog["_count_mode"] == inventory._COUNT_MODE_CARD_INSTANCES
+    assert catalog["_count_mode"] == inventory._COUNT_MODE_PRESENCE
     assert catalog["_digit_reader"] is None
     assert catalog["_expiry_digit_reader"] is None
     assert len(catalog["items"]) == 175
@@ -146,7 +145,7 @@ def test_equipment_catalog_rejects_invalid_inputs(
         )
 
 
-def test_equipment_page_counts_cards_without_reading_digits(monkeypatch) -> None:
+def test_equipment_page_deduplicates_owned_types_without_reading_digits(monkeypatch) -> None:
     catalog = inventory.prepare_inventory_catalog("equipment", ResolvingVision())
     result_by_id = {
         item["item_id"]: SimpleNamespace(matches=[])
@@ -181,10 +180,9 @@ def test_equipment_page_counts_cards_without_reading_digits(monkeypatch) -> None
 
     assert [item["item_id"] for item in observations] == [
         "thunder_god",
-        "thunder_god",
     ]
-    assert all(item["count"] == 1 for item in observations)
-    assert aggregated == [{"item_id": "thunder_god", "name": "雷神", "count": 2}]
+    assert all(item["owned"] is True and "count" not in item for item in observations)
+    assert aggregated == [{"item_id": "thunder_god", "name": "雷神", "owned": True}]
 
 
 def _prepared_test_catalog() -> dict:
@@ -195,7 +193,7 @@ def _prepared_test_catalog() -> dict:
     return {
         "schema_version": 1,
         "category": "equipment",
-        "aggregation": "count_cards_by_equipment_id",
+        "aggregation": "presence_by_equipment_id",
         "layout": {
             "template_size": (100, 60),
             "template_offset_from_card": (10, 35),
@@ -217,14 +215,14 @@ def _prepared_test_catalog() -> dict:
             for entry in equipment
         ],
         "_template_paths": ["a.png", "b.png"],
-        "_count_mode": inventory._COUNT_MODE_CARD_INSTANCES,
+        "_count_mode": inventory._COUNT_MODE_PRESENCE,
         "_supports_expiry": False,
         "_digit_reader": None,
         "_expiry_digit_reader": None,
     }
 
 
-def test_equipment_scroll_dedupes_overlap_and_stops_after_three_empty_scans(
+def test_equipment_scroll_dedupes_overlap_and_stops_on_catalog_coverage(
     monkeypatch,
 ) -> None:
     images = [
@@ -233,10 +231,10 @@ def test_equipment_scroll_dedupes_overlap_and_stops_after_three_empty_scans(
     ]
     image_iter = iter(images)
     pages = {
-        1: [{"item_id": "a", "name": "甲", "count": 1, "card_top_left": [0, 100]}],
+        1: [{"item_id": "a", "name": "甲", "owned": True, "card_top_left": [0, 100]}],
         2: [
-            {"item_id": "a", "name": "甲", "count": 1, "card_top_left": [0, 0]},
-            {"item_id": "b", "name": "乙", "count": 1, "card_top_left": [132, 100]},
+            {"item_id": "a", "name": "甲", "owned": True, "card_top_left": [0, 0]},
+            {"item_id": "b", "name": "乙", "owned": True, "card_top_left": [132, 100]},
         ],
         3: [{"item_id": "b", "name": "乙", "count": 1, "card_top_left": [132, 100]}],
         4: [{"item_id": "b", "name": "乙", "count": 1, "card_top_left": [132, 100]}],
@@ -271,39 +269,41 @@ def test_equipment_scroll_dedupes_overlap_and_stops_after_three_empty_scans(
     )
 
     assert result["equipment"] == [
-        {"name": "甲", "count": 1, "equipment_id": "a"},
-        {"name": "乙", "count": 1, "equipment_id": "b"},
+        {"name": "甲", "owned": True, "equipment_id": "a"},
+        {"name": "乙", "owned": True, "equipment_id": "b"},
     ]
-    assert result["matched_card_count"] == 2
+    assert "matched_card_count" not in result
     assert result["matched_equipment_count"] == 2
-    assert result["pages_scanned"] == 5
-    assert result["completion_reason"] == "three_consecutive_scans_without_new_items"
-    assert len(app.drags) == 4
+    assert result["pages_scanned"] == 2
+    assert result["completion_reason"] == "all_supported_equipment_found"
+    assert len(app.drags) == 1
     assert all(args == (1000, 620, 1000, 310) for args, _kwargs in app.drags)
     assert all(kwargs["duration"] == 0.5 for _args, kwargs in app.drags)
     assert all(kwargs["hold_before_release_sec"] == 0.5 for _args, kwargs in app.drags)
 
 
-def test_equipment_scroll_limit_is_a_failure(monkeypatch) -> None:
+def test_equipment_ignores_legacy_scroll_limit_and_stops_on_unchanged_grid(monkeypatch) -> None:
     image = np.zeros((626, 680, 3), dtype=np.uint8)
     monkeypatch.setattr(inventory, "_capture_stable_grid", lambda *_args, **_kwargs: image)
     monkeypatch.setattr(
         inventory,
         "scan_inventory_page",
         lambda *_args, **_kwargs: [
-            {"item_id": "a", "name": "甲", "count": 1, "card_top_left": [0, 0]}
+            {"item_id": "a", "name": "甲", "owned": True, "card_top_left": [0, 0]}
         ],
     )
 
-    with pytest.raises(StopTaskException, match="maximum scroll count"):
-        inventory.read_inventory_category(
-            SimpleNamespace(drag=lambda *_args, **_kwargs: None),
-            object(),
-            object(),
-            category="equipment",
-            catalog=_prepared_test_catalog(),
-            max_scrolls=0,
-        )
+    result = inventory.read_inventory_category(
+        SimpleNamespace(drag=lambda *_args, **_kwargs: None),
+        object(),
+        object(),
+        category="equipment",
+        catalog=_prepared_test_catalog(),
+        max_scrolls=0,
+    )
+    assert result["pages_scanned"] == 4
+    assert result["completion_reason"] == "three_consecutive_unchanged_scrolls"
+    assert result["matched_equipment_count"] == 1
 
 
 def test_equipment_categories_normalize_and_merge_without_touching_currencies() -> None:
