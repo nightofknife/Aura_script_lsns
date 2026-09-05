@@ -2,8 +2,8 @@
 
 Equipment scans live at ``inventory.categories.equipment`` (or the legacy
 single-category ``inventory``). Their ``equipment`` rows identify observed
-equipment by ``equipment_id`` and catalog-matching ``name``. Presence grants at
-most one copy per name per team; unobserved equipment is not known to be absent.
+equipment by ``equipment_id`` and catalog-matching ``name``. Matching checks
+presence only; the same observed weapon can satisfy multiple team slots.
 
 The legacy quantity-based weapon section remains supported when no equipment
 scan is present::
@@ -16,8 +16,8 @@ scan is present::
       }
     }
 
-``weapon_id`` is matched exactly against the fixed BWIKI catalog.  Quantity is
-consumed during assignment, so one owned copy cannot satisfy two team slots.
+``weapon_id`` is matched exactly against the fixed BWIKI catalog. Positive
+legacy quantities indicate ownership but are not consumed during matching.
 """
 
 from __future__ import annotations
@@ -216,37 +216,13 @@ def _assign_weapons(
     choices: list[tuple[str, ...]],
     inventory: Counter[str],
 ) -> list[str] | None:
-    if any(not values for values in choices):
-        return None
-    order = sorted(
-        range(len(choices)),
-        key=lambda index: (
-            len(choices[index]),
-            sum(inventory[name] for name in choices[index]),
-            index,
-        ),
-    )
-    remaining = Counter(inventory)
-    assigned: list[str | None] = [None] * len(choices)
-
-    def visit(position: int) -> bool:
-        if position >= len(order):
-            return True
-        slot = order[position]
-        for weapon_id in choices[slot]:
-            if remaining[weapon_id] <= 0:
-                continue
-            remaining[weapon_id] -= 1
-            assigned[slot] = weapon_id
-            if visit(position + 1):
-                return True
-            assigned[slot] = None
-            remaining[weapon_id] += 1
-        return False
-
-    if not visit(0):
-        return None
-    return [str(value) for value in assigned]
+    assigned: list[str] = []
+    for options in choices:
+        weapon_id = next((name for name in options if inventory[name] > 0), None)
+        if weapon_id is None:
+            return None
+        assigned.append(weapon_id)
+    return assigned
 
 
 def _weapon_match(
@@ -300,10 +276,7 @@ def recommend_fixed_teams(
     weapon_metadata = {
         "weapon_inventory_source": weapon_source,
         "weapon_recognition_mode": "presence" if presence_mode else "quantity",
-        "weapon_inventory_note": (
-            "装备数量未知，每种按 1 件评估。"
-            if presence_mode else ""
-        ),
+        "weapon_inventory_note": "仅按武器是否拥有匹配，不校验数量；同名武器可满足多个成员。",
     } if has_weapon_data else {}
     missing_sections: list[str] = []
     if "characters" not in player_data:

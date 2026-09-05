@@ -24,8 +24,8 @@ CHARACTER_STATUS_LABELS = {
     "basic": "角色基本满足",
 }
 WEAPON_STATUS_LABELS = {
-    "full": "武器满足满配",
-    "low": "武器满足低配",
+    "full": "满配武器都有",
+    "low": "低配–满配武器都有",
     "unmet": "武器不满足",
 }
 
@@ -126,24 +126,22 @@ class TeamRecommendationPanel(QWidget):
         if not isinstance(recommendations, list):
             self.show_error("配队推荐结果缺少 recommendations。")
             return
-        presence_only = payload.get("weapon_recognition_mode") == "presence"
         for recommendation in recommendations:
             if isinstance(recommendation, Mapping):
-                self._append_recommendation(recommendation, presence_only=presence_only)
+                self._append_recommendation(recommendation)
         counts = payload.get("counts") if isinstance(payload.get("counts"), Mapping) else {}
         summary = str(payload.get("message") or "匹配完成。")
         if recommendations:
-            unmet_label = "未确认满足" if presence_only else "不满足"
             summary += (
                 f" 角色完全 {int(counts.get('character_complete') or 0)}，"
                 f"基本 {int(counts.get('character_basic') or 0)}；"
-                f"武器满配 {int(counts.get('weapon_full') or 0)}，"
-                f"低配 {int(counts.get('weapon_low') or 0)}，"
-                f"{unmet_label} {int(counts.get('weapon_unmet') or 0)}。"
+                f"满配武器都有 {int(counts.get('weapon_full') or 0)}，"
+                f"低配–满配武器都有 {int(counts.get('weapon_low') or 0)}，"
+                f"武器不满足 {int(counts.get('weapon_unmet') or 0)}。"
             )
         inventory_note = str(payload.get("weapon_inventory_note") or "")
-        if presence_only and not inventory_note:
-            inventory_note = "装备数量未知，每种按 1 件评估。"
+        if not inventory_note:
+            inventory_note = "仅按武器是否拥有匹配，不校验数量；同名武器可满足多个成员。"
         if inventory_note:
             summary += "\n" + inventory_note
         self._set_result_status(summary, "success")
@@ -153,7 +151,7 @@ class TeamRecommendationPanel(QWidget):
         self._sync_controls()
 
     def _append_recommendation(
-        self, recommendation: Mapping[str, Any], *, presence_only: bool = False
+        self, recommendation: Mapping[str, Any]
     ) -> None:
         character_status = str(recommendation.get("character_status") or "")
         weapon_status = str(recommendation.get("weapon_status") or "")
@@ -162,8 +160,7 @@ class TeamRecommendationPanel(QWidget):
                 str(recommendation.get("title") or recommendation.get("team_id") or "--"),
                 "、".join(str(value) for value in recommendation.get("categories") or []) or "--",
                 CHARACTER_STATUS_LABELS.get(character_status, character_status or "--"),
-                "武器未确认满足" if presence_only and weapon_status == "unmet"
-                else WEAPON_STATUS_LABELS.get(weapon_status, weapon_status or "--"),
+                WEAPON_STATUS_LABELS.get(weapon_status, weapon_status or "--"),
             ]
         )
         parent.setData(0, Qt.ItemDataRole.UserRole, str(recommendation.get("team_id") or ""))
