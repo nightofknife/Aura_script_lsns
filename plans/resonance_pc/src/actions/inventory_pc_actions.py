@@ -48,7 +48,7 @@ _SCROLL_HOLD_BEFORE_RELEASE_SEC = 0.5
 _DEBUG_CAPTURE_DIR_ENV = "AURA_INVENTORY_DEBUG_CAPTURE_DIR"
 _PLAN_KEY = "resonance_pc"
 _COUNT_MODE_DIGIT_TEMPLATE = "digit_template"
-_COUNT_MODE_CARD_INSTANCES = "card_instances"
+_COUNT_MODE_PRESENCE = "presence"
 _CATEGORY_SPECS: Dict[str, Dict[str, Any]] = {
     "items": {
         "catalog_path": _INVENTORY_CATALOG_FILE,
@@ -77,7 +77,7 @@ _CATEGORY_SPECS: Dict[str, Dict[str, Any]] = {
         "result_key": "equipment",
         "supported_key": "supported_equipment_count",
         "template_size": (100, 60),
-        "count_mode": _COUNT_MODE_CARD_INSTANCES,
+        "count_mode": _COUNT_MODE_PRESENCE,
         "supports_expiry": False,
     },
 }
@@ -428,11 +428,11 @@ def load_inventory_catalog(
     category = _catalog_category(payload)
     spec = _CATEGORY_SPECS[category]
     if category == "equipment" and str(payload.get("aggregation") or "").strip() != (
-        "count_cards_by_equipment_id"
+        "presence_by_equipment_id"
     ):
         raise ValueError(
             "inventory equipment catalog aggregation must be "
-            "count_cards_by_equipment_id"
+            "presence_by_equipment_id"
         )
     layout = payload.get("layout")
     if not isinstance(layout, dict):
@@ -1157,13 +1157,17 @@ def read_inventory_expiry(
 
 def _suppress_cross_template_overlaps(
     candidates: Iterable[Dict[str, Any]],
+    *,
+    catalog_order: Optional[Mapping[str, int]] = None,
 ) -> List[Dict[str, Any]]:
     kept: List[Dict[str, Any]] = []
     for candidate in sorted(
         candidates,
         key=lambda item: (
             -float(item["confidence"]),
-            str(item["item"]["item_id"]),
+            catalog_order[str(item["item"]["item_id"])]
+            if catalog_order is not None
+            else str(item["item"]["item_id"]),
         ),
     ):
         anchor = candidate["card_top_left"]
@@ -1185,7 +1189,7 @@ def scan_inventory_page(
     *,
     expiry_recognition_enabled: bool = _EXPIRY_RECOGNITION_ENABLED,
 ) -> List[Dict[str, Any]]:
-    """Recognize all fully visible supported cards in one warehouse frame."""
+    """Read visible equipment identities, or full cards for stack quantities."""
 
     if page_image is None or not isinstance(page_image, np.ndarray) or page_image.size == 0:
         raise _inventory_error("warehouse grid capture is empty")
@@ -1207,7 +1211,7 @@ def scan_inventory_page(
         or len(template_paths) != len(items)
         or not isinstance(template_images, list)
         or len(template_images) != len(items)
-        or count_mode not in {_COUNT_MODE_DIGIT_TEMPLATE, _COUNT_MODE_CARD_INSTANCES}
+        or count_mode not in {_COUNT_MODE_DIGIT_TEMPLATE, _COUNT_MODE_PRESENCE}
         or (
             count_mode == _COUNT_MODE_DIGIT_TEMPLATE
             and not isinstance(digit_reader, Mapping)
@@ -1318,7 +1322,15 @@ def scan_inventory_page(
                 for value in match_top_left
             )
             card_top_left = (int(match_x) - template_offset[0], int(match_y) - template_offset[1])
-            if relative_roi(card_top_left, (0, 0, card_width, card_height), page_image.shape) is None:
+            if category == "equipment":
+                visible_region = relative_roi(
+                    (match_x, match_y), (0, 0, *source_template_size), page_image.shape
+                )
+            else:
+                visible_region = relative_roi(
+                    card_top_left, (0, 0, card_width, card_height), page_image.shape
+                )
+            if visible_region is None:
                 continue
             candidates.append(
                 {
@@ -1336,22 +1348,34 @@ def scan_inventory_page(
             )
 
     observations: List[Dict[str, Any]] = []
-    for candidate in _suppress_cross_template_overlaps(candidates):
+    catalog_order = (
+        {str(item["item_id"]): index for index, item in enumerate(items)}
+        if category == "equipment" else None
+    )
+    observed_equipment_ids: set[str] = set()
+    for candidate in _suppress_cross_template_overlaps(candidates, catalog_order=catalog_order):
         match_top_left = candidate["top_left"]
         item = candidate["item"]
+        if category == "equipment":
+            item_id = str(item["item_id"])
+            if item_id not in observed_equipment_ids:
+                observed_equipment_ids.add(item_id)
+                observations.append({
+                    "item_id": item_id,
+                    "name": str(item.get("name") or item_id),
+                    "owned": True,
+                })
+                logger.info("Inventory equipment observed: item_id=%s owned=true", item_id)
+            continue
         card_x, card_y = (int(value) for value in candidate["card_top_left"])
         card_image = page_image[
             card_y : card_y + card_height,
             card_x : card_x + card_width,
         ]
-        count = (
-            1
-            if count_mode == _COUNT_MODE_CARD_INSTANCES
-            else read_inventory_count(
-                card_image,
-                digit_reader,
-                item_id=str(item["item_id"]),
-            )
+        count = read_inventory_count(
+            card_image,
+            digit_reader,
+            item_id=str(item["item_id"]),
         )
         observation: Dict[str, Any] = {
             "item_id": str(item["item_id"]),
@@ -1522,6 +1546,20 @@ def aggregate_inventory_observations(
     """Aggregate de-duplicated observations according to catalog policy."""
 
     catalog_items = _catalog_by_item_id(catalog)
+    if _catalog_category(catalog) == "equipment":
+        owned_ids: set[str] = set()
+        for observation in observations:
+            if not isinstance(observation, Mapping):
+                raise ValueError("inventory observations must be objects")
+            item_id = str(observation.get("item_id") or "")
+            if item_id not in catalog_items:
+                raise ValueError(f"inventory observation has unknown item_id: {item_id}")
+            if observation.get("owned") is True:
+                owned_ids.add(item_id)
+        return [
+            {"item_id": item_id, "name": str(item.get("name") or item_id), "owned": True}
+            for item_id, item in catalog_items.items() if item_id in owned_ids
+        ]
     grouped: "OrderedDict[Tuple[Any, ...], Dict[str, Any]]" = OrderedDict()
     for raw_observation in observations:
         if not isinstance(raw_observation, Mapping):
@@ -1557,6 +1595,79 @@ def aggregate_inventory_observations(
     return [dict(item) for item in grouped.values()]
 
 
+def _read_equipment_presence(
+    app: Any,
+    ocr: Any,
+    vision: Any,
+    catalog: Dict[str, Any],
+    *,
+    max_scrolls: int,
+) -> Dict[str, Any]:
+    """Union detected equipment IDs until scrolling no longer changes the grid."""
+    layout = catalog["layout"]
+    region = tuple(int(value) for value in layout["grid_region"])
+    scroll_start = tuple(int(value) for value in layout.get("scroll_start", _DEFAULT_SCROLL_START))
+    scroll_end = tuple(int(value) for value in layout.get("scroll_end", _DEFAULT_SCROLL_END))
+    known_items = _catalog_by_item_id(catalog)
+    owned_ids: set[str] = set()
+    pages_scanned = 0
+    scrolls = 0
+    unchanged_scrolls = 0
+    page_image = _capture_stable_grid(app, region)
+    while True:
+        _save_debug_scan_image(page_image, category="equipment", page_number=pages_scanned + 1)
+        observations = scan_inventory_page(page_image, catalog, ocr, vision)
+        pages_scanned += 1
+        for observation in observations:
+            item_id = str(observation.get("item_id") or "")
+            if item_id not in known_items:
+                raise _inventory_error(f"unknown equipment observation: {item_id}")
+            if observation.get("owned") is True:
+                owned_ids.add(item_id)
+        logger.info(
+            "Equipment presence scan: page=%s owned_types=%s unchanged_scrolls=%s",
+            pages_scanned, len(owned_ids), unchanged_scrolls,
+        )
+        if unchanged_scrolls >= 3:
+            break
+        if scrolls >= max(int(max_scrolls), 0):
+            raise _inventory_error("equipment presence scan exceeded maximum scroll count")
+        app.drag(
+            *scroll_start, *scroll_end,
+            duration=0.5,
+            hold_before_release_sec=_SCROLL_HOLD_BEFORE_RELEASE_SEC,
+        )
+        scrolls += 1
+        current = _capture_stable_grid(app, region)
+        # Compare pixels, not equipment identities: pages of duplicates still scroll.
+        unchanged = (
+            page_image.shape == current.shape
+            and float(cv2.absdiff(page_image, current).mean()) <= 1.5
+        )
+        unchanged_scrolls = unchanged_scrolls + 1 if unchanged else 0
+        page_image = current
+
+    equipment = [
+        {"equipment_id": item_id, "name": str(item.get("name") or item_id), "owned": True}
+        for item_id, item in known_items.items() if item_id in owned_ids
+    ]
+    return {
+        "category": "equipment",
+        "recognition_mode": "presence",
+        "scan_scope": "catalog_only",
+        "catalog_schema_version": int(catalog.get("schema_version", 2)),
+        "supported_equipment_count": len(known_items),
+        "matched_equipment_count": len(equipment),
+        "pages_scanned": pages_scanned,
+        "scan_complete": True,
+        "completion_reason": "three_consecutive_unchanged_scrolls",
+        "consecutive_unchanged_scrolls": unchanged_scrolls,
+        "source": "equipment_template",
+        "scanned_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "equipment": equipment,
+    }
+
+
 def read_inventory_category(
     app: Any,
     ocr: Any,
@@ -1589,6 +1700,10 @@ def read_inventory_category(
         )
     if not isinstance(prepared_catalog.get("_template_paths"), list):
         _resolve_inventory_template_paths(prepared_catalog, vision)
+    if normalized_category == "equipment":
+        return _read_equipment_presence(
+            app, ocr, vision, prepared_catalog, max_scrolls=max_scrolls,
+        )
     layout = prepared_catalog["layout"]
     region = tuple(int(value) for value in layout["grid_region"])
     scroll_start = tuple(int(value) for value in layout.get("scroll_start", _DEFAULT_SCROLL_START))
@@ -1679,7 +1794,7 @@ def read_inventory_category(
     spec = _CATEGORY_SPECS[normalized_category]
     result_key = str(spec["result_key"])
     supported_key = str(spec["supported_key"])
-    if normalized_category in {"materials", "equipment"}:
+    if normalized_category == "materials":
         public_id_key = str(spec["id_key"])
         aggregated = [
             {
@@ -1688,14 +1803,6 @@ def read_inventory_category(
             }
             for entry in aggregated
         ]
-    if normalized_category == "equipment":
-        catalog_order = {
-            str(item["item_id"]): index
-            for index, item in enumerate(prepared_catalog["items"])
-        }
-        aggregated.sort(
-            key=lambda entry: catalog_order.get(str(entry.get("equipment_id") or ""), 10**9)
-        )
     has_expiry_entries = _EXPIRY_RECOGNITION_ENABLED and any(
         item.get("stack_policy") == STACK_POLICY_SPLIT_BY_EXPIRY
         for item in prepared_catalog["items"]
@@ -1710,9 +1817,7 @@ def read_inventory_category(
         "completion_reason": completion_reason,
         "consecutive_scans_without_new_items": scans_without_new_items,
         "expiry_recognition_enabled": _EXPIRY_RECOGNITION_ENABLED,
-        "source": "equipment_template"
-        if normalized_category == "equipment"
-        else (
+        "source": (
             "item_template+count_digit_template+expiry_digit_template"
             if has_expiry_entries
             else "item_template+count_digit_template"
@@ -1720,12 +1825,7 @@ def read_inventory_category(
         "scanned_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         result_key: aggregated,
     }
-    if normalized_category == "equipment":
-        result["matched_card_count"] = len(unique_observations)
-        result["matched_equipment_count"] = len(aggregated)
-        result.pop("expiry_recognition_enabled", None)
-    else:
-        result["matched_stack_count"] = len(unique_observations)
+    result["matched_stack_count"] = len(unique_observations)
     return result
 
 
@@ -1782,7 +1882,7 @@ def read_inventory_equipment(
     catalog_path: Optional[Path] = None,
     max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
-    """Read supported warehouse equipment by counting physical cards."""
+    """Read whether each detected warehouse equipment type is owned."""
 
     return read_inventory_category(
         app,

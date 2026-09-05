@@ -1,6 +1,12 @@
-"""Strict fixed-team matching against the cached player roster and weapons.
+"""Strict fixed-team matching against the cached roster and equipment presence.
 
-The future weapon-recognition stage must persist this exact section contract::
+Equipment scans live at ``inventory.categories.equipment`` (or the legacy
+single-category ``inventory``). Their ``equipment`` rows identify observed
+equipment by ``equipment_id`` and catalog-matching ``name``. Presence grants at
+most one copy per name per team; unobserved equipment is not known to be absent.
+
+The legacy quantity-based weapon section remains supported when no equipment
+scan is present::
 
     {
       "weapons": {
@@ -166,6 +172,46 @@ def _weapon_inventory(section: Any) -> Counter[str]:
     return result
 
 
+def _equipment_inventory(section: Any) -> Counter[str]:
+    if not isinstance(section, Mapping):
+        raise TeamRecommendationDataError("equipment section must be an object")
+    if section.get("scan_complete") is not True:
+        raise TeamRecommendationDataError("equipment section requires scan_complete=true")
+    if section.get("category", "equipment") != "equipment":
+        raise TeamRecommendationDataError("equipment section category must be equipment")
+    entries = section.get("equipment")
+    if not isinstance(entries, list):
+        raise TeamRecommendationDataError("equipment entries must be a list")
+
+    result: Counter[str] = Counter()
+    observed_ids: dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, Mapping):
+            raise TeamRecommendationDataError("equipment entry must be an object")
+        detected = entry.get("owned") is True
+        if section.get("recognition_mode") != "presence" and "owned" not in entry:
+            count = entry.get("count")
+            detected = (
+                isinstance(count, (int, float))
+                and not isinstance(count, bool)
+                and count > 0
+            )
+        if not detected:
+            continue
+        equipment_id = entry.get("equipment_id")
+        name = entry.get("name")
+        if not isinstance(equipment_id, str) or not equipment_id.strip():
+            raise TeamRecommendationDataError("observed equipment_id must be non-empty")
+        if not isinstance(name, str) or not name.strip():
+            raise TeamRecommendationDataError(f"{equipment_id}: equipment name is required")
+        if equipment_id in observed_ids and observed_ids[equipment_id] != name:
+            raise TeamRecommendationDataError(f"{equipment_id}: conflicting equipment names")
+        observed_ids[equipment_id] = name
+        # The fixed team catalog uses names, not scanner equipment IDs.
+        result[name] = 1
+    return result
+
+
 def _assign_weapons(
     choices: list[tuple[str, ...]],
     inventory: Counter[str],
@@ -235,18 +281,45 @@ def recommend_fixed_teams(
     player_data: Mapping[str, Any],
     catalog: Mapping[str, Any],
 ) -> dict[str, Any]:
-    missing_sections = [
-        section
-        for section in ("characters", "weapons")
-        if not isinstance(player_data.get(section), Mapping)
-    ]
+    weapon_source = "weapons"
+    weapon_section = player_data.get("weapons")
+    has_weapon_data = "weapons" in player_data
+    inventory = player_data.get("inventory")
+    if isinstance(inventory, Mapping):
+        categories = inventory.get("categories")
+        if isinstance(categories, Mapping):
+            if "equipment" in categories:
+                weapon_source = "inventory.categories.equipment"
+                weapon_section = categories["equipment"]
+                has_weapon_data = True
+        elif inventory.get("category") == "equipment":
+            weapon_source = "inventory"
+            weapon_section = inventory
+            has_weapon_data = True
+    presence_mode = weapon_source != "weapons"
+    weapon_metadata = {
+        "weapon_inventory_source": weapon_source,
+        "weapon_recognition_mode": "presence" if presence_mode else "quantity",
+        "weapon_inventory_note": (
+            "装备数量未知，每种按 1 件评估。"
+            if presence_mode else ""
+        ),
+    } if has_weapon_data else {}
+    missing_sections: list[str] = []
+    if "characters" not in player_data:
+        missing_sections.append("characters")
+    if not has_weapon_data:
+        missing_sections.append("weapons")
     if missing_sections:
-        labels = {"characters": "角色数据", "weapons": "武器数据"}
-        return _blocked(
-            reason_code="player_data_incomplete",
-            message="请先更新" + "、".join(labels[item] for item in missing_sections) + "。",
-            missing_sections=missing_sections,
-        )
+        labels = {"characters": "角色数据", "weapons": "仓库装备数据"}
+        return {
+            **_blocked(
+                reason_code="player_data_incomplete",
+                message="请先更新" + "、".join(labels[item] for item in missing_sections) + "。",
+                missing_sections=missing_sections,
+            ),
+            **weapon_metadata,
+        }
 
     invalid_sections: list[str] = []
     errors: list[str] = []
@@ -257,17 +330,23 @@ def recommend_fixed_teams(
         errors.append(str(exc))
         characters = {}
     try:
-        weapons = _weapon_inventory(player_data["weapons"])
+        weapons = (
+            _equipment_inventory(weapon_section)
+            if presence_mode else _weapon_inventory(weapon_section)
+        )
     except TeamRecommendationDataError as exc:
-        invalid_sections.append("weapons")
+        invalid_sections.append(weapon_source)
         errors.append(str(exc))
         weapons = Counter()
     if invalid_sections:
-        return _blocked(
-            reason_code="player_data_invalid",
-            message="用户数据格式无效：" + "；".join(errors),
-            invalid_sections=invalid_sections,
-        )
+        return {
+            **_blocked(
+                reason_code="player_data_invalid",
+                message="用户数据格式无效：" + "；".join(errors),
+                invalid_sections=invalid_sections,
+            ),
+            **weapon_metadata,
+        }
 
     teams = catalog.get("teams")
     if catalog.get("schema_version") != 1 or not isinstance(teams, list):
@@ -366,6 +445,7 @@ def recommend_fixed_teams(
         "recommendation_count": len(recommendations),
         "counts": counts,
         "recommendations": recommendations,
+        **weapon_metadata,
     }
 
 
@@ -373,7 +453,7 @@ def recommend_fixed_teams(
     name="resonance_pc.team_recommendations",
     public=True,
     read_only=True,
-    description="Match cached characters and weapons against fixed BWIKI team guides.",
+    description="Match cached characters and equipment presence against fixed BWIKI team guides.",
 )
 @requires_services(persistent_data="core/persistent_data")
 def resonance_pc_team_recommendations(
@@ -388,7 +468,7 @@ def resonance_pc_team_recommendations(
         if exc.code == "player_data_incomplete":
             return _blocked(
                 reason_code="player_data_incomplete",
-                message="请先更新角色数据、武器数据。",
+                message="请先更新角色数据、仓库装备数据。",
                 missing_sections=("characters", "weapons"),
             )
         return _blocked(

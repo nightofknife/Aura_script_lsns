@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "category": "equipment",
-  "aggregation": "count_cards_by_equipment_id",
+  "aggregation": "presence_by_equipment_id",
   "layout": {
     "template_size": [
       100,

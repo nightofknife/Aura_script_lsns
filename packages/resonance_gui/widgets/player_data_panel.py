@@ -543,12 +543,34 @@ class PlayerDataPanel(QWidget):
         }.get(category, "items")
         entries = category_payload.get(result_key)
         items = list(entries) if isinstance(entries, list) else []
+        if category == "equipment":
+            items = [
+                entry for entry in items
+                if isinstance(entry, Mapping) and (
+                    entry.get("owned") is True
+                    or (
+                        category_payload.get("recognition_mode") != "presence"
+                        and "owned" not in entry
+                        and isinstance(entry.get("count"), (int, float))
+                        and not isinstance(entry.get("count"), bool)
+                        and entry["count"] > 0
+                    )
+                )
+            ]
+        self.inventory_table.setToolTip(
+            "装备数量未知；未列出不代表未拥有。配队时每种按 1 件评估。"
+            if category == "equipment" else ""
+        )
         expiry_recognition_disabled = (
             category == "items"
             and category_payload.get("expiry_recognition_enabled") is False
         )
         self.inventory_table.setHorizontalHeaderLabels(
-            (INVENTORY_CATEGORY_LABELS[category], "数量", "期限")
+            (
+                INVENTORY_CATEGORY_LABELS[category],
+                "拥有状态" if category == "equipment" else "数量",
+                "期限",
+            )
         )
         self.inventory_table.setColumnHidden(
             2,
@@ -563,8 +585,9 @@ class PlayerDataPanel(QWidget):
                 entry.get("name")
                 or entry.get("item_id")
                 or entry.get("material_id")
+                or entry.get("equipment_id")
                 or "--",
-                entry.get("count"),
+                "已拥有" if category == "equipment" else entry.get("count"),
                 expiry_text,
             )
             for column, value in enumerate(values):
@@ -575,15 +598,19 @@ class PlayerDataPanel(QWidget):
         pages = category_payload.get("pages_scanned")
         if category == "equipment":
             matched_equipment_count = category_payload.get("matched_equipment_count")
-            matched_card_count = category_payload.get("matched_card_count")
             equipment_count = (
                 int(matched_equipment_count)
-                if isinstance(matched_equipment_count, (int, float))
+                if category_payload.get("recognition_mode") == "presence"
+                and isinstance(matched_equipment_count, int)
+                and not isinstance(matched_equipment_count, bool)
+                and matched_equipment_count >= 0
                 else len(items)
             )
-            details = [f"{equipment_count} 种装备"] if items else ["尚无数据"]
-            if isinstance(matched_card_count, (int, float)):
-                details.append(f"{int(matched_card_count)} 件")
+            details = (
+                [f"已识别 {equipment_count} 种装备"]
+                if isinstance(entries, list)
+                else ["尚无数据"]
+            )
         else:
             stack_count = category_payload.get("matched_stack_count")
             details = [f"{len(items)} 种记录"] if items else ["尚无数据"]
