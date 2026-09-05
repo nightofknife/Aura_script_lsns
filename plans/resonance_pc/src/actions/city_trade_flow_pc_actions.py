@@ -453,6 +453,15 @@ def _close_settlement(
     threshold: float = 0.82,
 ) -> Dict[str, Any]:
     cfg = _BUY_SETTLEMENT if str(kind) == "buy" else _SELL_SETTLEMENT
+    logger.info(
+        "[TradeSettlement] phase=wait kind=%s template=%s region=%s threshold=%.2f timeout_sec=%.1f context=%s",
+        kind,
+        cfg["template"],
+        cfg["region"],
+        float(threshold),
+        float(timeout_sec),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     first = _wait_template(
         app,
         vision,
@@ -463,8 +472,21 @@ def _close_settlement(
         interval_sec=0.3,
     )
     if not first.get("found"):
+        logger.warning(
+            "[TradeSettlement] phase=initial_not_found kind=%s match=%s context=%s",
+            kind,
+            first,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         return {"closed": False, "found": False, "kind": kind, "first_match": first}
 
+    logger.info(
+        "[TradeSettlement] phase=initial_found kind=%s match=%s exit_point=%s context=%s",
+        kind,
+        first,
+        _SETTLEMENT_EXIT_POINT,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
     time.sleep(0.8)
     recheck = _wait_template(
@@ -476,11 +498,70 @@ def _close_settlement(
         timeout_sec=1.5,
         interval_sec=0.3,
     )
+    logger.info(
+        "[TradeSettlement] phase=after_first_exit kind=%s still_visible=%s match=%s context=%s",
+        kind,
+        bool(recheck.get("found")),
+        recheck,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     retried = False
+    final_match = recheck
     if recheck.get("found"):
         app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
         retried = True
         time.sleep(0.8)
+        try:
+            final_match = _match_template(
+                app,
+                vision,
+                str(cfg["template"]),
+                list(cfg["region"]),
+                threshold,
+            )
+        except Exception as exc:  # noqa: BLE001 - diagnostics must not change flow behavior
+            final_match = {
+                "found": None,
+                "template": str(cfg["template"]),
+                "region": list(cfg["region"]),
+                "reason": "diagnostic_match_failed",
+                "error_type": type(exc).__name__,
+                "message": str(exc),
+            }
+            logger.warning(
+                "[TradeSettlement] phase=after_second_exit_diagnostic_failed kind=%s error_type=%s message=%s context=%s",
+                kind,
+                type(exc).__name__,
+                exc,
+                dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+        else:
+            log_method = logger.warning if final_match.get("found") else logger.info
+            log_method(
+                "[TradeSettlement] phase=after_second_exit kind=%s still_visible=%s match=%s context=%s",
+                kind,
+                bool(final_match.get("found")),
+                final_match,
+                dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+    final_absence_verified = bool(
+        final_match.get("found") is False and final_match.get("reason") != "capture_failed"
+    )
+    if not final_absence_verified:
+        logger.warning(
+            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=false retried=%s final_match=%s context=%s",
+            kind,
+            retried,
+            final_match,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
+    else:
+        logger.info(
+            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=true retried=%s context=%s",
+            kind,
+            retried,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
     return {
         "closed": True,
         "found": True,
@@ -488,6 +569,8 @@ def _close_settlement(
         "first_match": first,
         "recheck": recheck,
         "retried": retried,
+        "final_match": final_match,
+        "final_absence_verified": final_absence_verified,
         "exit_point": {"x": _SETTLEMENT_EXIT_POINT[0], "y": _SETTLEMENT_EXIT_POINT[1]},
     }
 
@@ -502,6 +585,14 @@ def _click_required_nav_button(
     page_state: str,
     wait_sec: float,
 ) -> Dict[str, Any]:
+    logger.info(
+        "[TradeNavigation] phase=wait target_page_state=%s template=%s region=%s threshold=%.2f context=%s",
+        page_state,
+        template,
+        region,
+        _NAV_BUTTON_THRESHOLD,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     match = _wait_template(
         app,
         vision,
@@ -513,6 +604,13 @@ def _click_required_nav_button(
     )
     center = match.get("center")
     if not match.get("found") or not isinstance(center, list) or len(center) != 2:
+        logger.error(
+            "[TradeNavigation] phase=not_found code=%s target_page_state=%s match=%s context=%s",
+            error_code,
+            page_state,
+            match,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         _raise_error(
             error_code,
             "required navigation button template was not found; click skipped",
@@ -526,6 +624,14 @@ def _click_required_nav_button(
     x, y = int(center[0]), int(center[1])
     app.click(x=x, y=y)
     time.sleep(max(float(wait_sec), 0.0))
+    logger.info(
+        "[TradeNavigation] phase=clicked target_page_state=%s x=%s y=%s match=%s context=%s",
+        page_state,
+        x,
+        y,
+        match,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     return {
         "success": True,
         "page_state": page_state,
@@ -719,6 +825,13 @@ def resonance_pc_buy_goods_on_buy_page(
         raise RuntimeError("app/ocr/vision services are required")
 
     requested_products = [str(item).strip() for item in (product_list or []) if str(item).strip()]
+    logger.info(
+        "[TradeBuy] phase=started products=%s books_used=%s bargain_to_cap=%s context=%s",
+        requested_products,
+        int(books_used or 0),
+        bool(bargain_to_cap),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     _report_worker(
         "buy",
         "started",
@@ -768,6 +881,14 @@ def resonance_pc_buy_goods_on_buy_page(
         if round_index < rounds - 1:
             _drag_buy_list(app)
 
+    logger.info(
+        "[TradeBuy] phase=selection_completed selected=%s missing=%s scan_rounds=%s context=%s",
+        selected,
+        pending,
+        len(scan_trace),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
+
     if bool(bargain_to_cap) and not selected:
         _raise_error(
             "negotiation_without_selected_goods",
@@ -796,6 +917,14 @@ def resonance_pc_buy_goods_on_buy_page(
 
     buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
     if buy_button_hit is None:
+        logger.error(
+            "[TradeBuy] phase=buy_button_not_found products=%s selected=%s missing=%s region=%s context=%s",
+            requested_products,
+            selected,
+            pending,
+            _BUY_BUTTON_REGION,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         _raise_error(
             "buy_button_not_found",
             "Unable to find 买入 button on buy page; fixed-coordinate fallback is disabled.",
@@ -803,6 +932,11 @@ def resonance_pc_buy_goods_on_buy_page(
         )
     buy_button = _click_hit(app, buy_button_hit)
     buy_button["method"] = "text"
+    logger.info(
+        "[TradeBuy] phase=buy_button_clicked click=%s context=%s",
+        buy_button,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     time.sleep(0.5)
 
     settlement = _close_settlement(app, vision, "buy", timeout_sec=3.0)
@@ -832,6 +966,16 @@ def resonance_pc_buy_goods_on_buy_page(
 
     bought = bool(settlement.get("closed")) or bool(
         isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
+    )
+    log_method = logger.info if bought else logger.warning
+    log_method(
+        "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
+        bought,
+        settlement,
+        confirm_panel is not None,
+        confirm_click,
+        settlement_after_confirm,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     if bought:
         back = {
@@ -867,6 +1011,21 @@ def resonance_pc_buy_goods_on_buy_page(
             "bought": bought,
         },
     )
+    if not bought:
+        logger.warning(
+            "[TradeBuy] phase=completed reported_success=true declared_page_state=shop_page bought_confirmed=false back=%s selected=%s missing=%s context=%s",
+            back,
+            selected,
+            pending,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
+    else:
+        logger.info(
+            "[TradeBuy] phase=completed reported_success=true declared_page_state=shop_page bought_confirmed=true selected=%s missing=%s context=%s",
+            selected,
+            pending,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
     return result
 
 
@@ -887,6 +1046,11 @@ def resonance_pc_sell_goods_on_sell_page(
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required")
 
+    logger.info(
+        "[TradeSell] phase=started raise_to_cap=%s context=%s",
+        bool(raise_to_cap),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     _report_worker("sell", "started", data={"raise_to_cap": bool(raise_to_cap)})
     sell_all_click = _wait_and_click_text(
         app,
@@ -895,6 +1059,13 @@ def resonance_pc_sell_goods_on_sell_page(
         _SELL_ALL_REGION,
         timeout_sec=3.0,
         interval_sec=0.3,
+    )
+    log_method = logger.info if sell_all_click.get("clicked") else logger.warning
+    log_method(
+        "[TradeSell] phase=sell_all_selection clicked=%s detail=%s context=%s",
+        bool(sell_all_click.get("clicked")),
+        sell_all_click,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     sell_button_click = {"clicked": False, "reason": "sell_all_not_clicked"}
     settlement = {"closed": False, "found": False, "kind": "sell"}
@@ -933,6 +1104,14 @@ def resonance_pc_sell_goods_on_sell_page(
             timeout_sec=3.0,
             interval_sec=0.3,
         )
+        log_method = logger.info if sell_button_click.get("clicked") else logger.warning
+        log_method(
+            "[TradeSell] phase=sell_button clicked=%s detail=%s negotiation=%s context=%s",
+            bool(sell_button_click.get("clicked")),
+            sell_button_click,
+            negotiation,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         if sell_button_click.get("clicked"):
             time.sleep(0.5)
             settlement = _close_settlement(app, vision, "sell", timeout_sec=3.0)
@@ -964,6 +1143,17 @@ def resonance_pc_sell_goods_on_sell_page(
         "back": back,
     }
     _report_worker("sell", "completed", data={"sold_confirmed": sold})
+    log_method = logger.info if sold else logger.warning
+    log_method(
+        "[TradeSell] phase=completed reported_success=true declared_page_state=shop_page sold_confirmed=%s sell_result=%s sell_all_click=%s sell_button_click=%s settlement=%s back=%s context=%s",
+        sold,
+        result["sell_result"],
+        sell_all_click,
+        sell_button_click,
+        settlement,
+        back,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     return result
 
 
@@ -1013,6 +1203,15 @@ def _execute_city_trade_inside_current_city_scoped(
     city_shop_data: ResonancePcCityShopDataService,
 ) -> Dict[str, Any]:
     products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
+    logger.info(
+        "[CityTrade] phase=started city=%s buy_products=%s books_used=%s sell_raise_to_cap=%s buy_bargain_to_cap=%s context=%s",
+        current_city,
+        products,
+        int(books_used or 0),
+        bool(sell_raise_to_cap),
+        bool(buy_bargain_to_cap),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     if bool(buy_bargain_to_cap) and not products:
         _raise_error(
             "negotiation_without_selected_goods",
@@ -1035,8 +1234,28 @@ def _execute_city_trade_inside_current_city_scoped(
         ocr=ocr,
         vision=vision,
     )
+    sold_confirmed = bool(sell.get("sold_confirmed"))
+    log_method = logger.info if sold_confirmed else logger.warning
+    log_method(
+        "[CityTrade] phase=sell_returned city=%s action_success=%s sold_confirmed=%s sell_result=%s declared_page_state=%s will_continue_to_buy=%s sell=%s context=%s",
+        current_city,
+        bool(sell.get("success")),
+        sold_confirmed,
+        sell.get("sell_result"),
+        sell.get("page_state"),
+        bool(products),
+        sell,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     buy = None
     if products:
+        logger.info(
+            "[CityTrade] phase=enter_buy city=%s sold_confirmed=%s products=%s context=%s",
+            current_city,
+            sold_confirmed,
+            products,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         buy_node = resonance_pc_click_shop_menu_node(node_index=1, app=app)
         buy = resonance_pc_buy_goods_on_buy_page(
             product_list=products,
@@ -1049,7 +1268,30 @@ def _execute_city_trade_inside_current_city_scoped(
         )
     else:
         buy_node = None
+    buy_confirmed = None
+    if isinstance(buy, dict):
+        buy_confirmed = bool((buy.get("settlement") or {}).get("closed")) or bool(
+            (buy.get("settlement_after_confirm") or {}).get("closed")
+        )
+    logger.info(
+        "[CityTrade] phase=before_return_city_main city=%s sold_confirmed=%s buy_required=%s buy_confirmed=%s declared_sell_page_state=%s declared_buy_page_state=%s context=%s",
+        current_city,
+        sold_confirmed,
+        bool(products),
+        buy_confirmed,
+        sell.get("page_state"),
+        buy.get("page_state") if isinstance(buy, dict) else None,
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     main = resonance_pc_go_city_main_direct(app=app, vision=vision)
+    logger.info(
+        "[CityTrade] phase=completed city=%s sold_confirmed=%s buy_confirmed=%s page_state=%s context=%s",
+        current_city,
+        sold_confirmed,
+        buy_confirmed,
+        main.get("page_state"),
+        dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     return {
         "success": True,
         "page_state": "city_main",
