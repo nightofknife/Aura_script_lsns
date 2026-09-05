@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -304,7 +306,11 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window.page_stack.currentWidget() is window.workflow_page
     finally:
         window.close()
-        _application().processEvents()
+        deadline = time.monotonic() + 5.0
+        while not window._close_ready and time.monotonic() < deadline:
+            QTest.qWait(10)
+        assert window._close_ready
+        assert not window._bridge_thread.isRunning()
 
 
 def test_workflow_rejects_removed_player_data_configuration(tmp_path) -> None:
