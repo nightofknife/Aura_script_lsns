@@ -1,4 +1,4 @@
-"""Three-column home for tasks that do not belong to the ordered workflow."""
+"""Direct task entries and grouped tasks outside the ordered workflow."""
 
 from __future__ import annotations
 
@@ -28,9 +28,11 @@ USER_DATA_TASK_ID = "player_data_refresh"
 TEAM_RECOMMENDATION_TASK_ID = "team_recommendation"
 CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
 DATA_COLLECTION_TASK_ID = "data_collection"
+DIRECT_TASKS: tuple[tuple[str, str], ...] = (
+    (USER_DATA_TASK_ID, "用户数据"),
+    (TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),
+)
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
-    ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
     (
         "activity_play",
         "活动玩法",
@@ -88,11 +90,16 @@ class SmallTasksPage(QWidget):
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(12)
 
-        self.category_panel = _SmallTaskColumn("任务分类", self)
+        self.category_panel = _SmallTaskColumn("小任务", self)
         self.category_panel.setMinimumWidth(230)
         self.category_panel.setMaximumWidth(330)
         self.category_list = QListWidget(self.category_panel.body)
         self.category_list.setObjectName("smallTaskCategoryList")
+        for task_id, label in DIRECT_TASKS:
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, task_id)
+            item.setSizeHint(QSize(0, 48))
+            self.category_list.addItem(item)
         for category_id, label, _tasks in CATEGORY_TASKS:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, category_id)
@@ -119,7 +126,7 @@ class SmallTasksPage(QWidget):
         self.player_data_panel = PlayerDataPanel(
             settings,
             self.player_task_page,
-            title_text="刷新用户数据",
+            title_text="用户数据",
         )
         self.player_data_panel.cacheRequested.connect(self.cacheRequested.emit)
         player_layout.addWidget(self.player_data_panel, 1)
@@ -170,6 +177,11 @@ class SmallTasksPage(QWidget):
 
     @property
     def current_task_id(self) -> str:
+        entry = self.category_list.currentItem()
+        if entry is not None:
+            entry_id = str(entry.data(Qt.ItemDataRole.UserRole) or "")
+            if entry_id in self._task_pages:
+                return entry_id
         item = self.task_list.currentItem()
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
 
@@ -204,6 +216,11 @@ class SmallTasksPage(QWidget):
         if current is None:
             return
         category_id = str(current.data(Qt.ItemDataRole.UserRole) or "")
+        page = self._task_pages.get(category_id)
+        self.task_panel.setVisible(page is None)
+        if page is not None:
+            self.detail_stack.setCurrentWidget(page)
+            return
         for task_id, label in self._category_tasks.get(category_id, ()):
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, task_id)
