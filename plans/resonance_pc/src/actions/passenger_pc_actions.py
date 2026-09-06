@@ -7,7 +7,7 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
@@ -301,16 +301,41 @@ def _wait_main_stable(app: Any, vision: Any, *, timeout_sec: float = 12.0) -> Di
         time.sleep(_POLL_INTERVAL)
 
 
-def _click_blank_and_confirm_main(app: Any, vision: Any, *, error_code: str) -> Dict[str, Any]:
+def _click_blank_and_confirm_main(
+    app: Any,
+    vision: Any,
+    *,
+    error_code: str,
+    exit_point: Optional[Sequence[int]] = None,
+    can_exit: Optional[Callable[[], bool]] = None,
+) -> Dict[str, Any]:
+    """Confirm before input, then retry a caller-specific safe exit up to three times.
+
+    Passenger callers retain their configured exit point. Other information
+    panels can supply a point and an observed-source-page guard; unknown pages
+    are only observed, never blindly clicked.
+    """
+    point = tuple(exit_point) if exit_point is not None else _SAFE_EXIT_POINT
+    initial = _wait_main_stable(app, vision, timeout_sec=0.7)
+    if initial.get("confirmed"):
+        return {"success": True, "attempts": [], "exit_point": list(point), "already_main": True}
     attempts: List[Dict[str, Any]] = []
     for attempt in range(1, 4):
         _check_cancelled()
-        app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
+        clicked = can_exit is None or bool(can_exit())
+        if clicked:
+            _check_cancelled()
+            app.click(x=int(point[0]), y=int(point[1]))
         confirmed = _wait_main_stable(app, vision, timeout_sec=3.0)
-        attempts.append({"attempt": attempt, "main": confirmed})
+        attempts.append({"attempt": attempt, "clicked": clicked, "main": confirmed})
+        logger.info(
+            "[MainScreenReturn] attempt=%s/3 clicked=%s point=%s confirmed=%s confidence=%.4f",
+            attempt, clicked, point, bool(confirmed.get("confirmed")),
+            float((confirmed.get("match") or {}).get("confidence") or 0.0),
+        )
         if confirmed.get("confirmed"):
-            return {"success": True, "attempts": attempts, "exit_point": list(_SAFE_EXIT_POINT)}
-    _raise(error_code, "passenger page did not return to the city main screen", {"attempts": attempts})
+            return {"success": True, "attempts": attempts, "exit_point": list(point)}
+    _raise(error_code, "page did not return to the city main screen", {"attempts": attempts})
     return {}
 
 

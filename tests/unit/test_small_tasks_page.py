@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -29,10 +27,11 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     page = SmallTasksPage(ResonanceConfigRepository(settings))
 
     labels = {label.text() for label in page.findChildren(QLabel)}
-    assert {"小任务", "任务列表", "任务详情"}.issubset(labels)
+    assert {"任务分类", "任务列表", "任务详情"}.issubset(labels)
     assert page.category_list.currentItem().text() == "用户数据"
-    assert page.task_list.count() == 0
-    assert page.task_panel.isHidden()
+    assert page.task_list.count() == 1
+    assert page.task_list.currentItem().text() == "刷新用户数据"
+    assert not page.task_panel.isHidden()
     assert page.current_task_id == "player_data_refresh"
     assert "独立运行" not in "".join(labels)
 
@@ -44,6 +43,7 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
         {
             "stages": ["location", "profile", "inventory", "characters"],
             "inventory_categories": ["items"],
+            "profile_sections": ["cargo", "clarity", "fatigue"],
         }
     ]
     panel = page.player_data_panel
@@ -73,6 +73,7 @@ def test_player_data_equipment_config_migration_and_snapshot(tmp_path) -> None:
     assert repository.load_player_data_inputs() == {
         "stages": ["inventory"],
         "inventory_categories": ["materials"],
+        "profile_sections": ["cargo", "clarity", "fatigue"],
     }
     assert not panel._inventory_category_checks["equipment"].isChecked()
     panel._inventory_category_checks["materials"].setChecked(False)
@@ -80,6 +81,7 @@ def test_player_data_equipment_config_migration_and_snapshot(tmp_path) -> None:
     assert panel.collect_inputs() == {
         "stages": ["inventory"],
         "inventory_categories": ["equipment"],
+        "profile_sections": ["cargo", "clarity", "fatigue"],
     }
 
     panel.set_snapshot(
@@ -126,11 +128,12 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     _application()
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     page = SmallTasksPage(ResonanceConfigRepository(settings))
-    team_category = page.category_list.findItems("配队推荐", Qt.MatchFlag.MatchExactly)[0]
+    team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
     page.category_list.setCurrentItem(team_category)
 
-    assert page.task_list.count() == 0
-    assert page.task_panel.isHidden()
+    assert page.task_list.count() == 1
+    assert page.task_list.currentItem().text() == "配队推荐"
+    assert not page.task_panel.isHidden()
     assert page.current_task_id == "team_recommendation"
     requests: list[bool] = []
     page.runTeamRecommendationRequested.connect(lambda: requests.append(True))
@@ -203,9 +206,6 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
     )
     try:
         refresh_requests: list[bool] = []
-        # This UI wiring test records the request; it must not start a real
-        # subprocess/target probe that races its short close assertion.
-        window.requestRefreshTarget.disconnect()
         window.requestRefreshTarget.connect(lambda: refresh_requests.append(True))
         window.primary_nav_buttons[window.SMALL_TASKS_PAGE_INDEX].click()
 
@@ -238,6 +238,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
                 {
                     "stages": ["location", "profile", "inventory", "characters"],
                     "inventory_categories": ["items"],
+                    "profile_sections": ["cargo", "clarity", "fatigue"],
                 },
                 "刷新用户数据",
                 0.0,
@@ -268,7 +269,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window._small_task_active_ref == ""
 
         team_category = window.small_tasks_page.category_list.findItems(
-            "配队推荐", Qt.MatchFlag.MatchExactly
+            "配队工具", Qt.MatchFlag.MatchExactly
         )[0]
         window.small_tasks_page.category_list.setCurrentItem(team_category)
         window.small_tasks_page.team_recommendation_panel.run_button.click()
@@ -309,10 +310,13 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window.page_stack.currentWidget() is window.workflow_page
     finally:
         window.close()
-        deadline = time.monotonic() + 5.0
-        while not window._close_ready and time.monotonic() < deadline:
-            QTest.qWait(10)
-        assert window._close_ready
+        from PySide6.QtTest import QTest
+        for _ in range(200):
+            QApplication.processEvents()
+            if not window._bridge_thread.isRunning():
+                break
+            QTest.qWait(25)
+        QApplication.processEvents()
         assert not window._bridge_thread.isRunning()
 
 

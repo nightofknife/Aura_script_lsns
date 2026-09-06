@@ -161,6 +161,7 @@ _BUY_BUTTON_REGION = [1000, 630, 140, 50]
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
 _SELL_ALL_REGION = [1140, 80, 110, 50]
+_SELL_ALL_TEMPLATE = "templates/trade_sell_all_button.png"
 _SELL_BUTTON_REGION = [1000, 630, 120, 40]
 
 _BACK_POINT = (82, 37)
@@ -1052,20 +1053,27 @@ def resonance_pc_sell_goods_on_sell_page(
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     _report_worker("sell", "started", data={"raise_to_cap": bool(raise_to_cap)})
-    sell_all_click = _wait_and_click_text(
+    sell_all_match = _wait_template(
         app,
-        ocr,
-        ("全部卖出",),
+        vision,
+        _SELL_ALL_TEMPLATE,
         _SELL_ALL_REGION,
+        threshold=0.86,
         timeout_sec=3.0,
         interval_sec=0.3,
     )
+    sell_all_click = {"clicked": False, "reason": "template_not_found", "match": sell_all_match}
+    if sell_all_match.get("found") and sell_all_match.get("center"):
+        x, y = sell_all_match["center"]
+        app.click(x=int(x), y=int(y))
+        sell_all_click = {
+            "clicked": True, "x": int(x), "y": int(y),
+            "method": "template", "match": sell_all_match,
+        }
     log_method = logger.info if sell_all_click.get("clicked") else logger.warning
     log_method(
         "[TradeSell] phase=sell_all_selection clicked=%s detail=%s context=%s",
-        bool(sell_all_click.get("clicked")),
-        sell_all_click,
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
+        bool(sell_all_click.get("clicked")), sell_all_click, dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     sell_button_click = {"clicked": False, "reason": "sell_all_not_clicked"}
     settlement = {"closed": False, "found": False, "kind": "sell"}
@@ -1855,7 +1863,6 @@ async def _preview_trade_plan_from_start_city(
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
-    auto_book: bool = False,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     reporter: _TradeProgressReporter | None = None,
@@ -1926,7 +1933,6 @@ async def _preview_trade_plan_from_start_city(
             fatigue_budget=int(fatigue_budget),
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
-            auto_book=auto_book,
             book_profit_threshold=book_profit_threshold,
             negotiation_budget=0,
             all_plan=1,
@@ -1961,10 +1967,6 @@ async def _preview_trade_plan_from_start_city(
                     "expected_fatigue_used": plan.get("expected_fatigue_used"),
                     "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
                     "books_used": plan.get("books_used"),
-                    "book_incremental_profit": plan.get("book_incremental_profit"),
-                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
-                    "average_book_profit": plan.get("average_book_profit"),
-                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
                     "full_bargain_count": plan.get("full_bargain_count"),
                     "full_raise_count": plan.get("full_raise_count"),
                 },
@@ -2018,7 +2020,6 @@ async def resonance_pc_preview_trade_plan_flow(
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     active_events: Optional[List[Any]] = None,
-    auto_book: bool = False,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     event_bus: EventBus | None = None,
@@ -2030,7 +2031,6 @@ async def resonance_pc_preview_trade_plan_flow(
         fatigue_budget=fatigue_budget,
         cargo_capacity=cargo_capacity,
         book_budget=book_budget,
-        auto_book=auto_book,
         book_profit_threshold=book_profit_threshold,
         bargain_success_rates_bps=bargain_success_rates_bps,
         bargain_step_bps=bargain_step_bps,
@@ -2087,7 +2087,6 @@ async def resonance_pc_auto_cycle_trade_flow(
     arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = False,
     auto_rubbish_recycling: bool = True,
-    auto_book: bool = False,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -2194,7 +2193,6 @@ async def resonance_pc_auto_cycle_trade_flow(
             fatigue_budget=int(fatigue_budget),
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
-            auto_book=auto_book,
             book_profit_threshold=book_profit_threshold,
             negotiation_budget=0,
             all_plan=1,
@@ -2230,10 +2228,6 @@ async def resonance_pc_auto_cycle_trade_flow(
                     "expected_fatigue_used": plan.get("expected_fatigue_used"),
                     "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
                     "books_used": plan.get("books_used"),
-                    "book_incremental_profit": plan.get("book_incremental_profit"),
-                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
-                    "average_book_profit": plan.get("average_book_profit"),
-                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
                     "full_bargain_count": plan.get("full_bargain_count"),
                     "full_raise_count": plan.get("full_raise_count"),
                 },

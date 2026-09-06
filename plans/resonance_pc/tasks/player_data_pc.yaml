@@ -14,6 +14,15 @@ player_data_refresh:
           type: enum
           required: true
           enum: [location, profile, inventory, characters]
+      - name: profile_sections
+        type: list
+        required: false
+        default: [cargo, clarity, fatigue]
+        item:
+          name: profile_section
+          type: enum
+          required: true
+          enum: [cargo, clarity, fatigue, sparkling_water, bento]
       - name: inventory_categories
         type: list
         required: false
@@ -34,6 +43,7 @@ player_data_refresh:
       params:
         stages: "{{ inputs.stages }}"
         inventory_categories: "{{ inputs.inventory_categories }}"
+        profile_sections: "{{ inputs.profile_sections }}"
       depends_on: require_resolution
 
   returns:

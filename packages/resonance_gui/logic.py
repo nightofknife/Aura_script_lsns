@@ -578,6 +578,42 @@ def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:
     return dict(data) if isinstance(data, Mapping) else {}
 
 
+def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Require fatigue and recovery resources from this refresh, never cached data."""
+    player = result.get("player_data")
+    if not isinstance(player, Mapping):
+        raise ValueError("恢复资源刷新未返回用户数据。")
+    metadata = player.get("metadata")
+    if not isinstance(metadata, Mapping) or metadata.get("persisted") is not True:
+        raise ValueError("恢复资源刷新未确认数据已保存。")
+    status = player.get("status")
+    fatigue = status.get("fatigue") if isinstance(status, Mapping) else None
+    if not isinstance(fatigue, Mapping):
+        raise ValueError("恢复资源刷新缺少当前疲劳结果。")
+    current = fatigue.get("current")
+    maximum = fatigue.get("max")
+    if type(current) is not int or type(maximum) is not int or current < 0 or maximum <= 0:
+        raise ValueError("当前疲劳或疲劳上限无效。")
+    recovery = player.get("recovery")
+    if not isinstance(recovery, Mapping):
+        raise ValueError("恢复资源刷新缺少气泡水和便当结果。")
+    water = recovery.get("sparkling_water")
+    bento = recovery.get("bento")
+    if not isinstance(water, Mapping) or not isinstance(bento, Mapping):
+        raise ValueError("恢复资源刷新缺少气泡水或便当结果。")
+    remaining = water.get("remaining_free_uses")
+    limit = water.get("daily_free_limit")
+    count = bento.get("available_count")
+    if (
+        type(remaining) is not int or type(limit) is not int
+        or limit <= 0 or not 0 <= remaining <= limit
+    ):
+        raise ValueError("气泡水剩余次数或每日上限无效。")
+    if type(count) is not int or not 0 <= count <= 3:
+        raise ValueError("便当数量无效，应为 0–3 份。")
+    return copy.deepcopy(dict(player))
+
+
 def extract_trade_route(payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
     result = extract_final_result(payload)
     return [dict(item) for item in (result.get("route") or []) if isinstance(item, Mapping)]
@@ -605,10 +641,6 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "expected_fatigue_used": result.get("expected_fatigue_used"),
         "remaining_expected_fatigue": result.get("remaining_expected_fatigue"),
         "books_used": result.get("books_used"),
-        "book_incremental_profit": result.get("book_incremental_profit"),
-        "book_incremental_profit_exact": result.get("book_incremental_profit_exact"),
-        "average_book_profit": result.get("average_book_profit"),
-        "average_book_profit_exact": result.get("average_book_profit_exact"),
         "remaining_books": result.get("remaining_books"),
         "full_bargain_count": result.get("full_bargain_count"),
         "full_raise_count": result.get("full_raise_count"),
@@ -625,16 +657,6 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_stale_reason": str(result.get("market_stale_reason") or ""),
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
     }
-
-
-def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Build a task payload without losing the user's saved manual book budget."""
-
-    normalized = dict(inputs or {})
-    normalized["auto_book"] = bool(normalized.get("auto_book", False))
-    if normalized["auto_book"]:
-        normalized.pop("book_budget", None)
-    return normalized
 
 
 def expected_profit_per_fatigue(summary: Mapping[str, Any] | None) -> float | None:

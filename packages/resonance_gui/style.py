@@ -483,7 +483,7 @@ QLabel#playerDataSelectionSummary {
 }
 QLabel#playerDataSelectionSummary[status="error"] { border-left-color: #b9785d; color: #984b39; }
 QLabel#playerDataSnapshotUpdated { color: #66745c; font-weight: 700; }
-QLabel#playerDataIdentity { color: #38342e; font-size: 14px; font-weight: 700; }
+QLabel#playerDataLocation { color: #38342e; font-size: 14px; font-weight: 700; }
 QFrame#linenInset, QLabel#linenInsetLabel {
     background: #f2ebdd;
     border: 1px solid #d4c6ad;

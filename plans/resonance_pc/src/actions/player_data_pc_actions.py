@@ -7,7 +7,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 import cv2
 
@@ -28,8 +28,13 @@ from .inventory_pc_actions import (
 )
 from ._player_data_persistence import (
     USER_INFO_FILE,
-    ensure_pc_user_info_migrated,
     load_pc_user_info,
+)
+from .player_recovery_pc_actions import RecoveryReader, check_cancelled, load_recovery_layout
+from .passenger_pc_actions import (
+    PassengerPcError,
+    _click_blank_and_confirm_main,
+    _match_template as _match_navigation_template,
 )
 
 Region = Tuple[int, int, int, int]
@@ -38,6 +43,8 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _DATA_STAGES = ("location", "profile", "inventory", "characters")
 _STAGE_ORDER = _DATA_STAGES
 _PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
+_PROFILE_SECTION_ORDER = ("cargo", "clarity", "fatigue", "sparkling_water", "bento")
+_DEFAULT_PROFILE_SECTIONS = ("cargo", "clarity", "fatigue")
 
 _INVENTORY_CATEGORY_ORDER = ("items", "materials", "equipment")
 _CURRENCY_ITEM_IDS = {
@@ -65,6 +72,8 @@ def _scan_inventory_stage(
 _CLICK_PROFILE = (150, 655)
 _CLICK_BACK = (82, 34)
 _CLICK_PROFILE_CLOSE = (900, 150)
+_PROFILE_MENU_TEMPLATE = "templates/player_recovery/profile.png"
+_PROFILE_MENU_MARKER_REGION = (305, 293, 215, 45)
 _CLICK_INVENTORY = (165, 615)
 _CLICK_INVENTORY_CATEGORY = {
     "items": (1205, 51),
@@ -89,9 +98,6 @@ _INVENTORY_CATEGORY_REGIONS: Dict[str, Region] = {
 _MAIN_PAGE_MARKERS = ("访问城市", "访问地区", "启程", "STARTENGINE")
 
 _PROFILE_FIELD_REGIONS: Dict[str, Region] = {
-    "uid": (105, 10, 180, 30),
-    "level": (105, 120, 80, 35),
-    "nickname": (105, 150, 385, 45),
     "clarity": (145, 250, 125, 45),
     "fatigue": (360, 250, 125, 45),
     "cargo": (545, 250, 125, 45),
@@ -133,27 +139,6 @@ def _join_text(items: Iterable[Any]) -> str:
 
 def _extract_ints(text: str) -> List[int]:
     return [int(match) for match in re.findall(r"\d+", str(text or ""))]
-
-
-def _extract_first_int(text: str, default: int = 0) -> int:
-    ints = _extract_ints(text)
-    return ints[0] if ints else default
-
-
-def _extract_uid(text: str) -> str:
-    match = re.search(r"UID\s*[:：]?\s*(\d{4,})", str(text or ""), re.IGNORECASE)
-    if match:
-        return match.group(1)[:10]
-    match = re.search(r"\d{6,}", str(text or ""))
-    return match.group(0)[:10] if match else ""
-
-
-def _extract_nickname(text: str) -> str:
-    cleaned = re.sub(r"(?<!\S)\d+(?!\S)", " ", str(text or "")).strip()
-    cjk_runs = re.findall(r"[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9_·-]*", cleaned)
-    if cjk_runs:
-        return max(cjk_runs, key=len)
-    return cleaned
 
 
 def _extract_ratio(text: str) -> Dict[str, int]:
@@ -388,35 +373,43 @@ def _parse_city_name(items: List[Dict[str, Any]]) -> str:
     return _join_text(items).strip()
 
 
-def _read_profile_stage(app: Any, ocr: Any) -> Dict[str, Any]:
-    uid_text = _read_region_text(app, ocr, (95, 8, 160, 35), scale=4.0)
-    nickname = _extract_nickname(_read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["nickname"]))
-    level_text = _read_region_text(app, ocr, _PROFILE_FIELD_REGIONS["level"])
-    cargo = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["cargo"])
-    clarity = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["clarity"])
-    fatigue = _read_ratio_region(app, ocr, _PROFILE_FIELD_REGIONS["fatigue"])
-    return {
-        "profile": {
-            "uid": _extract_uid(uid_text),
-            "nickname": nickname,
-            "level": _extract_first_int(level_text),
-        },
-        "cargo": cargo,
-        "clarity": clarity,
-        "fatigue": fatigue,
-    }
+def _read_profile_stage(app: Any, ocr: Any, sections: Sequence[str] = _DEFAULT_PROFILE_SECTIONS,
+                        *, on_updated: Any = None) -> Dict[str, Any]:
+    result = {}
+    for section in _DEFAULT_PROFILE_SECTIONS:
+        if section not in sections:
+            continue
+        check_cancelled()
+        # Missing or partial OCR must not overwrite a previous value with 0/0.
+        deadline = time.monotonic() + 3.0
+        while True:
+            text = _read_region_text(app, ocr, _PROFILE_FIELD_REGIONS[section])
+            match = re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*\+?\s*", text.replace("／", "/"))
+            if match and int(match[2]) > 0:
+                result[section] = {"current": int(match[1]), "max": int(match[2])}
+                if on_updated is not None:
+                    on_updated(section)
+                break
+            if time.monotonic() >= deadline:
+                raise StopTaskException(f"Player data refresh failed: invalid {section} ratio: {text!r}", success=False)
+            check_cancelled()
+            time.sleep(0.2)
+    return result
 
 
-def _close_profile_panel_to_main(app: Any, ocr: Any) -> None:
-    app.click(x=_CLICK_PROFILE_CLOSE[0], y=_CLICK_PROFILE_CLOSE[1])
-    _wait_for_any_marker(
-        app,
-        ocr,
-        markers=_MAIN_PAGE_MARKERS,
-        region=_MAIN_PAGE_REGION,
-        timeout_sec=8.0,
-        label="main page after player data refresh",
-    )
+def _close_profile_panel_to_main(app: Any, vision: Any) -> None:
+    if vision is None:
+        raise RuntimeError("vision service is required to confirm the main screen")
+    try:
+        _click_blank_and_confirm_main(
+            app, vision, error_code="player_data_main_screen_not_restored",
+            exit_point=_CLICK_PROFILE_CLOSE,
+            can_exit=lambda: bool(_match_navigation_template(
+                app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=0.85,
+            ).get("found")),
+        )
+    except PassengerPcError as exc:
+        raise StopTaskException(f"Player data refresh failed: {exc}", success=False) from exc
 
 
 def _utc_now_iso() -> str:
@@ -459,6 +452,18 @@ def _normalize_inventory_categories(categories: Any = None) -> Tuple[str, ...]:
     if not requested:
         raise ValueError("inventory_categories must select at least one category")
     return tuple(category for category in _INVENTORY_CATEGORY_ORDER if category in requested)
+
+
+def _normalize_profile_sections(sections: Any = None, *, required: bool = True) -> Tuple[str, ...]:
+    if sections is None:
+        return _DEFAULT_PROFILE_SECTIONS
+    if not isinstance(sections, list):
+        raise ValueError("profile_sections must be a list")
+    if any(not isinstance(section, str) or section not in _PROFILE_SECTION_ORDER for section in sections):
+        raise ValueError("profile_sections contains an unsupported value; supported values: " + ", ".join(_PROFILE_SECTION_ORDER))
+    if required and not sections:
+        raise ValueError("profile_sections must select at least one item when profile is selected")
+    return tuple(section for section in _PROFILE_SECTION_ORDER if section in sections)
 
 
 def _inventory_categories(payload: Any) -> Dict[str, Dict[str, Any]]:
@@ -506,19 +511,30 @@ def _merge_latest(
     section_updated_at: Dict[str, str],
     updated_at: str,
     inventory_category_updated_at: Optional[Dict[str, str]] = None,
+    profile_section_updated_at: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     merged = copy.deepcopy(existing)
 
     if "location" in section_updated_at:
         merged["location"] = copy.deepcopy(fresh["location"])
     if "profile" in section_updated_at:
-        merged["profile"] = copy.deepcopy(fresh["profile"])
-        status = merged.get("status")
-        if not isinstance(status, dict):
-            status = {}
-            merged["status"] = status
-        for status_key in ("cargo", "clarity", "fatigue"):
-            status[status_key] = copy.deepcopy(fresh["status"][status_key])
+        # Retire identity fields only when this section is successfully refreshed.
+        profile = merged.get("profile")
+        if isinstance(profile, dict):
+            for key in ("uid", "nickname", "level"):
+                profile.pop(key, None)
+            if not profile:
+                merged.pop("profile", None)
+        for group, keys in (("status", _DEFAULT_PROFILE_SECTIONS), ("recovery", ("sparkling_water", "bento"))):
+            updates = fresh.get(group)
+            if not isinstance(updates, Mapping) or not updates:
+                continue
+            previous = merged.get(group)
+            previous = previous if isinstance(previous, dict) else {}
+            for key in keys:
+                if key in updates:
+                    previous[key] = copy.deepcopy(updates[key])
+            merged[group] = previous
 
     if "inventory" in section_updated_at:
         fresh_inventory = fresh["inventory"]
@@ -553,6 +569,22 @@ def _merge_latest(
         previous_section_times = {}
     else:
         previous_section_times = copy.deepcopy(previous_section_times)
+    if "profile" in section_updated_at:
+        # Freeze the old aggregate timestamp before the first partial refresh;
+        # unrefreshed legacy values must not appear newly read in the GUI.
+        if not metadata.get("profile_section_updated_at") and previous_section_times.get("profile"):
+            metadata.setdefault("profile_legacy_updated_at", previous_section_times["profile"])
+        sub_times = metadata.get("profile_section_updated_at")
+        sub_times = dict(sub_times) if isinstance(sub_times, Mapping) else {}
+        fresh_sub_times = profile_section_updated_at
+        if fresh_sub_times is None:
+            fresh_sub_times = {
+                key: section_updated_at["profile"]
+                for group in ("status", "recovery")
+                for key in fresh.get(group, {}) if key in _PROFILE_SECTION_ORDER
+            }
+        sub_times.update(fresh_sub_times)
+        metadata["profile_section_updated_at"] = sub_times
     previous_section_times.update(section_updated_at)
     previous_category_times = metadata.get("inventory_category_updated_at")
     if not isinstance(previous_category_times, dict):
@@ -575,13 +607,14 @@ def _merge_latest(
     return merged
 
 
-def _best_effort_return_to_main(app: Any, ocr: Any, page: str) -> None:
+def _best_effort_return_to_main(app: Any, ocr: Any, page: str, vision: Any = None) -> None:
     try:
         if page in {"inventory", "characters"}:
             app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
             page = "profile"
-        if page == "profile":
-            app.click(x=_CLICK_PROFILE_CLOSE[0], y=_CLICK_PROFILE_CLOSE[1])
+        if page in {"profile", "unknown"} and vision is not None:
+            _close_profile_panel_to_main(app, vision)
+            return
         _wait_for_any_marker(
             app,
             ocr,
@@ -614,15 +647,22 @@ def resonance_pc_player_data_refresh(
     ocr: Any = None,
     vision: Any = None,
     persistent_data: PersistentDataService | None = None,
+    profile_sections: Any = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or persistent_data is None:
         raise RuntimeError("app/ocr/persistent_data service is required")
 
-    ensure_pc_user_info_migrated(persistent_data)
-
     selected_stages = _normalize_stages(stages)
     selected_inventory_categories = _normalize_inventory_categories(inventory_categories)
     selected = set(selected_stages)
+    selected_profile_sections = _normalize_profile_sections(profile_sections, required="profile" in selected)
+    if selected.intersection(_PROFILE_PANEL_STAGES) and vision is None:
+        raise RuntimeError("vision service is required to confirm the main screen")
+    recovery_layout = None
+    if "profile" in selected and set(selected_profile_sections).intersection({"sparkling_water", "bento"}):
+        if vision is None:
+            raise RuntimeError("vision service is required for recovery refresh")
+        recovery_layout = load_recovery_layout(vision)
     character_catalog: Optional[Dict[str, Any]] = None
     if "characters" in selected:
         if vision is None:
@@ -637,8 +677,12 @@ def resonance_pc_player_data_refresh(
             for category in selected_inventory_categories
         }
     section_updated_at: Dict[str, str] = {}
+    profile_section_updated_at: Dict[str, str] = {}
     inventory_category_updated_at: Dict[str, str] = {}
     result: Dict[str, Any] = {}
+
+    def mark_profile_updated(section: str) -> None:
+        profile_section_updated_at[section] = _utc_now_iso()
 
     _wait_for_any_marker(
         app,
@@ -655,6 +699,11 @@ def resonance_pc_player_data_refresh(
 
     panel_required = bool(selected.intersection(_PROFILE_PANEL_STAGES))
     current_page = "main"
+    main_return_started = False
+
+    def track_page(page: str) -> None:
+        nonlocal current_page
+        current_page = page
     if panel_required:
         try:
             app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
@@ -669,13 +718,14 @@ def resonance_pc_player_data_refresh(
             current_page = "profile"
 
             if "profile" in selected:
-                profile_data = _read_profile_stage(app, ocr)
-                result["profile"] = profile_data["profile"]
-                result["status"] = {
-                    "cargo": profile_data["cargo"],
-                    "clarity": profile_data["clarity"],
-                    "fatigue": profile_data["fatigue"],
-                }
+                profile_data = _read_profile_stage(app, ocr, selected_profile_sections,
+                                                  on_updated=mark_profile_updated)
+                if profile_data:
+                    result["status"] = profile_data
+                if recovery_layout is not None:
+                    result["recovery"] = RecoveryReader(app, ocr, vision, recovery_layout, on_page=track_page).read(
+                        selected_profile_sections, on_updated=mark_profile_updated,
+                    )
                 section_updated_at["profile"] = _utc_now_iso()
 
             if "inventory" in selected:
@@ -738,12 +788,18 @@ def resonance_pc_player_data_refresh(
                 section_updated_at["characters"] = _utc_now_iso()
 
             current_page = "unknown"
-            _close_profile_panel_to_main(app, ocr)
+            main_return_started = True
+            _close_profile_panel_to_main(app, vision)
             current_page = "main"
         except Exception:
-            _best_effort_return_to_main(app, ocr, current_page)
+            from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+            # The final return helper already exhausted its bounded retries.
+            # Do not start a second three-click cycle from exception cleanup.
+            if not is_current_task_cancel_requested() and not main_return_started:
+                _best_effort_return_to_main(app, ocr, current_page, vision)
             raise
 
+    check_cancelled()
     updated_at = _utc_now_iso()
     persistent_data.update(
         file=USER_INFO_FILE,
@@ -753,6 +809,7 @@ def resonance_pc_player_data_refresh(
             section_updated_at=section_updated_at,
             updated_at=updated_at,
             inventory_category_updated_at=inventory_category_updated_at,
+            profile_section_updated_at=profile_section_updated_at,
         ),
     )
     persisted = True
@@ -765,6 +822,12 @@ def resonance_pc_player_data_refresh(
         "persisted": persisted,
         "section_updated_at": copy.deepcopy(section_updated_at),
     }
+    if "profile" in selected:
+        result["metadata"].update({
+            "executed_profile_sections": list(selected_profile_sections),
+            "skipped_profile_sections": [s for s in _PROFILE_SECTION_ORDER if s not in selected_profile_sections],
+            "profile_section_updated_at": copy.deepcopy(profile_section_updated_at),
+        })
     if inventory_category_updated_at:
         result["metadata"]["inventory_category_updated_at"] = copy.deepcopy(
             inventory_category_updated_at
