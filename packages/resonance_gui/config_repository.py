@@ -301,6 +301,25 @@ class ResonanceConfigRepository:
         )
         self.settings.sync()
 
+    def load_eternal_scuffle_inputs(self) -> dict[str, int]:
+        values: dict[str, int] = {}
+        for key, maximum in (("coins_per_run", 5), ("run_count", 9999)):
+            try:
+                value = int(self.settings.value(f"eternal_scuffle/{key}", 1))
+            except (ValueError, TypeError):
+                value = 1
+            values[key] = max(1, min(maximum, value))
+        return values
+
+    def save_eternal_scuffle_inputs(self, inputs: dict[str, Any]) -> None:
+        for key, maximum in (("coins_per_run", 5), ("run_count", 9999)):
+            value = inputs.get(key, 1)
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError(f"{key} 必须是 1～{maximum} 的整数")
+        for key in ("coins_per_run", "run_count"):
+            self.settings.setValue(f"eternal_scuffle/{key}", inputs.get(key, 1))
+        self.settings.sync()
+
     def load_battle_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("battle/inputs_json", "")
         if raw:

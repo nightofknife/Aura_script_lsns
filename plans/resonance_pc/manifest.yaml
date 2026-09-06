@@ -1261,6 +1261,214 @@ exports:
     description: Enter the Consciousness Deep Dive board using fixed strategy and
       middle boon selection.
     parameters: []
+  - name: resonance_pc.eternal_scuffle_initialize
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: initialize_eternal_scuffle
+    public: true
+    read_only: false
+    timeout: null
+    description: Validate inputs and initialize a CID-isolated Scuffle session at
+      its home page.
+    parameters:
+    - name: coins_per_run
+      type: Any
+      required: false
+      default: 1
+    - name: run_count
+      type: Any
+      required: false
+      default: 1
+  - name: resonance_pc.eternal_scuffle_begin_round
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_begin_round
+    public: true
+    read_only: false
+    timeout: null
+    description: Begin one round only after the preceding round has returned home.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+    - name: run_index
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_coin
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_coin
+    public: true
+    read_only: false
+    timeout: null
+    description: Set the coin count by counted clicks and confirm entry to drafting.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_choose_role
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_choose_role
+    public: true
+    read_only: false
+    timeout: null
+    description: Choose a ranked identified character and confirm the equipment page.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_choose_initial_equipment
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_choose_initial_equipment
+    public: true
+    read_only: false
+    timeout: null
+    description: Choose initial equipment and confirm the next draft stage.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_captain
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_captain
+    public: true
+    read_only: false
+    timeout: null
+    description: Reconcile the five members and confirm the default leader.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_advance
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_advance
+    public: true
+    read_only: false
+    timeout: null
+    description: Advance one battle-page transition without using stage numbers.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_choose_loot
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_choose_loot
+    public: true
+    read_only: false
+    timeout: null
+    description: Select ranked battle loot and confirm the assignment page.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_assign_loot
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_assign_loot
+    public: true
+    read_only: false
+    timeout: null
+    description: Reidentify member positions, assign the selected equipment and confirm.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_open_box
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_open_box
+    public: true
+    read_only: false
+    timeout: null
+    description: Open one remaining masked reward box or confirm all boxes are open.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_return_home
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_return_home
+    public: true
+    read_only: false
+    timeout: null
+    description: Return from a fully opened reward page and confirm the activity home.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_complete_round
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_complete_round
+    public: true
+    read_only: false
+    timeout: null
+    description: Commit a completed clear or abandonment only after verified return
+      home.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.eternal_scuffle_checkpoint
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: eternal_scuffle_checkpoint
+    public: true
+    read_only: false
+    timeout: null
+    description: Require child framework_data to contain a confirmed business completion
+      node.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+    - name: phases
+      type: Any
+      required: false
+      default: null
+    - name: expected_pairs
+      type: Any
+      required: false
+      default: 0
+    - name: child_result
+      type: Any
+      required: false
+      default: null
+    - name: child_results
+      type: Any
+      required: false
+      default: null
+    - name: require_child
+      type: Any
+      required: false
+      default: false
+    - name: expected_children
+      type: Any
+      required: false
+      default: 0
+    - name: label
+      type: Any
+      required: false
+      default: 子任务
+  - name: resonance_pc.eternal_scuffle_finish
+    module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
+    function: finish_eternal_scuffle
+    public: true
+    read_only: false
+    timeout: null
+    description: Return the journaled run summary and remove only this completed session
+      state.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.enter_main
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
     function: resonance_pc_enter_main
@@ -2324,6 +2532,46 @@ exports:
     source: tasks/enter_reforming_center_pc.yaml
     description: Enter the Reforming Center from the game main screen through the
       profile menu.
+  - id: eternal_scuffle_pc/eternal_scuffle_pc
+    title: 无垠乱斗
+    source: tasks/eternal_scuffle_pc.yaml
+    description: 从活动首页逐局完成投币、组队、乱斗和共用领奖返回。
+  - id: eternal_scuffle_pc
+    title: 无垠乱斗
+    source: tasks/eternal_scuffle_pc.yaml
+    description: 从活动首页逐局完成投币、组队、乱斗和共用领奖返回。
+  - id: eternal_scuffle_pc/scuffle_checked_round_pc
+    title: 无垠乱斗逐次校验子任务
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_checked_pair_pc
+    title: 无垠乱斗逐次校验选人配装
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_checked_advance_pc
+    title: 无垠乱斗逐次校验关卡推进
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_round_pc
+    title: 无垠乱斗单局
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_draft_pair_pc
+    title: 无垠乱斗选一名角色和一件装备
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_advance_pc
+    title: 无垠乱斗推进一个页面阶段
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_loot_pc
+    title: 无垠乱斗选择和分配战利品
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
+  - id: eternal_scuffle_pc/scuffle_settle_pc
+    title: 无垠乱斗共用开箱与返回
+    source: tasks/eternal_scuffle_pc.yaml
+    description: ''
   - id: game_startup_pc/enter_main
     title: Enter Resonance Main Screen (PC)
     source: tasks/game_startup_pc.yaml
@@ -2381,4 +2629,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-05T10:41:52Z'
+  generated_at: '2026-09-06T09:35:09Z'

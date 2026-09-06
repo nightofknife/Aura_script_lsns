@@ -39,6 +39,7 @@ from .logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF,
+    PC_ETERNAL_SCUFFLE_TASK_REF,
     PC_GAME_NAME,
     PC_PLAYER_DATA_LATEST_TASK_REF,
     PC_PLAYER_DATA_REFRESH_TASK_REF,
@@ -283,6 +284,7 @@ class ResonanceMainWindow(QMainWindow):
             self._run_small_task_consciousness_deep_dive_sensitivity_probe
         )
         self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
+        self.small_tasks_page.runEternalScuffleRequested.connect(self._run_small_task_eternal_scuffle)
         self.small_tasks_page.cacheRequested.connect(
             self._read_small_task_player_data_cache
         )
@@ -540,6 +542,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self.trade_page.apply_progress)
         self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
+        self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
         self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
         self._bridge.passengerProgress.connect(self._on_workflow_passenger_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
@@ -904,6 +907,19 @@ class ResonanceMainWindow(QMainWindow):
             float(self.timeout_spin.value()),
         )
 
+    def _run_small_task_eternal_scuffle(self, inputs: dict[str, Any]) -> None:
+        if self._busy or self._workflow_active or self._commerce_active or self._small_task_active_ref:
+            self.small_tasks_page.show_eternal_scuffle_error("当前有任务正在运行，请稍后再试。")
+            return
+        try:
+            self._settings.save_eternal_scuffle_inputs(inputs)
+        except ValueError as exc:
+            self.small_tasks_page.show_eternal_scuffle_error(str(exc))
+            return
+        self._small_task_active_ref = PC_ETERNAL_SCUFFLE_TASK_REF
+        self.small_tasks_page.begin_eternal_scuffle_run(inputs)
+        self.requestRunPcTask.emit(PC_ETERNAL_SCUFFLE_TASK_REF, dict(inputs), "无垠乱斗", float(self.timeout_spin.value()))
+
     def _run_small_task_consciousness_deep_dive(self) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
             self.small_tasks_page.show_consciousness_deep_dive_error(
@@ -969,7 +985,9 @@ class ResonanceMainWindow(QMainWindow):
         )
 
     def _show_small_task_error(self, task_ref: str, message: str) -> None:
-        if task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
+        if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF:
+            self.small_tasks_page.show_eternal_scuffle_error(message)
+        elif task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
             self.small_tasks_page.show_team_recommendation_error(message)
         elif task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF:
             self.small_tasks_page.show_consciousness_deep_dive_error(message)
@@ -1373,6 +1391,19 @@ class ResonanceMainWindow(QMainWindow):
                     self._show_small_task_error(task_ref, message)
             if small_task_owns_result:
                 self._small_task_active_ref = ""
+            if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF and small_task_owns_result:
+                scuffle_result = player_data_result.get("eternal_scuffle")
+                status = extract_status(payload)
+                if isinstance(scuffle_result, dict):
+                    scuffle_result = dict(scuffle_result)
+                    if status != "success":
+                        scuffle_result.update(success=False, status="cancelled" if status == "cancelled" else "failed")
+                    self.small_tasks_page.apply_eternal_scuffle_result(scuffle_result)
+                else:
+                    self.small_tasks_page.show_eternal_scuffle_error(
+                        str(player_data_result.get("reason") or player_data_result.get("error") or payload.get("error") or "任务未返回完整无垠乱斗结果。"),
+                        cancelled=status == "cancelled",
+                    )
             team_result = player_data_result.get("team_recommendations")
             if task_ref == PC_TEAM_RECOMMENDATION_TASK_REF:
                 if isinstance(team_result, dict):

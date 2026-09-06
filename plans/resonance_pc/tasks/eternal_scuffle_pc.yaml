@@ -1,0 +1,304 @@
+eternal_scuffle_pc:
+  meta:
+    title: 无垠乱斗
+    description: 从活动首页逐局完成投币、组队、乱斗和共用领奖返回。
+    entry_point: true
+    inputs:
+      - {name: coins_per_run, type: number, default: 1, min: 1, max: 5}
+      - {name: run_count, type: number, default: 1, min: 1, max: 9999}
+  steps:
+    initialize:
+      action: resonance_pc.eternal_scuffle_initialize
+      params:
+        coins_per_run: "{{ inputs.coins_per_run }}"
+        run_count: "{{ inputs.run_count }}"
+    rounds:
+      action: aura.run_task
+      depends_on: initialize
+      loop:
+        while: "{{ loop.index < inputs.run_count }}"
+        max_iterations: "{{ inputs.run_count }}"
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_checked_round_pc
+        inputs:
+          session_key: "{{ nodes.initialize.output.session_key }}"
+          run_index: "{{ loop.index + 1 }}"
+    check_rounds:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: rounds
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+        phases: [completed]
+        child_results: "{{ nodes.rounds.output }}"
+        expected_children: "{{ inputs.run_count }}"
+        label: 每局任务
+    finish:
+      action: resonance_pc.eternal_scuffle_finish
+      depends_on: check_rounds
+      params: {session_key: "{{ nodes.initialize.output.session_key }}"}
+  returns:
+    eternal_scuffle: "{{ nodes.finish.output }}"
+
+scuffle_checked_round_pc:
+  meta:
+    title: 无垠乱斗逐次校验子任务
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+      - {name: run_index, type: number, required: true}
+  steps:
+    child:
+      action: aura.run_task
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_round_pc
+        inputs: {session_key: "{{ inputs.session_key }}", run_index: "{{ inputs.run_index }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: child
+      params:
+        session_key: "{{ inputs.session_key }}"
+        child_result: "{{ nodes.child.output }}"
+        require_child: true
+        label: 单局任务
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_checked_pair_pc:
+  meta:
+    title: 无垠乱斗逐次校验选人配装
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+      - {name: pair_index, type: number, required: true}
+  steps:
+    child:
+      action: aura.run_task
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_draft_pair_pc
+        inputs: {session_key: "{{ inputs.session_key }}", pair_index: "{{ inputs.pair_index }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: child
+      params:
+        session_key: "{{ inputs.session_key }}"
+        child_result: "{{ nodes.child.output }}"
+        require_child: true
+        label: 选人配装
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_checked_advance_pc:
+  meta:
+    title: 无垠乱斗逐次校验关卡推进
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+  steps:
+    child:
+      action: aura.run_task
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_advance_pc
+        inputs: {session_key: "{{ inputs.session_key }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: child
+      params:
+        session_key: "{{ inputs.session_key }}"
+        child_result: "{{ nodes.child.output }}"
+        require_child: true
+        label: 关卡推进
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_round_pc:
+  meta:
+    title: 无垠乱斗单局
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+      - {name: run_index, type: number, required: true}
+  steps:
+    begin:
+      action: resonance_pc.eternal_scuffle_begin_round
+      params: {session_key: "{{ inputs.session_key }}", run_index: "{{ inputs.run_index }}"}
+    coin:
+      action: resonance_pc.eternal_scuffle_coin
+      depends_on: begin
+      params: {session_key: "{{ inputs.session_key }}"}
+    pairs:
+      action: aura.run_task
+      depends_on: coin
+      loop:
+        while: "{{ loop.index < 5 }}"
+        max_iterations: 5
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_checked_pair_pc
+        inputs:
+          session_key: "{{ inputs.session_key }}"
+          pair_index: "{{ loop.index + 1 }}"
+    check_pairs:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: pairs
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [captain]
+        expected_pairs: 5
+        child_results: "{{ nodes.pairs.output }}"
+        expected_children: 5
+        label: 选人配装
+    captain:
+      action: resonance_pc.eternal_scuffle_captain
+      depends_on: check_pairs
+      params: {session_key: "{{ inputs.session_key }}"}
+    encounters:
+      action: aura.run_task
+      depends_on: captain
+      loop:
+        while: "{{ state[inputs.session_key].status == 'running' and state[inputs.session_key].round.phase != 'ready_settlement' }}"
+        max_iterations: 10000
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_checked_advance_pc
+        inputs:
+          session_key: "{{ inputs.session_key }}"
+    check_encounters:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: encounters
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [ready_settlement]
+        child_results: "{{ nodes.encounters.output }}"
+        label: 关卡状态推进
+    settle:
+      action: aura.run_task
+      depends_on: check_encounters
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_settle_pc
+        inputs: {session_key: "{{ inputs.session_key }}"}
+    check_settle:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: settle
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [home]
+        child_result: "{{ nodes.settle.output }}"
+        require_child: true
+        label: 领取奖励并返回
+    finish:
+      action: resonance_pc.eternal_scuffle_complete_round
+      depends_on: check_settle
+      params: {session_key: "{{ inputs.session_key }}"}
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_draft_pair_pc:
+  meta:
+    title: 无垠乱斗选一名角色和一件装备
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+      - {name: pair_index, type: number, required: true}
+  steps:
+    role:
+      action: resonance_pc.eternal_scuffle_choose_role
+      params: {session_key: "{{ inputs.session_key }}"}
+    equipment:
+      action: resonance_pc.eternal_scuffle_choose_initial_equipment
+      depends_on: role
+      params: {session_key: "{{ inputs.session_key }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: equipment
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [draft, captain]
+        expected_pairs: "{{ inputs.pair_index }}"
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_advance_pc:
+  meta:
+    title: 无垠乱斗推进一个页面阶段
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+  steps:
+    inspect:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [stage, battle, victory, defeat, abandon, loot]
+    battle_step:
+      action: resonance_pc.eternal_scuffle_advance
+      depends_on: inspect
+      when: "{{ nodes.inspect.output.phase != 'loot' }}"
+      params: {session_key: "{{ inputs.session_key }}"}
+    loot_step:
+      action: aura.run_task
+      depends_on: inspect
+      when: "{{ nodes.inspect.output.phase == 'loot' }}"
+      params:
+        task_ref: tasks:eternal_scuffle_pc.yaml:scuffle_loot_pc
+        inputs: {session_key: "{{ inputs.session_key }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on:
+        all:
+          - {battle_step: "success|skipped"}
+          - {loot_step: "success|skipped"}
+      params:
+        session_key: "{{ inputs.session_key }}"
+        phases: [stage, battle, victory, defeat, abandon, loot, ready_settlement]
+        child_result: "{{ nodes.loot_step.output if nodes.inspect.output.phase == 'loot' else none }}"
+        require_child: "{{ nodes.inspect.output.phase == 'loot' }}"
+        label: 战利品分配
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_loot_pc:
+  meta:
+    title: 无垠乱斗选择和分配战利品
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+  steps:
+    choose:
+      action: resonance_pc.eternal_scuffle_choose_loot
+      params: {session_key: "{{ inputs.session_key }}"}
+    assign:
+      action: resonance_pc.eternal_scuffle_assign_loot
+      depends_on: choose
+      params: {session_key: "{{ inputs.session_key }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: assign
+      params: {session_key: "{{ inputs.session_key }}", phases: [stage, ready_settlement]}
+  returns:
+    result: "{{ nodes.finish.output }}"
+
+scuffle_settle_pc:
+  meta:
+    title: 无垠乱斗共用开箱与返回
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+  steps:
+    boxes:
+      action: resonance_pc.eternal_scuffle_open_box
+      loop:
+        while: "{{ state[inputs.session_key].status == 'running' and state[inputs.session_key].round.phase == 'ready_settlement' }}"
+        max_iterations: 10000
+      params: {session_key: "{{ inputs.session_key }}"}
+    check_boxes:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: boxes
+      params: {session_key: "{{ inputs.session_key }}", phases: [return_home]}
+    return_home:
+      action: resonance_pc.eternal_scuffle_return_home
+      depends_on: check_boxes
+      params: {session_key: "{{ inputs.session_key }}"}
+    finish:
+      action: resonance_pc.eternal_scuffle_checkpoint
+      depends_on: return_home
+      params: {session_key: "{{ inputs.session_key }}", phases: [home]}
+  returns:
+    result: "{{ nodes.finish.output }}"

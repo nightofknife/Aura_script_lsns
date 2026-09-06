@@ -38,6 +38,9 @@ TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
 PASSENGER_PROGRESS_SCHEMA = "resonance_pc.passenger_progress.v1"
+PC_ETERNAL_SCUFFLE_TASK_REF = "tasks:eternal_scuffle_pc.yaml:eternal_scuffle_pc"
+ETERNAL_SCUFFLE_PROGRESS_EVENT = "task.resonance_pc_eternal_scuffle_progress"
+ETERNAL_SCUFFLE_PROGRESS_SCHEMA = "resonance_pc.eternal_scuffle_progress.v1"
 
 TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 STATUS_LABELS = {

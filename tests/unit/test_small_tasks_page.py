@@ -203,6 +203,9 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
     )
     try:
         refresh_requests: list[bool] = []
+        # This UI wiring test records the request; it must not start a real
+        # subprocess/target probe that races its short close assertion.
+        window.requestRefreshTarget.disconnect()
         window.requestRefreshTarget.connect(lambda: refresh_requests.append(True))
         window.primary_nav_buttons[window.SMALL_TASKS_PAGE_INDEX].click()
 
