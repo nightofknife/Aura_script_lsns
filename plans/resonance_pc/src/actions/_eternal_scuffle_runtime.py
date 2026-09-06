@@ -8,13 +8,12 @@ from __future__ import annotations
 import asyncio
 import copy
 import json
-import re
+import logging
+import math
 import threading
 import time
 from pathlib import Path
 from typing import Any, Callable
-
-from PIL import Image
 
 from packages.aura_core.observability.events import Event
 from packages.aura_core.observability.logging.core_logger import logger
@@ -119,14 +118,41 @@ def _json_safe(value):
         return {str(k): _json_safe(v) for k, v in value.items() if not str(k).startswith("_")}
     if isinstance(value, (list, tuple)):
         return [_json_safe(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if hasattr(value, "item"):
         try:
-            return value.item()
+            return _json_safe(value.item())
         except (ValueError, TypeError):
             pass
     return str(value)
+
+
+def existing_log_file() -> str:
+    """Use the file handler already owned by Aura; never configure a new one."""
+    for handler in getattr(getattr(logger, "logger", None), "handlers", ()):
+        if isinstance(handler, logging.FileHandler) and handler.get_name() == "task_file":
+            return str(handler.baseFilename)
+    return ""
+
+
+def log_record(session_state, kind: str, **fields):
+    row = {"type": kind, "time": time.time(), "cid": session_state["cid"],
+           "run_index": session_state["run_index"], **fields}
+    write = logger.error if kind == "failure" else logger.info
+    write("[EternalScuffle] %s", json.dumps(_json_safe(row), ensure_ascii=False, allow_nan=False))
+
+
+def round_result_from(output: Any) -> dict:
+    if not isinstance(output, dict):
+        raise ScuffleError("scuffle_round_result_missing", "子任务缺少本局完成结果。")
+    index, outcome, elapsed = (output.get(key) for key in ("run_index", "outcome", "elapsed_ms"))
+    if (type(index) is not int or index < 1 or outcome not in {"cleared", "abandoned"}
+            or type(elapsed) is not int or elapsed < 0):
+        raise ScuffleError("scuffle_round_result_invalid", "子任务的本局完成结果不完整。")
+    return {"run_index": index, "outcome": outcome, "elapsed_ms": elapsed}
 
 
 def plan_root_for(engine=None) -> Path:
@@ -184,7 +210,7 @@ class ScuffleRuntime:
         self.observer = make_observer(app, vision, self.catalog, engine)
         self.last_observation: dict = {}
         self.last_target: dict = {}
-        self.log_dir = Path(state["log_dir"])
+        self.log_file = state.get("log_file", "") or existing_log_file()
         self.equipment = {int(r["id"]): r for r in self.catalog["equipment"]}
 
     @property
@@ -195,10 +221,7 @@ class ScuffleRuntime:
         await _run_blocking(self._record_sync, kind, **fields)
 
     def _record_sync(self, kind: str, **fields):
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        row = {"type": kind, "time": time.time(), "run_index": self.state["run_index"], **fields}
-        with (self.log_dir / "events.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(_json_safe(row), ensure_ascii=False, allow_nan=False) + "\n")
+        log_record(self.state, kind, **fields)
 
     async def commit(self, stage: str | None = None, **event_fields):
         if stage is not None:
@@ -210,7 +233,7 @@ class ScuffleRuntime:
             "sequence": self.state["sequence"], "run_index": self.state["run_index"],
             "run_count": self.state["run_count"], "completed_runs": self.state["completed_runs"],
             "stage": self.state["stage"], "status": self.state["status"],
-            "log_dir": str(self.log_dir), **event_fields,
+            "log_dir": self.state.get("log_dir", ""), "log_file": self.log_file, **event_fields,
         }
         if self.event_bus is not None:
             try:
@@ -649,35 +672,33 @@ class ScuffleRuntime:
         return {"success":True,"status":"completed",**result}
 
     async def checkpoint(self, phases=None, expected_pairs=0, child_result=None, child_results=None,
-                         require_child=False, expected_children=0, label="子任务"):
+                         require_child=False, expected_children=0, label="子任务", collect_round_result=False):
         self.require_phase(*(phases or [self.round.get("phase")]))
+        result = {"success":True,"status":"completed","phase":self.round["phase"]}
         if require_child or child_result is not None:
-            child_completed(child_result,label)
+            child_output = child_completed(child_result,label)
+            if collect_round_result:
+                result["round_result"] = round_result_from(child_output)
+        elif collect_round_result:
+            raise ScuffleError("scuffle_round_result_missing", "缺少要收集结果的单局子任务。")
         if expected_children and (not isinstance(child_results,list) or len(child_results)!=expected_children):
             raise ScuffleError("scuffle_child_count_mismatch",f"{label}的已完成子任务数量不一致。")
         if child_results is not None:
-            for result in child_results:
-                child_completed(result,label)
+            for child_result_item in child_results:
+                child_completed(child_result_item,label)
         if expected_pairs and len(self.round["team"]) != expected_pairs:
             raise ScuffleError("scuffle_pair_count_mismatch","已确认选人配装组数不一致。")
-        return {"success":True,"status":"completed","phase":self.round["phase"]}
+        return result
 
-    def _save_failure(self, error, cancelled):
-        self.log_dir.mkdir(parents=True,exist_ok=True)
-        image=self.last_observation.get("_image")
-        if image is not None:
-            Image.fromarray(image).save(self.log_dir/"last_frame.png")
-            x,y=self.last_target.get("center",[640,360]);w,h=100,60
-            Image.fromarray(image).crop((max(0,x-w),max(0,y-h),min(1280,x+w),min(720,y+h))).save(self.log_dir/"last_target.png")
+    def _log_failure(self, error, cancelled):
         detail={"error":error,"state":self.state,"observation":_json_safe(self.last_observation),"last_target":self.last_target}
-        (self.log_dir/"failure.json").write_text(json.dumps(detail,ensure_ascii=False,indent=2),encoding="utf-8")
-        self._record_sync("cancelled" if cancelled else "failure", error=error, phase=self.round.get("phase"))
+        self._record_sync("cancelled" if cancelled else "failure", phase=self.round.get("phase"), **detail)
 
     async def fail(self, exc, cancelled=False):
         self.state["status"]="cancelled" if cancelled else "failed"
         error=str(exc) or "用户取消了无垠乱斗任务。"
         try:
-            await _run_blocking(self._save_failure, error, cancelled, check_cancel=False)
+            await _run_blocking(self._log_failure, error, cancelled, check_cancel=False)
         except Exception as diagnostic_error:
             logger.error("Scuffle diagnostics failed: %s",diagnostic_error)
         finally:
@@ -691,9 +712,10 @@ async def initialize(coins_per_run,run_count,app,vision,state_store,event_bus=No
     cid=str(getattr(context,"data",{}).get("cid") or getattr(getattr(engine,"root_context",None),"data",{}).get("cid") or "")
     if not cid:
         raise ScuffleError("scuffle_cid_missing","框架没有提供本次运行标识。")
-    log_dir=plan_root_for(engine).parents[1]/"logs"/"eternal_scuffle"/re.sub(r"[^a-zA-Z0-9_-]","_",cid)
+    log_file=existing_log_file()
+    log_dir=str(Path(log_file).parent) if log_file else ""
     state={"schema":SCHEMA,"cid":cid,**inputs,"run_index":0,"completed_runs":0,"cleared_runs":0,"abandoned_runs":0,
-           "stage":"preflight","status":"running","sequence":0,"log_dir":str(log_dir),"round":{"phase":"idle"}}
+           "stage":"preflight","status":"running","sequence":0,"log_dir":log_dir,"log_file":log_file,"round":{"phase":"idle"}}
     runtime=await _run_blocking(ScuffleRuntime,state,state_store,app,vision,event_bus,engine)
     try:
         await runtime.commit("preflight")
@@ -702,8 +724,8 @@ async def initialize(coins_per_run,run_count,app,vision,state_store,event_bus=No
     except asyncio.CancelledError as exc:
         await runtime.fail(exc,True);raise
     except Exception as exc:
-        await runtime.fail(exc);raise ScuffleError("scuffle_start_failed",f"启动检查失败：{exc}；诊断：{log_dir}") from exc
-    return {"success":True,"session_key":runtime.key,"log_dir":str(log_dir)}
+        await runtime.fail(exc);raise ScuffleError("scuffle_start_failed",f"启动检查失败：{exc}；详情见程序运行日志。") from exc
+    return {"success":True,"session_key":runtime.key,"log_dir":log_dir,"log_file":log_file}
 
 
 async def invoke(session_key,operation,app,vision,state_store,event_bus=None,engine=None,**params):
@@ -717,29 +739,31 @@ async def invoke(session_key,operation,app,vision,state_store,event_bus=None,eng
         await runtime.fail(exc,True);raise
     except Exception as exc:
         await runtime.fail(exc)
-        raise ScuffleError(getattr(exc,"code","scuffle_operation_failed"),f"{exc}；已完成{state['completed_runs']}局；诊断：{runtime.log_dir}") from exc
+        raise ScuffleError(getattr(exc,"code","scuffle_operation_failed"),f"{exc}；已完成{state['completed_runs']}局；详情见程序运行日志。") from exc
 
 
-def _finish_journal(state):
-    rounds=[]
-    with (Path(state["log_dir"])/"events.jsonl").open(encoding="utf-8") as stream:
-        for line in stream:
-            row=json.loads(line)
-            if row.get("type")=="round_completed":rounds.append(row["result"])
+def _finish_result(state, round_results):
+    if not isinstance(round_results, list) or len(round_results) != state["run_count"]:
+        raise ScuffleError("scuffle_round_results_missing", "框架未返回完整的每局结果。")
+    rounds=[round_result_from(child_completed(row, "每局任务").get("round_result")) for row in round_results]
     if [r["run_index"]for r in rounds]!=list(range(1,state["run_count"]+1)):
-        raise ScuffleError("scuffle_journal_incomplete","每局结果日志不完整，不能报告全部完成。")
+        raise ScuffleError("scuffle_round_results_invalid","每局结果顺序不一致，不能报告全部完成。")
+    if (sum(row["outcome"] == "cleared" for row in rounds) != state["cleared_runs"]
+            or sum(row["outcome"] == "abandoned" for row in rounds) != state["abandoned_runs"]):
+        raise ScuffleError("scuffle_round_results_invalid", "每局结果与已完成计数不一致。")
     result={"success":True,"status":"completed","run_count":state["run_count"],"completed_runs":state["completed_runs"],
-            "cleared_runs":state["cleared_runs"],"abandoned_runs":state["abandoned_runs"],"rounds":rounds,"log_dir":state["log_dir"]}
-    (Path(state["log_dir"])/"summary.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
+            "cleared_runs":state["cleared_runs"],"abandoned_runs":state["abandoned_runs"],"rounds":rounds,
+            "log_dir":state.get("log_dir", ""),"log_file":state.get("log_file", "")}
+    log_record(state, "run_completed", result=result)
     return result
 
 
-async def finish(session_key,state_store,event_bus=None):
+async def finish(session_key,state_store,event_bus=None,round_results=None):
     state=await read_session(state_store,session_key)
     check_cancelled()
     if state["status"]!="running" or state["completed_runs"]!=state["run_count"] or state["round"].get("phase")!="completed":
         raise ScuffleError("scuffle_incomplete","本次任务未完成全部局数。")
-    result=await _run_blocking(_finish_journal,state)
+    result=await _run_blocking(_finish_result,state,round_results)
     if event_bus is not None:
         try:
             await event_bus.publish(Event(name=PROGRESS_EVENT,payload={"schema":PROGRESS_SCHEMA,"cid":state["cid"],"sequence":state["sequence"]+1,

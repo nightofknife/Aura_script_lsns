@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QSpinBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget
 
 from ..config_repository import ResonanceConfigRepository
 
@@ -29,7 +29,6 @@ class EternalScufflePanel(QWidget):
         self._runner_busy = False
         self._task_running = False
         self._state: dict[str, Any] = {}
-        self._rounds: dict[int, dict[str, Any]] = {}
         self._last_operation_stage = "preflight"
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -57,15 +56,9 @@ class EternalScufflePanel(QWidget):
         self.status_label.setTextFormat(Qt.TextFormat.PlainText)
         self.summary_label = QLabel("", self)
         self.summary_label.setWordWrap(True)
-        self.diagnostic_label = QLabel("", self)
-        self.diagnostic_label.setWordWrap(True)
-        self.diagnostic_label.setTextFormat(Qt.TextFormat.PlainText)
-        self.diagnostic_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.status_label)
         layout.addWidget(self.summary_label)
-        self.round_list = QListWidget(self)
-        layout.addWidget(self.round_list, 1)
-        layout.addWidget(self.diagnostic_label)
+        layout.addStretch(1)
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         self.cancel_button = QPushButton("取消", self)
@@ -94,7 +87,6 @@ class EternalScufflePanel(QWidget):
         self._last_operation_stage = "preflight"
         self._state = {"run_count": inputs.get("run_count", 1), "run_index": 1,
                        "completed_runs": 0, "stage": "preflight", "status": "running"}
-        self._rounds.clear()
         self._task_running = True
         self._render()
         self._sync_controls()
@@ -108,7 +100,7 @@ class EternalScufflePanel(QWidget):
             self._render()
 
     def _merge(self, payload: Mapping[str, Any]) -> None:
-        for key in ("run_count", "run_index", "completed_runs", "stage", "status", "log_dir", "error"):
+        for key in ("run_count", "run_index", "completed_runs", "stage", "status", "error"):
             if key in payload:
                 # Terminal events must preserve the last actual operation.
                 if key == "stage" and payload[key] in {"failed", "cancelled"}:
@@ -116,15 +108,6 @@ class EternalScufflePanel(QWidget):
                 if key == "stage" and payload[key] != "completed":
                     self._last_operation_stage = str(payload[key])
                 self._state[key] = payload[key]
-        rows = payload.get("rounds", [])
-        if not isinstance(rows, list):
-            rows = []
-        single = payload.get("round_result")
-        if isinstance(single, Mapping):
-            rows = [*rows, single]
-        for row in rows:
-            if isinstance(row, Mapping) and isinstance(row.get("run_index"), int):
-                self._rounds[row["run_index"]] = dict(row)
 
     def apply_result(self, payload: Mapping[str, Any]) -> None:
         self._merge(payload)
@@ -151,11 +134,6 @@ class EternalScufflePanel(QWidget):
         label = {"running": "运行中", "completed": "全部完成", "failed": "执行失败", "cancelled": "已取消"}.get(status, "执行失败")
         self.status_label.setText(f"{label} · {stage}" + (f"\n{state['error']}" if state.get("error") else ""))
         self.summary_label.setText(f"当前第 {state.get('run_index', 1)} / {state.get('run_count', 1)} 局 · 已完成 {state.get('completed_runs', 0)} 局")
-        self.round_list.clear()
-        for index, row in sorted(self._rounds.items()):
-            outcome = {"cleared": "通关", "abandoned": "失败放弃"}.get(row.get("outcome"), "未完成")
-            self.round_list.addItem(f"第 {index} 局：{outcome} · 耗时 {float(row.get('elapsed_ms') or 0) / 1000:.1f} 秒")
-        self.diagnostic_label.setText(f"运行记录：{state['log_dir']}" if state.get("log_dir") else "")
 
     def set_runner_busy(self, busy: bool) -> None:
         self._runner_busy = bool(busy)

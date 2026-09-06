@@ -252,7 +252,7 @@ class ScuffleVision:
         # Keep the whole name field (including blank margins) when comparing.
         source = np.pad(source, ((4, 4), (5, 5), (0, 0)))
         ranked = self._rank(source, "role", "name_template")
-        if self._accepted(ranked, .86, .05):
+        if self._accepted(ranked, .80, .05):
             return dict(ranked[0], margin=ranked[0]["score"]-ranked[1]["score"], method="name"), ranked[:3]
         if include_spine:
             source, _ = self._crop(image, card_box)
@@ -280,7 +280,7 @@ class ScuffleVision:
             source = np.pad(source, ((4, 4), (5, 5), (0, 0)))
             names.extend(self._rank(source, "equipment", "name_template", template_shape=(height, width)))
         names.sort(key=lambda row: (-row["score"], row["id"]))
-        if self._accepted(names, .86, .05):
+        if self._accepted(names, .80, .05):
             return dict(names[0], margin=names[0]["score"]-names[1]["score"], method="equipment_name"), names
         return None, names
 

@@ -6,7 +6,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel, QListWidget
 
 from packages.resonance_gui.bridge import RunnerBridge
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -57,8 +57,12 @@ def test_busy_and_failure_preserve_progress(repository):
     assert "已取消" in panel.status_label.text()
     assert "等待战斗" in panel.status_label.text()
     assert "已完成 1 局" in panel.summary_label.text()
-    assert "失败放弃" in panel.round_list.item(0).text()
-    assert "logs/example" in panel.diagnostic_label.text()
+    assert not panel.findChildren(QListWidget)
+    assert not hasattr(panel, "_rounds")
+    assert not hasattr(panel, "diagnostic_label")
+    assert "log_dir" not in panel._state
+    assert all("运行记录" not in label.text() and "logs/example" not in label.text()
+               for label in panel.findChildren(QLabel))
     assert panel.run_button.isEnabled()
     assert not panel.cancel_button.isEnabled()
 
@@ -70,6 +74,21 @@ def test_missing_completion_cannot_show_all_complete(repository):
     panel.apply_result({"success": True, "status": "completed", "completed_runs": 1})
     assert "全部完成" not in panel.status_label.text()
     assert "领取奖励" in panel.status_label.text()
+
+
+def test_legacy_rounds_and_log_path_are_ignored_in_completed_result(repository):
+    panel = EternalScufflePanel(repository)
+    panel.begin_run({"run_count": 1})
+    panel.apply_result({"success": True, "status": "completed", "run_count": 1,
+        "completed_runs": 1, "rounds": [{"run_index": 1, "outcome": "cleared", "elapsed_ms": 2500}],
+        "round_result": {"run_index": 1, "outcome": "cleared"}, "log_dir": "legacy/scuffle/logs"})
+    assert "全部完成" in panel.status_label.text()
+    assert "已完成 1 局" in panel.summary_label.text()
+    assert not panel.findChildren(QListWidget)
+    assert not hasattr(panel, "_rounds")
+    assert not {"rounds", "round_result", "log_dir"}.intersection(panel._state)
+    assert all("运行记录" not in label.text() and "legacy/scuffle/logs" not in label.text()
+               for label in panel.findChildren(QLabel))
 
 
 def test_bridge_rejects_stale_wrong_schema_duplicate_and_non_integer_sequence(repository):

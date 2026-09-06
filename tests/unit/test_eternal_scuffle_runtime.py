@@ -6,6 +6,8 @@ import asyncio
 from collections import deque
 from copy import deepcopy
 import json
+import logging
+from pathlib import Path
 import time
 
 import pytest
@@ -33,6 +35,33 @@ class Bus:
 
     async def publish(self, event):
         self.events.append(event)
+
+
+@pytest.fixture
+def scuffle_logs():
+    records = []
+
+    class Capture(logging.Handler):
+        def emit(self, record):
+            message = record.getMessage()
+            if message.startswith("[EternalScuffle]"):
+                records.append({"level": record.levelno, "payload": json.loads(message[message.index("{"):])})
+
+    handler = Capture()
+    existing = runtime.logger.logger
+    original_level = existing.level
+    existing.setLevel(logging.INFO)
+    existing.addHandler(handler)
+    try:
+        yield records
+    finally:
+        existing.removeHandler(handler)
+        existing.setLevel(original_level)
+
+
+def checked_round(result):
+    summary = {key: result[key] for key in ("run_index", "outcome", "elapsed_ms")}
+    return {"nodes": {"finish": {"output": {"success": True, "status": "completed", "round_result": summary}}}}
 
 
 def frame(scene, **values):
@@ -73,7 +102,7 @@ class Observer:
 
 
 @pytest.fixture
-def rig(monkeypatch, tmp_path):
+def rig(monkeypatch, tmp_path, scuffle_logs):
     observer, store, bus = Observer(), Store(), Bus()
     catalog = {
         "characters": [{"id": i, "rank": i, "rarity": "SSR"} for i in range(1, 7)],
@@ -124,6 +153,7 @@ def rig(monkeypatch, tmp_path):
 
     monkeypatch.setattr(runtime, "aura_click", click)
     machine.fake_observer = observer
+    machine.captured_logs = scuffle_logs
     return machine
 
 
@@ -370,7 +400,7 @@ def test_cancel_after_first_click_prevents_retry_and_coin_confirmation(rig, monk
     assert rig.round["phase"] == "coin"
 
 
-def test_action_wrapper_cancellation_persists_diagnostics_without_later_clicks(rig, monkeypatch):
+def test_action_wrapper_cancellation_logs_diagnostics_without_new_files_or_later_clicks(rig, monkeypatch):
     from plans.resonance_pc.src.actions.eternal_scuffle_pc_actions import eternal_scuffle_coin
     cancelled = False
     monkeypatch.setattr(runtime, "is_current_task_cancel_requested", lambda: cancelled)
@@ -388,9 +418,12 @@ def test_action_wrapper_cancellation_persists_diagnostics_without_later_clicks(r
     assert saved["completed_runs"] == 0
     assert saved["stage"] == "coin"
     assert saved["round"]["phase"] == "coin"
-    failure = json.loads((rig.log_dir / "failure.json").read_text(encoding="utf-8"))
+    failures = [entry for entry in rig.captured_logs if entry["payload"].get("state", {}).get("status") == "cancelled"]
+    assert failures and failures[-1]["payload"]["type"] == "cancelled"
+    failure = failures[-1]["payload"]
     assert failure["state"]["status"] == "cancelled"
     assert failure["last_target"]["label"] == "play"
+    assert not Path(rig.state["log_dir"]).exists()
     assert rig.event_bus.events[-1].payload["status"] == "cancelled"
 
 
@@ -415,50 +448,98 @@ def test_complete_round_requires_home_and_commits_exactly_once(rig):
     with pytest.raises(runtime.ScuffleError):
         asyncio.run(rig.complete_round())
     assert rig.state["completed_runs"] == 1
-    events = [json.loads(line) for line in (rig.log_dir / "events.jsonl").read_text(encoding="utf-8").splitlines()]
+    events = [entry["payload"] for entry in rig.captured_logs]
     assert len([row for row in events if row["type"] == "round_completed"]) == 1
+    assert not Path(rig.state["log_dir"]).exists()
 
 
-def test_finish_checks_journal_and_deletes_only_own_session(rig):
+def test_finish_uses_checked_results_without_file_readback_and_deletes_only_own_session(rig, monkeypatch):
     rig.round.update(phase="home", returned_home=True, outcome="abandoned")
-    asyncio.run(rig.complete_round())
+    completed = asyncio.run(rig.complete_round())
     asyncio.run(rig.store.set("eternal_scuffle:another-cid", {"other": True}))
-    result = asyncio.run(runtime.finish(rig.key, rig.store, rig.event_bus))
+    monkeypatch.setattr(Path, "open", lambda *a, **kw: pytest.fail("finish must not read or write a journal"))
+    result = asyncio.run(runtime.finish(rig.key, rig.store, rig.event_bus, round_results=[checked_round(completed)]))
     assert result["completed_runs"] == 1
     assert result["abandoned_runs"] == 1
     assert result["rounds"][0]["outcome"] == "abandoned"
     assert rig.key not in rig.store.values
     assert rig.store.values["unrelated"] == {"value": "keep"}
     assert rig.store.values["eternal_scuffle:another-cid"] == {"other": True}
-    assert json.loads((rig.log_dir / "summary.json").read_text(encoding="utf-8")) == result
+    assert not Path(rig.state["log_dir"]).exists()
     assert rig.event_bus.events[-1].payload["status"] == "completed"
 
 
-def test_finish_rejects_missing_round_journal_and_preserves_session(rig):
+@pytest.mark.parametrize("results", [None, [], [{}], [{"nodes": {"finish": {"output": {"success": True, "status": "completed"}}}}]])
+def test_finish_rejects_missing_checked_round_results_and_preserves_session(rig, results):
     rig.round.update(phase="home", returned_home=True, outcome="cleared")
     asyncio.run(rig.complete_round())
-    (rig.log_dir / "events.jsonl").write_text("", encoding="utf-8")
-    with pytest.raises(runtime.ScuffleError, match="journal_incomplete"):
-        asyncio.run(runtime.finish(rig.key, rig.store))
+    with pytest.raises(runtime.ScuffleError):
+        asyncio.run(runtime.finish(rig.key, rig.store, round_results=results))
     assert rig.key in rig.store.values
+    assert not Path(rig.state["log_dir"]).exists()
 
 
 def test_finish_returns_summary_and_cleans_session_when_progress_bus_fails(rig):
     rig.round.update(phase="home", returned_home=True, outcome="cleared")
-    asyncio.run(rig.complete_round())
+    completed = asyncio.run(rig.complete_round())
 
     class FailingBus:
         async def publish(self, event):
             raise RuntimeError("simulated progress transport failure")
 
-    result = asyncio.run(runtime.finish(rig.key, rig.store, FailingBus()))
+    result = asyncio.run(runtime.finish(rig.key, rig.store, FailingBus(), round_results=[checked_round(completed)]))
     assert result["success"] is True
     assert result["status"] == "completed"
     assert result["completed_runs"] == 1
     assert result["rounds"][0]["outcome"] == "cleared"
     assert rig.key not in rig.store.values
     assert rig.store.values["unrelated"] == {"value": "keep"}
-    assert json.loads((rig.log_dir / "summary.json").read_text(encoding="utf-8")) == result
+    assert not Path(rig.state["log_dir"]).exists()
+
+
+@pytest.mark.parametrize("defect", ["reversed", "duplicate", "missing", "wrong_outcome", "negative_elapsed", "counter_mismatch"])
+def test_finish_validates_result_order_contents_and_counts_without_logs(rig, defect):
+    rig.state.update(run_count=2, run_index=2, completed_runs=2, cleared_runs=1, abandoned_runs=1)
+    rig.round.update(phase="completed", returned_home=True, outcome="abandoned")
+    rows = [checked_round({"run_index": 1, "outcome": "cleared", "elapsed_ms": 42}),
+            checked_round({"run_index": 2, "outcome": "abandoned", "elapsed_ms": 53})]
+    if defect == "reversed":
+        rows.reverse()
+    elif defect == "duplicate":
+        rows[1] = deepcopy(rows[0])
+    elif defect == "missing":
+        rows.pop()
+    elif defect == "wrong_outcome":
+        rows[1]["nodes"]["finish"]["output"]["round_result"]["outcome"] = "victory"
+    elif defect == "negative_elapsed":
+        rows[1]["nodes"]["finish"]["output"]["round_result"]["elapsed_ms"] = -1
+    else:
+        rig.state.update(cleared_runs=2, abandoned_runs=0)
+    asyncio.run(rig.store.set(rig.key, rig.state))
+    with pytest.raises(runtime.ScuffleError):
+        asyncio.run(runtime.finish(rig.key, rig.store, round_results=rows))
+    assert rig.key in rig.store.values
+    assert not Path(rig.state["log_dir"]).exists()
+
+
+def test_checkpoint_forwards_validated_round_result_without_journal(rig):
+    rig.round.update(phase="home", returned_home=True, outcome="cleared")
+    completed = asyncio.run(rig.complete_round())
+    child = {"nodes": {"finish": {"output": completed}}}
+    forwarded = asyncio.run(rig.checkpoint(phases=["completed"], require_child=True,
+                                          child_result=child, collect_round_result=True))
+    assert forwarded["success"] is True
+    assert forwarded["round_result"] == {key: completed[key] for key in ("run_index", "outcome", "elapsed_ms")}
+    assert not Path(rig.state["log_dir"]).exists()
+
+
+@pytest.mark.parametrize("output", [None, {"success": True, "status": "completed"},
+    {"success": True, "status": "completed", "run_index": 1, "outcome": "cleared", "elapsed_ms": -1}])
+def test_collect_round_result_checkpoint_requires_valid_business_result(rig, output):
+    child = None if output is None else {"nodes": {"finish": {"output": output}}}
+    with pytest.raises(runtime.ScuffleError):
+        asyncio.run(rig.checkpoint(child_result=child, collect_round_result=True))
+    assert not Path(rig.state["log_dir"]).exists()
 
 
 @pytest.mark.parametrize("successful_click", [1, 2])
@@ -524,3 +605,13 @@ def test_real_vision_candidate_click_guards_run_off_event_loop(rig, monkeypatch,
             assert any(click_count == 1 for click_count, _ in candidate_threads)
 
     asyncio.run(run())
+
+
+def test_checkpoint_keeps_collected_result_when_validating_child_list(rig):
+    completed = {"run_index": 1, "outcome": "cleared", "elapsed_ms": 20}
+    child = {"nodes": {"finish": {"output": {"success": True, "status": "completed", **completed}}}}
+    result = asyncio.run(rig.checkpoint(
+        child_result=child, child_results=[child], collect_round_result=True,
+    ))
+    assert result == {"success": True, "status": "completed", "phase": rig.round["phase"],
+                      "round_result": completed}
