@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "reference_client": [1280, 720],
+  "timeout_sec": 3.0,
+  "poll_interval_sec": 0.2,
+  "click_interval_sec": 0.7,
+  "sparkling_water_roi": [937, 221, 88, 52],
+  "sparkling_water_digits": {
+    "directory": "templates/player_recovery/free_uses_digits",
+    "template_size": [32, 48],
+    "threshold": 0.95,
+    "min_score_margin": 0.04,
+    "remaining_roi": [0, 0, 36, 52],
+    "limit_roi": [40, 0, 48, 52]
+  },
+  "bento_region": [150, 160, 635, 105],
+  "bento_slots": [
+    {"issue_time": "05:00", "roi": [150, 160, 165, 105]},
+    {"issue_time": "12:00", "roi": [385, 160, 165, 105]},
+    {"issue_time": "18:00", "roi": [620, 160, 165, 105]}
+  ],
+  "templates": {
+    "profile": {"path": "templates/player_recovery/profile.png", "roi": [305, 293, 215, 45], "threshold": 0.85},
+    "fatigue_plus": {"path": "templates/player_recovery/fatigue_plus.png", "roi": [420, 245, 55, 50], "threshold": 0.85},
+    "fatigue_page": {"path": "templates/player_recovery/fatigue_page.png", "roi": [560, 105, 270, 45], "threshold": 0.85},
+    "rest_info": {"path": "templates/player_recovery/rest_info.png", "roi": [1138, 260, 60, 55], "threshold": 0.85},
+    "popup": {"path": "templates/player_recovery/popup.png", "roi": [930, 170, 100, 45], "threshold": 0.85},
+    "bento_button": {"path": "templates/player_recovery/bento_button.png", "roi": [1040, 570, 150, 75], "threshold": 0.85},
+    "bento_page": {"path": "templates/player_recovery/bento_page.png", "roi": [330, 6, 215, 65], "threshold": 0.85},
+    "back": {"path": "templates/player_recovery/back.png", "roi": [10, 7, 145, 60], "threshold": 0.85},
+    "bento_present": {"path": "templates/player_recovery/bento_present.png", "threshold": 0.85},
+    "bento_absent": {"path": "templates/player_recovery/bento_absent.png", "threshold": 0.85}
+  }
+}

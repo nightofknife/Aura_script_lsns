@@ -924,10 +924,6 @@ exports:
       type: Any
       required: false
       default: null
-    - name: auto_book
-      type: Any
-      required: false
-      default: false
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -1023,10 +1019,6 @@ exports:
       type: Any
       required: false
       default: true
-    - name: auto_book
-      type: Any
-      required: false
-      default: false
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -1248,6 +1240,34 @@ exports:
     timeout: 15
     description: Capture one fixed-displacement Consciousness Deep Dive board view.
     parameters:
+    - name: displacement_px
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.start_consciousness_deep_dive_drag_probe
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_drag_probe_pc_actions
+    function: resonance_pc_start_consciousness_deep_dive_drag_probe
+    public: false
+    read_only: false
+    timeout: null
+    description: Create one output directory for a Deep Dive drag-distance probe.
+    parameters: []
+  - name: resonance_pc.capture_consciousness_deep_dive_drag_probe_frame
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_drag_probe_pc_actions
+    function: resonance_pc_capture_consciousness_deep_dive_drag_probe_frame
+    public: false
+    read_only: false
+    timeout: 15
+    description: Save one pre-drag frame for a Deep Dive drag-distance probe.
+    parameters:
+    - name: run_id
+      type: Any
+      required: true
+      default: null
+    - name: round_index
+      type: Any
+      required: true
+      default: null
     - name: displacement_px
       type: Any
       required: true
@@ -1711,6 +1731,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: profile_sections
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.player_data_get_latest
     module: plans.resonance_pc.src.actions.player_data_pc_actions
     function: resonance_pc_player_data_get_latest
@@ -1991,10 +2015,6 @@ exports:
       type: Any
       required: false
       default: null
-    - name: auto_book
-      type: Any
-      required: false
-      default: false
   - name: resonance_pc.trade_plan_next
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_next
@@ -2514,6 +2534,18 @@ exports:
     title: Consciousness Deep Dive View Capture (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
     description: Capture four calibrated board views for recognition material.
+  - id: consciousness_deep_dive_drag_distance_probe_pc/consciousness_deep_dive_drag_distance_probe_round_pc
+    title: Consciousness Deep Dive Drag Distance Probe Round (PC)
+    source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
+    description: Capture one frame and perform one 80px upward drag.
+  - id: consciousness_deep_dive_drag_distance_probe_pc/consciousness_deep_dive_drag_distance_probe_pc
+    title: 拖动距离测算
+    source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
+    description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
+  - id: consciousness_deep_dive_drag_distance_probe_pc
+    title: 拖动距离测算
+    source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
+    description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
   - id: consciousness_deep_dive_pc/consciousness_deep_dive_pc
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
@@ -2637,4 +2669,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-06T11:53:49Z'
+  generated_at: '2026-09-06T13:18:04Z'

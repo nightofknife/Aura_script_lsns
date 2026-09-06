@@ -1,0 +1,88 @@
+consciousness_deep_dive_drag_distance_probe_round_pc:
+  meta:
+    title: Consciousness Deep Dive Drag Distance Probe Round (PC)
+    description: Capture one frame and perform one 80px upward drag.
+    entry_point: false
+    inputs:
+      - name: run_id
+        type: string
+        required: true
+      - name: round_index
+        type: number
+        required: true
+      - name: displacement_px
+        type: number
+        required: true
+
+  steps:
+    capture_before_drag:
+      action: resonance_pc.capture_consciousness_deep_dive_drag_probe_frame
+      params:
+        run_id: "{{ inputs.run_id }}"
+        round_index: "{{ inputs.round_index }}"
+        displacement_px: "{{ inputs.displacement_px }}"
+
+    wait_after_capture:
+      action: plans/aura_base/sleep
+      params: {seconds: 1.0}
+      depends_on: capture_before_drag
+
+    drag_80px:
+      action: plans/aura_base/drag
+      params:
+        start_x: 640
+        start_y: 480
+        end_x: 640
+        end_y: 400
+        duration: 0.5
+      depends_on: wait_after_capture
+
+    wait_after_drag:
+      action: plans/aura_base/sleep
+      params: {seconds: 1.0}
+      depends_on: drag_80px
+
+  returns:
+    success: true
+    capture: "{{ nodes.capture_before_drag.output }}"
+
+
+consciousness_deep_dive_drag_distance_probe_pc:
+  meta:
+    title: 拖动距离测算
+    description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
+    entry_point: true
+    inputs: []
+
+  steps:
+    wait_before_probe:
+      action: plans/aura_base/sleep
+      params: {seconds: 2.0}
+
+    start_probe:
+      action: resonance_pc.start_consciousness_deep_dive_drag_probe
+      depends_on: wait_before_probe
+
+    run_rounds:
+      action: aura.run_task
+      loop:
+        times: 100
+        parallelism: 1
+      params:
+        task_ref: "tasks:consciousness_deep_dive_drag_distance_probe_pc.yaml:consciousness_deep_dive_drag_distance_probe_round_pc"
+        inputs:
+          run_id: "{{ nodes.start_probe.output.run_id }}"
+          round_index: "{{ loop.index + 1 }}"
+          displacement_px: "{{ loop.index * 80 }}"
+      depends_on: start_probe
+
+  returns:
+    success: true
+    status: completed
+    run_id: "{{ nodes.start_probe.output.run_id }}"
+    output_dir: "{{ nodes.start_probe.output.output_dir }}"
+    capture_count: 100
+    drag_count: 100
+    drag_step_px: 80
+    final_commanded_displacement_px: 8000
+    rounds: "{{ nodes.run_rounds.output }}"

@@ -56,18 +56,23 @@ def test_release_updater_preserves_user_data(tmp_path: Path) -> None:
     assert hashlib.sha256(user_info.read_bytes()).hexdigest() == before_hash
 
 
-def test_release_runtime_cleanup_removes_user_data(tmp_path: Path) -> None:
+def test_release_runtime_cleanup_preserves_user_data_and_removes_logs(tmp_path: Path) -> None:
     release = tmp_path / "release"
     user_info = release / "user-data" / "user-info.json"
     user_info.parent.mkdir(parents=True)
     user_info.write_text("{}", encoding="utf-8")
+    logs = release / "logs"
+    logs.mkdir()
+    (logs / "session.log").write_text("runtime log", encoding="utf-8")
 
     with pytest.raises(ValueError, match="generated runtime files"):
         reset_release_runtime_data(release, check_only=True)
 
     report = reset_release_runtime_data(release)
     assert report["removed_files"] == 1
-    assert not (release / "user-data").exists()
+    assert user_info.read_text(encoding="utf-8") == "{}"
+    assert not (logs / "session.log").exists()
+    reset_release_runtime_data(release, check_only=True)
 
 
 def test_release_contract_forbids_user_data() -> None:

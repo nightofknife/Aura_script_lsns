@@ -28,13 +28,15 @@ from PySide6.QtWidgets import (
 from ..config_repository import (
     PLAYER_DATA_INVENTORY_CATEGORY_ORDER,
     PLAYER_DATA_STAGE_ORDER,
+    PLAYER_DATA_PROFILE_SECTION_ORDER,
+    DEFAULT_PROFILE_SECTIONS,
     ResonanceConfigRepository,
 )
 
 
 STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("location", "当前位置", "当前所在城市"),
-    ("profile", "用户信息", "UID、昵称、等级、货舱、澄明度及疲劳"),
+    ("profile", "用户信息", "独立选择货舱、澄明度、疲劳、气泡水次数及便当数量"),
     (
         "inventory",
         "仓库",
@@ -47,6 +49,10 @@ INVENTORY_CATEGORY_LABELS = {
     "items": "道具",
     "materials": "材料",
     "equipment": "装备",
+}
+PROFILE_SECTION_LABELS = {
+    "cargo": "货舱", "clarity": "澄明度", "fatigue": "疲劳",
+    "sparkling_water": "气泡水次数", "bento": "便当数量",
 }
 
 _NO_CACHE_ERROR_MARKER = "No cached Resonance PC player data is available"
@@ -92,6 +98,7 @@ class PlayerDataPanel(QWidget):
         self._stage_checks: dict[str, QCheckBox] = {}
         self._stage_times: dict[str, QLabel] = {}
         self._inventory_category_checks: dict[str, QCheckBox] = {}
+        self._profile_section_checks: dict[str, QCheckBox] = {}
         self._build_ui()
         self._load_inputs()
         self._render_snapshot()
@@ -135,7 +142,12 @@ class PlayerDataPanel(QWidget):
             button = QPushButton(text, page)
             button.setObjectName("quietButton")
             button.clicked.connect(
-                lambda checked=False, selected=tuple(stages): self._select_stages(selected)
+                lambda checked=False, selected=tuple(stages), shortcut=text: self._select_stages(
+                    selected,
+                    profile_sections=PLAYER_DATA_PROFILE_SECTION_ORDER if shortcut == "全部" else (
+                        DEFAULT_PROFILE_SECTIONS if shortcut == "基础信息" else None
+                    ),
+                )
             )
             shortcuts.addWidget(button)
         layout.addLayout(shortcuts)
@@ -162,6 +174,15 @@ class PlayerDataPanel(QWidget):
             detail.setProperty("caption", True)
             row_layout.addLayout(top)
             row_layout.addWidget(detail)
+            if stage == "profile":
+                sections = QGridLayout()
+                for section_index, section in enumerate(PLAYER_DATA_PROFILE_SECTION_ORDER):
+                    section_check = QCheckBox(PROFILE_SECTION_LABELS[section], row)
+                    sections.addWidget(section_check, section_index // 3, section_index % 3)
+                    self._profile_section_checks[section] = section_check
+                self._profile_section_checks["sparkling_water"].setToolTip("银枝气泡水的剩余免材料次数，不是仓库道具数量")
+                self._profile_section_checks["bento"].setToolTip("仅统计顶部三个工作餐槽位，数量为 0–3")
+                row_layout.addLayout(sections)
             if stage == "inventory":
                 categories = QHBoxLayout()
                 categories.setSpacing(12)
@@ -195,6 +216,9 @@ class PlayerDataPanel(QWidget):
             check.toggled.connect(self._refresh_selection_summary)
         for check in self._inventory_category_checks.values():
             check.toggled.connect(self._refresh_selection_summary)
+        for check in self._profile_section_checks.values():
+            check.toggled.connect(self._refresh_selection_summary)
+        self._stage_checks["profile"].toggled.connect(self._sync_profile_section_controls)
         self._stage_checks["inventory"].toggled.connect(
             self._sync_inventory_category_controls
         )
@@ -217,16 +241,28 @@ class PlayerDataPanel(QWidget):
         header.addWidget(self.cache_button)
         layout.addLayout(header)
 
-        self.identity_label = QLabel("账号：--", page)
-        self.identity_label.setObjectName("playerDataIdentity")
-        self.identity_label.setWordWrap(True)
-        self.status_label = QLabel("状态：--", page)
-        self.status_label.setWordWrap(True)
+        self.location_label = QLabel("当前位置：--", page)
+        self.location_label.setObjectName("playerDataLocation")
+        self.location_label.setWordWrap(True)
         self.currency_label = QLabel("货币：--", page)
         self.currency_label.setWordWrap(True)
-        layout.addWidget(self.identity_label)
-        layout.addWidget(self.status_label)
+        layout.addWidget(self.location_label)
         layout.addWidget(self.currency_label)
+        profile_grid = QGridLayout()
+        self.profile_value_labels: dict[str, QLabel] = {}
+        self.profile_time_labels: dict[str, QLabel] = {}
+        for index, section in enumerate(PLAYER_DATA_PROFILE_SECTION_ORDER):
+            value_label = QLabel("未读取", page)
+            value_label.setWordWrap(True)
+            time_label = QLabel("从未更新", page)
+            time_label.setProperty("caption", True)
+            profile_grid.addWidget(QLabel(PROFILE_SECTION_LABELS[section], page), index, 0)
+            profile_grid.addWidget(value_label, index, 1)
+            profile_grid.addWidget(time_label, index, 2)
+            self.profile_value_labels[section] = value_label
+            self.profile_time_labels[section] = time_label
+        profile_grid.setColumnStretch(1, 1)
+        layout.addLayout(profile_grid)
 
         self.snapshot_details_tabs = QTabWidget(page)
 
@@ -312,13 +348,20 @@ class PlayerDataPanel(QWidget):
         selected_categories = set(saved.get("inventory_categories") or ["items"])
         for category, check in self._inventory_category_checks.items():
             check.setChecked(category in selected_categories)
+        selected_sections = saved.get("profile_sections", DEFAULT_PROFILE_SECTIONS)
+        for section, check in self._profile_section_checks.items():
+            check.setChecked(section in selected_sections)
         self._sync_inventory_category_controls()
+        self._sync_profile_section_controls()
         self._refresh_selection_summary()
 
-    def _select_stages(self, selected: tuple[str, ...]) -> None:
+    def _select_stages(self, selected: tuple[str, ...], *, profile_sections: tuple[str, ...] | None = None) -> None:
         selected_set = set(selected)
         for stage, check in self._stage_checks.items():
             check.setChecked(stage in selected_set)
+        if profile_sections is not None:
+            for section, check in self._profile_section_checks.items():
+                check.setChecked(section in profile_sections)
         self._refresh_selection_summary()
 
     def _refresh_selection_summary(self, _checked: bool = False) -> None:
@@ -327,6 +370,12 @@ class PlayerDataPanel(QWidget):
             self.selection_summary.setText("请至少选择一个读取阶段。")
             self.selection_summary.setProperty("status", "error")
         else:
+            if "profile" in selected and not self.selected_profile_sections():
+                self.selection_summary.setText("用户信息至少需要选择一个子项。")
+                self.selection_summary.setProperty("status", "error")
+                self.selection_summary.style().unpolish(self.selection_summary)
+                self.selection_summary.style().polish(self.selection_summary)
+                return
             inventory_note = ""
             if "inventory" in selected:
                 categories = self.selected_inventory_categories()
@@ -340,7 +389,9 @@ class PlayerDataPanel(QWidget):
                     self.selection_summary.style().polish(self.selection_summary)
                     return
             self.selection_summary.setText(
-                f"将读取 {len(selected)} 个阶段并自动合并保存{inventory_note}。"
+                f"将读取 {len(selected)} 个阶段并自动合并保存"
+                + (f"；用户信息 {len(self.selected_profile_sections())} 项" if "profile" in selected else "")
+                + f"{inventory_note}。"
             )
             self.selection_summary.setProperty("status", "success")
         self.selection_summary.style().unpolish(self.selection_summary)
@@ -356,6 +407,14 @@ class PlayerDataPanel(QWidget):
             if self._inventory_category_checks[category].isChecked()
         ]
 
+    def selected_profile_sections(self) -> list[str]:
+        return [section for section in PLAYER_DATA_PROFILE_SECTION_ORDER if self._profile_section_checks[section].isChecked()]
+
+    def _sync_profile_section_controls(self, _checked: bool = False) -> None:
+        enabled = self._stage_checks["profile"].isChecked()
+        for check in self._profile_section_checks.values():
+            check.setEnabled(enabled)
+
     def _sync_inventory_category_controls(self, _checked: bool = False) -> None:
         enabled = self._stage_checks["inventory"].isChecked()
         for check in self._inventory_category_checks.values():
@@ -368,9 +427,13 @@ class PlayerDataPanel(QWidget):
         categories = self.selected_inventory_categories()
         if "inventory" in stages and not categories:
             raise ValueError("仓库阶段至少需要选择道具、材料或装备中的一项。")
+        profile_sections = self.selected_profile_sections()
+        if "profile" in stages and not profile_sections:
+            raise ValueError("用户信息至少需要选择一个子项。")
         inputs = {
             "stages": stages,
             "inventory_categories": categories or ["items"],
+            "profile_sections": profile_sections,
         }
         self._settings.save_player_data_inputs(inputs)
         return inputs
@@ -405,9 +468,8 @@ class PlayerDataPanel(QWidget):
     def apply_refresh_result(self, refreshed: Mapping[str, Any]) -> None:
         fresh = copy.deepcopy(dict(refreshed))
         merged = copy.deepcopy(self._snapshot)
-        for key in ("location", "profile"):
-            if key in fresh:
-                merged[key] = fresh[key]
+        if "location" in fresh:
+            merged["location"] = fresh["location"]
         fresh_currencies = fresh.get("currencies")
         if isinstance(fresh_currencies, Mapping):
             currencies = merged.setdefault("currencies", {})
@@ -433,6 +495,14 @@ class PlayerDataPanel(QWidget):
             for key in ("cargo", "clarity", "fatigue"):
                 if key in fresh_status:
                     status[key] = copy.deepcopy(fresh_status[key])
+        fresh_recovery = fresh.get("recovery")
+        if isinstance(fresh_recovery, Mapping) and fresh_recovery:
+            recovery = merged.get("recovery")
+            recovery = recovery if isinstance(recovery, dict) else {}
+            for key in ("sparkling_water", "bento"):
+                if key in fresh_recovery:
+                    recovery[key] = copy.deepcopy(fresh_recovery[key])
+            merged["recovery"] = recovery
 
         fresh_metadata = fresh.get("metadata")
         if isinstance(fresh_metadata, Mapping):
@@ -445,6 +515,14 @@ class PlayerDataPanel(QWidget):
                 section_times = {}
                 metadata["section_updated_at"] = section_times
             fresh_times = fresh_metadata.get("section_updated_at")
+            fresh_profile_times = fresh_metadata.get("profile_section_updated_at")
+            if isinstance(fresh_profile_times, Mapping) and fresh_profile_times:
+                previous_profile_times = metadata.get("profile_section_updated_at")
+                if not previous_profile_times and section_times.get("profile"):
+                    metadata.setdefault("profile_legacy_updated_at", section_times["profile"])
+                sub_times = dict(previous_profile_times) if isinstance(previous_profile_times, Mapping) else {}
+                sub_times.update(copy.deepcopy(dict(fresh_profile_times)))
+                metadata["profile_section_updated_at"] = sub_times
             if isinstance(fresh_times, Mapping):
                 section_times.update(copy.deepcopy(dict(fresh_times)))
             metadata["section_updated_at"] = {
@@ -481,22 +559,42 @@ class PlayerDataPanel(QWidget):
         section_times = section_times if isinstance(section_times, Mapping) else {}
         for stage, label in self._stage_times.items():
             label.setText(_format_timestamp(section_times.get(stage)))
+        if metadata.get("profile_section_updated_at"):
+            self._stage_times["profile"].setText("最近局部更新 " + _format_timestamp(section_times.get("profile")))
 
-        profile = snapshot.get("profile") if isinstance(snapshot.get("profile"), Mapping) else {}
         location = snapshot.get("location") if isinstance(snapshot.get("location"), Mapping) else {}
-        nickname = profile.get("nickname") or "--"
-        uid = profile.get("uid") or "--"
-        level = profile.get("level") if profile.get("level") is not None else "--"
         city = location.get("current_city") or "--"
-        self.identity_label.setText(f"账号：{nickname} · UID {uid} · Lv.{level} · {city}")
+        self.location_label.setText(f"当前位置：{city}")
 
         status = snapshot.get("status") if isinstance(snapshot.get("status"), Mapping) else {}
-        self.status_label.setText(
-            "状态："
-            f"货舱 {_ratio_text(status.get('cargo'))}   "
-            f"澄明度 {_ratio_text(status.get('clarity'))}   "
-            f"疲劳 {_ratio_text(status.get('fatigue'))}"
-        )
+        recovery = snapshot.get("recovery") if isinstance(snapshot.get("recovery"), Mapping) else {}
+        sub_times = metadata.get("profile_section_updated_at")
+        sub_times = sub_times if isinstance(sub_times, Mapping) else {}
+        legacy_time = metadata.get("profile_legacy_updated_at") or (section_times.get("profile") if not sub_times else None)
+        for section in PLAYER_DATA_PROFILE_SECTION_ORDER:
+            value = status.get(section) if section in DEFAULT_PROFILE_SECTIONS else recovery.get(section)
+            text = "未读取"
+            if isinstance(value, Mapping):
+                if section in DEFAULT_PROFILE_SECTIONS:
+                    text = _ratio_text(value)
+                elif section == "sparkling_water":
+                    remaining, maximum = value.get("remaining_free_uses"), value.get("daily_free_limit")
+                    if remaining is not None and maximum is not None:
+                        text = f"剩余免费次数 {remaining} / {maximum}"
+                elif value.get("available_count") is not None:
+                    text = f"{value['available_count']} / 3"
+                    slots = value.get("slots")
+                    if isinstance(slots, list):
+                        text += " · " + " · ".join(
+                            f"{slot.get('issue_time', '--')} {'有' if slot.get('available') else '无'}"
+                            for slot in slots if isinstance(slot, Mapping)
+                        )
+            self.profile_value_labels[section].setText(text)
+            timestamp = sub_times.get(section)
+            legacy = not timestamp and section in DEFAULT_PROFILE_SECTIONS and value is not None and legacy_time
+            self.profile_time_labels[section].setText(
+                _format_timestamp(timestamp or (legacy_time if legacy else None)) + ("（旧记录）" if legacy else "")
+            )
         currencies = (
             snapshot.get("currencies")
             if isinstance(snapshot.get("currencies"), Mapping)

@@ -63,7 +63,6 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
-    "auto_book": False,
     "book_profit_threshold": 500000,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
@@ -107,10 +106,15 @@ PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = (
     "materials",
     "equipment",
 )
-PLAYER_DATA_INPUTS_SCHEMA_VERSION = 3
+PLAYER_DATA_PROFILE_SECTION_ORDER: tuple[str, ...] = (
+    "cargo", "clarity", "fatigue", "sparkling_water", "bento",
+)
+DEFAULT_PROFILE_SECTIONS: tuple[str, ...] = ("cargo", "clarity", "fatigue")
+PLAYER_DATA_INPUTS_SCHEMA_VERSION = 4
 DEFAULT_PLAYER_DATA_INPUTS: dict[str, Any] = {
     "stages": [*PLAYER_DATA_STAGE_ORDER],
     "inventory_categories": ["items"],
+    "profile_sections": [*DEFAULT_PROFILE_SECTIONS],
 }
 
 DEFAULT_BATTLE_INPUTS: dict[str, Any] = {
@@ -369,7 +373,6 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         )
     )
     merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
-    merged["auto_book"] = bool(merged["auto_book"])
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     try:
@@ -446,9 +449,14 @@ def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
         inventory_categories = ["items"]
     if "currencies" in selected and "items" not in inventory_categories:
         inventory_categories.insert(0, "items")
+    raw_profile_sections = values.get("profile_sections")
+    requested_profile_sections = (
+        raw_profile_sections if isinstance(raw_profile_sections, list) else DEFAULT_PROFILE_SECTIONS
+    )
     return {
         "stages": data_stages,
         "inventory_categories": inventory_categories,
+        "profile_sections": [section for section in PLAYER_DATA_PROFILE_SECTION_ORDER if section in requested_profile_sections],
     }
 
 

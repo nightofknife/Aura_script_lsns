@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Any, Callable, Mapping
+from typing import Any, Callable
 
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
@@ -47,11 +47,11 @@ from .logic import (
     extract_final_result,
     extract_run_id,
     extract_status,
-    normalize_trade_task_inputs,
     parse_inputs_json,
     pretty_json,
     render_result_text,
     trade_result_summary,
+    validate_recovery_refresh,
 )
 from .style import APP_STYLE
 from .task_specs import CATEGORIES, TASKS_BY_ID, WORKBENCH_TASKS, TaskSpec
@@ -123,6 +123,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending: list[dict[str, Any]] = []
         self._workflow_current: dict[str, Any] | None = None
         self._workflow_failed_message = ""
+        self._workflow_recovery_snapshot: dict[str, Any] = {}
         self._small_task_active_ref = ""
         self._current_task: TaskSpec = TASKS_BY_ID.get(self._preferences.last_task_id) or WORKBENCH_TASKS[0]
 
@@ -236,8 +237,6 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.tradeEndCityAvailabilityChanged.connect(
             self.trade_page.set_end_city_constraint_available
         )
-        self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
-        self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
         self.battle_page = BattlePage(self._settings, self.page_stack)
         self.workbench_page = self._build_workbench_page()
         self.history_page = self._build_history_page()
@@ -598,16 +597,10 @@ class ResonanceMainWindow(QMainWindow):
             return None
 
     def _run_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestRunPcTrade.emit(
-            normalize_trade_task_inputs(self._trade_input_mapping(inputs)),
-            float(self.timeout_spin.value()),
-        )
+        self.requestRunPcTrade.emit(inputs, float(self.timeout_spin.value()))
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestPreviewPcTrade.emit(
-            normalize_trade_task_inputs(self._trade_input_mapping(inputs)),
-            float(self.timeout_spin.value()),
-        )
+        self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
 
     def _preview_workflow_trade(self) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
@@ -618,10 +611,7 @@ class ResonanceMainWindow(QMainWindow):
             self.workflow_page.show_trade_editor()
             QMessageBox.warning(self, "货运参数错误", str(exc))
             return
-        self._settings.save_trade_inputs(inputs)
-        self.requestPreviewPcTrade.emit(
-            normalize_trade_task_inputs(inputs), float(self.timeout_spin.value())
-        )
+        self.requestPreviewPcTrade.emit(inputs, float(self.timeout_spin.value()))
 
     def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
@@ -636,13 +626,9 @@ class ResonanceMainWindow(QMainWindow):
         return {
             "order": str(order),
             "total_fatigue_budget": int(trade.get("fatigue_budget", 0)),
-            "trade_inputs": normalize_trade_task_inputs(trade),
+            "trade_inputs": dict(trade),
             "passenger_inputs": dict(passenger),
         }
-
-    @staticmethod
-    def _trade_input_mapping(inputs: object) -> Mapping[str, Any]:
-        return inputs if isinstance(inputs, Mapping) else {}
 
     def _open_trade_editor(self) -> None:
         self.workflow_page.show_trade_editor()
@@ -689,23 +675,17 @@ class ResonanceMainWindow(QMainWindow):
         if "passenger" in snapshots:
             self._settings.save_passenger_inputs(snapshots["passenger"])
 
-        run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
-        if "trade" in run_snapshots:
-            run_snapshots["trade"] = normalize_trade_task_inputs(
-                run_snapshots["trade"]
-            )
-
         if set(snapshots) == {"trade", "passenger"}:
             self._commerce_inputs = {
                 "combined_commerce": self._combined_commerce_inputs(
                     order="trade_first",
-                    trade=run_snapshots["trade"],
-                    passenger=run_snapshots["passenger"],
+                    trade=snapshots["trade"],
+                    passenger=snapshots["passenger"],
                 )
             }
             self._commerce_pending = ["combined_commerce"]
         else:
-            self._commerce_inputs = run_snapshots
+            self._commerce_inputs = snapshots
             self._commerce_pending = [
                 kind for kind in ("trade", "passenger") if kind in snapshots
             ]
@@ -749,10 +729,6 @@ class ResonanceMainWindow(QMainWindow):
                 self._settings.save_battle_inputs(snapshots["battle"])
 
             run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
-            if "trade" in run_snapshots:
-                run_snapshots["trade"] = normalize_trade_task_inputs(
-                    run_snapshots["trade"]
-                )
             if set(commerce_steps) == {"trade", "passenger"}:
                 total_fatigue = int(run_snapshots["trade"].get("fatigue_budget", 0))
                 passenger_fatigue = self.workflow_page.passenger_route_fatigue()
@@ -782,6 +758,16 @@ class ResonanceMainWindow(QMainWindow):
             QMessageBox.warning(self, "流程参数错误", str(exc))
             return
 
+        refresh_step: dict[str, Any] = {
+            "step": "refresh_recovery",
+            "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
+            "inputs": {
+                "stages": ["profile"],
+                "profile_sections": ["fatigue", "sparkling_water", "bento"],
+            },
+            "label": "刷新恢复资源",
+            "dispatch": "pc_task",
+        }
         pending: list[dict[str, Any]] = []
         for step in steps:
             if step == "startup":
@@ -832,13 +818,19 @@ class ResonanceMainWindow(QMainWindow):
                     "dispatch": "pc_task",
                 })
 
+        # Launch the game before reading its resource screens when startup is selected.
+        refresh_index = 1 if pending and pending[0]["step"] == "startup" else 0
+        pending.insert(refresh_index, refresh_step)
+        display_steps = list(steps)
+        display_steps.insert(refresh_index, "refresh_recovery")
         self._workflow_pending = pending
+        self._workflow_recovery_snapshot = {}
         self._workflow_active = True
         self._workflow_stopping = False
         self._workflow_current = None
         self._workflow_failed_message = ""
         self.workflow_page.begin_workflow(
-            steps,
+            display_steps,
             commerce_steps,
             snapshots.get("trade"),
         )
@@ -1511,7 +1503,41 @@ class ResonanceMainWindow(QMainWindow):
             )
             current = self._workflow_current
             step = str(current["step"])
-            if str(current.get("dispatch") or "") == "combined_commerce":
+            if self._workflow_stopping:
+                self._workflow_current = None
+            elif step == "refresh_recovery":
+                item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
+                if item.get("task_ref") != PC_PLAYER_DATA_REFRESH_TASK_REF:
+                    self._abort_workflow("恢复资源刷新返回了不匹配的任务结果。")
+                elif payload.get("gui_timeout_cancelled"):
+                    self._abort_workflow("恢复资源刷新超时，流程已停止。")
+                elif not succeeded:
+                    self._abort_workflow(str(
+                        result.get("reason") or result.get("error")
+                        or payload.get("error") or "恢复资源刷新未成功完成。"
+                    ))
+                else:
+                    try:
+                        player = validate_recovery_refresh(result)
+                    except ValueError as exc:
+                        self._abort_workflow(str(exc))
+                    else:
+                        self._workflow_recovery_snapshot = {
+                            "cid": extract_run_id(payload),
+                            "player_data": player,
+                        }
+                        water = player["recovery"]["sparkling_water"]
+                        fatigue = player["status"]["fatigue"]
+                        count = player["recovery"]["bento"]["available_count"]
+                        self.workflow_page.mark_step(
+                            step, "success",
+                            f"恢复资源已刷新：疲劳 {fatigue['current']}/{fatigue['max']}，"
+                            f"气泡水 {water['remaining_free_uses']}/"
+                            f"{water['daily_free_limit']} 次，便当 {count} 份，数据已保存"
+                            f"（CID: {extract_run_id(payload)}）",
+                        )
+                        self._workflow_current = None
+            elif str(current.get("dispatch") or "") == "combined_commerce":
                 self._finish_combined_workflow_result(result=result, succeeded=succeeded)
             elif succeeded:
                 self.workflow_page.mark_step(step, "success", f"{current['label']}已完成")

@@ -47,14 +47,12 @@ def resonance_pc_trade_plan_optimal_route(
     current_city_id: Optional[str] = None,
     current_city: Optional[str] = None,
     snapshot_id: Optional[str] = None,
-    auto_book: bool = False,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
 ) -> Dict[str, Any]:
     return _require_service(resonance_pc_trade_planner).plan_optimal_route(
         fatigue_budget=fatigue_budget,
         cargo_capacity=cargo_capacity,
         book_budget=book_budget,
-        auto_book=auto_book,
         book_profit_threshold=book_profit_threshold,
         negotiation_budget=negotiation_budget,
         all_plan=all_plan,
