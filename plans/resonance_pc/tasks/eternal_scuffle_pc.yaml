@@ -35,7 +35,9 @@ eternal_scuffle_pc:
     finish:
       action: resonance_pc.eternal_scuffle_finish
       depends_on: check_rounds
-      params: {session_key: "{{ nodes.initialize.output.session_key }}"}
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+        round_results: "{{ nodes.rounds.output }}"
   returns:
     eternal_scuffle: "{{ nodes.finish.output }}"
 
@@ -59,6 +61,7 @@ scuffle_checked_round_pc:
         session_key: "{{ inputs.session_key }}"
         child_result: "{{ nodes.child.output }}"
         require_child: true
+        collect_round_result: true
         label: 单局任务
   returns:
     result: "{{ nodes.finish.output }}"

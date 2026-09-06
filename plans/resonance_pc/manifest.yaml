@@ -1456,18 +1456,26 @@ exports:
       type: Any
       required: false
       default: 子任务
+    - name: collect_round_result
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.eternal_scuffle_finish
     module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
     function: finish_eternal_scuffle
     public: true
     read_only: false
     timeout: null
-    description: Return the journaled run summary and remove only this completed session
-      state.
+    description: Return confirmed child-task results and remove only this completed
+      session state.
     parameters:
     - name: session_key
       type: Any
       required: true
+      default: null
+    - name: round_results
+      type: Any
+      required: false
       default: null
   - name: resonance_pc.enter_main
     module: plans.resonance_pc.src.actions.game_startup_pc_actions
@@ -2629,4 +2637,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-06T09:35:09Z'
+  generated_at: '2026-09-06T11:53:49Z'

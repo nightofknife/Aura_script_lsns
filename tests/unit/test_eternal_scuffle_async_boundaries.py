@@ -10,6 +10,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
+import logging
 from pathlib import Path
 import threading
 from types import SimpleNamespace
@@ -50,6 +51,41 @@ class Store:
         self.data.pop(key, None)
 
 
+class LogCapture(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.records = []
+        self.gate = None
+        self.gate_filter = lambda payload, record: True
+
+    def emit(self, record):
+        message = record.getMessage()
+        if not message.startswith("[EternalScuffle]"):
+            return
+        payload = json.loads(message[message.index("{"):])
+        if self.gate and self.gate_filter(payload, record):
+            self.gate.block()
+        self.records.append({"payload": payload, "level": record.levelno})
+
+
+@pytest.fixture
+def log_capture():
+    capture = LogCapture()
+    logger = runtime.logger.logger
+    old_level = logger.level
+    logger.setLevel(logging.INFO)
+    logger.addHandler(capture)
+    try:
+        yield capture
+    finally:
+        logger.removeHandler(capture)
+        logger.setLevel(old_level)
+
+
+def checked_round(result):
+    return {"nodes": {"finish": {"output": {"success": True, "status": "completed", "round_result": result}}}}
+
+
 async def wait_for_event(event):
     async with asyncio.timeout(3):
         while not event.is_set():
@@ -71,7 +107,7 @@ async def assert_heartbeat_continues(awaitable, gate):
 
 
 @pytest.fixture
-def rig(monkeypatch, tmp_path):
+def rig(monkeypatch, tmp_path, log_capture):
     catalog = {"characters": [], "equipment": [], "ranking_version": "async-test"}
     observer = SimpleNamespace(observe=lambda: {"valid": True, "scene": "home", "controls": {}})
     monkeypatch.setattr(runtime, "catalog_for", lambda engine=None: catalog)
@@ -90,7 +126,7 @@ def rig(monkeypatch, tmp_path):
         "round": {"phase": "coin", "team": []},
     }
     machine = runtime.ScuffleRuntime(state, Store(), object(), object())
-    machine.log_dir.mkdir(parents=True)
+    machine.log_handler = log_capture
     machine.catalog_stub = catalog
     machine.observer_stub = observer
     machine.test_plan_root = tmp_path / "plans/resonance_pc"
@@ -107,8 +143,9 @@ def test_send_click_keeps_loop_responsive(rig, monkeypatch):
     monkeypatch.setattr(runtime, "aura_click", click)
     asyncio.run(assert_heartbeat_continues(rig.send_click([100, 200], "test"), gate))
     assert clicks == [[100, 200]]
-    rows = [json.loads(line) for line in (rig.log_dir / "events.jsonl").read_text(encoding="utf-8").splitlines()]
+    rows = [record["payload"] for record in rig.log_handler.records]
     assert rows[-1]["type"] == "click"
+    assert not Path(rig.state["log_dir"]).exists()
 
 
 @pytest.mark.parametrize("boundary", ["resolution", "catalog", "observer"])
@@ -144,60 +181,40 @@ def test_initialize_native_checks_and_asset_loading_keep_loop_responsive(rig, mo
     assert rig.store.data[result["session_key"]]["status"] == "running"
 
 
-def test_diagnostic_png_encoding_keeps_loop_responsive(rig, monkeypatch):
+def test_diagnostic_existing_log_handler_keeps_loop_responsive_without_image_files(rig, monkeypatch):
     gate = Gate()
     rig.last_observation = {"valid": True, "scene": "home", "_image": np.zeros((720, 1280, 3), dtype=np.uint8)}
-    original = Image.Image.save
-
-    def save(image, fp, *args, **kwargs):
-        if Path(fp).name == "last_frame.png":
-            gate.block()
-        return original(image, fp, *args, **kwargs)
-
-    monkeypatch.setattr(Image.Image, "save", save)
+    rig.log_handler.gate = gate
+    rig.log_handler.gate_filter = lambda payload, record: record.levelno >= logging.ERROR
+    monkeypatch.setattr(Image.Image, "save", lambda *a, **kw: pytest.fail("Diagnostics must not create PNGs"))
     asyncio.run(assert_heartbeat_continues(rig.fail(RuntimeError("test diagnostic")), gate))
-    assert (rig.log_dir / "last_frame.png").is_file()
-    assert (rig.log_dir / "last_target.png").is_file()
-    assert json.loads((rig.log_dir / "failure.json").read_text(encoding="utf-8"))["state"]["status"] == "failed"
+    records = [r for r in rig.log_handler.records if r["level"] >= logging.ERROR]
+    assert records[-1]["payload"]["state"]["status"] == "failed"
+    assert "_image" not in records[-1]["payload"]["observation"]
+    assert not Path(rig.state["log_dir"]).exists()
 
 
-def test_record_journal_write_keeps_loop_responsive(rig, monkeypatch):
+def test_record_existing_log_handler_keeps_loop_responsive_without_journal(rig):
     gate = Gate()
-    original = Path.open
-
-    def open_file(path, *args, **kwargs):
-        mode = args[0] if args else kwargs.get("mode", "r")
-        if path.name == "events.jsonl" and mode == "a":
-            gate.block()
-        return original(path, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "open", open_file)
+    rig.log_handler.gate = gate
     asyncio.run(assert_heartbeat_continues(rig.record("async-test", detail="saved"), gate))
-    assert json.loads((rig.log_dir / "events.jsonl").read_text(encoding="utf-8"))["detail"] == "saved"
+    assert rig.log_handler.records[-1]["payload"]["detail"] == "saved"
+    assert not Path(rig.state["log_dir"]).exists()
 
 
-@pytest.mark.parametrize("boundary", ["journal_read", "summary_write"])
-def test_finish_journal_and_summary_keep_loop_responsive(rig, monkeypatch, boundary):
+def test_finish_existing_log_handler_keeps_loop_responsive_without_file_roundtrip(rig, monkeypatch):
     result = {"run_index": 1, "outcome": "cleared", "elapsed_ms": 42}
-    (rig.log_dir / "events.jsonl").write_text(json.dumps({"type": "round_completed", "result": result}) + "\n", encoding="utf-8")
     rig.state.update(completed_runs=1, cleared_runs=1)
     rig.round["phase"] = "completed"
     asyncio.run(rig.store.set(rig.key, rig.state))
     gate = Gate()
-    original = Path.open
-
-    def open_file(path, *args, **kwargs):
-        mode = args[0] if args else kwargs.get("mode", "r")
-        if ((boundary == "journal_read" and path.name == "events.jsonl" and mode == "r")
-                or (boundary == "summary_write" and path.name == "summary.json" and mode == "w")):
-            gate.block()
-        return original(path, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "open", open_file)
-    summary = asyncio.run(assert_heartbeat_continues(runtime.finish(rig.key, rig.store), gate))
+    rig.log_handler.gate = gate
+    monkeypatch.setattr(Path, "open", lambda *a, **kw: pytest.fail("finish must not read or write files"))
+    summary = asyncio.run(assert_heartbeat_continues(runtime.finish(rig.key, rig.store, round_results=[checked_round(result)]), gate))
     assert summary["success"] is True
     assert summary["rounds"] == [result]
     assert rig.key not in rig.store.data
+    assert not Path(rig.state["log_dir"]).exists()
 
 
 def test_cancelled_click_queued_behind_worker_never_inputs(rig, monkeypatch):
@@ -281,13 +298,17 @@ def test_cancelled_inflight_probe_finishes_before_failure_diagnostics(rig, monke
         return {"valid": True, "scene": "home", "controls": {}}
 
     monkeypatch.setattr(rig.observer, "observe", observe)
-    original_save = runtime.ScuffleRuntime._save_failure
+    original_emit = rig.log_handler.emit
 
-    def save_failure(machine, *args, **kwargs):
-        saved_after_probe.append(gate.finished.is_set())
-        return original_save(machine, *args, **kwargs)
+    def emit(record):
+        message = record.getMessage()
+        if message.startswith("[EternalScuffle]"):
+            payload = json.loads(message[message.index("{"):])
+            if payload.get("type") == "cancelled":
+                saved_after_probe.append(gate.finished.is_set())
+        return original_emit(record)
 
-    monkeypatch.setattr(runtime.ScuffleRuntime, "_save_failure", save_failure)
+    monkeypatch.setattr(rig.log_handler, "emit", emit)
 
     async def run():
         await rig.store.set(rig.key, rig.state)
@@ -307,6 +328,7 @@ def test_cancelled_inflight_probe_finishes_before_failure_diagnostics(rig, monke
         assert saved_after_probe == [True]
         assert rig.store.data[rig.key]["status"] == "cancelled"
         assert rig.store.data[rig.key]["completed_runs"] == 0
+        assert not Path(rig.state["log_dir"]).exists()
 
     asyncio.run(run())
 

@@ -55,6 +55,21 @@ def build_replay_project(tmp_path, *, missing_finish=False, failed_action=False,
     return base
 
 
+def assert_existing_logger_only(base, *, expected_kind):
+    """No Scuffle journal/diagnostic artifacts; details reach real framework log."""
+    assert not (base / "logs/eternal_scuffle").exists()
+    prohibited = {"events.jsonl", "summary.json", "failure.json", "last_frame.png", "last_target.png"}
+    assert not [path for path in base.rglob("*") if path.is_file() and path.name in prohibited]
+    logs = list((base / "logs").glob("aura_session_*.log*"))
+    assert logs, "The real framework file logger did not create its normal log"
+    text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in logs)
+    rows = [json.loads(line.split("[EternalScuffle] ", 1)[1])
+            for line in text.splitlines() if "[EternalScuffle] " in line]
+    assert rows, "Scuffle details did not reach the existing logger"
+    assert any(row.get("type") == expected_kind for row in rows), rows[-10:]
+    return rows
+
+
 @pytest.mark.parametrize("subprocess", [False, True], ids=["embedded-orchestrator", "subprocess-ipc"])
 def test_real_scuffle_graph_two_round_replay(tmp_path, monkeypatch, subprocess):
     base = build_replay_project(tmp_path)
@@ -91,6 +106,11 @@ def test_real_scuffle_graph_two_round_replay(tmp_path, monkeypatch, subprocess):
         sequences = [event["sequence"] for event in progress]
         assert sequences == sorted(set(sequences))
         assert progress[-1]["stage"] == progress[-1]["status"] == "completed"
+        rows = assert_existing_logger_only(base, expected_kind="round_completed")
+        assert any(row.get("type") == "equipment_assigned" for row in rows)
+        completed = [row for row in rows if row.get("type") == "run_completed"]
+        assert len(completed) == 1
+        assert completed[0]["result"]["rounds"] == summary["rounds"]
     finally:
         runner.close()
 
@@ -112,6 +132,7 @@ def test_real_scuffle_graph_failure_stops_before_next_coin(tmp_path, monkeypatch
         assert "summary" not in audit
         assert len([c for c in audit["clicks"] if c["scene"] == "role_select"]) == 1
         assert len([c for c in audit["clicks"] if c["scene"] == "initial_equipment"]) == 1
+        assert_existing_logger_only(base, expected_kind="failure")
     finally:
         runner.close()
 
@@ -142,5 +163,7 @@ def test_real_scuffle_subprocess_cancellation_stops_next_choice_and_coin(tmp_pat
         time.sleep(0.1)
         after = json.loads((base / "replay_audit.json").read_text(encoding="utf-8"))
         assert after["clicks"] == audit["clicks"]
+        rows = assert_existing_logger_only(base, expected_kind="cancelled")
+        assert any("state" in row and "observation" in row and "last_target" in row for row in rows)
     finally:
         runner.close()

@@ -79,11 +79,11 @@ async def eternal_scuffle_complete_round(session_key: str, app: Any = None, visi
 
 @action_info(name="resonance_pc.eternal_scuffle_checkpoint", public=True, read_only=False, description="Require child framework_data to contain a confirmed business completion node.")
 @requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision", state_store="core/state_store", event_bus="core/event_bus")
-async def eternal_scuffle_checkpoint(session_key: str, phases: list | None = None, expected_pairs: int = 0, child_result: dict | None = None, child_results: list | None = None, require_child: bool = False, expected_children: int = 0, label: str = "子任务", app: Any = None, vision: Any = None, state_store: Any = None, event_bus: Any = None, engine: Any = None) -> dict:
-    return await runtime.invoke(session_key, "checkpoint", app, vision, state_store, event_bus, engine, phases=phases, expected_pairs=expected_pairs, child_result=child_result, child_results=child_results, require_child=require_child, expected_children=expected_children, label=label)
+async def eternal_scuffle_checkpoint(session_key: str, phases: list | None = None, expected_pairs: int = 0, child_result: dict | None = None, child_results: list | None = None, require_child: bool = False, expected_children: int = 0, label: str = "子任务", collect_round_result: bool = False, app: Any = None, vision: Any = None, state_store: Any = None, event_bus: Any = None, engine: Any = None) -> dict:
+    return await runtime.invoke(session_key, "checkpoint", app, vision, state_store, event_bus, engine, phases=phases, expected_pairs=expected_pairs, child_result=child_result, child_results=child_results, require_child=require_child, expected_children=expected_children, label=label, collect_round_result=collect_round_result)
 
 
-@action_info(name="resonance_pc.eternal_scuffle_finish", public=True, read_only=False, description="Return the journaled run summary and remove only this completed session state.")
+@action_info(name="resonance_pc.eternal_scuffle_finish", public=True, read_only=False, description="Return confirmed child-task results and remove only this completed session state.")
 @requires_services(state_store="core/state_store", event_bus="core/event_bus")
-async def finish_eternal_scuffle(session_key: str, state_store: Any = None, event_bus: Any = None) -> dict:
-    return await runtime.finish(session_key, state_store, event_bus)
+async def finish_eternal_scuffle(session_key: str, state_store: Any = None, event_bus: Any = None, round_results: list | None = None) -> dict:
+    return await runtime.finish(session_key, state_store, event_bus, round_results=round_results)

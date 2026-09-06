@@ -5,6 +5,10 @@ from pathlib import Path
 
 from plans.resonance_pc.src.actions import _eternal_scuffle_runtime as runtime
 
+# Route the existing framework logger to this isolated test project, as normal
+# runtime configuration does. Production Scuffle must not create its own files.
+runtime.logger.setup(log_dir=str(Path(__file__).parent / "logs"), task_name="aura_session")
+
 CATALOG = {
     "ranking_version": "offline-replay-v1",
     "characters": [{"id": i, "rank": i} for i in [1, 2, 3, 4, 5, 90, 91]],
@@ -150,10 +154,9 @@ async def replay_invoke(*args, **kwargs):
         save_audit(args[6])
 
 
-async def replay_finish(session_key, state_store, event_bus):
-    state = await state_store.get(session_key)
-    result = await runtime.finish(session_key, state_store, event_bus)
-    path = Path(state["log_dir"]).parents[2] / "replay_audit.json"
+async def replay_finish(session_key, state_store, event_bus, round_results=None):
+    result = await runtime.finish(session_key, state_store, event_bus, round_results=round_results)
+    path = Path(__file__).parent / "replay_audit.json"
     path.write_text(json.dumps({"clicks": GAME.clicks, "observations": GAME.observations,
                                "assignments": GAME.assignments,
                                "session_deleted": await state_store.get(session_key) is None,
