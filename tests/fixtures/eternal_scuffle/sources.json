@@ -1,0 +1,320 @@
+{
+  "source": "User supplied 16 screenshots, 2026-09-06; v1 review sources",
+  "processing": "Lossless RGB crop, titlebar removed; first 11 narrow captures padded right to 1280. No pixels rescaled.",
+  "images": [
+    {
+      "file": "01.png",
+      "original_sha256": "84ce482d89ca272a9ef72f673a20c1d9e5a132e76f468ef3adbfa9a180359215",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "8948d82d0541f7fe6bb40d30131f6ebd163acefaf287f16eb443462a858726a5"
+    },
+    {
+      "file": "02.png",
+      "original_sha256": "a84418de63ae6a1a879dfe229a6c406b46dbb86b67a4d23804dd5476f0cf0083",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "4f103bbe7bd20c92c1451368b4c8b0f8e990c478281e332e311d27ecea97f1cc"
+    },
+    {
+      "file": "03.png",
+      "original_sha256": "3ed12f62389b84243a035a6576d0a61dc6f1b3d15413c5862404d7a561a38a0e",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "407c8322c8d5c8155a8487ff1a92d6c3dab716439efbf505004db46b3070777f"
+    },
+    {
+      "file": "04.png",
+      "original_sha256": "4061825bf764bd7a94b5ee3fbec65cc0632225f51c6681500edce4a61ee5d76d",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "07892fd27958f255e0ea98645d2354b6ba5fd9e86bb5b5ae0cb0b0855058cd3f"
+    },
+    {
+      "file": "05.png",
+      "original_sha256": "ef45e302d2b911aa4d812de65428350d0c4f859b51b4ed1489363b54e4f0e7a0",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "72ce6231c9108e93ffef86b77e4d3218064da874ca1da577ceade39885658a25"
+    },
+    {
+      "file": "06.png",
+      "original_sha256": "821e1c04cd87ff153757b1fec2be6f2d75584b0a03c762e16f4cd8f2a6bcf5a2",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "2cb5f8f5643e535cd8f6f65a8a0635373e462278bc429d0f538806e6ab7f0560"
+    },
+    {
+      "file": "07.png",
+      "original_sha256": "035b908d3890947e57848f91122ae977f54c640975c5e3c5bfee370b6b453050",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "86f54751f558cf36a70779255175b068be428e5dd4574c5e46f9fbf7e30cb468"
+    },
+    {
+      "file": "08.png",
+      "original_sha256": "e33230ab6fc6988ded90206204bb2ca4722c309aa42d7c2e5858934e89e62756",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "7209f9e23f68649beafbfd84c9324beaa6134a0430c53fd8e441c5516d86e5b7"
+    },
+    {
+      "file": "09.png",
+      "original_sha256": "160e6e930c04b3a1b034e847a43c4aaae1a1435b53974b684ddf52d6a1fdb621",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "3a3a69cd76693f0ed28ba634d05b9e8e84c7366401f076d1eca5f0e2892781da"
+    },
+    {
+      "file": "10.png",
+      "original_sha256": "194845007d3587732964132f89aacc6c42a5657a56c08304ec5780b13f193c95",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "9dd6b8cbaae26fc60da1e1fb77b69569a81fe37961bfd0cbd14ca51bcb21dfd6"
+    },
+    {
+      "file": "11.png",
+      "original_sha256": "a54f67836eb4b621de0fe480500ac6d77adcbecb6c38643c879c87c064726cbf",
+      "original_dimensions": [
+        1319,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1268,
+        720
+      ],
+      "right_black_padding": 12,
+      "fixture_sha256": "23944ce01a538096765854d3893d1f0af15e394b8509211763cb573d896bcf47"
+    },
+    {
+      "file": "12.png",
+      "original_sha256": "dcea3a63485b14dbad6ca61855fbfd5aba79bd43f2b29f09de073e73d78eb51a",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "bee453df4786fa1c29c4f7345e8ea628fa1be5cac777ccf90864c898f6ad2caa"
+    },
+    {
+      "file": "13.png",
+      "original_sha256": "365e33e56f7c952e4a31f89332c49744bce521b66424b78c815210ba6fa8a319",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "dc4e54dcfed675f709f43977062388b9fd9e3b57c2a396ff9f3c32c093e4da04"
+    },
+    {
+      "file": "14.png",
+      "original_sha256": "ec01a1123a84a08612eef53a0cfe6f1495a27f696c486cd5a14b42714bf4623f",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "99da425fb85da784f716dc2e19b5447cde87ebd40b25996baae691d2be3cd592"
+    },
+    {
+      "file": "15.png",
+      "original_sha256": "f3c16d3ae66ffee4c6cb7e682cc79a798b6da60ce41ad563c1261f217b4e9722",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "cdd08fe2d577584556b90a8ce918ca37380be73a37a54286cd5a868a93c40eb8"
+    },
+    {
+      "file": "16.png",
+      "original_sha256": "480eb6a8601113d2bdc8c65ce7fdcf8c0573954cf1041daa0b80e3cc9d2e9acb",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "749a97aaa8c01b9b06a10056c6b78f6a17e2927ce3ed8adfca7a019f8ea66bdb"
+    },
+    {
+      "file": "live_751713507132575744_initial_equipment.png",
+      "original_sha256": "c61ce51f7afea5cb01fe403c1e05b354eaf0fe8ef28a92ee20ca99b4be3ce551",
+      "original_dimensions": [
+        1280,
+        720
+      ],
+      "crop": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "c61ce51f7afea5cb01fe403c1e05b354eaf0fe8ef28a92ee20ca99b4be3ce551",
+      "source": "Real WGC game client capture, CID 751713507132575744, initial equipment after first role selection; byte-for-byte copy.",
+      "expected_equipment_ids": [
+        11800310,
+        11800240,
+        11800094
+      ]
+    },
+    {
+      "file": "live_751723822939377664_assign.png",
+      "original_sha256": "052b28a9c7a75552965fe11d25e83d6800f061ade88039bfe33c488b02c6a34d",
+      "original_dimensions": [
+        1280,
+        720
+      ],
+      "crop": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "052b28a9c7a75552965fe11d25e83d6800f061ade88039bfe33c488b02c6a34d",
+      "source": "Real game assign screen; selected character 10001357 at screen_index 4. No resampling.",
+      "expected_selected_character_id": 10001357
+    },
+    {
+      "file": "user_selected_character_20260906.png",
+      "original_sha256": "59c4cca900c62434388902a5e34bbb38939e8dcccfaf1751799f7b9dc9e9fceb",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "e4871c2d8c8fa525b5e22afae7fda4b354fbecefd4a1dae1f637cf0ddbc9532a",
+      "source": "Real game assign screen; selected character 10001357 at screen_index 4. No resampling.",
+      "expected_selected_character_id": 10001357
+    }
+  ]
+}

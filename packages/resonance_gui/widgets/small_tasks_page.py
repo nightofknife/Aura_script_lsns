@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from ..config_repository import ResonanceConfigRepository
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
+from .eternal_scuffle_panel import EternalScufflePanel
 from .data_collection_panel import DataCollectionPanel
 from .player_data_panel import PlayerDataPanel
 from .team_recommendation_panel import TeamRecommendationPanel
@@ -32,11 +33,12 @@ DIRECT_TASKS: tuple[tuple[str, str], ...] = (
     (USER_DATA_TASK_ID, "用户数据"),
     (TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),
 )
+ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     (
         "activity_play",
         "活动玩法",
-        ((CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),),
+        ((CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"), (ETERNAL_SCUFFLE_TASK_ID, "无垠乱斗")),
     ),
     ("developer_tools", "开发工具", ((DATA_COLLECTION_TASK_ID, "数据采集"),)),
 )
@@ -68,6 +70,7 @@ class SmallTasksPage(QWidget):
     runPlayerDataRequested = Signal(object)
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
+    runEternalScuffleRequested = Signal(object)
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
     runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
     cancelRequested = Signal()
@@ -155,6 +158,12 @@ class SmallTasksPage(QWidget):
         self._task_pages[CONSCIOUSNESS_DEEP_DIVE_TASK_ID] = (
             self.consciousness_deep_dive_panel
         )
+
+        self.eternal_scuffle_panel = EternalScufflePanel(settings, self.detail_stack)
+        self.eternal_scuffle_panel.runRequested.connect(self.runEternalScuffleRequested.emit)
+        self.eternal_scuffle_panel.cancelRequested.connect(self.cancelRequested.emit)
+        self.detail_stack.addWidget(self.eternal_scuffle_panel)
+        self._task_pages[ETERNAL_SCUFFLE_TASK_ID] = self.eternal_scuffle_panel
 
         self.data_collection_panel = DataCollectionPanel(self.detail_stack)
         self.data_collection_panel.captureRequested.connect(
@@ -292,6 +301,21 @@ class SmallTasksPage(QWidget):
         self.team_recommendation_panel.show_error(message)
         self._sync_controls()
 
+    def begin_eternal_scuffle_run(self, inputs: Mapping[str, Any]) -> None:
+        self._active_task_id = ETERNAL_SCUFFLE_TASK_ID
+        self.eternal_scuffle_panel.begin_run(inputs)
+        self._sync_controls()
+
+    def apply_eternal_scuffle_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.eternal_scuffle_panel.apply_result(payload)
+        self._sync_controls()
+
+    def show_eternal_scuffle_error(self, message: str, *, cancelled: bool = False) -> None:
+        self._active_task_id = ""
+        self.eternal_scuffle_panel.show_error(message, cancelled=cancelled)
+        self._sync_controls()
+
     def begin_consciousness_deep_dive_run(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
         self.consciousness_deep_dive_panel.begin_run()
@@ -352,6 +376,7 @@ class SmallTasksPage(QWidget):
         self.player_data_panel.set_runner_busy(busy)
         self.team_recommendation_panel.set_runner_busy(busy)
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
+        self.eternal_scuffle_panel.set_runner_busy(busy)
         self.data_collection_panel.set_runner_busy(busy)
         self._sync_controls()
 
