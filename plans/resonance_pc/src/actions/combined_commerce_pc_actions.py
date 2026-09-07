@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.execution import ExecutionContext
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.context.persistence.store_service import StateStoreService
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.events import EventBus
@@ -44,6 +45,7 @@ _TRADE_INPUT_KEYS = {
     "city_prestige",
     "product_unlocks",
     "active_events",
+    "auto_sparkling_water",
     "use_fatigue_medicine",
     "allowed_fatigue_medicines",
     "fatigue_medicine_max_uses",
@@ -52,6 +54,8 @@ _TRADE_INPUT_KEYS = {
     "auto_rubbish_recycling",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
+    "auto_sparkling_water",
+    "recovery_snapshot",
     "negotiation_max_attempts",
     "use_fatigue_medicine",
     "allowed_fatigue_medicines",
@@ -305,9 +309,15 @@ async def _run_trade(
     event_bus: EventBus,
     context: ExecutionContext,
     engine: ExecutionEngine,
+    persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
+    recovery_services = (
+        {"persistent_data": persistent_data}
+        if inputs.get("recovery_snapshot") is not None else {}
+    )
     return await resonance_pc_auto_cycle_trade_flow(
         **dict(inputs),
+        **recovery_services,
         app=app,
         ocr=ocr,
         vision=vision,
@@ -360,6 +370,7 @@ async def _run_passenger(
     resonance_pc_market_data="resonance_pc_market_data",
     resonance_pc_trade_planner="resonance_pc_trade_planner",
     state_store="core/state_store",
+    persistent_data="core/persistent_data",
     event_bus="core/event_bus",
 )
 async def resonance_pc_auto_combined_commerce_flow(
@@ -377,6 +388,8 @@ async def resonance_pc_auto_combined_commerce_flow(
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
     engine: ExecutionEngine | None = None,
+    recovery_snapshot: dict[str, Any] | None = None,
+    persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
     normalized_order = str(order or "").strip().lower()
     try:
@@ -415,6 +428,10 @@ async def resonance_pc_auto_combined_commerce_flow(
     raw_trade = copy.deepcopy(trade_inputs or {})
     raw_passenger = copy.deepcopy(passenger_inputs or {})
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
+    trade_services = {}
+    if recovery_snapshot is not None:
+        effective_trade["recovery_snapshot"] = copy.deepcopy(recovery_snapshot)
+        trade_services["persistent_data"] = persistent_data
     effective_passenger = _filtered(raw_passenger, _PASSENGER_INPUT_KEYS)
     effective_passenger["trade_during_trip"] = False
     try:
@@ -482,6 +499,7 @@ async def resonance_pc_auto_combined_commerce_flow(
         try:
             trade = await _run_trade(
                 effective_trade,
+                **trade_services,
                 app=app,
                 ocr=ocr,
                 vision=vision,
@@ -648,9 +666,13 @@ async def resonance_pc_auto_combined_commerce_flow(
                 detail={"passenger_fatigue": actual_passenger_fatigue},
             )
         effective_trade.update(fatigue_budget=trade_budget)
+        if recovery_snapshot is not None:
+            fatigue = effective_trade["recovery_snapshot"]["status"]["fatigue"]
+            fatigue["current"] += actual_passenger_fatigue
         try:
             trade = await _run_trade(
                 effective_trade,
+                **trade_services,
                 app=app,
                 ocr=ocr,
                 vision=vision,

@@ -22,6 +22,9 @@ auto_combined_commerce_pc:
         type: dict
         required: false
         default: {}
+      - name: recovery_snapshot
+        type: dict
+        required: false
   steps:
     require_resolution:
       action: resonance_pc.require_client_resolution
@@ -33,6 +36,7 @@ auto_combined_commerce_pc:
         total_fatigue_budget: "{{ inputs.total_fatigue_budget | default(700) }}"
         trade_inputs: "{{ inputs.trade_inputs | default({}) }}"
         passenger_inputs: "{{ inputs.passenger_inputs | default({}) }}"
+        recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
       depends_on: require_resolution
   returns:
     success: "{{ nodes.run.output.success }}"

@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.context.persistence.store_service import StateStoreService
+from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
@@ -35,6 +36,8 @@ from .rubbish_recycling_pc_actions import (
     is_rubbish_recycling_arrival,
     resonance_pc_execute_rubbish_recycling_from_city_panel,
 )
+from ._sparkling_water_policy import select_sparkling_water_stop, validate_recovery_snapshot
+from .sparkling_water_pc_actions import resonance_pc_drink_sparkling_water_from_city_panel
 from .trade_negotiation_pc_actions import (
     DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
     MAX_NEGOTIATION_MAX_ATTEMPTS,
@@ -1345,6 +1348,35 @@ def _execute_city_trade_inside_current_city_scoped(
     }
 
 
+async def _execute_sparkling_water_stop(
+    selection: Dict[str, Any], *, page_state: str, app: Any, ocr: Any, vision: Any,
+    city_shop_data: ResonancePcCityShopDataService, persistent_data: PersistentDataService,
+) -> Dict[str, Any]:
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    fields = {"city_index": selection["city_index"], "current_city": selection["city_name"]}
+    if reporter is not None:
+        await reporter.emit("sparkling_water", "started", **fields, data={"selection": selection})
+    try:
+        if page_state == "city_main":
+            await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+        elif page_state != "city_panel":
+            _raise_error("sparkling_water_invalid_start_page", "Expected city main or city panel before drinking", {"page_state": page_state})
+        result = await resonance_pc_drink_sparkling_water_from_city_panel(
+            city_name=selection["city_name"], drink_count=selection["drink_count"],
+            app=app, ocr=ocr, vision=vision, resonance_pc_city_shop_data=city_shop_data,
+            persistent_data=persistent_data,
+        )
+        if result.get("success") is not True or result.get("page_state") != "city_panel":
+            _raise_error("sparkling_water_not_completed", "Sparkling water task did not confirm return to city panel", result)
+    except Exception as exc:
+        if reporter is not None:
+            await reporter.emit("sparkling_water", "failed", **fields, data={"error": str(exc), "code": getattr(exc, "code", None)})
+        raise
+    if reporter is not None:
+        await reporter.emit("sparkling_water", "completed", **fields, data={"result": result})
+    return {**result, "triggered": True, "selection": dict(selection)}
+
+
 async def _execute_route(
     *,
     route: List[Dict[str, Any]],
@@ -1362,6 +1394,8 @@ async def _execute_route(
     auto_cape_island_investment: bool = False,
     auto_rubbish_recycling: bool = True,
     engine: ExecutionEngine | None = None,
+    sparkling_water_plan: Optional[Dict[str, Any]] = None,
+    persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -1369,7 +1403,15 @@ async def _execute_route(
     page_state = start_page_state
     leg_results: List[Dict[str, Any]] = []
     rubbish_recycling_attempted = False
+    selection = dict(sparkling_water_plan or {})
+    water_result: Dict[str, Any] = {"triggered": False, "status": "not_triggered", "reason": selection.get("reason")}
     try:
+        if selection.get("planned") and selection.get("city_index") == 0:
+            water_result = await _execute_sparkling_water_stop(
+                selection, page_state=page_state, app=app, ocr=ocr, vision=vision,
+                city_shop_data=city_shop_data, persistent_data=persistent_data,
+            )
+            page_state = water_result["page_state"]
         for index, leg in enumerate(route):
             progress_fields = {
                 "leg_index": index,
@@ -1411,6 +1453,18 @@ async def _execute_route(
             if bool((leg_result.get("rubbish_recycling") or {}).get("triggered")):
                 rubbish_recycling_attempted = True
             travel = dict(leg_result.get("travel") or {})
+            if (
+                selection.get("planned") and selection.get("city_index") == index + 1
+                and str(travel.get("status") or "ok").lower() != "blocked"
+                and travel.get("success", True)
+            ):
+                water_result = await _execute_sparkling_water_stop(
+                    selection, page_state=page_state, app=app, ocr=ocr, vision=vision,
+                    city_shop_data=city_shop_data, persistent_data=persistent_data,
+                )
+                page_state = water_result["page_state"]
+                leg_result["page_state"] = page_state
+                leg_result["sparkling_water"] = water_result
             update = await resonance_pc_trade_route_execution_update(
                 run_key=route_run_key,
                 leg=leg,
@@ -1437,6 +1491,7 @@ async def _execute_route(
         summary = await resonance_pc_trade_route_execution_summary(route_run_key, state_store=state_store)
         summary["page_state"] = page_state
         summary["leg_results"] = leg_results
+        summary["sparkling_water"] = water_result
         island_results = [
             dict(item.get("cape_island_investment") or {})
             for item in leg_results
@@ -2093,6 +2148,7 @@ async def resonance_pc_preview_trade_plan_flow(
     resonance_pc_trade_planner="resonance_pc_trade_planner",
     state_store="core/state_store",
     event_bus="core/event_bus",
+    persistent_data="core/persistent_data",
 )
 @_with_trade_progress
 async def resonance_pc_auto_cycle_trade_flow(
@@ -2117,6 +2173,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = False,
     auto_rubbish_recycling: bool = True,
+    auto_sparkling_water: bool = False,
+    recovery_snapshot: Optional[Dict[str, Any]] = None,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -2127,9 +2185,16 @@ async def resonance_pc_auto_cycle_trade_flow(
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
     engine: ExecutionEngine | None = None,
+    persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
     del event_bus, context
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    if type(auto_sparkling_water) is not bool:
+        raise ValueError("auto_sparkling_water must be a boolean")
+    if auto_sparkling_water:
+        recovery_snapshot = validate_recovery_snapshot(recovery_snapshot)
+        if persistent_data is None:
+            raise RuntimeError("Automatic sparkling water requires persistent_data")
     if isinstance(negotiation_max_attempts, bool) or not isinstance(
         negotiation_max_attempts,
         int,
@@ -2242,6 +2307,15 @@ async def resonance_pc_auto_cycle_trade_flow(
             resonance_pc_trade_planner=resonance_pc_trade_planner,
         )
     route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    water_plan = {"planned": False, "reason": "disabled", "drink_count": 0}
+    if auto_sparkling_water:
+        water_plan = select_sparkling_water_stop(
+            route=route, initial_city=current, recovery_snapshot=recovery_snapshot,
+            city_shop_data=resonance_pc_city_shop_data,
+            travel_fatigue=resonance_pc_market_data.get_all_travel_fatigue(),
+        )
+        logger.info("Sparkling water selection=%s", water_plan)
+    plan["sparkling_water_plan"] = water_plan
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -2285,6 +2359,13 @@ async def resonance_pc_auto_cycle_trade_flow(
     }
     final_sale: Optional[Dict[str, Any]] = None
 
+    if not route and plan.get("status") in {"ok", "no_plan"} and water_plan.get("planned"):
+        execution["sparkling_water"] = await _execute_sparkling_water_stop(
+            water_plan, page_state=page_state, app=app, ocr=ocr, vision=vision,
+            city_shop_data=resonance_pc_city_shop_data, persistent_data=persistent_data,
+        )
+        page_state = execution["sparkling_water"]["page_state"]
+
     if plan.get("status") == "ok" and route:
         execution = await _execute_route(
             route=route,
@@ -2302,6 +2383,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             auto_cape_island_investment=bool(auto_cape_island_investment),
             auto_rubbish_recycling=bool(auto_rubbish_recycling),
             engine=engine,
+            sparkling_water_plan=water_plan,
+            persistent_data=persistent_data,
         )
         page_state = str(execution.get("page_state") or "city_main")
 
@@ -2393,6 +2476,9 @@ async def resonance_pc_auto_cycle_trade_flow(
             "warnings": result_warnings,
             "execution": execution,
             "final_sale": final_sale,
+            "sparkling_water": execution.get("sparkling_water") or {
+                "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),
+            },
             "blocked_at": execution.get("blocked_at"),
             "blocked_leg": execution.get("blocked_leg"),
             "fatigue_medicine_used": list(execution.get("fatigue_medicine_used") or []),

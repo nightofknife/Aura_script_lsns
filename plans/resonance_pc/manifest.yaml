@@ -1019,6 +1019,14 @@ exports:
       type: Any
       required: false
       default: true
+    - name: auto_sparkling_water
+      type: Any
+      required: false
+      default: false
+    - name: recovery_snapshot
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -1209,6 +1217,10 @@ exports:
       required: false
       default: null
     - name: passenger_inputs
+      type: Any
+      required: false
+      default: null
+    - name: recovery_snapshot
       type: Any
       required: false
       default: null
@@ -1919,6 +1931,23 @@ exports:
     timeout: null
     description: Require the Resonance PC client area to be exactly 1280x720.
     parameters: []
+  - name: resonance_pc.drink_sparkling_water_from_city_panel
+    module: plans.resonance_pc.src.actions.sparkling_water_pc_actions
+    function: resonance_pc_drink_sparkling_water_from_city_panel
+    public: true
+    read_only: false
+    timeout: 240
+    description: Drink the requested free sparkling-water cups at a rest area and
+      return to the city panel.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: drink_count
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.team_recommendations
     module: plans.resonance_pc.src.actions.team_recommendation_pc_actions
     function: resonance_pc_team_recommendations
@@ -2667,6 +2696,16 @@ exports:
     source: tasks/rubbish_recycling_pc.yaml
     description: Recycle all rubbish from an eligible city's city panel and return
       to that panel.
+  - id: sparkling_water_pc/sparkling_water_pc
+    title: Sparkling Water (PC)
+    source: tasks/sparkling_water_pc.yaml
+    description: Drink a specified number of free cups from the city panel, then return
+      to that city panel.
+  - id: sparkling_water_pc
+    title: Sparkling Water (PC)
+    source: tasks/sparkling_water_pc.yaml
+    description: Drink a specified number of free cups from the city panel, then return
+      to that city panel.
   - id: team_recommendation_pc/team_recommendation_pc
     title: Fixed Team Recommendations (PC)
     source: tasks/team_recommendation_pc.yaml
@@ -2677,4 +2716,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-07T14:17:14Z'
+  generated_at: '2026-09-07T15:30:10Z'
