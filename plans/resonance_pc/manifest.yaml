@@ -1071,6 +1071,10 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: from_city_name
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.intercity_depart_and_wait
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_intercity_depart_and_wait
@@ -1144,6 +1148,10 @@ exports:
       type: Any
       required: false
       default: 0.95
+    - name: from_city_name
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
@@ -2669,4 +2677,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-06T13:18:04Z'
+  generated_at: '2026-09-07T14:17:14Z'

@@ -61,6 +61,7 @@ _POST_DRAG_STABILIZE_SECONDS = 0.6
 _POST_DRAG_OCR_RETRIES = 2
 _POST_DRAG_OCR_RETRY_INTERVAL_SECONDS = 0.4
 _MAX_CONSECUTIVE_UNANCHORED_DRAGS = 4
+_MAX_INITIAL_UNANCHORED_DRAGS = 6
 
 _WEEKLY_NOTICE_CHECKBOX = [890, 523]
 _DEPART_CONFIRM_POINT = [852, 447]
@@ -1175,6 +1176,7 @@ def resonance_pc_select_intercity_destination(
     drag_hold_sec: float = 0.5,
     app: Any = None,
     ocr: Any = None,
+    from_city_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None:
         raise RuntimeError("app/ocr services are required for select_intercity_destination.")
@@ -1204,8 +1206,12 @@ def resonance_pc_select_intercity_destination(
     last_drag_start: Optional[Tuple[int, int]] = None
     last_drag_end: Optional[Tuple[int, int]] = None
     consecutive_unanchored_drags = 0
+    initial_blind_active = False
+    total_drag_count = 0
+    stop_reason = "search_budget_exhausted"
 
-    for step in range(max_steps):
+    # Each allowed drag gets a subsequent observation, including the final drag.
+    for step in range(max_steps + 1):
         observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
         stabilization_retries = 0
         if has_dragged:
@@ -1261,6 +1267,7 @@ def resonance_pc_select_intercity_destination(
                 "selected_point": {"x": click_x, "y": click_y},
                 "mode": selected_mode,
                 "attempts_used": step + 1,
+                "total_drag_count": total_drag_count,
                 "attempt_trace": attempts,
             }
 
@@ -1280,7 +1287,17 @@ def resonance_pc_select_intercity_destination(
             for item in mappable_points
         ]
 
+        if total_drag_count >= max_steps:
+            stop_reason = "search_budget_exhausted"
+            break
+
         if mappable_points:
+            if initial_blind_active:
+                logger.info(
+                    "[IntercityInitialAnchorRecovered] target=%s cities=%s blind_drags=%s",
+                    to_city_name, json.dumps(mappable_log, ensure_ascii=False), consecutive_unanchored_drags,
+                )
+            initial_blind_active = False
             consecutive_unanchored_drags = 0
             anchor_route = _choose_anchor_route(
                 mappable_points=mappable_points,
@@ -1341,13 +1358,41 @@ def resonance_pc_select_intercity_destination(
                 )
                 mode = "anchor_route"
         else:
+            seeded_this_step = False
+            if step == 0 and fallback_enabled and from_city_name:
+                source_key = _resolve_city_key_from_name(from_city_name, city_table, alias_lookup)
+                source_x, source_y = _extract_maploc(city_table, source_key)
+                # This assumption is valid only on the first freshly opened map.
+                last_drag_start, last_drag_end, seed_plan = _plan_directional_drag(
+                    mappable_points=[{
+                        "screen_x": width // 2, "screen_y": height // 2,
+                        "map_x": source_x, "map_y": source_y,
+                    }],
+                    target_maploc=_extract_maploc(city_table, target_city_key),
+                    drag_center=center,
+                    drag_span_px=span,
+                    window_size=(width, height),
+                )
+                initial_blind_active = True
+                seeded_this_step = True
+                logger.info(
+                    "[IntercityInitialAnchor] from_city=%s target=%s anchor_source=start_city_center "
+                    "center=%s map=%s observed_city_count=0 blind_limit=%s plan=%s",
+                    from_city_name, to_city_name, [width // 2, height // 2], [source_x, source_y],
+                    _MAX_INITIAL_UNANCHORED_DRAGS, seed_plan,
+                )
+            blind_limit = (
+                _MAX_INITIAL_UNANCHORED_DRAGS if initial_blind_active
+                else _MAX_CONSECUTIVE_UNANCHORED_DRAGS
+            )
             can_blind_drag = (
                 fallback_enabled
                 and last_drag_start is not None
                 and last_drag_end is not None
-                and consecutive_unanchored_drags < _MAX_CONSECUTIVE_UNANCHORED_DRAGS
+                and consecutive_unanchored_drags < blind_limit
             )
             if not can_blind_drag:
+                stop_reason = "blind_budget_exhausted" if consecutive_unanchored_drags >= blind_limit else "no_mappable_city_points"
                 selected_mode = "no_mappable"
                 attempts.append(
                     {
@@ -1363,7 +1408,7 @@ def resonance_pc_select_intercity_destination(
                             "fallback_drag_disabled": not can_blind_drag,
                             "has_previous_drag": last_drag_start is not None and last_drag_end is not None,
                             "consecutive_unanchored_drags": consecutive_unanchored_drags,
-                            "max_consecutive_unanchored_drags": _MAX_CONSECUTIVE_UNANCHORED_DRAGS,
+                            "max_consecutive_unanchored_drags": blind_limit,
                         },
                     }
                 )
@@ -1378,13 +1423,15 @@ def resonance_pc_select_intercity_destination(
             start, end = last_drag_start, last_drag_end
             consecutive_unanchored_drags += 1
             plan_debug = {
-                "reason": "repeat_previous_drag_without_anchor",
+                "reason": "start_city_center" if seeded_this_step else "repeat_previous_drag_without_anchor",
+                "anchor_source": "start_city_center" if initial_blind_active else "previous_drag",
                 "consecutive_unanchored_drags": consecutive_unanchored_drags,
-                "max_consecutive_unanchored_drags": _MAX_CONSECUTIVE_UNANCHORED_DRAGS,
+                "max_consecutive_unanchored_drags": blind_limit,
             }
-            mode = "blind_repeat"
+            mode = "start_city_blind" if seeded_this_step else "blind_repeat"
 
         selected_mode = mode
+        plan_debug.update(total_drag_count=total_drag_count + 1, max_drag_count=max_steps)
         attempts.append(
             {
                 "step": step + 1,
@@ -1419,13 +1466,18 @@ def resonance_pc_select_intercity_destination(
         last_drag_start = start
         last_drag_end = end
         has_dragged = True
+        total_drag_count += 1
         time.sleep(_POST_DRAG_STABILIZE_SECONDS)
 
     _raise_error(
         code="destination_not_found_after_drag",
-        message=f"Unable to locate destination '{to_city_name}' after {max_steps} drag attempts.",
+        message=f"Unable to locate destination '{to_city_name}' after {total_drag_count} drags and {step + 1} search rounds ({stop_reason}).",
         detail={
             "to_city_name": to_city_name,
+            "from_city_name": from_city_name,
+            "total_drag_count": total_drag_count,
+            "search_rounds": step + 1,
+            "stop_reason": stop_reason,
             "to_city_key": target_city_key,
             "last_seen_texts": last_seen_texts,
             "attempt_trace": attempts,
@@ -1466,6 +1518,7 @@ def resonance_pc_intercity_depart_and_wait(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
+    from_city_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
@@ -1497,6 +1550,7 @@ def resonance_pc_intercity_depart_and_wait(
 
         selected = resonance_pc_select_intercity_destination(
             to_city_name=to_city_name,
+            from_city_name=from_city_name,
             location_file_path=location_file_path,
             city_search_region=city_search_region,
             drag_center=drag_center,
