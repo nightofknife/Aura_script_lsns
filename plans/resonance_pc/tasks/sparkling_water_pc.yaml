@@ -1,0 +1,39 @@
+sparkling_water_pc:
+  meta:
+    title: Sparkling Water (PC)
+    description: Drink a specified number of free cups from the city panel, then return to that city panel.
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: city_name
+        type: string
+        required: true
+      - name: drink_count
+        type: number
+        required: true
+        min: 1
+        max: 6
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    drink:
+      action: resonance_pc.drink_sparkling_water_from_city_panel
+      timeout_sec: 240
+      params:
+        city_name: "{{ inputs.city_name }}"
+        drink_count: "{{ inputs.drink_count }}"
+      depends_on: require_resolution
+  returns:
+    success: "{{ nodes.drink.output.success }}"
+    status: "{{ nodes.drink.output.status }}"
+    reason: "{{ nodes.drink.output.reason }}"
+    city_name: "{{ nodes.drink.output.city_name }}"
+    city_key: "{{ nodes.drink.output.city_key }}"
+    requested_count: "{{ nodes.drink.output.requested_count }}"
+    completed_count: "{{ nodes.drink.output.completed_count }}"
+    remaining_free_uses: "{{ nodes.drink.output.remaining_free_uses }}"
+    daily_free_limit: "{{ nodes.drink.output.daily_free_limit }}"
+    recovered_fatigue: "{{ nodes.drink.output.recovered_fatigue }}"
+    cups: "{{ nodes.drink.output.cups }}"
+    page_state: "{{ nodes.drink.output.page_state }}"
+    elapsed_ms: "{{ nodes.drink.output.elapsed_ms }}"

@@ -422,18 +422,8 @@ class TradePage(QWidget):
         common_form.addRow("进货书", self.book_budget)
         form_stack.addLayout(common_form)
 
-        self.use_medicine = QCheckBox("允许使用疲劳药", content)
-        self.use_medicine.toggled.connect(self._sync_medicine_controls)
-        form_stack.addWidget(self.use_medicine)
-        self.medicine_box = QWidget(content)
-        medicine_form = QFormLayout(self.medicine_box)
-        medicine_form.setContentsMargins(0, 0, 0, 0)
-        self.allowed_medicines = QLineEdit(self.medicine_box)
-        self.allowed_medicines.setPlaceholderText("药品名称，使用逗号分隔")
-        self.medicine_max_uses = self._spin(0, 100)
-        medicine_form.addRow("允许药品", self.allowed_medicines)
-        medicine_form.addRow("最大次数", self.medicine_max_uses)
-        form_stack.addWidget(self.medicine_box)
+        self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
+        form_stack.addWidget(self.auto_sparkling_water)
 
         self.auto_cape_island_investment = QCheckBox("是否自动进行蜃息岛投资", content)
         form_stack.addWidget(self.auto_cape_island_investment)
@@ -665,9 +655,6 @@ class TradePage(QWidget):
         self.debug_view.setVisible(visible)
         self.debug_toggle.setArrowType(Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow)
 
-    def _sync_medicine_controls(self) -> None:
-        self.medicine_box.setVisible(self.use_medicine.isChecked())
-
     def _set_all_cities(self, checked: bool) -> None:
         for checkbox in self.city_checks.values():
             checkbox.setChecked(checked)
@@ -833,9 +820,7 @@ class TradePage(QWidget):
             self._unlocked_product_ids = None
         self._update_product_unlock_button()
         self.active_events.setText(self._join_values(values.get("active_events", [])))
-        self.use_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
-        self.allowed_medicines.setText(self._join_values(values.get("allowed_fatigue_medicines", [])))
-        self.medicine_max_uses.setValue(int(values.get("fatigue_medicine_max_uses", 4)))
+        self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
@@ -843,7 +828,6 @@ class TradePage(QWidget):
             bool(values.get("auto_rubbish_recycling", True))
         )
         self._sync_city_controls()
-        self._sync_medicine_controls()
 
     def collect_inputs(self, *, require_start_city: bool = False) -> dict[str, Any]:
         bargain_rates = self._parse_int_list(self.bargain_rates.text(), "砍价成功率", 0, 10000)
@@ -878,9 +862,10 @@ class TradePage(QWidget):
             "city_prestige": self._city_prestige_payload(),
             "product_unlocks": self._product_unlock_payload(),
             "active_events": self._parse_text_list(self.active_events.text()),
-            "use_fatigue_medicine": self.use_medicine.isChecked(),
-            "allowed_fatigue_medicines": self._parse_text_list(self.allowed_medicines.text()),
-            "fatigue_medicine_max_uses": self.medicine_max_uses.value(),
+            "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
+            "use_fatigue_medicine": False,
+            "allowed_fatigue_medicines": [],
+            "fatigue_medicine_max_uses": 0,
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         }
@@ -1107,7 +1092,7 @@ class TradePage(QWidget):
             self.cargo_capacity,
             self.book_budget,
             self.arrival_timeout_minutes,
-            self.use_medicine,
+            self.auto_sparkling_water,
             self.auto_cape_island_investment,
             self.auto_rubbish_recycling,
             self.advanced_toggle,

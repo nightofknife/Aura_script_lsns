@@ -874,14 +874,14 @@ class WorkflowPage(QWidget):
         self.trade_books.setToolTip("本次货运规划允许使用的进货书数量")
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
-        self.trade_medicine = QCheckBox("允许使用疲劳药", page)
+        self.trade_sparkling_water = QCheckBox("自动喝气泡水", page)
         self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
         self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
         self.trade_fatigue_label = QLabel("货运疲劳预算", page)
         form.addRow(self.trade_fatigue_label, self.trade_fatigue)
         form.addRow("进货书数量", self.trade_books)
         form.addRow("货舱容量", self.trade_cargo)
-        form.addRow("疲劳恢复", self.trade_medicine)
+        form.addRow(self.trade_sparkling_water)
         form.addRow("蜃息岛投资", self.trade_investment)
         form.addRow("垃圾回收", self.trade_rubbish_recycling)
         layout.addLayout(form)
@@ -1183,7 +1183,7 @@ class WorkflowPage(QWidget):
         self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 700)))
         self.trade_books.setValue(int(trade.get("book_budget", 0)))
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
-        self.trade_medicine.setChecked(bool(trade.get("use_fatigue_medicine", False)))
+        self.trade_sparkling_water.setChecked(bool(trade.get("auto_sparkling_water", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
         self.trade_rubbish_recycling.setChecked(
             bool(trade.get("auto_rubbish_recycling", True))
@@ -1207,7 +1207,10 @@ class WorkflowPage(QWidget):
             fatigue_budget=self.trade_fatigue.value(),
             book_budget=self.trade_books.value(),
             cargo_capacity=self.trade_cargo.value(),
-            use_fatigue_medicine=self.trade_medicine.isChecked(),
+            auto_sparkling_water=self.trade_sparkling_water.isChecked(),
+            use_fatigue_medicine=False,
+            allowed_fatigue_medicines=[],
+            fatigue_medicine_max_uses=0,
             auto_cape_island_investment=self.trade_investment.isChecked(),
             auto_rubbish_recycling=self.trade_rubbish_recycling.isChecked(),
         )

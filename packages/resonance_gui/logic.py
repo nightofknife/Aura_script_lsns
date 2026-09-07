@@ -66,6 +66,7 @@ TRADE_STAGE_LABELS = {
     "arrival": "等待到站",
     "investment": "投资",
     "rubbish_recycling": "倒垃圾",
+    "sparkling_water": "喝气泡水",
     "final_sale": "终点清仓",
     "route": "执行路线",
     "task": "任务",

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "reference_client": [1280, 720],
+  "timeout_sec": 3.0,
+  "poll_interval_sec": 0.4,
+  "after_click_sec": 0.5,
+  "max_clicks": 3,
+  "animation_timeout_sec": 15.0,
+  "skip_point": [1207, 36],
+  "city_marker_roi": [170, 520, 400, 50],
+  "templates": {
+    "drink_entry": {
+      "path": "templates/sparkling_water/drink_entry.png",
+      "mask": "templates/sparkling_water/drink_entry.mask.png",
+      "roi": [735, 290, 65, 65],
+      "threshold": 0.90
+    },
+    "rest_menu": {
+      "path": "templates/sparkling_water/rest_menu.png",
+      "mask": "templates/sparkling_water/rest_menu.mask.png",
+      "roi": [735, 460, 70, 65],
+      "threshold": 0.90
+    },
+    "sparkling_water": {
+      "path": "templates/sparkling_water/sparkling_water.png",
+      "mask": "templates/sparkling_water/sparkling_water.mask.png",
+      "roi": [735, 390, 65, 65],
+      "threshold": 0.90
+    },
+    "drink_again": {
+      "path": "templates/sparkling_water/drink_again.png",
+      "roi": [895, 465, 80, 80],
+      "threshold": 0.90
+    }
+  }
+}

@@ -75,6 +75,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "city_prestige": {"default": 20, "overrides": {}},
     "product_unlocks": {"mode": "all", "product_ids": []},
     "active_events": [],
+    "auto_sparkling_water": False,
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
@@ -375,6 +376,10 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
+    merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
+    merged["use_fatigue_medicine"] = False
+    merged["allowed_fatigue_medicines"] = []
+    merged["fatigue_medicine_max_uses"] = 0
     try:
         merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
     except (TypeError, ValueError):

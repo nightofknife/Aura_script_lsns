@@ -249,6 +249,13 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: true
+      - name: auto_sparkling_water
+        type: boolean
+        required: false
+        default: false
+      - name: recovery_snapshot
+        type: dict
+        required: false
   steps:
     run:
       action: resonance_pc.auto_cycle_trade_flow
@@ -274,6 +281,8 @@ auto_cycle_trade_pc:
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(3600) }}"
         auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
+        auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
+        recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
   returns:
     success: "{{ nodes.run.output.success }}"
     status: "{{ nodes.run.output.status }}"
@@ -307,6 +316,8 @@ auto_cycle_trade_pc:
     route: "{{ nodes.run.output.route }}"
     execution: "{{ nodes.run.output.execution }}"
     final_sale: "{{ nodes.run.output.final_sale }}"
+    sparkling_water_plan: "{{ nodes.run.output.sparkling_water_plan }}"
+    sparkling_water: "{{ nodes.run.output.sparkling_water }}"
     blocked_at: "{{ nodes.run.output.blocked_at }}"
     blocked_leg: "{{ nodes.run.output.blocked_leg }}"
     fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"
