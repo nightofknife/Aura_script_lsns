@@ -226,16 +226,16 @@ def _normalize_text(text: Any) -> str:
 
 
 def _capture_text_items(app: Any, ocr: Any, region: List[int] | Tuple[int, int, int, int]) -> List[Dict[str, Any]]:
+    started_at = time.monotonic()
     region_tuple = _coerce_region(region)
     capture = app.capture(rect=region_tuple)
     if not capture.success:
         _raise_error("capture_failed", "failed to capture screen region", {"region": list(region_tuple)})
     multi = ocr.recognize_all(source_image=capture.image)
     items: List[Dict[str, Any]] = []
+    observations: List[Dict[str, Any]] = []
     for item in getattr(multi, "results", []) or []:
         text = str(getattr(item, "text", "") or "")
-        if not text.strip():
-            continue
         center = getattr(item, "center_point", None)
         rect = getattr(item, "rect", None)
         payload: Dict[str, Any] = {
@@ -252,7 +252,14 @@ def _capture_text_items(app: Any, ocr: Any, region: List[int] | Tuple[int, int, 
                 int(rect[2]),
                 int(rect[3]),
             ]
-        items.append(payload)
+        observations.append({**payload, "ignored_empty_normalized": not bool(payload["norm_text"])})
+        if payload["norm_text"]:
+            items.append(payload)
+    logger.info(
+        "[TradeOCR] region=%s elapsed_sec=%.3f observations=%s context=%s",
+        list(region_tuple), time.monotonic() - started_at,
+        observations, dict(_WORKER_PROGRESS_CONTEXT.get()),
+    )
     items.sort(key=lambda row: float(row.get("confidence") or 0.0), reverse=True)
     return items
 
@@ -270,6 +277,8 @@ def _find_text_hit(
         return None
     for item in _capture_text_items(app, ocr, region):
         norm = str(item.get("norm_text") or "")
+        if not norm:
+            continue
         if match_mode == "exact":
             matched = norm == wanted
         else:
@@ -858,6 +867,10 @@ def resonance_pc_buy_goods_on_buy_page(
     scan_trace: List[Dict[str, Any]] = []
     rounds = max(int(max_scan_rounds), 1)
     for round_index in range(rounds):
+        logger.info(
+            "[TradeBuy] phase=scan_started round=%s/%s pending=%s context=%s",
+            round_index + 1, rounds, list(pending), dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         items = _capture_text_items(app, ocr, _BUY_PRODUCTS_REGION)
         visible = [str(item.get("text") or "") for item in items]
         round_hits: List[str] = []
@@ -866,21 +879,37 @@ def resonance_pc_buy_goods_on_buy_page(
             hit = None
             for item in items:
                 item_norm = str(item.get("norm_text") or "")
-                if product_norm and (product_norm in item_norm or item_norm in product_norm):
+                if product_norm and item_norm and (product_norm in item_norm or item_norm in product_norm):
                     hit = item
                     break
             if hit is not None:
                 click = _click_hit(app, hit)
+                logger.info(
+                    "[TradeBuy] phase=product_match round=%s product=%s ocr=%s click=%s context=%s",
+                    round_index + 1, product, hit, click, dict(_WORKER_PROGRESS_CONTEXT.get()),
+                )
                 if click.get("clicked"):
                     selected.append(product)
                     round_hits.append(product)
                     pending.remove(product)
                     time.sleep(0.15)
         scan_trace.append({"round": round_index + 1, "visible_texts": visible, "round_hits": round_hits})
+        logger.info(
+            "[TradeBuy] phase=scan_completed round=%s visible_texts=%s round_hits=%s pending=%s context=%s",
+            round_index + 1, visible, round_hits, list(pending), dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         if not pending:
             break
         if round_index < rounds - 1:
+            logger.info(
+                "[TradeBuy] phase=scroll_started round=%s start=%s end=%s duration=0.5 context=%s",
+                round_index + 1, _BUY_SCROLL_START, _BUY_SCROLL_END, dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
             _drag_buy_list(app)
+            logger.info(
+                "[TradeBuy] phase=scroll_completed round=%s context=%s",
+                round_index + 1, dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
 
     logger.info(
         "[TradeBuy] phase=selection_completed selected=%s missing=%s scan_rounds=%s context=%s",
@@ -1496,6 +1525,7 @@ async def _execute_trade_leg(
     travel = await asyncio.to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
+        from_city_name=str(leg.get("from_city") or ""),
         enter_station_timeout_seconds=arrival_timeout_seconds,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 70, 1000, 550],
