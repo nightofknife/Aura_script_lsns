@@ -2,6 +2,7 @@
   "schema_version": 1,
   "reference_client": [1280, 720],
   "timeout_sec": 3.0,
+  "bento_ready_timeout_sec": 8.0,
   "poll_interval_sec": 0.2,
   "click_interval_sec": 0.7,
   "sparkling_water_roi": [937, 221, 88, 52],

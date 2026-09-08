@@ -152,13 +152,17 @@ def test_bento_each_slot_is_explicit_and_no_ocr(layout, states, monkeypatch):
 
 
 @pytest.mark.parametrize("matched", [True, False])
-def test_bento_unknown_or_conflicting_match_fails(layout, matched, monkeypatch, fast_clock):
+def test_bento_unknown_or_conflicting_match_defaults_to_empty(layout, matched, monkeypatch, fast_clock):
     vision = NS(find_templates_batch=lambda **kwargs: [NS(found=matched,confidence=1.0)]*2)
     reader = recovery.RecoveryReader(None, None, vision, layout)
     monkeypatch.setattr(reader, "is_page", lambda page: True)
     monkeypatch.setattr(reader, "capture", lambda roi: np.zeros((roi[3],roi[2],3),dtype=np.uint8))
-    with pytest.raises(recovery.StopTaskException, match="ambiguous"):
-        reader.read_bento()
+    result = reader.read_bento()
+    assert result["available_count"] == 0
+    assert [slot["available"] for slot in result["slots"]] == [False, False, False]
+    assert result["reason"] == "recognition_timeout_assumed_empty"
+    assert result["degraded"] is True
+    assert 8 <= fast_clock[0] < 8.3
 
 
 @pytest.mark.parametrize("remaining,limit", [(i,6) for i in range(7)] + [(2,3)])
