@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QStyle,
+    QTabWidget,
     QTextBrowser,
     QToolButton,
     QTreeWidget,
@@ -36,6 +37,7 @@ from PySide6.QtWidgets import (
 from ..config_repository import (
     DEFAULT_PC_TRADE_CITY_IDS,
     PC_TRADE_CITY_OPTIONS,
+    TRADE_PREVIEW_INPUT_KEYS,
     ResonanceConfigRepository,
 )
 from ..logic import (
@@ -298,8 +300,16 @@ class TradePage(QWidget):
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
 
-    def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, settings: ResonanceConfigRepository, parent: QWidget | None = None,
+        *, preview_mode: bool = False,
+    ) -> None:
         super().__init__(parent)
+        self.preview_mode = bool(preview_mode)
+        self.start_city: QComboBox | None = None
+        self.start_button: QPushButton | None = None
+        self.preview_button: QPushButton | None = None
+        self.tabs: QTabWidget | None = None
         self._settings = settings
         self._progress = TradeProgressState()
         self._current_cid = ""
@@ -320,8 +330,22 @@ class TradePage(QWidget):
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
         self._build_ui()
-        self.set_inputs(self._settings.load_trade_inputs())
+        self.set_inputs(self._load_inputs())
         self.set_busy(False)
+
+    def _load_inputs(self) -> dict[str, Any]:
+        if self.preview_mode:
+            values = self._settings.load_trade_preview_inputs()
+            return {key: values[key] for key in TRADE_PREVIEW_INPUT_KEYS if key in values}
+        return self._settings.load_trade_inputs()
+
+    def _save_inputs(self, inputs: Mapping[str, Any]) -> None:
+        if self.preview_mode:
+            self._settings.save_trade_preview_inputs(
+                {key: inputs[key] for key in TRADE_PREVIEW_INPUT_KEYS if key in inputs}
+            )
+        else:
+            self._settings.save_trade_inputs(dict(inputs))
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -329,20 +353,47 @@ class TradePage(QWidget):
         root.setSpacing(0)
         root.addWidget(self._build_status_band())
 
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.parameter_panel = self._build_parameter_panel()
-        splitter.addWidget(self.parameter_panel)
         self.execution_panel = self._build_execution_panel()
-        splitter.addWidget(self.execution_panel)
-        splitter.setCollapsible(0, False)
-        splitter.setCollapsible(1, False)
-        splitter.setSizes([320, 820])
-        root.addWidget(splitter, 1)
+        if self.preview_mode:
+            self.tabs = QTabWidget(self)
+            self.tabs.addTab(self.parameter_panel, "规划参数")
+            self.tabs.addTab(self.execution_panel, "计算结果")
+            root.addWidget(self.tabs, 1)
+        else:
+            splitter = QSplitter(Qt.Orientation.Horizontal, self)
+            splitter.addWidget(self.parameter_panel)
+            splitter.addWidget(self.execution_panel)
+            splitter.setCollapsible(0, False)
+            splitter.setCollapsible(1, False)
+            splitter.setSizes([320, 820])
+            root.addWidget(splitter, 1)
         root.addWidget(self._build_action_bar())
 
     def _build_status_band(self) -> QWidget:
         band = QFrame(self)
         band.setObjectName("statusBand")
+        if self.preview_mode:
+            grid = QGridLayout(band)
+            grid.setContentsMargins(18, 10, 18, 10)
+            grid.setHorizontalSpacing(16)
+            self.target_value = None
+            for index, (name, caption, value) in enumerate((
+                ("city_value", "起始城市", "--"),
+                ("snapshot_value", "市场快照", "--"),
+                ("run_status_value", "任务状态", "待命"),
+                ("cid_value", "CID", "--"),
+                ("elapsed_value", "运行时长", "00:00"),
+            )):
+                cell = QHBoxLayout()
+                label = self._status_pair(cell, caption, value)
+                label.setMinimumWidth(0)
+                label.setWordWrap(True)
+                setattr(self, name, label)
+                grid.addLayout(cell, index // 2, index % 2)
+            grid.setColumnStretch(0, 1)
+            grid.setColumnStretch(1, 1)
+            return band
         layout = QHBoxLayout(band)
         layout.setContentsMargins(18, 10, 18, 10)
         layout.setSpacing(28)
@@ -373,7 +424,8 @@ class TradePage(QWidget):
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
         panel.setMinimumWidth(290)
-        panel.setMaximumWidth(390)
+        if not self.preview_mode:
+            panel.setMaximumWidth(390)
         outer = QVBoxLayout(panel)
         outer.setContentsMargins(16, 14, 16, 14)
         title = QLabel("跑商参数", panel)
@@ -400,9 +452,10 @@ class TradePage(QWidget):
         self.arrival_timeout_minutes.setToolTip(
             "超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时"
         )
-        self.start_city = QComboBox(content)
-        self.start_city.currentIndexChanged.connect(self._sync_actions)
-        common_form.addRow("起始城市", self.start_city)
+        if self.preview_mode:
+            self.start_city = QComboBox(content)
+            self.start_city.currentIndexChanged.connect(self._sync_actions)
+            common_form.addRow("起始城市", self.start_city)
         self.city_selector = self._build_city_selector(content)
         common_form.addRow("参与规划城市", self.city_selector)
         self.end_city = QComboBox(content)
@@ -429,6 +482,10 @@ class TradePage(QWidget):
         form_stack.addWidget(self.auto_cape_island_investment)
         self.auto_rubbish_recycling = QCheckBox("是否自动倒垃圾", content)
         form_stack.addWidget(self.auto_rubbish_recycling)
+        if self.preview_mode:
+            self.auto_sparkling_water.hide()
+            self.auto_cape_island_investment.hide()
+            self.auto_rubbish_recycling.hide()
 
         self.advanced_toggle = QToolButton(content)
         self.advanced_toggle.setText("高级规划参数")
@@ -472,7 +529,11 @@ class TradePage(QWidget):
         self.active_events = QLineEdit(panel)
         self.active_events.setPlaceholderText("活动 ID，使用逗号分隔")
         form.addRow("进货书收益阈值", self.book_profit_threshold)
-        form.addRow("单次协商最大尝试次数", self.negotiation_max_attempts)
+        if self.preview_mode:
+            self.negotiation_max_attempts.setParent(panel)
+            self.negotiation_max_attempts.hide()
+        else:
+            form.addRow("单次协商最大尝试次数", self.negotiation_max_attempts)
         form.addRow("砍价成功率(bps)", self.bargain_rates)
         form.addRow("砍价幅度(bps)", self.bargain_step)
         form.addRow("抬价成功率(bps)", self.raise_rates)
@@ -526,7 +587,7 @@ class TradePage(QWidget):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(18, 14, 18, 12)
         layout.setSpacing(10)
-        heading = QHBoxLayout()
+        heading = QVBoxLayout() if self.preview_mode else QHBoxLayout()
         heading_box = QVBoxLayout()
         section = QLabel("当前方案路径", panel)
         section.setObjectName("pageTitle")
@@ -536,9 +597,11 @@ class TradePage(QWidget):
         heading_box.addWidget(self.stage_title)
         heading.addLayout(heading_box)
         heading.addStretch(1)
-        self.stage_detail = QLabel("目标检查完成后即可开始", panel)
+        self.stage_detail = QLabel("" if self.preview_mode else "目标检查完成后即可开始", panel)
         self.stage_detail.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.stage_detail.setProperty("caption", True)
+        if self.preview_mode:
+            self.stage_detail.setWordWrap(True)
         heading.addWidget(self.stage_detail)
         layout.addLayout(heading)
 
@@ -549,7 +612,10 @@ class TradePage(QWidget):
         self.route_tree.setAlternatingRowColors(True)
         self.route_tree.setUniformRowHeights(False)
         self.route_tree.setIconSize(QSize(18, 18))
-        self.route_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.route_tree.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded if self.preview_mode
+            else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         header = self.route_tree.header()
         header.setMinimumSectionSize(42)
         header.setStretchLastSection(False)
@@ -560,6 +626,11 @@ class TradePage(QWidget):
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.resizeSection(5, 48)
+        if self.preview_mode:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+            header.resizeSection(0, 220)
+            header.resizeSection(1, 240)
         layout.addWidget(self.route_tree, 3)
 
         self.result_band = QFrame(panel)
@@ -584,12 +655,14 @@ class TradePage(QWidget):
             ("remaining_fatigue", "剩余疲劳"),
         )
         for index, (key, title) in enumerate(fields):
-            row, col = divmod(index, 4)
+            row, col = divmod(index, 2 if self.preview_mode else 4)
             box = QVBoxLayout()
             caption = QLabel(title, self.result_band)
             caption.setProperty("caption", True)
             value = QLabel("--", self.result_band)
             value.setProperty("value", True)
+            if self.preview_mode:
+                value.setWordWrap(True)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             box.addWidget(caption)
             box.addWidget(value)
@@ -619,7 +692,7 @@ class TradePage(QWidget):
         band.setObjectName("resultBand")
         layout = QHBoxLayout(band)
         layout.setContentsMargins(18, 9, 18, 9)
-        self.ready_hint = QLabel("正在检查目标窗口", band)
+        self.ready_hint = QLabel("" if self.preview_mode else "正在检查目标窗口", band)
         self.ready_hint.setProperty("caption", True)
         layout.addWidget(self.ready_hint)
         layout.addStretch(1)
@@ -627,17 +700,19 @@ class TradePage(QWidget):
         self.cancel_button.setObjectName("dangerButton")
         self.cancel_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
-        self.preview_button = QPushButton("计算方案", band)
-        self.preview_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
-        self.preview_button.setToolTip("更新市场行情并从所选起始城市计算方案；不会操作游戏")
-        self.preview_button.clicked.connect(self._request_preview)
-        self.start_button = QPushButton("开始跑商", band)
-        self.start_button.setObjectName("primaryButton")
-        self.start_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
-        self.start_button.clicked.connect(self._request_start)
         layout.addWidget(self.cancel_button)
-        layout.addWidget(self.preview_button)
-        layout.addWidget(self.start_button)
+        if self.preview_mode:
+            self.preview_button = QPushButton("计算方案", band)
+            self.preview_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
+            self.preview_button.setToolTip("更新市场行情并从所选起始城市计算方案；不会操作游戏")
+            self.preview_button.clicked.connect(self._request_preview)
+            layout.addWidget(self.preview_button)
+        else:
+            self.start_button = QPushButton("开始跑商", band)
+            self.start_button.setObjectName("primaryButton")
+            self.start_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
+            self.start_button.clicked.connect(self._request_start)
+            layout.addWidget(self.start_button)
         return band
 
     @staticmethod
@@ -679,9 +754,9 @@ class TradePage(QWidget):
             for city_id, value in dict(prestige["overrides"]).items()
         }
         self._update_city_prestige_button()
-        saved_inputs = self._settings.load_trade_inputs()
+        saved_inputs = self._load_inputs()
         saved_inputs["city_prestige"] = self._city_prestige_payload()
-        self._settings.save_trade_inputs(saved_inputs)
+        self._save_inputs(saved_inputs)
 
     def _city_prestige_payload(self) -> dict[str, Any]:
         return {
@@ -708,9 +783,9 @@ class TradePage(QWidget):
         selected = dialog.unlocked_product_ids()
         self._unlocked_product_ids = None if selected == self._all_product_ids else selected
         self._update_product_unlock_button()
-        saved_inputs = self._settings.load_trade_inputs()
+        saved_inputs = self._load_inputs()
         saved_inputs["product_unlocks"] = self._product_unlock_payload()
-        self._settings.save_trade_inputs(saved_inputs)
+        self._save_inputs(saved_inputs)
 
     def _product_unlock_payload(self) -> dict[str, Any]:
         if self._unlocked_product_ids is None:
@@ -731,7 +806,7 @@ class TradePage(QWidget):
         self.product_unlock_button.setToolTip(f"当前已解锁 {enabled} / {total} 个声望商品；普通商品始终可用")
 
     def _sync_start_city_options(self) -> None:
-        if not hasattr(self, "start_city"):
+        if self.start_city is None:
             return
         current_city_id = str(self.start_city.currentData() or "")
         selected = set(self.selected_city_ids())
@@ -766,7 +841,10 @@ class TradePage(QWidget):
         return [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS if self.city_checks[city_id].isChecked()]
 
     def set_inputs(self, inputs: Mapping[str, Any]) -> None:
-        values = dict(inputs)
+        values = (
+            {key: inputs[key] for key in TRADE_PREVIEW_INPUT_KEYS if key in inputs}
+            if self.preview_mode else dict(inputs)
+        )
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 700)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 750)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
@@ -786,8 +864,9 @@ class TradePage(QWidget):
         for city_id, checkbox in self.city_checks.items():
             checkbox.setChecked(city_id in selected_city_ids)
         self._sync_start_city_options()
-        start_city_index = self.start_city.findData(str(values.get("start_city_id") or ""))
-        self.start_city.setCurrentIndex(max(start_city_index, 0))
+        if self.start_city is not None:
+            start_city_index = self.start_city.findData(str(values.get("start_city_id") or ""))
+            self.start_city.setCurrentIndex(max(start_city_index, 0))
         required_end_city_ids = [
             str(city_id)
             for city_id in (values.get("required_end_city_ids") or [])
@@ -835,23 +914,21 @@ class TradePage(QWidget):
         selected_city_ids = self.selected_city_ids()
         if len(selected_city_ids) < 2:
             raise ValueError("参与规划城市至少需要选择两个")
-        start_city_id = str(self.start_city.currentData() or "")
-        if require_start_city and not start_city_id:
-            raise ValueError("请选择起始城市")
-        if start_city_id and start_city_id not in selected_city_ids:
-            raise ValueError("起始城市必须属于参与规划城市")
+        if self.preview_mode:
+            start_city_id = str(self.start_city.currentData() or "") if self.start_city is not None else ""
+            if not start_city_id:
+                raise ValueError("请选择起始城市")
+            if start_city_id not in selected_city_ids:
+                raise ValueError("起始城市必须属于参与规划城市")
         end_city_id = str(self.end_city.currentData() or "")
         if end_city_id and end_city_id not in selected_city_ids:
             raise ValueError("终点城市必须属于参与规划城市")
         required_end_city_ids = [end_city_id] if end_city_id else None
-        return {
-            "start_city_id": start_city_id,
+        inputs = {
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
             "book_budget": self.book_budget.value(),
-            "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "book_profit_threshold": self.book_profit_threshold.value(),
-            "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
             "raise_success_rates_bps": raise_rates,
@@ -862,19 +939,29 @@ class TradePage(QWidget):
             "city_prestige": self._city_prestige_payload(),
             "product_unlocks": self._product_unlock_payload(),
             "active_events": self._parse_text_list(self.active_events.text()),
+        }
+        if self.preview_mode:
+            inputs["start_city_id"] = start_city_id
+            return inputs
+        inputs.update({
+            "negotiation_max_attempts": self.negotiation_max_attempts.value(),
+            "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
             "use_fatigue_medicine": False,
             "allowed_fatigue_medicines": [],
             "fatigue_medicine_max_uses": 0,
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
-        }
+        })
+        return inputs
 
     def _request_start(self) -> None:
-        self._request_action(self.startRequested)
+        if not self.preview_mode:
+            self._request_action(self.startRequested)
 
     def _request_preview(self) -> None:
-        self._request_action(self.previewRequested, require_start_city=True)
+        if self.preview_mode:
+            self._request_action(self.previewRequested, require_start_city=True)
 
     def _request_action(self, signal: Signal, *, require_start_city: bool = False) -> None:
         try:
@@ -882,11 +969,14 @@ class TradePage(QWidget):
         except ValueError as exc:
             QMessageBox.warning(self, "参数错误", str(exc))
             return
-        self._settings.save_trade_inputs(inputs)
+        self._save_inputs(inputs)
         self._last_inputs = inputs
         signal.emit(inputs, 0.0)
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
+        if self.target_value is None:
+            self._sync_actions()
+            return
         data = dict(payload)
         target = data.get("target") if isinstance(data.get("target"), Mapping) else {}
         title = str(target.get("title") or target.get("window_title") or "")
@@ -905,7 +995,7 @@ class TradePage(QWidget):
         else:
             self.target_value.setText("未连接")
             self.target_value.setProperty("status", "error")
-            self.ready_hint.setText("计算方案无需游戏；开始跑商需连接客户端")
+            self.ready_hint.setText("开始跑商需连接客户端")
         self.target_value.style().unpolish(self.target_value)
         self.target_value.style().polish(self.target_value)
         self._sync_actions()
@@ -942,6 +1032,16 @@ class TradePage(QWidget):
         self._refresh_debug()
 
     def begin_preview(self, payload: Mapping[str, Any]) -> None:
+        if self.tabs is not None:
+            self.tabs.setCurrentWidget(self.execution_panel)
+        self.route_tree.clear()
+        self._route_statuses = {}
+        self._current_plan = {}
+        self._plan_inputs = {}
+        self._last_result = {}
+        self._clear_result()
+        self.snapshot_value.setText("--")
+        self.city_value.setText(self.start_city.currentText() if self.start_city is not None else "--")
         self._active_mode = "preview"
         self._current_cid = str(payload.get("cid") or extract_run_id(payload))
         self._progress = TradeProgressState(cid=self._current_cid)
@@ -1019,24 +1119,42 @@ class TradePage(QWidget):
         self._refresh_debug()
 
     def finish_preview(self, payload: Mapping[str, Any]) -> None:
+        if self.tabs is not None:
+            self.tabs.setCurrentWidget(self.execution_panel)
         self._elapsed_timer.stop()
         self._last_result = dict(payload)
         summary = trade_result_summary(payload)
         runner_status = extract_status(payload)
-        if runner_status in {"failed", "error", "timeout", "cancelled"} and not summary.get("route"):
-            self.run_status_value.setText(self._status_label(runner_status))
-            self.stage_title.setText(self._status_label(runner_status))
-            self.stage_detail.setText("方案计算未完成，保留上一份方案")
+        business_status = str(summary.get("status") or runner_status)
+        failure_status = next(
+            (status for status in (runner_status, business_status)
+             if status in {"failed", "error", "timeout", "cancelled", "blocked"}),
+            "",
+        )
+        if failure_status:
+            reason = str(summary.get("reason") or payload.get("error") or "方案计算未完成")
+            self.run_status_value.setText(self._status_label(failure_status))
+            self.stage_title.setText(self._status_label(failure_status))
+            self.stage_detail.setText(reason)
+            self.route_tree.clear()
+            self._route_statuses = {}
+            self._clear_result()
+            self._render_result({**summary, "status": failure_status, "reason": reason, "route": []})
             self.set_busy(False)
             self._active_mode = ""
             self._refresh_debug()
             return
         self._current_plan = dict(summary)
         self._plan_inputs = dict(self._last_inputs)
-        self.run_status_value.setText("方案就绪")
-        self.stage_title.setText("方案已计算")
+        no_plan = business_status in {"no_plan", "no_positive_profit_route"} or not summary.get("route")
+        if no_plan:
+            summary = {**summary, "status": "no_plan"}
+            self._current_plan = dict(summary)
+        self.run_status_value.setText("无可执行路线" if no_plan else "方案就绪")
+        self.stage_title.setText("无可执行路线" if no_plan else "方案已计算")
         self.stage_detail.setText(
-            "行情更新失败，已使用本地市场快照"
+            str(summary.get("reason") or "当前规划参数下无可执行路线") if no_plan
+            else "行情更新失败，已使用本地市场快照"
             if summary.get("market_source") == "fallback_cache"
             else "行情已更新，本方案使用最新快照"
         )
@@ -1057,6 +1175,8 @@ class TradePage(QWidget):
     def show_history_result(self, payload: Mapping[str, Any]) -> None:
         if self._busy:
             return
+        if self.tabs is not None:
+            self.tabs.setCurrentWidget(self.execution_panel)
         self._last_result = dict(payload)
         self._current_cid = extract_run_id(payload)
         summary = trade_result_summary(payload)
@@ -1071,6 +1191,9 @@ class TradePage(QWidget):
         self._apply_route_statuses()
         self._render_result(summary)
         self._refresh_debug()
+
+    def show_error(self, error: str | Mapping[str, Any]) -> None:
+        self.show_failure(error if isinstance(error, Mapping) else {"error": str(error)})
 
     def show_failure(self, payload: Mapping[str, Any]) -> None:
         if payload.get("recoverable"):
@@ -1100,7 +1223,8 @@ class TradePage(QWidget):
             self.city_selector,
             self.start_city,
         ):
-            widget.setEnabled(not busy)
+            if widget is not None:
+                widget.setEnabled(not busy)
         self.end_city.setEnabled(not busy and self._end_city_constraint_available)
         self._sync_actions()
 
@@ -1121,9 +1245,16 @@ class TradePage(QWidget):
         return self._busy
 
     def _sync_actions(self) -> None:
-        self.start_button.setEnabled(self._target_ready and not self._busy)
-        self.preview_button.setEnabled(bool(self.start_city.currentData()) and not self._busy)
-        self.cancel_button.setEnabled(self._busy)
+        if self.start_button is not None:
+            self.start_button.setEnabled(self._target_ready and not self._busy)
+        if self.preview_button is not None:
+            self.preview_button.setEnabled(
+                self.start_city is not None and bool(self.start_city.currentData()) and not self._busy
+            )
+        if hasattr(self, "cancel_button"):
+            self.cancel_button.setEnabled(
+                self._busy and (not self.preview_mode or self._active_mode == "preview")
+            )
 
     def _render_route(self, route: list[dict[str, Any]]) -> None:
         self.route_tree.clear()

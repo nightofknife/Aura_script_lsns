@@ -461,7 +461,6 @@ class WorkflowPage(QWidget):
     openTradeRequested = Signal()
     openPassengerRequested = Signal()
     openBattleRequested = Signal()
-    previewTradeRequested = Signal()
     settingsRequested = Signal()
     tradeEndCityAvailabilityChanged = Signal(bool)
 
@@ -571,21 +570,14 @@ class WorkflowPage(QWidget):
             self.trade_editor_layout,
             self.trade_editor_header,
         ) = self._build_embedded_editor_page("完整货运参数")
-        self.trade_preview_button = QPushButton("方案试算", self.trade_editor_page)
-        self.trade_preview_button.setObjectName("primaryButton")
-        self.trade_preview_button.setToolTip("使用当前参数计算方案，不操作游戏")
-        self.trade_preview_button.clicked.connect(self._request_trade_preview)
-        self.trade_editor_header.addWidget(self.trade_preview_button)
         (
             self.passenger_editor_page,
             self.passenger_editor_layout,
             self.passenger_editor_header,
         ) = self._build_embedded_editor_page("完整客运参数")
-        self.trade_preview_page = self._build_trade_preview_page()
         self.runtime_trade_plan_page = self._build_runtime_trade_plan_page()
         self.center_stack.addWidget(self.trade_editor_page)
         self.center_stack.addWidget(self.passenger_editor_page)
-        self.center_stack.addWidget(self.trade_preview_page)
         self.center_stack.addWidget(self.runtime_trade_plan_page)
         layout.addWidget(self.center_stack)
         return panel
@@ -607,27 +599,6 @@ class WorkflowPage(QWidget):
         header.addStretch(1)
         layout.addLayout(header)
         return page, layout, header
-
-    def _build_trade_preview_page(self) -> QWidget:
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(0, 0, 0, 0)
-        header = QHBoxLayout()
-        back = QPushButton("← 返回修改参数", page)
-        back.setObjectName("quietButton")
-        back.clicked.connect(self.show_trade_editor)
-        heading = QLabel("货运方案试算", page)
-        heading.setObjectName("workflowTitle")
-        rerun = QPushButton("重新计算", page)
-        rerun.clicked.connect(self._request_trade_preview)
-        header.addWidget(back)
-        header.addWidget(heading)
-        header.addStretch(1)
-        header.addWidget(rerun)
-        layout.addLayout(header)
-        self.trade_preview_layout = layout
-        self.trade_preview_rerun_button = rerun
-        return page
 
     def _build_runtime_trade_plan_page(self) -> QWidget:
         page = QWidget(self)
@@ -730,12 +701,11 @@ class WorkflowPage(QWidget):
         return page
 
     def attach_parameter_editors(
-        self, trade_panel: QWidget, passenger_panel: QWidget, trade_result_panel: QWidget
+        self, trade_panel: QWidget, passenger_panel: QWidget
     ) -> None:
         for panel, target_layout in (
             (trade_panel, self.trade_editor_layout),
             (passenger_panel, self.passenger_editor_layout),
-            (trade_result_panel, self.trade_preview_layout),
         ):
             panel.setMinimumWidth(0)
             panel.setMaximumWidth(16777215)
@@ -747,17 +717,8 @@ class WorkflowPage(QWidget):
     def show_passenger_editor(self) -> None:
         self.center_stack.setCurrentWidget(self.passenger_editor_page)
 
-    def show_trade_preview(self) -> None:
-        self.center_stack.setCurrentWidget(self.trade_preview_page)
-
     def show_runtime_trade_plan(self) -> None:
         self.center_stack.setCurrentWidget(self.runtime_trade_plan_page)
-
-    def _request_trade_preview(self) -> None:
-        if self._busy:
-            return
-        self.show_trade_preview()
-        self.previewTradeRequested.emit()
 
     def show_commerce_summary(self) -> None:
         self._select_task("commerce")

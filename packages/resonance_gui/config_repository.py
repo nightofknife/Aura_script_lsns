@@ -84,6 +84,25 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "auto_rubbish_recycling": True,
 }
 
+# Planning inputs declared by preview_trade_plan_pc.yaml.
+TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
+    "start_city_id",
+    "fatigue_budget",
+    "cargo_capacity",
+    "book_budget",
+    "book_profit_threshold",
+    "bargain_success_rates_bps",
+    "bargain_step_bps",
+    "raise_success_rates_bps",
+    "raise_step_bps",
+    "trade_level",
+    "available_city_ids",
+    "required_end_city_ids",
+    "city_prestige",
+    "product_unlocks",
+    "active_events",
+)
+
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
     "passenger_city_a_id": "11",
     "passenger_city_b_id": "15",
@@ -214,6 +233,32 @@ class ResonanceConfigRepository:
         normalized = _merge_trade_inputs(inputs)
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
         self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
+        self.settings.sync()
+
+    def load_trade_preview_inputs(self) -> dict[str, Any]:
+        """Load independent planning inputs, seeding normal trade inputs once."""
+        key = "trade_preview/inputs_json"
+        if not self.settings.contains(key):
+            normalized = _merge_trade_preview_inputs(self.load_trade_inputs())
+            self.save_trade_preview_inputs(normalized)
+            return normalized
+        raw = self.settings.value(key, "")
+        try:
+            parsed = json.loads(str(raw))
+            if isinstance(parsed, dict):
+                return _merge_trade_preview_inputs(parsed)
+        except (TypeError, ValueError):
+            pass
+        normalized = _merge_trade_preview_inputs({})
+        self.save_trade_preview_inputs(normalized)
+        return normalized
+
+    def save_trade_preview_inputs(self, inputs: dict[str, Any]) -> None:
+        """Persist only preview planning inputs without changing trade settings."""
+        normalized = _merge_trade_preview_inputs(inputs)
+        self.settings.setValue(
+            "trade_preview/inputs_json", json.dumps(normalized, ensure_ascii=False)
+        )
         self.settings.sync()
 
     def _migrate_trade_city_defaults(self, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -385,6 +430,19 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     except (TypeError, ValueError):
         merged["arrival_timeout_seconds"] = 3600
     return merged
+
+
+def _merge_trade_preview_inputs(values: dict[str, Any]) -> dict[str, Any]:
+    planning_values = {
+        key: values[key] for key in TRADE_PREVIEW_INPUT_KEYS if key in values
+    }
+    merged = _merge_trade_inputs(planning_values)
+    start_city_id = str(merged.get("start_city_id") or "").strip()
+    available_city_ids = merged["available_city_ids"]
+    merged["start_city_id"] = (
+        start_city_id if start_city_id in available_city_ids else ""
+    )
+    return {key: merged[key] for key in TRADE_PREVIEW_INPUT_KEYS}
 
 
 def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
