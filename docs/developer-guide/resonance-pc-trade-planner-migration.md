@@ -98,7 +98,8 @@ negotiation.model = binary_to_cap_expected_fatigue
 | `all_plan` | int | `0` | `0` 或 `1` | 选择完整议价次数预算模式或自动分配模式 |
 | `fatigue_budget` | int | `100` | `>=0` | 旅行疲劳与议价期望疲劳的总预算 |
 | `cargo_capacity` | int | `650` | `>0` | 每段可装载商品数量 |
-| `book_budget` | int | `0` | `>=0` | 整条路线共享的进货书数量 |
+| `book_budget` | int | `0` | `>=0` | 手动模式下整条路线共享的进货书数量；Auto Book 模式忽略 |
+| `auto_book` | bool | `false` | `true` 或 `false` | 按单书税后增量收益自动决定用书数量，并参与全局选路 |
 | `book_profit_threshold` | number | `500000` | `>=0` | 第 N 本书相对第 N-1 本书的最低税后边际收益 |
 | `negotiation_budget` | int | `0` | `>=0` | `all_plan=0` 时允许的满砍价/满抬价总次数 |
 | `negotiation_max_attempts` | int | `5` | `1..6` | 自动执行时每次砍价或抬价最多点击次数；每次操作独立重新计数，不影响规划 |
@@ -163,6 +164,22 @@ bargain_success_rates_bps: [6300, 5300]
 `negotiation_budget` 与 `negotiation_max_attempts` 含义不同：前者限制规划器可以选择多少次
 完整议价操作，后者只限制执行器为某一次已选择操作最多点击多少次。`all_plan=1` 只忽略前者，
 不会忽略执行上限。
+
+### 3.5 Auto Book 恢复
+
+`auto_book=true` 时，候选城市边与议价组合先根据 `P(k)-P(k-1) > book_profit_threshold`
+确定用书数量，再参与全局精确路线搜索。手动模式保留原来的 `>=` 门槛和有限书本预算。
+自动模式的 `book_budget` 不约束路线，也不影响缓存键；实际 `books_used` 仍累计并参与平局排序。
+
+v1.9.0 的正式货运与小任务试算分别保存模式。快捷货运与完整货运参数同步；试算参数独立。
+开关启用时手动书数变灰但不清空，只在提交任务时剔除。默认门槛仍为 `500000`，保留已有设置值。
+
+返回字段恢复 `auto_book`、`book_budget_ignored`、`book_profit_threshold`、
+`book_incremental_profit` / `book_incremental_profit_exact` 和
+`average_book_profit` / `average_book_profit_exact`。增量收益使用最终选中路线的同边、同议价组合
+零书基线；平均收益为增量收益除以总书数，零书时为 `null`。不得以路线总利润直接除以书数。
+
+完整行为和恢复范围见 [PC Auto Book](resonance-pc-auto-book.md)。
 
 ## 4. 期望疲劳与利润计算
 

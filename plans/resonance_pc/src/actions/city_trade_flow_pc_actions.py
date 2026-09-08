@@ -1937,6 +1937,7 @@ async def _preview_trade_plan_from_start_city(
     fatigue_budget: int = 100,
     cargo_capacity: int = 650,
     book_budget: int = 0,
+    auto_book: bool = False,
     book_profit_threshold: float = 500000,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
@@ -1952,6 +1953,8 @@ async def _preview_trade_plan_from_start_city(
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     reporter: _TradeProgressReporter | None = None,
 ) -> Dict[str, Any]:
+    if type(auto_book) is not bool:
+        raise ValueError("auto_book must be a boolean")
     normalized_start_city_id = str(start_city_id or "").strip()
     if not normalized_start_city_id:
         raise ValueError("start_city_id is required")
@@ -2018,6 +2021,7 @@ async def _preview_trade_plan_from_start_city(
             fatigue_budget=int(fatigue_budget),
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
+            auto_book=auto_book,
             book_profit_threshold=book_profit_threshold,
             negotiation_budget=0,
             all_plan=1,
@@ -2052,6 +2056,13 @@ async def _preview_trade_plan_from_start_city(
                     "expected_fatigue_used": plan.get("expected_fatigue_used"),
                     "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
                     "books_used": plan.get("books_used"),
+                    "auto_book": plan.get("auto_book"),
+                    "book_budget_ignored": plan.get("book_budget_ignored"),
+                    "book_profit_threshold": plan.get("book_profit_threshold"),
+                    "book_incremental_profit": plan.get("book_incremental_profit"),
+                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
+                    "average_book_profit": plan.get("average_book_profit"),
+                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
                     "full_bargain_count": plan.get("full_bargain_count"),
                     "full_raise_count": plan.get("full_raise_count"),
                 },
@@ -2094,6 +2105,7 @@ async def resonance_pc_preview_trade_plan_flow(
     fatigue_budget: int = 100,
     cargo_capacity: int = 650,
     book_budget: int = 0,
+    auto_book: bool = False,
     book_profit_threshold: float = 500000,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
@@ -2116,6 +2128,7 @@ async def resonance_pc_preview_trade_plan_flow(
         fatigue_budget=fatigue_budget,
         cargo_capacity=cargo_capacity,
         book_budget=book_budget,
+        auto_book=auto_book,
         book_profit_threshold=book_profit_threshold,
         bargain_success_rates_bps=bargain_success_rates_bps,
         bargain_step_bps=bargain_step_bps,
@@ -2155,6 +2168,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     fatigue_budget: int = 100,
     cargo_capacity: int = 650,
     book_budget: int = 0,
+    auto_book: bool = False,
     book_profit_threshold: float = 500000,
     negotiation_max_attempts: int = 5,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
@@ -2189,6 +2203,8 @@ async def resonance_pc_auto_cycle_trade_flow(
 ) -> Dict[str, Any]:
     del event_bus, context
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    if type(auto_book) is not bool:
+        raise ValueError("auto_book must be a boolean")
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
     if auto_sparkling_water:
@@ -2288,6 +2304,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             fatigue_budget=int(fatigue_budget),
             cargo_capacity=int(cargo_capacity),
             book_budget=int(book_budget),
+            auto_book=auto_book,
             book_profit_threshold=book_profit_threshold,
             negotiation_budget=0,
             all_plan=1,
@@ -2332,6 +2349,13 @@ async def resonance_pc_auto_cycle_trade_flow(
                     "expected_fatigue_used": plan.get("expected_fatigue_used"),
                     "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
                     "books_used": plan.get("books_used"),
+                    "auto_book": plan.get("auto_book"),
+                    "book_budget_ignored": plan.get("book_budget_ignored"),
+                    "book_profit_threshold": plan.get("book_profit_threshold"),
+                    "book_incremental_profit": plan.get("book_incremental_profit"),
+                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
+                    "average_book_profit": plan.get("average_book_profit"),
+                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
                     "full_bargain_count": plan.get("full_bargain_count"),
                     "full_raise_count": plan.get("full_raise_count"),
                 },

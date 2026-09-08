@@ -205,11 +205,13 @@ def test_real_auto_trade_requires_persistence_before_ui(monkeypatch, recovery_sn
 
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
+@pytest.mark.parametrize("auto_book", [False, True])
 def test_combined_handoff_enters_real_auto_trade_signature(
-    harness, monkeypatch, recovery_snapshot, enabled, order,
+    harness, monkeypatch, recovery_snapshot, enabled, order, auto_book,
 ):
     inputs, _, _ = harness
     inputs["trade_inputs"]["auto_sparkling_water"] = enabled
+    inputs["trade_inputs"]["auto_book"] = auto_book
     original = deepcopy(recovery_snapshot)
     captured = {}
     route = [{
@@ -236,9 +238,14 @@ def test_combined_handoff_enters_real_auto_trade_signature(
         "city_id": "15", "city_key": "key15", "city_name": "City 15",
     })
     monkeypatch.setattr(trade_flow, "resonance_pc_market_refresh", lambda **kwargs: {"snapshot_id": "offline-market"})
-    monkeypatch.setattr(trade_flow, "resonance_pc_trade_plan_optimal_route", lambda **kwargs: {
-        "status": "ok", "route": deepcopy(route), "expected_fatigue_used": 40,
-    })
+    planning_inputs = {}
+
+    def plan_route(**kwargs):
+        planning_inputs.update(kwargs)
+        return {"status": "ok", "route": deepcopy(route), "expected_fatigue_used": 40,
+                "auto_book": kwargs["auto_book"]}
+
+    monkeypatch.setattr(trade_flow, "resonance_pc_trade_plan_optimal_route", plan_route)
 
     async def execute_route(**kwargs):
         captured.update(kwargs)
@@ -262,6 +269,8 @@ def test_combined_handoff_enters_real_auto_trade_signature(
         **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
     ))
     assert result["status"] == "completed", result
+    assert planning_inputs["auto_book"] is auto_book
+    assert result["trade"]["auto_book"] is auto_book
     assert recovery_snapshot == original
     assert captured["persistent_data"] is persistent_data
     assert result["trade"]["sparkling_water"]["triggered"] is enabled

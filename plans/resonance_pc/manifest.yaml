@@ -878,6 +878,10 @@ exports:
       type: Any
       required: false
       default: 0
+    - name: auto_book
+      type: Any
+      required: false
+      default: false
     - name: book_profit_threshold
       type: Any
       required: false
@@ -945,6 +949,10 @@ exports:
       type: Any
       required: false
       default: 0
+    - name: auto_book
+      type: Any
+      required: false
+      default: false
     - name: book_profit_threshold
       type: Any
       required: false
@@ -2052,6 +2060,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_book
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.trade_plan_next
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_next
@@ -2716,4 +2728,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-07T15:30:10Z'
+  generated_at: '2026-09-08T13:01:21Z'

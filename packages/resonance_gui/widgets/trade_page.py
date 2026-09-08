@@ -49,6 +49,8 @@ from ..logic import (
     reduce_trade_progress,
     route_product_lines,
     trade_result_summary,
+    normalize_trade_task_inputs,
+    average_book_profit_text,
 )
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 
@@ -299,6 +301,7 @@ class TradePage(QWidget):
     previewRequested = Signal(object, float)
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
+    autoBookChanged = Signal(bool)
 
     def __init__(
         self, settings: ResonanceConfigRepository, parent: QWidget | None = None,
@@ -445,6 +448,11 @@ class TradePage(QWidget):
         self.fatigue_budget = self._spin(0, 100000)
         self.cargo_capacity = self._spin(1, 100000)
         self.book_budget = self._spin(0, 100000)
+        self.auto_book = QCheckBox("", content)
+        self.auto_book.setObjectName("tradeAutoBookCheck")
+        self.auto_book.setAccessibleName("Auto Book 模式")
+        self.auto_book.setToolTip("按收益阈值自动决定书数，保留手动进货书数量")
+        self.auto_book.toggled.connect(self._auto_book_toggled)
         self.arrival_timeout_minutes = self._spin(1, 240)
         self.arrival_timeout_minutes.setParent(content)
         self.arrival_timeout_minutes.hide()
@@ -472,6 +480,7 @@ class TradePage(QWidget):
         common_form.addRow("", self.end_city_notice)
         common_form.addRow("疲劳预算", self.fatigue_budget)
         common_form.addRow("货舱容量", self.cargo_capacity)
+        common_form.addRow("Auto Book 模式", self.auto_book)
         common_form.addRow("进货书", self.book_budget)
         form_stack.addLayout(common_form)
 
@@ -644,6 +653,7 @@ class TradePage(QWidget):
         grid.setHorizontalSpacing(28)
         grid.setVerticalSpacing(6)
         self.result_values: dict[str, QLabel] = {}
+        self.result_captions: dict[str, QLabel] = {}
         fields = (
             ("status", "方案状态"),
             ("expected_profit", "预计收益"),
@@ -653,6 +663,7 @@ class TradePage(QWidget):
             ("books", "进货书"),
             ("negotiations", "协商"),
             ("remaining_fatigue", "剩余疲劳"),
+            ("average_book_profit", "平均每本进货书收益"),
         )
         for index, (key, title) in enumerate(fields):
             row, col = divmod(index, 2 if self.preview_mode else 4)
@@ -668,6 +679,9 @@ class TradePage(QWidget):
             box.addWidget(value)
             grid.addLayout(box, row, col)
             self.result_values[key] = value
+            self.result_captions[key] = caption
+        self.result_captions["average_book_profit"].hide()
+        self.result_values["average_book_profit"].hide()
         result_layout.addLayout(grid)
         self.reason_label = QLabel("", self.result_band)
         self.reason_label.setWordWrap(True)
@@ -848,6 +862,7 @@ class TradePage(QWidget):
         self.fatigue_budget.setValue(int(values.get("fatigue_budget", 700)))
         self.cargo_capacity.setValue(int(values.get("cargo_capacity", 750)))
         self.book_budget.setValue(int(values.get("book_budget", 0)))
+        self.set_auto_book(bool(values.get("auto_book", False)))
         arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 3600)), 1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 500000)))
@@ -928,6 +943,7 @@ class TradePage(QWidget):
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
             "book_budget": self.book_budget.value(),
+            "auto_book": self.auto_book.isChecked(),
             "book_profit_threshold": self.book_profit_threshold.value(),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
@@ -970,8 +986,24 @@ class TradePage(QWidget):
             QMessageBox.warning(self, "参数错误", str(exc))
             return
         self._save_inputs(inputs)
-        self._last_inputs = inputs
-        signal.emit(inputs, 0.0)
+        self._last_inputs = normalize_trade_task_inputs(inputs)
+        signal.emit(dict(self._last_inputs), 0.0)
+
+    def _auto_book_toggled(self, checked: bool) -> None:
+        self._sync_auto_book_controls()
+        values = self._load_inputs()
+        values.update(auto_book=bool(checked), book_budget=self.book_budget.value())
+        self._save_inputs(values)
+        self.autoBookChanged.emit(bool(checked))
+
+    def set_auto_book(self, enabled: bool) -> None:
+        previous = self.auto_book.blockSignals(True)
+        self.auto_book.setChecked(bool(enabled))
+        self.auto_book.blockSignals(previous)
+        self._sync_auto_book_controls()
+
+    def _sync_auto_book_controls(self) -> None:
+        self.book_budget.setEnabled(not self._busy and not self.auto_book.isChecked())
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         if self.target_value is None:
@@ -1213,7 +1245,7 @@ class TradePage(QWidget):
         for widget in (
             self.fatigue_budget,
             self.cargo_capacity,
-            self.book_budget,
+            self.auto_book,
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
             self.auto_cape_island_investment,
@@ -1226,6 +1258,7 @@ class TradePage(QWidget):
             if widget is not None:
                 widget.setEnabled(not busy)
         self.end_city.setEnabled(not busy and self._end_city_constraint_available)
+        self._sync_auto_book_controls()
         self._sync_actions()
 
     def set_end_city_constraint_available(self, available: bool) -> None:
@@ -1338,6 +1371,10 @@ class TradePage(QWidget):
         self.result_values["status"].style().polish(self.result_values["status"])
 
     def _render_overview(self, summary: Mapping[str, Any], *, route: list[dict[str, Any]]) -> None:
+        average = average_book_profit_text(summary)
+        self.result_captions["average_book_profit"].setVisible(average is not None)
+        self.result_values["average_book_profit"].setVisible(average is not None)
+        self.result_values["average_book_profit"].setText(average or "--")
         self.result_values["expected_profit"].setText(self._display(summary.get("expected_profit")))
         self.result_values["fatigue"].setText(self._display(summary.get("expected_fatigue_used")))
         ratio = expected_profit_per_fatigue(summary)
@@ -1346,7 +1383,10 @@ class TradePage(QWidget):
         )
         city_count = len(route) + 1 if route else 0
         self.result_values["route"].setText(f"{len(route)} 段 / {city_count} 城" if route else "--")
-        self.result_values["books"].setText(self._display(summary.get("books_used")))
+        books = self._display(summary.get("books_used"))
+        self.result_values["books"].setText(
+            f"计划共 {books} 本" if summary.get("auto_book") else books
+        )
         self.result_values["negotiations"].setText(
             f"砍 {self._display(summary.get('full_bargain_count'))} / 抬 {self._display(summary.get('full_raise_count'))}"
         )
@@ -1358,6 +1398,8 @@ class TradePage(QWidget):
         for label in self.result_values.values():
             label.setText("--")
         self.reason_label.clear()
+        self.result_captions["average_book_profit"].hide()
+        self.result_values["average_book_profit"].hide()
 
     def _refresh_debug(self) -> None:
         self.debug_view.setPlainText(

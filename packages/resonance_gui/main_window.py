@@ -52,6 +52,7 @@ from .logic import (
     pretty_json,
     render_result_text,
     trade_result_summary,
+    normalize_trade_task_inputs,
     validate_recovery_refresh,
 )
 from .style import APP_STYLE
@@ -301,6 +302,10 @@ class ResonanceMainWindow(QMainWindow):
             self.workflow_page.trade_sparkling_water.setChecked
         )
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
+        self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
+        self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
+        self.trade_page.book_budget.valueChanged.connect(self.workflow_page.trade_books.setValue)
+        self.workflow_page.trade_books.valueChanged.connect(self.trade_page.book_budget.setValue)
         self.trade_page.set_end_city_constraint_available(
             self.workflow_page.trade_end_city_constraint_available()
         )
@@ -611,7 +616,10 @@ class ResonanceMainWindow(QMainWindow):
         if isinstance(inputs, dict) and inputs.get("auto_sparkling_water", False):
             self._start_freight_recovery_workflow(inputs)
             return
-        self.requestRunPcTrade.emit(inputs, float(self.timeout_spin.value()))
+        self.requestRunPcTrade.emit(
+            normalize_trade_task_inputs(inputs if isinstance(inputs, dict) else {}),
+            float(self.timeout_spin.value()),
+        )
 
     def _save_auto_sparkling_water(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()
@@ -659,7 +667,9 @@ class ResonanceMainWindow(QMainWindow):
         preview_inputs = dict(inputs) if isinstance(inputs, dict) else {}
         preview_inputs.pop("auto_sparkling_water", None)
         preview_inputs.pop("recovery_snapshot", None)
-        self.requestPreviewPcTrade.emit(preview_inputs, float(self.timeout_spin.value()))
+        self.requestPreviewPcTrade.emit(
+            normalize_trade_task_inputs(preview_inputs), float(self.timeout_spin.value())
+        )
 
     def _on_trade_progress(self, event: dict[str, Any]) -> None:
         page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
@@ -682,7 +692,7 @@ class ResonanceMainWindow(QMainWindow):
         return {
             "order": str(order),
             "total_fatigue_budget": int(trade.get("fatigue_budget", 0)),
-            "trade_inputs": dict(trade),
+            "trade_inputs": normalize_trade_task_inputs(trade),
             "passenger_inputs": dict(passenger),
         }
 
@@ -921,7 +931,7 @@ class ResonanceMainWindow(QMainWindow):
             if player is not None:
                 inputs["recovery_snapshot"] = deepcopy(player)
         if dispatch == "trade":
-            self.requestRunPcTrade.emit(inputs, timeout)
+            self.requestRunPcTrade.emit(normalize_trade_task_inputs(inputs), timeout)
         elif dispatch == "passenger":
             self.requestRunPcPassenger.emit(dict(current["inputs"]), timeout)
         elif dispatch == "combined_commerce":
@@ -1110,7 +1120,7 @@ class ResonanceMainWindow(QMainWindow):
         inputs = dict(self._commerce_inputs[kind])
         timeout = float(self.timeout_spin.value())
         if kind == "trade":
-            self.requestRunPcTrade.emit(inputs, timeout)
+            self.requestRunPcTrade.emit(normalize_trade_task_inputs(inputs), timeout)
         elif kind == "combined_commerce":
             self.requestRunPcCombinedCommerce.emit(inputs, timeout)
         else:

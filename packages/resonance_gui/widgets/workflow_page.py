@@ -49,6 +49,7 @@ from ..logic import (
     PassengerProgressState,
     WorkflowFreightProgressState,
     expected_profit_per_fatigue,
+    average_book_profit_text,
     reduce_passenger_progress,
     reduce_workflow_freight_progress,
     route_product_lines,
@@ -463,6 +464,7 @@ class WorkflowPage(QWidget):
     openBattleRequested = Signal()
     settingsRequested = Signal()
     tradeEndCityAvailabilityChanged = Signal(bool)
+    autoBookChanged = Signal(bool)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -671,6 +673,10 @@ class WorkflowPage(QWidget):
             self.runtime_plan_meta[key] = value
         meta_row.addStretch(1)
         layout.addLayout(meta_row)
+        self.runtime_average_book_profit = QLabel(page)
+        self.runtime_average_book_profit.setWordWrap(True)
+        self.runtime_average_book_profit.hide()
+        layout.addWidget(self.runtime_average_book_profit)
 
         route_title = QLabel("逐段方案", page)
         route_title.setObjectName("sectionTitle")
@@ -832,6 +838,11 @@ class WorkflowPage(QWidget):
         self.trade_fatigue.valueChanged.connect(self._refresh_combined_summary)
         self.trade_books = QSpinBox(page)
         self.trade_books.setRange(0, 100000)
+        self.trade_auto_book = QCheckBox("", page)
+        self.trade_auto_book.setObjectName("workflowTradeAutoBookCheck")
+        self.trade_auto_book.setAccessibleName("Auto Book 模式")
+        self.trade_auto_book.setToolTip("按收益阈值自动决定书数，保留手动进货书数量")
+        self.trade_auto_book.toggled.connect(self._trade_auto_book_toggled)
         self.trade_books.setToolTip("本次货运规划允许使用的进货书数量")
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
@@ -840,6 +851,7 @@ class WorkflowPage(QWidget):
         self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
         self.trade_fatigue_label = QLabel("货运疲劳预算", page)
         form.addRow(self.trade_fatigue_label, self.trade_fatigue)
+        form.addRow("Auto Book 模式", self.trade_auto_book)
         form.addRow("进货书数量", self.trade_books)
         form.addRow("货舱容量", self.trade_cargo)
         form.addRow(self.trade_sparkling_water)
@@ -1143,6 +1155,7 @@ class WorkflowPage(QWidget):
     def apply_compact_inputs(self, trade: Mapping[str, Any], passenger: Mapping[str, Any]) -> None:
         self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 700)))
         self.trade_books.setValue(int(trade.get("book_budget", 0)))
+        self.set_auto_book(bool(trade.get("auto_book", False)))
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_sparkling_water.setChecked(bool(trade.get("auto_sparkling_water", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
@@ -1167,6 +1180,7 @@ class WorkflowPage(QWidget):
         merged.update(
             fatigue_budget=self.trade_fatigue.value(),
             book_budget=self.trade_books.value(),
+            auto_book=self.trade_auto_book.isChecked(),
             cargo_capacity=self.trade_cargo.value(),
             auto_sparkling_water=self.trade_sparkling_water.isChecked(),
             use_fatigue_medicine=False,
@@ -1176,6 +1190,22 @@ class WorkflowPage(QWidget):
             auto_rubbish_recycling=self.trade_rubbish_recycling.isChecked(),
         )
         return merged
+
+    def _trade_auto_book_toggled(self, checked: bool) -> None:
+        self._sync_auto_book_controls()
+        values = self._settings.load_trade_inputs()
+        values.update(auto_book=bool(checked), book_budget=self.trade_books.value())
+        self._settings.save_trade_inputs(values)
+        self.autoBookChanged.emit(bool(checked))
+
+    def set_auto_book(self, enabled: bool) -> None:
+        previous = self.trade_auto_book.blockSignals(True)
+        self.trade_auto_book.setChecked(bool(enabled))
+        self.trade_auto_book.blockSignals(previous)
+        self._sync_auto_book_controls()
+
+    def _sync_auto_book_controls(self) -> None:
+        self.trade_books.setEnabled(not self._busy and not self.trade_auto_book.isChecked())
 
     def merge_passenger_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
         estimate = self._passenger_route_catalog.estimate(
@@ -1529,6 +1559,11 @@ class WorkflowPage(QWidget):
     def _render_runtime_trade_plan(self) -> None:
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
+        average = average_book_profit_text(summary)
+        self.runtime_average_book_profit.setVisible(average is not None)
+        self.runtime_average_book_profit.setText(
+            f"平均每本进货书收益  {average}" if average is not None else ""
+        )
         if not route and not summary:
             return
 
@@ -1586,7 +1621,8 @@ class WorkflowPage(QWidget):
             f"剩余疲劳  {self._display_plan_value(summary.get('remaining_expected_fatigue'))}"
         )
         self.runtime_plan_meta["books"].setText(
-            f"进货书  {self._display_plan_value(summary.get('books_used'))}"
+            ("进货书计划共  " if summary.get("auto_book") else "进货书  ")
+            + self._display_plan_value(summary.get("books_used"))
         )
         self.runtime_plan_meta["negotiations"].setText(
             "协商  砍 "
@@ -1661,6 +1697,7 @@ class WorkflowPage(QWidget):
         self.runtime_plan_path.setText("路线 · 等待计算")
         self.runtime_plan_meta["remaining_fatigue"].setText("剩余疲劳  --")
         self.runtime_plan_meta["books"].setText("进货书  --")
+        self.runtime_average_book_profit.hide()
         self.runtime_plan_meta["negotiations"].setText("协商  砍 -- / 抬 --")
         self._clear_runtime_plan_legs()
         self.runtime_plan_route.hide()
@@ -1804,6 +1841,7 @@ class WorkflowPage(QWidget):
         label.style().polish(label)
 
     def _set_editing_enabled(self, enabled: bool) -> None:
+        self._sync_auto_book_controls()
         self.task_rows_host.setEnabled(enabled)
         self.center_panel.setEnabled(enabled)
         self._sync_move_buttons()
