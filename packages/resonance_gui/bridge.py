@@ -33,6 +33,7 @@ from .logic import (
     extract_run_id,
     extract_status,
     normalize_run_payload,
+    normalize_trade_task_inputs,
     recovery_snapshot_task_input,
 )
 
@@ -415,6 +416,13 @@ class RunnerBridge(QObject):
 
         try:
             dispatch_inputs = dict(item["inputs"])
+            if item["game_name"] == PC_GAME_NAME:
+                if item["task_ref"] in {PC_TRADE_TASK_REF, PC_TRADE_PREVIEW_TASK_REF}:
+                    dispatch_inputs = normalize_trade_task_inputs(dispatch_inputs)
+                elif item["task_ref"] == PC_COMBINED_COMMERCE_TASK_REF:
+                    trade = dispatch_inputs.get("trade_inputs")
+                    if isinstance(trade, dict):
+                        dispatch_inputs["trade_inputs"] = normalize_trade_task_inputs(trade)
             if (
                 item["game_name"] == PC_GAME_NAME
                 and item["task_ref"] in {PC_TRADE_TASK_REF, PC_COMBINED_COMMERCE_TASK_REF}

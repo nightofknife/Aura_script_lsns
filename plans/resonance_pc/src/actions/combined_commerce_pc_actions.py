@@ -31,6 +31,7 @@ from .rubbish_recycling_pc_actions import is_rubbish_recycling_arrival
 
 _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
+    "auto_book",
     "cargo_capacity",
     "book_budget",
     "book_profit_threshold",

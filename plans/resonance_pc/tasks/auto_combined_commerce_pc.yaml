@@ -34,6 +34,11 @@ auto_combined_commerce_pc:
             type: number
             required: false
             min: 0
+          auto_book:
+            name: auto_book
+            type: boolean
+            required: false
+            default: false
           book_profit_threshold:
             name: book_profit_threshold
             type: number

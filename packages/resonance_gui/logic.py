@@ -666,6 +666,14 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "expected_fatigue_used": result.get("expected_fatigue_used"),
         "remaining_expected_fatigue": result.get("remaining_expected_fatigue"),
         "books_used": result.get("books_used"),
+        "books_budget": result.get("books_budget"),
+        "auto_book": bool(result.get("auto_book", False)),
+        "book_budget_ignored": bool(result.get("book_budget_ignored", False)),
+        "book_profit_threshold": result.get("book_profit_threshold"),
+        "book_incremental_profit": result.get("book_incremental_profit"),
+        "book_incremental_profit_exact": result.get("book_incremental_profit_exact"),
+        "average_book_profit": result.get("average_book_profit"),
+        "average_book_profit_exact": result.get("average_book_profit_exact"),
         "remaining_books": result.get("remaining_books"),
         "full_bargain_count": result.get("full_bargain_count"),
         "full_raise_count": result.get("full_raise_count"),
@@ -682,6 +690,31 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_stale_reason": str(result.get("market_stale_reason") or ""),
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
     }
+
+
+def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Omit the automatic-mode budget only from the dispatched copy."""
+    normalized = dict(inputs or {})
+    normalized["auto_book"] = bool(normalized.get("auto_book", False))
+    if normalized["auto_book"]:
+        normalized.pop("book_budget", None)
+    return normalized
+
+
+def average_book_profit_text(summary: Mapping[str, Any]) -> str | None:
+    """Old history and invalid or unused averages have no display value."""
+    try:
+        if int(summary.get("books_used") or 0) <= 0:
+            return None
+        value = summary.get("average_book_profit")
+        if isinstance(value, bool):
+            return None
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if number != number or number in (float("inf"), float("-inf")):
+        return None
+    return f"{number:,.2f}".rstrip("0").rstrip(".")
 
 
 def expected_profit_per_fatigue(summary: Mapping[str, Any] | None) -> float | None:
