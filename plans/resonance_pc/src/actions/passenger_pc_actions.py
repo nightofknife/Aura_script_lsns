@@ -33,6 +33,8 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _FULL_SCREEN = [0, 0, 1280, 720]
 
 _MAIN_BUTTON_TEMPLATE = "templates/passenger_management_button.png"
+_MAIN_SCREEN_TEMPLATE = "templates/main_train_maintenance_icon.png"
+_MAIN_SCREEN_REGION = [920, 640, 80, 65]
 _SCORE_MARKER_TEMPLATE = "templates/passenger_score_marker.png"
 _RECRUIT_BUTTON_TEMPLATE = "templates/passenger_recruit_button.png"
 _FLYER_MODE_TEMPLATE = "templates/passenger_flyer_mode.png"
@@ -292,7 +294,7 @@ def _wait_main_stable(app: Any, vision: Any, *, timeout_sec: float = 12.0) -> Di
     confirmations = 0
     last: Dict[str, Any] = {}
     while True:
-        last = _match_template(app, vision, _MAIN_BUTTON_TEMPLATE, _MAIN_BUTTON_REGION)
+        last = _match_template(app, vision, _MAIN_SCREEN_TEMPLATE, _MAIN_SCREEN_REGION)
         confirmations = confirmations + 1 if last.get("found") else 0
         if confirmations >= 2:
             return {"confirmed": True, "confirmations": confirmations, "match": last}
@@ -670,7 +672,8 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
             timeout_sec=12.0 if attempt == 1 else 4.0,
         )
         last_main = dict(stable.get("match") or {})
-        center = last_main.get("center")
+        # Main-screen identity is not the passenger entry's click target.
+        center = None
         record: Dict[str, Any] = {
             "attempt": attempt,
             "main_stable": stable,
@@ -685,6 +688,20 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
             float(last_main.get("confidence") or 0.0),
             last_main.get("center"),
         )
+
+        if stable.get("confirmed"):
+            management_button = _wait_template(
+                app, vision, _MAIN_BUTTON_TEMPLATE, _MAIN_BUTTON_REGION,
+                timeout_sec=3.0,
+            )
+            record["management_button"] = management_button
+            if management_button.get("found"):
+                center = management_button.get("center")
+            logger.info(
+                "[PassengerManagement] phase=entry_match attempt=%s found=%s confidence=%.4f center=%s",
+                attempt, bool(management_button.get("found")),
+                float(management_button.get("confidence") or 0.0), center,
+            )
 
         if not stable.get("confirmed") or not isinstance(center, list) or len(center) != 2:
             last_score = _wait_template(
@@ -743,7 +760,7 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
     if not first_main_confirmed:
         _raise(
             "not_on_city_main",
-            "passenger management button was not stable on city main",
+            "train maintenance icon was not stable on city main",
             {"attempts": attempts, "last_main": last_main, "last_score": last_score},
         )
     _raise(
