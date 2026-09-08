@@ -159,11 +159,16 @@ class ExecutionService:
         canonical_id = str(next(self._scheduler.id_generator))
         status_id = f"adhoc:{canonical_id}"
 
+        def rejected(message: str) -> Dict[str, Any]:
+            logger.error("[TaskDispatch] phase=rejected plan=%s task=%s reason=%s",
+                         plan_name, task_name, message)
+            return {"status": "error", "message": message}
+
         async def async_run():
             with self._scheduler.fallback_lock:
                 orchestrator = self._scheduler.plan_manager.get_plan(plan_name)
                 if not orchestrator:
-                    return {"status": "error", "message": f"Plan '{plan_name}' not found or not loaded."}
+                    return rejected(f"Plan '{plan_name}' not found or not loaded.")
 
                 ok, resolved_payload = self._scheduler._resolve_task_inputs_for_dispatch(
                     plan_name=plan_name,
@@ -172,7 +177,7 @@ class ExecutionService:
                     enforce_package=plan_name,
                 )
                 if not ok:
-                    return {"status": "error", "message": str(resolved_payload)}
+                    return rejected(str(resolved_payload))
 
                 resolved = resolved_payload["resolved"]
                 full_task_id = resolved_payload["full_task_id"]
@@ -248,7 +253,7 @@ class ExecutionService:
                     enforce_package=plan_name,
                 )
                 if not ok:
-                    return {"status": "error", "message": str(resolved_payload)}
+                    return rejected(str(resolved_payload))
 
                 resolved = resolved_payload["resolved"]
                 full_task_id = resolved_payload["full_task_id"]

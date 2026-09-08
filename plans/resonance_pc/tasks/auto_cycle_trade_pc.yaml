@@ -256,6 +256,64 @@ auto_cycle_trade_pc:
       - name: recovery_snapshot
         type: dict
         required: false
+        properties:
+          status:
+            type: dict
+            required: true
+            properties:
+              fatigue:
+                type: dict
+                required: true
+                properties:
+                  current:
+                    type: number
+                    required: true
+                    min: 0
+                  max:
+                    type: number
+                    required: true
+                    min: 1
+          recovery:
+            type: dict
+            required: true
+            properties:
+              sparkling_water:
+                type: dict
+                required: true
+                properties:
+                  remaining_free_uses:
+                    type: number
+                    required: true
+                    min: 0
+                    max: 6
+                  daily_free_limit:
+                    type: number
+                    required: true
+                    min: 1
+                    max: 6
+                  requires_refresh:
+                    type: boolean
+                    required: false
+                    enum:
+                    - false
+              bento:
+                type: dict
+                required: false
+                properties:
+                  available_count:
+                    type: number
+                    required: true
+                    min: 0
+                    max: 3
+          metadata:
+            type: dict
+            required: true
+            properties:
+              persisted:
+                type: boolean
+                required: true
+                enum:
+                - true
   steps:
     run:
       action: resonance_pc.auto_cycle_trade_flow

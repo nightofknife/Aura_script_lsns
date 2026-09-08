@@ -210,6 +210,10 @@ class RunnerBridge(QObject):
             )
             return
         run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
+        if isinstance(run_inputs.get("trade_inputs"), dict):
+            trade_inputs = dict(run_inputs["trade_inputs"])
+            trade_inputs.pop("start_city_id", None)
+            run_inputs["trade_inputs"] = trade_inputs
         item = self._make_item(
             PC_GAME_NAME,
             PC_COMBINED_COMMERCE_TASK_REF,
@@ -409,22 +413,34 @@ class RunnerBridge(QObject):
         self.logMessage.emit(f"开始执行：{item['label']}")
 
         try:
-            dispatch = normalize_run_payload(
-                self._runner_instance().run_task(
-                    game_name=item["game_name"],
-                    task_ref=item["task_ref"],
-                    inputs=item["inputs"],
-                    wait=False,
-                    timeout_sec=0.0,
-                )
+            logger.info("[TaskDispatch] phase=request game=%s task=%s input_fields=%s",
+                        item["game_name"], item["task_ref"], sorted(item["inputs"]))
+            raw_dispatch = self._runner_instance().run_task(
+                game_name=item["game_name"],
+                task_ref=item["task_ref"],
+                inputs=item["inputs"],
+                wait=False,
+                timeout_sec=0.0,
             )
+            if not isinstance(raw_dispatch, dict):
+                raise RuntimeError("任务派发协议异常：后台返回值不是对象。")
+            dispatch = normalize_run_payload(raw_dispatch)
+            status = str(dispatch.get("status") or "").lower()
+            if status not in {"success", "queued"} or dispatch.get("success") is False:
+                message = dispatch.get("message") or dispatch.get("error") or "后台未返回成功状态。"
+                raise RuntimeError(f"任务派发失败：{message}")
             self._current_cid = extract_run_id(dispatch)
             if not self._current_cid:
-                raise RuntimeError("任务派发结果缺少 CID。")
+                raise RuntimeError("任务派发协议异常：后台返回成功，但缺少 CID。")
+            logger.info("[TaskDispatch] phase=accepted game=%s task=%s cid=%s",
+                        item["game_name"], item["task_ref"], self._current_cid)
             payload = {"item": dict(item), "dispatch": dispatch, "cid": self._current_cid}
             self.taskDispatched.emit(payload)
             self._start_polling()
         except Exception as exc:  # noqa: BLE001
+            logger.error("[TaskDispatch] phase=rejected game=%s task=%s reason=%s",
+                         item["game_name"], item["task_ref"], exc)
+            self._queue.clear()
             self.taskFailed.emit(
                 {
                     "stage": "run_task",
@@ -435,7 +451,8 @@ class RunnerBridge(QObject):
             )
             self.logMessage.emit(f"执行失败：{item['label']} - {exc}")
             self._reset_current()
-            self._run_next()
+            self._emit_queue()
+            self._set_busy(False)
 
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
         for event in events:

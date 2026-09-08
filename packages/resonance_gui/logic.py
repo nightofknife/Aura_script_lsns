@@ -607,12 +607,25 @@ def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
     count = bento.get("available_count")
     if (
         type(remaining) is not int or type(limit) is not int
-        or limit <= 0 or not 0 <= remaining <= limit
+        or not 1 <= limit <= 6 or not 0 <= remaining <= limit
     ):
         raise ValueError("气泡水剩余次数或每日上限无效。")
     if type(count) is not int or not 0 <= count <= 3:
         raise ValueError("便当数量无效，应为 0–3 份。")
-    return copy.deepcopy(dict(player))
+    if water.get("requires_refresh") is True:
+        raise ValueError("气泡水数据要求重新刷新。")
+    return {
+        "status": {"fatigue": {"current": current, "max": maximum}},
+        "recovery": {
+            "sparkling_water": {
+                "remaining_free_uses": remaining,
+                "daily_free_limit": limit,
+                "requires_refresh": False,
+            },
+            "bento": {"available_count": count},
+        },
+        "metadata": {"persisted": True},
+    }
 
 
 def extract_trade_route(payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:
