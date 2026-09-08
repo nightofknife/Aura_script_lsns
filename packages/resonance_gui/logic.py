@@ -614,18 +614,29 @@ def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("便当数量无效，应为 0–3 份。")
     if water.get("requires_refresh") is True:
         raise ValueError("气泡水数据要求重新刷新。")
-    return {
-        "status": {"fatigue": {"current": current, "max": maximum}},
+    return copy.deepcopy(dict(player))
+
+
+def recovery_snapshot_task_input(player: Mapping[str, Any]) -> dict[str, Any]:
+    """Project snapshot fields without weakening the runner's value validation."""
+    fatigue = player["status"]["fatigue"]
+    water = player["recovery"]["sparkling_water"]
+    projected = {
+        "status": {"fatigue": {"current": fatigue["current"], "max": fatigue["max"]}},
         "recovery": {
             "sparkling_water": {
-                "remaining_free_uses": remaining,
-                "daily_free_limit": limit,
-                "requires_refresh": False,
+                "remaining_free_uses": water["remaining_free_uses"],
+                "daily_free_limit": water["daily_free_limit"],
+                "requires_refresh": water.get("requires_refresh", False),
             },
-            "bento": {"available_count": count},
         },
-        "metadata": {"persisted": True},
+        "metadata": {"persisted": player["metadata"]["persisted"]},
     }
+    if "bento" in player["recovery"]:
+        projected["recovery"]["bento"] = {
+            "available_count": player["recovery"]["bento"]["available_count"]
+        }
+    return projected
 
 
 def extract_trade_route(payload: Mapping[str, Any] | None) -> list[dict[str, Any]]:

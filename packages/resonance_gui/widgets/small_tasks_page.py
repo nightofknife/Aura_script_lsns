@@ -33,8 +33,8 @@ DATA_COLLECTION_TASK_ID = "data_collection"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 TRADE_PREVIEW_TASK_ID = "trade_preview"
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "跑商试算"),)),
     ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
+    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "跑商试算"),)),
     ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
     (
         "activity_play",
