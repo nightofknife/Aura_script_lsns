@@ -33,6 +33,7 @@ from .logic import (
     extract_run_id,
     extract_status,
     normalize_run_payload,
+    recovery_snapshot_task_input,
 )
 
 RunnerFactory = Callable[[], Any]
@@ -413,12 +414,21 @@ class RunnerBridge(QObject):
         self.logMessage.emit(f"开始执行：{item['label']}")
 
         try:
+            dispatch_inputs = dict(item["inputs"])
+            if (
+                item["game_name"] == PC_GAME_NAME
+                and item["task_ref"] in {PC_TRADE_TASK_REF, PC_COMBINED_COMMERCE_TASK_REF}
+                and dispatch_inputs.get("recovery_snapshot") is not None
+            ):
+                dispatch_inputs["recovery_snapshot"] = recovery_snapshot_task_input(
+                    dispatch_inputs["recovery_snapshot"]
+                )
             logger.info("[TaskDispatch] phase=request game=%s task=%s input_fields=%s",
                         item["game_name"], item["task_ref"], sorted(item["inputs"]))
             raw_dispatch = self._runner_instance().run_task(
                 game_name=item["game_name"],
                 task_ref=item["task_ref"],
-                inputs=item["inputs"],
+                inputs=dispatch_inputs,
                 wait=False,
                 timeout_sec=0.0,
             )

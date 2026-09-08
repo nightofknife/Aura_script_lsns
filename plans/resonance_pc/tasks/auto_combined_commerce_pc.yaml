@@ -20,27 +20,33 @@ auto_combined_commerce_pc:
         default: {}
         properties:
           fatigue_budget:
+            name: fatigue_budget
             type: number
             required: false
             min: 0
           cargo_capacity:
+            name: cargo_capacity
             type: number
             required: false
             min: 1
           book_budget:
+            name: book_budget
             type: number
             required: false
             min: 0
           book_profit_threshold:
+            name: book_profit_threshold
             type: number
             required: false
             min: 0
           negotiation_max_attempts:
+            name: negotiation_max_attempts
             type: number
             required: false
             min: 1
             max: 6
           bargain_success_rates_bps:
+            name: bargain_success_rates_bps
             type: list
             required: false
             min: 1
@@ -51,11 +57,13 @@ auto_combined_commerce_pc:
               min: 0
               max: 10000
           bargain_step_bps:
+            name: bargain_step_bps
             type: number
             required: false
             min: 1
             max: 2000
           raise_success_rates_bps:
+            name: raise_success_rates_bps
             type: list
             required: false
             min: 1
@@ -66,16 +74,19 @@ auto_combined_commerce_pc:
               min: 0
               max: 10000
           raise_step_bps:
+            name: raise_step_bps
             type: number
             required: false
             min: 1
             max: 2000
           trade_level:
+            name: trade_level
             type: number
             required: false
             min: 1
             max: 20
           available_city_ids:
+            name: available_city_ids
             type: list
             required: false
             min: 2
@@ -106,6 +117,7 @@ auto_combined_commerce_pc:
               - '20'
               - '21'
           required_end_city_ids:
+            name: required_end_city_ids
             type: list
             required: false
             min: 1
@@ -136,6 +148,7 @@ auto_combined_commerce_pc:
               - '20'
               - '21'
           city_prestige:
+            name: city_prestige
             type: dict
             required: false
             properties:
@@ -279,6 +292,7 @@ auto_combined_commerce_pc:
                     min: 1
                     max: 20
           product_unlocks:
+            name: product_unlocks
             type: dict
             required: false
             properties:
@@ -300,87 +314,109 @@ auto_combined_commerce_pc:
                   type: string
                   required: true
           active_events:
+            name: active_events
             type: list
             required: false
           use_fatigue_medicine:
+            name: use_fatigue_medicine
             type: boolean
             required: false
           allowed_fatigue_medicines:
+            name: allowed_fatigue_medicines
             type: list
             required: false
           fatigue_medicine_max_uses:
+            name: fatigue_medicine_max_uses
             type: number
             required: false
           arrival_timeout_seconds:
+            name: arrival_timeout_seconds
             type: number
             required: false
             min: 1
           auto_cape_island_investment:
+            name: auto_cape_island_investment
             type: boolean
             required: false
           auto_rubbish_recycling:
+            name: auto_rubbish_recycling
             type: boolean
             required: false
           auto_sparkling_water:
+            name: auto_sparkling_water
             type: boolean
             required: false
           recovery_snapshot:
+            name: recovery_snapshot
             type: dict
             required: false
             properties:
               status:
+                name: status
                 type: dict
                 required: true
                 properties:
                   fatigue:
+                    name: fatigue
                     type: dict
                     required: true
                     properties:
                       current:
+                        name: current
                         type: number
                         required: true
                         min: 0
                       max:
+                        name: max
                         type: number
                         required: true
                         min: 1
               recovery:
+                name: recovery
                 type: dict
                 required: true
                 properties:
                   sparkling_water:
+                    name: sparkling_water
                     type: dict
                     required: true
                     properties:
                       remaining_free_uses:
+                        name: remaining_free_uses
                         type: number
                         required: true
                         min: 0
                         max: 6
                       daily_free_limit:
+                        name: daily_free_limit
                         type: number
                         required: true
                         min: 1
                         max: 6
                       requires_refresh:
+                        name: requires_refresh
                         type: boolean
                         required: false
                         enum:
                         - false
                   bento:
+                    name: bento
                     type: dict
                     required: false
                     properties:
                       available_count:
+                        name: available_count
                         type: number
                         required: true
                         min: 0
                         max: 3
               metadata:
+                name: metadata
                 type: dict
                 required: true
                 properties:
                   persisted:
+                    name: persisted
                     type: boolean
                     required: true
                     enum:
@@ -391,32 +427,41 @@ auto_combined_commerce_pc:
         default: {}
         properties:
           passenger_city_a_id:
+            name: passenger_city_a_id
             type: string
             required: false
           passenger_city_b_id:
+            name: passenger_city_b_id
             type: string
             required: false
           trip_count:
+            name: trip_count
             type: number
             required: false
             min: 1
           trade_during_trip:
+            name: trade_during_trip
             type: boolean
             required: false
           reposition_to_route:
+            name: reposition_to_route
             type: boolean
             required: false
           use_fatigue_medicine:
+            name: use_fatigue_medicine
             type: boolean
             required: false
           allowed_fatigue_medicines:
+            name: allowed_fatigue_medicines
             type: list
             required: false
           fatigue_medicine_max_uses:
+            name: fatigue_medicine_max_uses
             type: number
             required: false
             min: 0
           arrival_timeout_seconds:
+            name: arrival_timeout_seconds
             type: number
             required: false
             min: 1
@@ -425,58 +470,71 @@ auto_combined_commerce_pc:
         required: false
         properties:
           status:
+            name: status
             type: dict
             required: true
             properties:
               fatigue:
+                name: fatigue
                 type: dict
                 required: true
                 properties:
                   current:
+                    name: current
                     type: number
                     required: true
                     min: 0
                   max:
+                    name: max
                     type: number
                     required: true
                     min: 1
           recovery:
+            name: recovery
             type: dict
             required: true
             properties:
               sparkling_water:
+                name: sparkling_water
                 type: dict
                 required: true
                 properties:
                   remaining_free_uses:
+                    name: remaining_free_uses
                     type: number
                     required: true
                     min: 0
                     max: 6
                   daily_free_limit:
+                    name: daily_free_limit
                     type: number
                     required: true
                     min: 1
                     max: 6
                   requires_refresh:
+                    name: requires_refresh
                     type: boolean
                     required: false
                     enum:
                     - false
               bento:
+                name: bento
                 type: dict
                 required: false
                 properties:
                   available_count:
+                    name: available_count
                     type: number
                     required: true
                     min: 0
                     max: 3
           metadata:
+            name: metadata
             type: dict
             required: true
             properties:
               persisted:
+                name: persisted
                 type: boolean
                 required: true
                 enum:

@@ -258,58 +258,71 @@ auto_cycle_trade_pc:
         required: false
         properties:
           status:
+            name: status
             type: dict
             required: true
             properties:
               fatigue:
+                name: fatigue
                 type: dict
                 required: true
                 properties:
                   current:
+                    name: current
                     type: number
                     required: true
                     min: 0
                   max:
+                    name: max
                     type: number
                     required: true
                     min: 1
           recovery:
+            name: recovery
             type: dict
             required: true
             properties:
               sparkling_water:
+                name: sparkling_water
                 type: dict
                 required: true
                 properties:
                   remaining_free_uses:
+                    name: remaining_free_uses
                     type: number
                     required: true
                     min: 0
                     max: 6
                   daily_free_limit:
+                    name: daily_free_limit
                     type: number
                     required: true
                     min: 1
                     max: 6
                   requires_refresh:
+                    name: requires_refresh
                     type: boolean
                     required: false
                     enum:
                     - false
               bento:
+                name: bento
                 type: dict
                 required: false
                 properties:
                   available_count:
+                    name: available_count
                     type: number
                     required: true
                     min: 0
                     max: 3
           metadata:
+            name: metadata
             type: dict
             required: true
             properties:
               persisted:
+                name: persisted
                 type: boolean
                 required: true
                 enum:

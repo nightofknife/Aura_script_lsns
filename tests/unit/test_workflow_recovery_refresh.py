@@ -378,7 +378,10 @@ def test_trade_preview_strips_runtime_recovery_fields_without_refresh(window, mo
               "start_city_id": "11", "fatigue_budget": 100}
     before = deepcopy(source)
     window._preview_pc_trade(source, 0.0)
-    window._preview_workflow_trade()
+    window.small_tasks_page.show_trade_preview()
+    preview = window.small_tasks_page.trade_preview_panel
+    preview.start_city.setCurrentIndex(preview.start_city.findData("11"))
+    preview.preview_button.click()
     assert len(calls) == 2
     assert refreshes == []
     for inputs in calls:
