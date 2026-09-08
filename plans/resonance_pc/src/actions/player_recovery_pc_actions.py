@@ -13,6 +13,7 @@ import numpy as np
 
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.observability.logging.core_logger import logger
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CONFIG_PATH = _PLAN_ROOT / "data/meta/player_recovery.json"
@@ -89,6 +90,10 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
         if not 0 < value <= 3:
             raise ValueError(f"invalid recovery timing: {key}")
         config[key] = value
+    ready_timeout = float(config.get("bento_ready_timeout_sec", 8.0))
+    if not math.isfinite(ready_timeout) or not 0 < ready_timeout <= 120:
+        raise ValueError("invalid recovery timing: bento_ready_timeout_sec")
+    config["bento_ready_timeout_sec"] = ready_timeout
     slots = config["bento_slots"]
     if not isinstance(slots, list) or [s.get("issue_time") for s in slots] != ["05:00", "12:00", "18:00"]:
         raise ValueError("bento must have exactly the three work-meal slots")
@@ -168,11 +173,20 @@ class RecoveryReader:
         self.on_page(page)
 
     def move(self, source: str, target: str, control: str) -> None:
-        deadline = time.monotonic() + self.layout["timeout_sec"]
+        started_at = time.monotonic()
+        deadline = started_at + self.layout["timeout_sec"]
+        last_click_at = None
+        click_count = 0
         next_click = 0.0
         while time.monotonic() < deadline:
             check_cancelled()
             if self.is_page(target):
+                logger.info(
+                    "[RecoveryNavigation] phase=target_detected source=%s target=%s control=%s "
+                    "elapsed_sec=%.3f clicks=%s since_last_click_sec=%s",
+                    source, target, control, time.monotonic() - started_at, click_count,
+                    None if last_click_at is None else round(time.monotonic() - last_click_at, 3),
+                )
                 self.set_page(target)
                 return
             if time.monotonic() >= next_click and self.is_page(source):
@@ -188,6 +202,14 @@ class RecoveryReader:
                 check_cancelled()
                 self.set_page("unknown")
                 self.app.click(x=int(point[0]), y=int(point[1]))
+                last_click_at = time.monotonic()
+                click_count += 1
+                logger.info(
+                    "[RecoveryNavigation] phase=clicked source=%s target=%s control=%s point=%s "
+                    "confidence=%s click_count=%s elapsed_sec=%.3f",
+                    source, target, control, point, getattr(hit, "confidence", None), click_count,
+                    last_click_at - started_at,
+                )
                 next_click = time.monotonic() + self.layout["click_interval_sec"]
             time.sleep(self.layout["poll_interval_sec"])
         raise _error(f"page transition timed out: {source} -> {target}")
@@ -238,17 +260,29 @@ class RecoveryReader:
             time.sleep(self.layout["poll_interval_sec"])
         raise _error(f"unable to match free uses: {last_diagnostic}")
 
+
     def read_bento(self) -> dict[str, Any]:
-        deadline = time.monotonic() + self.layout["timeout_sec"]
+        """Wait for rendered slots and classify them using the same frame."""
+        started_at = time.monotonic()
+        timeout = self.layout.get("bento_ready_timeout_sec", 8.0)
+        deadline = started_at + timeout
+        attempt = 0
+        last_observations = []
+        logger.info("[RecoveryBento] phase=started region=%s timeout_sec=%s", self.layout["bento_region"], timeout)
         templates = self.layout["templates"]
         keys = ("bento_present", "bento_absent")
         paths = [templates[key]["resolved_path"] for key in keys]
         bx, by, _, _ = self.layout["bento_region"]
         while time.monotonic() < deadline:
+            attempt += 1
             if not self.is_page("bento_cabinet"):
-                raise _error("bento cabinet page disappeared")
+                logger.warning("[RecoveryBento] phase=page_missing attempt=%s elapsed_sec=%.3f", attempt, time.monotonic() - started_at)
+                time.sleep(self.layout["poll_interval_sec"])
+                continue
             image = self.capture(self.layout["bento_region"])
+            logger.info("[RecoveryBento] phase=captured attempt=%s elapsed_sec=%.3f", attempt, time.monotonic() - started_at)
             slots = []
+            last_observations = []
             for slot in self.layout["bento_slots"]:
                 check_cancelled()
                 x, y, w, h = slot["roi"]
@@ -263,13 +297,38 @@ class RecoveryReader:
                     raise _error("bento template matching failed")
                 present, absent = [hit.found and hit.confidence >= templates[key]["threshold"]
                                    for key, hit in zip(keys, results)]
+                observation = {
+                    "issue_time": slot["issue_time"], "roi": list(slot["roi"]),
+                    "matches": {
+                        key: {"found": bool(hit.found), "confidence": float(hit.confidence),
+                              "threshold": templates[key]["threshold"]}
+                        for key, hit in zip(keys, results)
+                    },
+                    "result": ("ambiguous_both" if present else "unrecognized_neither")
+                    if present == absent else ("present" if present else "absent"),
+                }
+                last_observations.append(observation)
+                logger.info("[RecoveryBento] phase=slot attempt=%s observation=%s", attempt, observation)
                 if present == absent:
-                    break
+                    continue
                 slots.append({"issue_time": slot["issue_time"], "available": bool(present)})
-            if len(slots) == 3:
+            if len(slots) == 3 and time.monotonic() < deadline:
+                logger.info("[RecoveryBento] phase=completed attempt=%s elapsed_sec=%.3f slots=%s", attempt, time.monotonic() - started_at, slots)
                 return {"available_count": sum(slot["available"] for slot in slots), "slots": slots}
             time.sleep(self.layout["poll_interval_sec"])
-        raise _error("bento slot is ambiguous or unrecognized")
+        logger.warning(
+            "[RecoveryBento] phase=timeout_fallback available_count=0 all_slots_absent=true "
+            "attempts=%s elapsed_sec=%.3f last_observations=%s",
+            attempt, time.monotonic() - started_at, last_observations,
+        )
+        check_cancelled()
+        return {
+            "available_count": 0,
+            "slots": [{"issue_time": slot["issue_time"], "available": False}
+                      for slot in self.layout["bento_slots"]],
+            "degraded": True,
+            "reason": "recognition_timeout_assumed_empty",
+        }
 
     def restore_profile(self) -> None:
         """Use observed page markers to unwind; never blindly click Back."""
