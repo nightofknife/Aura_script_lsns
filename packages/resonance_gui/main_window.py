@@ -233,7 +233,6 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.attach_parameter_editors(
             self.trade_page.parameter_panel,
             self.passenger_page.parameter_panel,
-            self.trade_page.execution_panel,
         )
         self.workflow_page.tradeEndCityAvailabilityChanged.connect(
             self.trade_page.set_end_city_constraint_available
@@ -243,6 +242,7 @@ class ResonanceMainWindow(QMainWindow):
         self.history_page = self._build_history_page()
         self.settings_page = SettingsHubPage(self._settings, self.page_stack)
         self.small_tasks_page = SmallTasksPage(self._settings, self.page_stack)
+        self.trade_preview_page = self.small_tasks_page.trade_preview_panel
         for page in (
             self.workflow_page,
             self.commerce_page,
@@ -267,7 +267,7 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.openTradeRequested.connect(self._open_trade_editor)
         self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._switch_page(self.BATTLE_PAGE_INDEX))
-        self.workflow_page.previewTradeRequested.connect(self._preview_workflow_trade)
+        self.small_tasks_page.previewTradeRequested.connect(self._preview_pc_trade)
         self.small_tasks_page.runPlayerDataRequested.connect(
             self._run_small_task_player_data
         )
@@ -308,7 +308,6 @@ class ResonanceMainWindow(QMainWindow):
         self._sync_workflow_settings()
 
         self.trade_page.startRequested.connect(self._run_pc_trade)
-        self.trade_page.previewRequested.connect(self._preview_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.passenger_page.startRequested.connect(self._run_pc_passenger)
         self.passenger_page.cancelRequested.connect(self.requestCancelCurrent.emit)
@@ -454,6 +453,7 @@ class ResonanceMainWindow(QMainWindow):
         self.history_filter = QComboBox(root)
         self.history_filter.addItem("全部类型", "all")
         self.history_filter.addItem("跑商", "trade")
+        self.history_filter.addItem("跑商试算", "trade_preview")
         self.history_filter.addItem("客运", "passenger")
         self.history_filter.addItem("战斗", "battle")
         self.history_filter.currentIndexChanged.connect(self._render_history)
@@ -547,7 +547,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.taskStarted.connect(self._on_task_started)
         self._bridge.taskDispatched.connect(self._on_task_dispatched)
         self._bridge.runUpdated.connect(self._on_run_updated)
-        self._bridge.tradeProgress.connect(self.trade_page.apply_progress)
+        self._bridge.tradeProgress.connect(self._on_trade_progress)
         self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
         self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
         self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
@@ -556,7 +556,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.targetStatusChanged.connect(self.passenger_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self._set_global_target_status)
-        self._bridge.cancelRequested.connect(self.trade_page.cancel_requested)
+        self._bridge.cancelRequested.connect(self._on_trade_cancel_requested)
         self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.cancelRequested.connect(self._on_commerce_cancel_requested)
@@ -568,7 +568,8 @@ class ResonanceMainWindow(QMainWindow):
 
     @Slot(dict)
     def _on_workflow_trade_progress(self, event: dict[str, Any]) -> None:
-        self.workflow_page.apply_progress_event("trade", event)
+        if self._active_kind != "trade_preview":
+            self.workflow_page.apply_progress_event("trade", event)
 
     @Slot(dict)
     def _on_workflow_passenger_progress(self, event: dict[str, Any]) -> None:
@@ -653,21 +654,20 @@ class ResonanceMainWindow(QMainWindow):
         )
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            return
         preview_inputs = dict(inputs) if isinstance(inputs, dict) else {}
         preview_inputs.pop("auto_sparkling_water", None)
         preview_inputs.pop("recovery_snapshot", None)
         self.requestPreviewPcTrade.emit(preview_inputs, float(self.timeout_spin.value()))
 
-    def _preview_workflow_trade(self) -> None:
-        if self._busy or self._workflow_active or self._commerce_active:
-            return
-        try:
-            inputs = self.trade_page.collect_inputs()
-        except ValueError as exc:
-            self.workflow_page.show_trade_editor()
-            QMessageBox.warning(self, "货运参数错误", str(exc))
-            return
-        self._preview_pc_trade(inputs, 0.0)
+    def _on_trade_progress(self, event: dict[str, Any]) -> None:
+        page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
+        page.apply_progress(event)
+
+    def _on_trade_cancel_requested(self, payload: dict[str, Any]) -> None:
+        page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
+        page.cancel_requested(payload)
 
     def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcPassenger.emit(inputs, float(self.timeout_spin.value()))
@@ -1233,7 +1233,7 @@ class ResonanceMainWindow(QMainWindow):
                 city_path = summary.get("city_path") or []
                 summary_text = " -> ".join(str(city) for city in city_path) or "跑商任务"
                 result_text = str(summary.get("expected_profit") or "--")
-                type_label = "跑商"
+                type_label = "跑商试算" if kind == "trade_preview" else "跑商"
             values = [
                 extract_run_id(row),
                 extract_status(row),
@@ -1254,6 +1254,10 @@ class ResonanceMainWindow(QMainWindow):
             if history_kind == "battle":
                 self.battle_page.show_history_result(payload)
                 self._switch_page(self.BATTLE_PAGE_INDEX)
+            elif history_kind == "trade_preview":
+                self.trade_preview_page.show_history_result(payload)
+                self.small_tasks_page.show_trade_preview()
+                self._switch_page(self.SMALL_TASKS_PAGE_INDEX)
             elif history_kind == "passenger":
                 self.passenger_page.show_history_result(payload)
                 self._open_passenger_editor()
@@ -1267,6 +1271,8 @@ class ResonanceMainWindow(QMainWindow):
             str(row.get(key) or "")
             for key in ("task_name", "task_ref", "task_id")
         ).lower()
+        if "preview_trade_plan_pc" in task_identity:
+            return "trade_preview"
         if "passenger" in task_identity:
             return "passenger"
         return "battle" if "battle" in task_identity else "trade"
@@ -1291,9 +1297,7 @@ class ResonanceMainWindow(QMainWindow):
         if item.get("game_name") == PC_GAME_NAME:
             kind = str(item.get("kind") or "")
             if kind == "trade_preview":
-                self.trade_page.begin_preview(payload)
-                self.workflow_page.show_trade_preview()
-                self._switch_page(self.WORKFLOW_PAGE_INDEX)
+                self.trade_preview_page.begin_preview(payload)
             elif kind == "trade_run":
                 self.trade_page.begin_run(payload)
                 if self._workflow_active:
@@ -1326,7 +1330,9 @@ class ResonanceMainWindow(QMainWindow):
             self.run_detail.show_text(pretty_json(payload))
 
     def _on_run_updated(self, payload: dict[str, Any]) -> None:
-        if self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
+        if self._active_game_name == PC_GAME_NAME and self._active_kind == "trade_preview":
+            self.trade_preview_page.update_run(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             self.trade_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("passenger_"):
             self.passenger_page.update_run(payload)
@@ -1529,7 +1535,7 @@ class ResonanceMainWindow(QMainWindow):
                 self._small_task_active_ref = ""
             finished_kind = kind
             if kind == "trade_preview":
-                self.trade_page.finish_preview(payload)
+                self.trade_preview_page.finish_preview(payload)
             elif kind == "trade_run":
                 self.trade_page.finish_run(payload)
             elif kind == "passenger_run":
@@ -1651,7 +1657,9 @@ class ResonanceMainWindow(QMainWindow):
         elif stage == "run_pc_combined_commerce":
             self.trade_page.show_failure(payload)
             self.passenger_page.show_failure(payload)
-        elif stage in {"run_pc_trade", "preview_pc_trade"}:
+        elif stage == "preview_pc_trade":
+            self.trade_preview_page.show_failure(payload)
+        elif stage == "run_pc_trade":
             self.trade_page.show_failure(payload)
         elif (
             self._active_game_name == PC_GAME_NAME
@@ -1663,11 +1671,9 @@ class ResonanceMainWindow(QMainWindow):
             and self._active_kind.startswith("passenger_")
         ):
             self.passenger_page.show_failure(payload)
-        elif (
-            self._active_game_name == PC_GAME_NAME
-            and self._active_kind.startswith("trade_")
-        ):
-            self.trade_page.show_failure(payload)
+        elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
+            page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
+            page.show_failure(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind == "combined_commerce_run":
             self.trade_page.show_failure(payload)
             self.passenger_page.show_failure(payload)

@@ -23,6 +23,7 @@ from .eternal_scuffle_panel import EternalScufflePanel
 from .data_collection_panel import DataCollectionPanel
 from .player_data_panel import PlayerDataPanel
 from .team_recommendation_panel import TeamRecommendationPanel
+from .trade_page import TradePage
 
 
 USER_DATA_TASK_ID = "player_data_refresh"
@@ -30,7 +31,9 @@ TEAM_RECOMMENDATION_TASK_ID = "team_recommendation"
 CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
 DATA_COLLECTION_TASK_ID = "data_collection"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
+TRADE_PREVIEW_TASK_ID = "trade_preview"
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
+    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "跑商试算"),)),
     ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
     ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
     (
@@ -66,6 +69,7 @@ class SmallTasksPage(QWidget):
     """Select, configure and run non-workflow tasks."""
 
     runPlayerDataRequested = Signal(object)
+    previewTradeRequested = Signal(object, float)
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
     runEternalScuffleRequested = Signal(object)
@@ -169,6 +173,12 @@ class SmallTasksPage(QWidget):
         self.detail_stack.addWidget(self.data_collection_panel)
         self._task_pages[DATA_COLLECTION_TASK_ID] = self.data_collection_panel
 
+        self.trade_preview_panel = TradePage(settings, self.detail_stack, preview_mode=True)
+        self.trade_preview_panel.previewRequested.connect(self.previewTradeRequested.emit)
+        self.trade_preview_panel.cancelRequested.connect(self.cancelRequested.emit)
+        self.detail_stack.addWidget(self.trade_preview_panel)
+        self._task_pages[TRADE_PREVIEW_TASK_ID] = self.trade_preview_panel
+
         root.addWidget(self.category_panel, 22)
         root.addWidget(self.task_panel, 30)
         root.addWidget(self.detail_panel, 48)
@@ -181,6 +191,13 @@ class SmallTasksPage(QWidget):
     def current_task_id(self) -> str:
         item = self.task_list.currentItem()
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
+
+    def show_trade_preview(self) -> None:
+        for index in range(self.category_list.count()):
+            item = self.category_list.item(index)
+            if item.data(Qt.ItemDataRole.UserRole) == "trade_tools":
+                self.category_list.setCurrentRow(index)
+                break
 
     def _build_player_action_band(self, parent_layout: QVBoxLayout) -> None:
         run_band = QFrame(self.player_task_page)
@@ -361,6 +378,7 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
         self.eternal_scuffle_panel.set_runner_busy(busy)
         self.data_collection_panel.set_runner_busy(busy)
+        self.trade_preview_panel.set_busy(busy)
         self._sync_controls()
 
     def _sync_controls(self) -> None:
