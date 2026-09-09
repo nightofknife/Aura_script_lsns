@@ -1031,6 +1031,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_pickup
+      type: Any
+      required: false
+      default: false
     - name: recovery_snapshot
       type: Any
       required: false
@@ -1168,13 +1172,18 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_pickup
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
     public: true
     read_only: false
     timeout: null
-    description: Wait for intercity arrival using only the station-button template.
+    description: Wait for station or city entry; optionally pick up cargo while the
+      travel horn is visible.
     parameters:
     - name: timeout_sec
       type: Any
@@ -1204,6 +1213,10 @@ exports:
       type: Any
       required: false
       default: 0.8
+    - name: auto_pickup
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.auto_combined_commerce_flow
     module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
     function: resonance_pc_auto_combined_commerce_flow
@@ -2728,4 +2741,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-08T13:01:21Z'
+  generated_at: '2026-09-09T09:38:33Z'

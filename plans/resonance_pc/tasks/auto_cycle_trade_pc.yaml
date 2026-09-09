@@ -249,6 +249,10 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: false
+      - name: auto_pickup
+        type: boolean
+        required: false
+        default: false
       - name: auto_rubbish_recycling
         type: boolean
         required: false
@@ -356,6 +360,7 @@ auto_cycle_trade_pc:
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(3600) }}"
         auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
+        auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"

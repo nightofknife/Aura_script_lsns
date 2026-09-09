@@ -847,6 +847,7 @@ class WorkflowPage(QWidget):
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
         self.trade_sparkling_water = QCheckBox("自动喝气泡水", page)
+        self.trade_auto_pickup = QCheckBox("自动拣货", page)
         self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
         self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
         self.trade_fatigue_label = QLabel("货运疲劳预算", page)
@@ -855,6 +856,7 @@ class WorkflowPage(QWidget):
         form.addRow("进货书数量", self.trade_books)
         form.addRow("货舱容量", self.trade_cargo)
         form.addRow(self.trade_sparkling_water)
+        form.addRow(self.trade_auto_pickup)
         form.addRow("蜃息岛投资", self.trade_investment)
         form.addRow("垃圾回收", self.trade_rubbish_recycling)
         layout.addLayout(form)
@@ -1158,6 +1160,7 @@ class WorkflowPage(QWidget):
         self.set_auto_book(bool(trade.get("auto_book", False)))
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_sparkling_water.setChecked(bool(trade.get("auto_sparkling_water", False)))
+        self.trade_auto_pickup.setChecked(bool(trade.get("auto_pickup", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
         self.trade_rubbish_recycling.setChecked(
             bool(trade.get("auto_rubbish_recycling", True))
@@ -1183,6 +1186,7 @@ class WorkflowPage(QWidget):
             auto_book=self.trade_auto_book.isChecked(),
             cargo_capacity=self.trade_cargo.value(),
             auto_sparkling_water=self.trade_sparkling_water.isChecked(),
+            auto_pickup=self.trade_auto_pickup.isChecked(),
             use_fatigue_medicine=False,
             allowed_fatigue_medicines=[],
             fatigue_medicine_max_uses=0,

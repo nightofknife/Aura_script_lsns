@@ -42,6 +42,11 @@ _DEPART_CONFIRM_MARKERS = ("立即出发",)
 
 _GO_DESTINATION_TEMPLATE = "templates/go_destination_button.png"
 _ARRIVAL_BUTTON_TEMPLATE = "templates/enter_station_button.png"
+_TRAVEL_HORN_TEMPLATE = "templates/travel_horn.png"
+_TRAVEL_HORN_REGION = [960, 640, 80, 80]
+_TRAVEL_HORN_THRESHOLD = 0.90
+_AUTO_PICKUP_POINT = (770, 400)
+_AUTO_PICKUP_INTERVAL = 0.5
 _FATIGUE_PANEL_TEMPLATE = "templates/fatigue_recovery_panel_title.png"
 _FATIGUE_BACK_TEMPLATE = "templates/fatigue_recovery_back_button.png"
 _FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.png"
@@ -1519,11 +1524,14 @@ def resonance_pc_intercity_depart_and_wait(
     ocr: Any = None,
     vision: Any = None,
     from_city_name: Optional[str] = None,
+    auto_pickup: bool = False,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
 
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
+    if auto_pickup and not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
+        _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
     medicine_limit = max(int(fatigue_medicine_max_uses), 0)
     medicine_usage: Dict[str, int] = {}
     selected: Optional[Dict[str, Any]] = None
@@ -1595,6 +1603,7 @@ def resonance_pc_intercity_depart_and_wait(
                 app=app,
                 ocr=ocr,
                 vision=vision,
+                **({"auto_pickup": True} if auto_pickup else {}),
             )
             return {
                 "success": True,
@@ -1742,11 +1751,68 @@ def resonance_pc_intercity_depart_and_wait(
         ineffective_medicines.clear()
 
 
+class _TravelPickup:
+    """Own one leg's pickup state; no clicks can outlive its arrival loop."""
+
+    def __init__(self, app: Any, vision: Any, *, enabled: bool) -> None:
+        self.app = app
+        self.vision = vision
+        self.enabled = bool(enabled)
+        self.click_count = 0
+        self.next_click_at = 0.0
+        self.horn_present: Optional[bool] = None
+        self.end_reason = "finished"
+
+    def __enter__(self) -> "_TravelPickup":
+        if self.enabled:
+            if not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
+                _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
+            logger.info("[AutoPickup] started point=%s interval=%.1f", _AUTO_PICKUP_POINT, _AUTO_PICKUP_INTERVAL)
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        if self.enabled:
+            reason = self.end_reason
+            if exc_type is not None and reason == "finished":
+                reason = "cancelled" if isinstance(exc, asyncio.CancelledError) else "error"
+            logger.info("[AutoPickup] stopped reason=%s clicks=%s", reason, self.click_count)
+
+    def tick(self, deadline: float) -> None:
+        _check_intercity_cancelled()
+        now = time.monotonic()
+        if now >= deadline or now < self.next_click_at:
+            return
+        match = _match_template_in_region(
+            app=self.app, vision=self.vision, template=_TRAVEL_HORN_TEMPLATE,
+            region=_TRAVEL_HORN_REGION, threshold=_TRAVEL_HORN_THRESHOLD,
+            use_grayscale=False,
+        )
+        if match.get("reason") == "capture_failed":
+            _raise_error(code="pickup_capture_failed", message="Could not capture travel state for pickup.")
+        present = bool(match.get("found"))
+        if present != self.horn_present:
+            logger.info("[AutoPickup] %s confidence=%.4f", "resumed" if present else "paused", match.get("confidence", 0.0))
+            self.horn_present = present
+        _check_intercity_cancelled()
+        if time.monotonic() >= deadline:
+            return
+        if present:
+            self.app.click(x=_AUTO_PICKUP_POINT[0], y=_AUTO_PICKUP_POINT[1])
+            self.click_count += 1
+        self.next_click_at = time.monotonic() + _AUTO_PICKUP_INTERVAL
+
+    def wait(self, deadline: float) -> None:
+        until = min(deadline, self.next_click_at)
+        while time.monotonic() < until:
+            _check_intercity_cancelled()
+            time.sleep(min(0.05, max(0.0, until - time.monotonic())))
+
+
 @action_info(
     name="resonance_pc.wait_intercity_arrival",
     public=True,
     read_only=False,
-    description="Wait for intercity arrival using only the station-button template.",
+    description="Wait for station or city entry; optionally pick up cargo while the travel horn is visible.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1764,10 +1830,26 @@ def resonance_pc_wait_intercity_arrival(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
+    auto_pickup: bool = False,
 ) -> Dict[str, Any]:
     """Wait until the station prompt is detected and handled."""
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
+
+    with _TravelPickup(app, vision, enabled=auto_pickup) as pickup:
+        return _wait_intercity_arrival_loop(
+            timeout_sec, interval_sec, arrival_template, arrival_template_region,
+            arrival_template_threshold, arrival_click_max_attempts,
+            arrival_click_verify_interval_sec, app, ocr, vision, pickup,
+        )
+
+
+def _wait_intercity_arrival_loop(
+    timeout_sec: float, interval_sec: float, arrival_template: str,
+    arrival_template_region: Optional[List[int]], arrival_template_threshold: float,
+    arrival_click_max_attempts: int, arrival_click_verify_interval_sec: float,
+    app: Any, ocr: Any, vision: Any, pickup: "_TravelPickup",
+) -> Dict[str, Any]:
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
     raw_timeout = float(timeout_sec)
@@ -1795,6 +1877,7 @@ def resonance_pc_wait_intercity_arrival(
         )
         last_station = dict(station)
         if station.get("confirmed"):
+            pickup.end_reason = "station_button"
             record = {
                 "poll": poll_count,
                 "state": "arrived",
@@ -1818,17 +1901,20 @@ def resonance_pc_wait_intercity_arrival(
                 "arrival_point": station["arrival_point"],
                 "arrival_click_attempts": station["click_attempts"],
                 "station_template": station,
+                "pickup_click_count": pickup.click_count,
                 "trace": trace[-20:],
             }
 
         city_main = _detect_city_main_entry(app=app, ocr=ocr, poll_count=poll_count)
         last_city_main = dict(city_main)
         if city_main.get("found"):
+            pickup.end_reason = "city_main"
             record = {
                 "poll": poll_count,
                 "state": "arrived",
                 "arrival_mode": "city_main_detected",
                 "city_main": city_main,
+                "pickup_click_count": pickup.click_count,
             }
             trace.append(record)
             logger.info(
@@ -1847,6 +1933,7 @@ def resonance_pc_wait_intercity_arrival(
                 "arrival_click_attempts": 0,
                 "station_template": station,
                 "city_main": city_main,
+                "pickup_click_count": pickup.click_count,
                 "trace": trace[-20:],
             }
 
@@ -1862,8 +1949,13 @@ def resonance_pc_wait_intercity_arrival(
         trace = trace[-20:]
 
         _check_intercity_cancelled()
-        time.sleep(interval)
+        if pickup.enabled:
+            pickup.tick(deadline)
+            pickup.wait(deadline)
+        else:
+            time.sleep(interval)
 
+    pickup.end_reason = "timeout"
     _raise_error(
         code="arrival_timeout",
         message=(

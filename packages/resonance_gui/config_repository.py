@@ -77,6 +77,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "product_unlocks": {"mode": "all", "product_ids": []},
     "active_events": [],
     "auto_sparkling_water": False,
+    "auto_pickup": False,
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
@@ -425,6 +426,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
+    merged["auto_pickup"] = bool(merged["auto_pickup"])
     merged["use_fatigue_medicine"] = False
     merged["allowed_fatigue_medicines"] = []
     merged["fatigue_medicine_max_uses"] = 0

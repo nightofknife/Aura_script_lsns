@@ -486,6 +486,8 @@ class TradePage(QWidget):
 
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
         form_stack.addWidget(self.auto_sparkling_water)
+        self.auto_pickup = QCheckBox("自动拣货", content)
+        form_stack.addWidget(self.auto_pickup)
 
         self.auto_cape_island_investment = QCheckBox("是否自动进行蜃息岛投资", content)
         form_stack.addWidget(self.auto_cape_island_investment)
@@ -493,6 +495,7 @@ class TradePage(QWidget):
         form_stack.addWidget(self.auto_rubbish_recycling)
         if self.preview_mode:
             self.auto_sparkling_water.hide()
+            self.auto_pickup.hide()
             self.auto_cape_island_investment.hide()
             self.auto_rubbish_recycling.hide()
 
@@ -915,6 +918,7 @@ class TradePage(QWidget):
         self._update_product_unlock_button()
         self.active_events.setText(self._join_values(values.get("active_events", [])))
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
+        self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
@@ -963,6 +967,7 @@ class TradePage(QWidget):
             "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
+            "auto_pickup": self.auto_pickup.isChecked(),
             "use_fatigue_medicine": False,
             "allowed_fatigue_medicines": [],
             "fatigue_medicine_max_uses": 0,
@@ -1248,6 +1253,7 @@ class TradePage(QWidget):
             self.auto_book,
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
+            self.auto_pickup,
             self.auto_cape_island_investment,
             self.auto_rubbish_recycling,
             self.advanced_toggle,
