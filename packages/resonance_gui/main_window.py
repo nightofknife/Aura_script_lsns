@@ -302,6 +302,9 @@ class ResonanceMainWindow(QMainWindow):
             self.workflow_page.trade_sparkling_water.setChecked
         )
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
+        self.workflow_page.trade_auto_pickup.toggled.connect(self.trade_page.auto_pickup.setChecked)
+        self.trade_page.auto_pickup.toggled.connect(self.workflow_page.trade_auto_pickup.setChecked)
+        self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
         self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
         self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
         self.trade_page.book_budget.valueChanged.connect(self.workflow_page.trade_books.setValue)
@@ -626,6 +629,11 @@ class ResonanceMainWindow(QMainWindow):
         inputs["auto_sparkling_water"] = bool(enabled)
         self._settings.save_trade_inputs(inputs)
 
+    def _save_auto_pickup(self, enabled: bool) -> None:
+        inputs = self._settings.load_trade_inputs()
+        inputs["auto_pickup"] = bool(enabled)
+        self._settings.save_trade_inputs(inputs)
+
     @staticmethod
     def _recovery_refresh_step() -> dict[str, Any]:
         return {
@@ -666,6 +674,7 @@ class ResonanceMainWindow(QMainWindow):
             return
         preview_inputs = dict(inputs) if isinstance(inputs, dict) else {}
         preview_inputs.pop("auto_sparkling_water", None)
+        preview_inputs.pop("auto_pickup", None)
         preview_inputs.pop("recovery_snapshot", None)
         self.requestPreviewPcTrade.emit(
             normalize_trade_task_inputs(preview_inputs), float(self.timeout_spin.value())
@@ -763,6 +772,7 @@ class ResonanceMainWindow(QMainWindow):
         self._commerce_stopping = False
         self._commerce_current_kind = ""
         self.trade_page.set_busy(True)
+        self.workflow_page.trade_auto_pickup.setEnabled(False)
         self.passenger_page.set_busy(True)
         self.run_button.setEnabled(False)
         self.enqueue_button.setEnabled(False)
@@ -1155,6 +1165,7 @@ class ResonanceMainWindow(QMainWindow):
         self._commerce_pending.clear()
         self._commerce_inputs.clear()
         self.trade_page.set_busy(self._busy)
+        self.workflow_page.trade_auto_pickup.setEnabled(not self._busy)
         self.passenger_page.set_busy(self._busy)
         self.run_button.setEnabled(not self._busy)
         self.enqueue_button.setEnabled(True)
@@ -1703,6 +1714,7 @@ class ResonanceMainWindow(QMainWindow):
                 )
                 self._small_task_active_ref = ""
         self.trade_page.set_busy(busy or self._commerce_active)
+        self.workflow_page.trade_auto_pickup.setEnabled(not busy and not self._commerce_active)
         self.passenger_page.set_busy(busy or self._commerce_active)
         self.battle_page.set_busy(busy)
         self.small_tasks_page.set_runner_busy(busy)

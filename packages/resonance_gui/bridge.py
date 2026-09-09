@@ -236,6 +236,7 @@ class RunnerBridge(QObject):
         preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
         for key in (
             "auto_sparkling_water",
+            "auto_pickup",
             "recovery_snapshot",
             "negotiation_max_attempts",
             "use_fatigue_medicine",

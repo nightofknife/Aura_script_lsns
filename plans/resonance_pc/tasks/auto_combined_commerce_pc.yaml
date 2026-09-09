@@ -343,6 +343,11 @@ auto_combined_commerce_pc:
             name: auto_cape_island_investment
             type: boolean
             required: false
+          auto_pickup:
+            name: auto_pickup
+            type: boolean
+            required: false
+            default: false
           auto_rubbish_recycling:
             name: auto_rubbish_recycling
             type: boolean
