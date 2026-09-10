@@ -50,6 +50,11 @@ runtime:
     error_codes:
       - window_target_lost
 
+resonance_pc:
+  input:
+    mode: system
+    stop_inertia: true
+
 input:
   profile: default_pc
   actions: {}

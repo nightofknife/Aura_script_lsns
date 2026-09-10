@@ -13,6 +13,27 @@ dependencies:
 pypi-dependencies: {}
 exports:
   services:
+  - name: resonance_pc_input_bridge
+    module: plans.resonance_pc.src.services.input_bridge_service
+    class: ResonancePcInputBridgeService
+    public: true
+    singleton: true
+    replace: null
+    description: Native plan-scoped mouse bridge session and command serialization.
+  - name: controller
+    module: plans.resonance_pc.src.services.bridge_controller_service
+    class: ResonancePcControllerService
+    public: true
+    singleton: true
+    replace: controller
+    description: Compatible controller with opt-in Resonance native bridge routing.
+  - name: app
+    module: plans.resonance_pc.src.services.bridge_app_service
+    class: ResonancePcAppService
+    public: true
+    singleton: true
+    replace: app
+    description: Compatible application facade with complete native drag gestures.
   - name: resonance_pc_city_shop_data
     module: plans.resonance_pc.src.services.city_shop_data_pc_service
     class: ResonancePcCityShopDataService

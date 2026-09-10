@@ -88,6 +88,7 @@ class ResonanceMainWindow(QMainWindow):
     requestClearQueue = Signal()
     requestCancelCurrent = Signal()
     requestBridgeClose = Signal()
+    requestInputBridgeEnabled = Signal(bool)
 
     def __init__(
         self,
@@ -135,6 +136,7 @@ class ResonanceMainWindow(QMainWindow):
         self.resize(1440, 860)
         self._build_ui()
         self._wire_bridge()
+        self._sync_input_bridge_setting()
         self.updateCheckCompleted.connect(self._show_available_update)
         self._select_task(self._current_task.task_id)
         if initialize_on_startup:
@@ -292,6 +294,7 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.settingsRequested.connect(lambda: self._switch_page(self.SETTINGS_PAGE_INDEX))
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
+        self.settings_page.settingsSaved.connect(self._sync_input_bridge_setting)
         self.workflow_page.apply_compact_inputs(
             self._settings.load_trade_inputs(), self._settings.load_passenger_inputs()
         )
@@ -544,6 +547,7 @@ class ResonanceMainWindow(QMainWindow):
         self.requestClearQueue.connect(self._bridge.clear_queue)
         self.requestCancelCurrent.connect(self._bridge.cancel_current)
         self.requestBridgeClose.connect(self._bridge.close)
+        self.requestInputBridgeEnabled.connect(self._bridge.set_input_bridge_enabled)
         self._bridge.closeCompleted.connect(self._on_bridge_closed)
         self._bridge.closeFailed.connect(self._on_bridge_close_failed)
         self._bridge_thread.finished.connect(self._bridge.deleteLater)
@@ -713,6 +717,18 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.show_passenger_editor()
         self._switch_page(self.WORKFLOW_PAGE_INDEX)
 
+    def _sync_input_bridge_setting(self) -> None:
+        active = self._busy or self._workflow_active or self._commerce_active
+        self.settings_page.use_input_bridge.setEnabled(not active)
+        if active:
+            return
+        value = self._settings.value("game/use_input_bridge", False)
+        enabled = (
+            value.strip().lower() in {"1", "true", "yes", "on"}
+            if isinstance(value, str) else bool(value)
+        )
+        self.requestInputBridgeEnabled.emit(enabled)
+
     def _sync_workflow_settings(self) -> None:
         startup = self.settings_page.startup_inputs()
         close = self.settings_page.close_inputs()
@@ -769,6 +785,7 @@ class ResonanceMainWindow(QMainWindow):
                 kind for kind in ("trade", "passenger") if kind in snapshots
             ]
         self._commerce_active = True
+        self._sync_input_bridge_setting()
         self._commerce_stopping = False
         self._commerce_current_kind = ""
         self.trade_page.set_busy(True)
@@ -903,6 +920,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending = pending
         self._workflow_recovery_snapshot = {}
         self._workflow_active = True
+        self._sync_input_bridge_setting()
         self._workflow_stopping = False
         self._workflow_current = None
         self._workflow_failed_message = ""
@@ -1112,6 +1130,7 @@ class ResonanceMainWindow(QMainWindow):
 
     def _finish_workflow(self, success: bool, message: str) -> None:
         self._workflow_active = False
+        self._sync_input_bridge_setting()
         self._workflow_stopping = False
         self._workflow_pending.clear()
         self._workflow_current = None
@@ -1160,6 +1179,7 @@ class ResonanceMainWindow(QMainWindow):
 
     def _finish_commerce_sequence(self) -> None:
         self._commerce_active = False
+        self._sync_input_bridge_setting()
         self._commerce_stopping = False
         self._commerce_current_kind = ""
         self._commerce_pending.clear()
@@ -1704,6 +1724,7 @@ class ResonanceMainWindow(QMainWindow):
         if self._closing:
             return
         self._busy = bool(busy)
+        self._sync_input_bridge_setting()
         if not busy:
             self._active_game_name = ""
             self._active_kind = ""

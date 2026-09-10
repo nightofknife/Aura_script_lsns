@@ -194,24 +194,25 @@ def _resolve_powershell_executable() -> str:
 
 def run_runtime_smoke(release_root: Path) -> None:
     release_root = release_root.resolve()
+    repo_root = Path(__file__).resolve().parents[2]
     env = os.environ.copy()
     env.pop("AURA_BASE_PATH", None)
     env["PYTHONNOUSERSITE"] = "1"
     env["QT_QPA_PLATFORM"] = "offscreen"
     powershell = _resolve_powershell_executable()
     run_script = str(release_root / "run.ps1")
-    games = _run_checked([powershell, "-NoProfile", "-File", run_script, "games", "--all"], cwd=release_root, env=env)
+    games = _run_checked([powershell, "-NoProfile", "-File", run_script, "games", "--all"], cwd=repo_root, env=env)
     if '"game_name": "resonance"' not in games or '"game_name": "resonance_pc"' not in games:
         raise ValueError("Packaged CLI did not discover both Resonance plans.")
-    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance"], cwd=release_root, env=env)
-    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=release_root, env=env)
+    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance"], cwd=repo_root, env=env)
+    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=repo_root, env=env)
     _run_checked(
         [powershell, "-NoProfile", "-File", run_script, "doctor", "--ocr", "--ocr-provider", "cpu"],
-        cwd=release_root,
+        cwd=repo_root,
         env=env,
     )
-    _run_checked([str(release_root / "runtime" / "AuraResonanceRuntime.exe"), "--self-check"], cwd=release_root, env=env)
-    _run_checked([str(release_root / "更新.exe"), "--self-check"], cwd=release_root, env=env)
+    _run_checked([str(release_root / "runtime" / "AuraResonanceRuntime.exe"), "--self-check"], cwd=repo_root, env=env)
+    _run_checked([str(release_root / "更新.exe"), "--self-check"], cwd=repo_root, env=env)
 
 
 def main() -> int:
