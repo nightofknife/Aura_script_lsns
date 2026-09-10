@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QStackedWidget,
@@ -164,6 +165,11 @@ class SettingsHubPage(QWidget):
         two_columns.addWidget(close, 1)
         layout.addLayout(two_columns)
 
+        self.use_input_bridge = QCheckBox("使用桥接输入器", page)
+        self.use_input_bridge.setToolTip("默认关闭；保存设置后用于后续任务")
+        self.use_input_bridge.clicked.connect(self._show_bridge_warning)
+        layout.addWidget(self.use_input_bridge)
+
         advanced = QPushButton("高级参数  ›", page)
         advanced.setObjectName("quietButton")
         advanced.setCheckable(True)
@@ -189,6 +195,10 @@ class SettingsHubPage(QWidget):
     def _toggle_advanced(self, expanded: bool) -> None:
         self.advanced_panel.setVisible(expanded)
         self.advanced_button.setText("高级参数  ﹀" if expanded else "高级参数  ›")
+
+    def _show_bridge_warning(self, checked: bool) -> None:
+        if checked:
+            QMessageBox.warning(self, "风险提示", "有违规风险，自行使用")
 
     @staticmethod
     def _section(text: str, parent: QWidget) -> QLabel:
@@ -261,6 +271,7 @@ class SettingsHubPage(QWidget):
     def load_values(self) -> None:
         self.executable_path.setText(str(self._settings.value("game/executable_path", "") or ""))
         self.launch_if_needed.setChecked(self._bool_value("game/launch_if_not_running", True))
+        self.use_input_bridge.setChecked(self._bool_value("game/use_input_bridge", False))
         self.window_timeout.setValue(int(self._settings.value("game/window_timeout_sec", 90)))
         self.settle_rounds.setValue(int(self._settings.value("game/max_settle_rounds", 300)))
         force = self._bool_value("game/force_after_timeout", True)
@@ -281,6 +292,7 @@ class SettingsHubPage(QWidget):
             if not path:
                 self._settings.set_value("game/executable_path", "")
             self._settings.set_value("game/launch_if_not_running", self.launch_if_needed.isChecked())
+            self._settings.set_value("game/use_input_bridge", self.use_input_bridge.isChecked())
             self._settings.set_value("game/window_timeout_sec", self.window_timeout.value())
             self._settings.set_value("game/max_settle_rounds", self.settle_rounds.value())
             self._settings.set_value("game/force_after_timeout", bool(self.close_mode.currentData()))

@@ -258,9 +258,38 @@ class ServiceRegistry:
             target_fqid = service_id if is_fqid_request else self._active_alias_map.get(service_id)
             if not target_fqid:
                 raise NameError(f"Service '{service_id}' is not registered.")
+            if is_fqid_request:
+                target_fqid = self._resolve_plan_replacement(target_fqid)
             if target_fqid in self._instances:
                 return self._instances[target_fqid]
             return self._instantiate_service(target_fqid, resolution_chain or [])
+
+    def _resolve_plan_replacement(self, requested_fqid: str) -> str:
+        """Honor a plan's explicit replacement for pre-resolved action dependencies.
+
+        An explicit package ID remains exact outside the replacing plan. Resolution
+        must precede the instance cache: a base service may already be instantiated.
+        """
+        from packages.aura_core.context.plan import current_plan_name
+
+        plan = current_plan_name.get()
+        requested = self._fqid_map.get(requested_fqid)
+        if not plan or requested is None or self._is_core_service(requested):
+            return requested_fqid
+        active = self._fqid_map.get(self._active_alias_map.get(requested.alias))
+        if active is None or active.plugin is None:
+            return requested_fqid
+        package_id = active.plugin.package.canonical_id.lstrip('@')
+        if package_id != f"plans/{plan}":
+            return requested_fqid
+        cursor = active
+        visited = set()
+        while cursor is not None and cursor.fqid not in visited:
+            visited.add(cursor.fqid)
+            if cursor.fqid == requested_fqid:
+                return active.fqid
+            cursor = self._fqid_map.get(cursor.replaced_target_fqid)
+        return requested_fqid
 
     def _instantiate_service(self, fqid: str, resolution_chain: List[str]) -> Any:
         if fqid in resolution_chain:

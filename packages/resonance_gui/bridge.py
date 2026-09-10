@@ -69,6 +69,8 @@ class RunnerBridge(QObject):
             )
         self._runner_factory = runner_factory
         self._runner: Any | None = None
+        self._use_input_bridge = False
+        self._runner_input_bridge = False
         self._shutdown_requested = threading.Event()
         self._closed = False
         self._queue: list[dict[str, Any]] = []
@@ -96,11 +98,31 @@ class RunnerBridge(QObject):
             raise RuntimeError("GUI runner is shutting down")
         if self._runner is None:
             self._runner = self._runner_factory()
+            if isinstance(self._runner, SubprocessGameRunner):
+                self._runner.env_overrides["AURA_GUI_INPUT_BRIDGE"] = (
+                    "1" if self._use_input_bridge else "0"
+                )
+            self._runner_input_bridge = self._use_input_bridge
         if self._shutdown_requested.is_set():
             if isinstance(self._runner, SubprocessGameRunner):
                 self._runner.request_shutdown()
             raise RuntimeError("GUI runner is shutting down")
         return self._runner
+
+    @Slot(bool)
+    def set_input_bridge_enabled(self, enabled: bool) -> None:
+        """Save the desired mode; an active task keeps its existing worker."""
+        self._use_input_bridge = bool(enabled)
+
+    def _task_runner_instance(self) -> Any:
+        # Rebuild only between tasks so no gesture or held button changes backend.
+        if (
+            isinstance(self._runner, SubprocessGameRunner)
+            and self._runner_input_bridge != self._use_input_bridge
+        ):
+            self._runner.close()
+            self._runner = None
+        return self._runner_instance()
 
     def request_shutdown(self, *, force: bool = False) -> None:
         """Thread-safe signal only; Qt timers, queues and IPC stay on the bridge thread."""
@@ -434,7 +456,7 @@ class RunnerBridge(QObject):
                 )
             logger.info("[TaskDispatch] phase=request game=%s task=%s input_fields=%s",
                         item["game_name"], item["task_ref"], sorted(item["inputs"]))
-            raw_dispatch = self._runner_instance().run_task(
+            raw_dispatch = self._task_runner_instance().run_task(
                 game_name=item["game_name"],
                 task_ref=item["task_ref"],
                 inputs=dispatch_inputs,

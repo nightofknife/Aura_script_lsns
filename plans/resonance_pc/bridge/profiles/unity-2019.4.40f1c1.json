@@ -1,0 +1,13 @@
+{
+  "id": "resonance-pc-2026-09-10",
+  "unity": "2019.4.40f1c1",
+  "game_assembly_sha256": "5257B20F1EA21D786B5CF09E3293439D7BEFA9C425DA9522100571C6298ADD69",
+  "unity_player_sha256": "92CF1F8D45D82CD7E56E4C2AAE7E3FDB45CC83E4547D8D4BAE16FF41EBA72A15",
+  "metadata_sha256": "84C24D58E5656DE4D339C4A607F942F519ADD796806F9739B1225E38BDA85A73",
+  "qualified_capabilities": {
+    "absolute_pointer": true,
+    "direct_drag": true,
+    "scroll": true,
+    "background_input": true
+  }
+}
