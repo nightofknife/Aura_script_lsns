@@ -12,8 +12,8 @@ import threading
 import time
 
 from packages.aura_core.api import service_info
-from plans.aura_base.src.platform.contracts import TargetRuntimeError
-from plans.aura_base.src.platform.runtime_config import resolve_runtime_config
+from ....aura_base.src.platform.contracts import TargetRuntimeError
+from ....aura_base.src.platform.runtime_config import resolve_runtime_config
 from ..bridge.client import BridgeClient
 
 _CANCEL_TOKEN = contextvars.ContextVar("resonance_bridge_cancel_token", default=None)

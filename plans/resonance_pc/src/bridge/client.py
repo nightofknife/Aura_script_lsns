@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 
-from plans.aura_base.src.platform.contracts import TargetRuntimeError
+from ....aura_base.src.platform.contracts import TargetRuntimeError
 
 
 class NamedPipeTransport:

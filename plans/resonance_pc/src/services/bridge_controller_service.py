@@ -1,7 +1,7 @@
 """Compatible input facade; system mode delegates unchanged to the base service."""
 from packages.aura_core.api import service_info
-from plans.aura_base.src.platform.contracts import TargetRuntimeError
-from plans.aura_base.src.services.controller_service import ControllerService
+from ....aura_base.src.platform.contracts import TargetRuntimeError
+from ....aura_base.src.services.controller_service import ControllerService
 
 
 @service_info(alias="controller", replace="controller", public=True,

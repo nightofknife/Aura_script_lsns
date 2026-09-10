@@ -2,7 +2,7 @@
 import time
 
 from packages.aura_core.api import service_info
-from plans.aura_base.src.services.app_provider_service import AppProviderService
+from ....aura_base.src.services.app_provider_service import AppProviderService
 from .input_bridge_service import finite
 
 
