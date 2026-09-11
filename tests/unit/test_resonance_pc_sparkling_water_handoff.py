@@ -19,7 +19,8 @@ def recovery_snapshot():
         "status": {"fatigue": {"current": 120, "max": 800}, "clarity": {"current": 80}},
         "recovery": {
             "sparkling_water": {"remaining_free_uses": 3, "daily_free_limit": 6},
-            "bento": {"available_count": 2, "slots": [{"count": 2}]},
+            "work_meals": {"available_count": 2, "slots": [{"count": 2}]},
+            "love_bentos": {"count": 0, "items": []},
         },
         "metadata": {"persisted": True, "profile_section_updated_at": {"fatigue": "now"}},
         "future_field": {"keep": [1, 2]},
@@ -212,6 +213,7 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     inputs, _, _ = harness
     inputs["trade_inputs"]["auto_sparkling_water"] = enabled
     inputs["trade_inputs"]["auto_book"] = auto_book
+    inputs["trade_inputs"]["base_fatigue_reserve"] = 70
     original = deepcopy(recovery_snapshot)
     captured = {}
     route = [{
@@ -276,8 +278,10 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     assert result["trade"]["sparkling_water"]["triggered"] is enabled
     plan = result["trade"]["sparkling_water_plan"]
     assert captured["sparkling_water_plan"] == plan
+    assert plan["base_fatigue_reserve"] == 70
     if enabled:
         assert plan["planned"] is True
         assert plan["initial_fatigue"] == (120 if order == "trade_first" else 147)
     else:
-        assert plan == {"planned": False, "reason": "disabled", "drink_count": 0}
+        assert plan == {"planned": False, "reason": "disabled", "drink_count": 0,
+                        "base_fatigue_reserve": 70}

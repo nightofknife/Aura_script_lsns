@@ -49,7 +49,7 @@ def configure(window, kinds=("trade",)):
     page._commerce_order = list(kinds) if len(kinds) == 2 else ["trade", "passenger"]
 
 
-def payload(remaining=6, count=2):
+def payload(remaining=6, count=2, love_items=()):
     return {
         "status": "success", "cid": "refresh-cid",
         "gui_item": {"task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF, "kind": "workflow_task"},
@@ -57,11 +57,13 @@ def payload(remaining=6, count=2):
             "status": {"fatigue": {"current": 120, "max": 800}},
             "recovery": {
                 "sparkling_water": {"remaining_free_uses": remaining, "daily_free_limit": 6},
-                "bento": {"available_count": count, "slots": []},
+                "work_meals": {"available_count": count, "slots": []},
+                "love_bentos": {"count": len(love_items), "items": deepcopy(list(love_items))},
             },
             "metadata": {"persisted": True, "profile_section_updated_at": {
                 "fatigue": "2026-09-06T09:59:59Z",
-                "sparkling_water": "2026-09-06T10:00:00Z", "bento": "2026-09-06T10:00:01Z",
+                "sparkling_water": "2026-09-06T10:00:00Z",
+                "work_meals": "2026-09-06T10:00:01Z", "love_bentos": "2026-09-06T10:00:02Z",
             }},
         }},
     }
@@ -88,7 +90,10 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     window._start_workflow()
     assert len(calls) == 1
     assert calls[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
-    assert calls[0][1] == {"stages": ["profile"], "profile_sections": ["fatigue", "sparkling_water", "bento"]}
+    assert calls[0][1] == {
+        "stages": ["profile"],
+        "profile_sections": ["fatigue", "sparkling_water", "work_meals", "love_bentos"],
+    }
     assert window._workflow_current["step"] == "refresh_recovery"
     assert all(row["step"] not in {"refresh_recovery", "startup"} for row in window._workflow_pending)
     assert "refresh_recovery" not in window.workflow_page._task_checks
@@ -104,13 +109,16 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
 
 
 @pytest.mark.parametrize("remaining,count", [(6, 3), (0, 0)])
-def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, remaining, count):
+@pytest.mark.parametrize("love_items", [[], [
+    {"role_name": "Test role", "food_name": "Test meal", "remaining_days": 3},
+]])
+def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, remaining, count, love_items):
     configure(window)
     calls = []
     window.requestRunPcTrade.connect(lambda *args: calls.append(args))
     window._start_workflow()
     assert calls == []
-    result = payload(remaining, count)
+    result = payload(remaining, count, love_items)
     finish_refresh(window, result)
     assert len(calls) == 1
     snapshot = window._workflow_recovery_snapshot
@@ -120,14 +128,22 @@ def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, 
     calls[0][0]["recovery_snapshot"]["status"]["fatigue"]["current"] = 999
     assert snapshot["player_data"]["status"]["fatigue"]["current"] == 120
     result["user_data"]["player_data"]["recovery"].clear()
-    assert snapshot["player_data"]["recovery"]["bento"]["available_count"] == count
+    assert snapshot["player_data"]["recovery"]["work_meals"]["available_count"] == count
+    assert snapshot["player_data"]["recovery"]["love_bentos"] == {
+        "count": len(love_items), "items": love_items,
+    }
     text = window.workflow_page.log_view.toPlainText()
     assert "疲劳 120/800" in text
-    assert f"气泡水 {remaining}/6 次，便当 {count} 份" in text
+    assert f"气泡水 {remaining}/6 次，工作餐 {count} 份，爱心便当 {len(love_items)} 份" in text
     assert window.workflow_page.task_progress_bar.value() == 1
 
 
-@pytest.mark.parametrize("problem", ["task_failed", "missing_water", "missing_bento", "not_persisted", "bad_water", "bad_bento", "bool_count", "missing_fatigue", "invalid_fatigue"])
+@pytest.mark.parametrize("problem", [
+    "task_failed", "missing_water", "missing_work_meals", "missing_love_bentos",
+    "legacy_bento_only", "not_persisted", "bad_water", "bad_work_meals", "bool_count",
+    "negative_love_count", "bool_love_count", "mismatched_love_count", "invalid_love_items",
+    "missing_fatigue", "invalid_fatigue",
+])
 def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, problem):
     configure(window)
     calls = []
@@ -142,8 +158,13 @@ def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, prob
         result["error"] = "template missing"
     elif problem == "missing_water":
         del player["recovery"]["sparkling_water"]
-    elif problem == "missing_bento":
-        del player["recovery"]["bento"]
+    elif problem == "missing_work_meals":
+        del player["recovery"]["work_meals"]
+    elif problem == "missing_love_bentos":
+        del player["recovery"]["love_bentos"]
+    elif problem == "legacy_bento_only":
+        player["recovery"]["bento"] = player["recovery"].pop("work_meals")
+        del player["recovery"]["love_bentos"]
     elif problem == "not_persisted":
         player["metadata"]["persisted"] = False
     elif problem == "bad_water":
@@ -152,8 +173,16 @@ def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, prob
         del player["status"]["fatigue"]
     elif problem == "invalid_fatigue":
         player["status"]["fatigue"] = {"current": 0, "max": 0}
+    elif problem == "negative_love_count":
+        player["recovery"]["love_bentos"]["count"] = -1
+    elif problem == "bool_love_count":
+        player["recovery"]["love_bentos"]["count"] = False
+    elif problem == "mismatched_love_count":
+        player["recovery"]["love_bentos"]["count"] = 1
+    elif problem == "invalid_love_items":
+        player["recovery"]["love_bentos"]["items"] = {}
     else:
-        player["recovery"]["bento"]["available_count"] = True if problem == "bool_count" else 4
+        player["recovery"]["work_meals"]["available_count"] = True if problem == "bool_count" else 4
     finish_refresh(window, result)
     assert calls == []
     assert not window._workflow_active

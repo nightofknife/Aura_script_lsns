@@ -91,9 +91,27 @@ def run_full(**overrides):
                 resonance_pc_city_shop_data=ResonancePcCityShopDataService(),
                 resonance_pc_market_data=Market(), resonance_pc_trade_planner=object(),
                 persistent_data=object(), auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                base_fatigue_reserve=0,
                 auto_rubbish_recycling=False, auto_cape_island_investment=False)
     args.update(overrides)
     return asyncio.run(trade.resonance_pc_auto_cycle_trade_flow(**args))
+
+
+def test_configured_reserve_applies_to_full_trade_execution(harness):
+    operations, _ = harness
+    result = run_full(base_fatigue_reserve=200, recovery_snapshot=snapshot(current=250))
+    assert result["sparkling_water_plan"]["base_fatigue_reserve"] == 200
+    assert result["sparkling_water_plan"]["drink_count"] == 5
+    assert result["sparkling_water_plan"]["city_index"] == 2
+    assert "water:岚心城:5" in operations
+    assert operations[-1] == "final_sale"
+
+
+def test_negative_reserve_rejected_before_game_input(harness):
+    operations, _ = harness
+    with pytest.raises(ValueError, match="base_fatigue_reserve"):
+        run_full(base_fatigue_reserve=-1)
+    assert operations == []
 
 
 def test_endpoint_drinks_four_before_final_sale(harness):
