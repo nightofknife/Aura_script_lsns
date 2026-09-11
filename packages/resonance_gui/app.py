@@ -126,6 +126,14 @@ def self_check_resonance_gui() -> int:
     except Exception as exc:
         raise RuntimeError("Required WGC capture module 'windows_capture' is unavailable.") from exc
 
+    # The named-pipe transport lives in an external Plan, so source import
+    # discovery alone cannot guarantee these extensions reach the frozen app.
+    for module_name in ("pywintypes", "win32con", "win32event", "win32file", "win32pipe"):
+        try:
+            importlib.import_module(module_name)
+        except Exception as exc:
+            raise RuntimeError(f"Required input bridge module '{module_name}' is unavailable.") from exc
+
     app = QApplication.instance() or QApplication(["AuraResonanceRuntime", "--self-check"])
     icon = _configure_application(app)
 

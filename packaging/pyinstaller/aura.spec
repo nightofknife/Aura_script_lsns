@@ -73,6 +73,10 @@ hiddenimports += [
     "win32gui",
     "win32ui",
     "win32process",
+    # External Plan bridge code is not analyzed/frozen by PyInstaller.
+    "win32event",
+    "win32file",
+    "win32pipe",
     "pythoncom",
     "pywintypes",
 ]
