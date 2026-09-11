@@ -70,7 +70,7 @@ def find_image(
     capture = app.capture(rect=region)
     if not capture.success:
         logger.error("行为 'find_image' 失败：无法截图。")
-        return MatchResult(found=False)
+        return MatchResult(found=False, debug_info={"error": "capture_failed"})
 
     source_image_for_debug = capture.image.copy()
     template_path = resolve_template_path(engine, vision, template)

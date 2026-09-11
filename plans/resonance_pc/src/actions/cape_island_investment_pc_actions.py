@@ -14,7 +14,7 @@ import cv2
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
-from ....aura_base.src.actions.vision_actions import find_best_template_in_set
+from ....aura_base.src.actions.vision_actions import find_best_template_in_set, find_image
 from ....aura_base.src.actions.wait_actions import (
     wait_for_image,
     wait_for_templates_in_set_to_disappear,
@@ -82,12 +82,13 @@ _INVESTMENT_TAB_REGION = (920, 70, 350, 90)
 _INVESTMENT_PAGE_REGION = (590, 130, 690, 570)
 _INVESTMENT_SUCCESS_REGION = (500, 180, 300, 350)
 
-# WGC client coordinates. The first point is deliberately above the dynamic
-# 今日收益 value; the second one dismisses the modal without touching a card.
-_OPEN_REVENUE_SAFE_POINT = (220, 580)
+# WGC client coordinates, excluding the window title bar.
+_INCOME_ENTRY_REGION = (80, 570, 200, 150)
+_INCOME_ENTRY_TEMPLATE = "templates/cape_island_income_entry.png"
+_INCOME_ENTRY_MASK = "templates/cape_island_income_entry_mask.png"
+_INCOME_CLICK_INTERVAL_SEC = 0.5
+_INCOME_CLICK_TIMEOUT_SEC = 8.0
 _SUCCESS_DISMISS_POINT = (470, 610)
-_ISLAND_HOME_SETTLE_SEC = 2.0
-_REVENUE_CLICK_RETRY_INTERVAL_SEC = 1.5
 
 _METRIC_SPECS: Dict[str, Dict[str, Any]] = {
     "share_percent": {"region": (860, 180, 160, 90), "kind": "share"},
@@ -475,12 +476,10 @@ async def _enter_island(
             region=_ISLAND_HOME_REGION,
         )
         if match.found:
-            await asyncio.sleep(_ISLAND_HOME_SETTLE_SEC)
             return {
                 "attempts": attempt,
                 "click": point,
                 "match": last_match,
-                "settle_sec": _ISLAND_HOME_SETTLE_SEC,
             }
     _raise_error(
         "cape_island_entry_timeout",
@@ -499,52 +498,88 @@ async def _open_revenue_overview(
     interval_sec: float,
     transition_attempts: int,
 ) -> Dict[str, Any]:
+    # transition_attempts still controls island entry, not the income click loop.
+    del transition_attempts
     last_match: Dict[str, Any] = {}
-    attempt_limit = max(int(transition_attempts), 1)
-    deadline = time.monotonic() + max(float(page_timeout_sec), 0.0)
+    started_at = time.monotonic()
+    deadline = started_at + _INCOME_CLICK_TIMEOUT_SEC
     attempts_made = 0
-    for attempt in range(1, attempt_limit + 1):
-        if attempt > 1 and time.monotonic() >= deadline:
-            break
-        attempts_made = attempt
-        app.click(x=_OPEN_REVENUE_SAFE_POINT[0], y=_OPEN_REVENUE_SAFE_POINT[1])
-        remaining_sec = max(deadline - time.monotonic(), 0.0)
-        wait_timeout_sec = (
-            remaining_sec
-            if attempt == attempt_limit
-            else min(_REVENUE_CLICK_RETRY_INTERVAL_SEC, remaining_sec)
-        )
-        match = await wait_for_image(
+    seen_entry = False
+    disappeared = False
+    last_click = None
+    while time.monotonic() < deadline:
+        cycle_started = time.monotonic()
+        match = await asyncio.to_thread(
+            find_image,
             app=app,
             vision=vision,
             engine=engine,
-            template=_REVENUE_OVERVIEW_TEMPLATE,
-            timeout=wait_timeout_sec,
-            interval=interval_sec,
-            region=_REVENUE_OVERVIEW_REGION,
+            template=_INCOME_ENTRY_TEMPLATE,
+            mask=_INCOME_ENTRY_MASK,
+            region=_INCOME_ENTRY_REGION,
             threshold=0.86,
+            use_grayscale=False,
+            match_method=cv2.TM_SQDIFF_NORMED,
         )
         last_match = _match_payload(
-            match,
-            template=_REVENUE_OVERVIEW_TEMPLATE,
-            region=_REVENUE_OVERVIEW_REGION,
+            match, template=_INCOME_ENTRY_TEMPLATE, region=_INCOME_ENTRY_REGION,
         )
-        if match.found:
-            return {
-                "attempts": attempt,
-                "click": {"x": _OPEN_REVENUE_SAFE_POINT[0], "y": _OPEN_REVENUE_SAFE_POINT[1]},
-                "match": last_match,
-            }
-    _raise_error(
-        "revenue_overview_timeout",
-        "the fixed island background click did not open the revenue overview",
-        {
-            "attempts": attempts_made,
-            "timeout_sec": max(float(page_timeout_sec), 0.0),
-            "last_match": last_match,
-        },
+        error = (match.debug_info or {}).get("error")
+        if error:
+            last_match["error"] = str(error)
+            logger.warning("Cape island income probe failed error=%s", error)
+        elif match.found and match.center_point is not None:
+            seen_entry = True
+            if time.monotonic() >= deadline:
+                break
+            x, y = match.center_point
+            await asyncio.to_thread(app.click, x=int(x), y=int(y))
+            attempts_made += 1
+            last_click = {"x": int(x), "y": int(y)}
+            logger.info(
+                "Cape island income click attempt=%s point=%s confidence=%.4f elapsed_sec=%.3f",
+                attempts_made, last_click, match.confidence, time.monotonic() - started_at,
+            )
+        elif seen_entry:
+            disappeared = True
+            break
+        now = time.monotonic()
+        await asyncio.sleep(max(0.0, min(
+            cycle_started + _INCOME_CLICK_INTERVAL_SEC - now, deadline - now,
+        )))
+    detail = {
+        "attempts": attempts_made, "click": last_click,
+        "elapsed_sec": round(time.monotonic() - started_at, 3),
+        "last_match": last_match,
+    }
+    if not disappeared:
+        _raise_error(
+            "income_entry_not_disappeared" if seen_entry else "income_entry_not_found",
+            "今日收益入口在 8 秒内未消失" if seen_entry else "8 秒内未找到今日收益入口",
+            detail,
+        )
+    logger.info("Cape island income entry disappeared; waiting for revenue overview detail=%s", detail)
+    match = await wait_for_image(
+        app=app, vision=vision, engine=engine,
+        template=_REVENUE_OVERVIEW_TEMPLATE,
+        timeout=page_timeout_sec, interval=interval_sec,
+        region=_REVENUE_OVERVIEW_REGION, threshold=0.86,
     )
-    return {}
+    overview_match = _match_payload(
+        match, template=_REVENUE_OVERVIEW_TEMPLATE, region=_REVENUE_OVERVIEW_REGION,
+    )
+    if not match.found:
+        _raise_error(
+            "revenue_overview_timeout",
+            "今日收益入口已消失，但未检测到营收概览",
+            {**detail, "overview_match": overview_match},
+        )
+    return {
+        "attempts": attempts_made,
+        "click": last_click,
+        "match": overview_match,
+        "entry_disappeared": True,
+    }
 
 
 @action_info(
