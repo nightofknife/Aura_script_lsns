@@ -645,7 +645,12 @@ class ResonanceMainWindow(QMainWindow):
             "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
             "inputs": {
                 "stages": ["profile"],
-                "profile_sections": ["fatigue", "sparkling_water", "bento"],
+                "profile_sections": [
+                    "fatigue",
+                    "sparkling_water",
+                    "work_meals",
+                    "love_bentos",
+                ],
             },
             "label": "刷新恢复资源",
             "dispatch": "pc_task",
@@ -1644,12 +1649,14 @@ class ResonanceMainWindow(QMainWindow):
                         }
                         water = player["recovery"]["sparkling_water"]
                         fatigue = player["status"]["fatigue"]
-                        count = player["recovery"]["bento"]["available_count"]
+                        work_meal_count = player["recovery"]["work_meals"]["available_count"]
+                        love_bento_count = player["recovery"]["love_bentos"]["count"]
                         self.workflow_page.mark_step(
                             step, "success",
                             f"恢复资源已刷新：疲劳 {fatigue['current']}/{fatigue['max']}，"
                             f"气泡水 {water['remaining_free_uses']}/"
-                            f"{water['daily_free_limit']} 次，便当 {count} 份，数据已保存"
+                            f"{water['daily_free_limit']} 次，工作餐 {work_meal_count} 份，"
+                            f"爱心便当 {love_bento_count} 份，数据已保存"
                             f"（CID: {extract_run_id(payload)}）",
                         )
                         self._workflow_current = None

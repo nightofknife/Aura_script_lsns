@@ -130,7 +130,7 @@ PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = (
     "equipment",
 )
 PLAYER_DATA_PROFILE_SECTION_ORDER: tuple[str, ...] = (
-    "cargo", "clarity", "fatigue", "sparkling_water", "bento",
+    "cargo", "clarity", "fatigue", "sparkling_water", "work_meals", "love_bentos",
 )
 DEFAULT_PROFILE_SECTIONS: tuple[str, ...] = ("cargo", "clarity", "fatigue")
 PLAYER_DATA_INPUTS_SCHEMA_VERSION = 4

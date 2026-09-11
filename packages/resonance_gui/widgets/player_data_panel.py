@@ -36,7 +36,7 @@ from ..config_repository import (
 
 STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("location", "当前位置", "当前所在城市"),
-    ("profile", "用户信息", "独立选择货舱、澄明度、疲劳、气泡水次数及便当数量"),
+    ("profile", "用户信息", "独立选择货舱、澄明度、疲劳、气泡水次数、工作餐和爱心便当"),
     (
         "inventory",
         "仓库",
@@ -52,7 +52,7 @@ INVENTORY_CATEGORY_LABELS = {
 }
 PROFILE_SECTION_LABELS = {
     "cargo": "货舱", "clarity": "澄明度", "fatigue": "疲劳",
-    "sparkling_water": "气泡水次数", "bento": "便当数量",
+    "sparkling_water": "气泡水次数", "work_meals": "工作餐", "love_bentos": "爱心便当",
 }
 
 _NO_CACHE_ERROR_MARKER = "No cached Resonance PC player data is available"
@@ -181,7 +181,8 @@ class PlayerDataPanel(QWidget):
                     sections.addWidget(section_check, section_index // 3, section_index % 3)
                     self._profile_section_checks[section] = section_check
                 self._profile_section_checks["sparkling_water"].setToolTip("银枝气泡水的剩余免材料次数，不是仓库道具数量")
-                self._profile_section_checks["bento"].setToolTip("仅统计顶部三个工作餐槽位，数量为 0–3")
+                self._profile_section_checks["work_meals"].setToolTip("读取顶部三个工作餐槽位")
+                self._profile_section_checks["love_bentos"].setToolTip("滚动识别赠送角色、菜品和剩余天数")
                 row_layout.addLayout(sections)
             if stage == "inventory":
                 categories = QHBoxLayout()
@@ -265,6 +266,12 @@ class PlayerDataPanel(QWidget):
         layout.addLayout(profile_grid)
 
         self.snapshot_details_tabs = QTabWidget(page)
+
+        self.love_bento_table = QTableWidget(0, 3, self.snapshot_details_tabs)
+        self.love_bento_table.setHorizontalHeaderLabels(["赠送角色", "便当种类", "剩余天数"])
+        self.love_bento_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.love_bento_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.snapshot_details_tabs.addTab(self.love_bento_table, "爱心便当")
 
         inventory_page = QWidget(self.snapshot_details_tabs)
         inventory_layout = QVBoxLayout(inventory_page)
@@ -499,7 +506,7 @@ class PlayerDataPanel(QWidget):
         if isinstance(fresh_recovery, Mapping) and fresh_recovery:
             recovery = merged.get("recovery")
             recovery = recovery if isinstance(recovery, dict) else {}
-            for key in ("sparkling_water", "bento"):
+            for key in ("sparkling_water", "work_meals", "love_bentos"):
                 if key in fresh_recovery:
                     recovery[key] = copy.deepcopy(fresh_recovery[key])
             merged["recovery"] = recovery
@@ -568,6 +575,14 @@ class PlayerDataPanel(QWidget):
 
         status = snapshot.get("status") if isinstance(snapshot.get("status"), Mapping) else {}
         recovery = snapshot.get("recovery") if isinstance(snapshot.get("recovery"), Mapping) else {}
+        love = recovery.get("love_bentos")
+        love_items = love.get("items", []) if isinstance(love, Mapping) else []
+        love_items = love_items if isinstance(love_items, list) else []
+        love_items = [row for row in love_items if isinstance(row, Mapping)]
+        self.love_bento_table.setRowCount(len(love_items))
+        for row_index, item in enumerate(love_items):
+            for column, key in enumerate(("role_name", "food_name", "remaining_days")):
+                self.love_bento_table.setItem(row_index, column, QTableWidgetItem(str(item.get(key, "--"))))
         sub_times = metadata.get("profile_section_updated_at")
         sub_times = sub_times if isinstance(sub_times, Mapping) else {}
         legacy_time = metadata.get("profile_legacy_updated_at") or (section_times.get("profile") if not sub_times else None)
@@ -581,7 +596,9 @@ class PlayerDataPanel(QWidget):
                     remaining, maximum = value.get("remaining_free_uses"), value.get("daily_free_limit")
                     if remaining is not None and maximum is not None:
                         text = f"剩余免费次数 {remaining} / {maximum}"
-                elif value.get("available_count") is not None:
+                elif section == "love_bentos":
+                    text = f"{value.get('count', 0)} 份"
+                elif section == "work_meals" and value.get("available_count") is not None:
                     text = f"{value['available_count']} / 3"
                     slots = value.get("slots")
                     if isinstance(slots, list):
@@ -590,7 +607,7 @@ class PlayerDataPanel(QWidget):
                             for slot in slots if isinstance(slot, Mapping)
                         )
             self.profile_value_labels[section].setText(text)
-            timestamp = sub_times.get(section)
+            timestamp = sub_times.get(section) or (value.get("updated_at") if isinstance(value, Mapping) else None)
             legacy = not timestamp and section in DEFAULT_PROFILE_SECTIONS and value is not None and legacy_time
             self.profile_time_labels[section].setText(
                 _format_timestamp(timestamp or (legacy_time if legacy else None)) + ("（旧记录）" if legacy else "")

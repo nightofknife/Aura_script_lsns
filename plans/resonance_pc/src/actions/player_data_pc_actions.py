@@ -43,7 +43,7 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _DATA_STAGES = ("location", "profile", "inventory", "characters")
 _STAGE_ORDER = _DATA_STAGES
 _PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
-_PROFILE_SECTION_ORDER = ("cargo", "clarity", "fatigue", "sparkling_water", "bento")
+_PROFILE_SECTION_ORDER = ("cargo", "clarity", "fatigue", "sparkling_water", "work_meals", "love_bentos")
 _DEFAULT_PROFILE_SECTIONS = ("cargo", "clarity", "fatigue")
 
 _INVENTORY_CATEGORY_ORDER = ("items", "materials", "equipment")
@@ -525,7 +525,7 @@ def _merge_latest(
                 profile.pop(key, None)
             if not profile:
                 merged.pop("profile", None)
-        for group, keys in (("status", _DEFAULT_PROFILE_SECTIONS), ("recovery", ("sparkling_water", "bento"))):
+        for group, keys in (("status", _DEFAULT_PROFILE_SECTIONS), ("recovery", ("sparkling_water", "work_meals", "love_bentos"))):
             updates = fresh.get(group)
             if not isinstance(updates, Mapping) or not updates:
                 continue
@@ -659,7 +659,11 @@ def resonance_pc_player_data_refresh(
     if selected.intersection(_PROFILE_PANEL_STAGES) and vision is None:
         raise RuntimeError("vision service is required to confirm the main screen")
     recovery_layout = None
-    if "profile" in selected and set(selected_profile_sections).intersection({"sparkling_water", "bento"}):
+    love_catalog = None
+    if "profile" in selected and "love_bentos" in selected_profile_sections:
+        from .love_bento_pc_actions import load_love_bento_catalog
+        love_catalog = load_love_bento_catalog(vision)
+    if "profile" in selected and set(selected_profile_sections).intersection({"sparkling_water", "work_meals", "love_bentos"}):
         if vision is None:
             raise RuntimeError("vision service is required for recovery refresh")
         recovery_layout = load_recovery_layout(vision)
@@ -683,6 +687,23 @@ def resonance_pc_player_data_refresh(
 
     def mark_profile_updated(section: str) -> None:
         profile_section_updated_at[section] = _utc_now_iso()
+
+    def save_recovery_section(section: str, value: dict) -> None:
+        check_cancelled()
+        timestamp = value.get("updated_at") or _utc_now_iso()
+        def merge_section(existing):
+            merged = copy.deepcopy(existing)
+            recovery = merged.get("recovery")
+            if not isinstance(recovery, dict):
+                recovery = {}
+                merged["recovery"] = recovery
+            recovery[section] = copy.deepcopy(value)
+            merged.setdefault("schema_version", 1)
+            metadata = merged.setdefault("metadata", {})
+            metadata.setdefault("profile_section_updated_at", {})[section] = timestamp
+            metadata["updated_at"] = timestamp
+            return merged
+        persistent_data.update(file=USER_INFO_FILE, updater=merge_section)
 
     _wait_for_any_marker(
         app,
@@ -725,6 +746,7 @@ def resonance_pc_player_data_refresh(
                 if recovery_layout is not None:
                     result["recovery"] = RecoveryReader(app, ocr, vision, recovery_layout, on_page=track_page).read(
                         selected_profile_sections, on_updated=mark_profile_updated,
+                        on_result=save_recovery_section, love_catalog=love_catalog,
                     )
                 section_updated_at["profile"] = _utc_now_iso()
 

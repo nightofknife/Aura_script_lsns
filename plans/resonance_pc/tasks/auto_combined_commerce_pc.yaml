@@ -409,8 +409,8 @@ auto_combined_commerce_pc:
                         required: false
                         enum:
                         - false
-                  bento:
-                    name: bento
+                  work_meals:
+                    name: work_meals
                     type: dict
                     required: false
                     properties:
@@ -527,8 +527,8 @@ auto_combined_commerce_pc:
                     required: false
                     enum:
                     - false
-              bento:
-                name: bento
+              work_meals:
+                name: work_meals
                 type: dict
                 required: false
                 properties:

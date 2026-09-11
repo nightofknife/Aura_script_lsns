@@ -4,7 +4,8 @@
 
 快捷货运设置和完整货运参数页使用同一个 `auto_sparkling_water` 开关，默认关闭。
 原货运疲劳药控件已被替换；客运的疲劳药配置保持原行为。
-整套流程仍强制刷新 `profile` 中的 `fatigue`、`sparkling_water`、`bento`。
+整套流程仍强制刷新 `profile` 中的 `fatigue`、`sparkling_water`、
+`work_meals` 和 `love_bentos`。
 完整货运页单独运行且启用自动喝水时，同样先刷新这些数据。
 
 运行输入 `recovery_snapshot` 是本次刷新返回的 `player_data`，包含：

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -261,7 +262,7 @@ class RecoveryReader:
         raise _error(f"unable to match free uses: {last_diagnostic}")
 
 
-    def read_bento(self) -> dict[str, Any]:
+    def read_work_meals(self) -> dict[str, Any]:
         """Wait for rendered slots and classify them using the same frame."""
         started_at = time.monotonic()
         timeout = self.layout.get("bento_ready_timeout_sec", 8.0)
@@ -314,7 +315,8 @@ class RecoveryReader:
                 slots.append({"issue_time": slot["issue_time"], "available": bool(present)})
             if len(slots) == 3 and time.monotonic() < deadline:
                 logger.info("[RecoveryBento] phase=completed attempt=%s elapsed_sec=%.3f slots=%s", attempt, time.monotonic() - started_at, slots)
-                return {"available_count": sum(slot["available"] for slot in slots), "slots": slots}
+                return {"available_count": sum(slot["available"] for slot in slots), "slots": slots,
+                        "updated_at": datetime.now(timezone.utc).isoformat()}
             time.sleep(self.layout["poll_interval_sec"])
         logger.warning(
             "[RecoveryBento] phase=timeout_fallback available_count=0 all_slots_absent=true "
@@ -343,19 +345,31 @@ class RecoveryReader:
             raise _error("could not confirm profile after recovery pages")
         self.set_page("profile")
 
-    def read(self, sections: Sequence[str], *, on_updated: Callable[[str], None]) -> dict[str, Any]:
+    def read(self, sections: Sequence[str], *, on_updated: Callable[[str], None],
+             on_result: Callable[[str, dict], None] = lambda section, value: None,
+             love_catalog: dict | None = None) -> dict[str, Any]:
         result = {}
         try:
             self.move("profile", "fatigue_recovery", "fatigue_plus")
             if "sparkling_water" in sections:
                 self.move("fatigue_recovery", "sparkling_water_popup", "rest_info")
                 result["sparkling_water"] = self.read_sparkling_water()
+                on_result("sparkling_water", result["sparkling_water"])
                 on_updated("sparkling_water")
                 self.move("sparkling_water_popup", "fatigue_recovery", "rest_info")
-            if "bento" in sections:
+            if set(sections).intersection({"work_meals", "love_bentos"}):
                 self.move("fatigue_recovery", "bento_cabinet", "bento_button")
-                result["bento"] = self.read_bento()
-                on_updated("bento")
+                if "work_meals" in sections:
+                    result["work_meals"] = self.read_work_meals()
+                    on_result("work_meals", result["work_meals"])
+                    on_updated("work_meals")
+                if "love_bentos" in sections:
+                    from .love_bento_pc_actions import LoveBentoScanner
+                    if love_catalog is None:
+                        raise _error("love-bento catalog was not prepared")
+                    result["love_bentos"] = LoveBentoScanner(self, love_catalog).read()
+                    on_result("love_bentos", result["love_bentos"])
+                    on_updated("love_bentos")
                 self.move("bento_cabinet", "fatigue_recovery", "back")
             self.move("fatigue_recovery", "profile", "back")
             return result

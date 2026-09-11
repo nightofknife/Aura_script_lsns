@@ -22,7 +22,7 @@ player_data_refresh:
           name: profile_section
           type: enum
           required: true
-          enum: [cargo, clarity, fatigue, sparkling_water, bento]
+          enum: [cargo, clarity, fatigue, sparkling_water, work_meals, love_bentos]
       - name: inventory_categories
         type: list
         required: false

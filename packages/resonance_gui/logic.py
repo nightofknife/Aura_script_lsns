@@ -597,21 +597,35 @@ def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("当前疲劳或疲劳上限无效。")
     recovery = player.get("recovery")
     if not isinstance(recovery, Mapping):
-        raise ValueError("恢复资源刷新缺少气泡水和便当结果。")
+        raise ValueError("恢复资源刷新缺少气泡水、工作餐和爱心便当结果。")
     water = recovery.get("sparkling_water")
-    bento = recovery.get("bento")
-    if not isinstance(water, Mapping) or not isinstance(bento, Mapping):
-        raise ValueError("恢复资源刷新缺少气泡水或便当结果。")
+    work_meals = recovery.get("work_meals")
+    love_bentos = recovery.get("love_bentos")
+    if (
+        not isinstance(water, Mapping)
+        or not isinstance(work_meals, Mapping)
+        or not isinstance(love_bentos, Mapping)
+    ):
+        raise ValueError("恢复资源刷新缺少气泡水、工作餐或爱心便当结果。")
     remaining = water.get("remaining_free_uses")
     limit = water.get("daily_free_limit")
-    count = bento.get("available_count")
+    work_meal_count = work_meals.get("available_count")
+    love_bento_count = love_bentos.get("count")
+    love_bento_items = love_bentos.get("items")
     if (
         type(remaining) is not int or type(limit) is not int
         or not 1 <= limit <= 6 or not 0 <= remaining <= limit
     ):
         raise ValueError("气泡水剩余次数或每日上限无效。")
-    if type(count) is not int or not 0 <= count <= 3:
-        raise ValueError("便当数量无效，应为 0–3 份。")
+    if type(work_meal_count) is not int or not 0 <= work_meal_count <= 3:
+        raise ValueError("工作餐数量无效，应为 0–3 份。")
+    if (
+        type(love_bento_count) is not int
+        or love_bento_count < 0
+        or not isinstance(love_bento_items, list)
+        or love_bento_count != len(love_bento_items)
+    ):
+        raise ValueError("爱心便当识别结果无效。")
     if water.get("requires_refresh") is True:
         raise ValueError("气泡水数据要求重新刷新。")
     return copy.deepcopy(dict(player))
@@ -632,9 +646,9 @@ def recovery_snapshot_task_input(player: Mapping[str, Any]) -> dict[str, Any]:
         },
         "metadata": {"persisted": player["metadata"]["persisted"]},
     }
-    if "bento" in player["recovery"]:
-        projected["recovery"]["bento"] = {
-            "available_count": player["recovery"]["bento"]["available_count"]
+    if "work_meals" in player["recovery"]:
+        projected["recovery"]["work_meals"] = {
+            "available_count": player["recovery"]["work_meals"]["available_count"]
         }
     return projected
 

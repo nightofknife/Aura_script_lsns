@@ -313,8 +313,8 @@ auto_cycle_trade_pc:
                     required: false
                     enum:
                     - false
-              bento:
-                name: bento
+              work_meals:
+                name: work_meals
                 type: dict
                 required: false
                 properties:

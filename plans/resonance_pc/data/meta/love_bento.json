@@ -1,0 +1,2019 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "love_bento_count": 11,
+  "source_hashes": {
+    "config": "d38666930712deda4f06eb839edbac2631110c4184f723d643682c93b32bbe7d",
+    "prefab": "df85f93d6313ce8947de0191ab00257feffe474483c252ae9d3ada7103a2979c",
+    "food": "09617f3cb5ab6b0a0763a7df9c8f97bd8f5956862cc76a26a35da3c3daa2024a",
+    "ui": "5b400e63c968e461b3e808ed42df8b60f77e17271287635baaf2c89f261271d5",
+    "font": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "name_font": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "roles": "de110fbb69482a6e6f641579094d127b337c5dc03afe9c306f71161b4c42dbc2"
+  },
+  "geometry": {
+    "scale": 0.6666666666666666,
+    "background_size": [
+      334,
+      296
+    ],
+    "food_native_rect": [
+      1.399993896484375,
+      34.59998321533203,
+      169.0,
+      150.0
+    ],
+    "expiration_native_rect": [
+      -119.4000015258789,
+      106.59998321533203,
+      57.0,
+      51.0
+    ],
+    "role_native_rect": [
+      -63.5,
+      -116.59998321533203,
+      160.0,
+      30.0
+    ],
+    "background_native_rect": [
+      0.0,
+      -3.800018310546875,
+      334.0,
+      296.0
+    ],
+    "food_crop_xyxy": [
+      48,
+      22,
+      174,
+      132
+    ],
+    "days_crop_xyxy": [
+      12,
+      7,
+      53,
+      44
+    ],
+    "role_crop_xyxy": [
+      14,
+      162,
+      123,
+      187
+    ]
+  },
+  "role_font": {
+    "name": "SourceHanSansCN-Medium",
+    "style": {
+      "m_Font": {
+        "m_FileID": 2,
+        "m_PathID": 6136794397608061395
+      },
+      "m_FontSize": 23,
+      "m_FontStyle": 0,
+      "m_BestFit": 0,
+      "m_MinSize": 2,
+      "m_MaxSize": 40,
+      "m_Alignment": 3,
+      "m_AlignByGeometry": 0,
+      "m_RichText": 1,
+      "m_HorizontalOverflow": 1,
+      "m_VerticalOverflow": 1,
+      "m_LineSpacing": 1.0
+    },
+    "color": {
+      "r": 1.0,
+      "g": 1.0,
+      "b": 1.0,
+      "a": 1.0
+    },
+    "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
+  },
+  "days_font": {
+    "name": "HarmonyOS_Sans_Medium",
+    "size": 26,
+    "color": [
+      221,
+      185,
+      149
+    ],
+    "sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd"
+  },
+  "remaining_days_rule": "ceil((due_time - server_time) / 86400)",
+  "status": "native_assets_composed_not_match_validated",
+  "limitations": [
+    "Font rasterization uses Pillow, not Unity; matching thresholds require sample calibration.",
+    "Day templates cover single digits 0-9; this does not assert the maximum shelf life.",
+    "Scanner settings are initial values; live matching accuracy has not been measured."
+  ],
+  "role_count": 98,
+  "roles": [
+    {
+      "id": 10000004,
+      "name": "卡塔斯",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000004.png"
+    },
+    {
+      "id": 10000025,
+      "name": "朱利安",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000025.png"
+    },
+    {
+      "id": 10000027,
+      "name": "遥",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000027.png"
+    },
+    {
+      "id": 10000030,
+      "name": "神盾波克士",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000030.png"
+    },
+    {
+      "id": 10000031,
+      "name": "约书亚",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000031.png"
+    },
+    {
+      "id": 10000032,
+      "name": "妮蔻拉",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000032.png"
+    },
+    {
+      "id": 10000034,
+      "name": "隼",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000034.png"
+    },
+    {
+      "id": 10000035,
+      "name": "达斯廷",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000035.png"
+    },
+    {
+      "id": 10000047,
+      "name": "瓦伦汀",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000047.png"
+    },
+    {
+      "id": 10000051,
+      "name": "亚莉奈",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000051.png"
+    },
+    {
+      "id": 10000052,
+      "name": "奈弥",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000052.png"
+    },
+    {
+      "id": 10000053,
+      "name": "伊尔",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000053.png"
+    },
+    {
+      "id": 10000054,
+      "name": "马吉拉",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000054.png"
+    },
+    {
+      "id": 10000055,
+      "name": "莉薇娅",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000055.png"
+    },
+    {
+      "id": 10000059,
+      "name": "柯娜",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000059.png"
+    },
+    {
+      "id": 10000060,
+      "name": "塔拉",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000060.png"
+    },
+    {
+      "id": 10000062,
+      "name": "狮鬃",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000062.png"
+    },
+    {
+      "id": 10000063,
+      "name": "魇",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000063.png"
+    },
+    {
+      "id": 10000064,
+      "name": "塞西尔",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000064.png"
+    },
+    {
+      "id": 10000065,
+      "name": "雷火",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000065.png"
+    },
+    {
+      "id": 10000068,
+      "name": "黛丝莉",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000068.png"
+    },
+    {
+      "id": 10000069,
+      "name": "夏洛蒂",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000069.png"
+    },
+    {
+      "id": 10000071,
+      "name": "苍叶",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000071.png"
+    },
+    {
+      "id": 10000072,
+      "name": "那由他",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000072.png"
+    },
+    {
+      "id": 10000094,
+      "name": "索玛",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000094.png"
+    },
+    {
+      "id": 10000095,
+      "name": "多萝西",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000095.png"
+    },
+    {
+      "id": 10000101,
+      "name": "卡莱雅",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000101.png"
+    },
+    {
+      "id": 10000110,
+      "name": "霖",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000110.png"
+    },
+    {
+      "id": 10000111,
+      "name": "伽罗尔",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000111.png"
+    },
+    {
+      "id": 10000112,
+      "name": "甘雅",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000112.png"
+    },
+    {
+      "id": 10000124,
+      "name": "晃",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000124.png"
+    },
+    {
+      "id": 10000134,
+      "name": "艾略特",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000134.png"
+    },
+    {
+      "id": 10000139,
+      "name": "卡洛琳",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000139.png"
+    },
+    {
+      "id": 10000145,
+      "name": "丽桑德拉",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000145.png"
+    },
+    {
+      "id": 10000153,
+      "name": "宵月",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000153.png"
+    },
+    {
+      "id": 10000154,
+      "name": "伊洛娜",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000154.png"
+    },
+    {
+      "id": 10000156,
+      "name": "静流",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000156.png"
+    },
+    {
+      "id": 10000157,
+      "name": "阿尔喀娜",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000157.png"
+    },
+    {
+      "id": 10000159,
+      "name": "圣剑波克士",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000159.png"
+    },
+    {
+      "id": 10000160,
+      "name": "弗兰",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000160.png"
+    },
+    {
+      "id": 10000170,
+      "name": "卡莲",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000170.png"
+    },
+    {
+      "id": 10000254,
+      "name": "夏尔",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000254.png"
+    },
+    {
+      "id": 10000270,
+      "name": "海因里希",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000270.png"
+    },
+    {
+      "id": 10000276,
+      "name": "苔妮",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000276.png"
+    },
+    {
+      "id": 10000297,
+      "name": "瑞瓦",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000297.png"
+    },
+    {
+      "id": 10000298,
+      "name": "星花",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000298.png"
+    },
+    {
+      "id": 10000299,
+      "name": "瑞秋",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000299.png"
+    },
+    {
+      "id": 10000300,
+      "name": "菲妮娅",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000300.png"
+    },
+    {
+      "id": 10000335,
+      "name": "叶珏",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000335.png"
+    },
+    {
+      "id": 10000352,
+      "name": "苏恩",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000352.png"
+    },
+    {
+      "id": 10000372,
+      "name": "安菲娅",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000372.png"
+    },
+    {
+      "id": 10000387,
+      "name": "阿知波",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000387.png"
+    },
+    {
+      "id": 10000388,
+      "name": "闻笙",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000388.png"
+    },
+    {
+      "id": 10000389,
+      "name": "冯·里奈",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000389.png"
+    },
+    {
+      "id": 10000408,
+      "name": "波克士",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000408.png"
+    },
+    {
+      "id": 10000409,
+      "name": "跳鼠",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000409.png"
+    },
+    {
+      "id": 10000412,
+      "name": "米莉",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000412.png"
+    },
+    {
+      "id": 10000414,
+      "name": "山岚",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000414.png"
+    },
+    {
+      "id": 10000468,
+      "name": "静流·逐夏",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000468.png"
+    },
+    {
+      "id": 10000499,
+      "name": "雅莱",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000499.png"
+    },
+    {
+      "id": 10000503,
+      "name": "伊索斯",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000503.png"
+    },
+    {
+      "id": 10000572,
+      "name": "马吉拉·星仪",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000572.png"
+    },
+    {
+      "id": 10000573,
+      "name": "小麦",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000573.png"
+    },
+    {
+      "id": 10000607,
+      "name": "帕拉笛",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000607.png"
+    },
+    {
+      "id": 10000615,
+      "name": "佩罗塔",
+      "food_ids": [
+        83300014
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000615.png"
+    },
+    {
+      "id": 10000623,
+      "name": "金子小姐",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000623.png"
+    },
+    {
+      "id": 10000632,
+      "name": "罗洁尔·定格",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000632.png"
+    },
+    {
+      "id": 10000739,
+      "name": "薇尔岚",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000739.png"
+    },
+    {
+      "id": 10000748,
+      "name": "罗洁尔",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000748.png"
+    },
+    {
+      "id": 10000749,
+      "name": "乌刹娜",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000749.png"
+    },
+    {
+      "id": 10000796,
+      "name": "真咲",
+      "food_ids": [
+        83300017
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000796.png"
+    },
+    {
+      "id": 10000843,
+      "name": "克洛伊",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000843.png"
+    },
+    {
+      "id": 10000854,
+      "name": "婕丝&西蒙",
+      "food_ids": [
+        83300015
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000854.png"
+    },
+    {
+      "id": 10000855,
+      "name": "涟",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000855.png"
+    },
+    {
+      "id": 10000890,
+      "name": "伊卡菈",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000890.png"
+    },
+    {
+      "id": 10000920,
+      "name": "伊利亚德",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000920.png"
+    },
+    {
+      "id": 10000941,
+      "name": "时萝",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000941.png"
+    },
+    {
+      "id": 10000942,
+      "name": "斯洛卡伊",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000942.png"
+    },
+    {
+      "id": 10000969,
+      "name": "莱卡吉亚",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000969.png"
+    },
+    {
+      "id": 10000979,
+      "name": "奥莉薇恩",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10000979.png"
+    },
+    {
+      "id": 10001003,
+      "name": "海伦娜",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001003.png"
+    },
+    {
+      "id": 10001019,
+      "name": "朵拉弥丝",
+      "food_ids": [
+        83300011
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001019.png"
+    },
+    {
+      "id": 10001052,
+      "name": "切茜娅",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001052.png"
+    },
+    {
+      "id": 10001092,
+      "name": "陈书闲",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001092.png"
+    },
+    {
+      "id": 10001203,
+      "name": "沃斯托克",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001203.png"
+    },
+    {
+      "id": 10001220,
+      "name": "卡塔斯·业火",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001220.png"
+    },
+    {
+      "id": 10001222,
+      "name": "蒂丝塔尔",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001222.png"
+    },
+    {
+      "id": 10001246,
+      "name": "拉妲",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001246.png"
+    },
+    {
+      "id": 10001266,
+      "name": "夏洛蒂·澄心",
+      "food_ids": [
+        83300012
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001266.png"
+    },
+    {
+      "id": 10001314,
+      "name": "露比",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001314.png"
+    },
+    {
+      "id": 10001327,
+      "name": "迪妮莎",
+      "food_ids": [
+        83300013
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001327.png"
+    },
+    {
+      "id": 10001356,
+      "name": "多萝西·瑰晨",
+      "food_ids": [
+        83300016
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001356.png"
+    },
+    {
+      "id": 10001357,
+      "name": "伊洛娜·暮光",
+      "food_ids": [
+        83300002
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001357.png"
+    },
+    {
+      "id": 10001377,
+      "name": "爱弥儿",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001377.png"
+    },
+    {
+      "id": 10001379,
+      "name": "爱弥儿123",
+      "food_ids": [
+        83300018
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001379.png"
+    },
+    {
+      "id": 10001383,
+      "name": "蓝鹊儿",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001383.png"
+    },
+    {
+      "id": 10001393,
+      "name": "美琪",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001393.png"
+    },
+    {
+      "id": 10001478,
+      "name": "菲妮娅·烁梦",
+      "food_ids": [
+        83300019
+      ],
+      "template": "templates/player_recovery/love_bento/roles/10001478.png"
+    }
+  ],
+  "scanner": {
+    "viewport": [
+      103,
+      117,
+      712,
+      539
+    ],
+    "capture_roi": [
+      97,
+      111,
+      724,
+      551
+    ],
+    "roi_margin": 4,
+    "anchor_template": "templates/player_recovery/love_bento/native/card_background_1280.png",
+    "anchor_mask": "templates/player_recovery/love_bento/masks/card.png",
+    "expiration_template": "templates/player_recovery/love_bento/days/0.png",
+    "expiration_mask": "templates/player_recovery/love_bento/masks/expiration_ring.png",
+    "anchor_threshold": 0.94,
+    "food_threshold": 0.86,
+    "role_threshold": 0.86,
+    "days_threshold": 0.9,
+    "food_margin": 0.025,
+    "role_margin": 0.025,
+    "days_margin": 0.025,
+    "page_timeout_sec": 10,
+    "total_timeout_sec": 90,
+    "max_drags": 15,
+    "poll_interval_sec": 0.25,
+    "scroll_distance": 150,
+    "stationary_confirmations": 3
+  },
+  "deduplication_key": [
+    "role_id",
+    "food_id",
+    "remaining_days"
+  ],
+  "items": [
+    {
+      "id": 83300002,
+      "name": "菜肉俱全汉堡",
+      "resource": "Item/Food/Bento/BurgerLow",
+      "native": "templates/player_recovery/love_bento/native/83300002.png",
+      "template": "templates/player_recovery/love_bento/food/83300002.png"
+    },
+    {
+      "id": 83300011,
+      "name": "焦香水果派",
+      "resource": "Item/Food/Bento/PieLow",
+      "native": "templates/player_recovery/love_bento/native/83300011.png",
+      "template": "templates/player_recovery/love_bento/food/83300011.png"
+    },
+    {
+      "id": 83300012,
+      "name": "香甜水果派",
+      "resource": "Item/Food/Bento/PieMiddle",
+      "native": "templates/player_recovery/love_bento/native/83300012.png",
+      "template": "templates/player_recovery/love_bento/food/83300012.png"
+    },
+    {
+      "id": 83300013,
+      "name": "多汁肉饼汉堡",
+      "resource": "Item/Food/Bento/BurgerMiddle",
+      "native": "templates/player_recovery/love_bento/native/83300013.png",
+      "template": "templates/player_recovery/love_bento/food/83300013.png"
+    },
+    {
+      "id": 83300014,
+      "name": "暖洋洋汤面",
+      "resource": "Item/Food/Bento/RamenMiddle",
+      "native": "templates/player_recovery/love_bento/native/83300014.png",
+      "template": "templates/player_recovery/love_bento/food/83300014.png"
+    },
+    {
+      "id": 83300015,
+      "name": "香喷喷浓郁咖喱",
+      "resource": "Item/Food/Bento/CurryMiddle",
+      "native": "templates/player_recovery/love_bento/native/83300015.png",
+      "template": "templates/player_recovery/love_bento/food/83300015.png"
+    },
+    {
+      "id": 83300016,
+      "name": "甜美奶油蛋糕",
+      "resource": "Item/Food/Bento/CakeMiddle",
+      "native": "templates/player_recovery/love_bento/native/83300016.png",
+      "template": "templates/player_recovery/love_bento/food/83300016.png"
+    },
+    {
+      "id": 83300017,
+      "name": "三重高塔堆堆汉堡",
+      "resource": "Item/Food/Bento/BurgerHigh",
+      "native": "templates/player_recovery/love_bento/native/83300017.png",
+      "template": "templates/player_recovery/love_bento/food/83300017.png"
+    },
+    {
+      "id": 83300018,
+      "name": "魔法流心水果派",
+      "resource": "Item/Food/Bento/PieHigh",
+      "native": "templates/player_recovery/love_bento/native/83300018.png",
+      "template": "templates/player_recovery/love_bento/food/83300018.png"
+    },
+    {
+      "id": 83300019,
+      "name": "超丰盛汤面",
+      "resource": "Item/Food/Bento/RamenHigh",
+      "native": "templates/player_recovery/love_bento/native/83300019.png",
+      "template": "templates/player_recovery/love_bento/food/83300019.png"
+    },
+    {
+      "id": 83300055,
+      "name": "泡菜炒饭",
+      "resource": "Item/Food/Bento/FreeBentoHigh",
+      "native": "templates/player_recovery/love_bento/native/83300055.png",
+      "template": "templates/player_recovery/love_bento/food/83300055.png"
+    }
+  ],
+  "days": [
+    {
+      "value": 0,
+      "template": "templates/player_recovery/love_bento/days/0.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 1,
+      "template": "templates/player_recovery/love_bento/days/1.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 2,
+      "template": "templates/player_recovery/love_bento/days/2.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 3,
+      "template": "templates/player_recovery/love_bento/days/3.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 4,
+      "template": "templates/player_recovery/love_bento/days/4.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 5,
+      "template": "templates/player_recovery/love_bento/days/5.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 6,
+      "template": "templates/player_recovery/love_bento/days/6.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 7,
+      "template": "templates/player_recovery/love_bento/days/7.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 8,
+      "template": "templates/player_recovery/love_bento/days/8.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    },
+    {
+      "value": 9,
+      "template": "templates/player_recovery/love_bento/days/9.png",
+      "mask": "templates/player_recovery/love_bento/masks/days.png"
+    }
+  ],
+  "assets": {
+    "templates/player_recovery/love_bento/native/83300002.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b5fafd24d2c8e38f148248c3db5fa94e388d380845fca20e33cef55f5340de85"
+    },
+    "templates/player_recovery/love_bento/food/83300002.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "a48074bd37834df1a78bfbe4c3830bf8c1e0acdba08d66a4550f835f43164266"
+    },
+    "templates/player_recovery/love_bento/native/83300011.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "db2b84ec6c06fa4cd9d35cd31ccd0f8667c4df80b7d7170998b273d513d92ec4"
+    },
+    "templates/player_recovery/love_bento/food/83300011.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "ca860ec1f9c728a08fc350e501dc33f8ba2b4554ece0bbf2249ee2363309f43b"
+    },
+    "templates/player_recovery/love_bento/native/83300012.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b4fbc136133b1c70a0fe6b0b841ff49ed49fe4aff037f58823f70a39ed9fb603"
+    },
+    "templates/player_recovery/love_bento/food/83300012.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "9afe255a1752f8a03983c069835de5aab509bb02c4cd4e0786ef691986dfec13"
+    },
+    "templates/player_recovery/love_bento/native/83300013.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b43021d6ff2e34ef206f28a1b45065dd65a74c6db3f58b5c4e7371f9fcc5946c"
+    },
+    "templates/player_recovery/love_bento/food/83300013.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "7621afcfdc3080528389780714794e6ee1d5e873676e4fe05568abab0fc5961d"
+    },
+    "templates/player_recovery/love_bento/native/83300014.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "f44f6ba298cab6d55b28bec5a4add7889f78025f83a6cc73e21f7719845f9f79"
+    },
+    "templates/player_recovery/love_bento/food/83300014.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "5220d81e425c4dbf4db7e42a78463e8d64a455009d14662f29e2d0a476d5b748"
+    },
+    "templates/player_recovery/love_bento/native/83300015.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "8291bd9e6ce9a1ddcfcff9eace860d8f8f99a51f890a47d238ea152e04c080cf"
+    },
+    "templates/player_recovery/love_bento/food/83300015.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "636b23091c72eb889a711290cc4093a0ef05e43da76b5983c9834be85eb0873a"
+    },
+    "templates/player_recovery/love_bento/native/83300016.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "645e2e24ea6ab941e9200a94b100734b7db45290b6b7e38c3dc46f962e1c7db0"
+    },
+    "templates/player_recovery/love_bento/food/83300016.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "94026f2fd4be7f9c83ac92f2298fbe4a0080a7e2e8b2ca10ecf26637bb98d640"
+    },
+    "templates/player_recovery/love_bento/native/83300017.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "315914e02666751bc96b077b96cdbcb326d387df11357c3e0cae56534363f9b1"
+    },
+    "templates/player_recovery/love_bento/food/83300017.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "eb43f8bf855aa84999615ce6290d4994a3370453a11835f69a2b1d4676678b9b"
+    },
+    "templates/player_recovery/love_bento/native/83300018.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "d83797f3729023a67d5d97518f3b517ffde885ae40393d27bfcd58d100ad08de"
+    },
+    "templates/player_recovery/love_bento/food/83300018.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "d065e46653d14da3f513b212509ba5108b57ab4987edef2c7816e188eb6ef568"
+    },
+    "templates/player_recovery/love_bento/native/83300019.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "8c8da209a66d0e4c6de6c511ef32f4a8a7f7cc30c6658feb0e31689029e47058"
+    },
+    "templates/player_recovery/love_bento/food/83300019.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "472839bb30e2bd8b81f69ef6633f18dce12a670241e34044c70b1d8b0d5a5a4e"
+    },
+    "templates/player_recovery/love_bento/native/83300055.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "60c5231b8ac2782aedd08fa68af0a1e2e289b87cc132325d01005313d5898c8a"
+    },
+    "templates/player_recovery/love_bento/food/83300055.png": {
+      "size": [
+        126,
+        110
+      ],
+      "sha256": "93df835ce90fc7bcc0441dfa3e5714e9d5bc0f04acfdf93806704817754eff1e"
+    },
+    "templates/player_recovery/love_bento/native/background.png": {
+      "size": [
+        334,
+        296
+      ],
+      "sha256": "cef1f4aa2430be61bb59c3ac424c54a8b91bf4c2bc7648d18887c5dd985e80fd"
+    },
+    "templates/player_recovery/love_bento/native/expiration.png": {
+      "size": [
+        57,
+        51
+      ],
+      "sha256": "f6e153fb124b3d027112067e76fdc991ccea1590be3453b53e53027fbc87eca0"
+    },
+    "templates/player_recovery/love_bento/masks/days.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "26a4605a564abad9d67767df764e7f46977231ad0f04ba96c1fa133e44a473fa"
+    },
+    "templates/player_recovery/love_bento/masks/expiration_ring.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "f0fe860a39c277b5f5610004f1c6d697ddeab8b7c90c066c75d75d3cb80c3e65"
+    },
+    "templates/player_recovery/love_bento/days/0.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "d1ccbee52f46c6bdeba983652935aeceab01e2166be06c27f3273284fa8082d6"
+    },
+    "templates/player_recovery/love_bento/days/1.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "ffb59cd7bbe9216a7406ef5db9ec829a46de2af5b6ed28b9022986c178ebcff4"
+    },
+    "templates/player_recovery/love_bento/days/2.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "6bcfd60d0344e136f1360e6e1a9f8fa74b7064fdfee4288b1bc9ac630800323f"
+    },
+    "templates/player_recovery/love_bento/days/3.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "4b921b00ed6fc05ede738c509f337fbf80b645aa8f2afafc6a264e1e4538dded"
+    },
+    "templates/player_recovery/love_bento/days/4.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "8966f0084a3e99bd4d71b159b0a2bb64d8da76c53dd4d40346f408af0a05272c"
+    },
+    "templates/player_recovery/love_bento/days/5.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "430638d441f5fc952c5714f4492fe6b06502b7e46b1a0f2b48d83995a8501174"
+    },
+    "templates/player_recovery/love_bento/days/6.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "b79cf7401584e753da7421d0aa23bb22482cfbb2b4dc13846358b20cb710b94e"
+    },
+    "templates/player_recovery/love_bento/days/7.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "7c2d4077f5df0d6af8be4a19bb3e2a7b5ef64483a536ee95b2338c0759fece1e"
+    },
+    "templates/player_recovery/love_bento/days/8.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "edd365a2f729aaa8f5c402ce099bab56fc702353940fad80b8932974bf8f1bca"
+    },
+    "templates/player_recovery/love_bento/days/9.png": {
+      "size": [
+        41,
+        37
+      ],
+      "sha256": "ac14eaabb0916d861d417ea0567c0738462814256b0a5886eb7e55adf0ffad32"
+    },
+    "templates/player_recovery/love_bento/roles/10000004.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "d82c4ca29ec729158fb4bfa64c0968a89aba86e6c0c61690d3ad391f58720805"
+    },
+    "templates/player_recovery/love_bento/roles/10000025.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "aa9a2957707ec6ae1c4c1f63e196a7cfd333c75774760874ec636ce904b314d8"
+    },
+    "templates/player_recovery/love_bento/roles/10000027.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b45a8fab4643a604d9ee7785067fa9a5d5d3fcc16d00bde27df80270d0d5b5c2"
+    },
+    "templates/player_recovery/love_bento/roles/10000030.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "7bf17d6f7945f2d83a2b707675d25d42c4074079f747974c6d39cbc804839937"
+    },
+    "templates/player_recovery/love_bento/roles/10000031.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "0fcd831b4f3bdc3376f6b916cbaf019d14fdb254926daa85abccb80efe37806f"
+    },
+    "templates/player_recovery/love_bento/roles/10000032.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "dff28c13e5c555537dc77ff9e45cc324fa62a353e1fafaf4a32cadf2d3b396b6"
+    },
+    "templates/player_recovery/love_bento/roles/10000034.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "cdc5858e40508bb9acb946575851efe5777ce0c92968a80076d9f10bde6b372d"
+    },
+    "templates/player_recovery/love_bento/roles/10000035.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "29fdf17f67a8efc8761b2b66d46a28d9e1babfdff2228b993088f30176703c43"
+    },
+    "templates/player_recovery/love_bento/roles/10000047.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "5916030260117598d6e1aeb600e78030b44d124070423a45b145b745a81ddcc0"
+    },
+    "templates/player_recovery/love_bento/roles/10000051.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "8774150dc494910242f580033c58b33c45214d93756a42ea27fd6f5a3d15d4a1"
+    },
+    "templates/player_recovery/love_bento/roles/10000052.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "fe65309efca15ab79cd43c9c2bba42553e1a8ad59aeddafdcbafaaa276620f52"
+    },
+    "templates/player_recovery/love_bento/roles/10000053.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "3e59510099850947a1d30ee0e4442ec5c0dd4e689cfc20b365d34b976a56d917"
+    },
+    "templates/player_recovery/love_bento/roles/10000054.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "d6326e87bdffab071e7ef53f72c12bafdc8f750f15f6113146d76be52a9d78fb"
+    },
+    "templates/player_recovery/love_bento/roles/10000055.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "42c88ca9d5fcb5cd4e8d2a7fe46d1835ca1cec571c9490fd3b3defc3471cd32c"
+    },
+    "templates/player_recovery/love_bento/roles/10000059.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "cd5ec078a2a2f5c1799f28c199bfed28aaca8ffb8826c35339fcb4546adefd01"
+    },
+    "templates/player_recovery/love_bento/roles/10000060.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "66d0da4bd44c79a10ef37439a8362f7eee21c37418baa56bb57f959044fa03d8"
+    },
+    "templates/player_recovery/love_bento/roles/10000062.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "7631f6369ccd934f311be5469ce1b69c13c201ea6d626d83b7743aae9037e8a8"
+    },
+    "templates/player_recovery/love_bento/roles/10000063.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "532a75065c450f0302d124890e69c9255cc92a98132c42e3cf323ce7fd65a883"
+    },
+    "templates/player_recovery/love_bento/roles/10000064.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "abd7de7df6bda93e020ef29359d510938fc379bbe76543ed3bcc45b92c281247"
+    },
+    "templates/player_recovery/love_bento/roles/10000065.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "4d9c5d4de9e082293ed9f6b3d71ac953079d59c8548e6e048fee97991b34a051"
+    },
+    "templates/player_recovery/love_bento/roles/10000068.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b273f9f10c6362e0b06b246b2baed060e656bceaee19bb0ca94b6e7c040dbce6"
+    },
+    "templates/player_recovery/love_bento/roles/10000069.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "5b7ca12f64c53c162364ba138dcf3870a4ef353171b921a0471a7cf6f9301533"
+    },
+    "templates/player_recovery/love_bento/roles/10000071.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c1b7048c998f9ad7335d8472ce95b7ba4c88e1c22995b7461fa550759bcd0412"
+    },
+    "templates/player_recovery/love_bento/roles/10000072.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "70cc82d8f807bddc1d40c75d7f75aae5ba59b3b00c5f557b361a4086654b36fe"
+    },
+    "templates/player_recovery/love_bento/roles/10000094.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2ad480519679e8238f8a4551bd05b14ced80cda3bd8f60d8ff868eb30f34b4a2"
+    },
+    "templates/player_recovery/love_bento/roles/10000095.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "309178345491713a3624331442933c3396ec0587d1b3cfaaec95fdef9efae922"
+    },
+    "templates/player_recovery/love_bento/roles/10000101.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "59289b1f2dbe875c834bb8257d4da61ea902681dda7e8bdd21bf713c757dbb76"
+    },
+    "templates/player_recovery/love_bento/roles/10000110.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "415a5c3778780f6f6b09262f3289def89247ca203646f3b862e73f91362aec87"
+    },
+    "templates/player_recovery/love_bento/roles/10000111.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "7de7d90461b8bc5fac5c8ab1050d0e22aa883fa6f70767cf2853d63badbec37a"
+    },
+    "templates/player_recovery/love_bento/roles/10000112.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "e6f517745bf512c76e3be8c17f2f9e753a879e6a9b369cc3d65f738dc7484170"
+    },
+    "templates/player_recovery/love_bento/roles/10000124.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "9c20c96a5922d44489b303539c35b52d2651a8b237540555453419c5f73a81b0"
+    },
+    "templates/player_recovery/love_bento/roles/10000134.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "1dbd15addf15d808cf536af7bd16741b228ecf575222a8c18c73d299693fec24"
+    },
+    "templates/player_recovery/love_bento/roles/10000139.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "4d0f52f2431ce1281b2b8ab0bac1d59ed3c0b5d2bbecf5cd350e3e6fd61c94d7"
+    },
+    "templates/player_recovery/love_bento/roles/10000145.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "cf3ce3055bfa8dd8bf47e4ad7074058a2a73564c4331191b2fca9cf071ffe7f3"
+    },
+    "templates/player_recovery/love_bento/roles/10000153.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "273a8509f30ff5248bbc9beaeeaa47c3e6e7f2a21833d29267d7d173040b7422"
+    },
+    "templates/player_recovery/love_bento/roles/10000154.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "5a2c56452d7f72c6e6ec01c59ccf77da72bf370cf0ddca7a91c4fdcb9f4f9393"
+    },
+    "templates/player_recovery/love_bento/roles/10000156.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "44be937a2aec11b18e81797aaaf60501886680e58f8d60d8f78b0efaa5f0318c"
+    },
+    "templates/player_recovery/love_bento/roles/10000157.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "6ad972c4782c2d8e22ddc3e0ec1de1c5f31438c1454b1d68042fa6e7cb730b0c"
+    },
+    "templates/player_recovery/love_bento/roles/10000159.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "761795f07a5bf504e73c192dcafe76a18bcb03359da13ce9020dc10fc72bf6de"
+    },
+    "templates/player_recovery/love_bento/roles/10000160.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "aed7adc3435ff388c55897e6065b098beea0ec0cb5e1437735c6ee3d41262e22"
+    },
+    "templates/player_recovery/love_bento/roles/10000170.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "f7e4b47c560571192b88852d31f0cdc6a0ffd927530b9f7f6b904e199e5e3e57"
+    },
+    "templates/player_recovery/love_bento/roles/10000254.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c1330192f85818b23749c3dd92c828571b1e915ad57ea0bd5ee381e94b35327e"
+    },
+    "templates/player_recovery/love_bento/roles/10000270.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "28e8d53d32411d89fb291108f316851b9e786269b9a2187934f487cff71f2f8d"
+    },
+    "templates/player_recovery/love_bento/roles/10000276.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "6d7296eee6567d34367dec4189a955791f37da8857a1b6df463d8a1127eaf35b"
+    },
+    "templates/player_recovery/love_bento/roles/10000297.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b78a3cc01cc29f18845ad8372a170a24bebabe0886e20c69a9926c28776b98fb"
+    },
+    "templates/player_recovery/love_bento/roles/10000298.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "a302fef9ea9e4f06c3b75185936d86a0ea1f141718c35eaeec3c5d0a4335f0a1"
+    },
+    "templates/player_recovery/love_bento/roles/10000299.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "919fa286be9549e6be8ced92bebb6e793afa238b67cb58205765eb9a9e7f61ad"
+    },
+    "templates/player_recovery/love_bento/roles/10000300.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2a2ee968a8412e48ea1dfc521b8ff49d827c70e1fb37fd09d8429cd17ea1b368"
+    },
+    "templates/player_recovery/love_bento/roles/10000335.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "7b5927b7b6d2ae170fa6389035443f6351a6d5e85c1df0868385d9b4b742d798"
+    },
+    "templates/player_recovery/love_bento/roles/10000352.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "bf2cb6e0347d2bf46e75f7126f5814d8e4989157280d3ea07f94d5d5258a416f"
+    },
+    "templates/player_recovery/love_bento/roles/10000372.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "40c144de4bb725ec4440e0a44fdde6d8c8e143e685a18bcb157994a89785ce6f"
+    },
+    "templates/player_recovery/love_bento/roles/10000387.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b858399dc89b380c24d74df3599e66befe7e1ddda845262266a59fc8f4001116"
+    },
+    "templates/player_recovery/love_bento/roles/10000388.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "3935692b190a6565c404538d3bf29ed260e7294acee8f9a8e3785d19f7171034"
+    },
+    "templates/player_recovery/love_bento/roles/10000389.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "db5113cf8eace5552946783f78cf521b16c387587eb4627ffb9172301f3eba93"
+    },
+    "templates/player_recovery/love_bento/roles/10000408.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "1d65f5fc46ac136cf63f98b0b5d3b5462af1897f05f14e395a3302687ed07218"
+    },
+    "templates/player_recovery/love_bento/roles/10000409.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "f2af5649a2ea6baac48e5c44c65a46ee93cf4e80f3381766204e49a2da906b7c"
+    },
+    "templates/player_recovery/love_bento/roles/10000412.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "32c9479dc79d4cb7b7296ec9c389b53fc5e5df6034fa3931199a918eb160319e"
+    },
+    "templates/player_recovery/love_bento/roles/10000414.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "4ce2ca11a0cd3ed3c8f57fa113e775681e3cb18d3149f328b2892bff1fbb77a3"
+    },
+    "templates/player_recovery/love_bento/roles/10000468.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "967254c89c6869716b4daa10d597b069e07ad1ea4c10704fc9cd40ae57378b04"
+    },
+    "templates/player_recovery/love_bento/roles/10000499.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "83c1cc8ffd6f0705c94b87ace380a18476225e2a160df2f28d7fce592dfeedd3"
+    },
+    "templates/player_recovery/love_bento/roles/10000503.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "7157e4afb94309de225976b208a9c4c20ca07c3b4a1bb18f6ec06ed44491dfdf"
+    },
+    "templates/player_recovery/love_bento/roles/10000572.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "5beff709381259f27a82d69600d40ad1910b44da253028c215c6732c95691d58"
+    },
+    "templates/player_recovery/love_bento/roles/10000573.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "a7ae30ed9fdd0e19a24bbd4df6bed6b165309ef47ddd8a1d479ab935c263202b"
+    },
+    "templates/player_recovery/love_bento/roles/10000607.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "43c27a433ef8bd4ac81276e3250a4b4a022073806cb4bfaa992a91e96a7fb846"
+    },
+    "templates/player_recovery/love_bento/roles/10000615.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "36560c03f23b66882c44b5a50f601bb508a4d888c090ab37f7b878df39807b07"
+    },
+    "templates/player_recovery/love_bento/roles/10000623.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "dad1018e4eae2e9033af39de9e70fb2b3b10aa66b961261c55d72d0b7220a143"
+    },
+    "templates/player_recovery/love_bento/roles/10000632.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "397d0f8e78ca00ebc7874e53e6ac4807088269c1dddc48192ebdf70b4217be79"
+    },
+    "templates/player_recovery/love_bento/roles/10000739.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "bfcf1f20376ea2b9b88adb61b5debec145719c061575326b60275acdd49223c6"
+    },
+    "templates/player_recovery/love_bento/roles/10000748.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "eb50bd3702b666d09b2b38f40562d485ffa942c0bd3ddc72c3fc8300ba9c586d"
+    },
+    "templates/player_recovery/love_bento/roles/10000749.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "d772e2a304e822e5f5c2d36d135bf33860d99f6dd78ee08a83b555757c04aa20"
+    },
+    "templates/player_recovery/love_bento/roles/10000796.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2c3da5fa0f067f881a1e37570b590294aaf5f0a5f5a57c990a7e4024f817fac6"
+    },
+    "templates/player_recovery/love_bento/roles/10000843.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "10642e64c00c7bcd346e5492550ee0aa39f2ab63a80e132fb8d51a9f42d9dcc0"
+    },
+    "templates/player_recovery/love_bento/roles/10000854.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "4f016f83b76e34d86983a74374cdf339cdf0368e461a777b705572199e3084d9"
+    },
+    "templates/player_recovery/love_bento/roles/10000855.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "a3af94220b7019aa5bf52930e28f012aa4bdb9a78dff607db6e86e582dbbbc1c"
+    },
+    "templates/player_recovery/love_bento/roles/10000890.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b20517c45e1e6b4da62eb217089a986ac8d738d07dbce0d6e0f3670198411cfb"
+    },
+    "templates/player_recovery/love_bento/roles/10000920.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "681da9af633b2bc53f12ae51a1cdcba5abba41470afa33f7ba06af0fa1a9ab51"
+    },
+    "templates/player_recovery/love_bento/roles/10000941.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "405bb54b7a8ab5c513a2a6c671af46b5f01181816e466026cb11cab62742a274"
+    },
+    "templates/player_recovery/love_bento/roles/10000942.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "60301bea3cb60b40a1b665bd59e4095f30efd19e353ce40aa69d2fbaa31f8723"
+    },
+    "templates/player_recovery/love_bento/roles/10000969.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "b22ef649c940f4c4c7d70196f264136765c426f99b07bcfc349f10e4feaf36df"
+    },
+    "templates/player_recovery/love_bento/roles/10000979.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "11b90208b187cb1b21a9b86fa58c3c6cb31d0d03a84f4129d5c8e0abaa8cd6b2"
+    },
+    "templates/player_recovery/love_bento/roles/10001003.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c195869a30d60a0e37342048a02afdbd50344c1d59cc54ddf5897233ead1c93d"
+    },
+    "templates/player_recovery/love_bento/roles/10001019.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2c9aa4e5c5bab025353ce693fd6f5b59388d72a872db57689810747e41aa0ccb"
+    },
+    "templates/player_recovery/love_bento/roles/10001052.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "fd62138918db4e7e928552847d7282a0876c194cf74e49bde5ec38ad299893c2"
+    },
+    "templates/player_recovery/love_bento/roles/10001092.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "f9e4484619e0809015e098694b11e0b9c9a6c6ffb601e7a7303c02316efc1e65"
+    },
+    "templates/player_recovery/love_bento/roles/10001203.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "a9c5c371c1b3ae89a5c6d4c87b68acea5b6a00e44544d5710ecf2f40437dcac0"
+    },
+    "templates/player_recovery/love_bento/roles/10001220.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2c8989e829696a284e2529fbd260175963f765e86240f60e506ba391e347dbfe"
+    },
+    "templates/player_recovery/love_bento/roles/10001222.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "ba0c90cc90f0dcb74db0b0f5c1e48425fe54ae68cecca031d3435efa9a0a7caa"
+    },
+    "templates/player_recovery/love_bento/roles/10001246.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c58415a961612c766d1d4d29ab3393b14782b758b0ab2c84b323e7be4387c301"
+    },
+    "templates/player_recovery/love_bento/roles/10001266.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c463169152a494710997c194423bcf7c0972bda48d652719e843949a0f1769ee"
+    },
+    "templates/player_recovery/love_bento/roles/10001314.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "544767ad5bd4bb1c22ee82bf9b9aa7db621198ebf4decbf5066681fc50c1a477"
+    },
+    "templates/player_recovery/love_bento/roles/10001327.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "c894618fd6084162dd166978a8b4568e37ae96caf1fb6eece1db764cfb15f07b"
+    },
+    "templates/player_recovery/love_bento/roles/10001356.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "22a1a3ff842ac372537966d8b210fc8f76cc314fa88603027690897b34b3f5bb"
+    },
+    "templates/player_recovery/love_bento/roles/10001357.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "4d6482f47ac3738928e8c10920a897a5d6d2d31be9c6712e8e681085ae2c245b"
+    },
+    "templates/player_recovery/love_bento/roles/10001377.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "ed8dbf117fc5d50c8bbb517e1d46b7825548814f32c1bd152db33dc4db627475"
+    },
+    "templates/player_recovery/love_bento/roles/10001379.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "55b2d88352694b7187364efefbb1f0ed9804934a49fa643603d0541ab0677c37"
+    },
+    "templates/player_recovery/love_bento/roles/10001383.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "2613d8b73f5073d01faa08f2448545d7b3bbfadc37c494f2d230a8527ab70ea1"
+    },
+    "templates/player_recovery/love_bento/roles/10001393.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "8a457deb9d088f0c6172d443fe7629d8a305817c35ad96312d4fd6c876cebd8c"
+    },
+    "templates/player_recovery/love_bento/roles/10001478.png": {
+      "size": [
+        109,
+        25
+      ],
+      "sha256": "da66b410ab50b3dc92c4e32d12e90aaeb2a2cf87f52dc6e5d7b27584afd9ec3a"
+    },
+    "templates/player_recovery/love_bento/native/card_background_1280.png": {
+      "size": [
+        223,
+        197
+      ],
+      "sha256": "f9074f27af4037d17261a7ef80277e56e4b2ef27abc5b440d58f430666d59c8a"
+    },
+    "templates/player_recovery/love_bento/masks/card.png": {
+      "size": [
+        223,
+        197
+      ],
+      "sha256": "1e9855e60c673081df1c9aae4954c8be8528bc6107532212206c40eb80a685f6"
+    }
+  }
+}
