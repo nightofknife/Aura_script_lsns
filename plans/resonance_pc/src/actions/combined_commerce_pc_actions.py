@@ -48,6 +48,7 @@ _TRADE_INPUT_KEYS = {
     "product_unlocks",
     "active_events",
     "auto_sparkling_water",
+    "base_fatigue_reserve",
     "use_fatigue_medicine",
     "allowed_fatigue_medicines",
     "fatigue_medicine_max_uses",
@@ -56,6 +57,7 @@ _TRADE_INPUT_KEYS = {
     "auto_rubbish_recycling",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
+    "base_fatigue_reserve",
     "auto_pickup",
     "auto_sparkling_water",
     "recovery_snapshot",

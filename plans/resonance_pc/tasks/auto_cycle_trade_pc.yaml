@@ -261,6 +261,11 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: false
+      - name: base_fatigue_reserve
+        type: number
+        required: false
+        default: 200
+        min: 0
       - name: recovery_snapshot
         type: dict
         required: false
@@ -363,6 +368,7 @@ auto_cycle_trade_pc:
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
+        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve | default(200) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
   returns:
     success: "{{ nodes.run.output.success }}"

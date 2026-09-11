@@ -21,6 +21,7 @@ from packages.resonance_gui.logic import (
     TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA,
 )
 from packages.resonance_gui.main_window import ResonanceMainWindow
+from packages.resonance_gui.widgets.trade_page import TradePage
 
 
 @pytest.fixture
@@ -126,6 +127,87 @@ def recording_bridge(monkeypatch):
     return runner, bridge
 
 
+@pytest.mark.parametrize("reserve", [200, 0])
+@pytest.mark.parametrize("entry", ["formal", "combined"])
+def test_base_fatigue_reserve_gui_save_reload_and_dispatch(window, monkeypatch, reserve, entry):
+    page = window.trade_page
+    assert window._settings.load_trade_inputs()["base_fatigue_reserve"] == 200
+    assert page.base_fatigue_reserve.value() == 200
+    assert page.collect_inputs()["base_fatigue_reserve"] == 200
+    assert page.collect_inputs()["auto_pickup"] is False
+    page.base_fatigue_reserve.setValue(reserve)
+    page._request_start()
+    assert window._settings.load_trade_inputs()["base_fatigue_reserve"] == reserve
+    stored = json.loads(str(window._settings.settings.value("trade/inputs_json")))
+    assert stored["base_fatigue_reserve"] == reserve
+
+    repository = ResonanceConfigRepository(QSettings(
+        window._settings.settings.fileName(), QSettings.Format.IniFormat,
+    ))
+    reloaded = TradePage(repository)
+    try:
+        assert repository.load_trade_inputs()["base_fatigue_reserve"] == reserve
+        assert reloaded.base_fatigue_reserve.value() == reserve
+        assert reloaded.collect_inputs()["base_fatigue_reserve"] == reserve
+        page.set_inputs(reloaded.collect_inputs())
+    finally:
+        reloaded.close()
+
+    expected = page.collect_inputs()
+    assert window.workflow_page.merge_trade_inputs(expected)["base_fatigue_reserve"] == reserve
+    runner, bridge = recording_bridge(monkeypatch)
+    window.requestRunPcTrade.connect(bridge.run_pc_trade)
+    window.requestRunPcCombinedCommerce.connect(bridge.run_pc_combined_commerce)
+    if entry == "formal":
+        page._request_start()
+    else:
+        window._start_commerce_sequence(True, True)
+    assert len(runner.calls) == 1
+    call = runner.calls[0]
+    assert call["task_ref"] == (PC_TRADE_TASK_REF if entry == "formal" else PC_COMBINED_COMMERCE_TASK_REF)
+    dispatched = call["inputs"] if entry == "formal" else call["inputs"]["trade_inputs"]
+    assert dispatched == normalize_trade_task_inputs(expected)
+    assert dispatched["base_fatigue_reserve"] == reserve
+    assert repository.load_trade_inputs()["base_fatigue_reserve"] == reserve
+
+
+def test_base_fatigue_reserve_rejects_negative_without_overwriting_saved_zero(window):
+    page = window.trade_page
+    page.base_fatigue_reserve.setValue(0)
+    page._request_start()
+    saved = window._settings.load_trade_inputs()
+    raw = window._settings.settings.value("trade/inputs_json")
+    assert page.base_fatigue_reserve.minimum() == 0
+    page.base_fatigue_reserve.setValue(-1)
+    assert page.base_fatigue_reserve.value() == 0
+    with pytest.raises(ValueError, match="基础疲劳保留必须为非负整数"):
+        window._settings.save_trade_inputs({**saved, "base_fatigue_reserve": -1})
+    assert window._settings.settings.value("trade/inputs_json") == raw
+    assert window._settings.load_trade_inputs() == saved
+
+
+@pytest.mark.parametrize("reserve", [200, 0])
+def test_base_fatigue_reserve_is_excluded_from_gui_preview(window, monkeypatch, reserve):
+    window.trade_page.base_fatigue_reserve.setValue(reserve)
+    window.trade_page._request_start()
+    saved = window._settings.load_trade_inputs()
+    preview = window.trade_preview_page
+    preview.set_inputs({**saved, "start_city_id": "11"})
+    assert preview.water_reserve_panel.isHidden()
+    assert "base_fatigue_reserve" not in preview.collect_inputs()
+    runner, bridge = recording_bridge(monkeypatch)
+    window.requestPreviewPcTrade.connect(bridge.preview_pc_trade)
+    preview._request_preview()
+    assert len(runner.calls) == 1
+    assert runner.calls[0]["task_ref"] == PC_TRADE_PREVIEW_TASK_REF
+    assert runner.calls[0]["inputs"] == normalize_trade_task_inputs(preview.collect_inputs())
+    assert "base_fatigue_reserve" not in runner.calls[0]["inputs"]
+    assert "base_fatigue_reserve" not in window._settings.load_trade_preview_inputs()
+    stored = json.loads(str(window._settings.settings.value("trade_preview/inputs_json")))
+    assert "base_fatigue_reserve" not in stored
+    assert window._settings.load_trade_inputs() == saved
+
+
 @pytest.mark.parametrize("enabled", [True, False])
 @pytest.mark.parametrize("entry", ["formal", "quick", "overview", "combined", "preview"])
 def test_actual_dispatch_vs_stored_config(window, monkeypatch, enabled, entry):
@@ -158,12 +240,14 @@ def test_actual_dispatch_vs_stored_config(window, monkeypatch, enabled, entry):
         snapshot = {
             "status": {"fatigue": {"current": 120, "max": 800}},
             "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6},
-                         "bento": {"available_count": 2}},
+                         "work_meals": {"available_count": 2},
+                         "love_bentos": {"count": 0, "items": []}},
             "metadata": {"persisted": True},
         }
         window._workflow_recovery_snapshot = {"player_data": snapshot}
         window._dispatch_next_workflow_task()
         expected["recovery_snapshot"] = deepcopy(snapshot)
+        del expected["recovery_snapshot"]["recovery"]["love_bentos"]
         expected["recovery_snapshot"]["recovery"]["sparkling_water"]["requires_refresh"] = False
     else:
         window._start_commerce_sequence(True, entry == "combined")
@@ -189,11 +273,14 @@ def test_bridge_preview_removes_execution_only(window, monkeypatch):
     window.trade_preview_page.start_city.setCurrentIndex(1)
     inputs = {**window.trade_preview_page.collect_inputs(), "auto_book": True, "book_budget": 5,
               "auto_sparkling_water": True, "recovery_snapshot": {"private": 1},
-              "arrival_timeout_seconds": 600, "auto_rubbish_recycling": True}
+              "arrival_timeout_seconds": 600, "auto_rubbish_recycling": True,
+              "base_fatigue_reserve": 0, "auto_pickup": True}
     original = deepcopy(inputs)
     bridge.preview_pc_trade(inputs)
     expected = {key: value for key, value in original.items() if key in TRADE_PREVIEW_INPUT_KEYS}
     assert runner.calls[0]["inputs"] == normalize_trade_task_inputs(expected)
+    assert "base_fatigue_reserve" not in runner.calls[0]["inputs"]
+    assert "auto_pickup" not in runner.calls[0]["inputs"]
     assert inputs == original
 
 
@@ -203,7 +290,12 @@ def test_auto_book_actual_recovery_dispatch_keeps_projection(window, monkeypatch
     snapshot = {
         "status": {"fatigue": {"current": 120, "max": 800}, "unrelated": 123},
         "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6},
-                     "bento": {"available_count": 2}},
+                     "work_meals": {"available_count": 2, "slots": [
+                         {"issue_time": "12:00", "available": True},
+                     ]},
+                     "love_bentos": {"count": 1, "items": [
+                         {"role_name": "Test role", "food_name": "Test meal", "remaining_days": 3},
+                     ]}},
         "metadata": {"persisted": True, "unrelated": "private"},
     }
     trade = {"auto_book": True, "book_budget": 17, "auto_sparkling_water": True}
@@ -224,7 +316,7 @@ def test_auto_book_actual_recovery_dispatch_keeps_projection(window, monkeypatch
         "status": {"fatigue": {"current": 120, "max": 800}},
         "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6,
                                          "requires_refresh": False},
-                     "bento": {"available_count": 2}},
+                     "work_meals": {"available_count": 2}},
         "metadata": {"persisted": True},
     }
     assert source == before

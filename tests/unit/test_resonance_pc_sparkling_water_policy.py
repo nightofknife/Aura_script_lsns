@@ -51,6 +51,7 @@ class _Shops:
 
 def _inputs(**overrides):
     args = {
+        "base_fatigue_reserve": 0,
         "route": [_leg("A", "B"), _leg("B", "C")],
         "initial_city": {"city_name": "City A", "city_key": "key_A"},
         "recovery_snapshot": _snapshot(),
@@ -85,8 +86,8 @@ def test_endpoint_wins_with_four_cups():
     assert (result["city_index"], result["drink_count"], result["estimated_fatigue"]) == (2, 4, 201)
 
 
-@pytest.mark.parametrize("fatigue,cups", [(0, 0), (1, 0), (50, 0), (51, 1), (100, 1), (300, 5), (301, 6)])
-def test_strict_threshold_and_overcap_start(fatigue, cups):
+@pytest.mark.parametrize("fatigue,cups", [(0, 0), (1, 0), (50, 1), (51, 1), (100, 2), (300, 6), (301, 6)])
+def test_zero_reserve_allows_exact_recovery_and_overcap_start(fatigue, cups):
     result = select_sparkling_water_stop(**_inputs(
         route=[], recovery_snapshot=_snapshot(fatigue), city_shop_data=_Shops(("A",)),
     ))
@@ -94,9 +95,36 @@ def test_strict_threshold_and_overcap_start(fatigue, cups):
     assert result["planned"] is (cups > 0)
     assert result["city_index"] == (0 if cups else None)
     if cups:
-        assert result["estimated_fatigue"] > result["recovery_amount"]
+        assert result["estimated_fatigue"] >= result["recovery_amount"]
     else:
         assert result["reason"] == "insufficient_fatigue"
+
+
+@pytest.mark.parametrize("fatigue,cups", [(0, 0), (200, 0), (249, 0), (250, 1), (320, 2), (500, 6)])
+def test_default_reserve_keeps_two_hundred_fatigue(fatigue, cups):
+    args = _inputs(route=[], recovery_snapshot=_snapshot(fatigue), city_shop_data=_Shops(("A",)))
+    del args["base_fatigue_reserve"]
+    result = select_sparkling_water_stop(**args)
+    assert result["base_fatigue_reserve"] == 200
+    assert result["drink_count"] == cups
+    if cups:
+        assert result["estimated_fatigue"] - result["recovery_amount"] >= 200
+
+
+@pytest.mark.parametrize("reserve", [-1, True, 1.5, "200", None])
+def test_invalid_reserve_rejected_before_snapshot_or_dependency_access(reserve):
+    with pytest.raises(ValueError, match="base_fatigue_reserve"):
+        select_sparkling_water_stop(**_inputs(
+            base_fatigue_reserve=reserve, recovery_snapshot=None, city_shop_data=object(),
+        ))
+
+
+def test_reserve_changes_selected_stop_and_respects_free_quota():
+    args = _inputs(recovery_snapshot=_snapshot(200, remaining=2), city_shop_data=_Shops(("A", "B", "C")))
+    assert select_sparkling_water_stop(**args)["city_index"] == 0
+    result = select_sparkling_water_stop(**{**args, "base_fatigue_reserve": 200})
+    assert (result["city_index"], result["drink_count"]) == (1, 2)
+    assert result["estimated_fatigue"] - result["recovery_amount"] == 200
 
 
 def test_tie_keeps_earliest_start_even_with_route():

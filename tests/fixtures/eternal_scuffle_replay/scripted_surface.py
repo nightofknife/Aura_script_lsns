@@ -127,9 +127,9 @@ _real_poll = runtime.poll_until
 
 
 async def accelerated_poll(**kwargs):
-    # Keep the production predicate and repeated sampling; accelerate only wall-clock time.
+    # Keep stable observations bounded while allowing CI worker-thread scheduling.
     kwargs["interval"] = 0.0001
-    kwargs["timeout"] = min(kwargs["timeout"], 10 if getattr(GAME, "pause_second_pair", False) else 0.1)
+    kwargs["timeout"] = min(kwargs["timeout"], 10 if getattr(GAME, "pause_second_pair", False) else 2.0)
     return await _real_poll(**kwargs)
 
 

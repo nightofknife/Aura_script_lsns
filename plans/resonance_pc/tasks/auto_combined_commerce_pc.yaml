@@ -356,6 +356,12 @@ auto_combined_commerce_pc:
             name: auto_sparkling_water
             type: boolean
             required: false
+          base_fatigue_reserve:
+            name: base_fatigue_reserve
+            type: number
+            required: false
+            default: 200
+            min: 0
           recovery_snapshot:
             name: recovery_snapshot
             type: dict

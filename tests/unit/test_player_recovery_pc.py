@@ -10,12 +10,14 @@ import pytest
 
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.aura_base.src.services.vision_service import VisionService
+from plans.resonance_pc.src.actions import love_bento_pc_actions as love
 from plans.resonance_pc.src.actions import player_data_pc_actions as data
 from plans.resonance_pc.src.actions import player_recovery_pc_actions as recovery
 
 
 SECTIONS = data._PROFILE_SECTION_ORDER
-COMBINATIONS = [list(combo) for size in range(1, 6) for combo in itertools.combinations(SECTIONS, size)]
+COMBINATIONS = [list(combo) for size in range(1, len(SECTIONS) + 1)
+                for combo in itertools.combinations(SECTIONS, size)]
 
 
 @pytest.fixture
@@ -39,6 +41,28 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
     monkeypatch.setattr(data, "_close_profile_panel_to_main", lambda *args: None)
     monkeypatch.setattr(data, "load_recovery_layout", lambda vision: {})
     captured = []
+    catalog = {"items": [], "roles": [], "days": []}
+    catalog_calls = []
+    vision = object()
+
+    def load_catalog(actual_vision):
+        assert actual_vision is vision
+        catalog_calls.append(actual_vision)
+        return catalog
+
+    monkeypatch.setattr(love, "load_love_bento_catalog", load_catalog)
+    recovery_values = {
+        "sparkling_water": {"remaining_free_uses": 2, "daily_free_limit": 6},
+        "work_meals": {"available_count": 1, "slots": [
+            {"issue_time": issue_time, "available": index == 0}
+            for index, issue_time in enumerate(("05:00", "12:00", "18:00"))
+        ]},
+        "love_bentos": {"count": 1, "items": [{
+            "role_id": "test_role", "role_name": "Test Role",
+            "food_id": "test_food", "food_name": "Test Food", "remaining_days": 2,
+        }]},
+    }
+    persisted_sections = []
 
     def read_region(app, ocr, region):
         section = next(key for key, value in data._PROFILE_FIELD_REGIONS.items() if value == region)
@@ -51,19 +75,27 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
         def __init__(self, *args, **kwargs):
             pass
 
-        def read(self, selected, *, on_updated):
+        def read(self, selected, *, on_updated, on_result, love_catalog):
+            assert tuple(selected) == tuple(sections)
+            assert love_catalog is (catalog if "love_bentos" in sections else None)
             result = {}
-            for key in ("sparkling_water", "bento"):
+            for key, value in recovery_values.items():
                 if key in selected:
+                    result[key] = copy.deepcopy(value)
+                    on_result(key, result[key])
+                    persisted_sections.append(key)
+                    saved = service.read(data.USER_INFO_FILE)
+                    assert saved["recovery"] == {k: recovery_values[k] for k in persisted_sections}
+                    assert set(saved["metadata"]["profile_section_updated_at"]) == set(persisted_sections)
                     on_updated(key)
-                    result[key] = {"remaining_free_uses": 0} if key == "sparkling_water" else {"available_count": 0}
             return result
 
     monkeypatch.setattr(data, "RecoveryReader", Reader)
     result = data.resonance_pc_player_data_refresh(
         stages=["profile"], profile_sections=sections,
-        app=NS(click=lambda **kwargs: None), ocr=object(), vision=object(), persistent_data=service,
+        app=NS(click=lambda **kwargs: None), ocr=object(), vision=vision, persistent_data=service,
     )
+    assert catalog_calls == ([vision] if "love_bentos" in sections else [])
     assert captured == [key for key in data._DEFAULT_PROFILE_SECTIONS if key in sections]
     assert set(result.get("status", {})) | set(result.get("recovery", {})) == set(sections)
     assert set(result["metadata"]["profile_section_updated_at"]) == set(sections)
@@ -72,9 +104,12 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
     assert result["metadata"]["persisted"] is True
     saved = service.read(data.USER_INFO_FILE)
     assert set(saved.get("status", {})) | set(saved.get("recovery", {})) == set(sections)
+    expected_recovery = {key: value for key, value in recovery_values.items() if key in sections}
+    assert result.get("recovery", {}) == saved.get("recovery", {}) == expected_recovery
+    assert set(saved["metadata"]["profile_section_updated_at"]) == set(sections)
 
 
-@pytest.mark.parametrize("value", [[], ["uid"], [True], [None], "cargo", ("cargo",), {}])
+@pytest.mark.parametrize("value", [[], ["uid"], ["bento"], [True], [None], "cargo", ("cargo",), {}])
 def test_invalid_profile_selection(value):
     with pytest.raises(ValueError):
         data._normalize_profile_sections(value, required=True)
@@ -87,7 +122,7 @@ def test_default_and_disabled_profile_selection():
 
 def test_partial_merge_preserves_data_and_legacy_times():
     old = {"status": {"cargo": {"current": 1, "max": 2}, "fatigue": {"current": 3, "max": 4}},
-           "recovery": {"bento": {"available_count": 3}},
+           "recovery": {"work_meals": {"available_count": 3}, "love_bentos": {"count": 2}},
            "metadata": {"section_updated_at": {"profile": "old"}}}
     original = copy.deepcopy(old)
     merged = data._merge_latest(old, {"recovery": {"sparkling_water": {"remaining_free_uses": 0}}},
@@ -95,7 +130,8 @@ def test_partial_merge_preserves_data_and_legacy_times():
                                profile_section_updated_at={"sparkling_water": "new"})
     assert old == original
     assert merged["status"] == old["status"]
-    assert merged["recovery"]["bento"] == old["recovery"]["bento"]
+    assert merged["recovery"]["work_meals"] == old["recovery"]["work_meals"]
+    assert merged["recovery"]["love_bentos"] == old["recovery"]["love_bentos"]
     assert merged["metadata"]["profile_legacy_updated_at"] == "old"
     second = data._merge_latest(merged, {"status": {"cargo": {"current": 2, "max": 2}}},
                                section_updated_at={"profile": "newer"}, updated_at="newer",
@@ -106,7 +142,7 @@ def test_partial_merge_preserves_data_and_legacy_times():
 
 
 @pytest.mark.parametrize("old_exists", [False, True])
-def test_failed_recovery_never_writes(tmp_path, monkeypatch, old_exists):
+def test_recovery_failure_before_first_result_never_writes(tmp_path, monkeypatch, old_exists):
     service = PersistentDataService(tmp_path / "install")
     old = {"status": {"cargo": {"current": 1, "max": 2}}, "metadata": {"updated_at": "old"}}
     if old_exists:
@@ -125,7 +161,7 @@ def test_failed_recovery_never_writes(tmp_path, monkeypatch, old_exists):
 
     monkeypatch.setattr(data, "RecoveryReader", Reader)
     with pytest.raises(RuntimeError) as caught:
-        data.resonance_pc_player_data_refresh(stages=["profile"], profile_sections=["cargo", "bento"],
+        data.resonance_pc_player_data_refresh(stages=["profile"], profile_sections=["cargo", "work_meals"],
                                              app=NS(click=lambda **kwargs: None), ocr=object(), vision=object(),
                                              persistent_data=service)
     assert caught.value is error
@@ -135,7 +171,7 @@ def test_failed_recovery_never_writes(tmp_path, monkeypatch, old_exists):
 
 
 @pytest.mark.parametrize("states", list(itertools.product([True, False], repeat=3)))
-def test_bento_each_slot_is_explicit_and_no_ocr(layout, states, monkeypatch):
+def test_work_meals_each_slot_is_explicit_and_no_ocr(layout, states, monkeypatch):
     calls = []
     def batch(**kwargs):
         assert kwargs["source_image"].shape[:2] == (105,165)
@@ -145,19 +181,68 @@ def test_bento_each_slot_is_explicit_and_no_ocr(layout, states, monkeypatch):
     reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=batch), layout)
     monkeypatch.setattr(reader, "is_page", lambda page: page == "bento_cabinet")
     monkeypatch.setattr(reader, "capture", lambda roi: np.zeros((roi[3],roi[2],3),dtype=np.uint8))
-    result = reader.read_bento()
+    result = reader.read_work_meals()
     assert result["available_count"] == sum(states)
     assert [slot["available"] for slot in result["slots"]] == list(states)
     assert len(calls) == 3
 
 
+@pytest.mark.parametrize("sections", [
+    list(combo) for size in range(1, 4)
+    for combo in itertools.combinations(("sparkling_water", "work_meals", "love_bentos"), size)
+])
+def test_reader_emits_only_selected_results_before_updated(layout, monkeypatch, sections):
+    reader = recovery.RecoveryReader(None, None, None, layout)
+    catalog = {"items": [], "roles": [], "days": []}
+    values = {
+        "sparkling_water": {"remaining_free_uses": 2, "daily_free_limit": 6},
+        "work_meals": {"available_count": 0, "slots": []},
+        "love_bentos": {"count": 0, "items": []},
+    }
+    reads, moves, events = [], [], []
+
+    def read_section(section):
+        reads.append(section)
+        return values[section]
+
+    class Scanner:
+        def __init__(self, actual_reader, actual_catalog):
+            assert actual_reader is reader
+            assert actual_catalog is catalog
+
+        def read(self):
+            return read_section("love_bentos")
+
+    monkeypatch.setattr(love, "LoveBentoScanner", Scanner)
+    monkeypatch.setattr(reader, "read_sparkling_water", lambda: read_section("sparkling_water"))
+    monkeypatch.setattr(reader, "read_work_meals", lambda: read_section("work_meals"))
+    monkeypatch.setattr(reader, "move", lambda *args: moves.append(args))
+    result = reader.read(
+        sections, love_catalog=catalog if "love_bentos" in sections else None,
+        on_result=lambda key, value: events.append(("result", key, value)),
+        on_updated=lambda key: events.append(("updated", key)),
+    )
+    assert reads == sections
+    assert result == {key: values[key] for key in sections}
+    assert events == [event for key in sections
+                      for event in (("result", key, values[key]), ("updated", key))]
+    cabinet_moves = [move for move in moves if move[1] == "bento_cabinet"]
+    assert cabinet_moves == (
+        [("fatigue_recovery", "bento_cabinet", "bento_button")]
+        if set(sections).intersection({"work_meals", "love_bentos"}) else []
+    )
+    assert moves[-1] == ("fatigue_recovery", "profile", "back")
+
+
 @pytest.mark.parametrize("matched", [True, False])
-def test_bento_unknown_or_conflicting_match_defaults_to_empty(layout, matched, monkeypatch, fast_clock):
+def test_work_meals_unknown_or_conflicting_match_defaults_to_empty(
+    layout, matched, monkeypatch, fast_clock,
+):
     vision = NS(find_templates_batch=lambda **kwargs: [NS(found=matched,confidence=1.0)]*2)
     reader = recovery.RecoveryReader(None, None, vision, layout)
     monkeypatch.setattr(reader, "is_page", lambda page: True)
     monkeypatch.setattr(reader, "capture", lambda roi: np.zeros((roi[3],roi[2],3),dtype=np.uint8))
-    result = reader.read_bento()
+    result = reader.read_work_meals()
     assert result["available_count"] == 0
     assert [slot["available"] for slot in result["slots"]] == [False, False, False]
     assert result["reason"] == "recognition_timeout_assumed_empty"
@@ -332,7 +417,7 @@ def test_cleanup_failure_preserves_original_exception(layout, monkeypatch):
     monkeypatch.setattr(reader, "move", fail)
     monkeypatch.setattr(reader, "restore_profile", lambda: (_ for _ in ()).throw(ValueError("cleanup")))
     with pytest.raises(RuntimeError) as caught:
-        reader.read(["bento"],on_updated=lambda key: None)
+        reader.read(["work_meals"],on_updated=lambda key: None)
     assert caught.value is error
     assert reader.page == "unknown"
 
@@ -341,7 +426,7 @@ def test_cancellation_does_not_click(layout, monkeypatch):
     monkeypatch.setattr(recovery,"is_current_task_cancel_requested",lambda:True)
     reader = recovery.RecoveryReader(NS(click=lambda **kwargs: pytest.fail("unexpected click")),None,None,layout)
     with pytest.raises(recovery.StopTaskException,match="cancelled"):
-        reader.read(["bento"],on_updated=lambda key: None)
+        reader.read(["work_meals"],on_updated=lambda key: None)
 
 
 def test_invalid_layout_fails_before_game_input(tmp_path, layout):

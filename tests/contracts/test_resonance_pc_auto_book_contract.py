@@ -139,7 +139,7 @@ def test_combined_strict_nested_contract_keeps_book_mode_and_recovery(order, aut
         "status": {"fatigue": {"current": 101, "max": 856}},
         "recovery": {"sparkling_water": {
             "remaining_free_uses": 6, "daily_free_limit": 6, "requires_refresh": False,
-        }, "bento": {"available_count": 2}},
+        }, "work_meals": {"available_count": 2}},
         "metadata": {"persisted": True},
     }
     ok, validated = InputValidator(None).validate_inputs_against_meta(task["meta"]["inputs"], {
