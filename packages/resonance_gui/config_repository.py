@@ -77,6 +77,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "product_unlocks": {"mode": "all", "product_ids": []},
     "active_events": [],
     "auto_sparkling_water": False,
+    "base_fatigue_reserve": 200,
     "auto_pickup": False,
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
@@ -426,6 +427,9 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
+    reserve = merged["base_fatigue_reserve"]
+    if type(reserve) is not int or reserve < 0:
+        raise ValueError("基础疲劳保留必须为非负整数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
     merged["use_fatigue_medicine"] = False
     merged["allowed_fatigue_medicines"] = []

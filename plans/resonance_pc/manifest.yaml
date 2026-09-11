@@ -1052,6 +1052,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: base_fatigue_reserve
+      type: Any
+      required: false
+      default: 200
     - name: auto_pickup
       type: Any
       required: false
@@ -2762,4 +2766,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-10T09:18:32Z'
+  generated_at: '2026-09-11T09:34:45Z'

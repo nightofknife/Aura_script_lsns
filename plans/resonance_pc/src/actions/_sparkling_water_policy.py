@@ -118,8 +118,9 @@ def select_sparkling_water_stop(
     recovery_snapshot: dict | None,
     city_shop_data: object,
     travel_fatigue: dict,
+    base_fatigue_reserve: int = 200,
 ) -> dict:
-    """Choose the earliest node with the maximum strictly usable cup count.
+    """Choose the earliest node with the most cups above the fatigue reserve.
 
     Nodes are start=0 and arrivals=1..len(route), including repeated cities.
     Candidates includes every node, with rest_available and zero drink_count
@@ -133,7 +134,9 @@ def select_sparkling_water_stop(
     Invalid snapshots/routes/costs raise ValueError; lookup failures propagate
     except shop_not_found_in_city, which means that node has no rest point.
     """
+    _integer(base_fatigue_reserve, "base_fatigue_reserve")
     result = {
+        "base_fatigue_reserve": base_fatigue_reserve,
         "planned": False,
         "reason": "recovery_snapshot_missing",
         "city_index": None,
@@ -197,7 +200,7 @@ def select_sparkling_water_stop(
                 raise
             rest_available = False
         fatigue = initial + node["cumulative_travel_fatigue"]
-        cups = min(remaining, max(0, (fatigue - 1) // 50)) if rest_available else 0
+        cups = min(remaining, max(0, (fatigue - base_fatigue_reserve) // 50)) if rest_available else 0
         candidate = {
             **node,
             "city_index": index,

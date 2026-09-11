@@ -2192,6 +2192,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     auto_cape_island_investment: bool = False,
     auto_rubbish_recycling: bool = True,
     auto_sparkling_water: bool = False,
+    base_fatigue_reserve: int = 200,
     auto_pickup: bool = False,
     recovery_snapshot: Optional[Dict[str, Any]] = None,
     app: Any = None,
@@ -2212,6 +2213,8 @@ async def resonance_pc_auto_cycle_trade_flow(
         raise ValueError("auto_book must be a boolean")
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
+    if type(base_fatigue_reserve) is not int or base_fatigue_reserve < 0:
+        raise ValueError("base_fatigue_reserve must be a nonnegative integer")
     if auto_sparkling_water:
         recovery_snapshot = validate_recovery_snapshot(recovery_snapshot)
         if persistent_data is None:
@@ -2329,12 +2332,18 @@ async def resonance_pc_auto_cycle_trade_flow(
             resonance_pc_trade_planner=resonance_pc_trade_planner,
         )
     route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
-    water_plan = {"planned": False, "reason": "disabled", "drink_count": 0}
+    water_plan = {
+        "planned": False,
+        "reason": "disabled",
+        "drink_count": 0,
+        "base_fatigue_reserve": base_fatigue_reserve,
+    }
     if auto_sparkling_water:
         water_plan = select_sparkling_water_stop(
             route=route, initial_city=current, recovery_snapshot=recovery_snapshot,
             city_shop_data=resonance_pc_city_shop_data,
             travel_fatigue=resonance_pc_market_data.get_all_travel_fatigue(),
+            base_fatigue_reserve=base_fatigue_reserve,
         )
         logger.info("Sparkling water selection=%s", water_plan)
     plan["sparkling_water_plan"] = water_plan

@@ -486,6 +486,13 @@ class TradePage(QWidget):
 
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
         form_stack.addWidget(self.auto_sparkling_water)
+        self.base_fatigue_reserve = self._spin(0, 2147483647)
+        self.base_fatigue_reserve.setValue(200)
+        self.water_reserve_panel = QWidget(content)
+        reserve_form = QFormLayout(self.water_reserve_panel)
+        reserve_form.setContentsMargins(0, 0, 0, 0)
+        reserve_form.addRow("基础疲劳保留", self.base_fatigue_reserve)
+        form_stack.addWidget(self.water_reserve_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
         form_stack.addWidget(self.auto_pickup)
 
@@ -495,6 +502,7 @@ class TradePage(QWidget):
         form_stack.addWidget(self.auto_rubbish_recycling)
         if self.preview_mode:
             self.auto_sparkling_water.hide()
+            self.water_reserve_panel.hide()
             self.auto_pickup.hide()
             self.auto_cape_island_investment.hide()
             self.auto_rubbish_recycling.hide()
@@ -918,6 +926,7 @@ class TradePage(QWidget):
         self._update_product_unlock_button()
         self.active_events.setText(self._join_values(values.get("active_events", [])))
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
+        self.base_fatigue_reserve.setValue(int(values.get("base_fatigue_reserve", 200)))
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
@@ -967,6 +976,7 @@ class TradePage(QWidget):
             "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
+            "base_fatigue_reserve": self.base_fatigue_reserve.value(),
             "auto_pickup": self.auto_pickup.isChecked(),
             "use_fatigue_medicine": False,
             "allowed_fatigue_medicines": [],
@@ -1253,6 +1263,7 @@ class TradePage(QWidget):
             self.auto_book,
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
+            self.base_fatigue_reserve,
             self.auto_pickup,
             self.auto_cape_island_investment,
             self.auto_rubbish_recycling,
