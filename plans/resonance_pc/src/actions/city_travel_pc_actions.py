@@ -33,7 +33,8 @@ class IntercityDestinationError(RuntimeError):
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 
-_DEFAULT_CITY_SEARCH_REGION = [120, 80, 1100, 600]  # x,y,w,h
+# Exclude the top HUD and leave room for the default -15px label-to-icon click.
+_DEFAULT_CITY_SEARCH_REGION = [120, 120, 1100, 560]  # x,y,w,h; bottom unchanged
 _DEFAULT_DRAG_CENTER = [640, 360]  # x,y
 _DEFAULT_FULL_SCREEN_REGION = [0, 0, 1280, 720]
 
