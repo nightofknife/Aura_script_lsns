@@ -70,6 +70,9 @@ class CityTradeFlowError(RuntimeError):
 _TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 _TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 
+# Exact OCR aliases, scoped to purchasing; canonical product names stay intact.
+_BUY_PRODUCT_OCR_ALIASES = {"游乐城纪念徽章": ("游乐城纪念微章",)}
+
 
 class _TradeProgressReporter:
     def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop):
@@ -882,7 +885,8 @@ def resonance_pc_buy_goods_on_buy_page(
             hit = None
             for item in items:
                 item_norm = str(item.get("norm_text") or "")
-                if product_norm and item_norm and (product_norm in item_norm or item_norm in product_norm):
+                alias_match = item_norm in _BUY_PRODUCT_OCR_ALIASES.get(product, ())
+                if product_norm and item_norm and (alias_match or product_norm in item_norm or item_norm in product_norm):
                     hit = item
                     break
             if hit is not None:
@@ -1587,7 +1591,7 @@ async def _execute_trade_leg(
         enter_station_timeout_seconds=arrival_timeout_seconds,
         auto_pickup=auto_pickup,
         location_file_path="data/meta/location_pc.json",
-        city_search_region=[130, 70, 1000, 550],
+        city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
         drag_center=[640, 360],
         drag_span_px=450,
         max_search_steps=12,
