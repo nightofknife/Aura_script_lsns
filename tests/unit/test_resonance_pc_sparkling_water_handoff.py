@@ -134,27 +134,17 @@ def test_passenger_failure_never_hands_snapshot_to_trade(harness, recovery_snaps
 
 
 @pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-def test_no_snapshot_preserves_old_trade_and_helper_call_contract(harness, monkeypatch, order):
+def test_no_snapshot_still_forwards_persistence(harness, order):
     inputs, calls, _ = harness
     inputs["trade_inputs"].pop("auto_sparkling_water")
-    real_helper = combined._run_trade
-
-    async def old_helper(inputs, *, app, ocr, vision, city_shop_data, market_data,
-                         trade_planner, state_store, event_bus, context, engine):
-        return await real_helper(
-            inputs, app=app, ocr=ocr, vision=vision, city_shop_data=city_shop_data,
-            market_data=market_data, trade_planner=trade_planner, state_store=state_store,
-            event_bus=event_bus, context=context, engine=engine,
-        )
-
-    monkeypatch.setattr(combined, "_run_trade", old_helper)
+    persistent_data = object()
     result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order=order, persistent_data=object(),
+        **inputs, order=order, persistent_data=persistent_data,
     ))
     assert result["status"] == "completed"
     assert len(calls["trade"]) == 1
     assert "recovery_snapshot" not in calls["trade"][0]
-    assert "persistent_data" not in calls["trade"][0]
+    assert calls["trade"][0]["persistent_data"] is persistent_data
     assert "auto_sparkling_water" not in calls["trade"][0]
 
 
@@ -266,7 +256,7 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     })
     if not enabled:
         monkeypatch.setattr(trade_flow, "validate_recovery_snapshot", lambda snapshot: pytest.fail("disabled flag must ignore snapshot"))
-        monkeypatch.setattr(trade_flow, "select_sparkling_water_stop", lambda **kwargs: pytest.fail("disabled flag must not select recovery"))
+        monkeypatch.setattr(trade_flow, "select_last_water_arrival", lambda *args: pytest.fail("disabled flag must not select recovery"))
     result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
         **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
     ))
@@ -281,7 +271,8 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     assert plan["base_fatigue_reserve"] == 70
     if enabled:
         assert plan["planned"] is True
-        assert plan["initial_fatigue"] == (120 if order == "trade_first" else 147)
+        assert plan["city_index"] == 1
+        assert "current_fatigue" not in plan  # Real-time reading belongs to arrival execution.
     else:
         assert plan == {"planned": False, "reason": "disabled", "drink_count": 0,
                         "base_fatigue_reserve": 70}

@@ -13,6 +13,7 @@ from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
 from packages.aura_game import SubprocessGameRunner
 from packages.aura_core.observability.logging.core_logger import logger
 
+from .config_repository import TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
     GAME_NAME,
     ETERNAL_SCUFFLE_PROGRESS_EVENT,
@@ -256,20 +257,9 @@ class RunnerBridge(QObject):
             self.taskFailed.emit({"stage": "preview_pc_trade", "error": "已有任务正在运行。"})
             return
         preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
-        for key in (
-            "auto_sparkling_water",
-            "base_fatigue_reserve",
-            "auto_pickup",
-            "recovery_snapshot",
-            "negotiation_max_attempts",
-            "use_fatigue_medicine",
-            "allowed_fatigue_medicines",
-            "fatigue_medicine_max_uses",
-            "arrival_timeout_seconds",
-            "auto_cape_island_investment",
-            "auto_rubbish_recycling",
-        ):
-            preview_inputs.pop(key, None)
+        preview_inputs = {
+            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS
+        }
         item = self._make_item(
             PC_GAME_NAME,
             PC_TRADE_PREVIEW_TASK_REF,

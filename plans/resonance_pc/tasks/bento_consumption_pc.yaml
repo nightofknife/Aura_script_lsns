@@ -1,0 +1,32 @@
+bento_consumption_pc:
+  meta:
+    title: Consume Bentos (PC)
+    description: Main-screen-only reusable child task; consume individual meals and return to main.
+    entry_point: false
+    concurrency: exclusive
+    inputs:
+      - name: meals
+        type: list
+        required: true
+  steps:
+    consume:
+      action: resonance_pc.consume_bentos
+      timeout_sec: 660
+      params:
+        meals: "{{ inputs.meals }}"
+  returns:
+    success: "{{ nodes.consume.output.success }}"
+    status: "{{ nodes.consume.output.status }}"
+    reason: "{{ nodes.consume.output.reason }}"
+    page_state: "{{ nodes.consume.output.page_state }}"
+    requested_count: "{{ nodes.consume.output.requested_count }}"
+    consumed_count: "{{ nodes.consume.output.consumed_count }}"
+    completed_count: "{{ nodes.consume.output.completed_count }}"
+    work_meals_used: "{{ nodes.consume.output.work_meals_used }}"
+    love_bentos_used: "{{ nodes.consume.output.love_bentos_used }}"
+    recovered_fatigue: "{{ nodes.consume.output.recovered_fatigue }}"
+    items: "{{ nodes.consume.output['items'] }}"
+    requires_refresh: "{{ nodes.consume.output.requires_refresh }}"
+    failure_stage: "{{ nodes.consume.output.failure_stage }}"
+    error: "{{ nodes.consume.output.error }}"
+    elapsed_ms: "{{ nodes.consume.output.elapsed_ms }}"

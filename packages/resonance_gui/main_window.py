@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
 from packages.aura_core.observability.logging.core_logger import logger
 
 from .bridge import RunnerBridge
-from .config_repository import GuiPreferences, ResonanceConfigRepository
+from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
@@ -300,6 +300,7 @@ class ResonanceMainWindow(QMainWindow):
         )
         self._bind_commerce_parameters()
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
+        self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
         self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
         self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
@@ -611,7 +612,9 @@ class ResonanceMainWindow(QMainWindow):
     def _run_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
             return
-        if isinstance(inputs, dict) and inputs.get("auto_sparkling_water", False):
+        if isinstance(inputs, dict) and (
+            inputs.get("auto_sparkling_water", False) or inputs.get("auto_bento", False)
+        ):
             self._start_freight_recovery_workflow(inputs)
             return
         self.requestRunPcTrade.emit(
@@ -627,6 +630,15 @@ class ResonanceMainWindow(QMainWindow):
     def _save_auto_pickup(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()
         inputs["auto_pickup"] = bool(enabled)
+        self._settings.save_trade_inputs(inputs)
+
+    def _save_auto_bento(self, enabled: bool) -> None:
+        inputs = self._settings.load_trade_inputs()
+        if enabled and not inputs["bento_priority"]:
+            self.trade_page.auto_bento.setChecked(False)
+            QMessageBox.warning(self, "货运参数错误", "自动吃便当开启时，便当类型至少选择一种。")
+            return
+        inputs["auto_bento"] = bool(enabled)
         self._settings.save_trade_inputs(inputs)
 
     @staticmethod
@@ -673,9 +685,9 @@ class ResonanceMainWindow(QMainWindow):
         if self._busy or self._workflow_active or self._commerce_active:
             return
         preview_inputs = dict(inputs) if isinstance(inputs, dict) else {}
-        preview_inputs.pop("auto_sparkling_water", None)
-        preview_inputs.pop("auto_pickup", None)
-        preview_inputs.pop("recovery_snapshot", None)
+        preview_inputs = {
+            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS
+        }
         self.requestPreviewPcTrade.emit(
             normalize_trade_task_inputs(preview_inputs), float(self.timeout_spin.value())
         )
@@ -718,6 +730,7 @@ class ResonanceMainWindow(QMainWindow):
             editor.valueChanged.connect(summary.setValue)
         for summary, editor in (
             (quick.trade_sparkling_water, trade.auto_sparkling_water),
+            (quick.trade_auto_bento, trade.auto_bento),
             (quick.trade_auto_pickup, trade.auto_pickup),
             (quick.trade_investment, trade.auto_cape_island_investment),
             (quick.trade_rubbish_recycling, trade.auto_rubbish_recycling),
@@ -809,7 +822,8 @@ class ResonanceMainWindow(QMainWindow):
         if "passenger" in snapshots:
             self._settings.save_passenger_inputs(snapshots["passenger"])
 
-        if snapshots.get("trade", {}).get("auto_sparkling_water", False):
+        trade = snapshots.get("trade", {})
+        if trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False):
             self._start_freight_recovery_workflow(snapshots["trade"], snapshots.get("passenger"))
             return
 

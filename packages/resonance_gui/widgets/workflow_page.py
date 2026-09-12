@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -273,6 +274,7 @@ class _CityTimelineRow(QWidget):
             "buy",
             "travel",
             "final_sale",
+            "bento",
         ]
         ordered = [by_key[key] for key in ordered_keys if key in by_key]
         return [(phase, divmod(index, 2)) for index, phase in enumerate(ordered)]
@@ -765,8 +767,13 @@ class WorkflowPage(QWidget):
         return page
 
     def _build_commerce_config(self) -> QWidget:
-        page = QWidget(self)
+        self.commerce_config_scroll = QScrollArea(self)
+        self.commerce_config_scroll.setWidgetResizable(True)
+        self.commerce_config_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.commerce_config_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        page = QWidget(self.commerce_config_scroll)
         layout = QVBoxLayout(page)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.addLayout(self._page_heading("跑商", "货运与客运分别保存参数，并按下列顺序执行。", page))
 
         order_box = QFrame(page)
@@ -788,6 +795,7 @@ class WorkflowPage(QWidget):
             row.setObjectName("commerceStepRow")
             row.setMinimumHeight(42)
             row_layout = QHBoxLayout(row)
+            row_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
             row_layout.setContentsMargins(8, 5, 8, 5)
             check = QCheckBox("启用", row)
             check.setChecked(True)
@@ -827,11 +835,15 @@ class WorkflowPage(QWidget):
         self.commerce_tabs.addTab(self._build_trade_summary(), "货运设置")
         self.commerce_tabs.addTab(self._build_passenger_summary(), "客运设置")
         layout.addWidget(self.commerce_tabs, 1)
-        return page
+        self.commerce_config_scroll.setWidget(page)
+        page.setAutoFillBackground(False)
+        self.commerce_config_scroll.viewport().setAutoFillBackground(False)
+        return self.commerce_config_scroll
 
     def _build_trade_summary(self) -> QWidget:
         page = QWidget(self)
         layout = QVBoxLayout(page)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         form = QFormLayout()
         self.trade_fatigue = QSpinBox(page)
         self.trade_fatigue.setRange(0, 100000)
@@ -847,6 +859,7 @@ class WorkflowPage(QWidget):
         self.trade_cargo = QSpinBox(page)
         self.trade_cargo.setRange(1, 100000)
         self.trade_sparkling_water = QCheckBox("自动喝气泡水", page)
+        self.trade_auto_bento = QCheckBox("自动吃便当", page)
         self.trade_auto_pickup = QCheckBox("自动拣货", page)
         self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
         self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
@@ -855,7 +868,11 @@ class WorkflowPage(QWidget):
         form.addRow("Auto Book 模式", self.trade_auto_book)
         form.addRow("进货书数量", self.trade_books)
         form.addRow("货舱容量", self.trade_cargo)
-        form.addRow(self.trade_sparkling_water)
+        recovery_options = QHBoxLayout()
+        recovery_options.addWidget(self.trade_sparkling_water)
+        recovery_options.addWidget(self.trade_auto_bento)
+        recovery_options.addStretch(1)
+        form.addRow(recovery_options)
         form.addRow(self.trade_auto_pickup)
         form.addRow("蜃息岛投资", self.trade_investment)
         form.addRow("垃圾回收", self.trade_rubbish_recycling)
@@ -1160,6 +1177,7 @@ class WorkflowPage(QWidget):
         self.set_auto_book(bool(trade.get("auto_book", False)))
         self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
         self.trade_sparkling_water.setChecked(bool(trade.get("auto_sparkling_water", False)))
+        self.trade_auto_bento.setChecked(bool(trade.get("auto_bento", False)))
         self.trade_auto_pickup.setChecked(bool(trade.get("auto_pickup", False)))
         self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
         self.trade_rubbish_recycling.setChecked(
@@ -1186,6 +1204,7 @@ class WorkflowPage(QWidget):
             auto_book=self.trade_auto_book.isChecked(),
             cargo_capacity=self.trade_cargo.value(),
             auto_sparkling_water=self.trade_sparkling_water.isChecked(),
+            auto_bento=self.trade_auto_bento.isChecked(),
             auto_pickup=self.trade_auto_pickup.isChecked(),
             use_fatigue_medicine=False,
             allowed_fatigue_medicines=[],
@@ -1333,6 +1352,7 @@ class WorkflowPage(QWidget):
         self._freight_progress = WorkflowFreightProgressState(
             investment_enabled=self._trade_investment_enabled,
             rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
+            bento_enabled=bool(dict(trade_inputs or {}).get("auto_bento", False)),
         )
         self._passenger_progress = PassengerProgressState()
         labels = dict(WORKFLOW_TASKS)

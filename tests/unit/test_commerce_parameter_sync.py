@@ -43,6 +43,7 @@ def test_duplicate_parameters_sync_both_ways_without_collecting(window, monkeypa
         (quick.trade_investment, trade.auto_cape_island_investment),
         (quick.trade_rubbish_recycling, trade.auto_rubbish_recycling),
         (quick.trade_sparkling_water, trade.auto_sparkling_water),
+        (quick.trade_auto_bento, trade.auto_bento),
         (quick.trade_auto_pickup, trade.auto_pickup),
         (quick.passenger_trade, passenger.trade_during_trip),
         (quick.passenger_reposition, passenger.auto_reposition),

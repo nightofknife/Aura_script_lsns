@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "source_directory": "C:/Users/356/AppData/Local/Temp",
+  "source_filename_pattern": "codex-clipboard-{source_id}.png",
+  "source_size": [1332, 802],
+  "client_crop": [26, 56, 1280, 720],
+  "pixel_format": "RGB",
+  "notes": [
+    "Originals are user-supplied screenshots; every fixture and template is an unscaled, unfiltered crop.",
+    "The original client alpha channel is uniformly 255; RGB output preserves all visible pixel values.",
+    "Template roi is a search rectangle; template_crops below are exact extraction rectangles. All rectangles use x,y,width,height.",
+    "Use templates include an icon fragment, colored cap and outer border, not only the shared white label.",
+    "Thresholds are calibrated offline on these exact reference screenshots, not on live capture or animation frames.",
+    "Use/rating-confirm threshold 0.98 also rejects disabled states under grayscale 1-TM_SQDIFF_NORMED scoring.",
+    "Star templates are single stars. Center a 50x50 search window, from each template roi width/height, on each star_points center.",
+    "selected_marker is mandatory. Work selected ROIs are ordered 05:00,12:00,18:00; only first/third selected positives are provided, and the middle ROI follows the observed middle card geometry.",
+    "love_selected_offset_roi is relative to the card background anchor origin. LoveBentoScanner.visible_cards top_left is capture-local: add scanner.capture_roi origin [97,111] before applying the offset for a client-image match.",
+    "The love_usable first card anchor is capture-local [15,236], client [112,347]. Its marker template top-left is client [306,347]. Offset [190,-4,36,35] gives client search ROI [302,343,36,35].",
+    "rating_page uses the static explanation below the changing rating message; confirm_use excludes the item name; effect excludes all changing numbers.",
+    "work_not_issued has no single-use button, unlike work_disabled. All three use-template matches must be absent there.",
+    "Effect text visibly reports 36 recovered, while the displayed endpoints are 324 and 287. Preserve this screenshot evidence without inferring arithmetic or OCR correctness.",
+    "Recovery ROIs isolate the actual signed recovery amount printed on each card, excluding the fatigue icon. Expected text below is visually transcribed from the supplied screenshot, not a template confidence, catalog/base value, or arithmetic estimate.",
+    "Work recovery ROIs are ordered 05:00,12:00,18:00. The first two have visible -36 positives; the unissued third slot has no recovery digits in the supplied fixtures.",
+    "love_recovery_offset_roi uses the same background anchor coordinate conversion as love_selected_offset_roi. Anchor client [112,347] plus [178,163,32,22] gives [290,510,32,22], visibly -46 on the selected curry."
+  ],
+  "fixtures": {
+    "work_usable": {
+      "path": "work_usable.png",
+      "source_id": "ce3e66a4-4048-4d86-a84c-f0cd3423871e",
+      "present_templates": ["use_work", "train_return", "selected_marker"]
+    },
+    "work_confirmation": {
+      "path": "work_confirmation.png",
+      "source_id": "fa586d33-f1c9-4161-b3d4-dac3e6b2befd",
+      "present_templates": ["confirm_use"]
+    },
+    "effect": {
+      "path": "effect.png",
+      "source_id": "852c8162-6cb9-4ec0-94f3-fe13cd9f4da4",
+      "present_templates": ["effect"]
+    },
+    "work_disabled": {
+      "path": "work_disabled.png",
+      "source_id": "1aeaa8d6-4a70-4776-aa7b-220d60653ad0",
+      "present_templates": ["use_disabled", "train_return", "selected_marker"]
+    },
+    "work_not_issued": {
+      "path": "work_not_issued.png",
+      "source_id": "f6ccf7fd-5d0d-41ef-9ac2-66f439552e2d",
+      "present_templates": ["train_return", "selected_marker"]
+    },
+    "love_usable": {
+      "path": "love_usable.png",
+      "source_id": "af942455-54c7-43ee-bc71-b2bd21297838",
+      "present_templates": ["use_love", "train_return", "selected_marker"]
+    },
+    "love_confirmation": {
+      "path": "love_confirmation.png",
+      "source_id": "6a859f77-ddec-4151-8d85-aaa0234f2b6b",
+      "present_templates": ["confirm_use"]
+    },
+    "rating_empty": {
+      "path": "rating_empty.png",
+      "source_id": "2992d97f-92fb-4d8e-84a7-24abfd9b55a7",
+      "present_templates": ["rating_page"],
+      "stars": [false, false, false, false, false]
+    },
+    "rating_one": {
+      "path": "rating_one.png",
+      "source_id": "4bc946bc-72a6-442c-a213-cab2a4dbb9bf",
+      "present_templates": ["rating_page", "rating_confirm"],
+      "stars": [true, false, false, false, false]
+    },
+    "rating_five": {
+      "path": "rating_five.png",
+      "source_id": "e6b3e490-8a24-4076-9728-57565bb132c6",
+      "present_templates": ["rating_page", "rating_confirm"],
+      "stars": [true, true, true, true, true]
+    }
+  },
+  "selection_checks": {
+    "love_anchor_template": "templates/player_recovery/love_bento/native/card_background_1280.png",
+    "love_anchor_mask": "templates/player_recovery/love_bento/masks/card.png",
+    "love_capture_roi": [97, 111, 724, 551],
+    "love_anchors_client": [[112, 347], [347, 347], [581, 347]],
+    "love_anchors_capture_local": [[15, 236], [250, 236], [484, 236]],
+    "work_usable": {"work": [true, false, false], "love": [false, false, false]},
+    "work_disabled": {"work": [true, false, false], "love": [false, false, false]},
+    "work_not_issued": {"work": [false, false, true], "love": [false, false, false]},
+    "love_usable": {"work": [false, false, false], "love": [true, false, false]}
+  },
+  "recovery_checks": [
+    {"fixture": "work_usable", "kind": "work", "slot": 0, "client_roi": [224, 288, 32, 22], "expected_text": "-36"},
+    {"fixture": "work_usable", "kind": "work", "slot": 1, "client_roi": [459, 288, 32, 22], "expected_text": "-36"},
+    {"fixture": "love_usable", "kind": "love", "anchor_capture_local": [15, 236], "client_roi": [290, 510, 32, 22], "expected_text": "-46"}
+  ],
+  "template_crops": {
+    "use_work": {"fixture": "work_usable", "crop": [878, 399, 91, 62]},
+    "use_love": {"fixture": "love_usable", "crop": [878, 399, 91, 62]},
+    "use_disabled": {"fixture": "work_disabled", "crop": [878, 399, 91, 62]},
+    "confirm_use": {"fixture": "work_confirmation", "crop": [906, 479, 47, 47]},
+    "effect": {"fixture": "effect", "crop": [644, 244, 85, 85]},
+    "rating_page": {"fixture": "rating_empty", "crop": [547, 352, 213, 17]},
+    "rating_confirm": {"fixture": "rating_five", "crop": [538, 381, 204, 39]},
+    "star_on": {"fixture": "rating_five", "crop": [498, 257, 45, 46]},
+    "star_off": {"fixture": "rating_empty", "crop": [498, 257, 45, 46]},
+    "train_return": {"fixture": "work_usable", "crop": [181, 17, 33, 39]},
+    "selected_marker": {"fixture": "work_usable", "crop": [306, 127, 28, 27]}
+  }
+}

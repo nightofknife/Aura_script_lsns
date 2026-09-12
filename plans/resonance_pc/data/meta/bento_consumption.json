@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "reference_client": [1280, 720],
+  "detail_name_roi": [815, 156, 340, 43],
+  "confirm_text_roi": [350, 335, 580, 50],
+  "blank_point": [1050, 620],
+  "star_points": [[520, 279], [580, 279], [640, 279], [700, 279], [760, 279]],
+  "work_selected_rois": [[302, 123, 36, 35], [537, 123, 36, 35], [771, 123, 36, 35]],
+  "love_selected_offset_roi": [190, -4, 36, 35],
+  "timeout_sec": 5,
+  "animation_timeout_sec": 30,
+  "poll_interval_sec": 0.2,
+  "after_click_sec": 0.4,
+  "total_timeout_sec": 600,
+  "max_drags": 15,
+  "ocr_min_confidence": 0.9,
+  "templates": {
+    "use_work": {
+      "path": "templates/bento_consumption/use_work.png",
+      "roi": [875, 396, 97, 68],
+      "threshold": 0.98
+    },
+    "use_love": {
+      "path": "templates/bento_consumption/use_love.png",
+      "roi": [875, 396, 97, 68],
+      "threshold": 0.98
+    },
+    "use_disabled": {
+      "path": "templates/bento_consumption/use_disabled.png",
+      "roi": [875, 396, 97, 68],
+      "threshold": 0.98
+    },
+    "confirm_use": {
+      "path": "templates/bento_consumption/confirm_use.png",
+      "roi": [903, 476, 53, 53],
+      "threshold": 0.95
+    },
+    "effect": {
+      "path": "templates/bento_consumption/effect.png",
+      "roi": [641, 241, 91, 91],
+      "threshold": 0.95
+    },
+    "rating_page": {
+      "path": "templates/bento_consumption/rating_page.png",
+      "roi": [544, 349, 219, 23],
+      "threshold": 0.95
+    },
+    "rating_confirm": {
+      "path": "templates/bento_consumption/rating_confirm.png",
+      "roi": [535, 378, 210, 45],
+      "threshold": 0.98
+    },
+    "star_on": {
+      "path": "templates/bento_consumption/star_on.png",
+      "roi": [495, 254, 50, 50],
+      "threshold": 0.95
+    },
+    "star_off": {
+      "path": "templates/bento_consumption/star_off.png",
+      "roi": [495, 254, 50, 50],
+      "threshold": 0.95
+    },
+    "train_return": {
+      "path": "templates/bento_consumption/train_return.png",
+      "roi": [178, 14, 39, 45],
+      "threshold": 0.95
+    },
+    "selected_marker": {
+      "path": "templates/bento_consumption/selected_marker.png",
+      "roi": [110, 118, 697, 537],
+      "threshold": 0.95
+    }
+  }
+}

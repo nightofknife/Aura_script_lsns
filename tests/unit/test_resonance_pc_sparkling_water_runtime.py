@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -17,6 +18,11 @@ from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonanceP
 
 FIXTURES = Path("tests/fixtures/resonance_pc_sparkling_water")
 PAGE_NAMES = ["rest_menu", "drink_menu", "confirm", "animation"]
+
+
+@pytest.fixture(autouse=True)
+def diagnostic_directory(tmp_path, monkeypatch):
+    monkeypatch.setattr(water, "DIAGNOSTIC_ROOT", tmp_path / "diagnostics")
 
 
 def frames():
@@ -284,3 +290,338 @@ def test_delayed_transition_between_retry_probes_does_not_click_again(fast_time)
         lambda: {"found": next(probes)}, lambda _: clicks.append(True), label="late transition",
     ))
     assert clicks == [True]
+
+
+class BlackTransitionReplay(ReplayApp):
+    """Second confirmation is followed by real black captures, not mocked scores."""
+    def __init__(self, black_frames):
+        super().__init__(confirmations=[False, True])
+        self.black_frames = black_frames
+        self.black_active = False
+        self.black_observations = 0
+
+    def click(self, x, y, *args, **kwargs):
+        assert not self.black_active, "No input is allowed while the frame is uncertain"
+        old = self.page
+        super().click(x, y, *args, **kwargs)
+        if old == "confirm" and self.completed == 1:
+            self.black_active = True
+
+    def capture(self, rect):
+        if self.black_active:
+            if tuple(rect) == (735, 460, 70, 65):
+                self.black_observations += 1
+                if self.black_observations > self.black_frames:
+                    self.black_active = False
+            if self.black_active:
+                return SimpleNamespace(success=True, image=np.zeros((rect[3], rect[2], 3), dtype=np.uint8))
+        return super().capture(rect)
+
+
+@pytest.mark.parametrize("black_frames", [1, 3, 8])
+def test_second_cup_black_transition_recovers_without_extra_click_or_count(
+    tmp_path, monkeypatch, fast_time, black_frames,
+):
+    app = BlackTransitionReplay(black_frames)
+    run, store = run_drinks(app, 2, tmp_path, monkeypatch)
+    result = asyncio.run(run())
+    assert result["completed_count"] == app.completed == 2
+    assert result["uncertain_frames"] == black_frames
+    assert result["page_state"] == "city_panel"
+    assert sum(page == "drink_menu" and x > 170 for page, x, _ in app.clicks) == 2
+    assert sum(page == "confirm" for page, _, _ in app.clicks) == 1
+    assert store.read("user-info.json")["recovery"]["sparkling_water"] == {
+        "remaining_free_uses": 4, "daily_free_limit": 6,
+    }
+    evidence = result["first_uncertain_frame"]
+    assert evidence["target"] == "rest_menu"
+    assert evidence["stage"] == "drink_animation"
+    assert evidence["completed_count"] == 1
+    assert evidence["raw_score"] == "-inf"
+    images = list(water.DIAGNOSTIC_ROOT.glob("*.png"))
+    assert len(images) == len(list(water.DIAGNOSTIC_ROOT.glob("*.json"))) == 1
+    assert not np.array(Image.open(images[0])).any()
+    assert json.loads(images[0].with_suffix(".json").read_text(encoding="utf-8")) == evidence
+
+
+def test_persistent_black_second_cup_times_out_without_counting_or_reclicking(tmp_path, monkeypatch, fast_time):
+    app = BlackTransitionReplay(999)
+    run, store = run_drinks(app, 2, tmp_path, monkeypatch)
+    with pytest.raises(water.SparklingWaterError) as caught:
+        asyncio.run(run())
+    assert caught.value.code == "sparkling_water_animation_timeout"
+    assert caught.value.detail["completed_count"] == app.completed == 1
+    assert caught.value.detail["uncertain_frames"] > 1
+    assert store.read("user-info.json")["recovery"]["sparkling_water"] == {
+        "remaining_free_uses": 5, "daily_free_limit": 6, "requires_refresh": True,
+    }
+    assert app.clicks[-1][0] == "confirm"
+    assert len(list(water.DIAGNOSTIC_ROOT.glob("*.png"))) == 1
+
+
+def test_cancel_during_black_second_cup_preserves_uncertain_consumption(tmp_path, monkeypatch, fast_time):
+    app = BlackTransitionReplay(999)
+    run, store = run_drinks(app, 2, tmp_path, monkeypatch)
+    monkeypatch.setattr(water, "is_current_task_cancel_requested", lambda: app.black_observations >= 1)
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(run())
+    assert app.clicks[-1][0] == "confirm"
+    assert store.read("user-info.json")["recovery"]["sparkling_water"] == {
+        "remaining_free_uses": 5, "daily_free_limit": 6, "requires_refresh": True,
+    }
+
+
+@pytest.mark.parametrize("return_page", ["animation", "drink_menu", "black"])
+def test_unknown_post_click_is_not_disappearance_or_permission_to_reclick(fast_time, return_page):
+    async def run():
+        vision = VisionService()
+        vision._loop = asyncio.get_running_loop()
+        app = ReplayApp()
+        app.frames["black"] = np.zeros((720, 1280, 3), dtype=np.uint8)
+        app.page = "drink_menu"
+        session = water.SparklingWaterSession(app=app, vision=vision, layout=water.load_sparkling_water_layout(vision))
+        clicks, observations = [], []
+
+        def source():
+            observations.append(app.page)
+            try:
+                return session.match("sparkling_water")
+            finally:
+                if app.page == "black":
+                    app.page = return_page
+
+        def click(_):
+            clicks.append(True)
+            app.page = "black"
+
+        if return_page == "animation":
+            await session.click_until_gone(source, click, label="consume")
+        else:
+            with pytest.raises(water.SparklingWaterError) as caught:
+                await session.click_until_gone(source, click, label="consume")
+            assert caught.value.code == "sparkling_water_transition_timeout"
+        assert observations[:2] == ["drink_menu", "black"]
+        assert len(observations) > 2
+        assert clicks == [True]
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf")])
+def test_all_nonfinite_scores_are_unknown_even_if_matcher_claims_found(score):
+    app = ReplayApp()
+    layout = {"templates": {"rest_menu": {"roi": [0, 0, 20, 20], "resolved_path": "unused", "threshold": 0.9}}}
+    vision = SimpleNamespace(find_template=lambda **_: SimpleNamespace(found=True, confidence=score, debug_info={}))
+    session = water.SparklingWaterSession(app=app, vision=vision, layout=layout)
+    with pytest.raises(water._UncertainFrame):
+        session.match("rest_menu")
+    assert session.last_matches["rest_menu"]["valid"] is False
+    assert "found" not in session.last_matches["rest_menu"]
+
+
+def test_real_missing_template_remains_fatal_not_unknown():
+    async def run():
+        vision = VisionService()
+        vision._loop = asyncio.get_running_loop()
+        layout = water.load_sparkling_water_layout(vision)
+        layout["templates"]["rest_menu"]["resolved_path"] = str(water.DIAGNOSTIC_ROOT / "missing.png")
+        session = water.SparklingWaterSession(app=ReplayApp(), vision=vision, layout=layout)
+        with pytest.raises(water.SparklingWaterError) as caught:
+            await asyncio.to_thread(session.match, "rest_menu")
+        assert caught.value.code == "sparkling_water_match_failed"
+        assert session.uncertain_frames == 0
+    asyncio.run(run())
+
+
+def test_wrong_capture_size_remains_fatal():
+    app = SimpleNamespace(capture=lambda **_: SimpleNamespace(success=True, image=np.zeros((1, 1, 3))))
+    session = water.SparklingWaterSession(app=app, vision=None, layout={})
+    with pytest.raises(water.SparklingWaterError) as caught:
+        session.capture([0, 0, 20, 20])
+    assert caught.value.code == "sparkling_water_capture_size_invalid"
+
+
+def test_matcher_execution_error_is_not_retried_as_transition(fast_time):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={"timeout_sec": 3, "poll_interval_sec": 0.4})
+    calls = []
+
+    def broken():
+        calls.append(True)
+        raise RuntimeError("matcher execution failed")
+
+    with pytest.raises(RuntimeError, match="matcher execution failed"):
+        asyncio.run(session.wait_for(broken, bool, label="broken matcher"))
+    assert calls == [True]
+
+
+def test_debug_error_takes_precedence_over_nonfinite_score():
+    layout = {"templates": {"rest_menu": {"roi": [0, 0, 20, 20], "resolved_path": "unused", "threshold": 0.9}}}
+    vision = SimpleNamespace(find_template=lambda **_: SimpleNamespace(
+        found=False, confidence=float("nan"), debug_info={"error": "invalid template"},
+    ))
+    session = water.SparklingWaterSession(app=ReplayApp(), vision=vision, layout=layout)
+    with pytest.raises(water.SparklingWaterError) as caught:
+        session.match("rest_menu")
+    assert caught.value.code == "sparkling_water_match_failed"
+    assert caught.value.detail["matches"]["rest_menu"]["error"] == "invalid template"
+    assert session.uncertain_frames == 0
+
+
+def test_diagnostic_write_failure_does_not_turn_uncertain_frame_into_match_failure(tmp_path, monkeypatch):
+    blocked_path = tmp_path / "not-a-directory"
+    blocked_path.write_text("existing", encoding="utf-8")
+    monkeypatch.setattr(water, "DIAGNOSTIC_ROOT", blocked_path)
+    layout = {"templates": {"rest_menu": {"roi": [0, 0, 20, 20], "resolved_path": "unused", "threshold": 0.9}}}
+    vision = SimpleNamespace(find_template=lambda **_: SimpleNamespace(found=False, confidence=float("-inf"), debug_info={}))
+    session = water.SparklingWaterSession(app=ReplayApp(), vision=vision, layout=layout)
+    for _ in range(2):
+        with pytest.raises(water._UncertainFrame):
+            session.match("rest_menu")
+    assert session.uncertain_frames == 2
+    assert session.first_uncertain_frame["diagnostic_error"]
+    assert blocked_path.read_text(encoding="utf-8") == "existing"
+
+
+def test_uncertain_initial_target_never_clicks_or_marks_consumption(fast_time):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={"timeout_sec": 3, "poll_interval_sec": 0.4})
+    clicks, writes = [], []
+
+    def unknown():
+        raise water._UncertainFrame("sparkling_water")
+
+    with pytest.raises(water.SparklingWaterError) as caught:
+        asyncio.run(session.click_until_gone(
+            unknown, lambda _: clicks.append(True), label="consume", before_click=lambda: writes.append(True),
+        ))
+    assert caught.value.code == "sparkling_water_transition_timeout"
+    assert clicks == writes == []
+
+
+def test_cancel_while_post_click_target_is_uncertain_does_not_replay(fast_time, monkeypatch):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={
+        "timeout_sec": 3, "poll_interval_sec": 0.4, "after_click_sec": 0.5, "max_clicks": 3,
+    })
+    clicks, cancelled = [], [False]
+    monkeypatch.setattr(water, "is_current_task_cancel_requested", lambda: cancelled[0])
+
+    def source():
+        if clicks:
+            cancelled[0] = True
+            raise water._UncertainFrame("sparkling_water")
+        return {"found": True}
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(session.click_until_gone(source, lambda _: clicks.append(True), label="consume"))
+    assert clicks == [True]
+
+
+@pytest.mark.parametrize("uncertain_key", ["drink_again", "sparkling_water"])
+def test_uncertain_confirmation_or_second_menu_probe_skips_all_input(fast_time, monkeypatch, uncertain_key):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={
+        "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
+    })
+    seen, clicks = [], []
+    uncertain = [True]
+
+    def match(key):
+        seen.append(key)
+        if key == uncertain_key and uncertain[0]:
+            uncertain[0] = False
+            raise water._UncertainFrame(key)
+        return {"found": key == "sparkling_water"}
+
+    monkeypatch.setattr(session, "match", match)
+    monkeypatch.setattr(session, "click", lambda point: clicks.append(point))
+    assert asyncio.run(session.finish_cup()) == ("drink_menu", False)
+    assert clicks == []
+    assert seen.count(uncertain_key) == 2
+    assert session.completed == 0
+
+
+def test_unknown_during_pre_retry_observation_cannot_authorize_another_click(fast_time):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={
+        "timeout_sec": 3, "poll_interval_sec": 0.4, "after_click_sec": 0.5, "max_clicks": 3,
+    })
+    observations = iter([True, True, None, True, False])
+    clicks = []
+
+    def source():
+        value = next(observations)
+        if value is None:
+            raise water._UncertainFrame("sparkling_water")
+        return {"found": value}
+
+    asyncio.run(session.click_until_gone(source, lambda _: clicks.append(True), label="consume"))
+    assert clicks == [True]
+
+
+@pytest.mark.parametrize("has_confirmation", [False, True])
+def test_one_second_delay_ignores_menu_flash_before_animation(fast_time, monkeypatch, has_confirmation):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={
+        "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
+    })
+    started = fast_time[0]
+    state = {"phase": "confirm" if has_confirmation else "flash", "flash_until": started + 0.8}
+    probes, clicks, confirmations = [], [], []
+
+    def match(key):
+        now = fast_time[0]
+        probes.append((key, now))
+        if state["phase"] == "confirm":
+            return {"found": key == "drink_again"}
+        menu_visible = state["phase"] == "menu" or now < state["flash_until"]
+        return {"found": menu_visible and key == "sparkling_water"}
+
+    async def confirm(key):
+        assert key == "drink_again"
+        confirmations.append(fast_time[0])
+        state.update(phase="flash", flash_until=fast_time[0] + 0.8)
+
+    def skip(point):
+        assert point == [1207, 36]
+        assert fast_time[0] >= state["flash_until"]
+        clicks.append(fast_time[0])
+        state["phase"] = "menu"
+
+    monkeypatch.setattr(session, "match", match)
+    monkeypatch.setattr(session, "click_icon_until_gone", confirm)
+    monkeypatch.setattr(session, "click", skip)
+    assert asyncio.run(session.finish_cup()) == ("drink_menu", has_confirmation)
+    assert probes[0][1] == pytest.approx(started + 1.0)
+    assert len(clicks) == 1  # The transient menu must not finish the cup before animation.
+    if has_confirmation:
+        assert probes[1][1] == pytest.approx(confirmations[0] + 1.0)
+    assert session.completed == 0
+
+
+@pytest.mark.parametrize("cancel_delay", [1, 2])
+def test_cancel_during_one_second_settle_prevents_next_probe_or_click(monkeypatch, cancel_delay):
+    session = water.SparklingWaterSession(app=None, vision=None, layout={
+        "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
+    })
+    delays, probes, confirmations, clicks = [], [], [], []
+    cancelled = [False]
+
+    async def sleep(delay):
+        assert delay == 1.0
+        delays.append(delay)
+        if len(delays) == cancel_delay:
+            cancelled[0] = True
+
+    def match(key):
+        probes.append(key)
+        return {"found": True}
+
+    async def confirm(key):
+        confirmations.append(key)
+
+    monkeypatch.setattr(water.asyncio, "sleep", sleep)
+    monkeypatch.setattr(water, "is_current_task_cancel_requested", lambda: cancelled[0])
+    monkeypatch.setattr(session, "match", match)
+    monkeypatch.setattr(session, "click_icon_until_gone", confirm)
+    monkeypatch.setattr(session, "click", lambda point: clicks.append(point))
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(session.finish_cup())
+    assert len(delays) == cancel_delay
+    assert len(probes) == len(confirmations) == cancel_delay - 1
+    assert clicks == []
+    assert session.completed == 0
