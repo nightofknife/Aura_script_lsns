@@ -40,6 +40,31 @@ def window(tmp_path, monkeypatch):
     app.processEvents()
 
 
+def test_run_button_waits_for_cancelled_worker_exit(window, monkeypatch):
+    from types import SimpleNamespace
+
+    pending = [True]
+    bridge = RunnerBridge()
+    bridge._runner = SimpleNamespace(
+        poll_events=lambda **kwargs: [],
+        get_run=lambda cid: {"cid": cid, "status": "cancelled", "execution_pending": pending[0]},
+    )
+    bridge._current_cid = "test-button-drain"
+    bridge._current_item = {"label": "test", "timeout_sec": 0}
+    bridge._cancel_sent = True
+    bridge.busyChanged.connect(window._on_busy_changed)
+    monkeypatch.setattr(bridge, "refresh_history", lambda: None)
+    monkeypatch.setattr(bridge, "refresh_target", lambda: None)
+    bridge._set_busy(True)
+    bridge.poll_current()
+    assert not window.run_button.isEnabled()
+    assert window._busy
+    pending[0] = False
+    bridge.poll_current()
+    assert window.run_button.isEnabled()
+    assert not window._busy
+
+
 def configure(window, kinds=("trade",)):
     page = window.workflow_page
     for key, check in page._task_checks.items():

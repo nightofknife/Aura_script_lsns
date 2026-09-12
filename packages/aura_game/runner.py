@@ -304,7 +304,13 @@ class EmbeddedGameRunner:
 
     def get_run(self, cid: str) -> Dict[str, Any]:
         runtime = self._ensure_runtime()
-        return _normalize_run_row(runtime.get_run_detail(cid))
+        from packages.aura_core.scheduler.cancellation import has_pending_sync_actions
+
+        row = _normalize_run_row(runtime.get_run_detail(cid))
+        # Terminal observability status does not imply a thread-pool action
+        # has exited. Carry this live flag through the subprocess response.
+        row["execution_pending"] = has_pending_sync_actions(cid)
+        return row
 
     def _ensure_running_runtime(self):
         runtime = self._ensure_runtime()
