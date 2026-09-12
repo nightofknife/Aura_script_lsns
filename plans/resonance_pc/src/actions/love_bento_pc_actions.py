@@ -87,18 +87,51 @@ class LoveBentoScanner:
             source_image=crop, template_images=[r['resolved'] for r in rows],
             mask_images=[r['resolved_mask'] for r in rows] if section=='days' else None,
             threshold=self.cfg[key+'_threshold'], use_grayscale=section!='items',
-            match_method=cv2.TM_SQDIFF_NORMED if section=='days' else cv2.TM_CCOEFF_NORMED,
+            # Mean-centered correlation separates digit strokes from their
+            # shared background brightness. Keep the existing digit mask.
+            match_method=cv2.TM_CCOEFF_NORMED,
             preprocess='none')
         if len(results)!=len(rows) or any(getattr(r,'debug_info',{}).get('error') for r in results):
             raise _error(f'love-bento {section} matching failed')
+        if section == 'days' and any(not math.isfinite(float(r.confidence)) for r in results):
+            # A flat/degenerate ROI can produce NaN/Inf in masked correlation.
+            # Do not silently drop a competitor and accept another digit.
+            logger.info('[LoveBento] uncertain section=days point=%s reason=non_finite_score', point)
+            return None
         ranked=sorted(zip(rows,results),key=lambda r:float(r[1].confidence),reverse=True)
         best,hit=ranked[0]
         score=float(hit.confidence)
         second=float(ranked[1][1].confidence) if len(ranked)>1 else 0.
+        if section == 'days':
+            reason = ('below_threshold' if not hit.found or score < self.cfg['days_threshold']
+                      else 'insufficient_margin' if score-second < self.cfg['days_margin']
+                      else 'accepted')
+            logger.info(
+                '[LoveBento] section=days point=%s method=TM_CCOEFF_NORMED '
+                'candidates=%s threshold=%s margin=%s required_margin=%s result=%s',
+                point, [{'days': row['value'], 'score': float(result.confidence)}
+                        for row, result in ranked[:3]],
+                self.cfg['days_threshold'], score-second, self.cfg['days_margin'], reason)
         if not math.isfinite(score) or not hit.found or score < self.cfg[key+'_threshold'] or score-second < self.cfg[key+'_margin']:
             logger.info('[LoveBento] uncertain section=%s point=%s score=%s margin=%s',section,point,score,score-second)
             return None
         return best
+
+    def recognition_rois_visible(self, frame, point):
+        """Require the actual field ROIs, not the decorative card rectangle."""
+        rx, ry, _, _ = self.cfg['capture_roi']
+        vx, vy, vw, vh = self.cfg['viewport']
+        x, y = point
+        margin = self.cfg['roi_margin']
+        for key in ('food_crop_xyxy', 'role_crop_xyxy', 'days_crop_xyxy'):
+            x1, y1, x2, y2 = self.catalog['geometry'][key]
+            left, top = x+x1-margin, y+y1-margin
+            right, bottom = x+x2+margin, y+y2+margin
+            if (left < 0 or top < 0 or right > frame.shape[1] or bottom > frame.shape[0]
+                    or left+rx < vx or top+ry < vy
+                    or right+rx > vx+vw or bottom+ry > vy+vh):
+                return False
+        return True
 
     def read_frame(self, frame):
         multi=self.reader.vision.find_all_templates(
@@ -107,14 +140,11 @@ class LoveBentoScanner:
             nms_threshold=0.3,preprocess='none')
         if getattr(multi,'debug_info',{}).get('error'):
             raise _error('love-bento card detection failed')
-        rx,ry,_,_=self.cfg['capture_roi']
-        vx,vy,vw,vh=self.cfg['viewport']
-        cw,ch=[round(v*self.catalog['geometry']['scale']) for v in self.catalog['geometry']['background_size']]
         values=[]
         anchors=[]
         for hit in sorted(multi.matches or [],key=lambda h:(h.top_left[1],h.top_left[0])):
             x,y=map(int,hit.top_left)
-            if x+rx<vx or y+ry<vy or x+rx+cw>vx+vw or y+ry+ch>vy+vh:
+            if not self.recognition_rois_visible(frame, (x, y)):
                 continue
             anchors.append((x,y))
             food=self.classify(frame,(x,y),'items')
@@ -128,7 +158,7 @@ class LoveBentoScanner:
             values.append({'role_id':role['id'],'role_name':role['name'],
                            'food_id':food['id'],'food_name':food['name'],'remaining_days':day['value']})
         # A visible expiry marker without a card match must not silently become
-        # an empty result. Cropped cards are intentionally left for the next page.
+        # an empty result. Cards with clipped field ROIs are left for the next page.
         markers=self.reader.vision.find_all_templates(
             source_image=frame,template_image=self.cfg['expiration_template'],
             mask_image=self.cfg['expiration_mask'],threshold=self.cfg['anchor_threshold'],
@@ -139,7 +169,7 @@ class LoveBentoScanner:
         for marker in markers.matches or []:
             mx,my=marker.top_left
             x,y=int(mx)-dx,int(my)-dy
-            if x+rx>=vx+4 and y+ry>=vy+4 and x+rx+cw<=vx+vw-4 and y+ry+ch<=vy+vh-4:
+            if self.recognition_rois_visible(frame, (x, y)):
                 if not any(abs(x-ax)<=8 and abs(y-ay)<=8 for ax,ay in anchors):
                     return None
         return sorted(values,key=lambda row:(row['role_id'],row['food_id'],row['remaining_days']))

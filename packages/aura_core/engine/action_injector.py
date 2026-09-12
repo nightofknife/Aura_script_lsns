@@ -19,7 +19,7 @@ except ImportError:
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.logging.core_logger import current_cid
-from packages.aura_core.scheduler.cancellation import request_task_cancel
+from packages.aura_core.scheduler.cancellation import request_task_cancel, begin_sync_action, end_sync_action
 from packages.aura_core.config.loader import get_config_value
 
 from ..api import ACTION_REGISTRY, ActionDefinition
@@ -92,10 +92,20 @@ class ActionInjector:
 
         loop = asyncio.get_running_loop()
         context_snapshot = contextvars.copy_context()
-        future = loop.run_in_executor(
-            None,
-            lambda: context_snapshot.run(action_def.func, **call_args),
-        )
+        cid = current_cid()
+        begin_sync_action(cid)
+
+        def run_sync_action():
+            try:
+                return context_snapshot.run(action_def.func, **call_args)
+            finally:
+                end_sync_action(cid)
+
+        try:
+            future = loop.run_in_executor(None, run_sync_action)
+        except BaseException:
+            end_sync_action(cid)
+            raise
         try:
             return await asyncio.shield(future)
         except asyncio.CancelledError:

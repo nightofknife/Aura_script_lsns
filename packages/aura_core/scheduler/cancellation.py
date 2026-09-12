@@ -15,7 +15,30 @@ from packages.aura_core.observability.logging.core_logger import current_cid
 
 
 _cancelled_cids: set[str] = set()
+_sync_actions: dict[str, int] = {}
 _lock = threading.RLock()
+
+
+def begin_sync_action(cid: Optional[str]) -> None:
+    with _lock:
+        key = _normalize_cid(cid)
+        _sync_actions[key] = _sync_actions.get(key, 0) + 1
+
+
+def end_sync_action(cid: Optional[str]) -> None:
+    with _lock:
+        key = _normalize_cid(cid)
+        remaining = _sync_actions.get(key, 0) - 1
+        if remaining > 0:
+            _sync_actions[key] = remaining
+        else:
+            _sync_actions.pop(key, None)
+
+
+def has_pending_sync_actions(cid: Optional[str]) -> bool:
+    """True until the worker exits, independent of asyncio cancellation."""
+    with _lock:
+        return _sync_actions.get(_normalize_cid(cid), 0) > 0
 
 
 def _normalize_cid(cid: Optional[str]) -> str:

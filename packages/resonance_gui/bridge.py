@@ -346,7 +346,9 @@ class RunnerBridge(QObject):
             run = normalize_run_payload(runner.get_run(self._current_cid))
         except Exception as exc:  # noqa: BLE001
             self._poll_error_count += 1
-            terminal_failure = self._poll_error_count >= 3
+            # Losing visibility while stopping is not proof that the worker
+            # exited. Keep the run button locked and continue polling.
+            terminal_failure = self._poll_error_count >= 3 and not self._cancel_sent
             self.taskFailed.emit(
                 {
                     "stage": "poll_run",
@@ -367,6 +369,8 @@ class RunnerBridge(QObject):
             self.runUpdated.emit(run)
             status = extract_status(run)
             if status in TERMINAL_STATUSES:
+                if run.get("execution_pending", False):
+                    return
                 self._finish_current(run)
                 return
 
@@ -551,7 +555,7 @@ class RunnerBridge(QObject):
         self.logMessage.emit(
             f"已因等待超时请求取消任务 {self._current_cid}。"
             if reason == "timeout"
-            else f"已请求取消任务 {self._current_cid}。"
+            else f"正在停止任务 {self._current_cid}，等待旧任务退出后才能再次运行。"
         )
 
     def _finish_current(self, run: dict[str, Any]) -> None:
