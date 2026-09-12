@@ -298,20 +298,11 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.apply_compact_inputs(
             self._settings.load_trade_inputs(), self._settings.load_passenger_inputs()
         )
-        self.workflow_page.trade_sparkling_water.toggled.connect(
-            self.trade_page.auto_sparkling_water.setChecked
-        )
-        self.trade_page.auto_sparkling_water.toggled.connect(
-            self.workflow_page.trade_sparkling_water.setChecked
-        )
+        self._bind_commerce_parameters()
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
-        self.workflow_page.trade_auto_pickup.toggled.connect(self.trade_page.auto_pickup.setChecked)
-        self.trade_page.auto_pickup.toggled.connect(self.workflow_page.trade_auto_pickup.setChecked)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
         self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
         self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
-        self.trade_page.book_budget.valueChanged.connect(self.workflow_page.trade_books.setValue)
-        self.workflow_page.trade_books.valueChanged.connect(self.trade_page.book_budget.setValue)
         self.trade_page.set_end_city_constraint_available(
             self.workflow_page.trade_end_city_constraint_available()
         )
@@ -713,6 +704,53 @@ class ResonanceMainWindow(QMainWindow):
             "trade_inputs": normalize_trade_task_inputs(trade),
             "passenger_inputs": dict(passenger),
         }
+
+    def _bind_commerce_parameters(self) -> None:
+        """Keep every duplicated commerce field connected for the window lifetime."""
+        quick, trade, passenger = self.workflow_page, self.trade_page, self.passenger_page
+        for summary, editor in (
+            (quick.trade_fatigue, trade.fatigue_budget),
+            (quick.trade_cargo, trade.cargo_capacity),
+            (quick.trade_books, trade.book_budget),
+            (quick.passenger_trips, passenger.trip_count),
+        ):
+            summary.valueChanged.connect(editor.setValue)
+            editor.valueChanged.connect(summary.setValue)
+        for summary, editor in (
+            (quick.trade_sparkling_water, trade.auto_sparkling_water),
+            (quick.trade_auto_pickup, trade.auto_pickup),
+            (quick.trade_investment, trade.auto_cape_island_investment),
+            (quick.trade_rubbish_recycling, trade.auto_rubbish_recycling),
+            (quick.passenger_trade, passenger.trade_during_trip),
+            (quick.passenger_reposition, passenger.auto_reposition),
+        ):
+            summary.toggled.connect(editor.setChecked)
+            editor.toggled.connect(summary.setChecked)
+        for combo in (quick.passenger_city_a, quick.passenger_city_b):
+            combo.currentIndexChanged.connect(lambda _index: self._sync_passenger_route(True))
+        for combo in (passenger.city_a, passenger.city_b):
+            combo.currentIndexChanged.connect(lambda _index: self._sync_passenger_route(False))
+
+    def _sync_passenger_route(self, from_summary: bool) -> None:
+        quick, passenger = self.workflow_page, self.passenger_page
+        summary_pair = (quick.passenger_city_a, quick.passenger_city_b)
+        editor_pair = (passenger.city_a, passenger.city_b)
+        source, target = (summary_pair, editor_pair) if from_summary else (editor_pair, summary_pair)
+        # The source has already applied its distinct-city rule. Copy both final
+        # endpoints atomically so the target cannot correct an intermediate pair.
+        previous = [combo.blockSignals(True) for combo in target]
+        try:
+            for origin, destination in zip(source, target):
+                index = destination.findData(origin.currentData())
+                if index >= 0:
+                    destination.setCurrentIndex(index)
+        finally:
+            for combo, blocked in zip(target, previous):
+                combo.blockSignals(blocked)
+        if from_summary:
+            passenger._refresh_expected_fatigue()
+        else:
+            quick._refresh_passenger_route_summary()
 
     def _open_trade_editor(self) -> None:
         self.workflow_page.show_trade_editor()
