@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
+from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -23,6 +24,11 @@ from ._player_data_persistence import USER_INFO_FILE, load_pc_user_info
 
 PLAN_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PLAN_ROOT / "data/meta/sparkling_water.json"
+DIAGNOSTIC_ROOT = PLAN_ROOT.parent.parent / "logs/diagnostics/sparkling_water"
+
+
+class _UncertainFrame(RuntimeError):
+    """A captured frame has no usable match score; it proves neither presence nor absence."""
 
 
 class SparklingWaterError(RuntimeError):
@@ -111,12 +117,42 @@ class SparklingWaterSession:
         self.page = "city_panel"
         self.last_matches: dict[str, dict] = {}
         self.completed = 0
+        self.uncertain_frames = 0
+        self.first_uncertain_frame: dict | None = None
 
     def fail(self, code: str, message: str) -> None:
         raise SparklingWaterError(code, message, {
             "stage": self.stage, "page_state": self.page,
             "completed_count": self.completed, "matches": copy.deepcopy(self.last_matches),
+            "uncertain_frames": self.uncertain_frames,
+            "first_uncertain_frame": copy.deepcopy(self.first_uncertain_frame),
         })
+
+    def record_uncertain_frame(self, key: str, image: np.ndarray, score: float) -> None:
+        self.uncertain_frames += 1
+        if self.first_uncertain_frame is not None:
+            return
+        evidence = {
+            "cid": current_cid(), "stage": self.stage, "page_state": self.page,
+            "target": key, "raw_score": str(score), "completed_count": self.completed,
+            "roi": list(self.layout["templates"][key]["roi"]),
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self.first_uncertain_frame = evidence
+        try:
+            DIAGNOSTIC_ROOT.mkdir(parents=True, exist_ok=True)
+            path = DIAGNOSTIC_ROOT / f"uncertain-{uuid4().hex}.png"
+            ok, encoded = cv2.imencode(".png", image)
+            if not ok:
+                raise ValueError("Could not encode uncertain-frame ROI")
+            path.write_bytes(encoded.tobytes())
+            evidence["image_path"] = str(path)
+            path.with_suffix(".json").write_text(
+                json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8",
+            )
+        except (OSError, ValueError, cv2.error) as exc:
+            evidence["diagnostic_error"] = str(exc)
+        logger.warning("Sparkling water uncertain frame; waiting without input evidence=%s", evidence)
 
     def capture(self, roi: list[int]) -> np.ndarray:
         _check_cancelled()
@@ -131,13 +167,22 @@ class SparklingWaterSession:
     def match(self, key: str) -> dict:
         spec = self.layout["templates"][key]
         roi = spec["roi"]
+        image = self.capture(roi)
         hit = self.vision.find_template(
-            source_image=self.capture(roi), template_image=spec["resolved_path"],
+            source_image=image, template_image=spec["resolved_path"],
             mask_image=spec.get("resolved_mask"), threshold=spec["threshold"],
             use_grayscale=False, match_method=cv2.TM_SQDIFF_NORMED, preprocess="none",
         )
-        if (getattr(hit, "debug_info", None) or {}).get("error") or not math.isfinite(float(hit.confidence)):
+        _check_cancelled()
+        error = (getattr(hit, "debug_info", None) or {}).get("error")
+        if error:
+            self.last_matches[key] = {"valid": False, "error": str(error)}
             self.fail("sparkling_water_match_failed", f"Template matching failed: {key}")
+        score = float(hit.confidence)
+        if not math.isfinite(score):
+            self.last_matches[key] = {"valid": False, "raw_score": str(score)}
+            self.record_uncertain_frame(key, image, score)
+            raise _UncertainFrame(key)
         center = getattr(hit, "center_point", None)
         result = {"found": bool(hit.found), "confidence": float(hit.confidence)}
         if center is not None:
@@ -148,13 +193,39 @@ class SparklingWaterSession:
 
     async def wait_for(self, probe: Callable, predicate: Callable, *, label: str, timeout: float | None = None):
         _check_cancelled()
+
+        def observe():
+            _check_cancelled()
+            try:
+                return probe()
+            except _UncertainFrame as exc:
+                return exc
+
         found, value = await poll_until(
             self.layout["timeout_sec"] if timeout is None else timeout,
-            self.layout["poll_interval_sec"], probe, predicate,
+            self.layout["poll_interval_sec"], observe,
+            lambda value: not isinstance(value, _UncertainFrame) and predicate(value),
         )
         if not found:
             self.fail("sparkling_water_transition_timeout", f"Timed out waiting for {label}")
         return value
+
+    async def observe_clicked_source(self, source: Callable, *, label: str) -> dict:
+        uncertain_seen = False
+
+        def observe():
+            nonlocal uncertain_seen
+            try:
+                return source()
+            except _UncertainFrame:
+                uncertain_seen = True
+                raise
+
+        # After an unobserved transition, a returned button could be a new menu.
+        # Never authorize another consumption click from that ambiguous presence.
+        return await self.wait_for(
+            observe, lambda hit: not uncertain_seen or not hit["found"], label=label,
+        )
 
     def click(self, point: list[int]) -> None:
         _check_cancelled()
@@ -169,14 +240,14 @@ class SparklingWaterSession:
             await asyncio.to_thread(before_click)
         for attempt in range(self.layout["max_clicks"]):
             if attempt:
-                original = await asyncio.to_thread(source)
+                original = await self.observe_clicked_source(source, label=label)
                 if not original["found"]:
                     return
             _check_cancelled()
             await asyncio.to_thread(click, original)
             self.page = "transition"
             await asyncio.sleep(self.layout["after_click_sec"])
-            recheck = await asyncio.to_thread(source)
+            recheck = await self.observe_clicked_source(source, label=label)
             if not recheck["found"]:
                 return
         self.fail("sparkling_water_click_not_effective", f"Original target still present after clicking: {label}")
@@ -221,15 +292,22 @@ class SparklingWaterSession:
         self.stage = "drink_animation"
         deadline = time.monotonic() + self.layout["animation_timeout_sec"]
         confirmation_seen = False
+        # The underlying menu can linger briefly before the drink animation starts.
+        await asyncio.sleep(1.0)
         while time.monotonic() < deadline:
             _check_cancelled()
-            confirmation = await asyncio.to_thread(self.match, "drink_again")
+            try:
+                confirmation = await asyncio.to_thread(self.match, "drink_again")
+                page = None if confirmation["found"] else await asyncio.to_thread(self.menu_page)
+            except _UncertainFrame:
+                await asyncio.sleep(self.layout["poll_interval_sec"])
+                continue
             if confirmation["found"]:
                 confirmation_seen = True
                 await self.click_icon_until_gone("drink_again")
                 self.stage = "drink_animation"
+                await asyncio.sleep(1.0)
                 continue
-            page = await asyncio.to_thread(self.menu_page)
             if page:
                 self.page = page
                 return page, confirmation_seen
@@ -348,6 +426,8 @@ async def resonance_pc_drink_sparkling_water_from_city_panel(
         "remaining_free_uses": remaining, "daily_free_limit": limit,
         "recovered_fatigue": session.completed * 50, "cups": cups,
         "page_state": session.page, "elapsed_ms": int((time.monotonic() - started) * 1000),
+        "uncertain_frames": session.uncertain_frames,
+        "first_uncertain_frame": session.first_uncertain_frame,
     }
     logger.info("Sparkling water completed result=%s", result)
     return result

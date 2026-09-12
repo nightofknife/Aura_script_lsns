@@ -67,6 +67,7 @@ TRADE_STAGE_LABELS = {
     "investment": "投资",
     "rubbish_recycling": "倒垃圾",
     "sparkling_water": "喝气泡水",
+    "bento": "吃便当",
     "final_sale": "终点清仓",
     "route": "执行路线",
     "task": "任务",
@@ -80,6 +81,7 @@ FREIGHT_PHASE_LABELS = {
     "rubbish_recycling": "倒垃圾",
     "travel": "前往下一城市",
     "final_sale": "终点清仓",
+    "bento": "吃便当",
 }
 
 
@@ -132,6 +134,7 @@ class WorkflowFreightProgressState:
     active_phase: str = ""
     investment_enabled: bool = False
     rubbish_recycling_enabled: bool = True
+    bento_enabled: bool = False
 
     @property
     def total_units(self) -> int:
@@ -172,6 +175,7 @@ def reduce_workflow_freight_progress(
     expected_cid: str = "",
     investment_enabled: bool | None = None,
     rubbish_recycling_enabled: bool | None = None,
+    bento_enabled: bool | None = None,
 ) -> WorkflowFreightProgressState:
     """Reduce trade progress into route preparation and city business stages."""
 
@@ -180,6 +184,8 @@ def reduce_workflow_freight_progress(
         state.investment_enabled = bool(investment_enabled)
     if rubbish_recycling_enabled is not None:
         state.rubbish_recycling_enabled = bool(rubbish_recycling_enabled)
+    if bento_enabled is not None:
+        state.bento_enabled = bool(bento_enabled)
     envelope = dict(event or {})
     if str(envelope.get("name") or "") != TRADE_PROGRESS_EVENT:
         return state
@@ -220,6 +226,7 @@ def reduce_workflow_freight_progress(
                 route,
                 state.investment_enabled,
                 state.rubbish_recycling_enabled,
+                state.bento_enabled,
             )
         return state
 
@@ -254,6 +261,9 @@ def reduce_workflow_freight_progress(
         return state
     city = state.cities[city_index]
     phase = next((item for item in city.phases if item.key == phase_key), None)
+    if phase is None and phase_key == "bento" and city_index == len(state.cities) - 1:
+        phase = FreightBusinessPhase(key="bento", label=FREIGHT_PHASE_LABELS["bento"])
+        city.phases.append(phase)
     if phase is None:
         return state
 
@@ -265,6 +275,21 @@ def reduce_workflow_freight_progress(
             phase.state = "failed"
         elif phase.state not in {"completed", "skipped"}:
             phase.state = "running"
+    elif stage == "bento":
+        result = data.get("result") if isinstance(data.get("result"), Mapping) else {}
+        plan = data.get("plan") if isinstance(data.get("plan"), Mapping) else {}
+        if view_state == "completed" and result.get("status") == "skipped":
+            view_state = "skipped"
+        phase.state = view_state
+        phase.detail = "吃便当"
+        if data.get("phase") == "fatigue_refresh":
+            phase.detail += " · 读取疲劳"
+        elif data.get("phase") == "planned" and isinstance(plan.get("meals"), list):
+            phase.detail += f" · 计划 {len(plan['meals'])} 份"
+        elif type(result.get("consumed_count")) is int:
+            phase.detail += f" · 已确认 {result['consumed_count']} 份"
+        elif view_state == "skipped":
+            phase.detail += " · 无需使用"
     else:
         phase.detail = ""
         phase.state = view_state
@@ -285,6 +310,7 @@ def _build_freight_city_stages(
     route: list[dict[str, Any]],
     investment_enabled: bool,
     rubbish_recycling_enabled: bool = True,
+    bento_enabled: bool = False,
 ) -> list[FreightCityStage]:
     if not route:
         return []
@@ -310,6 +336,8 @@ def _build_freight_city_stages(
         if index == rubbish_city_index:
             keys.append("rubbish_recycling")
         keys.extend(["sell", "buy", "travel"] if index < city_count - 1 else ["final_sale"])
+        if index == city_count - 1 and bento_enabled:
+            keys.append("bento")
         phases = [FreightBusinessPhase(key=key, label=FREIGHT_PHASE_LABELS[key]) for key in keys]
         if index < len(route) and not list(route[index].get("buy_products") or []):
             for phase in phases:
@@ -345,7 +373,7 @@ def _freight_event_city_index(
         return explicit
     leg_index = _optional_int(payload.get("leg_index"))
     if leg_index is None:
-        return city_count - 1 if stage == "final_sale" else None
+        return city_count - 1 if stage in {"final_sale", "bento"} else None
     if stage in {"arrival", "investment", "rubbish_recycling"} and event_state not in {
         "blocked",
         "failed",
@@ -381,7 +409,10 @@ def _fail_active_freight_phase(state: WorkflowFreightProgressState, detail: str)
     for phase in state.cities[state.active_city_index].phases:
         if phase.key == state.active_phase:
             phase.state = "failed"
-            phase.detail = detail
+            if phase.key == "bento":
+                phase.detail = f"{phase.detail or phase.label} · {detail}"
+            else:
+                phase.detail = detail
             return
 
 PASSENGER_STAGE_LABELS = {

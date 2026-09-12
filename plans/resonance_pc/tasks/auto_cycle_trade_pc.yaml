@@ -266,6 +266,14 @@ auto_cycle_trade_pc:
         required: false
         default: 200
         min: 0
+      - name: auto_bento
+        type: boolean
+        required: false
+        default: false
+      - name: bento_priority
+        type: list
+        required: false
+        default: [work_meals, love_bentos]
       - name: recovery_snapshot
         type: dict
         required: false
@@ -368,6 +376,8 @@ auto_cycle_trade_pc:
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
+        auto_bento: "{{ inputs.auto_bento | default(false) }}"
+        bento_priority: "{{ inputs.bento_priority | default(['work_meals', 'love_bentos']) }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve | default(200) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
   returns:
@@ -412,6 +422,8 @@ auto_cycle_trade_pc:
     final_sale: "{{ nodes.run.output.final_sale }}"
     sparkling_water_plan: "{{ nodes.run.output.sparkling_water_plan }}"
     sparkling_water: "{{ nodes.run.output.sparkling_water }}"
+    bento_plan: "{{ nodes.run.output.bento_plan }}"
+    bento_consumption: "{{ nodes.run.output.bento_consumption }}"
     blocked_at: "{{ nodes.run.output.blocked_at }}"
     blocked_leg: "{{ nodes.run.output.blocked_leg }}"
     fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"

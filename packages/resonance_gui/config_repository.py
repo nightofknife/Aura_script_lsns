@@ -77,6 +77,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "product_unlocks": {"mode": "all", "product_ids": []},
     "active_events": [],
     "auto_sparkling_water": False,
+    "auto_bento": False,
+    "bento_priority": ["work_meals", "love_bentos"],
     "base_fatigue_reserve": 200,
     "auto_pickup": False,
     "use_fatigue_medicine": False,
@@ -427,6 +429,17 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
+    merged["auto_bento"] = bool(merged["auto_bento"])
+    priority = merged["bento_priority"]
+    if (
+        not isinstance(priority, list)
+        or any(key not in ("work_meals", "love_bentos") for key in priority)
+        or len(priority) != len(set(priority))
+    ):
+        raise ValueError("便当类型顺序至少选择一种，只允许工作餐和爱心便当，且不能重复。")
+    if merged["auto_bento"] and not priority:
+        raise ValueError("自动吃便当开启时，便当类型至少选择一种。")
+    merged["bento_priority"] = list(priority)
     reserve = merged["base_fatigue_reserve"]
     if type(reserve) is not int or reserve < 0:
         raise ValueError("基础疲劳保留必须为非负整数。")

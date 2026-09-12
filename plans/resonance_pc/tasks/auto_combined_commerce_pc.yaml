@@ -356,6 +356,16 @@ auto_combined_commerce_pc:
             name: auto_sparkling_water
             type: boolean
             required: false
+          auto_bento:
+            name: auto_bento
+            type: boolean
+            required: false
+            default: false
+          bento_priority:
+            name: bento_priority
+            type: list
+            required: false
+            default: [work_meals, love_bentos]
           base_fatigue_reserve:
             name: base_fatigue_reserve
             type: number

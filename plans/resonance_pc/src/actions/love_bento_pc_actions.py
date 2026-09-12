@@ -16,10 +16,12 @@ from .player_recovery_pc_actions import _error, check_cancelled
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def load_love_bento_catalog(vision):
+def load_love_bento_catalog(vision, *, navigation_only=False):
     catalog = json.loads((ROOT / 'data/meta/love_bento.json').read_text(encoding='utf-8'))
     if catalog.get('reference_client') != [1280, 720]:
         raise ValueError('Unsupported love-bento reference resolution')
+    if navigation_only:
+        return {'items': [], 'scanner': catalog['scanner']}
     def resolve(ref):
         path = Path(vision.resolve_template('resonance_pc', ref, ROOT)).resolve()
         if not path.is_relative_to(ROOT) or vision.load_image_file(path, cv2.IMREAD_UNCHANGED) is None:

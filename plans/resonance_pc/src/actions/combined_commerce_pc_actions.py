@@ -48,6 +48,8 @@ _TRADE_INPUT_KEYS = {
     "product_unlocks",
     "active_events",
     "auto_sparkling_water",
+    "auto_bento",
+    "bento_priority",
     "base_fatigue_reserve",
     "use_fatigue_medicine",
     "allowed_fatigue_medicines",
@@ -57,6 +59,8 @@ _TRADE_INPUT_KEYS = {
     "auto_rubbish_recycling",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
+    "auto_bento",
+    "bento_priority",
     "base_fatigue_reserve",
     "auto_pickup",
     "auto_sparkling_water",
@@ -316,13 +320,9 @@ async def _run_trade(
     engine: ExecutionEngine,
     persistent_data: PersistentDataService | None = None,
 ) -> Dict[str, Any]:
-    recovery_services = (
-        {"persistent_data": persistent_data}
-        if inputs.get("recovery_snapshot") is not None else {}
-    )
     return await resonance_pc_auto_cycle_trade_flow(
         **dict(inputs),
-        **recovery_services,
+        persistent_data=persistent_data,
         app=app,
         ocr=ocr,
         vision=vision,
@@ -433,10 +433,9 @@ async def resonance_pc_auto_combined_commerce_flow(
     raw_trade = copy.deepcopy(trade_inputs or {})
     raw_passenger = copy.deepcopy(passenger_inputs or {})
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
-    trade_services = {}
+    trade_services = {"persistent_data": persistent_data}
     if recovery_snapshot is not None:
         effective_trade["recovery_snapshot"] = copy.deepcopy(recovery_snapshot)
-        trade_services["persistent_data"] = persistent_data
     effective_passenger = _filtered(raw_passenger, _PASSENGER_INPUT_KEYS)
     effective_passenger["trade_during_trip"] = False
     try:

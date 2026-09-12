@@ -485,7 +485,13 @@ class TradePage(QWidget):
         form_stack.addLayout(common_form)
 
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
-        form_stack.addWidget(self.auto_sparkling_water)
+        self.auto_bento = QCheckBox("自动吃便当", content)
+        self.auto_bento.toggled.connect(self._sync_bento_type_checks)
+        recovery_options = QHBoxLayout()
+        recovery_options.addWidget(self.auto_sparkling_water)
+        recovery_options.addWidget(self.auto_bento)
+        recovery_options.addStretch(1)
+        form_stack.addLayout(recovery_options)
         self.base_fatigue_reserve = self._spin(0, 2147483647)
         self.base_fatigue_reserve.setValue(200)
         self.water_reserve_panel = QWidget(content)
@@ -493,6 +499,8 @@ class TradePage(QWidget):
         reserve_form.setContentsMargins(0, 0, 0, 0)
         reserve_form.addRow("基础疲劳保留", self.base_fatigue_reserve)
         form_stack.addWidget(self.water_reserve_panel)
+        self.bento_priority_panel = self._build_bento_priority_panel(content)
+        form_stack.addWidget(self.bento_priority_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
         form_stack.addWidget(self.auto_pickup)
 
@@ -502,6 +510,8 @@ class TradePage(QWidget):
         form_stack.addWidget(self.auto_rubbish_recycling)
         if self.preview_mode:
             self.auto_sparkling_water.hide()
+            self.auto_bento.hide()
+            self.bento_priority_panel.hide()
             self.water_reserve_panel.hide()
             self.auto_pickup.hide()
             self.auto_cape_island_investment.hide()
@@ -520,6 +530,77 @@ class TradePage(QWidget):
         scroll.setWidget(content)
         outer.addWidget(scroll, 1)
         return panel
+
+    def _build_bento_priority_panel(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        self._bento_layout = QVBoxLayout(panel)
+        self._bento_layout.setContentsMargins(0, 0, 0, 0)
+        self._bento_layout.addWidget(QLabel("便当类型优先级", panel))
+        self._bento_order = ["work_meals", "love_bentos"]
+        self.bento_type_checks: dict[str, QCheckBox] = {}
+        self._bento_rows: dict[str, QWidget] = {}
+        self.bento_move_buttons: dict[tuple[str, int], QToolButton] = {}
+        for key, label in (("work_meals", "工作餐"), ("love_bentos", "爱心便当")):
+            row = QWidget(panel)
+            layout = QHBoxLayout(row)
+            layout.setContentsMargins(0, 0, 0, 0)
+            check = QCheckBox(label, row)
+            self.bento_type_checks[key] = check
+            check.toggled.connect(self._save_bento_priority)
+            layout.addWidget(check)
+            layout.addStretch(1)
+            for delta, arrow, caption in (
+                (-1, Qt.ArrowType.UpArrow, "上移"),
+                (1, Qt.ArrowType.DownArrow, "下移"),
+            ):
+                button = QToolButton(row)
+                button.setArrowType(arrow)
+                button.setFixedSize(28, 28)
+                button.setToolTip(f"{caption}{label}")
+                button.setAccessibleName(f"{caption}{label}")
+                button.clicked.connect(
+                    lambda _checked=False, key=key, delta=delta: self._move_bento_type(key, delta)
+                )
+                self.bento_move_buttons[key, delta] = button
+                layout.addWidget(button)
+            self._bento_rows[key] = row
+            self._bento_layout.addWidget(row)
+        self._sync_bento_order()
+        return panel
+
+    def _sync_bento_order(self) -> None:
+        for index, key in enumerate(self._bento_order):
+            self._bento_layout.removeWidget(self._bento_rows[key])
+            self._bento_layout.insertWidget(index + 1, self._bento_rows[key])
+            self.bento_move_buttons[key, -1].setEnabled(index > 0)
+            self.bento_move_buttons[key, 1].setEnabled(index < len(self._bento_order) - 1)
+
+    def _move_bento_type(self, key: str, delta: int) -> None:
+        index = self._bento_order.index(key)
+        target = index + delta
+        if not 0 <= target < len(self._bento_order):
+            return
+        self._bento_order[index], self._bento_order[target] = (
+            self._bento_order[target], self._bento_order[index]
+        )
+        self._sync_bento_order()
+        self._save_bento_priority()
+
+    def _selected_bento_priority(self) -> list[str]:
+        return [key for key in self._bento_order if self.bento_type_checks[key].isChecked()]
+
+    def _sync_bento_type_checks(self) -> None:
+        selected = self._selected_bento_priority()
+        for key, check in self.bento_type_checks.items():
+            check.setEnabled(not self.auto_bento.isChecked() or len(selected) > 1 or key not in selected)
+
+    def _save_bento_priority(self, *_args: object) -> None:
+        if self.preview_mode:
+            return
+        self._sync_bento_type_checks()
+        values = self._settings.load_trade_inputs()
+        values["bento_priority"] = self._selected_bento_priority()
+        self._settings.save_trade_inputs(values)
 
     def _build_advanced_panel(self, parent: QWidget) -> QWidget:
         panel = QWidget(parent)
@@ -926,6 +1007,15 @@ class TradePage(QWidget):
         self._update_product_unlock_button()
         self.active_events.setText(self._join_values(values.get("active_events", [])))
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
+        self.auto_bento.setChecked(bool(values.get("auto_bento", False)))
+        priority = values.get("bento_priority", ["work_meals", "love_bentos"])
+        self._bento_order = [*priority, *(key for key in self.bento_type_checks if key not in priority)]
+        for key, check in self.bento_type_checks.items():
+            blocked = check.blockSignals(True)
+            check.setChecked(key in priority)
+            check.blockSignals(blocked)
+        self._sync_bento_order()
+        self._sync_bento_type_checks()
         self.base_fatigue_reserve.setValue(int(values.get("base_fatigue_reserve", 200)))
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
         self.auto_cape_island_investment.setChecked(
@@ -972,10 +1062,14 @@ class TradePage(QWidget):
         if self.preview_mode:
             inputs["start_city_id"] = start_city_id
             return inputs
+        if self.auto_bento.isChecked() and not self._selected_bento_priority():
+            raise ValueError("自动吃便当开启时，便当类型至少选择一种。")
         inputs.update({
             "negotiation_max_attempts": self.negotiation_max_attempts.value(),
             "arrival_timeout_seconds": self.arrival_timeout_minutes.value() * 60,
             "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
+            "auto_bento": self.auto_bento.isChecked(),
+            "bento_priority": self._selected_bento_priority(),
             "base_fatigue_reserve": self.base_fatigue_reserve.value(),
             "auto_pickup": self.auto_pickup.isChecked(),
             "use_fatigue_medicine": False,
@@ -1263,6 +1357,8 @@ class TradePage(QWidget):
             self.auto_book,
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
+            self.auto_bento,
+            self.bento_priority_panel,
             self.base_fatigue_reserve,
             self.auto_pickup,
             self.auto_cape_island_investment,

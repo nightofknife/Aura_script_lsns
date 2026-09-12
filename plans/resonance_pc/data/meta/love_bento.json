@@ -934,6 +934,8 @@
   "items": [
     {
       "id": 83300002,
+      "fatigue_recovery": 20,
+      "rating_stars": 1,
       "name": "菜肉俱全汉堡",
       "resource": "Item/Food/Bento/BurgerLow",
       "native": "templates/player_recovery/love_bento/native/83300002.png",
@@ -941,6 +943,8 @@
     },
     {
       "id": 83300011,
+      "fatigue_recovery": 22,
+      "rating_stars": 1,
       "name": "焦香水果派",
       "resource": "Item/Food/Bento/PieLow",
       "native": "templates/player_recovery/love_bento/native/83300011.png",
@@ -948,6 +952,8 @@
     },
     {
       "id": 83300012,
+      "fatigue_recovery": 35,
+      "rating_stars": 5,
       "name": "香甜水果派",
       "resource": "Item/Food/Bento/PieMiddle",
       "native": "templates/player_recovery/love_bento/native/83300012.png",
@@ -955,6 +961,8 @@
     },
     {
       "id": 83300013,
+      "fatigue_recovery": 35,
+      "rating_stars": 5,
       "name": "多汁肉饼汉堡",
       "resource": "Item/Food/Bento/BurgerMiddle",
       "native": "templates/player_recovery/love_bento/native/83300013.png",
@@ -962,6 +970,8 @@
     },
     {
       "id": 83300014,
+      "fatigue_recovery": 38,
+      "rating_stars": 5,
       "name": "暖洋洋汤面",
       "resource": "Item/Food/Bento/RamenMiddle",
       "native": "templates/player_recovery/love_bento/native/83300014.png",
@@ -969,6 +979,8 @@
     },
     {
       "id": 83300015,
+      "fatigue_recovery": 40,
+      "rating_stars": 5,
       "name": "香喷喷浓郁咖喱",
       "resource": "Item/Food/Bento/CurryMiddle",
       "native": "templates/player_recovery/love_bento/native/83300015.png",
@@ -976,6 +988,8 @@
     },
     {
       "id": 83300016,
+      "fatigue_recovery": 40,
+      "rating_stars": 5,
       "name": "甜美奶油蛋糕",
       "resource": "Item/Food/Bento/CakeMiddle",
       "native": "templates/player_recovery/love_bento/native/83300016.png",
@@ -983,6 +997,8 @@
     },
     {
       "id": 83300017,
+      "fatigue_recovery": 45,
+      "rating_stars": 5,
       "name": "三重高塔堆堆汉堡",
       "resource": "Item/Food/Bento/BurgerHigh",
       "native": "templates/player_recovery/love_bento/native/83300017.png",
@@ -990,6 +1006,8 @@
     },
     {
       "id": 83300018,
+      "fatigue_recovery": 42,
+      "rating_stars": 5,
       "name": "魔法流心水果派",
       "resource": "Item/Food/Bento/PieHigh",
       "native": "templates/player_recovery/love_bento/native/83300018.png",
@@ -997,6 +1015,8 @@
     },
     {
       "id": 83300019,
+      "fatigue_recovery": 50,
+      "rating_stars": 5,
       "name": "超丰盛汤面",
       "resource": "Item/Food/Bento/RamenHigh",
       "native": "templates/player_recovery/love_bento/native/83300019.png",
@@ -1004,6 +1024,8 @@
     },
     {
       "id": 83300055,
+      "fatigue_recovery": 42,
+      "rating_stars": 5,
       "name": "泡菜炒饭",
       "resource": "Item/Food/Bento/FreeBentoHigh",
       "native": "templates/player_recovery/love_bento/native/83300055.png",

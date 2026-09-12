@@ -693,6 +693,19 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.consume_bentos
+    module: plans.resonance_pc.src.actions.bento_consumption_pc_actions
+    function: resonance_pc_consume_bentos
+    public: true
+    read_only: false
+    timeout: null
+    description: Consume individual bentos from the main screen and return to it;
+      no route or GUI required.
+    parameters:
+    - name: meals
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.execute_cape_island_investment_from_city_panel
     module: plans.resonance_pc.src.actions.cape_island_investment_pc_actions
     function: resonance_pc_execute_cape_island_investment_from_city_panel
@@ -1052,6 +1065,14 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_bento
+      type: Any
+      required: false
+      default: false
+    - name: bento_priority
+      type: Any
+      required: false
+      default: null
     - name: base_fatigue_reserve
       type: Any
       required: false
@@ -2595,6 +2616,16 @@ exports:
     source: tasks/auto_passenger_trips_pc.yaml
     description: Run a configured number of alternating one-way passenger trips between
       two cities.
+  - id: bento_consumption_pc/bento_consumption_pc
+    title: Consume Bentos (PC)
+    source: tasks/bento_consumption_pc.yaml
+    description: Main-screen-only reusable child task; consume individual meals and
+      return to main.
+  - id: bento_consumption_pc
+    title: Consume Bentos (PC)
+    source: tasks/bento_consumption_pc.yaml
+    description: Main-screen-only reusable child task; consume individual meals and
+      return to main.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -2766,4 +2797,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-11T09:34:45Z'
+  generated_at: '2026-09-12T10:22:55Z'

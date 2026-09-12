@@ -32,7 +32,7 @@ class Market:
 @pytest.fixture
 def harness(monkeypatch):
     operations = []
-    state = {"completed": 0, "blocked": False}
+    state = {"completed": 0, "blocked": False, "current_fatigue": 250, "local_quota": 6}
 
     async def init(**kwargs):
         return {"run_key": "route"}
@@ -65,11 +65,22 @@ def harness(monkeypatch):
 
     def open_panel(**kwargs):
         operations.append("open_panel")
-        return {"page_state": "city_panel"}
+        return {"success": True, "page_state": "city_panel"}
 
     def final_sale(**kwargs):
         operations.append("final_sale")
-        return {"page_state": "city_main"}
+        return {"success": True, "page_state": "city_main"}
+
+    async def recovery_action(action_name, params, **kwargs):
+        if action_name == "resonance_pc.open_city_panel_from_main":
+            assert params == {}
+            return open_panel()
+        assert action_name == "resonance_pc.player_data_refresh"
+        assert params == {"stages": ["profile"], "profile_sections": ["fatigue"]}
+        operations.append("refresh_fatigue")
+        result = snapshot(current=state["current_fatigue"])
+        result["metadata"]["executed_profile_sections"] = ["fatigue"]
+        return result
 
     monkeypatch.setattr(trade, "resonance_pc_trade_route_execution_init", init)
     monkeypatch.setattr(trade, "resonance_pc_trade_route_execution_update", update)
@@ -77,6 +88,8 @@ def harness(monkeypatch):
     monkeypatch.setattr(trade, "resonance_pc_trade_route_execution_cleanup", noop)
     monkeypatch.setattr(trade.asyncio, "sleep", noop)
     monkeypatch.setattr(trade, "_execute_trade_leg", leg)
+    monkeypatch.setattr(trade, "_call_recovery_action", recovery_action)
+    monkeypatch.setattr(trade, "load_pc_user_info", lambda store: snapshot(remaining=state["local_quota"]))
     monkeypatch.setattr(trade, "resonance_pc_drink_sparkling_water_from_city_panel", drink)
     monkeypatch.setattr(trade, "resonance_pc_open_city_panel_from_main", open_panel)
     monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel", lambda **kw: {"city_name": "岚心城", "city_key": "lanxin_city"})
@@ -101,9 +114,9 @@ def test_configured_reserve_applies_to_full_trade_execution(harness):
     operations, _ = harness
     result = run_full(base_fatigue_reserve=200, recovery_snapshot=snapshot(current=250))
     assert result["sparkling_water_plan"]["base_fatigue_reserve"] == 200
-    assert result["sparkling_water_plan"]["drink_count"] == 5
+    assert result["sparkling_water_plan"]["drink_count"] == 1
     assert result["sparkling_water_plan"]["city_index"] == 2
-    assert "water:岚心城:5" in operations
+    assert "water:岚心城:1" in operations
     assert operations[-1] == "final_sale"
 
 
@@ -119,21 +132,24 @@ def test_endpoint_drinks_four_before_final_sale(harness):
     result = run_full()
     assert result["sparkling_water_plan"]["city_index"] == 2
     assert result["sparkling_water_plan"]["drink_count"] == 4
-    assert operations == ["open_panel", "trade:0", "travel:0", "trade:1", "travel:1", "open_panel", "water:岚心城:4", "final_sale"]
+    assert operations == ["open_panel", "trade:0", "travel:0", "trade:1", "travel:1", "refresh_fatigue", "open_panel", "water:岚心城:4", "final_sale"]
     assert result["execution"]["leg_results"][1]["sparkling_water"]["completed_count"] == 4
     assert result["sparkling_water"]["triggered"] is True
 
 
-def test_start_drinks_once_before_first_trade(harness):
-    operations, _ = harness
+def test_high_start_fatigue_still_waits_for_last_arrival(harness):
+    operations, state = harness
+    state["current_fatigue"] = 301
     result = run_full(recovery_snapshot=snapshot(current=301))
-    assert operations[:3] == ["open_panel", "water:岚心城:6", "trade:0"]
+    assert operations[:3] == ["open_panel", "trade:0", "travel:0"]
+    assert operations.index("travel:1") < operations.index("water:岚心城:6") < operations.index("final_sale")
     assert len([op for op in operations if op.startswith("water:")]) == 1
-    assert result["sparkling_water_plan"]["city_index"] == 0
+    assert result["sparkling_water_plan"]["city_index"] == 2
 
 
 def test_midpoint_only_stop_uses_two_cups(harness, monkeypatch):
-    operations, _ = harness
+    operations, state = harness
+    state["current_fatigue"] = 101
     service = ResonancePcCityShopDataService()
     original = service.resolve_shop_point
 
@@ -178,7 +194,26 @@ def test_water_failure_prevents_next_trade_and_final_sale(harness):
     state["water_failure"] = True
     with pytest.raises(RuntimeError, match="water failed"):
         run_full(recovery_snapshot=snapshot(current=301))
-    assert "trade:0" not in operations and "final_sale" not in operations
+    assert "trade:0" in operations and "travel:1" in operations
+    assert "final_sale" not in operations
+
+
+def test_arrival_uses_current_local_quota_not_snapshot_quota(harness):
+    operations, state = harness
+    state.update(current_fatigue=401, local_quota=1)
+    result = run_full(recovery_snapshot=snapshot(current=1, remaining=6))
+    assert result["sparkling_water_plan"]["drink_count"] == 1
+    assert "water:岚心城:1" in operations
+
+
+def test_zero_arrival_cups_does_not_fall_back_or_refresh_again(harness):
+    operations, state = harness
+    state["current_fatigue"] = 50
+    result = run_full()
+    assert result["sparkling_water_plan"]["drink_count"] == 0
+    assert operations.count("refresh_fatigue") == 1
+    assert not any(op.startswith("water:") for op in operations)
+    assert operations[-1] == "final_sale"
 
 
 def test_no_remaining_quota_keeps_existing_trade(harness):
