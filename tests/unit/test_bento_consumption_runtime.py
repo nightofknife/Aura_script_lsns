@@ -182,6 +182,125 @@ def replay_session(tmp_path, chosen, monkeypatch, *, seed=True, **kwargs):
     return session, app, store
 
 
+def entry_session(tmp_path, monkeypatch, clock, *, misses=0, open_delay=0.0):
+    state = {"page": "city_main", "open_at": None, "clicks": [], "moves": []}
+    store = PersistentDataService(tmp_path)
+    seed_inventory(store)
+
+    def page():
+        if state["open_at"] is not None and clock[0] >= state["open_at"]:
+            state.update(page="profile", open_at=None)
+        return state["page"]
+
+    def click(x, y):
+        assert page() == "city_main", "Do not click the entrance on an opened/unknown page"
+        assert (x, y) == bento._CLICK_PROFILE
+        state["clicks"].append(clock[0])
+        if len(state["clicks"]) > misses:
+            state.update(page="transition", open_at=clock[0] + open_delay)
+
+    session = bento.BentoConsumptionSession(NS(click=click), None, None, store, {
+        "total_timeout_sec": 30, "timeout_sec": 5, "poll_interval_sec": .2,
+    }, {"click_interval_sec": .7}, {"items": []})
+    monkeypatch.setattr(session, "match", lambda key, roi=None: {"found": page() == "city_main"})
+    monkeypatch.setattr(session.reader, "is_page", lambda target: page() == target)
+
+    def move(source, target, control):
+        assert page() == source
+        state["moves"].append((source, target, control))
+        state["page"] = target
+        session.reader.set_page(target)
+
+    monkeypatch.setattr(session.reader, "move", move)
+    return session, state, store
+
+
+@pytest.mark.parametrize("misses", [0, 1, 2])
+def test_profile_entry_retries_missed_click_then_continues_once(tmp_path, monkeypatch, clock, misses):
+    session, state, store = entry_session(tmp_path, monkeypatch, clock, misses=misses)
+    before = store.read("user-info.json")
+    session.enter()
+    assert len(state["clicks"]) == misses + 1
+    assert all(b - a >= .7 for a, b in zip(state["clicks"], state["clicks"][1:]))
+    assert state["moves"] == [("profile", "fatigue_recovery", "fatigue_plus"),
+                              ("fatigue_recovery", "bento_cabinet", "bento_button")]
+    assert session.page == "bento_cabinet"
+    assert session.items == []
+    assert store.read("user-info.json") == before
+
+
+def test_profile_entry_still_closed_after_three_clicks_stops_without_consumption(tmp_path, monkeypatch, clock):
+    session, state, store = entry_session(tmp_path, monkeypatch, clock, misses=99)
+    before = store.read("user-info.json")
+    with pytest.raises(bento.BentoConsumptionError) as caught:
+        session.run([{"kind": "work_meals", "issue_time": "05:00"}])
+    assert caught.value.code == "bento_transition_timeout"
+    result = session.result("failed", caught.value.code, caught.value)
+    assert result["failure_stage"] == "enter_profile"
+    assert result["consumed_count"] == result["completed_count"] == 0
+    assert result["requires_refresh"] is False
+    assert len(state["clicks"]) == 3 and not state["moves"]
+    assert store.read("user-info.json") == before
+
+
+@pytest.mark.parametrize("open_delay", [.3, 1.4, 3.5])
+def test_profile_entry_waits_through_unknown_transition_without_reclick(tmp_path, monkeypatch, clock, open_delay):
+    session, state, _ = entry_session(tmp_path, monkeypatch, clock, open_delay=open_delay)
+    session.enter()
+    assert len(state["clicks"]) == 1
+    assert session.page == "bento_cabinet"
+
+
+def test_profile_entry_unknown_page_times_out_without_blind_click(tmp_path, monkeypatch, clock):
+    session, state, _ = entry_session(tmp_path, monkeypatch, clock, open_delay=99)
+    with pytest.raises(bento.BentoConsumptionError) as caught:
+        session.enter()
+    assert caught.value.code == "bento_transition_timeout"
+    assert len(state["clicks"]) == 1 and not state["moves"]
+
+
+def test_profile_opening_between_source_and_target_probes_does_not_toggle_closed(tmp_path, monkeypatch, clock):
+    session, state, _ = entry_session(tmp_path, monkeypatch, clock, misses=99)
+    original = session.match
+
+    def main(key, roi=None):
+        result = original(key, roi)
+        if state["clicks"] and clock[0] >= state["clicks"][0] + .7:
+            state["page"] = "profile"
+        return result
+
+    monkeypatch.setattr(session, "match", main)
+    session.enter()
+    assert len(state["clicks"]) == 1
+    assert session.page == "bento_cabinet"
+
+
+def test_profile_entry_cancelled_before_retry_does_not_click_again(tmp_path, monkeypatch, clock):
+    session, state, store = entry_session(tmp_path, monkeypatch, clock, misses=99)
+    before = store.read("user-info.json")
+    monkeypatch.setattr(bento, "is_current_task_cancel_requested", lambda: bool(state["clicks"]))
+    with pytest.raises(bento.BentoConsumptionError) as caught:
+        session.enter()
+    assert caught.value.code == "bento_cancelled"
+    assert len(state["clicks"]) == 1 and not state["moves"]
+    assert store.read("user-info.json") == before
+
+
+def test_profile_entry_probe_error_does_not_trigger_retry(tmp_path, monkeypatch, clock):
+    session, state, _ = entry_session(tmp_path, monkeypatch, clock, misses=99)
+
+    def target(_):
+        if state["clicks"]:
+            session.fail("bento_capture_failed", "capture failed")
+        return False
+
+    monkeypatch.setattr(session.reader, "is_page", target)
+    with pytest.raises(bento.BentoConsumptionError) as caught:
+        session.enter()
+    assert caught.value.code == "bento_capture_failed"
+    assert len(state["clicks"]) == 1 and not state["moves"]
+
+
 @pytest.mark.parametrize("kind,stars,prompt", [("work_meals", None, True), ("work_meals", None, False),
     ("love_bentos", 1, True), ("love_bentos", 5, True), ("love_bentos", 5, False)])
 def test_single_portion_paths(tmp_path, monkeypatch, clock, kind, stars, prompt):
