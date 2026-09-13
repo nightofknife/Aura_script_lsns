@@ -77,7 +77,7 @@ _CARD_TEMPLATE_METADATA = {
 }
 
 _ISLAND_HOME_REGION = (0, 60, 1280, 660)
-_REVENUE_OVERVIEW_REGION = (600, 70, 680, 650)
+_REVENUE_OVERVIEW_REGION = (610, 135, 300, 90)
 _INVESTMENT_TAB_REGION = (920, 70, 350, 90)
 _INVESTMENT_PAGE_REGION = (590, 130, 690, 570)
 _INVESTMENT_SUCCESS_REGION = (500, 180, 300, 350)
@@ -498,17 +498,50 @@ async def _open_revenue_overview(
     interval_sec: float,
     transition_attempts: int,
 ) -> Dict[str, Any]:
-    # transition_attempts still controls island entry, not the income click loop.
-    del transition_attempts
+    # Keep the bounded opening phase; a positive destination confirmation takes
+    # precedence over a source template that may also match the new background.
+    del transition_attempts, page_timeout_sec
     last_match: Dict[str, Any] = {}
+    overview_match: Dict[str, Any] = {}
+    home_match: Dict[str, Any] = {}
     started_at = time.monotonic()
     deadline = started_at + _INCOME_CLICK_TIMEOUT_SEC
     attempts_made = 0
-    seen_entry = False
-    disappeared = False
+    stable = 0
     last_click = None
     while time.monotonic() < deadline:
         cycle_started = time.monotonic()
+        match = await asyncio.to_thread(
+            find_image, app=app, vision=vision, engine=engine,
+            template=_REVENUE_OVERVIEW_TEMPLATE,
+            region=_REVENUE_OVERVIEW_REGION, threshold=0.86,
+        )
+        overview_match = _match_payload(
+            match, template=_REVENUE_OVERVIEW_TEMPLATE, region=_REVENUE_OVERVIEW_REGION,
+        )
+        if (match.debug_info or {}).get("error"):
+            _raise_error("revenue_overview_probe_failed", "营收概览截图或匹配失败", overview_match)
+        if match.found and math.isfinite(match.confidence):
+            stable += 1
+            logger.info("Cape island overview detected stable=%s/2 confidence=%.4f", stable, match.confidence)
+            if stable >= 2 and time.monotonic() < deadline:
+                return {"attempts": attempts_made, "click": last_click,
+                        "match": overview_match, "confirmed_by": "overview_stable"}
+            # Even a first positive observation forbids another source click.
+            await asyncio.sleep(max(0.0, min(interval_sec, deadline-time.monotonic())))
+            continue
+        stable = 0
+        home = await asyncio.to_thread(
+            find_image, app=app, vision=vision, engine=engine,
+            template=_ISLAND_HOME_TEMPLATE, region=_ISLAND_HOME_REGION, threshold=0.86,
+        )
+        home_match = _match_payload(home, template=_ISLAND_HOME_TEMPLATE, region=_ISLAND_HOME_REGION)
+        if (home.debug_info or {}).get("error"):
+            _raise_error("island_home_probe_failed", "海岛主页截图或匹配失败", home_match)
+        if not home.found or not math.isfinite(home.confidence):
+            logger.info("Cape island transition waiting without click home=%s overview=%s", home_match, overview_match)
+            await asyncio.sleep(max(0.0, min(interval_sec, deadline-time.monotonic())))
+            continue
         match = await asyncio.to_thread(
             find_image,
             app=app,
@@ -528,8 +561,7 @@ async def _open_revenue_overview(
         if error:
             last_match["error"] = str(error)
             logger.warning("Cape island income probe failed error=%s", error)
-        elif match.found and match.center_point is not None:
-            seen_entry = True
+        elif match.found and math.isfinite(match.confidence) and match.center_point is not None:
             if time.monotonic() >= deadline:
                 break
             x, y = match.center_point
@@ -540,9 +572,6 @@ async def _open_revenue_overview(
                 "Cape island income click attempt=%s point=%s confidence=%.4f elapsed_sec=%.3f",
                 attempts_made, last_click, match.confidence, time.monotonic() - started_at,
             )
-        elif seen_entry:
-            disappeared = True
-            break
         now = time.monotonic()
         await asyncio.sleep(max(0.0, min(
             cycle_started + _INCOME_CLICK_INTERVAL_SEC - now, deadline - now,
@@ -551,35 +580,11 @@ async def _open_revenue_overview(
         "attempts": attempts_made, "click": last_click,
         "elapsed_sec": round(time.monotonic() - started_at, 3),
         "last_match": last_match,
+        "overview_match": overview_match,
+        "home_match": home_match,
+        "stable_observations": stable,
     }
-    if not disappeared:
-        _raise_error(
-            "income_entry_not_disappeared" if seen_entry else "income_entry_not_found",
-            "今日收益入口在 8 秒内未消失" if seen_entry else "8 秒内未找到今日收益入口",
-            detail,
-        )
-    logger.info("Cape island income entry disappeared; waiting for revenue overview detail=%s", detail)
-    match = await wait_for_image(
-        app=app, vision=vision, engine=engine,
-        template=_REVENUE_OVERVIEW_TEMPLATE,
-        timeout=page_timeout_sec, interval=interval_sec,
-        region=_REVENUE_OVERVIEW_REGION, threshold=0.86,
-    )
-    overview_match = _match_payload(
-        match, template=_REVENUE_OVERVIEW_TEMPLATE, region=_REVENUE_OVERVIEW_REGION,
-    )
-    if not match.found:
-        _raise_error(
-            "revenue_overview_timeout",
-            "今日收益入口已消失，但未检测到营收概览",
-            {**detail, "overview_match": overview_match},
-        )
-    return {
-        "attempts": attempts_made,
-        "click": last_click,
-        "match": overview_match,
-        "entry_disappeared": True,
-    }
+    _raise_error("revenue_overview_timeout", "8 秒内未稳定确认营收概览", detail)
 
 
 @action_info(
