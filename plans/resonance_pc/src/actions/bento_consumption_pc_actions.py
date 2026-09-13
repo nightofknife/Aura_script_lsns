@@ -203,9 +203,33 @@ class BentoConsumptionSession:
     def enter(self):
         self.require_main()
         self.stage = "enter_profile"
-        self.click(_CLICK_PROFILE)
-        self.page = "unknown"
-        self.wait(lambda: self.reader.is_page("profile"), "profile")
+        started = time.monotonic()
+        deadline = min(self.deadline, started + self.layout["timeout_sec"])
+        clicks = 0
+        next_click = started
+
+        def profile_opened():
+            nonlocal clicks, next_click
+            self.guard()
+            if self.reader.is_page("profile"):
+                return True
+            if clicks < 3 and time.monotonic() >= next_click and self.match("main")["found"]:
+                # A late opening between probes must not be toggled closed by a retry.
+                if self.reader.is_page("profile"):
+                    return True
+                if time.monotonic() >= deadline:
+                    return False
+                self.click(_CLICK_PROFILE)
+                self.page = "unknown"
+                clicks += 1
+                next_click = time.monotonic() + self.reader.layout["click_interval_sec"]
+                logger.info("[BentoConsumption] phase=profile_entry_clicked attempt=%s/3 elapsed_sec=%.3f",
+                            clicks, time.monotonic() - started)
+            return False
+
+        self.wait(profile_opened, "profile")
+        logger.info("[BentoConsumption] phase=profile_entry_confirmed clicks=%s elapsed_sec=%.3f",
+                    clicks, time.monotonic() - started)
         self.reader.set_page("profile")
         self.reader.move("profile", "fatigue_recovery", "fatigue_plus")
         self.reader.move("fatigue_recovery", "bento_cabinet", "bento_button")
