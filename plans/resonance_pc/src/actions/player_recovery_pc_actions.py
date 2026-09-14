@@ -20,7 +20,7 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CONFIG_PATH = _PLAN_ROOT / "data/meta/player_recovery.json"
 _TEMPLATE_KEYS = (
     "profile", "fatigue_plus", "fatigue_page", "rest_info", "popup",
-    "bento_button", "bento_page", "back", "bento_present", "bento_absent",
+    "bento_button", "bento_page", "bento_train", "back", "bento_present", "bento_absent",
 )
 
 
@@ -125,6 +125,32 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
                 raise ValueError(f"recovery template exceeds ROI: {key}")
         if "roi" in target:
             target["roi"] = _roi(target["roi"], reference, key)
+    catalog = json.loads((root / "data/meta/love_bento.json").read_text(encoding="utf-8"))
+    scanner = catalog["scanner"]
+    viewport = _roi(scanner["viewport"], reference, "bento viewport")
+    for key in ("max_drags", "stationary_confirmations"):
+        if type(scanner[key]) is not int or not 1 <= scanner[key] <= 30:
+            raise ValueError(f"invalid bento navigation setting: {key}")
+    if not 2 <= scanner["stationary_confirmations"] <= scanner["max_drags"]:
+        raise ValueError("bento top confirmation requires multiple bounded drags")
+    if not 0 < float(scanner["food_threshold"]) <= 1 or not 0 < float(scanner["total_timeout_sec"]) <= 180:
+        raise ValueError("invalid bento navigation threshold or timeout")
+    foods = []
+    for food in catalog["items"]:
+        path = Path(vision.resolve_template("resonance_pc", food["template"], root)).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError("bento content template escapes plan root")
+        image = vision.load_image_file(path, cv2.IMREAD_UNCHANGED)
+        if image is None or not image.size or image.shape[0] > viewport[3] or image.shape[1] > viewport[2]:
+            raise ValueError("invalid bento content template")
+        foods.append(str(path))
+    if not foods:
+        raise ValueError("bento content templates must not be empty")
+    config["bento_navigation"] = {
+        "viewport": viewport, "food_templates": foods, "food_threshold": scanner["food_threshold"],
+        "max_drags": scanner["max_drags"], "stationary_confirmations": scanner["stationary_confirmations"],
+        "total_timeout_sec": scanner["total_timeout_sec"],
+    }
     return config
 
 
@@ -163,6 +189,8 @@ class RecoveryReader:
         key = {"profile": "profile", "fatigue_recovery": "fatigue_page",
                "sparkling_water_popup": "popup", "bento_cabinet": "bento_page"}[page]
         if not self.match(key).found:
+            return False
+        if page == "bento_cabinet" and not self.match("bento_train").found:
             return False
         # Fatigue title stays visible behind the tooltip.
         if page == "fatigue_recovery" and self.match("popup").found:
@@ -214,6 +242,102 @@ class RecoveryReader:
                 next_click = time.monotonic() + self.layout["click_interval_sec"]
             time.sleep(self.layout["poll_interval_sec"])
         raise _error(f"page transition timed out: {source} -> {target}")
+
+    def _bento_matches(self, image, paths, threshold, *, grayscale):
+        check_cancelled()
+        hits = self.vision.find_templates_batch(
+            source_image=image, template_images=paths, threshold=threshold,
+            use_grayscale=grayscale, match_method=cv2.TM_CCOEFF_NORMED, preprocess="none",
+        )
+        check_cancelled()
+        if len(hits) != len(paths) or any((getattr(hit, "debug_info", None) or {}).get("error") for hit in hits):
+            raise _error("bento readiness matching failed")
+        return [bool(hit.found) and math.isfinite(float(hit.confidence))
+                and float(hit.confidence) >= threshold for hit in hits]
+
+    def _bento_content_loaded(self, frame):
+        targets = self.layout["templates"]
+        work_paths = [targets[key]["resolved_path"] for key in ("bento_present", "bento_absent")]
+        threshold = max(targets[key]["threshold"] for key in ("bento_present", "bento_absent"))
+        # An explicitly rendered empty work slot is valid content, not a blank list.
+        if any(self._bento_matches(frame, work_paths, threshold, grayscale=True)):
+            return True
+        cfg = self.layout["bento_navigation"]
+        return any(self._bento_matches(frame, cfg["food_templates"], cfg["food_threshold"], grayscale=False))
+
+    def _bento_top_visible(self, frame):
+        vx, vy, _, _ = self.layout["bento_navigation"]["viewport"]
+        targets = self.layout["templates"]
+        paths = [targets[key]["resolved_path"] for key in ("bento_present", "bento_absent")]
+        threshold = max(targets[key]["threshold"] for key in ("bento_present", "bento_absent"))
+        for slot in self.layout["bento_slots"]:
+            x, y, w, h = slot["roi"]
+            hits = self._bento_matches(frame[y-vy:y-vy+h, x-vx:x-vx+w], paths, threshold, grayscale=True)
+            if sum(hits) != 1:
+                return False
+        return True
+
+    def prepare_bento_read(self):
+        """Wait for rendered content, then rewind once before reading selected inventories."""
+        from .love_bento_pc_actions import LoveBentoScanner
+
+        cfg = self.layout["bento_navigation"]
+        started = time.monotonic()
+        deadline = started + cfg["total_timeout_sec"]
+        interval = self.layout["poll_interval_sec"]
+
+        def guard():
+            check_cancelled()
+            if time.monotonic() >= deadline:
+                raise _error("bento rewind exceeded total timeout; old inventory retained")
+
+        def ready_frame():
+            until = min(deadline, time.monotonic() + self.layout["bento_ready_timeout_sec"])
+            previous, stable = None, 0
+            while time.monotonic() < until:
+                guard()
+                if self.is_page("bento_cabinet"):
+                    frame = self.capture(cfg["viewport"])
+                    if self._bento_content_loaded(frame):
+                        stable = stable + 1 if previous is not None and LoveBentoScanner.unchanged(previous, frame) else 0
+                        previous = frame
+                        if stable >= 2:
+                            guard()
+                            return frame
+                    else:
+                        previous, stable = None, 0
+                else:
+                    previous, stable = None, 0
+                time.sleep(interval)
+            raise _error("bento cabinet/content did not finish loading; old inventory retained")
+
+        logger.info("[RecoveryBento] phase=wait_content_ready viewport=%s", cfg["viewport"])
+        frame = ready_frame()
+        logger.info("[RecoveryBento] phase=content_ready elapsed_sec=%.3f", time.monotonic() - started)
+        vx, vy, vw, vh = cfg["viewport"]
+        x, start_y, end_y = round(vx + vw * .5), round(vy + vh * .15), round(vy + vh * .85)
+        stationary = 0
+        for count in range(1, cfg["max_drags"] + 1):
+            guard()
+            if not self.is_page("bento_cabinet"):
+                raise _error("bento cabinet disappeared before rewind drag")
+            guard()
+            result = self.app.drag(x, start_y, x, end_y, duration=.6, hold_before_release_sec=.2)
+            if getattr(result, "success", True) is False:
+                raise _error("bento rewind input failed")
+            following = ready_frame()
+            stationary = stationary + 1 if LoveBentoScanner.unchanged(frame, following) else 0
+            frame = following
+            top = self._bento_top_visible(frame)
+            logger.info("[RecoveryBento] phase=rewind drag=%s/%s stationary=%s top_visible=%s direction=down",
+                        count, cfg["max_drags"], stationary, top)
+            if stationary >= cfg["stationary_confirmations"]:
+                if not top:
+                    raise _error("bento list stopped away from the top; old inventory retained")
+                logger.info("[RecoveryBento] phase=top_confirmed drags=%s elapsed_sec=%.3f",
+                            count, time.monotonic() - started)
+                return
+        raise _error("bento list top not confirmed within drag limit; old inventory retained")
 
     def _match_free_uses_digit(self, image: np.ndarray) -> tuple[int | None, str]:
         digits = self.layout["sparkling_water_digits"]
@@ -359,6 +483,7 @@ class RecoveryReader:
                 self.move("sparkling_water_popup", "fatigue_recovery", "rest_info")
             if set(sections).intersection({"work_meals", "love_bentos"}):
                 self.move("fatigue_recovery", "bento_cabinet", "bento_button")
+                self.prepare_bento_read()
                 if "work_meals" in sections:
                     result["work_meals"] = self.read_work_meals()
                     on_result("work_meals", result["work_meals"])

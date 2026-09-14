@@ -217,12 +217,19 @@ def test_reader_emits_only_selected_results_before_updated(layout, monkeypatch, 
     monkeypatch.setattr(reader, "read_sparkling_water", lambda: read_section("sparkling_water"))
     monkeypatch.setattr(reader, "read_work_meals", lambda: read_section("work_meals"))
     monkeypatch.setattr(reader, "move", lambda *args: moves.append(args))
+    preparations = []
+    def prepare():
+        assert moves[-1] == ("fatigue_recovery", "bento_cabinet", "bento_button")
+        assert not {"work_meals", "love_bentos"}.intersection(reads)
+        preparations.append(True)
+    monkeypatch.setattr(reader, "prepare_bento_read", prepare)
     result = reader.read(
         sections, love_catalog=catalog if "love_bentos" in sections else None,
         on_result=lambda key, value: events.append(("result", key, value)),
         on_updated=lambda key: events.append(("updated", key)),
     )
     assert reads == sections
+    assert preparations == ([True] if set(sections).intersection({"work_meals", "love_bentos"}) else [])
     assert result == {key: values[key] for key in sections}
     assert events == [event for key in sections
                       for event in (("result", key, values[key]), ("updated", key))]
