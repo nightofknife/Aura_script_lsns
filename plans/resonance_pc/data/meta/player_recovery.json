@@ -28,6 +28,7 @@
     "popup": {"path": "templates/player_recovery/popup.png", "roi": [930, 170, 100, 45], "threshold": 0.85},
     "bento_button": {"path": "templates/player_recovery/bento_button.png", "roi": [1040, 570, 150, 75], "threshold": 0.85},
     "bento_page": {"path": "templates/player_recovery/bento_page.png", "roi": [330, 6, 215, 65], "threshold": 0.85},
+    "bento_train": {"path": "templates/bento_consumption/train_return.png", "roi": [178, 14, 39, 45], "threshold": 0.95},
     "back": {"path": "templates/player_recovery/back.png", "roi": [10, 7, 145, 60], "threshold": 0.85},
     "bento_present": {"path": "templates/player_recovery/bento_present.png", "threshold": 0.85},
     "bento_absent": {"path": "templates/player_recovery/bento_absent.png", "threshold": 0.85}
