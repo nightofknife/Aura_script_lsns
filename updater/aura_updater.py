@@ -6,30 +6,38 @@ from ctypes import wintypes
 from dataclasses import dataclass
 import hashlib
 import json
+import logging
+from contextlib import contextmanager
 import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
 import sys
+import subprocess
+import time
+import uuid
 from typing import Any, Callable, Iterable
 import urllib.parse
 import urllib.request
+import urllib.error
 import zipfile
 
 
 RELEASES_URL = "https://github.com/nightofknife/Aura_script_lsns/releases"
 LATEST_CHECKSUMS_URL = f"{RELEASES_URL}/latest/download/SHA256SUMS.txt"
 FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
-VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
+VERSION_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 SHA256_RE = re.compile(r"^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$")
 RELEASE_ASSET_RE = re.compile(
-    r"^AuraResonance-(v?\d+\.\d+\.\d+)-win-x64-(?:cpu|gpu)\.zip$",
+    r"^AuraResonance-(v\d+\.\d+\.\d+)-win-x64-cpu\.zip$",
     re.IGNORECASE,
 )
 MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
+MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
+LOG = logging.getLogger("AuraUpdater")
 
 MANAGED_PATHS = (
     "runtime",
@@ -37,6 +45,7 @@ MANAGED_PATHS = (
     "models",
     "config.yaml",
     "AuraResonanceGui.exe",
+    "更新.exe",
     "run.ps1",
     "README.md",
     "LICENSE",
@@ -111,7 +120,14 @@ def _open_url(
     timeout_sec: float,
 ):
     open_url = opener or urllib.request.urlopen
-    return open_url(request, timeout=max(float(timeout_sec), 0.1))
+    for attempt in range(3):
+        try:
+            return open_url(request, timeout=max(float(timeout_sec), 0.1))
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            if attempt == 2 or (isinstance(exc, urllib.error.HTTPError) and exc.code < 500):
+                raise
+            LOG.warning("phase=network_retry attempt=%s reason=%s", attempt + 1, exc)
+            time.sleep(0.5 * (attempt + 1))
 
 
 def fetch_latest_release(
@@ -137,11 +153,7 @@ def fetch_latest_release(
     if parse_version(tag) is None:
         raise UpdateError("SHA256SUMS.txt 中的最新版本号无效")
 
-    asset_names = (
-        f"AuraResonance-{tag}-win-x64-cpu.zip",
-        f"AuraResonance-{tag}-win-x64-gpu.zip",
-        f"AuraResonance-{tag}-nvidia-cu13-overlay.zip",
-    )
+    asset_names = (f"AuraResonance-{tag}-win-x64-cpu.zip",)
     missing = [name for name in asset_names if name.casefold() not in checksums]
     if missing:
         raise UpdateError("SHA256SUMS.txt 缺少正式版资产：" + ", ".join(missing))
@@ -326,8 +338,8 @@ def load_installed_release(root: Path) -> tuple[str, str]:
     info = _load_json(root / "BUILD-INFO.json")
     tag = str(info.get("release_label") or "").strip()
     profile = str(info.get("profile") or "").strip().lower()
-    if parse_version(tag) is None or profile not in {"cpu", "gpu"}:
-        raise UpdateError("Installed BUILD-INFO.json is invalid")
+    if parse_version(tag) is None or profile != "cpu":
+        raise UpdateError("更新器仅支持带有正式 vX.X.X 版本号的 CPU 完整包")
     return tag, profile
 
 
@@ -339,28 +351,10 @@ def validate_staged_release(root: Path, *, tag: str, profile: str) -> None:
     ):
         raise UpdateError("Downloaded release does not match the selected tag and profile")
     for relative in REQUIRED_RELEASE_PATHS:
-        if not root.joinpath(*PurePosixPath(relative).parts).exists():
+        path = root.joinpath(*PurePosixPath(relative).parts)
+        valid = path.is_dir() if relative in {"plans", "models"} else path.is_file()
+        if not valid:
             raise UpdateError(f"Downloaded release is missing {relative}")
-
-
-def validate_staged_overlay(root: Path, *, tag: str) -> Path:
-    nvidia_root = root / "runtime" / "_internal" / "nvidia"
-    info = _load_json(nvidia_root / "AURA-OVERLAY-INFO.json")
-    if (
-        parse_version(info.get("release_label")) != parse_version(tag)
-        or str(info.get("profile") or "").strip().lower() != "overlay"
-        or str(info.get("target_profile") or "").strip().lower() != "gpu"
-    ):
-        raise UpdateError("Downloaded NVIDIA overlay does not match the selected release")
-    return nvidia_root
-
-
-def merge_staged_overlay(release_root: Path, overlay_root: Path, *, tag: str) -> None:
-    source = validate_staged_overlay(overlay_root, tag=tag)
-    destination = release_root / "runtime" / "_internal" / "nvidia"
-    if destination.exists():
-        shutil.rmtree(destination)
-    shutil.copytree(source, destination)
 
 
 def _normalize_windows_path(path: Path | str) -> str:
@@ -369,7 +363,13 @@ def _normalize_windows_path(path: Path | str) -> str:
 
 def _confined_child(root: Path, *parts: str) -> Path:
     resolved_root = root.resolve()
-    candidate = resolved_root.joinpath(*parts).resolve()
+    candidate = resolved_root.joinpath(*parts)
+    for parent in (candidate, *candidate.parents):
+        if parent == resolved_root:
+            break
+        if parent.is_symlink() or parent.is_junction():
+            raise UpdateError(f"更新路径不能穿过链接：{parent}")
+    candidate = candidate.resolve()
     try:
         candidate.relative_to(resolved_root)
     except ValueError as exc:
@@ -452,7 +452,7 @@ def _iter_windows_process_paths() -> Iterable[tuple[int, str]]:
     return records
 
 
-def _terminate_windows_pid(pid: int) -> None:
+def _terminate_windows_pid(pid: int, expected_path: str | None = None) -> None:
     if os.name != "nt":
         return
     PROCESS_TERMINATE = 0x0001
@@ -466,14 +466,27 @@ def _terminate_windows_pid(pid: int) -> None:
     kernel32.WaitForSingleObject.restype = wintypes.DWORD
     kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
     kernel32.CloseHandle.restype = wintypes.BOOL
+    kernel32.QueryFullProcessImageNameW.argtypes = (
+        wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)
+    )
+    kernel32.QueryFullProcessImageNameW.restype = wintypes.BOOL
 
-    process = kernel32.OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, False, int(pid))
+    process = kernel32.OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE | 0x1000, False, int(pid))
     if not process:
+        if ctypes.get_last_error() == 87:  # Process already exited.
+            return
         raise UpdateError("Could not open an Aura process for termination")
     try:
+        size = wintypes.DWORD(32768)
+        image = ctypes.create_unicode_buffer(size.value)
+        if not kernel32.QueryFullProcessImageNameW(process, 0, image, ctypes.byref(size)):
+            raise UpdateError(f"无法确认进程 {pid} 的程序路径")
+        if expected_path is not None and _normalize_windows_path(image.value) != expected_path:
+            return  # PID was reused by another program.
         if not kernel32.TerminateProcess(process, 1):
             raise UpdateError("Could not terminate an Aura process")
-        kernel32.WaitForSingleObject(process, 10_000)
+        if kernel32.WaitForSingleObject(process, 10_000) != 0:
+            raise UpdateError(f"Aura 进程 {pid} 未在限定时间内退出")
     finally:
         kernel32.CloseHandle(process)
 
@@ -486,14 +499,22 @@ def terminate_installed_processes(
 ) -> list[int]:
     targets = managed_process_targets(root)
     provide = process_provider or _iter_windows_process_paths
-    terminate = terminator or _terminate_windows_pid
     terminated: list[int] = []
     for pid, image_path in provide():
         if int(pid) == os.getpid():
             continue
         if _normalize_windows_path(image_path) in targets:
-            terminate(int(pid))
+            if terminator is None:
+                _terminate_windows_pid(int(pid), _normalize_windows_path(image_path))
+            else:
+                terminator(int(pid))
+            LOG.info("phase=process_stopped pid=%s path=%s", pid, image_path)
             terminated.append(int(pid))
+    if process_provider is None:
+        remaining = [(pid, path) for pid, path in _iter_windows_process_paths()
+                     if _normalize_windows_path(path) in targets]
+        if remaining:
+            raise UpdateError(f"安装目录仍有 Aura 进程运行：{remaining}")
     return terminated
 
 
@@ -504,21 +525,149 @@ def _remove_managed_target(path: Path) -> None:
         shutil.rmtree(path)
 
 
+def _journal_write(path: Path, state: dict) -> None:
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w", encoding="utf-8") as stream:
+        json.dump(state, stream, ensure_ascii=False, indent=2)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, path)
+
+
+def _tree_hash(path: Path) -> dict[str, str]:
+    if not path.exists():
+        raise UpdateError(f"更新文件缺失：{path}")
+    if path.is_symlink() or path.is_junction():
+        raise UpdateError(f"更新路径不能是链接：{path}")
+    files = [path] if path.is_file() else sorted(path.rglob("*"))
+    result = {}
+    for item in files:
+        if item.is_symlink() or item.is_junction():
+            raise UpdateError(f"更新路径不能包含链接：{item}")
+        if item.is_file():
+            with item.open("rb") as stream:
+                result[item.relative_to(path).as_posix() if item != path else "."] = hashlib.file_digest(stream, "sha256").hexdigest()
+    return result
+
+
+def _rollback(install_root: Path, journal: Path, state: dict) -> None:
+    state["status"] = "rolling_back"
+    _journal_write(journal, state)
+    errors = []
+    for entry in reversed(state["entries"]):
+        if entry["state"] in {"pending", "restored"}:
+            continue
+        name = entry["name"]
+        target = _confined_child(install_root, name)
+        backup = _confined_child(journal.parent, "backup", name)
+        try:
+            if backup.exists():
+                entry["state"] = "restoring"
+                _journal_write(journal, state)
+                if not (backup.is_file() and target.is_file()):
+                    _remove_managed_target(target)
+                os.replace(backup, target)
+            elif entry["had_old"]:
+                # A rename is atomic: either the backup exists, or the original
+                # never moved / was already restored before the last journal write.
+                if entry["state"] not in {"backing_up", "restoring"} or not target.exists():
+                    raise UpdateError(f"缺少恢复备份：{name}")
+            else:
+                _remove_managed_target(target)
+            entry["state"] = "restored"
+            _journal_write(journal, state)
+            LOG.info("phase=restored path=%s", name)
+        except Exception as exc:
+            LOG.exception("phase=rollback_failed path=%s", name)
+            errors.append(f"{name}: {exc}")
+    state["status"] = "rollback_failed" if errors else "rolled_back"
+    state["rollback_errors"] = errors
+    _journal_write(journal, state)
+    if errors:
+        raise UpdateError(f"回滚未完成，备份保留在 {journal.parent}：" + "; ".join(errors))
+
+
+def recover_pending_updates(root: Path) -> bool:
+    recovered = False
+    transactions = _confined_child(root, ".update-work", "transactions")
+    for journal in sorted(transactions.glob("*/transaction.json")):
+        state = _load_json(journal)
+        if state.get("schema") != 1 or state.get("install_root") != str(root.resolve()):
+            raise UpdateError(f"无法识别更新记录：{journal}")
+        entries = state.get("entries", [])
+        if [entry.get("name") for entry in entries] != list(MANAGED_PATHS):
+            raise UpdateError(f"更新记录的文件范围无效：{journal}")
+        if state.get("status") in {"installing", "rolling_back", "rollback_failed"}:
+            LOG.warning("phase=recover_interrupted transaction=%s", journal.parent.name)
+            _rollback(root, journal, state)
+            recovered = True
+    return recovered
+
+
 def install_staged_release(staged_root: Path, install_root: Path) -> None:
-    staged_root = staged_root.resolve()
-    install_root = install_root.resolve()
-    for relative in MANAGED_PATHS:
-        parts = PurePosixPath(relative).parts
-        source = staged_root.joinpath(*parts)
-        target = install_root.joinpath(*parts)
+    staged_root, install_root = staged_root.resolve(), install_root.resolve()
+    hashes = {}
+    entries = []
+    for name in MANAGED_PATHS:
+        source = _confined_child(staged_root, name)
+        target = _confined_child(install_root, name)
         if not source.exists():
-            raise UpdateError(f"Downloaded release is missing managed path {relative}")
-        _remove_managed_target(target)
-        if source.is_dir():
-            shutil.copytree(source, target)
-        else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
+            raise UpdateError(f"Downloaded release is missing managed path {name}")
+        hashes[name] = _tree_hash(source)
+        entries.append({"name": name, "had_old": target.exists(), "state": "pending"})
+    transaction = _confined_child(install_root, ".update-work", "transactions", uuid.uuid4().hex)
+    (transaction / "backup").mkdir(parents=True)
+    journal = transaction / "transaction.json"
+    state = {"schema": 1, "install_root": str(install_root), "status": "installing", "entries": entries}
+    _journal_write(journal, state)
+    try:
+        for entry in entries:
+            name = entry["name"]
+            target = _confined_child(install_root, name)
+            backup = _confined_child(transaction, "backup", name)
+            entry["state"] = "backing_up"
+            _journal_write(journal, state)
+            if entry["had_old"]:
+                if name == "更新.exe":
+                    # Keep a runnable updater at the root even if power is lost
+                    # between creating its backup and installing the new EXE.
+                    temporary_backup = backup.with_suffix(".tmp")
+                    with target.open("rb") as src, temporary_backup.open("wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                        dst.flush()
+                        os.fsync(dst.fileno())
+                    os.replace(temporary_backup, backup)
+                else:
+                    os.replace(target, backup)
+            entry["state"] = "installing"
+            _journal_write(journal, state)
+            os.replace(_confined_child(staged_root, name), target)
+            entry["state"] = "installed"
+            _journal_write(journal, state)
+            LOG.info("phase=installed path=%s", name)
+        for name, expected in hashes.items():
+            if _tree_hash(install_root / name) != expected:
+                raise UpdateError(f"安装后文件校验失败：{name}")
+        state["status"] = "completed"
+        _journal_write(journal, state)
+        LOG.info("phase=completed backup=%s", transaction / "backup")
+    except Exception as exc:
+        LOG.exception("phase=install_failed")
+        try:
+            _rollback(install_root, journal, state)
+        except Exception as rollback_error:
+            raise UpdateError(f"安装失败：{exc}；{rollback_error}") from exc
+        raise UpdateError(f"安装失败，已恢复旧版本：{exc}") from exc
+    # Retain this successful backup; older successful versions can now go.
+    for old_journal in transaction.parent.glob("*/transaction.json"):
+        if old_journal == journal:
+            continue
+        try:
+            if _load_json(old_journal).get("status") == "completed":
+                old_root = _confined_child(transaction.parent, old_journal.parent.name)
+                shutil.rmtree(old_root)
+        except Exception:
+            LOG.warning("phase=old_backup_cleanup_deferred path=%s", old_journal.parent)
 
 
 def _download_and_verify(
@@ -528,11 +677,35 @@ def _download_and_verify(
     *,
     opener: Callable[..., Any] | None,
 ) -> Path:
-    actual = download_asset(asset, destination, opener=opener)
+    LOG.info("phase=download asset=%s", asset.name)
+    actual = download_asset(asset, destination, opener=opener, max_bytes=MAX_DOWNLOAD_BYTES)
     if actual.lower() != expected_checksum(checksums, asset):
         destination.unlink(missing_ok=True)
         raise UpdateError(f"SHA-256 verification failed for {asset.name}")
     return destination
+
+
+@contextmanager
+def update_lock(root: Path):
+    """An OS-owned lock survives stale files but is released on process exit."""
+    import msvcrt
+    lock_path = _confined_child(root, ".update-work", "update.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as stream:
+        stream.seek(0, 2)
+        if stream.tell() == 0:
+            stream.write(b"0")
+            stream.flush()
+        stream.seek(0)
+        try:
+            msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError as exc:
+            raise UpdateError("此安装目录已有更新正在进行，请等待其完成") from exc
+        try:
+            yield
+        finally:
+            stream.seek(0)
+            msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def perform_update(
@@ -541,17 +714,32 @@ def perform_update(
     opener: Callable[..., Any] | None = None,
 ) -> bool:
     root = root.resolve()
+    with update_lock(root):
+        _cleanup_idle_helpers(root)
+        transactions = _confined_child(root, ".update-work", "transactions")
+        pending = any(_load_json(p).get("status") in {"installing", "rolling_back", "rollback_failed"}
+                      for p in transactions.glob("*/transaction.json"))
+        if pending:
+            terminate_installed_processes(root)
+        if recover_pending_updates(root):
+            raise UpdateError("已恢复上次中断的更新，请重新运行更新器检查新版")
+        return _perform_update_locked(root, opener=opener)
+
+
+def _perform_update_locked(root: Path, *, opener: Callable[..., Any] | None) -> bool:
     current_tag, profile = load_installed_release(root)
+    LOG.info("phase=check_version installed=%s profile=%s", current_tag, profile)
     release = fetch_latest_release(opener=opener)
     current_version = parse_version(current_tag)
     latest_version = parse_version(release.tag)
     if latest_version is None or current_version is None:
         raise UpdateError("Release version is invalid")
     if latest_version <= current_version:
+        LOG.info("phase=already_current latest=%s", release.tag)
         return False
 
-    download_root = _confined_child(root, "updates", release.tag)
-    work_root = _confined_child(root, ".update-work")
+    work_root = _confined_child(root, ".update-work", "downloads", uuid.uuid4().hex)
+    download_root = work_root
     checksums = release.checksums
 
     main_asset = select_asset(release, f"-win-x64-{profile}.zip")
@@ -564,42 +752,76 @@ def perform_update(
     expected_main_root = main_asset.name[:-4]
     staged_root = extract_release_archive(
         main_archive,
-        work_root / "staging" / "main",
+        work_root / "staging",
         expected_top_level=expected_main_root,
     )
     validate_staged_release(staged_root, tag=release.tag, profile=profile)
-
-    installed_overlay = root / "runtime" / "_internal" / "nvidia" / "AURA-OVERLAY-INFO.json"
-    if profile == "gpu" and installed_overlay.is_file():
-        overlay_asset = select_asset(release, "-nvidia-cu13-overlay.zip")
-        overlay_archive = _download_and_verify(
-            overlay_asset,
-            download_root / overlay_asset.name,
-            checksums,
-            opener=opener,
-        )
-        overlay_root = extract_release_archive(
-            overlay_archive,
-            work_root / "staging" / "overlay",
-            expected_top_level=expected_main_root,
-        )
-        merge_staged_overlay(staged_root, overlay_root, tag=release.tag)
-
+    LOG.info("phase=staged tag=%s", release.tag)
     terminate_installed_processes(root)
     install_staged_release(staged_root, root)
     shutil.rmtree(work_root, ignore_errors=True)
-    shutil.rmtree(download_root, ignore_errors=True)
-    shutil.rmtree(_confined_child(root, "updates"), ignore_errors=True)
     return True
 
 
 def self_check() -> None:
     if parse_version("v1.2.3") != (1, 2, 3):
         raise UpdateError("Version parser self-check failed")
-    if parse_version("1.2.3") != (1, 2, 3):
-        raise UpdateError("Legacy version parser compatibility self-check failed")
-    if "更新.exe" in MANAGED_PATHS or "gui-settings.ini" in MANAGED_PATHS or "logs" in MANAGED_PATHS:
+    if "更新.exe" not in MANAGED_PATHS or any(p in MANAGED_PATHS for p in ("gui-settings.ini", "logs", "user-data")):
         raise UpdateError("Portable-data preservation self-check failed")
+
+
+def _launch_helper(root: Path) -> None:
+    # Start a standalone copy before downloading or modifying anything. Only
+    # the helper acquires the install lock, so there is no lock handoff gap.
+    directory = _confined_child(root, ".update-work", "helpers", uuid.uuid4().hex)
+    directory.mkdir(parents=True)
+    helper = directory / "AuraUpdateHelper.exe"
+    shutil.copy2(sys.executable, helper)
+    env = os.environ.copy()
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    env["TEMP"] = env["TMP"] = env["TMPDIR"] = str(directory)
+    subprocess.Popen([str(helper), "--apply-root", str(root)], cwd=root, env=env,
+                     creationflags=subprocess.CREATE_NEW_CONSOLE, close_fds=True)
+
+
+def _cleanup_idle_helpers(root: Path) -> None:
+    helpers = _confined_child(root, ".update-work", "helpers")
+    active = {_normalize_windows_path(path) for _, path in _iter_windows_process_paths()}
+    active.add(_normalize_windows_path(sys.executable))
+    for directory in helpers.glob("*"):
+        try:
+            directory = _confined_child(helpers, directory.name)
+            if not directory.is_dir():
+                continue
+            # A newly launched starter may still be copying its helper before
+            # it appears in the process list. Never race that handoff.
+            if time.time() - directory.stat().st_mtime < 86400:
+                continue
+            if _normalize_windows_path(directory / "AuraUpdateHelper.exe") not in active:
+                shutil.rmtree(directory)
+        except Exception:
+            LOG.warning("phase=helper_cleanup_deferred path=%s", directory)
+
+
+def _wait_for_updater_exit(root: Path) -> None:
+    # A onefile app has a bootloader parent as well as the Python process.
+    # Wait for all processes using the original executable, not just one PID.
+    original = _normalize_windows_path(root / "更新.exe")
+    deadline = time.monotonic() + 30
+    while any(_normalize_windows_path(path) == original for _, path in _iter_windows_process_paths()):
+        if time.monotonic() >= deadline:
+            raise UpdateError("原更新器仍在运行，请关闭其他更新窗口后重试")
+        time.sleep(0.2)
+
+
+def _setup_log(root: Path) -> Path:
+    path = _confined_child(root, "logs", "updater", f"update-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}.log")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(path, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    LOG.addHandler(handler)
+    LOG.setLevel(logging.INFO)
+    return path
 
 
 def _write_console_line(message: str, ascii_fallback: str) -> None:
@@ -646,6 +868,7 @@ def _report_failure(error: BaseException, *, wait_for_enter: bool) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Aura 独立更新器")
     parser.add_argument("--self-check", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--apply-root", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.self_check:
         try:
@@ -656,17 +879,34 @@ def main(argv: list[str] | None = None) -> int:
         _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
         return 0
 
+    root = args.apply_root.resolve() if args.apply_root else application_root()
+    log_path = None
     try:
+        if getattr(sys, "frozen", False) and args.apply_root is None:
+            _launch_helper(root)
+            return 0
+        log_path = _setup_log(root)
+        if args.apply_root:
+            _wait_for_updater_exit(root)
         _write_console_line("正在检查最新正式版……", "Checking the latest formal release...")
-        updated = perform_update(application_root())
+        updated = perform_update(root)
         if updated:
             _write_console_line("更新完成。", "Update completed.")
         else:
             _write_console_line("当前已是最新正式版。", "The installed release is already current.")
+        if args.apply_root:
+            _wait_for_enter_after_failure()
         return 0
     except Exception as exc:
+        LOG.exception("phase=failed")
+        if log_path:
+            _write_console_line(f"更新日志：{log_path}", f"Update log: {log_path}")
         _report_failure(exc, wait_for_enter=True)
         return 1
+    finally:
+        for handler in list(LOG.handlers):
+            handler.close()
+            LOG.removeHandler(handler)
 
 
 if __name__ == "__main__":
