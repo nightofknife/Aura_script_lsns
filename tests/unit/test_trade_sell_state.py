@@ -17,7 +17,6 @@ class Rig(m.SellSession):
         self.inputs = []
         self.probe = probe
         self.cancelled = False
-        self.rewinds = 0
         super().__init__(None, None, self.check_cancel, self.error)
         monkeypatch.setattr(m.time, 'monotonic', lambda: self.clock)
 
@@ -41,9 +40,6 @@ class Rig(m.SellSession):
         self.inputs.append(self.clock)
         return {'clicked': True}
 
-    def rewind(self):
-        self.rewinds += 1
-
 
 @pytest.mark.parametrize('kind', ['empty_cargo', 'no_sellable_goods'])
 def test_skip_has_positive_evidence_and_never_selects(monkeypatch, kind):
@@ -51,13 +47,12 @@ def test_skip_has_positive_evidence_and_never_selects(monkeypatch, kind):
                 empty=kind=='empty_cargo',local=kind=='no_sellable_goods'))
     assert rig.select()['status']==kind
     assert not rig.inputs
-    assert rig.rewinds==(kind=='no_sellable_goods')
 
 
 def test_selected_with_local_leftovers_is_not_skipped(monkeypatch):
     rig=Rig(monkeypatch,lambda r: observation(cancel=True,commit=True,local=True))
     assert rig.select()['status']=='selected'
-    assert not rig.inputs and not rig.rewinds
+    assert not rig.inputs
 
 
 def test_selection_retries_lost_click(monkeypatch):
@@ -90,10 +85,58 @@ def test_commit_lost_click_does_not_return_or_skip(monkeypatch):
     assert len(rig.inputs)==3
 
 
-def test_transition_timeout_does_not_reclick_reappearing_button(monkeypatch):
-    rig=Rig(monkeypatch,lambda r: observation(commit=not r.inputs or r.clock>2.,cancel=True))
+def test_restored_sell_page_retries_and_recognizes_settlement(monkeypatch):
+    def probe(r):
+        if not r.inputs:
+            return observation(commit=True,cancel=True)
+        elapsed=r.clock-r.inputs[-1]
+        if len(r.inputs)==1:
+            return observation(commit=elapsed>=1.5,cancel=elapsed>=1.5)
+        return observation(settlement=elapsed>=1.)
+    rig=Rig(monkeypatch,probe)
+    rig.submit()
+    assert len(rig.inputs)==2
+
+
+def test_repeated_transitions_share_click_and_time_limits(monkeypatch):
+    def probe(r):
+        present=not r.inputs or r.clock-r.inputs[-1]>=1.
+        return observation(commit=present,cancel=present)
+    rig=Rig(monkeypatch,probe)
+    with pytest.raises(Failure,match='sell_click_unconfirmed'):
+        rig.submit()
+    assert len(rig.inputs)==3
+    assert rig.clock<9.  # first transition at ~0.5s; later ones cannot reset it
+
+
+@pytest.mark.parametrize('both', [True, False])
+def test_transient_or_partial_page_restoration_does_not_reclick(monkeypatch,both):
+    def probe(r):
+        if not r.inputs:
+            return observation(commit=True,cancel=True)
+        blink=1. <= r.clock <1.2
+        return observation(commit=blink if both else r.clock>=1.,
+                           cancel=blink if both else False,
+                           settlement=r.clock>=3.)
+    rig=Rig(monkeypatch,probe)
+    rig.submit()
+    assert len(rig.inputs)==1
+
+
+def test_transition_timeout_without_page_return(monkeypatch):
+    rig=Rig(monkeypatch,lambda r: observation(commit=not r.inputs,cancel=not r.inputs))
     with pytest.raises(Failure,match='sell_settlement_timeout'):
         rig.submit()
+    assert len(rig.inputs)==1
+
+
+def test_settlement_wins_when_both_buttons_reappear(monkeypatch):
+    def probe(r):
+        if not r.inputs:
+            return observation(commit=True,cancel=True)
+        return observation(commit=r.clock>=1.,cancel=r.clock>=1.,settlement=r.clock>=1.2)
+    rig=Rig(monkeypatch,probe)
+    rig.submit()
     assert len(rig.inputs)==1
 
 

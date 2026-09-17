@@ -76,7 +76,7 @@ class SellSession:
         return {'clicked': True, 'x': x, 'y': y, 'method': 'template'}
 
     @staticmethod
-    def state(o, allow_local):
+    def state(o):
         if not o['commit']['found']:
             return 'unknown'
         if o['cancel']['found']:
@@ -85,55 +85,25 @@ class SellSession:
             return 'unknown'
         if o['empty']['found']:
             return 'empty_cargo' if not o['local']['found'] else 'unknown'
-        if allow_local and o['local']['found']:
+        if o['local']['found']:
             return 'no_sellable_goods'
         return 'candidate'
 
-    def rewind(self):
-        # The list may retain its scroll position. Downward swipes move it to
-        # its top; compare only the stationary list, excluding animated NPCs.
-        prior = self.capture()[145:675, 505:855]
-        stationary = 0
-        for attempt in range(10):
-            self.guard()
-            result = self.app.drag(start_x=700, start_y=230, end_x=700, end_y=650,
-                                   duration=.5, hold_before_release_sec=.2)
-            if getattr(result, 'success', True) is False:
-                self.fail('sell_rewind_failed', '货舱列表回顶输入失败', {})
-            self.pause(.3)
-            frame = self.capture()
-            o = self.observe(('all', 'cancel', 'commit'), frame)
-            if not o['all']['found'] or o['cancel']['found'] or not o['commit']['found']:
-                self.fail('sell_rewind_failed', '货舱回顶时页面状态变化', o)
-            current = frame[145:675, 505:855]
-            delta = np.max(np.abs(current.astype(np.int16)-prior.astype(np.int16)), axis=2)
-            stationary = stationary+1 if float(np.mean(delta > 15)) < .01 else 0
-            logger.info('[TradeSellSelection] phase=rewind drag=%s stationary=%s/2', attempt+1, stationary)
-            if stationary >= 2:
-                return
-            prior = current
-        self.fail('sell_rewind_failed', '未能确认货舱列表已回到顶部', {})
-
     def select(self):
         keys = ('empty', 'local', 'all', 'cancel', 'commit')
-        previous, stable, clicks, rewound = None, 0, [], False
+        # Opening the sell page places the cargo list at its top.
+        previous, stable, clicks = None, 0, []
         deadline = time.monotonic()+6.
         next_click = 0.
         while time.monotonic() < deadline:
             o = self.observe(keys)
-            state = self.state(o, rewound)
+            state = self.state(o)
             stable = stable+1 if state == previous else 1
             previous = state
             logger.info('[TradeSellSelection] state=%s stable=%s/2 clicks=%s observation=%s', state, stable, len(clicks), o)
             if state in ('selected', 'empty_cargo', 'no_sellable_goods') and stable >= 2:
                 return {'status': state, 'clicks': clicks, 'observation': o}
             if state == 'candidate' and stable >= 2:
-                if not rewound:
-                    self.rewind()
-                    rewound = True
-                    previous, stable = None, 0
-                    deadline = time.monotonic()+6.  # selection budget starts after bounded rewind
-                    continue
                 if len(clicks) < 3 and time.monotonic() >= next_click:
                     clicks.append(self.click(o['all']))
                     next_click = time.monotonic()+.8
@@ -144,19 +114,40 @@ class SellSession:
     def submit(self):
         deadline = time.monotonic()+8.
         transition = False
+        transition_seen = False
+        restored = 0
         absence = 0
         clicks = []
         next_click = 0.
         while time.monotonic() < deadline:
             o = self.observe(('settlement', 'commit', 'cancel'))
-            logger.info('[TradeSellCommit] transition=%s clicks=%s absence=%s/2 observation=%s', transition, len(clicks), absence, o)
+            logger.info('[TradeSellCommit] transition=%s clicks=%s absence=%s/2 restored=%s/2 observation=%s', transition, len(clicks), absence, restored, o)
             if o['settlement']['found']:
                 return {'clicks': clicks, 'transition_confirmed': transition, 'settlement': o['settlement']}
+            if time.monotonic() >= deadline:
+                break
+            if transition:
+                restored = restored+1 if o['commit']['found'] and o['cancel']['found'] else 0
+                if restored >= 2:
+                    transition = False
+                    absence = 0
+                    restored = 0
+                    logger.info('[TradeSellCommit] phase=sell_page_restored clicks=%s/3 remaining_sec=%.3f',
+                                len(clicks), max(0., deadline-time.monotonic()))
+                # Re-observe before retrying: settlement retains priority even
+                # when it appears immediately after the restored page.
+                self.pause(.2)
+                continue
             if not transition:
                 absence = absence+1 if clicks and not o['commit']['found'] else 0
                 if absence >= 2:
                     transition = True
-                    deadline = time.monotonic()+8.
+                    restored = 0
+                    # Start the settlement allowance once. Subsequent returns
+                    # to the sell page share this deadline and the click budget.
+                    if not transition_seen:
+                        deadline = time.monotonic()+8.
+                        transition_seen = True
                     logger.info('[TradeSellCommit] phase=transition_confirmed')
                 elif o['commit']['found'] and o['cancel']['found'] and len(clicks) < 3 and time.monotonic() >= next_click:
                     clicks.append(self.click(o['commit']))
