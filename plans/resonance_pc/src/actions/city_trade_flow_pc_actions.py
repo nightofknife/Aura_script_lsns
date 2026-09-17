@@ -405,6 +405,7 @@ def _wait_template(
     deadline = time.monotonic() + max(float(timeout_sec), 0.0)
     last: Dict[str, Any] = {"found": False, "template": template, "region": list(region)}
     while True:
+        _check_trade_cancelled()
         last = _match_template(app, vision, template, region, threshold)
         if last.get("found"):
             return last
@@ -523,6 +524,7 @@ def _close_settlement(
         _SETTLEMENT_EXIT_POINT,
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
+    _check_trade_cancelled()
     app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
     time.sleep(0.8)
     recheck = _wait_template(
@@ -544,6 +546,7 @@ def _close_settlement(
     retried = False
     final_match = recheck
     if recheck.get("found"):
+        _check_trade_cancelled()
         app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
         retried = True
         time.sleep(0.8)
@@ -1110,23 +1113,11 @@ def resonance_pc_sell_goods_on_sell_page(
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     _report_worker("sell", "started", data={"raise_to_cap": bool(raise_to_cap)})
-    sell_all_match = _wait_template(
-        app,
-        vision,
-        _SELL_ALL_TEMPLATE,
-        _SELL_ALL_REGION,
-        threshold=0.86,
-        timeout_sec=3.0,
-        interval_sec=0.3,
-    )
-    sell_all_click = {"clicked": False, "reason": "template_not_found", "match": sell_all_match}
-    if sell_all_match.get("found") and sell_all_match.get("center"):
-        x, y = sell_all_match["center"]
-        app.click(x=int(x), y=int(y))
-        sell_all_click = {
-            "clicked": True, "x": int(x), "y": int(y),
-            "method": "template", "match": sell_all_match,
-        }
+    from ._trade_sell_state import SellSession
+    session = SellSession(app, vision, _check_trade_cancelled, _raise_error)
+    selection = session.select()
+    sell_all_click = (selection['clicks'][-1] if selection['clicks']
+                      else {"clicked": False, "reason": selection['status']})
     log_method = logger.info if sell_all_click.get("clicked") else logger.warning
     log_method(
         "[TradeSell] phase=sell_all_selection clicked=%s detail=%s context=%s",
@@ -1140,8 +1131,8 @@ def resonance_pc_sell_goods_on_sell_page(
         vision=vision,
         max_attempts=negotiation_max_attempts,
     )
-    if sell_all_click.get("clicked"):
-        time.sleep(0.5)
+    commit = None
+    if selection['status'] == 'selected':
         try:
             if bool(raise_to_cap):
                 _report_worker("negotiation", "started", operation="raise")
@@ -1161,14 +1152,9 @@ def resonance_pc_sell_goods_on_sell_page(
                 data={"code": exc.code, "message": exc.message, "detail": dict(exc.detail)},
             )
             _raise_error(exc.code, exc.message, exc.detail)
-        sell_button_click = _wait_and_click_text(
-            app,
-            ocr,
-            ("卖出",),
-            _SELL_BUTTON_REGION,
-            timeout_sec=3.0,
-            interval_sec=0.3,
-        )
+        commit = session.submit()
+        sell_button_click = (commit['clicks'][-1] if commit['clicks']
+                             else {"clicked": False, "reason": "settlement_already_visible"})
         log_method = logger.info if sell_button_click.get("clicked") else logger.warning
         log_method(
             "[TradeSell] phase=sell_button clicked=%s detail=%s negotiation=%s context=%s",
@@ -1177,30 +1163,20 @@ def resonance_pc_sell_goods_on_sell_page(
             negotiation,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        if sell_button_click.get("clicked"):
-            time.sleep(0.5)
-            settlement = _close_settlement(app, vision, "sell", timeout_sec=3.0)
-    elif bool(raise_to_cap):
-        _raise_error(
-            "negotiation_without_selected_goods",
-            "Raising was requested, but the sell-all selection could not be made.",
-            {"sell_all_click": sell_all_click},
-        )
+        _check_trade_cancelled()
+        settlement = _close_settlement(app, vision, "sell", timeout_sec=3.0)
+        if not settlement.get('closed') or not settlement.get('final_absence_verified'):
+            _raise_error('sell_settlement_close_unconfirmed', '卖货结算关闭未确认', settlement)
 
     sold = bool(settlement.get("closed"))
-    if sold:
-        back = {
-            "skipped": True,
-            "reason": "sell_success_returns_to_shop_page",
-            "page_state": "shop_page",
-        }
-    else:
-        back = resonance_pc_tap_back_once(app=app, vision=vision)
+    back = session.return_to_shop(sold)
     result = {
         "success": True,
         "page_state": "shop_page",
         "sold_confirmed": sold,
-        "sell_result": "sold" if sold else "empty_or_no_result",
+        "sell_result": "sold" if sold else selection['status'],
+        "selection": selection,
+        "commit": commit,
         "sell_all_click": sell_all_click,
         "negotiation": negotiation,
         "sell_button_click": sell_button_click,
