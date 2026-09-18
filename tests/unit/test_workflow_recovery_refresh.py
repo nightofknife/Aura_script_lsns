@@ -1,4 +1,4 @@
-"""Mandatory resource refresh gates the GUI workflow without running the game."""
+"""Opted-in recovery gates the GUI workflow without running the game."""
 from __future__ import annotations
 
 import os
@@ -66,12 +66,32 @@ def test_run_button_waits_for_cancelled_worker_exit(window, monkeypatch):
 
 
 def configure(window, kinds=("trade",)):
+    # Tests exercising the refresh itself opt into a recovery feature.
+    window.trade_page.auto_sparkling_water.setChecked(True)
     page = window.workflow_page
     for key, check in page._task_checks.items():
         check.setChecked(key == ("battle" if kinds == ("battle",) else "commerce"))
     for key, check in page._commerce_checks.items():
         check.setChecked(key in kinds)
     page._commerce_order = list(kinds) if len(kinds) == 2 else ["trade", "passenger"]
+
+
+@pytest.mark.parametrize("startup", [False, True])
+@pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade"), ("passenger",), ("battle",)])
+def test_disabled_recovery_is_absent_from_queue_and_display(window, monkeypatch, startup, kinds):
+    configure(window, kinds)
+    window.workflow_page.trade_sparkling_water.setChecked(False)
+    window.workflow_page.trade_auto_bento.setChecked(False)
+    window.workflow_page._task_checks["startup"].setChecked(startup)
+    window._workflow_recovery_snapshot = {"player_data": {"stale": True}}
+    monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
+    window._start_workflow()
+    queue = window._workflow_pending
+    assert queue
+    assert all(row["step"] != "refresh_recovery" for row in queue)
+    assert "refresh_recovery" not in window.workflow_page._tree_items
+    assert window._workflow_recovery_snapshot == {}
+    assert (queue[0]["step"] == "startup") is startup
 
 
 def payload(remaining=6, count=2, love_items=()):
@@ -103,7 +123,7 @@ def finish_refresh(window, result):
 
 
 @pytest.mark.parametrize("kinds", [
-    ("trade",), ("passenger",), ("trade", "passenger"), ("passenger", "trade"), ("battle",),
+    ("trade",), ("trade", "passenger"), ("passenger", "trade"),
 ])
 def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     configure(window, kinds)
@@ -303,6 +323,12 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
         pending = deepcopy(window._workflow_pending)
         result = payload()
         result["user_data"]["player_data"]["status"]["fatigue"]["current"] = current
+        if not enabled and not bento_enabled:
+            assert calls and not refreshes
+            assert "recovery_snapshot" not in calls[-1]
+            assert window._workflow_recovery_snapshot == {}
+            window._finish_workflow(True, "done")
+            continue
         finish_refresh(window, result)
         inputs = calls[-1]
         assert inputs["recovery_snapshot"] == result["user_data"]["player_data"]
@@ -322,6 +348,9 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
         inputs["recovery_snapshot"]["metadata"].clear()
         assert window._workflow_recovery_snapshot["player_data"]["metadata"]["persisted"]
         window._finish_workflow(True, "done")
+    if not enabled and not bento_enabled:
+        assert len(calls) == 2 and not refreshes
+        return
     assert calls[0]["recovery_snapshot"]["status"]["fatigue"]["current"] == 120
     assert calls[1]["recovery_snapshot"]["status"]["fatigue"]["current"] == 230
     assert len(refreshes) == 2
@@ -441,7 +470,6 @@ def test_workflow_passenger_does_not_receive_snapshot(window):
     calls = []
     window.requestRunPcPassenger.connect(lambda inputs, _timeout: calls.append(inputs))
     window._start_workflow()
-    finish_refresh(window, payload())
     assert len(calls) == 1
     assert "recovery_snapshot" not in calls[0]
     assert "auto_sparkling_water" not in calls[0]

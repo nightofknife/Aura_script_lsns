@@ -914,7 +914,7 @@
     "expiration_mask": "templates/player_recovery/love_bento/masks/expiration_ring.png",
     "anchor_threshold": 0.94,
     "food_threshold": 0.86,
-    "role_threshold": 0.86,
+    "role_threshold": 0.85,
     "days_threshold": 0.85,
     "food_margin": 0.025,
     "role_margin": 0.025,

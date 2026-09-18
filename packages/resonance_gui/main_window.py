@@ -912,7 +912,9 @@ class ResonanceMainWindow(QMainWindow):
             QMessageBox.warning(self, "流程参数错误", str(exc))
             return
 
-        pending: list[dict[str, Any]] = [self._recovery_refresh_step()]
+        trade = snapshots.get("trade", {})
+        refresh_required = bool(trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False))
+        pending: list[dict[str, Any]] = [self._recovery_refresh_step()] if refresh_required else []
         for step in steps:
             if step == "startup":
                 pending.append({
@@ -969,11 +971,12 @@ class ResonanceMainWindow(QMainWindow):
         commerce_steps: list[str], trade_inputs: dict[str, Any] | None,
     ) -> None:
         display_steps = list(steps)
-        refresh_index = 0
-        if len(pending) > 1 and pending[1]["step"] == "startup":
-            pending[0], pending[1] = pending[1], pending[0]
-            refresh_index = 1
-        display_steps.insert(refresh_index, "refresh_recovery")
+        if pending and pending[0]["step"] == "refresh_recovery":
+            refresh_index = 0
+            if len(pending) > 1 and pending[1]["step"] == "startup":
+                pending[0], pending[1] = pending[1], pending[0]
+                refresh_index = 1
+            display_steps.insert(refresh_index, "refresh_recovery")
         self._workflow_pending = pending
         self._workflow_recovery_snapshot = {}
         self._workflow_active = True
