@@ -219,6 +219,7 @@ def test_actual_dispatch_vs_stored_config(window, monkeypatch, enabled, entry):
     formal.book_budget.setValue(17)
     formal.auto_book.setChecked(enabled)
     formal.auto_sparkling_water.setChecked(False)
+    formal.auto_bento.setChecked(False)
     expected = formal.collect_inputs()
     if entry == "formal":
         formal._request_start()
@@ -235,20 +236,9 @@ def test_actual_dispatch_vs_stored_config(window, monkeypatch, enabled, entry):
         for key, check in window.workflow_page._commerce_checks.items():
             check.setChecked(key == "trade")
         window._start_workflow()
-        assert runner.calls == []
-        # Simulate successful mandatory refresh; no game or runner work is performed.
-        snapshot = {
-            "status": {"fatigue": {"current": 120, "max": 800}},
-            "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6},
-                         "work_meals": {"available_count": 2},
-                         "love_bentos": {"count": 0, "items": []}},
-            "metadata": {"persisted": True},
-        }
-        window._workflow_recovery_snapshot = {"player_data": snapshot}
-        window._dispatch_next_workflow_task()
-        expected["recovery_snapshot"] = deepcopy(snapshot)
-        del expected["recovery_snapshot"]["recovery"]["love_bentos"]
-        expected["recovery_snapshot"]["recovery"]["sparkling_water"]["requires_refresh"] = False
+        assert window._workflow_current["step"] == "trade"
+        assert window._workflow_recovery_snapshot == {}
+        assert "refresh_recovery" not in window.workflow_page._tree_items
     else:
         window._start_commerce_sequence(True, entry == "combined")
     assert len(runner.calls) == 1
@@ -264,8 +254,7 @@ def test_actual_dispatch_vs_stored_config(window, monkeypatch, enabled, entry):
     assert saved["auto_book"] is enabled
     assert "recovery_snapshot" not in saved
     if entry == "quick":
-        actual["recovery_snapshot"]["recovery"].clear()
-        assert window._workflow_recovery_snapshot["player_data"]["recovery"]
+        assert "recovery_snapshot" not in actual
 
 
 def test_bridge_preview_removes_execution_only(window, monkeypatch):
