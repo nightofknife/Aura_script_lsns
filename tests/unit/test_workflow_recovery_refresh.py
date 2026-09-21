@@ -114,6 +114,20 @@ def payload(remaining=6, count=2, love_items=()):
     }
 
 
+@pytest.mark.parametrize(("water", "bento", "priority", "expected"), [
+    (True, False, ["work_meals", "love_bentos"], ["fatigue", "sparkling_water"]),
+    (False, True, ["work_meals", "love_bentos"], ["fatigue", "work_meals", "love_bentos"]),
+    (False, True, ["work_meals"], ["fatigue", "work_meals"]),
+    (False, True, ["love_bentos"], ["fatigue", "love_bentos"]),
+    (True, True, ["love_bentos", "work_meals"], ["fatigue", "sparkling_water", "work_meals", "love_bentos"]),
+])
+def test_recovery_refresh_reads_only_enabled_resources(window, water, bento, priority, expected):
+    trade = window._settings.load_trade_inputs()
+    trade.update(auto_sparkling_water=water, auto_bento=bento, bento_priority=priority)
+    step = window._recovery_refresh_step(trade)
+    assert step["inputs"] == {"stages": ["profile"], "profile_sections": expected}
+
+
 def finish_refresh(window, result):
     window._active_game_name = PC_GAME_NAME
     window._active_kind = "workflow_task"
@@ -137,7 +151,7 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     assert calls[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
     assert calls[0][1] == {
         "stages": ["profile"],
-        "profile_sections": ["fatigue", "sparkling_water", "work_meals", "love_bentos"],
+        "profile_sections": ["fatigue", "sparkling_water"],
     }
     assert window._workflow_current["step"] == "refresh_recovery"
     assert all(row["step"] not in {"refresh_recovery", "startup"} for row in window._workflow_pending)

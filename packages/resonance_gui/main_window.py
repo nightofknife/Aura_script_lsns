@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import threading
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
 from PySide6.QtWidgets import (
@@ -642,18 +642,22 @@ class ResonanceMainWindow(QMainWindow):
         self._settings.save_trade_inputs(inputs)
 
     @staticmethod
-    def _recovery_refresh_step() -> dict[str, Any]:
+    def _recovery_refresh_step(trade: Mapping[str, Any]) -> dict[str, Any]:
+        profile_sections = ["fatigue"]
+        if bool(trade.get("auto_sparkling_water", False)):
+            profile_sections.append("sparkling_water")
+        if bool(trade.get("auto_bento", False)):
+            priority = trade.get("bento_priority")
+            selected = priority if isinstance(priority, list) else ["work_meals", "love_bentos"]
+            profile_sections.extend(
+                key for key in ("work_meals", "love_bentos") if key in selected
+            )
         return {
             "step": "refresh_recovery",
             "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
             "inputs": {
                 "stages": ["profile"],
-                "profile_sections": [
-                    "fatigue",
-                    "sparkling_water",
-                    "work_meals",
-                    "love_bentos",
-                ],
+                "profile_sections": profile_sections,
             },
             "label": "刷新恢复资源",
             "dispatch": "pc_task",
@@ -678,7 +682,7 @@ class ResonanceMainWindow(QMainWindow):
                 ),
             }
         self._begin_workflow(
-            [self._recovery_refresh_step(), task], ["commerce"], commerce_steps, trade,
+            [self._recovery_refresh_step(trade), task], ["commerce"], commerce_steps, trade,
         )
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
@@ -914,7 +918,7 @@ class ResonanceMainWindow(QMainWindow):
 
         trade = snapshots.get("trade", {})
         refresh_required = bool(trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False))
-        pending: list[dict[str, Any]] = [self._recovery_refresh_step()] if refresh_required else []
+        pending: list[dict[str, Any]] = [self._recovery_refresh_step(trade)] if refresh_required else []
         for step in steps:
             if step == "startup":
                 pending.append({
