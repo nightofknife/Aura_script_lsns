@@ -647,11 +647,7 @@ class ResonanceMainWindow(QMainWindow):
         if bool(trade.get("auto_sparkling_water", False)):
             profile_sections.append("sparkling_water")
         if bool(trade.get("auto_bento", False)):
-            priority = trade.get("bento_priority")
-            selected = priority if isinstance(priority, list) else ["work_meals", "love_bentos"]
-            profile_sections.extend(
-                key for key in ("work_meals", "love_bentos") if key in selected
-            )
+            profile_sections.append("bento_count")
         return {
             "step": "refresh_recovery",
             "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
@@ -1698,7 +1694,9 @@ class ResonanceMainWindow(QMainWindow):
                     ))
                 else:
                     try:
-                        player = validate_recovery_refresh(result)
+                        player = validate_recovery_refresh(
+                            result, current["inputs"]["profile_sections"],
+                        )
                     except ValueError as exc:
                         self._abort_workflow(str(exc))
                     else:
@@ -1706,16 +1704,18 @@ class ResonanceMainWindow(QMainWindow):
                             "cid": extract_run_id(payload),
                             "player_data": player,
                         }
-                        water = player["recovery"]["sparkling_water"]
+                        water = player["recovery"].get("sparkling_water")
                         fatigue = player["status"]["fatigue"]
-                        work_meal_count = player["recovery"]["work_meals"]["available_count"]
-                        love_bento_count = player["recovery"]["love_bentos"]["count"]
+                        bento = player["recovery"].get("bento_count")
+                        resources = []
+                        if water is not None:
+                            resources.append(f"气泡水 {water['remaining_free_uses']}/{water['daily_free_limit']} 次")
+                        if bento is not None:
+                            resources.append(f"便当 {bento['count']} 份")
                         self.workflow_page.mark_step(
                             step, "success",
                             f"恢复资源已刷新：疲劳 {fatigue['current']}/{fatigue['max']}，"
-                            f"气泡水 {water['remaining_free_uses']}/"
-                            f"{water['daily_free_limit']} 次，工作餐 {work_meal_count} 份，"
-                            f"爱心便当 {love_bento_count} 份，数据已保存"
+                            f"{'，'.join(resources)}，数据已保存"
                             f"（CID: {extract_run_id(payload)}）",
                         )
                         self._workflow_current = None

@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import json
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
@@ -610,7 +610,9 @@ def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:
     return dict(data) if isinstance(data, Mapping) else {}
 
 
-def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
+def validate_recovery_refresh(
+    result: Mapping[str, Any], expected_sections: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """Require fatigue and recovery resources from this refresh, never cached data."""
     player = result.get("player_data")
     if not isinstance(player, Mapping):
@@ -627,60 +629,49 @@ def validate_recovery_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
     if type(current) is not int or type(maximum) is not int or current < 0 or maximum <= 0:
         raise ValueError("当前疲劳或疲劳上限无效。")
     recovery = player.get("recovery")
-    if not isinstance(recovery, Mapping):
-        raise ValueError("恢复资源刷新缺少气泡水、工作餐和爱心便当结果。")
-    water = recovery.get("sparkling_water")
-    work_meals = recovery.get("work_meals")
-    love_bentos = recovery.get("love_bentos")
-    if (
-        not isinstance(water, Mapping)
-        or not isinstance(work_meals, Mapping)
-        or not isinstance(love_bentos, Mapping)
-    ):
-        raise ValueError("恢复资源刷新缺少气泡水、工作餐或爱心便当结果。")
-    remaining = water.get("remaining_free_uses")
-    limit = water.get("daily_free_limit")
-    work_meal_count = work_meals.get("available_count")
-    love_bento_count = love_bentos.get("count")
-    love_bento_items = love_bentos.get("items")
-    if (
-        type(remaining) is not int or type(limit) is not int
-        or not 1 <= limit <= 6 or not 0 <= remaining <= limit
-    ):
-        raise ValueError("气泡水剩余次数或每日上限无效。")
-    if type(work_meal_count) is not int or not 0 <= work_meal_count <= 3:
-        raise ValueError("工作餐数量无效，应为 0–3 份。")
-    if (
-        type(love_bento_count) is not int
-        or love_bento_count < 0
-        or not isinstance(love_bento_items, list)
-        or love_bento_count != len(love_bento_items)
-    ):
-        raise ValueError("爱心便当识别结果无效。")
-    if water.get("requires_refresh") is True:
-        raise ValueError("气泡水数据要求重新刷新。")
+    selected = metadata.get("executed_profile_sections")
+    if not isinstance(selected, list):
+        selected = list(recovery) if isinstance(recovery, Mapping) else []
+    if expected_sections is not None and not set(expected_sections).issubset(selected):
+        raise ValueError("恢复资源刷新未执行本次勾选的全部项目。")
+    selected = list(expected_sections) if expected_sections is not None else selected
+    if any(section in selected for section in ("sparkling_water", "bento_count")) and not isinstance(recovery, Mapping):
+        raise ValueError("恢复资源刷新缺少恢复资源结果。")
+    if "sparkling_water" in selected:
+        water = recovery.get("sparkling_water")
+        if not isinstance(water, Mapping):
+            raise ValueError("恢复资源刷新缺少气泡水结果。")
+        remaining, limit = water.get("remaining_free_uses"), water.get("daily_free_limit")
+        if (type(remaining) is not int or type(limit) is not int
+                or not 1 <= limit <= 6 or not 0 <= remaining <= limit
+                or water.get("requires_refresh") is True):
+            raise ValueError("气泡水剩余次数或每日上限无效。")
+    if "bento_count" in selected:
+        bento = recovery.get("bento_count")
+        if (not isinstance(bento, Mapping) or type(bento.get("count")) is not int
+                or not 0 <= bento["count"] <= 12 or bento.get("requires_refresh") is True):
+            raise ValueError("便当总数无效，应为 0–12 份。")
     return copy.deepcopy(dict(player))
 
 
 def recovery_snapshot_task_input(player: Mapping[str, Any]) -> dict[str, Any]:
     """Project snapshot fields without weakening the runner's value validation."""
     fatigue = player["status"]["fatigue"]
-    water = player["recovery"]["sparkling_water"]
+    recovery = player.get("recovery") or {}
     projected = {
         "status": {"fatigue": {"current": fatigue["current"], "max": fatigue["max"]}},
-        "recovery": {
-            "sparkling_water": {
-                "remaining_free_uses": water["remaining_free_uses"],
-                "daily_free_limit": water["daily_free_limit"],
-                "requires_refresh": water.get("requires_refresh", False),
-            },
-        },
+        "recovery": {},
         "metadata": {"persisted": player["metadata"]["persisted"]},
     }
-    if "work_meals" in player["recovery"]:
-        projected["recovery"]["work_meals"] = {
-            "available_count": player["recovery"]["work_meals"]["available_count"]
+    if "sparkling_water" in recovery:
+        water = recovery["sparkling_water"]
+        projected["recovery"]["sparkling_water"] = {
+            "remaining_free_uses": water["remaining_free_uses"],
+            "daily_free_limit": water["daily_free_limit"],
+            "requires_refresh": water.get("requires_refresh", False),
         }
+    if "bento_count" in recovery:
+        projected["recovery"]["bento_count"] = {"count": recovery["bento_count"]["count"]}
     return projected
 
 

@@ -6,6 +6,13 @@
   "poll_interval_sec": 0.2,
   "click_interval_sec": 0.7,
   "sparkling_water_roi": [937, 221, 88, 52],
+  "bento_count_roi": [1152, 537, 24, 22],
+  "bento_count_digits": {
+    "directory": "templates/player_recovery/bento_count_digits",
+    "template_size": [24, 22],
+    "threshold": 0.74,
+    "min_score_margin": 0.08
+  },
   "sparkling_water_digits": {
     "directory": "templates/player_recovery/free_uses_digits",
     "template_size": [32, 48],

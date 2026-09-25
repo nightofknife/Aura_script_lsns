@@ -72,7 +72,7 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
         assert "profile" not in result
         assert result["metadata"]["executed_stages"] == ["profile"]
         assert result["metadata"]["executed_profile_sections"] == ["cargo", "clarity", "fatigue"]
-        assert result["metadata"]["skipped_profile_sections"] == ["sparkling_water", "work_meals", "love_bentos"]
+        assert result["metadata"]["skipped_profile_sections"] == ["sparkling_water", "bento_count", "work_meals", "love_bentos"]
         assert "recovery" not in result
         saved = service.read(player_data.USER_INFO_FILE)
         assert "profile" not in saved

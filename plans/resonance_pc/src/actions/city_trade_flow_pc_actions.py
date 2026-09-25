@@ -8,7 +8,6 @@ import contextvars
 import functools
 import math
 import threading
-import json
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -44,9 +43,8 @@ from .rubbish_recycling_pc_actions import (
 from ._sparkling_water_policy import validate_recovery_snapshot
 from ._freight_recovery_policy import (
     select_last_water_arrival, estimate_remaining_consumption,
-    plan_water_use, plan_bento_meals, validate_bento_priority,
+    plan_water_use, validate_bento_priority,
 )
-from ._bento_consumption_store import load_cached_inventory
 from ._player_data_persistence import load_pc_user_info
 from .sparkling_water_pc_actions import (
     resonance_pc_drink_sparkling_water_from_city_panel, _water_counts,
@@ -88,12 +86,17 @@ _BUY_PRODUCT_OCR_ALIASES = {"游乐城纪念徽章": ("游乐城纪念微章",)}
 
 
 class _TradeProgressReporter:
-    def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop):
+    def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop,
+                 initial_sequence: int = 0):
         self._event_bus = event_bus
         self._cid = str(cid)
         self._loop = loop
-        self._sequence = 0
+        self._sequence = initial_sequence
         self._lock = threading.Lock()
+
+    @property
+    def sequence(self) -> int:
+        return self._sequence
 
     async def emit(self, stage: str, state: str, **fields: Any) -> None:
         with self._lock:
@@ -147,7 +150,13 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
                 await reporter.emit("task", "started")
             result = await func(*args, **kwargs)
             if reporter is not None:
-                await reporter.emit("task", "completed", data={"status": result.get("status")})
+                if result.get("bento_pending"):
+                    result["bento_progress_sequence"] = reporter.sequence
+                else:
+                    failed = (result.get("success") is False or
+                              str(result.get("status") or "").lower() in {"failed", "blocked", "error", "cancelled"})
+                    await reporter.emit("task", "failed" if failed else "completed",
+                                        data={"status": result.get("status")})
             return result
         except Exception as exc:
             if reporter is not None:
@@ -1419,47 +1428,6 @@ async def _plan_and_execute_water_arrival(
     )
 
 
-async def _execute_terminal_bentos(*, page_state, reserve, priority, context, engine,
-                                   persistent_data, current_city, city_index) -> tuple[dict, dict]:
-    reporter = _ACTIVE_PROGRESS_REPORTER.get()
-    fields = {"current_city": current_city, "city_index": city_index}
-    plan: dict = {"planned": False, "reason": "not_planned", "meals": []}
-    result: dict = {"success": False, "triggered": False, "status": "failed", "page_state": "unknown"}
-    try:
-        if reporter is not None:
-            await reporter.emit("bento", "started", **fields, data={"phase": "fatigue_refresh"})
-        current = await _refresh_recovery_fatigue(page_state=page_state, context=context, engine=engine)
-        result["page_state"] = "city_main"
-        inventory, catalog = {}, {}
-        if current > reserve:
-            if "love_bentos" in priority:
-                catalog = json.loads((Path(__file__).resolve().parents[2] / "data/meta/love_bento.json").read_text(encoding="utf-8"))
-            inventory = load_cached_inventory(persistent_data, priority, catalog)
-        plan = plan_bento_meals(current, reserve, priority, inventory, catalog)
-        logger.info("[FreightRecovery] terminal bento plan=%s", plan)
-        if reporter is not None:
-            await reporter.emit("bento", "progress", **fields, data={"phase": "planned", "plan": plan})
-        if not plan["meals"]:
-            result = {"success": True, "triggered": False, "status": "skipped",
-                      "reason": plan["reason"], "page_state": "city_main"}
-        else:
-            result = {"success": False, "triggered": True, "status": "failed", "page_state": "unknown"}
-            consumed = await _call_recovery_action(
-                "resonance_pc.consume_bentos", {"meals": plan["meals"]}, context=context, engine=engine,
-            )
-            result = {**consumed, "triggered": True}
-            if consumed.get("success") is True and consumed.get("page_state") != "city_main":
-                result.update(success=False, status="failed", reason="bento_main_not_restored")
-        if reporter is not None:
-            await reporter.emit("bento", "completed" if result["success"] else "failed",
-                                **fields, data={"plan": plan, "result": result})
-    except Exception as exc:
-        result.update(success=False, status="failed", reason="bento_recovery_failed", error=str(exc))
-        if reporter is not None:
-            await reporter.emit("bento", "failed", **fields, data={"plan": plan, "result": result})
-    return plan, result
-
-
 async def _execute_sparkling_water_stop(
     selection: Dict[str, Any], *, page_state: str, app: Any, ocr: Any, vision: Any,
     city_shop_data: ResonancePcCityShopDataService, persistent_data: PersistentDataService,
@@ -2338,8 +2306,6 @@ async def resonance_pc_auto_cycle_trade_flow(
         bento_priority = validate_bento_priority(
             ["work_meals", "love_bentos"] if bento_priority is None else bento_priority,
         )
-        if persistent_data is None:
-            raise RuntimeError("Automatic bentos require persistent_data")
     if type(base_fatigue_reserve) is not int or base_fatigue_reserve < 0:
         raise ValueError("base_fatigue_reserve must be a nonnegative integer")
     if auto_sparkling_water:
@@ -2525,9 +2491,6 @@ async def resonance_pc_auto_cycle_trade_flow(
         "rubbish_recycling_city_name": None,
     }
     final_sale: Optional[Dict[str, Any]] = None
-    bento_plan = {"planned": False, "meals": [], "reason": "not_at_freight_end" if auto_bento else "disabled"}
-    bento_consumption = {"success": True, "triggered": False, "status": "skipped", "reason": bento_plan["reason"]}
-
     if plan.get("status") == "ok" and route:
         execution = await _execute_route(
             route=route,
@@ -2590,26 +2553,17 @@ async def resonance_pc_auto_cycle_trade_flow(
                     "to_city": endpoint_city,
                 },
             )
-            page_state = str(final_sale.get("page_state") or "city_main")
+            page_state = str(final_sale.get("page_state") or "unknown")
             if reporter is not None:
                 await reporter.emit(
                     "final_sale",
-                    "completed",
+                    "completed" if final_sale.get("success") is True and page_state == "city_main" else "failed",
                     city_index=len(route),
                     city_count=len(route) + 1,
                     leg_count=len(route),
                     current_city=endpoint_city,
                     data={"final_sale": final_sale},
                 )
-            if auto_bento:
-                if final_sale.get("success") is not True or page_state != "city_main":
-                    _raise_error("bento_final_trade_not_confirmed", "Final trade must complete before bento recovery", final_sale)
-                bento_plan, bento_consumption = await _execute_terminal_bentos(
-                    page_state=page_state, reserve=base_fatigue_reserve, priority=bento_priority,
-                    context=context, engine=engine, persistent_data=persistent_data,
-                    current_city=endpoint_city, city_index=len(route),
-                )
-                page_state = bento_consumption.get("page_state", "unknown")
     elif page_state == "city_panel":
         cleanup = await asyncio.to_thread(
             resonance_pc_go_city_main_direct,
@@ -2624,9 +2578,9 @@ async def resonance_pc_auto_cycle_trade_flow(
     execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts
     execution["arrival_timeout_seconds"] = normalized_arrival_timeout_seconds
     execution_status = str(execution.get("status") or "not_started").lower()
-    if bento_consumption.get("success") is not True:
+    if final_sale is not None and (final_sale.get("success") is not True or page_state != "city_main"):
         status = "failed"
-        reason = bento_consumption.get("reason") or "bento_recovery_failed"
+        reason = "final_sale_not_confirmed"
         success = False
     elif execution_status == "blocked":
         status = "blocked"
@@ -2641,6 +2595,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         reason = plan.get("reason")
         success = True
 
+    bento_pending = bool(auto_bento and success and status == "completed" and final_sale is not None)
     result = dict(plan)
     result_warnings = list(result.get("warnings") or [])
     result_warnings.extend(negotiation_execution["warnings"])
@@ -2654,8 +2609,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "warnings": result_warnings,
             "execution": execution,
             "final_sale": final_sale,
-            "bento_plan": bento_plan,
-            "bento_consumption": bento_consumption,
+            "bento_pending": bento_pending,
             "sparkling_water": execution.get("sparkling_water") or {
                 "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),
             },
@@ -2672,11 +2626,94 @@ async def resonance_pc_auto_cycle_trade_flow(
         }
     )
     if reporter is not None:
-        await reporter.emit(
-            "route",
-            "blocked" if status == "blocked" else ("failed" if not success else "completed"),
-            leg_count=len(route),
-            current_city=str(route[-1].get("to_city") or "") if route else str(current.get("city_name") or ""),
-            data={"status": status, "reason": reason},
-        )
+        if bento_pending:
+            await reporter.emit("bento", "started", city_index=len(route),
+                                current_city=str(route[-1].get("to_city") or ""),
+                                data={"phase": "onsite"})
+        else:
+            await reporter.emit(
+                "route",
+                "blocked" if status == "blocked" else ("failed" if not success else "completed"),
+                leg_count=len(route),
+                current_city=str(route[-1].get("to_city") or "") if route else str(current.get("city_name") or ""),
+                data={"status": status, "reason": reason},
+            )
+    return result
+
+
+@action_info(
+    name="resonance_pc.finish_auto_cycle_trade",
+    public=True,
+    read_only=False,
+    description="Merge the optional bento sub-task into the completed freight result.",
+)
+@requires_services(event_bus="core/event_bus")
+async def resonance_pc_finish_auto_cycle_trade(
+    trade_result: Dict[str, Any],
+    bento_framework: Optional[Dict[str, Any]] = None,
+    auto_bento: bool = False,
+    base_fatigue_reserve: int = 200,
+    event_bus: EventBus | None = None,
+    context: ExecutionContext | None = None,
+) -> Dict[str, Any]:
+    if (not isinstance(trade_result, dict) or type(auto_bento) is not bool
+            or type(base_fatigue_reserve) is not int or base_fatigue_reserve < 0):
+        raise ValueError("Invalid freight finalization inputs")
+    result = dict(trade_result)
+    pending = result.pop("bento_pending", False)
+    progress_sequence = result.pop("bento_progress_sequence", 0)
+    if type(pending) is not bool or type(progress_sequence) is not int or progress_sequence < 0:
+        raise ValueError("Invalid freight bento handoff")
+    if pending and (not auto_bento or result.get("success") is not True
+                    or result.get("status") != "completed" or result.get("page_state") != "city_main"):
+        raise ValueError("Inconsistent freight bento handoff")
+    if not pending:
+        result["bento_consumption"] = {
+            "success": True, "triggered": False, "status": "skipped",
+            "reason": "disabled" if not auto_bento else "not_at_freight_end",
+            "page_state": result.get("page_state", "unknown"),
+        }
+        return result
+
+    nodes = bento_framework.get("nodes") if isinstance(bento_framework, dict) else None
+    consume_node = nodes.get("consume") if isinstance(nodes, dict) else None
+    child = consume_node.get("output") if isinstance(consume_node, dict) else None
+    valid = (isinstance(child, dict) and type(child.get("success")) is bool
+             and isinstance(child.get("status"), str) and isinstance(child.get("page_state"), str)
+             and type(child.get("consumed_count")) is int
+             and child["consumed_count"] >= 0
+             and type(child.get("recovered_fatigue")) is int
+             and 0 <= child["recovered_fatigue"] <= 2000
+             and (type(child.get("computed_fatigue")) is int or
+                  (child.get("computed_fatigue") is None and child["success"] is False
+                   and child["consumed_count"] == 0))
+             and child.get("target_recovery_amount") == 2000
+             and child.get("allow_exceed_target") is False
+             and child.get("base_fatigue_reserve") == base_fatigue_reserve
+             and (child["consumed_count"] == 0 or child["computed_fatigue"] >= base_fatigue_reserve))
+    if not valid:
+        child_result = {"success": False, "status": "failed", "reason": "bento_result_invalid",
+                        "page_state": "unknown", "triggered": True,
+                        "error": "Bento sub-task did not return a valid consumption result"}
+    else:
+        child_result = {**child, "triggered": True}
+    result["bento_consumption"] = child_result
+    if child_result["success"] is not True or child_result["page_state"] != "city_main":
+        result.update(success=False,
+                      status="cancelled" if child_result["status"] == "cancelled" else "failed",
+                      reason=(child_result.get("reason") or "bento_recovery_failed")
+                      if child_result["success"] is not True else "bento_main_not_restored",
+                      page_state=child_result["page_state"])
+    else:
+        result["page_state"] = "city_main"
+
+    cid = str(context.data.get("cid") or "") if isinstance(context, ExecutionContext) else ""
+    if event_bus is not None and cid:
+        reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop(), progress_sequence)
+        await reporter.emit("bento", "completed" if result["success"] else "failed",
+                            city_index=len(result.get("route") or []),
+                            current_city=str((result.get("route") or [{}])[-1].get("to_city") or ""),
+                            data={"result": child_result})
+        await reporter.emit("task", "completed" if result["success"] else "failed",
+                            data={"status": result["status"], "reason": result.get("reason")})
     return result

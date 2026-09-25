@@ -94,7 +94,7 @@ def test_disabled_recovery_is_absent_from_queue_and_display(window, monkeypatch,
     assert (queue[0]["step"] == "startup") is startup
 
 
-def payload(remaining=6, count=2, love_items=()):
+def payload(remaining=6, count=2):
     return {
         "status": "success", "cid": "refresh-cid",
         "gui_item": {"task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF, "kind": "workflow_task"},
@@ -102,13 +102,12 @@ def payload(remaining=6, count=2, love_items=()):
             "status": {"fatigue": {"current": 120, "max": 800}},
             "recovery": {
                 "sparkling_water": {"remaining_free_uses": remaining, "daily_free_limit": 6},
-                "work_meals": {"available_count": count, "slots": []},
-                "love_bentos": {"count": len(love_items), "items": deepcopy(list(love_items))},
+                "bento_count": {"count": count},
             },
-            "metadata": {"persisted": True, "profile_section_updated_at": {
+            "metadata": {"persisted": True, "executed_profile_sections": ["fatigue", "sparkling_water", "bento_count"], "profile_section_updated_at": {
                 "fatigue": "2026-09-06T09:59:59Z",
                 "sparkling_water": "2026-09-06T10:00:00Z",
-                "work_meals": "2026-09-06T10:00:01Z", "love_bentos": "2026-09-06T10:00:02Z",
+                "bento_count": "2026-09-06T10:00:01Z",
             }},
         }},
     }
@@ -116,10 +115,10 @@ def payload(remaining=6, count=2, love_items=()):
 
 @pytest.mark.parametrize(("water", "bento", "priority", "expected"), [
     (True, False, ["work_meals", "love_bentos"], ["fatigue", "sparkling_water"]),
-    (False, True, ["work_meals", "love_bentos"], ["fatigue", "work_meals", "love_bentos"]),
-    (False, True, ["work_meals"], ["fatigue", "work_meals"]),
-    (False, True, ["love_bentos"], ["fatigue", "love_bentos"]),
-    (True, True, ["love_bentos", "work_meals"], ["fatigue", "sparkling_water", "work_meals", "love_bentos"]),
+    (False, True, ["work_meals", "love_bentos"], ["fatigue", "bento_count"]),
+    (False, True, ["work_meals"], ["fatigue", "bento_count"]),
+    (False, True, ["love_bentos"], ["fatigue", "bento_count"]),
+    (True, True, ["love_bentos", "work_meals"], ["fatigue", "sparkling_water", "bento_count"]),
 ])
 def test_recovery_refresh_reads_only_enabled_resources(window, water, bento, priority, expected):
     trade = window._settings.load_trade_inputs()
@@ -167,17 +166,15 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
         )
 
 
-@pytest.mark.parametrize("remaining,count", [(6, 3), (0, 0)])
-@pytest.mark.parametrize("love_items", [[], [
-    {"role_name": "Test role", "food_name": "Test meal", "remaining_days": 3},
-]])
-def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, remaining, count, love_items):
+@pytest.mark.parametrize("remaining,count", [(6, 3), (0, 0), (1, 12)])
+def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, remaining, count):
     configure(window)
+    window.trade_page.auto_bento.setChecked(True)
     calls = []
     window.requestRunPcTrade.connect(lambda *args: calls.append(args))
     window._start_workflow()
     assert calls == []
-    result = payload(remaining, count, love_items)
+    result = payload(remaining, count)
     finish_refresh(window, result)
     assert len(calls) == 1
     snapshot = window._workflow_recovery_snapshot
@@ -187,24 +184,35 @@ def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, 
     calls[0][0]["recovery_snapshot"]["status"]["fatigue"]["current"] = 999
     assert snapshot["player_data"]["status"]["fatigue"]["current"] == 120
     result["user_data"]["player_data"]["recovery"].clear()
-    assert snapshot["player_data"]["recovery"]["work_meals"]["available_count"] == count
-    assert snapshot["player_data"]["recovery"]["love_bentos"] == {
-        "count": len(love_items), "items": love_items,
-    }
+    assert snapshot["player_data"]["recovery"]["bento_count"]["count"] == count
     text = window.workflow_page.log_view.toPlainText()
     assert "疲劳 120/800" in text
-    assert f"气泡水 {remaining}/6 次，工作餐 {count} 份，爱心便当 {len(love_items)} 份" in text
+    assert f"气泡水 {remaining}/6 次，便当 {count} 份" in text
     assert window.workflow_page.task_progress_bar.value() == 1
 
 
+def test_bento_only_refresh_does_not_require_water(window):
+    configure(window)
+    window.trade_page.auto_sparkling_water.setChecked(False)
+    window.trade_page.auto_bento.setChecked(True)
+    window._start_workflow()
+    result = payload(count=9)
+    player = result["user_data"]["player_data"]
+    del player["recovery"]["sparkling_water"]
+    player["metadata"]["executed_profile_sections"] = ["fatigue", "bento_count"]
+    finish_refresh(window, result)
+    assert window._workflow_recovery_snapshot["player_data"]["recovery"] == {"bento_count": {"count": 9}}
+    assert "便当 9 份" in window.workflow_page.log_view.toPlainText()
+
+
 @pytest.mark.parametrize("problem", [
-    "task_failed", "missing_water", "missing_work_meals", "missing_love_bentos",
-    "legacy_bento_only", "not_persisted", "bad_water", "bad_work_meals", "bool_count",
-    "negative_love_count", "bool_love_count", "mismatched_love_count", "invalid_love_items",
+    "task_failed", "missing_water", "missing_bento_count", "missing_execution",
+    "not_persisted", "bad_water", "bool_count", "negative_count", "over_limit_count",
     "missing_fatigue", "invalid_fatigue",
 ])
 def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, problem):
     configure(window)
+    window.trade_page.auto_bento.setChecked(True)
     calls = []
     window.requestRunPcTrade.connect(lambda *args: calls.append(args))
     window._workflow_recovery_snapshot = {"old": True}
@@ -217,13 +225,10 @@ def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, prob
         result["error"] = "template missing"
     elif problem == "missing_water":
         del player["recovery"]["sparkling_water"]
-    elif problem == "missing_work_meals":
-        del player["recovery"]["work_meals"]
-    elif problem == "missing_love_bentos":
-        del player["recovery"]["love_bentos"]
-    elif problem == "legacy_bento_only":
-        player["recovery"]["bento"] = player["recovery"].pop("work_meals")
-        del player["recovery"]["love_bentos"]
+    elif problem == "missing_bento_count":
+        del player["recovery"]["bento_count"]
+    elif problem == "missing_execution":
+        player["metadata"]["executed_profile_sections"] = ["fatigue", "sparkling_water"]
     elif problem == "not_persisted":
         player["metadata"]["persisted"] = False
     elif problem == "bad_water":
@@ -232,16 +237,12 @@ def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, prob
         del player["status"]["fatigue"]
     elif problem == "invalid_fatigue":
         player["status"]["fatigue"] = {"current": 0, "max": 0}
-    elif problem == "negative_love_count":
-        player["recovery"]["love_bentos"]["count"] = -1
-    elif problem == "bool_love_count":
-        player["recovery"]["love_bentos"]["count"] = False
-    elif problem == "mismatched_love_count":
-        player["recovery"]["love_bentos"]["count"] = 1
-    elif problem == "invalid_love_items":
-        player["recovery"]["love_bentos"]["items"] = {}
+    elif problem == "negative_count":
+        player["recovery"]["bento_count"]["count"] = -1
+    elif problem == "over_limit_count":
+        player["recovery"]["bento_count"]["count"] = 13
     else:
-        player["recovery"]["work_meals"]["available_count"] = True if problem == "bool_count" else 4
+        player["recovery"]["bento_count"]["count"] = True
     finish_refresh(window, result)
     assert calls == []
     assert not window._workflow_active

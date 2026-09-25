@@ -693,6 +693,39 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.consume_bentos_to_floor
+    module: plans.resonance_pc.src.actions.bento_auto_recovery_pc_actions
+    function: resonance_pc_consume_bentos_to_floor
+    public: true
+    read_only: false
+    timeout: 660
+    description: Consume top-position bentos until target, floor or available meals
+      stop the run.
+    parameters:
+    - name: eat_work_meals
+      type: Any
+      required: false
+      default: true
+    - name: eat_love_bentos
+      type: Any
+      required: false
+      default: true
+    - name: bento_priority
+      type: Any
+      required: false
+      default: null
+    - name: target_recovery_amount
+      type: Any
+      required: false
+      default: 2000
+    - name: allow_exceed_target
+      type: Any
+      required: false
+      default: false
+    - name: base_fatigue_reserve
+      type: Any
+      required: false
+      default: -100
   - name: resonance_pc.consume_bentos
     module: plans.resonance_pc.src.actions.bento_consumption_pc_actions
     function: resonance_pc_consume_bentos
@@ -1085,6 +1118,30 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.finish_auto_cycle_trade
+    module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
+    function: resonance_pc_finish_auto_cycle_trade
+    public: true
+    read_only: false
+    timeout: null
+    description: Merge the optional bento sub-task into the completed freight result.
+    parameters:
+    - name: trade_result
+      type: Any
+      required: true
+      default: null
+    - name: bento_framework
+      type: Any
+      required: false
+      default: null
+    - name: auto_bento
+      type: Any
+      required: false
+      default: false
+    - name: base_fatigue_reserve
+      type: Any
+      required: false
+      default: 200
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -2619,13 +2676,13 @@ exports:
   - id: bento_consumption_pc/bento_consumption_pc
     title: Consume Bentos (PC)
     source: tasks/bento_consumption_pc.yaml
-    description: Main-screen-only reusable child task; consume individual meals and
-      return to main.
+    description: Consume top-position work meals and first love bento until the recovery
+      target or fatigue floor.
   - id: bento_consumption_pc
     title: Consume Bentos (PC)
     source: tasks/bento_consumption_pc.yaml
-    description: Main-screen-only reusable child task; consume individual meals and
-      return to main.
+    description: Consume top-position work meals and first love bento until the recovery
+      target or fatigue floor.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -2797,4 +2854,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-12T10:22:55Z'
+  generated_at: '2026-09-24T19:10:47Z'

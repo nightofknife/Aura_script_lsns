@@ -405,7 +405,7 @@ auto_combined_commerce_pc:
                   sparkling_water:
                     name: sparkling_water
                     type: dict
-                    required: true
+                    required: false
                     properties:
                       remaining_free_uses:
                         name: remaining_free_uses
@@ -425,17 +425,17 @@ auto_combined_commerce_pc:
                         required: false
                         enum:
                         - false
-                  work_meals:
-                    name: work_meals
+                  bento_count:
+                    name: bento_count
                     type: dict
                     required: false
                     properties:
-                      available_count:
-                        name: available_count
+                      count:
+                        name: count
                         type: number
                         required: true
                         min: 0
-                        max: 3
+                        max: 12
               metadata:
                 name: metadata
                 type: dict
@@ -523,7 +523,7 @@ auto_combined_commerce_pc:
               sparkling_water:
                 name: sparkling_water
                 type: dict
-                required: true
+                required: false
                 properties:
                   remaining_free_uses:
                     name: remaining_free_uses
@@ -543,17 +543,17 @@ auto_combined_commerce_pc:
                     required: false
                     enum:
                     - false
-              work_meals:
-                name: work_meals
+              bento_count:
+                name: bento_count
                 type: dict
                 required: false
                 properties:
-                  available_count:
-                    name: available_count
+                  count:
+                    name: count
                     type: number
                     required: true
                     min: 0
-                    max: 3
+                    max: 12
           metadata:
             name: metadata
             type: dict

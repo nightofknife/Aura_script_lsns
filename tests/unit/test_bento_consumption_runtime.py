@@ -74,6 +74,7 @@ def test_portion_is_deducted_once_and_unrelated_data_survives(tmp_path):
         "recovery": {"sparkling_water": {"remaining_free_uses": 6}},
         "metadata": {"profile_section_updated_at": {"fatigue": "unchanged"}}})
     seed_inventory(store)
+    store.merge("user-info.json", ["recovery"], {"bento_count": {"count": 3}})
     chosen = meal()
     for phase in ("consumption_pending", "consumption_confirmed", "consumption_confirmed", "completed"):
         updated = storage.record_portion(store, "test", 1, chosen, phase)
@@ -82,6 +83,7 @@ def test_portion_is_deducted_once_and_unrelated_data_survives(tmp_path):
     storage.record_portion(store, "test", 1, chosen, "consumption_confirmed")
     value = store.read("user-info.json")
     assert value["recovery"]["work_meals"]["available_count"] == 1
+    assert value["recovery"]["bento_count"]["count"] == 2
     assert value["recovery"]["sparkling_water"]["remaining_free_uses"] == 6
     assert value["recovery"]["love_bentos"] == inventory()["love_bentos"]
     assert value["recovery"]["work_meals"]["requires_refresh"] is False

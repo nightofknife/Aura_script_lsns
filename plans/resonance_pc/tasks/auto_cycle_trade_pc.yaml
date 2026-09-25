@@ -306,7 +306,7 @@ auto_cycle_trade_pc:
               sparkling_water:
                 name: sparkling_water
                 type: dict
-                required: true
+                required: false
                 properties:
                   remaining_free_uses:
                     name: remaining_free_uses
@@ -326,17 +326,17 @@ auto_cycle_trade_pc:
                     required: false
                     enum:
                     - false
-              work_meals:
-                name: work_meals
+              bento_count:
+                name: bento_count
                 type: dict
                 required: false
                 properties:
-                  available_count:
-                    name: available_count
+                  count:
+                    name: count
                     type: number
                     required: true
                     min: 0
-                    max: 3
+                    max: 12
           metadata:
             name: metadata
             type: dict
@@ -380,53 +380,76 @@ auto_cycle_trade_pc:
         bento_priority: "{{ inputs.bento_priority | default(['work_meals', 'love_bentos']) }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve | default(200) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
+    bento:
+      action: aura.run_task
+      depends_on: run
+      when: "{{ inputs.auto_bento and nodes.run.output.success and nodes.run.output.status == 'completed' and nodes.run.output.final_sale.success and nodes.run.output.page_state == 'city_main' }}"
+      params:
+        task_ref: tasks:bento_consumption_pc.yaml:bento_consumption_pc
+        inputs:
+          eat_work_meals: "{{ 'work_meals' in inputs.bento_priority }}"
+          eat_love_bentos: "{{ 'love_bentos' in inputs.bento_priority }}"
+          bento_priority: "{{ inputs.bento_priority }}"
+          target_recovery_amount: 2000
+          allow_exceed_target: false
+          base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
+    finish:
+      action: resonance_pc.finish_auto_cycle_trade
+      depends_on:
+        all:
+          - run
+          - {bento: "success|skipped"}
+      params:
+        trade_result: "{{ nodes.run.output }}"
+        bento_framework: "{{ nodes.bento.output }}"
+        auto_bento: "{{ inputs.auto_bento }}"
+        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
-    success: "{{ nodes.run.output.success }}"
-    status: "{{ nodes.run.output.status }}"
-    reason: "{{ nodes.run.output.reason }}"
-    snapshot_id: "{{ nodes.run.output.snapshot_id }}"
-    all_plan: "{{ nodes.run.output.all_plan }}"
-    city_path: "{{ nodes.run.output.city_path }}"
-    city_path_ids: "{{ nodes.run.output.city_path_ids }}"
-    required_end_city_ids: "{{ nodes.run.output.required_end_city_ids }}"
-    selected_end_city_id: "{{ nodes.run.output.selected_end_city_id }}"
-    selected_end_city_name: "{{ nodes.run.output.selected_end_city_name }}"
-    expected_profit: "{{ nodes.run.output.expected_profit }}"
-    expected_profit_exact: "{{ nodes.run.output.expected_profit_exact }}"
-    fatigue_budget: "{{ nodes.run.output.fatigue_budget }}"
-    expected_fatigue_used: "{{ nodes.run.output.expected_fatigue_used }}"
-    expected_fatigue_used_exact: "{{ nodes.run.output.expected_fatigue_used_exact }}"
-    remaining_expected_fatigue: "{{ nodes.run.output.remaining_expected_fatigue }}"
-    remaining_expected_fatigue_exact: "{{ nodes.run.output.remaining_expected_fatigue_exact }}"
-    books_budget: "{{ nodes.run.output.books_budget }}"
-    auto_book: "{{ nodes.run.output.auto_book }}"
-    book_budget_ignored: "{{ nodes.run.output.book_budget_ignored }}"
-    book_profit_threshold: "{{ nodes.run.output.book_profit_threshold }}"
-    book_incremental_profit: "{{ nodes.run.output.book_incremental_profit }}"
-    book_incremental_profit_exact: "{{ nodes.run.output.book_incremental_profit_exact }}"
-    average_book_profit: "{{ nodes.run.output.average_book_profit }}"
-    average_book_profit_exact: "{{ nodes.run.output.average_book_profit_exact }}"
-    books_used: "{{ nodes.run.output.books_used }}"
-    remaining_books: "{{ nodes.run.output.remaining_books }}"
-    negotiation_budget: "{{ nodes.run.output.negotiation_budget }}"
-    negotiation_max_attempts: "{{ nodes.run.output.negotiation_max_attempts }}"
-    negotiation_budget_ignored: "{{ nodes.run.output.negotiation_budget_ignored }}"
-    full_negotiation_used: "{{ nodes.run.output.full_negotiation_used }}"
-    full_bargain_count: "{{ nodes.run.output.full_bargain_count }}"
-    full_raise_count: "{{ nodes.run.output.full_raise_count }}"
-    remaining_negotiation: "{{ nodes.run.output.remaining_negotiation }}"
-    assumptions: "{{ nodes.run.output.assumptions }}"
-    warnings: "{{ nodes.run.output.warnings }}"
-    route: "{{ nodes.run.output.route }}"
-    execution: "{{ nodes.run.output.execution }}"
-    final_sale: "{{ nodes.run.output.final_sale }}"
-    sparkling_water_plan: "{{ nodes.run.output.sparkling_water_plan }}"
-    sparkling_water: "{{ nodes.run.output.sparkling_water }}"
-    bento_plan: "{{ nodes.run.output.bento_plan }}"
-    bento_consumption: "{{ nodes.run.output.bento_consumption }}"
-    blocked_at: "{{ nodes.run.output.blocked_at }}"
-    blocked_leg: "{{ nodes.run.output.blocked_leg }}"
-    fatigue_medicine_used: "{{ nodes.run.output.fatigue_medicine_used }}"
-    fatigue_medicine_use_count: "{{ nodes.run.output.fatigue_medicine_use_count }}"
-    initial_city: "{{ nodes.run.output.initial_city }}"
-    page_state: "{{ nodes.run.output.page_state }}"
+    success: "{{ nodes.finish.output.success }}"
+    status: "{{ nodes.finish.output.status }}"
+    reason: "{{ nodes.finish.output.reason }}"
+    snapshot_id: "{{ nodes.finish.output.snapshot_id }}"
+    all_plan: "{{ nodes.finish.output.all_plan }}"
+    city_path: "{{ nodes.finish.output.city_path }}"
+    city_path_ids: "{{ nodes.finish.output.city_path_ids }}"
+    required_end_city_ids: "{{ nodes.finish.output.required_end_city_ids }}"
+    selected_end_city_id: "{{ nodes.finish.output.selected_end_city_id }}"
+    selected_end_city_name: "{{ nodes.finish.output.selected_end_city_name }}"
+    expected_profit: "{{ nodes.finish.output.expected_profit }}"
+    expected_profit_exact: "{{ nodes.finish.output.expected_profit_exact }}"
+    fatigue_budget: "{{ nodes.finish.output.fatigue_budget }}"
+    expected_fatigue_used: "{{ nodes.finish.output.expected_fatigue_used }}"
+    expected_fatigue_used_exact: "{{ nodes.finish.output.expected_fatigue_used_exact }}"
+    remaining_expected_fatigue: "{{ nodes.finish.output.remaining_expected_fatigue }}"
+    remaining_expected_fatigue_exact: "{{ nodes.finish.output.remaining_expected_fatigue_exact }}"
+    books_budget: "{{ nodes.finish.output.books_budget }}"
+    auto_book: "{{ nodes.finish.output.auto_book }}"
+    book_budget_ignored: "{{ nodes.finish.output.book_budget_ignored }}"
+    book_profit_threshold: "{{ nodes.finish.output.book_profit_threshold }}"
+    book_incremental_profit: "{{ nodes.finish.output.book_incremental_profit }}"
+    book_incremental_profit_exact: "{{ nodes.finish.output.book_incremental_profit_exact }}"
+    average_book_profit: "{{ nodes.finish.output.average_book_profit }}"
+    average_book_profit_exact: "{{ nodes.finish.output.average_book_profit_exact }}"
+    books_used: "{{ nodes.finish.output.books_used }}"
+    remaining_books: "{{ nodes.finish.output.remaining_books }}"
+    negotiation_budget: "{{ nodes.finish.output.negotiation_budget }}"
+    negotiation_max_attempts: "{{ nodes.finish.output.negotiation_max_attempts }}"
+    negotiation_budget_ignored: "{{ nodes.finish.output.negotiation_budget_ignored }}"
+    full_negotiation_used: "{{ nodes.finish.output.full_negotiation_used }}"
+    full_bargain_count: "{{ nodes.finish.output.full_bargain_count }}"
+    full_raise_count: "{{ nodes.finish.output.full_raise_count }}"
+    remaining_negotiation: "{{ nodes.finish.output.remaining_negotiation }}"
+    assumptions: "{{ nodes.finish.output.assumptions }}"
+    warnings: "{{ nodes.finish.output.warnings }}"
+    route: "{{ nodes.finish.output.route }}"
+    execution: "{{ nodes.finish.output.execution }}"
+    final_sale: "{{ nodes.finish.output.final_sale }}"
+    sparkling_water_plan: "{{ nodes.finish.output.sparkling_water_plan }}"
+    sparkling_water: "{{ nodes.finish.output.sparkling_water }}"
+    bento_consumption: "{{ nodes.finish.output.bento_consumption }}"
+    blocked_at: "{{ nodes.finish.output.blocked_at }}"
+    blocked_leg: "{{ nodes.finish.output.blocked_leg }}"
+    fatigue_medicine_used: "{{ nodes.finish.output.fatigue_medicine_used }}"
+    fatigue_medicine_use_count: "{{ nodes.finish.output.fatigue_medicine_use_count }}"
+    initial_city: "{{ nodes.finish.output.initial_city }}"
+    page_state: "{{ nodes.finish.output.page_state }}"
