@@ -6,7 +6,8 @@
   "fatigue_ratio_roi": [1163, 20, 108, 40],
   "work_recovery_rois": [[232, 292, 22, 16], [466, 292, 22, 16], [701, 292, 22, 16]],
   "love_recovery_roi": [298, 513, 22, 16],
-  "first_love_card_roi": [105, 336, 246, 225],
+  "first_love_food_roi": [146, 355, 154, 138],
+  "first_love_selected_roi": [296, 328, 52, 61],
   "recovery_digits": {
     "manifest": "templates/bento_consumption/recovery_digits/manifest.json",
     "work_threshold": 0.72,
