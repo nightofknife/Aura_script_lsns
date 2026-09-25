@@ -15,7 +15,7 @@ from plans.resonance_pc.src.actions import player_data_pc_actions as data
 from plans.resonance_pc.src.actions import player_recovery_pc_actions as recovery
 
 
-SECTIONS = data._PROFILE_SECTION_ORDER
+SECTIONS = tuple(section for section in data._PROFILE_SECTION_ORDER if section != "bento_count")
 COMBINATIONS = [list(combo) for size in range(1, len(SECTIONS) + 1)
                 for combo in itertools.combinations(SECTIONS, size)]
 
@@ -100,7 +100,9 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
     assert set(result.get("status", {})) | set(result.get("recovery", {})) == set(sections)
     assert set(result["metadata"]["profile_section_updated_at"]) == set(sections)
     assert result["metadata"]["executed_profile_sections"] == sections
-    assert result["metadata"]["skipped_profile_sections"] == [key for key in SECTIONS if key not in sections]
+    assert result["metadata"]["skipped_profile_sections"] == [
+        key for key in data._PROFILE_SECTION_ORDER if key not in sections
+    ]
     assert result["metadata"]["persisted"] is True
     saved = service.read(data.USER_INFO_FILE)
     assert set(saved.get("status", {})) | set(saved.get("recovery", {})) == set(sections)
@@ -118,6 +120,89 @@ def test_invalid_profile_selection(value):
 def test_default_and_disabled_profile_selection():
     assert data._normalize_profile_sections(None, required=True) == data._DEFAULT_PROFILE_SECTIONS
     assert data._normalize_profile_sections([], required=False) == ()
+
+
+@pytest.mark.parametrize("count", range(13))
+def test_bento_badge_templates_classify_all_counts(count, layout, monkeypatch):
+    import cv2
+    glyph = cv2.imread(layout["bento_count_digits"]["resolved_templates"][count], cv2.IMREAD_GRAYSCALE)
+    frame = np.full((22, 24, 3), 220, dtype=np.uint8)
+    frame[glyph == 255] = 50
+    vision = VisionService()
+    reader = recovery.RecoveryReader(
+        None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
+    )
+    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
+    monkeypatch.setattr(reader, "capture", lambda roi: frame.copy())
+    assert reader.read_bento_count()["count"] == count
+
+
+def test_bento_badge_unknown_does_not_become_zero(layout, monkeypatch, fast_clock):
+    vision = VisionService()
+    reader = recovery.RecoveryReader(
+        None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
+    )
+    monkeypatch.setattr(reader, "is_page", lambda page: True)
+    monkeypatch.setattr(reader, "capture", lambda roi: np.full((22, 24, 3), 220, dtype=np.uint8))
+    with pytest.raises(data.StopTaskException, match="unable to match bento count"):
+        reader.read_bento_count()
+
+
+@pytest.mark.parametrize("count", (10, 11, 12))
+def test_bento_badge_matches_user_screenshots(count, layout, monkeypatch):
+    from PIL import Image
+
+    fixture = Path("tests/fixtures/bento_count") / f"{count}.png"
+    frame = np.asarray(Image.open(fixture).convert("RGB"))
+    assert frame.shape == (22, 24, 3)
+    vision = VisionService()
+    reader = recovery.RecoveryReader(
+        None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
+    )
+    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
+    monkeypatch.setattr(reader, "capture", lambda roi: frame.copy())
+    assert reader.read_bento_count()["count"] == count
+
+
+def test_count_only_refresh_never_opens_cabinet(monkeypatch):
+    reader = recovery.RecoveryReader(None, None, None, {})
+    moves = []
+    monkeypatch.setattr(reader, "move", lambda source, target, control: moves.append((source, target)))
+    monkeypatch.setattr(reader, "read_bento_count", lambda: {"count": 9})
+    result = reader.read(["bento_count"], on_updated=lambda section: None)
+    assert result == {"bento_count": {"count": 9}}
+    assert moves == [("profile", "fatigue_recovery"), ("fatigue_recovery", "profile")]
+
+
+def test_count_refresh_invalidates_old_detail_cache(tmp_path, monkeypatch):
+    service = PersistentDataService(tmp_path / "install")
+    service.set(data.USER_INFO_FILE, None, {
+        "recovery": {"work_meals": {"available_count": 2}, "love_bentos": {"count": 3, "items": []}},
+    })
+    monkeypatch.setattr(data, "_wait_for_any_marker", lambda *args, **kwargs: [])
+    monkeypatch.setattr(data, "_close_profile_panel_to_main", lambda *args: None)
+    monkeypatch.setattr(data, "load_recovery_layout", lambda vision: {})
+
+    class Reader:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def read(self, sections, *, on_updated, on_result, love_catalog):
+            assert sections == ("bento_count",)
+            value = {"count": 5}
+            on_result("bento_count", value)
+            on_updated("bento_count")
+            return {"bento_count": value}
+
+    monkeypatch.setattr(data, "RecoveryReader", Reader)
+    data.resonance_pc_player_data_refresh(
+        stages=["profile"], profile_sections=["bento_count"],
+        app=NS(click=lambda **kwargs: None), ocr=object(), vision=object(), persistent_data=service,
+    )
+    saved = service.read(data.USER_INFO_FILE)["recovery"]
+    assert saved["bento_count"]["count"] == 5
+    assert saved["work_meals"]["requires_refresh"] is True
+    assert saved["love_bentos"]["requires_refresh"] is True
 
 
 def test_partial_merge_preserves_data_and_legacy_times():
@@ -463,7 +548,7 @@ def test_task_and_manifest_publish_profile_selection():
     task = yaml.safe_load((root / "tasks/player_data_pc.yaml").read_text(encoding="utf-8"))["player_data_refresh"]
     param = next(p for p in task["meta"]["inputs"] if p["name"] == "profile_sections")
     assert param["default"] == list(data._DEFAULT_PROFILE_SECTIONS)
-    assert param["item"]["enum"] == list(SECTIONS)
+    assert param["item"]["enum"] == list(data._PROFILE_SECTION_ORDER)
     assert task["steps"]["refresh"]["params"]["profile_sections"] == "{{ inputs.profile_sections }}"
     manifest = yaml.safe_load((root / "manifest.yaml").read_text(encoding="utf-8"))
     action = next(a for a in manifest["exports"]["actions"] if a["name"] == "resonance_pc.player_data_refresh")

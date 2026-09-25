@@ -133,7 +133,7 @@ PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = (
     "equipment",
 )
 PLAYER_DATA_PROFILE_SECTION_ORDER: tuple[str, ...] = (
-    "cargo", "clarity", "fatigue", "sparkling_water", "work_meals", "love_bentos",
+    "cargo", "clarity", "fatigue", "sparkling_water", "bento_count",
 )
 DEFAULT_PROFILE_SECTIONS: tuple[str, ...] = ("cargo", "clarity", "fatigue")
 PLAYER_DATA_INPUTS_SCHEMA_VERSION = 4
@@ -538,6 +538,10 @@ def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
     requested_profile_sections = (
         raw_profile_sections if isinstance(raw_profile_sections, list) else DEFAULT_PROFILE_SECTIONS
     )
+    if "bento_count" not in requested_profile_sections and any(
+        section in requested_profile_sections for section in ("work_meals", "love_bentos")
+    ):
+        requested_profile_sections = [*requested_profile_sections, "bento_count"]
     return {
         "stages": data_stages,
         "inventory_categories": inventory_categories,

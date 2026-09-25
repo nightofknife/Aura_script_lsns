@@ -1,0 +1,98 @@
+{
+  "font_sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47",
+  "template_size": [
+    12,
+    16
+  ],
+  "styles": {
+    "work": {
+      "font_size": 15,
+      "cutoff": 140,
+      "variants": {
+        "0": [
+          "0_font.png"
+        ],
+        "1": [
+          "1_font.png"
+        ],
+        "2": [
+          "2_font.png"
+        ],
+        "3": [
+          "3_font.png",
+          "3_sample_1.png",
+          "3_sample_2.png",
+          "3_sample_3.png"
+        ],
+        "4": [
+          "4_font.png"
+        ],
+        "5": [
+          "5_font.png"
+        ],
+        "6": [
+          "6_font.png",
+          "6_sample_1.png",
+          "6_sample_2.png",
+          "6_sample_3.png"
+        ],
+        "7": [
+          "7_font.png"
+        ],
+        "8": [
+          "8_font.png"
+        ],
+        "9": [
+          "9_font.png"
+        ]
+      }
+    },
+    "love": {
+      "font_size": 17,
+      "cutoff": 80,
+      "variants": {
+        "0": [
+          "0_font.png"
+        ],
+        "1": [
+          "1_font.png",
+          "1_sample_1.png",
+          "1_sample_2.png"
+        ],
+        "2": [
+          "2_font.png",
+          "2_sample_1.png"
+        ],
+        "3": [
+          "3_font.png"
+        ],
+        "4": [
+          "4_font.png",
+          "4_sample_1.png",
+          "4_sample_2.png",
+          "4_sample_3.png",
+          "4_sample_4.png",
+          "4_sample_5.png"
+        ],
+        "5": [
+          "5_font.png",
+          "5_sample_1.png"
+        ],
+        "6": [
+          "6_font.png",
+          "6_sample_1.png",
+          "6_sample_2.png"
+        ],
+        "7": [
+          "7_font.png"
+        ],
+        "8": [
+          "8_font.png"
+        ],
+        "9": [
+          "9_font.png"
+        ]
+      }
+    }
+  }
+}

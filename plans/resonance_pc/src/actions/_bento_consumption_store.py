@@ -76,6 +76,10 @@ def record_portion(store, session_id, number, meal, phase):
                     raise ValueError("Love-bento consumption identity is not unique")
                 resource["items"].remove(matches[0])
                 resource["count"] = len(resource["items"])
+            badge = recovery.get("bento_count")
+            if isinstance(badge, dict) and type(badge.get("count")) is int:
+                badge["count"] = max(0, badge["count"] - 1)
+                badge["updated_at"] = timestamp()
             found["consumed"] = True
         found.update(phase=phase, updated_at=timestamp())
         record.update(phase=phase, requires_refresh=phase != "completed", updated_at=timestamp())

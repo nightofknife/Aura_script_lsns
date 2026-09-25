@@ -54,8 +54,27 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
         raise ValueError("player recovery requires a 1280x720 reference client")
     root = plan_root.resolve()
     reference = config["reference_client"]
-    for key in ("sparkling_water_roi", "bento_region"):
+    for key in ("sparkling_water_roi", "bento_count_roi", "bento_region"):
         config[key] = _roi(config[key], reference, key)
+    count_digits = config["bento_count_digits"]
+    if count_digits.get("template_size") != [24, 22]:
+        raise ValueError("bento count templates must be 24x22")
+    for key in ("threshold", "min_score_margin"):
+        value = float(count_digits[key])
+        if not math.isfinite(value) or not 0 < value <= 1:
+            raise ValueError(f"invalid bento count {key}")
+        count_digits[key] = value
+    count_paths = []
+    for number in range(13):
+        ref = str(Path(count_digits["directory"]) / f"{number}.png")
+        path = Path(vision.resolve_template("resonance_pc", ref, root)).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError("bento count template escapes plan root")
+        image = vision.load_image_file(path, cv2.IMREAD_GRAYSCALE)
+        if image is None or image.shape != (22, 24) or image.dtype != np.uint8:
+            raise ValueError(f"invalid bento count asset: {number}")
+        count_paths.append(str(path))
+    count_digits["resolved_templates"] = count_paths
     digits = config["sparkling_water_digits"]
     if digits.get("template_size") != [32, 48]:
         raise ValueError("free uses digit templates must be 32x48")
@@ -385,6 +404,54 @@ class RecoveryReader:
             time.sleep(self.layout["poll_interval_sec"])
         raise _error(f"unable to match free uses: {last_diagnostic}")
 
+    def read_bento_count(self) -> dict[str, Any]:
+        """Read the badge on the fatigue page without opening the cabinet."""
+        cfg = self.layout["bento_count_digits"]
+        deadline = time.monotonic() + self.layout["bento_ready_timeout_sec"]
+        previous = None
+        last_diagnostic = "no stable count"
+        while time.monotonic() < deadline:
+            check_cancelled()
+            if not self.is_page("fatigue_recovery"):
+                raise _error("fatigue page disappeared while reading bento count")
+            frame = self.capture(self.layout["bento_count_roi"])
+            # The badge text is #323232. Thresholding removes the variable
+            # coloured badge background before comparing the original font glyphs.
+            if frame.ndim == 3:
+                channels = frame.astype(np.int16)
+                brightness = channels.mean(axis=2)
+                spread = channels.max(axis=2) - channels.min(axis=2)
+                text_pixels = (brightness >= 20) & (brightness < 140) & (spread < 30)
+            else:
+                text_pixels = (frame >= 20) & (frame < 140)
+            glyphs = np.where(text_pixels, 255, 0).astype(np.uint8)
+            hits = self.vision.find_templates_batch(
+                source_image=glyphs, template_images=cfg["resolved_templates"],
+                threshold=cfg["threshold"], use_grayscale=True,
+                match_method=cv2.TM_CCOEFF_NORMED, preprocess="none",
+            )
+            if not isinstance(hits, list) or len(hits) != 13 or any(
+                (getattr(hit, "debug_info", None) or {}).get("error") for hit in hits
+            ):
+                raise _error("bento count template matching failed")
+            scores = [float(hit.confidence) for hit in hits]
+            if all(math.isfinite(score) for score in scores):
+                best, second = sorted(range(13), key=lambda n: scores[n], reverse=True)[:2]
+                margin = scores[best] - scores[second]
+                last_diagnostic = f"candidate={best} score={scores[best]:.4f} margin={margin:.4f}"
+                logger.info("[RecoveryBentoCount] %s", last_diagnostic)
+                if hits[best].found and scores[best] >= cfg["threshold"] and margin >= cfg["min_score_margin"]:
+                    if previous == best:
+                        return {"count": best, "updated_at": datetime.now(timezone.utc).isoformat()}
+                    previous = best
+                else:
+                    previous = None
+            else:
+                last_diagnostic = "non-finite score"
+                previous = None
+            time.sleep(self.layout["poll_interval_sec"])
+        raise _error(f"unable to match bento count: {last_diagnostic}")
+
 
     def read_work_meals(self) -> dict[str, Any]:
         """Wait for rendered slots and classify them using the same frame."""
@@ -481,6 +548,10 @@ class RecoveryReader:
                 on_result("sparkling_water", result["sparkling_water"])
                 on_updated("sparkling_water")
                 self.move("sparkling_water_popup", "fatigue_recovery", "rest_info")
+            if "bento_count" in sections:
+                result["bento_count"] = self.read_bento_count()
+                on_result("bento_count", result["bento_count"])
+                on_updated("bento_count")
             if set(sections).intersection({"work_meals", "love_bentos"}):
                 self.move("fatigue_recovery", "bento_cabinet", "bento_button")
                 self.prepare_bento_read()

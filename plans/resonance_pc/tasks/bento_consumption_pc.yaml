@@ -1,30 +1,65 @@
 bento_consumption_pc:
   meta:
     title: Consume Bentos (PC)
-    description: Main-screen-only reusable child task; consume individual meals and return to main.
-    entry_point: false
+    description: Consume top-position work meals and first love bento until the recovery target or fatigue floor.
+    entry_point: true
     concurrency: exclusive
     inputs:
-      - name: meals
+      - name: eat_work_meals
+        type: boolean
+        required: false
+        default: true
+      - name: eat_love_bentos
+        type: boolean
+        required: false
+        default: true
+      - name: bento_priority
         type: list
-        required: true
+        required: false
+        default: [work_meals, love_bentos]
+        item:
+          name: kind
+          type: enum
+          required: true
+          enum: [work_meals, love_bentos]
+      - name: target_recovery_amount
+        type: number
+        required: false
+        default: 2000
+        min: 0
+      - name: allow_exceed_target
+        type: boolean
+        required: false
+        default: false
+      - name: base_fatigue_reserve
+        type: number
+        required: false
+        default: -100
   steps:
     consume:
-      action: resonance_pc.consume_bentos
+      action: resonance_pc.consume_bentos_to_floor
       timeout_sec: 660
       params:
-        meals: "{{ inputs.meals }}"
+        eat_work_meals: "{{ inputs.eat_work_meals }}"
+        eat_love_bentos: "{{ inputs.eat_love_bentos }}"
+        bento_priority: "{{ inputs.bento_priority }}"
+        target_recovery_amount: "{{ inputs.target_recovery_amount }}"
+        allow_exceed_target: "{{ inputs.allow_exceed_target }}"
+        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
     success: "{{ nodes.consume.output.success }}"
     status: "{{ nodes.consume.output.status }}"
     reason: "{{ nodes.consume.output.reason }}"
     page_state: "{{ nodes.consume.output.page_state }}"
-    requested_count: "{{ nodes.consume.output.requested_count }}"
     consumed_count: "{{ nodes.consume.output.consumed_count }}"
     completed_count: "{{ nodes.consume.output.completed_count }}"
     work_meals_used: "{{ nodes.consume.output.work_meals_used }}"
     love_bentos_used: "{{ nodes.consume.output.love_bentos_used }}"
     recovered_fatigue: "{{ nodes.consume.output.recovered_fatigue }}"
+    initial_fatigue: "{{ nodes.consume.output.initial_fatigue }}"
+    computed_fatigue: "{{ nodes.consume.output.computed_fatigue }}"
+    target_recovery_amount: "{{ nodes.consume.output.target_recovery_amount }}"
+    base_fatigue_reserve: "{{ nodes.consume.output.base_fatigue_reserve }}"
     items: "{{ nodes.consume.output['items'] }}"
     requires_refresh: "{{ nodes.consume.output.requires_refresh }}"
     failure_stage: "{{ nodes.consume.output.failure_stage }}"

@@ -304,8 +304,7 @@ def test_auto_book_actual_recovery_dispatch_keeps_projection(window, monkeypatch
     assert actual["recovery_snapshot"] == {
         "status": {"fatigue": {"current": 120, "max": 800}},
         "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6,
-                                         "requires_refresh": False},
-                     "work_meals": {"available_count": 2}},
+                                         "requires_refresh": False}},
         "metadata": {"persisted": True},
     }
     assert source == before

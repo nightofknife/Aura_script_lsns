@@ -432,6 +432,8 @@ async def resonance_pc_auto_combined_commerce_flow(
         return _blocked(result, "passenger_route_invalid", "preflight")
     raw_trade = copy.deepcopy(trade_inputs or {})
     raw_passenger = copy.deepcopy(passenger_inputs or {})
+    if raw_trade.get("auto_bento") is not None and raw_trade.get("auto_bento") is not False:
+        return _blocked(result, "combined_auto_bento_unsupported", "preflight")
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
     trade_services = {"persistent_data": persistent_data}
     if recovery_snapshot is not None:

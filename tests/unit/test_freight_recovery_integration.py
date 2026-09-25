@@ -9,12 +9,14 @@ from types import SimpleNamespace
 import pytest
 
 from packages.aura_core.api import ACTION_REGISTRY, ActionDefinition
+from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.engine import action_injector
 from packages.aura_core.scheduler.cancellation import (
     clear_task_cancel, has_pending_sync_actions,
 )
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
+from packages.resonance_gui.logic import TradeProgressState, reduce_trade_progress
 from tests.unit.test_resonance_pc_sparkling_water_handoff import harness as combined_harness
 from tests.unit.test_resonance_pc_sparkling_water_trade import (
     harness as trade_harness, routes, run_full, snapshot,
@@ -22,23 +24,12 @@ from tests.unit.test_resonance_pc_sparkling_water_trade import (
 
 
 CALL_RECOVERY_ACTION = trade._call_recovery_action
-MEALS = [
-    {"kind": "work_meals", "issue_time": "05:00"},
-    {"kind": "work_meals", "issue_time": "12:00"},
-]
 
 
 class MemoryStore:
     def __init__(self):
         self.reads = []
         self.document = snapshot(remaining=2)
-        self.document["recovery"]["work_meals"] = {
-            "available_count": 2, "updated_at": "2026-09-12T05:00:00Z",
-            "slots": [{"issue_time": time, "available": time != "18:00"}
-                      for time in ("05:00", "12:00", "18:00")],
-        }
-        # Deliberately unusable: meals-only must not inspect disabled types.
-        self.document["recovery"]["love_bentos"] = {"requires_refresh": True}
 
     def read(self, *, file):
         assert file == "user-info.json"
@@ -49,10 +40,7 @@ class MemoryStore:
 @pytest.fixture
 def recovery_runtime(monkeypatch):
     calls = []
-    state = {"fatigue": 300, "consume_result": {
-        "success": True, "status": "completed", "page_state": "city_main",
-        "consumed_count": 2, "completed_count": 2,
-    }}
+    state = {"fatigue": 300}
     context = SimpleNamespace(data={})
     store = MemoryStore()
     package = SimpleNamespace(package=SimpleNamespace(canonical_id="@test/recovery"))
@@ -96,16 +84,10 @@ def recovery_runtime(monkeypatch):
         calls.append(("open_panel", params))
         return deepcopy(state.get("panel_result", {"success": True, "page_state": "city_panel"}))
 
-    def consume(meals, persistent_data):
-        assert persistent_data is store
-        calls.append(("consume", {"meals": deepcopy(meals)}))
-        return deepcopy(state["consume_result"])
-
     monkeypatch.setattr(trade, "TemplateRenderer", Renderer)
     register("resonance_pc.player_data_refresh", refresh)
     register("resonance_pc.go_city_main_direct", go_main)
     register("resonance_pc.open_city_panel_from_main", open_panel)
-    register("resonance_pc.consume_bentos", consume, {"persistent_data": "core/persistent_data"})
     runtime = SimpleNamespace(calls=calls, state=state, context=context, engine=engine,
                               store=store, register=register)
     return runtime
@@ -118,14 +100,6 @@ def freight(trade_harness, recovery_runtime, monkeypatch):
     monkeypatch.setattr(trade, "_call_recovery_action", CALL_RECOVERY_ACTION)
     from plans.resonance_pc.src.actions._player_data_persistence import load_pc_user_info
     monkeypatch.setattr(trade, "load_pc_user_info", load_pc_user_info)
-    original_consume = ACTION_REGISTRY.get("test/recovery/resonance_pc.consume_bentos").func
-
-    def consume(meals, persistent_data):
-        operations.append("bentos")
-        return original_consume(meals, persistent_data)
-
-    runtime.register("resonance_pc.consume_bentos", consume,
-                     {"persistent_data": "core/persistent_data"})
     planned = {"status": "ok", "route": routes(), "expected_profit": 123456,
                "expected_fatigue_used": 333, "remaining_expected_fatigue": 567}
     planner_calls = []
@@ -148,14 +122,6 @@ def freight(trade_harness, recovery_runtime, monkeypatch):
 
     return SimpleNamespace(run=run, operations=operations, state=state,
                            runtime=runtime, planned=planned, planner_calls=planner_calls)
-
-
-def terminal(runtime, **overrides):
-    args = dict(page_state="city_main", reserve=200, priority=["work_meals"],
-                context=runtime.context, engine=runtime.engine,
-                persistent_data=runtime.store, current_city="City 15", city_index=2)
-    args.update(overrides)
-    return asyncio.run(trade._execute_terminal_bentos(**args))
 
 
 @pytest.mark.parametrize("page", ["city_main", "city_panel"])
@@ -197,83 +163,158 @@ def test_failed_main_restore_stops_before_refresh(recovery_runtime):
     {"metadata": {"persisted": True, "executed_profile_sections": ["fatigue", "work_meals"]}},
     {"status": {"fatigue": {"current": True, "max": 856}}},
 ])
-def test_invalid_refresh_never_reads_inventory_or_consumes(recovery_runtime, change):
+def test_invalid_water_refresh_never_reads_inventory(recovery_runtime, change):
     runtime = recovery_runtime
     runtime.state["refresh_result"] = {
         "status": {"fatigue": {"current": 300, "max": 856}},
         "metadata": {"persisted": True, "executed_profile_sections": ["fatigue"]},
         **change,
     }
-    _, result = terminal(runtime)
-    assert result["success"] is False
+    with pytest.raises(Exception) as error:
+        asyncio.run(trade._refresh_recovery_fatigue(
+            page_state="city_main", context=runtime.context, engine=runtime.engine,
+        ))
+    assert error.value.code == "recovery_fatigue_invalid"
     assert [name for name, _ in runtime.calls] == ["refresh"]
     assert runtime.store.reads == []
 
 
-def test_explicit_meals_only_uses_real_cache_and_sends_only_identities(recovery_runtime):
-    runtime = recovery_runtime
-    original = deepcopy(runtime.store.document)
-    plan, result = terminal(runtime)
-    assert plan["meals"] == MEALS
-    assert plan["recovery_amount"] == 72
-    assert plan["planned_remaining_fatigue"] == 228
-    assert result["success"] is True
-    assert runtime.calls[-1] == ("consume", {"meals": MEALS})
-    assert [name for name, _ in runtime.calls] == ["refresh", "consume"]
-    assert len(runtime.store.reads) == 1
-    assert runtime.store.document == original  # The parent cannot deduct child-owned inventory.
-
-
-@pytest.mark.parametrize("fatigue", [100, 200])
-def test_empty_budget_needs_no_cache_and_no_consumption(recovery_runtime, fatigue):
-    runtime = recovery_runtime
-    runtime.state["fatigue"] = fatigue
-    runtime.store.document = {}
-    plan, result = terminal(runtime)
-    assert plan["meals"] == [] and result["status"] == "skipped"
-    assert result["success"] is True
-    assert runtime.store.reads == []
-    assert [name for name, _ in runtime.calls] == ["refresh"]
-
-
-@pytest.mark.parametrize("failure", ["missing", "refresh_required", "invalid"])
-def test_cache_failure_reports_without_inventory_refresh_or_rerun(freight, failure):
-    runtime = freight.runtime
-    work = runtime.store.document["recovery"]["work_meals"]
-    if failure == "missing":
-        del runtime.store.document["recovery"]["work_meals"]
-    elif failure == "refresh_required":
-        work["requires_refresh"] = True
-    else:
-        work["available_count"] = 3
-    result = freight.run()
-    assert result["status"] == "failed" and result["success"] is False
-    assert result["bento_consumption"]["reason"] == "bento_recovery_failed"
-    assert [name for name, _ in runtime.calls] == ["refresh"]
-    assert len(runtime.store.reads) == 1
+def test_freight_hands_off_after_final_sale_without_bento_scan(freight):
+    original = deepcopy(freight.runtime.store.document)
+    result = freight.run(recovery_snapshot={"recovery": {"bento_count": {"count": 0}}})
+    assert result["success"] is True and result["bento_pending"] is True
+    assert result["final_sale"] == {"success": True, "page_state": "city_main"}
+    assert result["page_state"] == "city_main"
     assert freight.operations.count("final_sale") == 1
+    assert freight.runtime.calls == [] and freight.runtime.store.reads == []
+    assert freight.runtime.store.document == original
 
 
-@pytest.mark.parametrize("page", ["city_main", "unknown"])
-def test_partial_failure_keeps_child_details_and_never_retries(freight, page):
-    child = {"success": False, "status": "failed", "page_state": page,
-             "consumed_count": 1, "completed_count": 0,
-             "failure_stage": "rating", "items": [{"meal": MEALS[0], "consumed": True}]}
-    freight.runtime.state["consume_result"] = child
-    result = freight.run()
-    assert result["success"] is False and result["status"] == "failed"
-    assert result["page_state"] == page
-    assert result["bento_consumption"] == {**child, "triggered": True}
-    assert freight.operations.count("bentos") == 1
-    assert [name for name, _ in freight.runtime.calls] == ["refresh", "consume"]
+def child_framework(**overrides):
+    child = {
+        "success": True, "status": "completed", "reason": "no_fitting_meal",
+        "page_state": "city_main", "consumed_count": 2, "completed_count": 2,
+        "recovered_fatigue": 72, "computed_fatigue": 575,
+        "base_fatigue_reserve": 200, "target_recovery_amount": 2000,
+        "allow_exceed_target": False, "items": [{"consumed": True}],
+    }
+    child.update(overrides)
+    return {"nodes": {"consume": {"output": child}}}
 
 
-def test_success_with_wrong_child_page_is_failure(freight):
-    freight.runtime.state["consume_result"]["page_state"] = "city_panel"
-    result = freight.run()
-    assert result["success"] is False
-    assert result["bento_consumption"]["status"] == "failed"
-    assert freight.operations.count("bentos") == 1
+def finish(result, framework=None, *, auto_bento=True, event_bus=None, context=None):
+    return asyncio.run(trade.resonance_pc_finish_auto_cycle_trade(
+        trade_result=result, bento_framework=framework, auto_bento=auto_bento,
+        base_fatigue_reserve=200, event_bus=event_bus, context=context,
+    ))
+
+
+def test_child_result_preserves_freight_and_confirmed_consumption(freight):
+    core = freight.run()
+    result = finish(core, child_framework())
+    assert result["success"] is True and result["status"] == "completed"
+    assert result["page_state"] == "city_main"
+    assert result["bento_consumption"]["recovered_fatigue"] == 72
+    assert result["bento_consumption"]["triggered"] is True
+    assert result["route"] == core["route"] and result["expected_profit"] == core["expected_profit"]
+    assert "bento_plan" not in result and "bento_pending" not in result
+
+
+@pytest.mark.parametrize("status,page", [("failed", "unknown"), ("cancelled", "city_main")])
+def test_partial_child_failure_is_not_retried_or_reported_as_success(freight, status, page):
+    core = freight.run()
+    framework = child_framework(success=False, status=status, reason="rating_failed",
+                                page_state=page, consumed_count=1, completed_count=0,
+                                recovered_fatigue=36, computed_fatigue=611)
+    result = finish(core, framework)
+    assert result["success"] is False and result["status"] == status
+    assert result["reason"] == "rating_failed" and result["page_state"] == page
+    assert result["bento_consumption"]["consumed_count"] == 1
+    assert freight.operations.count("final_sale") == 1
+    assert freight.runtime.calls == []
+
+
+def test_early_child_failure_keeps_original_reason(freight):
+    result = finish(freight.run(), child_framework(
+        success=False, status="failed", reason="bento_cabinet_missing",
+        page_state="unknown", consumed_count=0, completed_count=0,
+        recovered_fatigue=0, computed_fatigue=None,
+    ))
+    assert result["success"] is False and result["reason"] == "bento_cabinet_missing"
+    assert result["bento_consumption"]["computed_fatigue"] is None
+
+
+def test_wrong_child_page_and_missing_result_fail_closed(freight):
+    core = freight.run()
+    wrong_page = finish(core, child_framework(page_state="city_panel"))
+    assert wrong_page["success"] is False and wrong_page["reason"] == "bento_main_not_restored"
+    missing = finish(core, {"nodes": {}})
+    assert missing["success"] is False and missing["reason"] == "bento_result_invalid"
+
+
+def test_no_available_child_is_a_successful_trade_stop(freight):
+    result = finish(freight.run(), child_framework(
+        status="skipped", reason="no_available_meals", consumed_count=0,
+        completed_count=0, recovered_fatigue=0,
+    ))
+    assert result["success"] is True and result["status"] == "completed"
+    assert result["bento_consumption"]["status"] == "skipped"
+
+
+def test_already_below_floor_skips_without_failing_trade(freight):
+    result = finish(freight.run(), child_framework(
+        status="skipped", reason="fatigue_floor_reached", consumed_count=0,
+        completed_count=0, recovered_fatigue=0, computed_fatigue=150,
+    ))
+    assert result["success"] is True and result["status"] == "completed"
+
+
+def test_final_sale_failure_never_hands_off_bentos(freight, monkeypatch):
+    monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city",
+                        lambda **kwargs: {"success": False, "page_state": "unknown"})
+    core = freight.run()
+    assert core["success"] is False and core["reason"] == "final_sale_not_confirmed"
+    assert core["bento_pending"] is False
+    finished = finish(core)
+    assert finished["status"] == "failed" and finished["bento_consumption"]["triggered"] is False
+
+
+def test_trade_progress_waits_for_child_and_keeps_sequence(freight):
+    class Events:
+        def __init__(self):
+            self.rows = []
+
+        async def publish(self, event):
+            self.rows.append(event.to_dict())
+
+    bus = Events()
+    context = ExecutionContext(cid="freight-bento-progress")
+    core = freight.run(event_bus=bus, context=context)
+    assert core["bento_pending"] is True and core["bento_progress_sequence"] > 0
+    assert (bus.rows[-1]["payload"]["stage"], bus.rows[-1]["payload"]["state"]) == ("bento", "started")
+    state = TradeProgressState(cid="freight-bento-progress")
+    for row in bus.rows:
+        state = reduce_trade_progress(state, row, expected_cid=context.data["cid"])
+    assert state.stage == "bento" and state.state == "started"
+    result = finish(core, child_framework(), event_bus=bus, context=context)
+    assert result["success"] is True
+    assert [(row["payload"]["stage"], row["payload"]["state"]) for row in bus.rows[-2:]] == [
+        ("bento", "completed"), ("task", "completed"),
+    ]
+    sequences = [row["payload"]["sequence"] for row in bus.rows]
+    assert sequences == list(range(1, len(sequences) + 1))
+    for row in bus.rows[-2:]:
+        state = reduce_trade_progress(state, row, expected_cid=context.data["cid"])
+    assert state.state == "completed" and state.sequence == sequences[-1]
+
+
+@pytest.mark.parametrize("change", [
+    {"recovered_fatigue": 2001}, {"computed_fatigue": 199},
+    {"base_fatigue_reserve": 0}, {"allow_exceed_target": True},
+])
+def test_invalid_child_budget_is_rejected(freight, change):
+    result = finish(freight.run(), child_framework(**change))
+    assert result["success"] is False and result["reason"] == "bento_result_invalid"
 
 
 @pytest.mark.parametrize("water,bento", [(False, False), (False, True), (True, False), (True, True)])
@@ -288,18 +329,17 @@ def test_recovery_preserves_route_profit_and_original_900_budget(freight, water,
         assert result[key] == original[key]
     assert freight.planned == original
     names = [name for name, _ in freight.runtime.calls]
-    assert names.count("refresh") == int(water) + int(bento)
-    assert names.count("consume") == int(bento)
+    assert names.count("refresh") == int(water)
+    assert names.count("consume") == 0
     assert names.count("open_panel") == int(water)
-    if bento:
-        assert freight.operations.index("final_sale") < freight.operations.index("bentos")
+    assert result["bento_pending"] is bento
     if water:
         assert names.index("refresh") < names.index("open_panel")
         water_index = next(i for i, op in enumerate(freight.operations) if op.startswith("water:"))
         assert freight.operations.index("travel:1") < water_index < freight.operations.index("final_sale")
     if not water and not bento:
         assert freight.runtime.store.reads == []
-        assert result["bento_plan"]["reason"] == "disabled"
+        assert finish(result, auto_bento=False)["bento_consumption"]["reason"] == "disabled"
 
 
 @pytest.mark.parametrize("boundary", ["no_route", "blocked"])
@@ -310,6 +350,7 @@ def test_no_route_or_blocked_never_refreshes_or_consumes(freight, boundary):
         freight.state["block_index"] = 1
     result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
     assert result["status"] == ("blocked" if boundary == "blocked" else "no_plan")
+    assert result["bento_pending"] is False
     assert freight.runtime.calls == [] and freight.runtime.store.reads == []
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
@@ -332,47 +373,27 @@ def test_failed_arrival_blocks_water_final_sale_and_bentos(freight, monkeypatch)
 
 
 @pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("water", [False, True])
-def test_combined_real_freight_finishes_bentos_at_freight_boundary(
-    freight, combined_harness, monkeypatch, order, water,
+def test_combined_auto_bento_is_rejected_before_any_game_action(
+    freight, combined_harness, monkeypatch, order,
 ):
     inputs, calls, _ = combined_harness
     inputs.update(context=freight.runtime.context, engine=freight.runtime.engine,
                   total_fatigue_budget=900)
-    inputs["trade_inputs"].update(auto_sparkling_water=water, auto_bento=True,
+    inputs["trade_inputs"].update(auto_sparkling_water=True, auto_bento=True,
                                   bento_priority=["work_meals"], base_fatigue_reserve=200)
-    # Caller-supplied freight fields must not leak into passenger or preview.
-    inputs["passenger_inputs"].update(auto_bento=True, bento_priority=["work_meals"],
-                                      auto_sparkling_water=True, base_fatigue_reserve=999)
     from tests.unit.test_resonance_pc_sparkling_water_trade import Market
     from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
     inputs["resonance_pc_market_data"] = Market()
     inputs["resonance_pc_city_shop_data"] = ResonancePcCityShopDataService()
-    passenger = combined.resonance_pc_auto_passenger_trips_flow
-
-    async def passenger_flow(**kwargs):
-        freight.operations.append("passenger")
-        return await passenger(**kwargs)
-
-    monkeypatch.setattr(combined, "resonance_pc_auto_passenger_trips_flow", passenger_flow)
     monkeypatch.setattr(combined, "resonance_pc_auto_cycle_trade_flow",
                         trade.resonance_pc_auto_cycle_trade_flow)
     result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
         **inputs, order=order, persistent_data=freight.runtime.store,
-        recovery_snapshot=snapshot() if water else None,
+        recovery_snapshot=snapshot(),
     ))
-    assert result["status"] == "completed", result
-    assert freight.operations.count("bentos") == 1
-    assert freight.operations.index("final_sale") < freight.operations.index("bentos")
-    if order == "trade_first":
-        assert freight.operations.index("bentos") < freight.operations.index("passenger")
-    else:
-        assert freight.operations.index("passenger") < freight.operations.index("trade:0")
-    assert freight.planner_calls[0]["fatigue_budget"] == (880 if order == "trade_first" else 873)
-    assert result["trade"]["expected_fatigue_used"] == 333
-    for child in calls["passenger"] + calls["preview"]:
-        assert not {"auto_bento", "bento_priority", "auto_sparkling_water", "base_fatigue_reserve",
-                    "recovery_snapshot", "persistent_data"}.intersection(child)
+    assert result["status"] == "blocked" and result["reason"] == "combined_auto_bento_unsupported"
+    assert result["failure_stage"] == "preflight"
+    assert freight.operations == [] and calls == {"trade": [], "passenger": [], "preview": []}
 
 
 @pytest.mark.parametrize("opened", [
@@ -391,7 +412,6 @@ def test_unconfirmed_registered_opener_stops_water_and_terminal_work(freight, op
 
 
 @pytest.mark.parametrize("action_name,params,page", [
-    ("resonance_pc.consume_bentos", {"meals": MEALS}, "city_main"),
     ("resonance_pc.open_city_panel_from_main", {}, "city_panel"),
 ])
 def test_registered_recovery_adapter_tracks_cancelled_sync_worker(
