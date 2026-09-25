@@ -59,7 +59,8 @@ def validate_auto_inputs(
 def load_auto_layout(vision: Any) -> dict:
     layout = load_consumption_layout(vision)
     reference = (1280, 720)
-    for key in ("fatigue_ratio_roi", "love_recovery_roi", "first_love_card_roi"):
+    for key in ("fatigue_ratio_roi", "love_recovery_roi", "first_love_food_roi",
+                "first_love_selected_roi"):
         layout[key] = _roi(layout[key], reference, key)
     raw_work = layout["work_recovery_rois"]
     if not isinstance(raw_work, list) or len(raw_work) != 3:
@@ -269,26 +270,33 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
         scanner = LoveBentoScanner(self.reader, self.catalog)
         frame = scanner.stable_frame()
         rx, ry, _, _ = scanner.cfg["capture_roi"]
-        x, y, w, h = self.layout["first_love_card_roi"]
+        x, y, w, h = self.layout["first_love_food_roi"]
         crop = frame[y-ry:y-ry+h, x-rx:x-rx+w]
-        hit = self.vision.find_template(
-            source_image=crop, template_image=scanner.cfg["anchor_template"],
-            mask_image=scanner.cfg["anchor_mask"], threshold=scanner.cfg["anchor_threshold"],
-            use_grayscale=True, match_method=cv2.TM_SQDIFF_NORMED, preprocess="none",
+        if crop.shape[:2] != (h, w):
+            self.fail("bento_first_food_capture_invalid", "First love-bento food ROI is outside the stable capture")
+        rows = self.catalog["items"]
+        hits = self.vision.find_templates_batch(
+            source_image=crop, template_images=[row["resolved"] for row in rows],
+            threshold=scanner.cfg["food_threshold"], use_grayscale=False,
+            match_method=cv2.TM_CCOEFF_NORMED, preprocess="none",
         )
-        if (getattr(hit, "debug_info", None) or {}).get("error") or not math.isfinite(float(hit.confidence)):
-            self.fail("bento_first_card_match_failed", "First love-bento card matching failed")
-        if not hit.found or hit.confidence < scanner.cfg["anchor_threshold"]:
+        if (len(hits) != len(rows) or any((getattr(hit, "debug_info", None) or {}).get("error") for hit in hits)
+                or any(not math.isfinite(float(hit.confidence)) for hit in hits)):
+            self.fail("bento_first_food_match_failed", "First love-bento food matching failed")
+        ranked = sorted(zip(rows, hits), key=lambda pair: float(pair[1].confidence), reverse=True)
+        food, hit = ranked[0]
+        score = float(hit.confidence)
+        second = float(ranked[1][1].confidence) if len(ranked) > 1 else 0.0
+        margin = score - second
+        if not hit.found or score < scanner.cfg["food_threshold"] or margin < scanner.cfg["food_margin"]:
+            logger.info("[AutoBento] first_love=empty food_score=%.4f margin=%.4f roi=%s",
+                        score, margin, self.layout["first_love_food_roi"])
             return None
-        anchor = (x + int(hit.top_left[0]), y + int(hit.top_left[1]))
-        point = (anchor[0]-rx, anchor[1]-ry)
-        food = scanner.classify(frame, point, "items")
-        if food is None:
-            self.fail("bento_first_food_unrecognized", "First love-bento food was not recognized")
-        click_point = self.target_click_point(point)
-        selected_roi = list(self.selected_roi)
+        click_point = [x + w // 2, y + h // 2]
+        selected_roi = list(self.layout["first_love_selected_roi"])
         recovery = self.read_recovery("love", self.layout["love_recovery_roi"])
-        logger.info("[AutoBento] first_love anchor=%s food=%s recovery=%s", anchor, food["name"], recovery)
+        logger.info("[AutoBento] first_love food=%s score=%.4f margin=%.4f recovery=%s roi=%s",
+                    food["name"], score, margin, recovery, self.layout["first_love_food_roi"])
         return {"kind": "love_bentos", "food_id": food["id"], "food_name": food["name"],
                 "rating_stars": food["rating_stars"], "fatigue_recovery": recovery,
                 "click_point": click_point, "selected_roi": selected_roi}
