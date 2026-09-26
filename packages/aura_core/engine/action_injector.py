@@ -193,6 +193,8 @@ class ActionInjector:
             parent_cid=parent_cid,
         )
 
+        if tfr.get('status') == 'CANCELLED':
+            raise asyncio.CancelledError()
         if tfr.get("status") in ("FAILED", "ERROR"):
             error_info = tfr.get("error", {"message": "Unknown error in sub-task."})
             raise Exception(f"Sub-task '{task_ref}' failed. Reason: {error_info}")

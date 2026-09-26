@@ -20,6 +20,7 @@ from packages.aura_core.engine.action_injector import ActionInjector
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.config.template import TemplateRenderer
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 if TYPE_CHECKING:
     from .execution_engine import ExecutionEngine, StepState
@@ -499,7 +500,14 @@ class NodeExecutor:
             results = []
             index = 0
             max_iterations = rendered_config.get('max_iterations', 1000)
-            while index < max_iterations:
+            retain_last = rendered_config.get('retain_last')
+            if type(max_iterations) is not int or max_iterations < -1:
+                raise ValueError('loop.max_iterations must be an integer >= 0 or -1 (unbounded)')
+            if retain_last is not None and (type(retain_last) is not int or retain_last < 0):
+                raise ValueError('loop.retain_last must be a nonnegative integer')
+            while max_iterations == -1 or index < max_iterations:
+                if is_current_task_cancel_requested():
+                    raise StopTaskException('Loop cancelled', success=False)
                 iter_context = node_context.fork()
                 iter_context.set_loop_variables({'index': index})
 
@@ -511,7 +519,10 @@ class NodeExecutor:
 
                 result = await self.execute_single_action(node_data, iter_context)
                 results.append(result)
+                if retain_last is not None and len(results) > retain_last:
+                    del results[:len(results)-retain_last]
                 index += 1
+                await asyncio.sleep(0)
             return results
 
         else:

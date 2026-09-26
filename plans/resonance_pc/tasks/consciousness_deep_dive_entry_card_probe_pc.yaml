@@ -1,0 +1,17 @@
+consciousness_deep_dive_entry_card_probe_pc:
+  meta:
+    title: 识海深潜节点卡只读识别（PC）
+    description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
+    entry_point: true
+    inputs: []
+
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
+    probe:
+      action: resonance_pc.deep_dive_entry_card_probe
+      depends_on: require_resolution
+
+  returns:
+    entry_card: "{{ nodes.probe.output }}"

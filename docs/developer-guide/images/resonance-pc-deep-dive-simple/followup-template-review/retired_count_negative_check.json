@@ -1,0 +1,56 @@
+[
+  {
+    "template": "battle_reward_zero",
+    "scope": "whole_frame",
+    "score": 0.4569975435733795,
+    "point": [
+      610,
+      604
+    ]
+  },
+  {
+    "template": "battle_reward_zero",
+    "scope": "board_buttons",
+    "score": 0.38682395219802856,
+    "point": [
+      1032,
+      400
+    ]
+  },
+  {
+    "template": "battle_reward_zero",
+    "scope": "selection_count_roi",
+    "score": 0.37007325887680054,
+    "point": [
+      597,
+      660
+    ]
+  },
+  {
+    "template": "battle_reward_one",
+    "scope": "whole_frame",
+    "score": 0.5039559006690979,
+    "point": [
+      1136,
+      39
+    ]
+  },
+  {
+    "template": "battle_reward_one",
+    "scope": "board_buttons",
+    "score": 0.3935968577861786,
+    "point": [
+      1025,
+      400
+    ]
+  },
+  {
+    "template": "battle_reward_one",
+    "scope": "selection_count_roi",
+    "score": 0.4024012088775635,
+    "point": [
+      703,
+      660
+    ]
+  }
+]

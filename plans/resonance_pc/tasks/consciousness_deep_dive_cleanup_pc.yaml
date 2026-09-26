@@ -1,0 +1,29 @@
+consciousness_deep_dive_cleanup_pc:
+  meta:
+    title: 识海深潜结算收尾（PC）
+    description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
+    entry_point: true
+    inputs: []
+
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    initialize:
+      action: resonance_pc.deep_dive_cleanup_initialize
+      depends_on: require_resolution
+    advance:
+      action: resonance_pc.deep_dive_cleanup_advance
+      depends_on: initialize
+      loop:
+        while: "{{ state[nodes.initialize.output.session_key].status == 'running' }}"
+        max_iterations: 300
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+    finish:
+      action: resonance_pc.deep_dive_cleanup_finish
+      depends_on: advance
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+
+  returns:
+    deep_dive_cleanup: "{{ nodes.finish.output }}"

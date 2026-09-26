@@ -1,0 +1,18 @@
+[
+  {
+    "case": "A2_tight",
+    "wrong_option_ncc": 0.5019050240516663
+  },
+  {
+    "case": "A5_tight",
+    "wrong_option_ncc": 0.5228495597839355
+  },
+  {
+    "case": "A2_broad",
+    "wrong_option_ncc": 0.5888969898223877
+  },
+  {
+    "case": "A5_broad",
+    "wrong_option_ncc": 0.5426903367042542
+  }
+]

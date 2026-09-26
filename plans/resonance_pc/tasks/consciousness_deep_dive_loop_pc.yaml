@@ -1,0 +1,96 @@
+consciousness_deep_dive_loop_pc:
+  meta:
+    title: 识海深潜循环（PC）
+    description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
+    entry_point: true
+    inputs:
+      - {name: loop_count, type: number, default: 1, min: -1}
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    initialize:
+      action: resonance_pc.deep_dive_loop_initialize
+      depends_on: require_resolution
+      params: {loop_count: "{{ inputs.loop_count }}"}
+    cycles:
+      action: aura.run_task
+      timeout: -1
+      depends_on: initialize
+      loop:
+        while: "{{ state[nodes.initialize.output.session_key].status == 'running' }}"
+        max_iterations: -1
+        retain_last: 1
+      params:
+        task_ref: tasks:consciousness_deep_dive_loop_pc.yaml:deep_dive_cycle_pc
+        inputs: {session_key: "{{ nodes.initialize.output.session_key }}"}
+    finish:
+      action: resonance_pc.deep_dive_loop_result
+      depends_on: cycles
+      params: {session_key: "{{ nodes.initialize.output.session_key }}", release: true}
+  returns:
+    deep_dive_loop: "{{ nodes.finish.output }}"
+
+deep_dive_cycle_pc:
+  meta:
+    title: 识海深潜完整一局编排
+    entry_point: false
+    inputs:
+      - {name: session_key, type: string, required: true}
+  steps:
+    begin:
+      action: resonance_pc.deep_dive_loop_begin
+      params: {session_key: "{{ inputs.session_key }}"}
+    entry:
+      action: aura.run_task
+      timeout: -1
+      depends_on: {begin: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        task_ref: tasks:consciousness_deep_dive_pc.yaml:consciousness_deep_dive_pc
+        inputs: {}
+    check_entry:
+      action: resonance_pc.deep_dive_loop_checkpoint
+      depends_on: {entry: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        session_key: "{{ inputs.session_key }}"
+        stage: entry
+        child_result: "{{ nodes.entry.output }}"
+    single:
+      action: aura.run_task
+      timeout: -1
+      depends_on: {check_entry: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        task_ref: tasks:consciousness_deep_dive_single_run_test_pc.yaml:consciousness_deep_dive_single_run_test_pc
+        inputs: {round_budget: 20}
+    check_single:
+      action: resonance_pc.deep_dive_loop_checkpoint
+      depends_on: {single: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        session_key: "{{ inputs.session_key }}"
+        stage: single
+        child_result: "{{ nodes.single.output }}"
+    cleanup:
+      action: aura.run_task
+      timeout: -1
+      depends_on: {check_single: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        task_ref: tasks:consciousness_deep_dive_cleanup_pc.yaml:consciousness_deep_dive_cleanup_pc
+        inputs: {}
+    check_cleanup:
+      action: resonance_pc.deep_dive_loop_checkpoint
+      depends_on: {cleanup: "success|skipped"}
+      when: "{{ state[inputs.session_key].status == 'running' }}"
+      params:
+        session_key: "{{ inputs.session_key }}"
+        stage: cleanup
+        child_result: "{{ nodes.cleanup.output }}"
+    finish:
+      action: resonance_pc.deep_dive_loop_result
+      depends_on: {check_cleanup: "success|skipped"}
+      params: {session_key: "{{ inputs.session_key }}"}
+  returns:
+    result: "{{ nodes.finish.output }}"

@@ -1388,6 +1388,38 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.deep_dive_cleanup_initialize
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_cleanup_pc_actions
+    function: initialize_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Initialize independent settlement cleanup; no game input.
+    parameters: []
+  - name: resonance_pc.deep_dive_cleanup_advance
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_cleanup_pc_actions
+    function: advance_cleanup
+    public: true
+    read_only: false
+    timeout: null
+    description: Observe and perform at most one verified settlement cleanup click.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.deep_dive_cleanup_finish
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_cleanup_pc_actions
+    function: finish_cleanup
+    public: true
+    read_only: true
+    timeout: null
+    description: Return independent cleanup result for later task composition.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.start_consciousness_deep_dive_drag_probe
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_drag_probe_pc_actions
     function: resonance_pc_start_consciousness_deep_dive_drag_probe
@@ -1416,6 +1448,76 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.deep_dive_entry_card_probe
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_entry_card_probe_pc_actions
+    function: probe_deep_dive_entry_card
+    public: true
+    read_only: true
+    timeout: 10
+    description: Identify the node confirmation card without clicking or entering
+      it.
+    parameters: []
+  - name: resonance_pc.deep_dive_loop_initialize
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_loop_pc_actions
+    function: initialize_loop
+    public: true
+    read_only: false
+    timeout: null
+    description: Validate loop count and activity-home start without clicking.
+    parameters:
+    - name: loop_count
+      type: Any
+      required: false
+      default: 1
+  - name: resonance_pc.deep_dive_loop_begin
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_loop_pc_actions
+    function: begin_loop_run
+    public: true
+    read_only: false
+    timeout: null
+    description: Start bookkeeping for one cycle with a fresh child session.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.deep_dive_loop_checkpoint
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_loop_pc_actions
+    function: checkpoint_loop
+    public: true
+    read_only: false
+    timeout: null
+    description: Require child business completion before advancing; count only after
+      cleanup.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+    - name: stage
+      type: Any
+      required: true
+      default: null
+    - name: child_result
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.deep_dive_loop_result
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_loop_pc_actions
+    function: loop_result
+    public: true
+    read_only: false
+    timeout: null
+    description: Return compact loop summary; optionally release outer session.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+    - name: release
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.consciousness_deep_dive_enter_stage
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_pc_actions
     function: resonance_pc_consciousness_deep_dive_enter_stage
@@ -1425,6 +1527,46 @@ exports:
     description: Enter the Consciousness Deep Dive board using fixed strategy and
       middle boon selection.
     parameters: []
+  - name: resonance_pc.deep_dive_single_run_initialize
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
+    function: initialize_deep_dive_single_run
+    public: true
+    read_only: false
+    timeout: null
+    description: Start a guarded Deep Dive board-only test session.
+    parameters:
+    - name: round_budget
+      type: Any
+      required: false
+      default: 20
+    - name: random_seed
+      type: Any
+      required: false
+      default: 0
+  - name: resonance_pc.deep_dive_single_run_advance
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
+    function: advance_deep_dive_single_run
+    public: true
+    read_only: false
+    timeout: null
+    description: Advance one guarded board, event, or rotation state.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.deep_dive_single_run_finish
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
+    function: finish_deep_dive_single_run
+    public: true
+    read_only: false
+    timeout: null
+    description: Return the verified settlement or blocked single-run result.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.eternal_scuffle_initialize
     module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
     function: initialize_eternal_scuffle
@@ -2709,6 +2851,14 @@ exports:
     title: Consciousness Deep Dive View Capture (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
     description: Capture four calibrated board views for recognition material.
+  - id: consciousness_deep_dive_cleanup_pc/consciousness_deep_dive_cleanup_pc
+    title: 识海深潜结算收尾（PC）
+    source: tasks/consciousness_deep_dive_cleanup_pc.yaml
+    description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
+  - id: consciousness_deep_dive_cleanup_pc
+    title: 识海深潜结算收尾（PC）
+    source: tasks/consciousness_deep_dive_cleanup_pc.yaml
+    description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
   - id: consciousness_deep_dive_drag_distance_probe_pc/consciousness_deep_dive_drag_distance_probe_round_pc
     title: Consciousness Deep Dive Drag Distance Probe Round (PC)
     source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
@@ -2721,6 +2871,26 @@ exports:
     title: 拖动距离测算
     source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
     description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
+  - id: consciousness_deep_dive_entry_card_probe_pc/consciousness_deep_dive_entry_card_probe_pc
+    title: 识海深潜节点卡只读识别（PC）
+    source: tasks/consciousness_deep_dive_entry_card_probe_pc.yaml
+    description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
+  - id: consciousness_deep_dive_entry_card_probe_pc
+    title: 识海深潜节点卡只读识别（PC）
+    source: tasks/consciousness_deep_dive_entry_card_probe_pc.yaml
+    description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
+  - id: consciousness_deep_dive_loop_pc/consciousness_deep_dive_loop_pc
+    title: 识海深潜循环（PC）
+    source: tasks/consciousness_deep_dive_loop_pc.yaml
+    description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
+  - id: consciousness_deep_dive_loop_pc
+    title: 识海深潜循环（PC）
+    source: tasks/consciousness_deep_dive_loop_pc.yaml
+    description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
+  - id: consciousness_deep_dive_loop_pc/deep_dive_cycle_pc
+    title: 识海深潜完整一局编排
+    source: tasks/consciousness_deep_dive_loop_pc.yaml
+    description: ''
   - id: consciousness_deep_dive_pc/consciousness_deep_dive_pc
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
@@ -2737,6 +2907,14 @@ exports:
     title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
     source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
     description: Drag the board once by 320px and capture one unlabeled probe image.
+  - id: consciousness_deep_dive_single_run_test_pc/consciousness_deep_dive_single_run_test_pc
+    title: 识海深潜单局移动测试（PC）
+    source: tasks/consciousness_deep_dive_single_run_test_pc.yaml
+    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
+  - id: consciousness_deep_dive_single_run_test_pc
+    title: 识海深潜单局移动测试（PC）
+    source: tasks/consciousness_deep_dive_single_run_test_pc.yaml
+    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -2854,4 +3032,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-24T19:10:47Z'
+  generated_at: '2026-09-26T22:06:10Z'

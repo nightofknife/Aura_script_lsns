@@ -445,6 +445,7 @@
             },
             "max_iterations": {
               "oneOf": [
+                {"const": -1},
                 {
                   "type": "integer",
                   "minimum": 1
@@ -454,7 +455,8 @@
                 }
               ],
               "default": 1000
-            }
+            },
+            "retain_last": {"type": "integer", "minimum": 0}
           },
           "additionalProperties": false
         }

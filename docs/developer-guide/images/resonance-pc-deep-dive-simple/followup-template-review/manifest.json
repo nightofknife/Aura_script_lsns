@@ -1,0 +1,254 @@
+{
+  "status": "review_only",
+  "client_size": [
+    1280,
+    720
+  ],
+  "templates": [
+    {
+      "name": "selection_dice_title",
+      "label": "失去骰子：选择页标题",
+      "source": "dice_unselected",
+      "box": [
+        560,
+        23,
+        725,
+        52
+      ],
+      "group": "selection"
+    },
+    {
+      "name": "selection_push_title",
+      "label": "失去推力：选择页标题",
+      "source": "push_unselected",
+      "box": [
+        585,
+        23,
+        694,
+        52
+      ],
+      "group": "selection"
+    },
+    {
+      "name": "result_lost_title",
+      "label": "失去：结果展示标题",
+      "source": "dice_lost",
+      "box": [
+        612,
+        83,
+        666,
+        111
+      ],
+      "group": "result"
+    },
+    {
+      "name": "event_heading",
+      "label": "奇遇事件：公共标题，非结束依据",
+      "source": "event_ending",
+      "box": [
+        560,
+        25,
+        725,
+        67
+      ],
+      "group": "ending",
+      "mask": "event_heading_mask.png",
+      "matcher": "TM_SQDIFF_NORMED",
+      "requires_mask": true
+    },
+    {
+      "name": "board_actions_heading",
+      "label": "魔方：行动步骤标题（无次数）",
+      "source": "board_negative",
+      "box": [
+        1043,
+        340,
+        1247,
+        369
+      ],
+      "group": "return"
+    },
+    {
+      "name": "selection_reward_title",
+      "label": "请选择推力：领取选择页标题",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\battle_reward_title.png",
+      "group": "selection"
+    },
+    {
+      "name": "card_unselected",
+      "label": "卡片未选中：公共勾选标记",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\battle_card_unselected.png",
+      "group": "selection"
+    },
+    {
+      "name": "card_selected",
+      "label": "卡片已选中：公共勾选标记",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\battle_card_selected.png",
+      "group": "selection"
+    },
+    {
+      "name": "selection_confirm",
+      "label": "道具选择页：独立确定按钮",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\battle_reward_confirm.png",
+      "group": "selection"
+    },
+    {
+      "name": "result_obtained_title",
+      "label": "恭喜获得：结果展示标题",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\reward_obtained_title.png",
+      "group": "result"
+    },
+    {
+      "name": "board_turn",
+      "label": "回到魔方：玩家行动中",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\player_turn.png",
+      "group": "return"
+    },
+    {
+      "name": "run_settlement",
+      "label": "任务结算：探索中断",
+      "source": "plans\\resonance_pc\\templates\\consciousness_deep_dive_single_run\\settlement_failure.png",
+      "group": "return"
+    },
+    {
+      "name": "result_exit",
+      "label": "触碰空白区域退出：仅紧裁文字",
+      "source": "reward_exit_prompt",
+      "box": [
+        50,
+        6,
+        155,
+        21
+      ],
+      "group": "result"
+    }
+  ],
+  "offline_checks": [
+    {
+      "source": "dice_unselected",
+      "template": "card_unselected",
+      "score": 0.9988908171653748,
+      "point": [
+        615,
+        493
+      ]
+    },
+    {
+      "source": "dice_unselected",
+      "template": "card_selected",
+      "score": 0.46994245052337646,
+      "point": [
+        731,
+        513
+      ]
+    },
+    {
+      "source": "dice_unselected",
+      "template": "selection_confirm",
+      "score": 0.999988853931427,
+      "point": [
+        585,
+        620
+      ]
+    },
+    {
+      "source": "dice_selected",
+      "template": "card_unselected",
+      "score": 0.6980196237564087,
+      "point": [
+        715,
+        496
+      ]
+    },
+    {
+      "source": "dice_selected",
+      "template": "card_selected",
+      "score": 0.999340295791626,
+      "point": [
+        615,
+        493
+      ]
+    },
+    {
+      "source": "dice_selected",
+      "template": "selection_confirm",
+      "score": 0.9999884963035583,
+      "point": [
+        585,
+        620
+      ]
+    },
+    {
+      "source": "dice_lost",
+      "template": "result_lost_title",
+      "score": 0.9999844431877136,
+      "point": [
+        612,
+        83
+      ]
+    },
+    {
+      "source": "dice_lost",
+      "template": "result_exit",
+      "score": 0.9993409514427185,
+      "point": [
+        605,
+        676
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "card_unselected",
+      "score": 0.5469788312911987,
+      "point": [
+        569,
+        499
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "card_selected",
+      "score": 0.5143791437149048,
+      "point": [
+        617,
+        503
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "selection_confirm",
+      "score": 0.26314035058021545,
+      "point": [
+        673,
+        603
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "result_exit",
+      "score": 0.25537294149398804,
+      "point": [
+        507,
+        658
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "board_turn",
+      "score": 0.9999995827674866,
+      "point": [
+        140,
+        132
+      ]
+    },
+    {
+      "source": "board_negative",
+      "template": "board_actions_heading",
+      "score": 0.9999632835388184,
+      "point": [
+        1043,
+        340
+      ]
+    }
+  ]
+}

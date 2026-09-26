@@ -1,0 +1,636 @@
+{
+  "scope": "Provided still screenshots only; not live or temporal validation",
+  "thresholds_calibrated": false,
+  "samples": [
+    {
+      "label": "heal2 / 86100110 / normal",
+      "expected": "text_167_normal.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.8802694327952673,
+          "ncc": 0.8799492120742798,
+          "mae": 12.552825961916872,
+          "chroma_similarity": 0.9835335071865043,
+          "point": [
+            15,
+            12
+          ],
+          "file": "text_167_normal.png",
+          "state": "normal",
+          "text_key": "text_167"
+        },
+        {
+          "score": 0.8547279829168154,
+          "ncc": 0.8413705229759216,
+          "mae": 12.967880604244241,
+          "chroma_similarity": 0.9890784658048637,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_013_normal.png",
+          "state": "normal",
+          "text_key": "text_013"
+        },
+        {
+          "score": 0.7937637188197183,
+          "ncc": 0.7644966244697571,
+          "mae": 15.448581721308994,
+          "chroma_similarity": 0.967451538623112,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_047_normal.png",
+          "state": "normal",
+          "text_key": "text_047"
+        },
+        {
+          "score": 0.7894224227336488,
+          "ncc": 0.7750551104545593,
+          "mae": 16.01245723972997,
+          "chroma_similarity": 0.9045035320822753,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_170_normal.png",
+          "state": "normal",
+          "text_key": "text_170"
+        },
+        {
+          "score": 0.7628957489063174,
+          "ncc": 0.7365407347679138,
+          "mae": 17.583386310659037,
+          "chroma_similarity": 0.9272823568532194,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_169_normal.png",
+          "state": "normal",
+          "text_key": "text_169"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_167_normal.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_167_normal.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        765,
+        322,
+        286,
+        77
+      ]
+    },
+    {
+      "label": "heal2 / 86100435 / normal",
+      "expected": "text_168_normal.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.8718495759968327,
+          "ncc": 0.8792252540588379,
+          "mae": 14.393313012002286,
+          "chroma_similarity": 0.9688817601406341,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_168_normal.png",
+          "state": "normal",
+          "text_key": "text_168"
+        },
+        {
+          "score": 0.8681171742453229,
+          "ncc": 0.8745234608650208,
+          "mae": 14.682447450307995,
+          "chroma_similarity": 0.9703971531018127,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_014_normal.png",
+          "state": "normal",
+          "text_key": "text_014"
+        },
+        {
+          "score": 0.6655445546100985,
+          "ncc": 0.6208942532539368,
+          "mae": 23.172477297262972,
+          "chroma_similarity": 0.8958485436599093,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_017_normal.png",
+          "state": "normal",
+          "text_key": "text_017"
+        },
+        {
+          "score": 0.6564807704846787,
+          "ncc": 0.6090059876441956,
+          "mae": 23.634914586905442,
+          "chroma_similarity": 0.8965732440002072,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_015_normal.png",
+          "state": "normal",
+          "text_key": "text_015"
+        },
+        {
+          "score": 0.6520774611757219,
+          "ncc": 0.8105995655059814,
+          "mae": 29.052073410808408,
+          "chroma_similarity": 0.10650315337073457,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_168_disabled.png",
+          "state": "disabled",
+          "text_key": "text_168"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_168_normal.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_168_normal.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        824,
+        469,
+        181,
+        58
+      ]
+    },
+    {
+      "label": "disabled2 / 86100441 / disabled",
+      "expected": "text_170_disabled.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.9100972245898058,
+          "ncc": 0.902850866317749,
+          "mae": 7.9619017346290075,
+          "chroma_similarity": 0.9875006960265643,
+          "point": [
+            15,
+            12
+          ],
+          "file": "text_170_disabled.png",
+          "state": "disabled",
+          "text_key": "text_170"
+        },
+        {
+          "score": 0.8930984440890366,
+          "ncc": 0.8764915466308594,
+          "mae": 7.894590258226622,
+          "chroma_similarity": 0.986996888906241,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_169_disabled.png",
+          "state": "disabled",
+          "text_key": "text_169"
+        },
+        {
+          "score": 0.8636719261227255,
+          "ncc": 0.8345236778259277,
+          "mae": 8.546574637483728,
+          "chroma_similarity": 0.9862638751867273,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_167_disabled.png",
+          "state": "disabled",
+          "text_key": "text_167"
+        },
+        {
+          "score": 0.844830627452073,
+          "ncc": 0.8095059990882874,
+          "mae": 9.335815699452063,
+          "chroma_similarity": 0.9855076807031593,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_013_disabled.png",
+          "state": "disabled",
+          "text_key": "text_013"
+        },
+        {
+          "score": 0.825262906585787,
+          "ncc": 0.7823249697685242,
+          "mae": 9.99084249084249,
+          "chroma_similarity": 0.986487060134194,
+          "point": [
+            15,
+            11
+          ],
+          "file": "text_047_disabled.png",
+          "state": "disabled",
+          "text_key": "text_047"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_170_disabled.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_170_disabled.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        765,
+        322,
+        286,
+        77
+      ]
+    },
+    {
+      "label": "disabled2 / 86100435 / normal",
+      "expected": "text_168_normal.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.8718495759968327,
+          "ncc": 0.8792252540588379,
+          "mae": 14.393313012002286,
+          "chroma_similarity": 0.9688817601406341,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_168_normal.png",
+          "state": "normal",
+          "text_key": "text_168"
+        },
+        {
+          "score": 0.8681171742453229,
+          "ncc": 0.8745234608650208,
+          "mae": 14.682447450307995,
+          "chroma_similarity": 0.9703971531018127,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_014_normal.png",
+          "state": "normal",
+          "text_key": "text_014"
+        },
+        {
+          "score": 0.6655445546100985,
+          "ncc": 0.6208942532539368,
+          "mae": 23.172477297262972,
+          "chroma_similarity": 0.8958485436599093,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_017_normal.png",
+          "state": "normal",
+          "text_key": "text_017"
+        },
+        {
+          "score": 0.6564807704846787,
+          "ncc": 0.6090059876441956,
+          "mae": 23.634914586905442,
+          "chroma_similarity": 0.8965732440002072,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_015_normal.png",
+          "state": "normal",
+          "text_key": "text_015"
+        },
+        {
+          "score": 0.6520774611757219,
+          "ncc": 0.8105995655059814,
+          "mae": 29.052073410808408,
+          "chroma_similarity": 0.10650315337073457,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_168_disabled.png",
+          "state": "disabled",
+          "text_key": "text_168"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_168_normal.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_168_normal.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        824,
+        469,
+        181,
+        58
+      ]
+    },
+    {
+      "label": "selected3 / 86100446 / normal",
+      "expected": "text_173_normal.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.9191689422395689,
+          "ncc": 0.9266875386238098,
+          "mae": 10.036591478696742,
+          "chroma_similarity": 0.9879092700334653,
+          "point": [
+            15,
+            9
+          ],
+          "file": "text_173_normal.png",
+          "state": "normal",
+          "text_key": "text_173"
+        },
+        {
+          "score": 0.8264559390853266,
+          "ncc": 0.8208391070365906,
+          "mae": 14.450170881749829,
+          "chroma_similarity": 0.9204486901134059,
+          "point": [
+            15,
+            9
+          ],
+          "file": "text_174_normal.png",
+          "state": "normal",
+          "text_key": "text_174"
+        },
+        {
+          "score": 0.7825124963576363,
+          "ncc": 0.7576194405555725,
+          "mae": 18.077741074256753,
+          "chroma_similarity": 0.9770186723571098,
+          "point": [
+            15,
+            9
+          ],
+          "file": "text_171_normal.png",
+          "state": "normal",
+          "text_key": "text_171"
+        },
+        {
+          "score": 0.7654561763692175,
+          "ncc": 0.8728052377700806,
+          "mae": 18.380800486063645,
+          "chroma_similarity": 0.37048515558409334,
+          "point": [
+            15,
+            9
+          ],
+          "file": "text_173_disabled.png",
+          "state": "disabled",
+          "text_key": "text_173"
+        },
+        {
+          "score": 0.7425917067481724,
+          "ncc": 0.7062616944313049,
+          "mae": 20.80024520933612,
+          "chroma_similarity": 0.9901491443133303,
+          "point": [
+            15,
+            9
+          ],
+          "file": "text_167_normal.png",
+          "state": "normal",
+          "text_key": "text_167"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_173_normal.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_173_normal.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        765,
+        247,
+        285,
+        77
+      ]
+    },
+    {
+      "label": "selected3 / 86100447 / selected",
+      "expected": "text_172_selected.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.8365498822044609,
+          "ncc": 0.8371627926826477,
+          "mae": 17.103958391728177,
+          "chroma_similarity": 0.9722929128992693,
+          "point": [
+            9,
+            7
+          ],
+          "file": "text_172_selected.png",
+          "state": "selected",
+          "text_key": "text_172"
+        },
+        {
+          "score": 0.7601935413670363,
+          "ncc": 0.7503250241279602,
+          "mae": 22.191372370319737,
+          "chroma_similarity": 0.9455354289407425,
+          "point": [
+            9,
+            7
+          ],
+          "file": "text_174_selected.png",
+          "state": "selected",
+          "text_key": "text_174"
+        },
+        {
+          "score": 0.7513848162996724,
+          "ncc": 0.8491812348365784,
+          "mae": 22.23597745180479,
+          "chroma_similarity": 0.4593629546185758,
+          "point": [
+            9,
+            7
+          ],
+          "file": "text_172_disabled.png",
+          "state": "disabled",
+          "text_key": "text_172"
+        },
+        {
+          "score": 0.7402454878045416,
+          "ncc": 0.7206082344055176,
+          "mae": 23.71933621933622,
+          "chroma_similarity": 0.973153740842539,
+          "point": [
+            9,
+            7
+          ],
+          "file": "text_176_selected.png",
+          "state": "selected",
+          "text_key": "text_176"
+        },
+        {
+          "score": 0.7365903938919139,
+          "ncc": 0.7168410420417786,
+          "mae": 23.751203342112433,
+          "chroma_similarity": 0.9657748467257283,
+          "point": [
+            9,
+            7
+          ],
+          "file": "text_169_selected.png",
+          "state": "selected",
+          "text_key": "text_169"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_172_selected.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_172_selected.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        824,
+        397,
+        278,
+        77
+      ]
+    },
+    {
+      "label": "selected3 / 86100445 / normal",
+      "expected": "text_108_normal.png",
+      "correct": true,
+      "top": [
+        {
+          "score": 0.9223192722528358,
+          "ncc": 0.9395083785057068,
+          "mae": 11.34736958443855,
+          "chroma_similarity": 0.9806623745033124,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_108_normal.png",
+          "state": "normal",
+          "text_key": "text_108"
+        },
+        {
+          "score": 0.6780176327649616,
+          "ncc": 0.8585602641105652,
+          "mae": 30.09013041556145,
+          "chroma_similarity": 0.09323412427815758,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_108_disabled.png",
+          "state": "disabled",
+          "text_key": "text_108"
+        },
+        {
+          "score": 0.6205393549440031,
+          "ncc": 0.5687952041625977,
+          "mae": 27.635381905821284,
+          "chroma_similarity": 0.9145536046267075,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_135_normal.png",
+          "state": "normal",
+          "text_key": "text_135"
+        },
+        {
+          "score": 0.6172680887626671,
+          "ncc": 0.5747278928756714,
+          "mae": 28.079625509825732,
+          "chroma_similarity": 0.8762919207445745,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_071_normal.png",
+          "state": "normal",
+          "text_key": "text_071"
+        },
+        {
+          "score": 0.6163697367748893,
+          "ncc": 0.5926058292388916,
+          "mae": 31.23323754789272,
+          "chroma_similarity": 0.8585321007118297,
+          "point": [
+            9,
+            9
+          ],
+          "file": "text_067_normal.png",
+          "state": "normal",
+          "text_key": "text_067"
+        }
+      ],
+      "brightness_perturbations": [
+        {
+          "gain": 0.85,
+          "top": "text_108_normal.png",
+          "correct": true
+        },
+        {
+          "gain": 1.15,
+          "top": "text_108_normal.png",
+          "correct": true
+        }
+      ],
+      "actual_crop": [
+        784,
+        544,
+        104,
+        58
+      ]
+    }
+  ]
+}
