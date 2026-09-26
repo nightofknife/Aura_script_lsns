@@ -1,0 +1,37 @@
+[
+  {
+    "source": "01-board.png",
+    "scores": {
+      "board_turn": 0.9999994039535522,
+      "board_actions_heading": 0.9868630766868591
+    }
+  },
+  {
+    "source": "02-move-options.png",
+    "scores": {
+      "board_turn": 1.0,
+      "board_actions_heading": 0.9770683646202087
+    }
+  },
+  {
+    "source": "03-rotate-options.png",
+    "scores": {
+      "board_turn": 0.9999994039535522,
+      "board_actions_heading": 0.9838849306106567
+    }
+  },
+  {
+    "source": "15-healing-stone-three-options.png",
+    "scores": {
+      "board_turn": 0.14754867553710938,
+      "board_actions_heading": 0.1606672704219818
+    }
+  },
+  {
+    "source": "20-healing-stone-event-ending.png",
+    "scores": {
+      "board_turn": 0.11298658698797226,
+      "board_actions_heading": -0.0481494776904583
+    }
+  }
+]

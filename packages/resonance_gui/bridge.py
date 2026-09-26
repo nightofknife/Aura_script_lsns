@@ -17,6 +17,8 @@ from .config_repository import TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
     GAME_NAME,
     ETERNAL_SCUFFLE_PROGRESS_EVENT,
+    DEEP_DIVE_LOOP_PROGRESS_EVENT,
+    PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,
     ETERNAL_SCUFFLE_PROGRESS_SCHEMA,
     PC_ETERNAL_SCUFFLE_TASK_REF,
     PC_BATTLE_PREVIEW_TASK_REF,
@@ -54,6 +56,7 @@ class RunnerBridge(QObject):
     tradeProgress = Signal(dict)
     passengerProgress = Signal(dict)
     eternalScuffleProgress = Signal(dict)
+    deepDiveLoopProgress = Signal(dict)
     targetStatusChanged = Signal(dict)
     cancelRequested = Signal(dict)
     busyChanged = Signal(bool)
@@ -493,6 +496,18 @@ class RunnerBridge(QObject):
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
         for event in events:
             name = str(event.get("name") or "")
+            if name == DEEP_DIVE_LOOP_PROGRESS_EVENT:
+                payload=event.get('payload')
+                if (isinstance(payload,dict) and self._current_cid
+                        and (self._current_item or {}).get('task_ref') == PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF
+                        and payload.get('schema') == 'resonance_pc.deep_dive_loop.v1'
+                        and payload.get('cid') == self._current_cid):
+                    previous=getattr(self,'_deep_dive_progress_cursor',('',0))
+                    sequence=payload.get('sequence')
+                    if type(sequence) is int and (previous[0]!=self._current_cid or sequence>previous[1]):
+                        self._deep_dive_progress_cursor=(self._current_cid,sequence)
+                        self.deepDiveLoopProgress.emit(dict(event))
+                continue
             if name == ETERNAL_SCUFFLE_PROGRESS_EVENT:
                 payload = event.get("payload")
                 if not isinstance(payload, dict):

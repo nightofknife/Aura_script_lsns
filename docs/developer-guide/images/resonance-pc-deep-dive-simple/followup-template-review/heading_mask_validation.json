@@ -1,0 +1,53 @@
+{
+  "matcher": "TM_SQDIFF_NORMED; lower is better; non-finite is unknown",
+  "retained_pixels": 981,
+  "total_pixels": 6930,
+  "randomized_excluded_background_error": 0.0,
+  "checks": [
+    {
+      "source": "dice_unselected",
+      "masked_normalized_error": 0.9251916408538818
+    },
+    {
+      "source": "event_selected",
+      "masked_normalized_error": 5.759131909144344e-06
+    },
+    {
+      "source": "dice_selected",
+      "masked_normalized_error": 0.9251916408538818
+    },
+    {
+      "source": "dice_lost",
+      "masked_normalized_error": 3.1344258785247803
+    },
+    {
+      "source": "event_ending",
+      "masked_normalized_error": 0.0
+    },
+    {
+      "source": "board_negative",
+      "masked_normalized_error": 1.9880691766738892
+    },
+    {
+      "source": "push_unselected",
+      "masked_normalized_error": 1.2671366930007935
+    },
+    {
+      "source": "reward",
+      "masked_normalized_error": 3.989596128463745
+    },
+    {
+      "source": "old_options",
+      "masked_normalized_error": 1.9289112970000133e-05
+    },
+    {
+      "source": "old_ending",
+      "masked_normalized_error": 1.1569566595426295e-05
+    },
+    {
+      "source": "workshop_options",
+      "masked_normalized_error": 7.221638225018978e-05
+    }
+  ],
+  "scope": "Offline still images only. Auxiliary event-page feature, not ending classification."
+}

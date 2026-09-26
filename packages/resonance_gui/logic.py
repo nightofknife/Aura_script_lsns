@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF = 'tasks:consciousness_deep_dive_loop_pc.yaml:consciousness_deep_dive_loop_pc'
+DEEP_DIVE_LOOP_PROGRESS_EVENT = 'task.resonance_pc_deep_dive_loop_progress'
+
 import copy
 import json
 from dataclasses import dataclass, field
@@ -26,6 +29,10 @@ PC_TEAM_RECOMMENDATION_TASK_REF = (
 )
 PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF = (
     "tasks:consciousness_deep_dive_pc.yaml:consciousness_deep_dive_pc"
+)
+PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF = (
+    "tasks:consciousness_deep_dive_single_run_test_pc.yaml:"
+    "consciousness_deep_dive_single_run_test_pc"
 )
 PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF = (
     "tasks:consciousness_deep_dive_capture_pc.yaml:consciousness_deep_dive_capture_pc"

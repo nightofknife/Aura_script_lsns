@@ -1,0 +1,33 @@
+consciousness_deep_dive_single_run_test_pc:
+  meta:
+    title: 识海深潜单局移动测试（PC）
+    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
+    entry_point: true
+    inputs:
+      - {name: round_budget, type: number, default: 20, min: 1, max: 100}
+      - {name: random_seed, type: number, default: 0}
+
+  steps:
+    initialize:
+      action: resonance_pc.deep_dive_single_run_initialize
+      params:
+        round_budget: "{{ inputs.round_budget }}"
+        random_seed: "{{ inputs.random_seed }}"
+
+    advance:
+      action: resonance_pc.deep_dive_single_run_advance
+      depends_on: initialize
+      loop:
+        while: "{{ state[nodes.initialize.output.session_key].status == 'running' }}"
+        max_iterations: "{{ inputs.round_budget * 2200 + 1000 }}"
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+
+    finish:
+      action: resonance_pc.deep_dive_single_run_finish
+      depends_on: advance
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+
+  returns:
+    deep_dive_single_run: "{{ nodes.finish.output }}"

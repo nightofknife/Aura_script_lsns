@@ -372,7 +372,7 @@ class ComplianceChecker:
             findings.append(self._finding("error", "loop_invalid", "loop must be an object with one supported mode.", task_file, self._hint("loop_invalid")))
             return findings
         supported_modes = {"for_each", "times", "while"}
-        auxiliary_keys = {"parallelism", "max_iterations"}
+        auxiliary_keys = {"parallelism", "max_iterations", "retain_last"}
         mode_keys = supported_modes.intersection(loop_cfg.keys())
         if len(mode_keys) != 1:
             findings.append(self._finding("error", "loop_invalid", f"{location} must define exactly one loop mode from {sorted(supported_modes)}.", task_file, self._hint("loop_invalid")))

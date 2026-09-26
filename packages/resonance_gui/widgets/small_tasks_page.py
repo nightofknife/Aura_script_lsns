@@ -72,6 +72,8 @@ class SmallTasksPage(QWidget):
     previewTradeRequested = Signal(object, float)
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
+    runConsciousnessDeepDiveSingleRunRequested = Signal(object)
+    runConsciousnessDeepDiveLoopRequested = Signal(object)
     runEternalScuffleRequested = Signal(object)
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
     runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
@@ -147,6 +149,10 @@ class SmallTasksPage(QWidget):
         )
         self.consciousness_deep_dive_panel.runRequested.connect(
             self.runConsciousnessDeepDiveRequested.emit
+        )
+        self.consciousness_deep_dive_panel.runLoopRequested.connect(self.runConsciousnessDeepDiveLoopRequested.emit)
+        self.consciousness_deep_dive_panel.runSingleRunRequested.connect(
+            self.runConsciousnessDeepDiveSingleRunRequested.emit
         )
         self.consciousness_deep_dive_panel.cancelRequested.connect(
             self.cancelRequested.emit
@@ -321,6 +327,11 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.begin_run()
         self._sync_controls()
 
+    def begin_consciousness_deep_dive_single_run(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_single_run()
+        self._sync_controls()
+
     def begin_consciousness_deep_dive_capture_run(
         self, inputs: Mapping[str, Any]
     ) -> None:
@@ -340,6 +351,11 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.apply_result(payload)
         self._sync_controls()
 
+    def apply_consciousness_deep_dive_single_run_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_single_run_result(payload)
+        self._sync_controls()
+
     def apply_consciousness_deep_dive_capture_result(
         self, payload: Mapping[str, Any]
     ) -> None:
@@ -357,6 +373,11 @@ class SmallTasksPage(QWidget):
     def show_consciousness_deep_dive_error(self, message: str) -> None:
         self._active_task_id = ""
         self.consciousness_deep_dive_panel.show_error(message)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_single_run_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_single_run_error(message)
         self._sync_controls()
 
     def show_consciousness_deep_dive_capture_error(self, message: str) -> None:

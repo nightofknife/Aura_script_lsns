@@ -1,0 +1,777 @@
+{
+  "events": [
+    {
+      "id": 89800014,
+      "name": "八音石",
+      "variant": "回血事件/八音石01",
+      "node_type": 12601615,
+      "options": [
+        86100276,
+        86100277
+      ]
+    },
+    {
+      "id": 89800097,
+      "name": "八音石",
+      "variant": "回血事件/八音石02",
+      "node_type": 12601615,
+      "options": [
+        86100110,
+        86100435
+      ]
+    },
+    {
+      "id": 89800269,
+      "name": "八音石",
+      "variant": "回血事件/八音石03",
+      "node_type": 12601615,
+      "options": [
+        86100438,
+        86100437
+      ]
+    },
+    {
+      "id": 89800270,
+      "name": "八音石",
+      "variant": "回血事件/八音石04",
+      "node_type": 12601615,
+      "options": [
+        86100441,
+        86100440
+      ]
+    },
+    {
+      "id": 89800271,
+      "name": "八音石",
+      "variant": "回血事件/八音石05",
+      "node_type": 12601615,
+      "options": [
+        86100442,
+        86100444,
+        86100443
+      ]
+    },
+    {
+      "id": 89800272,
+      "name": "八音石",
+      "variant": "回血事件/八音石06",
+      "node_type": 12601615,
+      "options": [
+        86100446,
+        86100447,
+        86100445
+      ]
+    },
+    {
+      "id": 89800273,
+      "name": "八音石",
+      "variant": "回血事件/八音石07",
+      "node_type": 12601615,
+      "options": [
+        86100450,
+        86100449,
+        86100448
+      ]
+    },
+    {
+      "id": 89800274,
+      "name": "八音石",
+      "variant": "回血事件/八音石08",
+      "node_type": 12601615,
+      "options": [
+        86100451,
+        86100452,
+        86100453
+      ]
+    },
+    {
+      "id": 89800275,
+      "name": "八音石",
+      "variant": "回血事件/八音石09",
+      "node_type": 12601615,
+      "options": [
+        86100455,
+        86100454,
+        86100456,
+        86100457
+      ]
+    }
+  ],
+  "options": [
+    {
+      "id": 86100276,
+      "title": "哼唱石头的旋律",
+      "description": "我方全体失去15%生命值，获得1个随机【推力】",
+      "effects": [
+        {
+          "id": 89900051,
+          "idCN": "血量/减少0.15",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Present",
+          "param": -0.15
+        },
+        {
+          "id": 89900010,
+          "idCN": "获得/buff/随机1All",
+          "mod": "获得奖励",
+          "isInformalData": false,
+          "orderType": "Reward",
+          "rewardList": [
+            {
+              "id": 86100126,
+              "numMax": 1,
+              "numMin": 1
+            }
+          ]
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_013",
+      "group": "Recover-:Reward",
+      "priority": 10
+    },
+    {
+      "id": 86100277,
+      "title": "在石头边休息",
+      "description": "我方全体回复15%生命值",
+      "effects": [
+        {
+          "id": 89900096,
+          "idCN": "血量/增加0.15",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.15
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_014",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100110,
+      "title": "哼唱石头的旋律",
+      "description": "我方全体失去25%生命值，获得1个随机金色【推力】",
+      "effects": [
+        {
+          "id": 89900116,
+          "idCN": "血量/减少0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Present",
+          "param": -0.25
+        },
+        {
+          "id": 89900042,
+          "idCN": "获得/buff/随机1金",
+          "mod": "获得奖励",
+          "isInformalData": false,
+          "orderType": "Reward",
+          "rewardList": [
+            {
+              "id": 86100285,
+              "numMax": 1,
+              "numMin": 1
+            }
+          ]
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_167",
+      "group": "Recover-:Reward",
+      "priority": 10
+    },
+    {
+      "id": 86100435,
+      "title": "在石头边休息",
+      "description": "我方全体回复25%生命值",
+      "effects": [
+        {
+          "id": 89900113,
+          "idCN": "血量/增加0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.25
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_168",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100438,
+      "title": "随着石头的旋律晃动",
+      "description": "我方全体失去15%生命值，强化1个随机【推力】",
+      "effects": [
+        {
+          "id": 89900051,
+          "idCN": "血量/减少0.15",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Present",
+          "param": -0.15
+        },
+        {
+          "id": 89900021,
+          "idCN": "强化/强化1随机品质buff",
+          "mod": "强化",
+          "isInformalData": false,
+          "orderType": "Intensify",
+          "qualityType": "All",
+          "param": 1.0,
+          "probability": 1.0,
+          "insufficientTips": 80610774
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_169",
+      "group": "Recover-:Intensify",
+      "priority": 10
+    },
+    {
+      "id": 86100437,
+      "title": "在石头边休息",
+      "description": "我方全体回复15%生命值",
+      "effects": [
+        {
+          "id": 89900096,
+          "idCN": "血量/增加0.15",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.15
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_014",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100441,
+      "title": "随着石头的旋律晃动",
+      "description": "我方全体失去25%生命值，强化1个随机金色【推力】",
+      "effects": [
+        {
+          "id": 89900116,
+          "idCN": "血量/减少0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Present",
+          "param": -0.25
+        },
+        {
+          "id": 89900008,
+          "idCN": "强化/强化1金色buff",
+          "mod": "强化",
+          "isInformalData": false,
+          "orderType": "Intensify",
+          "qualityType": "Golden",
+          "param": 1.0,
+          "probability": 1.0,
+          "insufficientTips": 80610774
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_170",
+      "group": "Recover-:Intensify",
+      "priority": 10
+    },
+    {
+      "id": 86100440,
+      "title": "在石头边休息",
+      "description": "我方全体回复25%生命值",
+      "effects": [
+        {
+          "id": 89900113,
+          "idCN": "血量/增加0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.25
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_168",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100442,
+      "title": "哼唱石头的旋律",
+      "description": "选择丢弃1个【推力】，我方全体回复25%生命值",
+      "effects": [
+        {
+          "id": 89900030,
+          "idCN": "失去/Buff/选1All",
+          "mod": "失去Buff",
+          "isInformalData": false,
+          "orderType": "LoseBuff",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610374
+        },
+        {
+          "id": 89900113,
+          "idCN": "血量/增加0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.25
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_171",
+      "group": "LoseBuff:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100444,
+      "title": "随着石头的旋律晃动",
+      "description": "选择丢弃1个【推力】，获得1个随机【蕴念骰子】",
+      "effects": [
+        {
+          "id": 89900030,
+          "idCN": "失去/Buff/选1All",
+          "mod": "失去Buff",
+          "isInformalData": false,
+          "orderType": "LoseBuff",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610374
+        },
+        {
+          "id": 89900014,
+          "idCN": "获得/标准装备/随机1All",
+          "mod": "获得奖励",
+          "isInformalData": false,
+          "orderType": "Reward",
+          "rewardList": [
+            {
+              "id": 86100131,
+              "numMax": 1,
+              "numMin": 1
+            }
+          ],
+          "probability": 1.0
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_172",
+      "group": "LoseBuff:Reward",
+      "priority": 10
+    },
+    {
+      "id": 86100443,
+      "title": "什么也不做",
+      "description": "结束事件",
+      "effects": [],
+      "blocked": false,
+      "text_key": "text_108",
+      "group": "End",
+      "priority": 20
+    },
+    {
+      "id": 86100446,
+      "title": "哼唱石头的旋律",
+      "description": "选择丢弃1个【蕴念骰子】，我方全体回复50%生命值",
+      "effects": [
+        {
+          "id": 89900029,
+          "idCN": "失去/标准装备/选1All",
+          "mod": "失去装备",
+          "isInformalData": false,
+          "orderType": "LoseEquip",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610375
+        },
+        {
+          "id": 89900072,
+          "idCN": "血量/增加0.5",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.5
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_173",
+      "group": "LoseEquip:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100447,
+      "title": "随着石头的旋律晃动",
+      "description": "选择丢弃1个【推力】，获得1个随机【蕴念骰子】",
+      "effects": [
+        {
+          "id": 89900030,
+          "idCN": "失去/Buff/选1All",
+          "mod": "失去Buff",
+          "isInformalData": false,
+          "orderType": "LoseBuff",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610374
+        },
+        {
+          "id": 89900105,
+          "idCN": "获得/标准装备/随机1金",
+          "mod": "获得奖励",
+          "isInformalData": false,
+          "orderType": "Reward",
+          "rewardList": [
+            {
+              "id": 86100153,
+              "numMax": 1,
+              "numMin": 1
+            }
+          ]
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_172",
+      "group": "LoseBuff:Reward",
+      "priority": 10
+    },
+    {
+      "id": 86100445,
+      "title": "什么也不做",
+      "description": "结束事件",
+      "effects": [],
+      "blocked": false,
+      "text_key": "text_108",
+      "group": "End",
+      "priority": 20
+    },
+    {
+      "id": 86100450,
+      "title": "哼唱石头的旋律",
+      "description": "选择丢弃1个【推力】，我方全体回复25%生命值",
+      "effects": [
+        {
+          "id": 89900030,
+          "idCN": "失去/Buff/选1All",
+          "mod": "失去Buff",
+          "isInformalData": false,
+          "orderType": "LoseBuff",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610374
+        },
+        {
+          "id": 89900113,
+          "idCN": "血量/增加0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.25
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_171",
+      "group": "LoseBuff:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100449,
+      "title": "随着石头的旋律晃动",
+      "description": "选择丢弃1个【蕴念骰子】，我方全体回复50%生命值",
+      "effects": [
+        {
+          "id": 89900029,
+          "idCN": "失去/标准装备/选1All",
+          "mod": "失去装备",
+          "isInformalData": false,
+          "orderType": "LoseEquip",
+          "loseType": "Select",
+          "qualityType": "All",
+          "refreshNum": 3,
+          "param": 1.0,
+          "insufficientTips": 80610375
+        },
+        {
+          "id": 89900072,
+          "idCN": "血量/增加0.5",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.5
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_174",
+      "group": "LoseEquip:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100448,
+      "title": "在石头边休息",
+      "description": "我方全体回复15%生命值",
+      "effects": [
+        {
+          "id": 89900096,
+          "idCN": "血量/增加0.15",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.15
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_014",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100451,
+      "title": "哼唱石头的旋律",
+      "description": "失去100点【尘埃】，我方全体回复50%生命值",
+      "effects": [
+        {
+          "id": 89900063,
+          "idCN": "失去/代币/100",
+          "mod": "丢弃",
+          "isInformalData": false,
+          "orderType": "Discard",
+          "isEnough": true,
+          "discardList": [
+            {
+              "id": 11400607,
+              "num": 100
+            }
+          ],
+          "param": 1.0,
+          "insufficientTips": 80610373
+        },
+        {
+          "id": 89900072,
+          "idCN": "血量/增加0.5",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.5
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_175",
+      "group": "Discard:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100452,
+      "title": "随着石头的旋律晃动",
+      "description": "失去200点【尘埃】，我方全体回复100%生命值",
+      "effects": [
+        {
+          "id": 89900065,
+          "idCN": "失去/代币/200",
+          "mod": "丢弃",
+          "isInformalData": false,
+          "orderType": "Discard",
+          "isEnough": true,
+          "discardList": [
+            {
+              "id": 11400607,
+              "num": 200
+            }
+          ],
+          "param": 1.0,
+          "insufficientTips": 80610373
+        },
+        {
+          "id": 89900117,
+          "idCN": "血量/增加1",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 1.0
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_176",
+      "group": "Discard:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100453,
+      "title": "在石头边休息",
+      "description": "我方全体回复25%生命值",
+      "effects": [
+        {
+          "id": 89900113,
+          "idCN": "血量/增加0.25",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.25
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_168",
+      "group": "Recover+",
+      "priority": 0
+    },
+    {
+      "id": 86100455,
+      "title": "哼唱石头的旋律",
+      "description": "失去50点【尘埃】，获得1个随机金色【推力】",
+      "effects": [
+        {
+          "id": 89900061,
+          "idCN": "失去/代币/50",
+          "mod": "丢弃",
+          "isInformalData": false,
+          "orderType": "Discard",
+          "isEnough": true,
+          "discardList": [
+            {
+              "id": 11400607,
+              "num": 50
+            }
+          ],
+          "param": 1.0,
+          "insufficientTips": 80610373
+        },
+        {
+          "id": 89900042,
+          "idCN": "获得/buff/随机1金",
+          "mod": "获得奖励",
+          "isInformalData": false,
+          "orderType": "Reward",
+          "rewardList": [
+            {
+              "id": 86100285,
+              "numMax": 1,
+              "numMin": 1
+            }
+          ]
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_177",
+      "group": "Discard:Reward",
+      "priority": 10
+    },
+    {
+      "id": 86100454,
+      "title": "随着石头的旋律晃动",
+      "description": "失去50点【尘埃】，强化1个随机金色【推力】",
+      "effects": [
+        {
+          "id": 89900061,
+          "idCN": "失去/代币/50",
+          "mod": "丢弃",
+          "isInformalData": false,
+          "orderType": "Discard",
+          "isEnough": true,
+          "discardList": [
+            {
+              "id": 11400607,
+              "num": 50
+            }
+          ],
+          "param": 1.0,
+          "insufficientTips": 80610373
+        },
+        {
+          "id": 89900008,
+          "idCN": "强化/强化1金色buff",
+          "mod": "强化",
+          "isInformalData": false,
+          "orderType": "Intensify",
+          "qualityType": "Golden",
+          "param": 1.0,
+          "probability": 1.0,
+          "insufficientTips": 80610774
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_178",
+      "group": "Discard:Intensify",
+      "priority": 10
+    },
+    {
+      "id": 86100456,
+      "title": "在石头边休息",
+      "description": "失去50点【尘埃】，我方全体回复50%生命值",
+      "effects": [
+        {
+          "id": 89900061,
+          "idCN": "失去/代币/50",
+          "mod": "丢弃",
+          "isInformalData": false,
+          "orderType": "Discard",
+          "isEnough": true,
+          "discardList": [
+            {
+              "id": 11400607,
+              "num": 50
+            }
+          ],
+          "param": 1.0,
+          "insufficientTips": 80610373
+        },
+        {
+          "id": 89900072,
+          "idCN": "血量/增加0.5",
+          "mod": "血量恢复",
+          "isInformalData": false,
+          "orderType": "Recover",
+          "recoverType": "Upper",
+          "param": 0.5
+        }
+      ],
+      "blocked": false,
+      "text_key": "text_179",
+      "group": "Discard:Recover+",
+      "priority": 10
+    },
+    {
+      "id": 86100457,
+      "title": "什么也不做",
+      "description": "结束事件",
+      "effects": [],
+      "blocked": false,
+      "text_key": "text_108",
+      "group": "End",
+      "priority": 20
+    }
+  ],
+  "source_hashes": {
+    "RogueEventFactory": "15ee70cb34ee9b980a4c2bedafef0e44726d34b0b4749c78e8fe0796fb30a411",
+    "ActivityListFactory": "a0ce179edf9872ff4d353923c6696eb065fae3d94b859573c7058c420a572fed",
+    "RogueOrderFactory": "575cb878aa3e05366ff4769352884c49468c2b9ec2a14b6dec483259c51f50f4"
+  }
+}
