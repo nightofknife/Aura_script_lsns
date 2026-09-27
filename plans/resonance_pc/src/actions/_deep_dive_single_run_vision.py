@@ -104,7 +104,11 @@ def observe(image_rgb: np.ndarray, event_family: str = 'healing') -> dict:
     """Classify one client frame; uncertain frames never provide click candidates."""
     if not isinstance(image_rgb, np.ndarray) or image_rgb.shape != (720, 1280, 3) or image_rgb.dtype != np.uint8:
         return {"valid": False, "scene": "invalid_frame", "options": [], "scores": {}}
-    if float(image_rgb.std()) < 2:
+    # Preserve the variance over all RGB values without materializing NumPy's
+    # full-frame float64 temporary on every high-frequency observation.
+    means, deviations = cv2.meanStdDev(image_rgb)
+    variance = float(np.mean(deviations**2 + (means-float(means.mean()))**2))
+    if variance < 4:
         return {"valid": False, "scene": "blank_frame", "options": [], "scores": {}}
     bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)

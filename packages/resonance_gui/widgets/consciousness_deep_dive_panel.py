@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
+from pathlib import Path
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -20,6 +22,7 @@ class ConsciousnessDeepDivePanel(QWidget):
     runRequested = Signal()
     runSingleRunRequested = Signal(object)
     runLoopRequested = Signal(object)
+    runScanRequested = Signal()
     cancelRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -27,6 +30,7 @@ class ConsciousnessDeepDivePanel(QWidget):
         self._runner_busy = False
         self._task_running = False
         self._mode = "entry"
+        self._scan_report_path = ""
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -76,36 +80,101 @@ class ConsciousnessDeepDivePanel(QWidget):
         loop_note = QLabel('完整循环从活动首页开始，回到首页后才计为完成一局。',self)
         loop_note.setWordWrap(True)
         layout.addWidget(loop_note)
+        scan_note = QLabel("布局扫描从魔方界面开始，拖动观察六面并导出目标位置和节点图标，供人工对照。", self)
+        scan_note.setWordWrap(True)
+        scan_note.setProperty("caption", True)
+        layout.addWidget(scan_note)
+        scan_row = QHBoxLayout()
+        self.scan_button = QPushButton("扫描魔方布局", self)
+        self.scan_button.clicked.connect(self.runScanRequested.emit)
+        scan_row.addWidget(self.scan_button)
+        self.scan_report_button = QPushButton("打开扫描报告", self)
+        self.scan_report_button.setEnabled(False)
+        self.scan_report_button.clicked.connect(self._open_scan_report)
+        scan_row.addWidget(self.scan_report_button)
+        scan_row.addStretch(1)
+        layout.addLayout(scan_row)
         layout.addStretch(1)
 
         action_band = QFrame(self)
         action_band.setObjectName("smallTaskRunBand")
-        action_layout = QHBoxLayout(action_band)
+        action_layout = QVBoxLayout(action_band)
         action_layout.setContentsMargins(0, 9, 0, 0)
         action_layout.setSpacing(8)
         self.run_status = QLabel("待运行", action_band)
         self.run_status.setObjectName("smallTaskRunStatus")
         self.run_status.setProperty("status", "waiting")
         action_layout.addWidget(self.run_status)
-        action_layout.addStretch(1)
+        entry_actions = QHBoxLayout()
+        action_layout.addLayout(entry_actions)
         self.cancel_button = QPushButton("取消", action_band)
         self.cancel_button.setObjectName("dangerButton")
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
-        action_layout.addWidget(self.cancel_button)
+        entry_actions.addWidget(self.cancel_button)
         self.run_button = QPushButton("开始下潜", action_band)
         self.run_button.setObjectName("primaryButton")
         self.run_button.clicked.connect(self.runRequested.emit)
-        action_layout.addWidget(self.run_button)
+        entry_actions.addWidget(self.run_button)
+        run_actions = QHBoxLayout()
+        action_layout.addLayout(run_actions)
         self.test_button = QPushButton("测试移动循环", action_band)
         self.test_button.clicked.connect(
             lambda: self.runSingleRunRequested.emit({"round_budget": self.round_budget_spin.value()})
         )
-        action_layout.addWidget(self.test_button)
+        run_actions.addWidget(self.test_button)
         self.loop_button = QPushButton('开始完整循环',action_band)
         self.loop_button.clicked.connect(self._request_loop)
-        action_layout.addWidget(self.loop_button)
+        run_actions.addWidget(self.loop_button)
         layout.addWidget(action_band)
+
+    def begin_scan(self) -> None:
+        self._mode = "scan"
+        self._task_running = True
+        self._scan_report_path = ""
+        self.summary_label.clear()
+        self._set_result_status("正在拖动魔方并识别布局……", "running")
+        self._set_run_status("扫描中", "running")
+        self._sync_controls()
+
+    def apply_scan_result(self, payload: Mapping[str, Any]) -> None:
+        self._task_running = False
+        status = str(payload.get("status") or "blocked")
+        complete = (payload.get("success") is True
+                    and status == "completed" and payload.get("layout_complete") is True)
+        self._scan_report_path = str(payload.get("report_path") or "")
+        faces = payload.get("faces_observed", 0)
+        if isinstance(faces, (list, tuple, dict)):
+            faces = len(faces)
+        summary = [f"已识别 {payload.get('known_cells', 0)} / 54 格 · 已观察 {faces} / 6 面"]
+        for key, label in (("report_path", "报告"), ("json_path", "布局 JSON"),
+                           ("output_dir", "输出目录"), ("last_frame", "最后截图")):
+            if payload.get(key):
+                summary.append(f"{label}：{payload[key]}")
+        if payload.get("report_error"):
+            summary.append(f"报告导出异常：{payload['report_error']}")
+        self.summary_label.setText("\n".join(summary))
+        label = "布局扫描完成，请人工对照输出" if complete else {
+            "partial": "扫描结束，布局仍有未知或冲突",
+            "cancelled": "扫描已取消",
+            "blocked": "扫描未能完成",
+        }.get(status, "扫描未能确认完整布局")
+        if payload.get("reason"):
+            label += f"：{payload['reason']}"
+        self._set_result_status(label, "success" if complete else "error")
+        self._set_run_status("扫描完成" if complete else "扫描未完成", "success" if complete else "error")
+        self._sync_controls()
+
+    def show_scan_error(self, message: str) -> None:
+        self.apply_scan_result({"status": "blocked", "reason": message})
+
+    def _open_scan_report(self) -> None:
+        if self._scan_report_path:
+            report = Path(self._scan_report_path).resolve()
+            if report.is_file():
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(report)))
+            else:
+                self._set_result_status("扫描报告文件不存在，请查看输出目录。", "error")
 
     def begin_run(self) -> None:
         self._mode = "entry"
@@ -225,6 +294,8 @@ class ConsciousnessDeepDivePanel(QWidget):
     def _sync_controls(self) -> None:
         self.run_button.setEnabled(not self._runner_busy and not self._task_running)
         self.test_button.setEnabled(not self._runner_busy and not self._task_running)
+        self.scan_button.setEnabled(not self._runner_busy and not self._task_running)
+        self.scan_report_button.setEnabled(bool(self._scan_report_path) and not self._task_running)
         self.round_budget_spin.setEnabled(not self._runner_busy and not self._task_running)
         self.loop_button.setEnabled(not self._runner_busy and not self._task_running)
         self.loop_count_spin.setEnabled(not self._runner_busy and not self._task_running)

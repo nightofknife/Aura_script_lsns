@@ -160,6 +160,17 @@ class WindowsDesktopAdapter(RuntimeAdapter):
     def capture(self, rect: tuple[int, int, int, int] | None = None) -> CaptureResult:
         return self._run_read_operation("capture", lambda: self.capture_backend.capture(rect=rect))
 
+    def capture_stream_frame(self, after_generation: int = -1, *, expected_session_id: int | None = None) -> dict[str, Any] | None:
+        """Poll warmed-up WGC frames concurrently with input.
+
+        Deliberately does not acquire _operation_lock or perform recovery. The
+        caller must stop/join its reader before runtime close or rebind.
+        """
+        capture_stream = getattr(self.capture_backend, "capture_stream_frame", None)
+        if not callable(capture_stream):
+            raise TargetRuntimeError("capture_stream_unsupported", "Concurrent frame polling requires WGC.")
+        return capture_stream(after_generation, expected_session_id=expected_session_id)
+
     def get_client_rect(self) -> tuple[int, int, int, int]:
         return self._run_read_operation("get_client_rect", self.target.get_client_rect)
 

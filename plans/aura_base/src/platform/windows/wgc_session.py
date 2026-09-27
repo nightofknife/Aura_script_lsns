@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib
 import threading
 import time
+import uuid
 from typing import Any
 
 import numpy as np
@@ -26,6 +27,7 @@ class PersistentWgcSession:
         dirty_region: bool | None = True,
     ) -> None:
         self.hwnd = int(hwnd)
+        self.stream_id = uuid.uuid4().int
         self.module_name = str(module_name or "windows_capture").strip() or "windows_capture"
         self.capture_cursor = None if capture_cursor is None else bool(capture_cursor)
         self.draw_border = None if draw_border is None else bool(draw_border)
@@ -165,6 +167,27 @@ class PersistentWgcSession:
                     self.health(),
                 )
             return self._latest_frame.copy()
+
+    def snapshot_stream_frame(self, after_generation: int = -1) -> tuple[np.ndarray, int, float] | None:
+        """Copy the latest frame and its metadata atomically without waiting.
+
+        The timestamp is callback arrival time, not a game render timestamp.
+        None means no newer frame is available or the callback owns the lock.
+        This method never starts or rebuilds the capture session.
+        """
+        if not self._lock.acquire(blocking=False):
+            return None
+        try:
+            self._raise_if_session_unhealthy_locked()
+            if self._control is None:
+                raise TargetRuntimeError("windows_capture_stream_not_started", "Warm up capture before streaming.")
+            if self._latest_frame is None or self._generation <= int(after_generation):
+                return None
+            if self._arrived_at_monotonic is None:
+                return None
+            return self._latest_frame.copy(), int(self._generation), float(self._arrived_at_monotonic)
+        finally:
+            self._lock.release()
 
     def close(self) -> None:
         control = None

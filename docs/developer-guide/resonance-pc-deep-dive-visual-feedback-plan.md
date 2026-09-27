@@ -1,8 +1,10 @@
 # 识海深潜：视觉反馈观察方案
 
-更新：2026-09-27。状态：设计与交接，尚未实现或验证实机闭环。
+更新：2026-09-27。状态：已提供快慢视觉分离的连续扫描入口，当前棋盘5次实机完整扫描通过；跨布局可靠性尚未验收。
 
-入口：[实施计划](resonance-pc-deep-dive-visual-feedback-implementation.md) · [另一台机器接续](resonance-pc-deep-dive-visual-feedback-handoff.md)。
+同日后续：已新增[魔方布局扫描实验任务](resonance-pc-deep-dive-scan-test.md)，用于用户实机人工比对。最新实机记录为54/54格、30.3–48.1秒（5次同棋盘复测）；原设计的跨布局可靠性目标仍需独立验收。
+
+入口：[完整布局扫描设计与外部方案调研](resonance-pc-deep-dive-full-layout-design.md) · [实施计划](resonance-pc-deep-dive-visual-feedback-implementation.md) · [另一台机器接续](resonance-pc-deep-dive-visual-feedback-handoff.md)。
 
 ## 目标与决定
 
@@ -10,13 +12,15 @@
 
 第一版仍可寻找接近已有四个标准观察姿态的范围，复用原有素材；不要求按累计像素精确到位。随后升级为按六面的实际覆盖和清晰度决定采样、补扫与停止。最终输出统一的 `(face, row, col)` 及玩家、Boss、灵感位置，供后续计算使用。
 
-分类语义为 `empty / player / boss / inspiration`。低置信度、不可见、归属冲突属于“未知观察”，不能当成 empty。玩家与 Boss 分别需要唯一可信归属；灵感允许多个格子。同格共存或遮挡若确实出现，需要确认四分类互斥假设是否仍成立，不强行归类。
+2026-09-27 后续需求确认：玩家、奇点、灵感互斥，不会同格。目标语义为 `none / player / singularity / inspiration`，历史模型的 `empty / boss` 分别适配为无目标/奇点。低置信度、不可见、归属冲突属于“未知观察”，不能当成无目标。玩家与奇点分别需要唯一可信归属；灵感允许多个格子。
 
-本分支只保存方案。已有[简单随机移动](resonance-pc-consciousness-deep-dive-simple-random-walk.md)、[事件处理](resonance-pc-deep-dive-event-runtime.md)、[循环运行](resonance-pc-deep-dive-loop.md)继续作为现有实现基线。
+完整布局还需要识别无目标格的节点图标；目标格下方的图标无需识别。目标与图标分别记录，完成条件、表面字典、扫描坐标和现有实现适配以[完整布局扫描设计](resonance-pc-deep-dive-full-layout-design.md)为准。
+
+本分支最初只保存方案，后续新增实验扫描入口。已有[简单随机移动](resonance-pc-consciousness-deep-dive-simple-random-walk.md)、[事件处理](resonance-pc-deep-dive-event-runtime.md)、[循环运行](resonance-pc-deep-dive-loop.md)继续作为现有实现基线。
 
 ## 游戏逻辑依据与证据边界
 
-以下来自本机客户端脚本的只读分析、字节码比对和关键控制流反汇编复核；未进行实机闭环控制。版本指纹见[接续说明](resonance-pc-deep-dive-visual-feedback-handoff.md#客户端证据指纹)。换客户端版本需重新检查，不能把这些结论视为永远不变的接口。
+以下为设计阶段保存的客户端只读分析、字节码比对和关键控制流反汇编结论；后续实机记录见扫描操作说明。版本指纹见[接续说明](resonance-pc-deep-dive-visual-feedback-handoff.md#客户端证据指纹)。换客户端版本需重新检查，不能把这些结论视为永远不变的接口。
 
 | 入口/对象 | 已观察到的逻辑 | 对方案的影响 |
 |---|---|---|
@@ -71,7 +75,7 @@
 
 融合分数时同时考虑分类置信度、视角质量、可见性和跨帧一致性；不无限取所有帧中最大的 softmax。重复相邻帧不能当作独立证据。Boss/玩家竞争候选差距不足或面编号不确定时返回未知并补扫。
 
-只有确认规范面编号、行列方向、跨面邻接和当前 epoch，结果才允许交给规划器。历史 V1L/V1R 等观察槽位不是游戏世界坐标。
+只有确认所声明坐标系下的面编号、行列方向、跨面邻接和当前 epoch，结果才允许交给接受该坐标系的规划器。首版可使用完整布局设计中的 scan_local；需要游戏内部编号的消费者必须通过显式映射。历史 V1L/V1R 等观察槽位不是游戏世界坐标。
 
 ## 方案比较
 
@@ -85,3 +89,4 @@
 | 可选只读姿态遥测 | 可能降低图像姿态估计难度 | 当前未证实桥接具备接口，需要独立设计和版本验证 |
 
 锁帧可用于诊断，不能替代闭环。现有输入桥接保留 DragHandle 的响应语义；ScrollRect.StopMovement 不适用于这个魔方处理器。直接设置 transform 或调用内部业务方法改变了正常输入操作边界，不作为默认路线。
+
