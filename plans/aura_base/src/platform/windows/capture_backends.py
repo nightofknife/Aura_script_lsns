@@ -216,6 +216,44 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
     def reset_after_target_recovery(self) -> None:
         self._rebuild_session()
 
+    def capture_stream_frame(self, after_generation: int = -1, *, expected_session_id: int | None = None) -> dict[str, Any] | None:
+        """Read the existing WGC cache without input locks, recovery, or waits.
+
+        Stop and join the reader before closing/rebinding its runtime. Pass the
+        returned session_id on subsequent calls to reject a rebuilt session.
+        """
+        if not self._session_lock.acquire(blocking=False):
+            return None
+        try:
+            session = self._session
+            if session is None:
+                raise TargetRuntimeError("windows_capture_stream_closed", "The WGC capture session is closed.")
+            session_id = session.stream_id
+            if expected_session_id is not None and session_id != expected_session_id:
+                raise TargetRuntimeError("windows_capture_stream_replaced", "The WGC capture session changed during streaming.")
+            self.target.ensure_valid()
+            if int(session.hwnd) != int(self.target.hwnd):
+                raise TargetRuntimeError("windows_capture_stream_target_changed", "The capture target changed during streaming.")
+            snapshot = session.snapshot_stream_frame(after_generation)
+            if snapshot is None:
+                return None
+            frame, generation, arrived_at = snapshot
+            client_rect = self.target.get_client_rect()
+            rgb = _coerce_rgb_frame(frame, backend=self.backend_name)
+            image = self._crop_wgc_frame_to_client(rgb)
+            if self.target.get_client_rect() != client_rect:
+                raise TargetRuntimeError("windows_capture_stream_target_changed", "The client geometry changed during capture.")
+            return {
+                "capture": CaptureResult(success=True, image=image, window_rect=client_rect,
+                                         relative_rect=(0, 0, int(client_rect[2]), int(client_rect[3])),
+                                         backend=self.backend_name),
+                "generation": generation,
+                "arrived_at_monotonic": arrived_at,
+                "session_id": session_id,
+            }
+        finally:
+            self._session_lock.release()
+
     def capture(self, rect: tuple[int, int, int, int] | None = None) -> CaptureResult:
         self.target.ensure_valid()
         roi = _normalize_client_roi(self.target, rect)

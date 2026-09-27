@@ -34,6 +34,9 @@ PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF = (
     "tasks:consciousness_deep_dive_single_run_test_pc.yaml:"
     "consciousness_deep_dive_single_run_test_pc"
 )
+PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF = (
+    "tasks:consciousness_deep_dive_scan_pc.yaml:consciousness_deep_dive_scan_pc"
+)
 PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF = (
     "tasks:consciousness_deep_dive_capture_pc.yaml:consciousness_deep_dive_capture_pc"
 )
@@ -615,6 +618,29 @@ def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:
             continue
         return dict(data)
     return dict(data) if isinstance(data, Mapping) else {}
+
+
+def extract_deep_dive_scan_result(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Read the scan action result, never the enclosing runner's SUCCESS."""
+    pending = [extract_final_result(payload), normalize_run_payload(payload)]
+    seen: set[int] = set()
+    while pending:
+        result = pending.pop(0)
+        if id(result) in seen:
+            continue
+        seen.add(id(result))
+        scan = result.get("deep_dive_scan")
+        if isinstance(scan, Mapping):
+            return dict(scan)
+        nodes = result.get("nodes")
+        scan = nodes.get("scan") if isinstance(nodes, Mapping) else result.get("scan")
+        if isinstance(scan, Mapping) and isinstance(scan.get("output"), Mapping):
+            return dict(scan["output"])
+        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
+            child = result.get(key)
+            if isinstance(child, Mapping):
+                pending.append(child)
+    return {}
 
 
 def validate_recovery_refresh(

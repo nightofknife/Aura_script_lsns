@@ -1527,6 +1527,35 @@ exports:
     description: Enter the Consciousness Deep Dive board using fixed strategy and
       middle boon selection.
     parameters: []
+  - name: resonance_pc.scan_consciousness_deep_dive_layout
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_scan_pc_actions
+    function: scan_consciousness_deep_dive_layout
+    public: true
+    read_only: false
+    timeout: -1
+    description: Scan an already open normal Deep Dive board and save its reconstructed
+      layout.
+    parameters:
+    - name: max_steps
+      type: Any
+      required: false
+      default: 96
+    - name: time_budget_sec
+      type: Any
+      required: false
+      default: 60
+    - name: drag_step_px
+      type: Any
+      required: false
+      default: 300
+    - name: drag_duration_sec
+      type: Any
+      required: false
+      default: 0.15
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 0.2
   - name: resonance_pc.deep_dive_single_run_initialize
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
     function: initialize_deep_dive_single_run
@@ -2899,6 +2928,14 @@ exports:
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+  - id: consciousness_deep_dive_scan_pc/consciousness_deep_dive_scan_pc
+    title: 识海深潜魔方布局扫描（人工对比）
+    source: tasks/consciousness_deep_dive_scan_pc.yaml
+    description: 从普通魔方界面开始，持续拖动与最新帧识别并发扫描六面，输出目标位置、节点图标及未知格供人工对比。
+  - id: consciousness_deep_dive_scan_pc
+    title: 识海深潜魔方布局扫描（人工对比）
+    source: tasks/consciousness_deep_dive_scan_pc.yaml
+    description: 从普通魔方界面开始，持续拖动与最新帧识别并发扫描六面，输出目标位置、节点图标及未知格供人工对比。
   - id: consciousness_deep_dive_sensitivity_probe_pc/consciousness_deep_dive_sensitivity_probe_pc
     title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
     source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
@@ -3032,4 +3069,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-26T22:06:10Z'
+  generated_at: '2026-09-27T11:48:42Z'

@@ -41,6 +41,7 @@ from .logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,
     PC_ETERNAL_SCUFFLE_TASK_REF,
     PC_GAME_NAME,
@@ -48,6 +49,7 @@ from .logic import (
     PC_PLAYER_DATA_REFRESH_TASK_REF,
     PC_TEAM_RECOMMENDATION_TASK_REF,
     extract_final_result,
+    extract_deep_dive_scan_result,
     extract_run_id,
     extract_status,
     parse_inputs_json,
@@ -283,6 +285,9 @@ class ResonanceMainWindow(QMainWindow):
             self._run_small_task_consciousness_deep_dive
         )
         self.small_tasks_page.runConsciousnessDeepDiveLoopRequested.connect(self._run_deep_dive_loop)
+        self.small_tasks_page.runConsciousnessDeepDiveScanRequested.connect(
+            self._run_deep_dive_scan
+        )
         self.small_tasks_page.runConsciousnessDeepDiveSingleRunRequested.connect(
             self._run_small_task_consciousness_deep_dive_single_run
         )
@@ -1094,6 +1099,17 @@ class ResonanceMainWindow(QMainWindow):
             float(self.timeout_spin.value()),
         )
 
+    def _run_deep_dive_scan(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再试。")
+            return
+        self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF
+        self.small_tasks_page.begin_consciousness_deep_dive_scan()
+        # The scanner owns its bounded time budget, independently of the GUI timeout.
+        self.requestRunPcTask.emit(
+            PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, {}, "识海深潜布局扫描", 0.0
+        )
+
     def _run_deep_dive_loop(self, inputs):
         panel=self.small_tasks_page.consciousness_deep_dive_panel
         if self._busy or self._workflow_active or self._commerce_active or self._small_task_active_ref:
@@ -1171,7 +1187,10 @@ class ResonanceMainWindow(QMainWindow):
         )
 
     def _show_small_task_error(self, task_ref: str, message: str) -> None:
-        if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF:
+        if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF:
+            self.small_tasks_page.show_consciousness_deep_dive_scan_error(message)
+            return
+        elif task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF:
             self.small_tasks_page.consciousness_deep_dive_panel.show_loop_error(message)
             return
         if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF:
@@ -1640,6 +1659,20 @@ class ResonanceMainWindow(QMainWindow):
                             or "任务未返回可用识海深潜结果。"
                         )
                     )
+                self._small_task_active_ref = ""
+            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF and small_task_owns_result:
+                scan_result = extract_deep_dive_scan_result(payload)
+                runner_status = extract_status(payload)
+                if runner_status != "success":
+                    scan_result.update(
+                        success=False,
+                        status="cancelled" if runner_status == "cancelled" else "blocked",
+                        reason=scan_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                    )
+                if scan_result:
+                    self.small_tasks_page.apply_consciousness_deep_dive_scan_result(scan_result)
+                else:
+                    self.small_tasks_page.show_consciousness_deep_dive_scan_error("任务未返回布局扫描结果。")
                 self._small_task_active_ref = ""
             if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF:
                 loop_result=player_data_result.get('deep_dive_loop')

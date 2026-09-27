@@ -73,6 +73,7 @@ class SmallTasksPage(QWidget):
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
     runConsciousnessDeepDiveSingleRunRequested = Signal(object)
+    runConsciousnessDeepDiveScanRequested = Signal()
     runConsciousnessDeepDiveLoopRequested = Signal(object)
     runEternalScuffleRequested = Signal(object)
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
@@ -151,6 +152,9 @@ class SmallTasksPage(QWidget):
             self.runConsciousnessDeepDiveRequested.emit
         )
         self.consciousness_deep_dive_panel.runLoopRequested.connect(self.runConsciousnessDeepDiveLoopRequested.emit)
+        self.consciousness_deep_dive_panel.runScanRequested.connect(
+            self.runConsciousnessDeepDiveScanRequested.emit
+        )
         self.consciousness_deep_dive_panel.runSingleRunRequested.connect(
             self.runConsciousnessDeepDiveSingleRunRequested.emit
         )
@@ -330,6 +334,21 @@ class SmallTasksPage(QWidget):
     def begin_consciousness_deep_dive_single_run(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
         self.consciousness_deep_dive_panel.begin_single_run()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_scan(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_scan()
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_scan_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_scan_result(payload)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_scan_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_scan_error(message)
         self._sync_controls()
 
     def begin_consciousness_deep_dive_capture_run(
