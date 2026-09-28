@@ -86,7 +86,6 @@ _WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD = 0.82
 _INVENTORY_CATEGORY_TIMEOUT_SEC = 3.0
 
 _MAIN_CITY_REGION: Region = (65, 105, 150, 70)
-_PROFILE_REGION: Region = (90, 0, 600, 340)
 _MAIN_PAGE_REGION: Region = (0, 0, 1280, 720)
 _INVENTORY_PAGE_REGION: Region = (1050, 0, 230, 520)
 _WAREHOUSE_ENTRY_REGION: Region = (110, 560, 140, 150)
@@ -191,6 +190,35 @@ def _wait_for_any_marker(
         time.sleep(max(float(interval_sec), 0.05))
     raise StopTaskException(
         f"Player data refresh failed: expected {label} markers were not found. Last OCR text: {last_text[:160]}",
+        success=False,
+    )
+
+
+def _wait_for_profile_panel(
+    app: Any,
+    vision: Any,
+    *,
+    label: str = "profile panel",
+    timeout_sec: float = 8.0,
+    interval_sec: float = 0.5,
+) -> None:
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    consecutive_hits = 0
+    attempts = 0
+    last_confidence = 0.0
+    while time.monotonic() < deadline:
+        match = _match_navigation_template(
+            app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=0.85,
+        )
+        attempts += 1
+        last_confidence = float(match.get("confidence") or 0.0)
+        consecutive_hits = consecutive_hits + 1 if match.get("found") else 0
+        if consecutive_hits >= 2:
+            return
+        time.sleep(max(float(interval_sec), 0.05))
+    raise StopTaskException(
+        f"Player data refresh failed: {label} template did not match twice consecutively "
+        f"(attempts={attempts}, last_confidence={last_confidence:.3f}).",
         success=False,
     )
 
@@ -736,11 +764,9 @@ def resonance_pc_player_data_refresh(
         try:
             app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
             current_page = "unknown"
-            _wait_for_any_marker(
+            _wait_for_profile_panel(
                 app,
-                ocr,
-                markers=("UID", "资产", "查看更多信息"),
-                region=_PROFILE_REGION,
+                vision,
                 label="profile panel",
             )
             current_page = "profile"
@@ -780,11 +806,9 @@ def resonance_pc_player_data_refresh(
                 if currencies:
                     result["currencies"] = currencies
                 app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                _wait_for_any_marker(
+                _wait_for_profile_panel(
                     app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
+                    vision,
                     label="profile panel after warehouse item page",
                 )
                 current_page = "profile"
@@ -806,11 +830,9 @@ def resonance_pc_player_data_refresh(
                     first_page_image=first_page_image,
                 )
                 app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                _wait_for_any_marker(
+                _wait_for_profile_panel(
                     app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
+                    vision,
                     label="profile panel after character page",
                 )
                 current_page = "profile"
