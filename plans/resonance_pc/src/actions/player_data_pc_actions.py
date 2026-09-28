@@ -98,8 +98,9 @@ _INVENTORY_CATEGORY_REGIONS: Dict[str, Region] = {
 _MAIN_PAGE_MARKERS = ("访问城市", "访问地区", "启程", "STARTENGINE")
 
 _PROFILE_FIELD_REGIONS: Dict[str, Region] = {
-    "clarity": (145, 250, 125, 45),
-    "fatigue": (360, 250, 125, 45),
+    # Keep room for two four-digit values while excluding the trailing "+" and meter below.
+    "clarity": (145, 255, 99, 25),
+    "fatigue": (340, 255, 98, 25),
     "cargo": (545, 250, 125, 45),
 }
 
