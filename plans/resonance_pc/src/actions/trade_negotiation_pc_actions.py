@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Callable, Dict, Mapping, Tuple
 
 from packages.aura_core.observability.logging.core_logger import logger
 
@@ -158,6 +158,28 @@ def _normalize_max_attempts(value: Any) -> int:
     return normalized
 
 
+def _trade_page_stable(page_ready: Callable[[], bool] | None) -> bool:
+    if page_ready is None or not page_ready():
+        return False
+    time.sleep(_CAP_CONFIRMATION_INTERVAL_SEC)
+    return bool(page_ready())
+
+
+def _negotiation_unavailable(
+    page_ready: Callable[[], bool] | None,
+    unavailable_state: Callable[[], bool] | None,
+    attempts_used: int,
+) -> bool:
+    if not _trade_page_stable(page_ready):
+        return False
+    # After a click, the button disappearing on a stable trade page can end
+    # negotiation. Before the first click, require the game's disabled hint so
+    # a template miss does not silently skip bargaining.
+    if attempts_used > 0:
+        return True
+    return _trade_page_stable(unavailable_state)
+
+
 def _result(
     *,
     requested: bool,
@@ -168,7 +190,9 @@ def _result(
     max_attempts: int,
     stop_reason: str,
 ) -> Dict[str, Any]:
-    degraded = bool(requested) and not bool(completed) and stop_reason == "attempt_limit_reached"
+    degraded = bool(requested) and not bool(completed) and stop_reason in {
+        "attempt_limit_reached", "negotiation_unavailable",
+    }
     return {
         "requested_to_cap": bool(requested),
         "completed_to_cap": bool(completed),
@@ -198,6 +222,8 @@ def _execute_negotiation_to_cap(
     poll_interval_sec: float = _POLL_INTERVAL_SEC,
     cap_confirmation_interval_sec: float = _CAP_CONFIRMATION_INTERVAL_SEC,
     max_attempts: int = DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
+    trade_page_ready: Callable[[], bool] | None = None,
+    unavailable_state: Callable[[], bool] | None = None,
 ) -> Dict[str, Any]:
     started_at = time.monotonic()
     normalized_max_attempts = _normalize_max_attempts(max_attempts)
@@ -275,6 +301,20 @@ def _execute_negotiation_to_cap(
         if not last_button.get("found"):
             if time.monotonic() >= deadline:
                 break
+            if _negotiation_unavailable(trade_page_ready, unavailable_state, attempts_used):
+                logger.warning(
+                    "resonance_pc negotiation unavailable kind=%s attempts=%d page_ready=true",
+                    kind, attempts_used,
+                )
+                return _result(
+                    requested=True,
+                    completed=False,
+                    confidence=float(last_cap.get("confidence") or 0.0),
+                    started_at=started_at,
+                    attempts_used=attempts_used,
+                    max_attempts=normalized_max_attempts,
+                    stop_reason="negotiation_unavailable",
+                )
             raise NegotiationExecutionError(
                 "negotiation_button_not_found",
                 "Unable to find the negotiation button on the trade page.",
@@ -384,6 +424,20 @@ def _execute_negotiation_to_cap(
                     attempts_used=attempts_used,
                     max_attempts=normalized_max_attempts,
                     stop_reason="cap_reached",
+                )
+            if _negotiation_unavailable(trade_page_ready, unavailable_state, attempts_used):
+                logger.warning(
+                    "resonance_pc negotiation unavailable_after_animation kind=%s attempts=%d page_ready=true",
+                    kind, attempts_used,
+                )
+                return _result(
+                    requested=True,
+                    completed=False,
+                    confidence=float(last_cap.get("confidence") or 0.0),
+                    started_at=started_at,
+                    attempts_used=attempts_used,
+                    max_attempts=normalized_max_attempts,
+                    stop_reason="negotiation_unavailable",
                 )
             raise NegotiationExecutionError(
                 "negotiation_animation_finish_timeout",
