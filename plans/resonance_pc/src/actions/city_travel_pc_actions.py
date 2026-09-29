@@ -122,6 +122,7 @@ _CITY_KEY_DISPLAY_NAME: Dict[str, str] = {
 
 _CITY_ALIAS_TO_KEY: Dict[str, str] = {
     "阿妮塔能源研究所": "anita_energy_research_institute",
+    "阿妮塔能原研究所": "anita_energy_research_institute",
     "7号自由港": "freeport",
     "七号自由港": "freeport",
     "7号自电港": "freeport",
