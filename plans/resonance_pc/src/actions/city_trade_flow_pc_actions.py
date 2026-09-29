@@ -186,6 +186,7 @@ _CITY_NAME_REGION = [170, 520, 400, 50]
 _SHOP_MENU_REGION = [720, 280, 280, 420]
 _BUY_PRODUCTS_REGION = [620, 130, 210, 520]
 _BUY_BUTTON_REGION = [1000, 630, 140, 50]
+_BUY_BARGAIN_BUTTON_REGION = [1090, 425, 170, 70]
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
 _SELL_ALL_REGION = [1140, 80, 110, 50]
@@ -290,6 +291,18 @@ def _capture_text_items(app: Any, ocr: Any, region: List[int] | Tuple[int, int, 
     )
     items.sort(key=lambda row: float(row.get("confidence") or 0.0), reverse=True)
     return items
+
+
+def _buy_bargain_unavailable(app: Any, ocr: Any) -> bool:
+    items = _capture_text_items(app, ocr, _BUY_BARGAIN_BUTTON_REGION)
+    text = "".join(
+        str(item.get("norm_text") or "")
+        for item in sorted(items, key=lambda row: tuple(row.get("center") or [0, 0])[::-1])
+    )
+    return any(marker in text for marker in (
+        "没有砍价次数", "砍价次数不足", "砍价次数用尽",
+        "砍价次数已用尽", "砍价次数已耗尽", "无法砍价",
+    ))
 
 
 def _find_text_hit(
@@ -913,15 +926,30 @@ def resonance_pc_buy_goods_on_buy_page(
         items = _capture_text_items(app, ocr, _BUY_PRODUCTS_REGION)
         visible = [str(item.get("text") or "") for item in items]
         round_hits: List[str] = []
+        unambiguous_hits: Dict[str, Tuple[int, Dict[str, Any]]] = {}
+        for item in items:
+            item_norm = str(item.get("norm_text") or "")
+            if len(item_norm) < 2:
+                continue
+            exact_products = [
+                product for product in pending
+                if item_norm in _BUY_PRODUCT_OCR_ALIASES.get(product, ())
+                or item_norm == _normalize_text(product)
+            ]
+            matching_products = exact_products or [
+                product for product in pending
+                if _normalize_text(product) in item_norm
+                or item_norm in _normalize_text(product)
+            ]
+            if len(matching_products) == 1:
+                product = matching_products[0]
+                rank = 2 if exact_products else 1
+                previous = unambiguous_hits.get(product)
+                if previous is None or rank > previous[0]:
+                    unambiguous_hits[product] = (rank, item)
         for product in list(pending):
-            product_norm = _normalize_text(product)
-            hit = None
-            for item in items:
-                item_norm = str(item.get("norm_text") or "")
-                alias_match = item_norm in _BUY_PRODUCT_OCR_ALIASES.get(product, ())
-                if product_norm and item_norm and (alias_match or product_norm in item_norm or item_norm in product_norm):
-                    hit = item
-                    break
+            match = unambiguous_hits.get(product)
+            hit = match[1] if match is not None else None
             if hit is not None:
                 click = _click_hit(app, hit)
                 logger.info(
@@ -958,6 +986,11 @@ def resonance_pc_buy_goods_on_buy_page(
         len(scan_trace),
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
+    if pending:
+        logger.warning(
+            "[TradeBuy] phase=selection_incomplete missing=%s selected=%s context=%s",
+            pending, selected, dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
 
     if bool(bargain_to_cap) and not selected:
         _raise_error(
@@ -973,6 +1006,10 @@ def resonance_pc_buy_goods_on_buy_page(
             app=app,
             vision=vision,
             max_attempts=negotiation_max_attempts,
+            trade_page_ready=lambda: _find_text_hit(
+                app, ocr, "买入", _BUY_BUTTON_REGION, match_mode="exact"
+            ) is not None,
+            unavailable_state=lambda: _buy_bargain_unavailable(app, ocr),
         )
         if bool(bargain_to_cap):
             _report_worker("negotiation", "completed", operation="bargain", data=dict(negotiation))
@@ -1061,6 +1098,7 @@ def resonance_pc_buy_goods_on_buy_page(
         "requested_products": requested_products,
         "selected_products": selected,
         "missing_products": pending,
+        "selection_complete": not pending,
         "books_requested": int(books_used or 0),
         "book_result": book_result,
         "negotiation": negotiation,
@@ -1997,16 +2035,25 @@ def _summarize_negotiation_execution(
         entry
         for entry in entries
         if bool(entry.get("requested_to_cap"))
-        and str(entry.get("stop_reason") or "") == "attempt_limit_reached"
+        and str(entry.get("stop_reason") or "") in {
+            "attempt_limit_reached", "negotiation_unavailable",
+        }
     ]
     warnings = []
     for entry in degraded_entries:
         operation_name = "买入砍价" if entry.get("operation") == "bargain" else "卖出抬价"
         city_prefix = f"{entry.get('city')} " if entry.get("city") else ""
-        warnings.append(
-            f"{city_prefix}{operation_name}尝试 {int(entry.get('attempts_used') or 0)} 次仍未达到 20%，"
-            "已按当前价格继续成交。"
-        )
+        attempts = int(entry.get("attempts_used") or 0)
+        if entry.get("stop_reason") == "negotiation_unavailable":
+            warnings.append(
+                f"{city_prefix}{operation_name}按钮不可用，已尝试 {attempts} 次且未达到 20%，"
+                "已按当前价格继续成交。"
+            )
+        else:
+            warnings.append(
+                f"{city_prefix}{operation_name}尝试 {attempts} 次仍未达到 20%，"
+                "已按当前价格继续成交。"
+            )
     return {
         "negotiation_results": entries,
         "negotiation_attempts_used_total": sum(
