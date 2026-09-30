@@ -2,7 +2,6 @@
   "schema_version": 1,
   "reference_client": [1280, 720],
   "detail_name_roi": [815, 156, 340, 43],
-  "confirm_text_roi": [350, 335, 580, 50],
   "fatigue_ratio_roi": [1163, 20, 108, 40],
   "work_recovery_rois": [[232, 292, 22, 16], [466, 292, 22, 16], [701, 292, 22, 16]],
   "love_recovery_roi": [298, 513, 22, 16],
