@@ -1997,16 +1997,25 @@ def _summarize_negotiation_execution(
         entry
         for entry in entries
         if bool(entry.get("requested_to_cap"))
-        and str(entry.get("stop_reason") or "") == "attempt_limit_reached"
+        and str(entry.get("stop_reason") or "") in {
+            "attempt_limit_reached", "attempts_exhausted",
+        }
     ]
     warnings = []
     for entry in degraded_entries:
         operation_name = "买入砍价" if entry.get("operation") == "bargain" else "卖出抬价"
         city_prefix = f"{entry.get('city')} " if entry.get("city") else ""
-        warnings.append(
-            f"{city_prefix}{operation_name}尝试 {int(entry.get('attempts_used') or 0)} 次仍未达到 20%，"
-            "已按当前价格继续成交。"
-        )
+        attempts = int(entry.get("attempts_used") or 0)
+        if entry.get("stop_reason") == "attempts_exhausted":
+            warnings.append(
+                f"{city_prefix}{operation_name}次数已耗尽，本次尝试 {attempts} 次且未达到 20%，"
+                "已按当前价格继续成交。"
+            )
+        else:
+            warnings.append(
+                f"{city_prefix}{operation_name}尝试 {attempts} 次仍未达到 20%，"
+                "已按当前价格继续成交。"
+            )
     return {
         "negotiation_results": entries,
         "negotiation_attempts_used_total": sum(
