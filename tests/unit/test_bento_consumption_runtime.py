@@ -448,34 +448,45 @@ def test_consumption_uses_catalog_amount_without_recovery_ocr(tmp_path, monkeypa
     assert app.used == 1
 
 
-def test_confirmation_waits_for_confident_stable_text(tmp_path, monkeypatch, clock):
+def test_optional_confirmation_waits_for_template_without_popup_ocr(tmp_path, monkeypatch, clock):
     chosen = meal("love_bentos", 5)
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
     original_text = session.text
-    reads = []
+    original_match = session.match
+    confirmation_probes = []
+
     def text(roi):
-        if roi == "confirm":
-            reads.append(True)
-            if len(reads) == 1:
-                return ""  # Low-confidence OCR during the popup transition.
+        assert roi != "confirm", "Optional confirmation must not OCR-read popup text"
         return original_text(roi)
+
+    def match(key, roi=None):
+        if key == "confirm_use" and app.page == "confirm":
+            confirmation_probes.append(True)
+            if len(confirmation_probes) == 1:
+                return {"found": False, "center": None}  # Popup transition is still in progress.
+        return original_match(key, roi)
+
     monkeypatch.setattr(session, "text", text)
+    monkeypatch.setattr(session, "match", match)
     assert session.consume(chosen)
-    assert len(reads) >= 3
+    assert len(confirmation_probes) == 2
     assert app.used == 1
     assert sum(point == [30, 30] for _, point in app.clicks) == 1
 
 
-def test_confident_different_food_is_not_confirmed(tmp_path, monkeypatch, clock):
+def test_different_detail_food_is_rejected_before_use(tmp_path, monkeypatch, clock):
     chosen = meal("love_bentos")
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
+    before = store.read("user-info.json")
     original_text = session.text
-    monkeypatch.setattr(session, "text", lambda roi: "OtherDish" if roi == "confirm" else original_text(roi))
+    monkeypatch.setattr(session, "text", lambda roi: "OtherDish" if roi == "detail" else original_text(roi))
     with pytest.raises(bento.BentoConsumptionError) as error:
         session.consume(chosen)
-    assert error.value.code == "bento_confirmation_mismatch"
-    assert app.page == "confirm"
-    assert not any(point == [30, 30] for _, point in app.clicks)
+    assert error.value.code == "bento_transition_timeout"
+    assert app.page == "cabinet"
+    assert app.used == 0
+    assert not any(point in ([20, 20], [30, 30]) for _, point in app.clicks)
+    assert store.read("user-info.json") == before
 
 
 @pytest.mark.parametrize("frame_name,key,expected", [
