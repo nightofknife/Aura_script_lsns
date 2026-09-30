@@ -13,6 +13,8 @@ _CAP_REGION = (980, 430, 90, 50)
 _BUTTON_REGION = (1090, 425, 170, 70)
 _CAP_THRESHOLD = 0.88
 _BUTTON_THRESHOLD = 0.86
+_EXHAUSTED_THRESHOLD = 0.90
+_EXHAUSTED_STABLE_MATCHES = 2
 _POLL_INTERVAL_SEC = 0.2
 _CAP_CONFIRMATION_INTERVAL_SEC = 0.2
 _TOTAL_TIMEOUT_SEC = 180.0
@@ -27,6 +29,7 @@ _NEGOTIATION_CONFIG: Mapping[str, Mapping[str, str]] = {
     "bargain": {
         "button_template": "templates/trade_buy_bargain_button.png",
         "cap_template": "templates/trade_buy_cap20_digits.png",
+        "exhausted_template": "templates/trade_buy_rebargain_button.png",
     },
     "raise": {
         "button_template": "templates/trade_sell_raise_button.png",
@@ -90,6 +93,7 @@ def _wait_for_template_state(
     expected_found: bool,
     timeout_sec: float,
     poll_interval_sec: float,
+    exhausted_template: str | None = None,
 ) -> Dict[str, Any]:
     deadline = time.monotonic() + max(float(timeout_sec), 0.0)
     last: Dict[str, Any] = {
@@ -98,6 +102,7 @@ def _wait_for_template_state(
         "template": template,
         "region": list(region),
     }
+    exhausted_stable = 0
     while True:
         last = _match_template(
             app=app,
@@ -106,9 +111,31 @@ def _wait_for_template_state(
             region=region,
             threshold=threshold,
         )
-        if bool(last.get("found")) is bool(expected_found):
+        if exhausted_template:
+            exhausted = _match_template(
+                app=app,
+                vision=vision,
+                template=exhausted_template,
+                region=region,
+                threshold=_EXHAUSTED_THRESHOLD,
+            )
+            exhausted_stable = exhausted_stable + 1 if exhausted.get("found") else 0
+            if exhausted_stable >= _EXHAUSTED_STABLE_MATCHES:
+                return {
+                    **last,
+                    "found": False,
+                    "attempts_exhausted": True,
+                    "exhausted_match": exhausted,
+                }
+        # A possible 再交涉 hit takes precedence over the common button
+        # background until its second frame confirms the exhausted state.
+        if exhausted_stable == 0 and bool(last.get("found")) is bool(expected_found):
             return last
         if time.monotonic() >= deadline:
+            if exhausted_stable:
+                # Never click a shared-background match while the exhausted
+                # label has been seen but has not yet reached two frames.
+                return {**last, "found": False, "exhausted_match": exhausted}
             return last
         time.sleep(max(float(poll_interval_sec), 0.05))
 
@@ -147,6 +174,31 @@ def _confirm_cap(
     }
 
 
+def _confirm_attempts_exhausted(
+    *,
+    app: Any,
+    vision: Any,
+    template: str,
+    interval_sec: float,
+) -> Dict[str, Any]:
+    first = _match_template(
+        app=app, vision=vision, template=template,
+        region=_BUTTON_REGION, threshold=_EXHAUSTED_THRESHOLD,
+    )
+    if not first.get("found"):
+        return first
+    time.sleep(max(float(interval_sec), 0.05))
+    second = _match_template(
+        app=app, vision=vision, template=template,
+        region=_BUTTON_REGION, threshold=_EXHAUSTED_THRESHOLD,
+    )
+    return {
+        **second,
+        "confidence": min(float(first.get("confidence") or 0.0), float(second.get("confidence") or 0.0)),
+        "matches": [first, second],
+    }
+
+
 def _normalize_max_attempts(value: Any) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError("negotiation_max_attempts must be an integer")
@@ -167,9 +219,12 @@ def _result(
     attempts_used: int,
     max_attempts: int,
     stop_reason: str,
+    exhausted_match: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    degraded = bool(requested) and not bool(completed) and stop_reason == "attempt_limit_reached"
-    return {
+    degraded = bool(requested) and not bool(completed) and stop_reason in {
+        "attempt_limit_reached", "attempts_exhausted",
+    }
+    result = {
         "requested_to_cap": bool(requested),
         "completed_to_cap": bool(completed),
         "attempts_used": int(attempts_used),
@@ -183,6 +238,9 @@ def _result(
         "elapsed_ms": max(int((time.monotonic() - started_at) * 1000), 0),
         "failure_reason": None,
     }
+    if exhausted_match is not None:
+        result["exhausted_match"] = dict(exhausted_match)
+    return result
 
 
 def _execute_negotiation_to_cap(
@@ -220,12 +278,46 @@ def _execute_negotiation_to_cap(
     deadline = started_at + max(float(total_timeout_sec), 0.0)
     cap_template = str(config["cap_template"])
     button_template = str(config["button_template"])
+    exhausted_template = config.get("exhausted_template")
     last_cap: Dict[str, Any] = {"confirmed": False, "confidence": 0.0}
     last_button: Dict[str, Any] = {"found": False, "confidence": 0.0}
     no_animation_since: float | None = None
     attempts_used = 0
 
+    def exhausted_result(observation: Dict[str, Any]) -> Dict[str, Any]:
+        marker = dict(observation.get("exhausted_match") or {})
+        cancelled_attempt = attempts_used + 1
+        cancellation = (
+            "本次砍价取消" if attempts_used == 0
+            else f"第{cancelled_attempt}次及后续砍价取消"
+        )
+        logger.info(
+            "resonance_pc negotiation attempts_exhausted "
+            "因为识别到没有砍价次数（再交涉图标），所以%s，直接按当前价格买入。"
+            "kind=%s attempts_used=%d cancelled_attempt=%d confidence=%.4f match=%s",
+            cancellation, kind, attempts_used, cancelled_attempt,
+            float(marker.get("confidence") or 0.0), marker,
+        )
+        return _result(
+            requested=True,
+            completed=False,
+            confidence=float(last_cap.get("confidence") or 0.0),
+            started_at=started_at,
+            attempts_used=attempts_used,
+            max_attempts=normalized_max_attempts,
+            stop_reason="attempts_exhausted",
+            exhausted_match=marker,
+        )
+
     while time.monotonic() < deadline:
+        # 再交涉 is a terminal state regardless of configured attempts or cap.
+        if exhausted_template:
+            exhausted = _confirm_attempts_exhausted(
+                app=app, vision=vision, template=exhausted_template,
+                interval_sec=poll_interval_sec,
+            )
+            if exhausted.get("found"):
+                return exhausted_result({"exhausted_match": exhausted})
         last_cap = _confirm_cap(
             app=app,
             vision=vision,
@@ -271,7 +363,10 @@ def _execute_negotiation_to_cap(
             expected_found=True,
             timeout_sec=min(float(button_wait_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
+            exhausted_template=exhausted_template,
         )
+        if last_button.get("attempts_exhausted"):
+            return exhausted_result(last_button)
         if not last_button.get("found"):
             if time.monotonic() >= deadline:
                 break
@@ -309,7 +404,10 @@ def _execute_negotiation_to_cap(
             expected_found=False,
             timeout_sec=min(float(animation_start_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
+            exhausted_template=exhausted_template,
         )
+        if animation_start.get("attempts_exhausted"):
+            return exhausted_result(animation_start)
         if animation_start.get("found"):
             last_cap = _confirm_cap(
                 app=app,
@@ -367,7 +465,10 @@ def _execute_negotiation_to_cap(
             expected_found=True,
             timeout_sec=min(float(animation_finish_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
+            exhausted_template=exhausted_template,
         )
+        if animation_finish.get("attempts_exhausted"):
+            return exhausted_result(animation_finish)
         if not animation_finish.get("found"):
             last_cap = _confirm_cap(
                 app=app,
