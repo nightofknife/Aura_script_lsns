@@ -106,6 +106,7 @@ def test_return_failure_does_not_save_or_repeat_cleanup(tmp_path,monkeypatch):
     old={"status":{"cargo":{"current":1,"max":2}},"metadata":{"updated_at":"old"}}
     service.set(player.USER_INFO_FILE,[],old)
     monkeypatch.setattr(player,"_wait_for_any_marker",lambda *args,**kwargs:[])
+    monkeypatch.setattr(player,"_wait_for_profile_panel",lambda *args,**kwargs:None)
     monkeypatch.setattr(player,"_read_region_text",lambda *args:"2/3")
     error=player.StopTaskException("close failed",success=False)
     calls=[]

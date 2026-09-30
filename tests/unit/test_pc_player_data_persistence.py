@@ -57,6 +57,7 @@ def test_first_partial_refresh_creates_new_file_without_importing_legacy(tmp_pat
     legacy.write_text(json.dumps({"inventory":{"legacy_only":True}}),encoding="utf-8")
     before=legacy.read_bytes()
     monkeypatch.setattr(player,"_wait_for_any_marker",lambda *args,**kwargs:[])
+    monkeypatch.setattr(player,"_wait_for_profile_panel",lambda *args,**kwargs:None)
     monkeypatch.setattr(player,"_capture_ocr_items",lambda *args,**kwargs:[{"text":"修格里城"}])
     result=player.resonance_pc_player_data_refresh(stages=["location"],app=object(),ocr=object(),persistent_data=service)
     saved=persistence.load_pc_user_info(service)

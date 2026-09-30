@@ -38,6 +38,7 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
     assert data._normalize_profile_sections(sections[::-1] + sections, required=True) == tuple(sections)
     service = PersistentDataService(tmp_path / "install")
     monkeypatch.setattr(data, "_wait_for_any_marker", lambda *args, **kwargs: [])
+    monkeypatch.setattr(data, "_wait_for_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(data, "_close_profile_panel_to_main", lambda *args: None)
     monkeypatch.setattr(data, "load_recovery_layout", lambda vision: {})
     captured = []
@@ -180,6 +181,7 @@ def test_count_refresh_invalidates_old_detail_cache(tmp_path, monkeypatch):
         "recovery": {"work_meals": {"available_count": 2}, "love_bentos": {"count": 3, "items": []}},
     })
     monkeypatch.setattr(data, "_wait_for_any_marker", lambda *args, **kwargs: [])
+    monkeypatch.setattr(data, "_wait_for_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(data, "_close_profile_panel_to_main", lambda *args: None)
     monkeypatch.setattr(data, "load_recovery_layout", lambda vision: {})
 
@@ -233,6 +235,7 @@ def test_recovery_failure_before_first_result_never_writes(tmp_path, monkeypatch
     if old_exists:
         service.set(data.USER_INFO_FILE, [], old)
     monkeypatch.setattr(data, "_wait_for_any_marker", lambda *args, **kwargs: [])
+    monkeypatch.setattr(data, "_wait_for_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(data, "_read_region_text", lambda *args: "5/6")
     monkeypatch.setattr(data, "load_recovery_layout", lambda vision: {})
     monkeypatch.setattr(data, "_best_effort_return_to_main", lambda *args: None)

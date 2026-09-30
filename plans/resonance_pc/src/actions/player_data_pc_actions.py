@@ -1,8 +1,9 @@
-"""PC actions for refreshing Resonance player data from in-game OCR screens."""
+"""PC actions for refreshing Resonance player data from in-game screens."""
 
 from __future__ import annotations
 
 import copy
+import math
 import re
 import time
 from datetime import datetime, timezone
@@ -13,6 +14,7 @@ import cv2
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
+from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from .character_pc_actions import (
@@ -83,6 +85,13 @@ _CLICK_INVENTORY_CATEGORY = {
 _WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
 _WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates" / "player_data_warehouse_entry.png"
 _WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD = 0.82
+_WAREHOUSE_PAGE_ICON_THRESHOLD = 0.85
+_WAREHOUSE_PAGE_TEMPLATE_ROOT = _PLAN_ROOT / "templates" / "warehouse_navigation"
+_WAREHOUSE_PAGE_ICON_REGIONS: Dict[str, Region] = {
+    "items": (1090, 15, 70, 70),
+    "materials": (1090, 91, 70, 70),
+    "equipment": (1090, 167, 70, 70),
+}
 _INVENTORY_CATEGORY_TIMEOUT_SEC = 3.0
 
 _MAIN_CITY_REGION: Region = (65, 105, 150, 70)
@@ -231,12 +240,53 @@ def _find_text_item(items: Iterable[Mapping[str, Any]], marker: str) -> Optional
     return None
 
 
-def _has_all_markers(items: Iterable[Any], markers: Iterable[str]) -> bool:
-    normalized_text = _normalize_text(_join_text(items))
-    return all(
-        normalized_marker and normalized_marker in normalized_text
-        for normalized_marker in (_normalize_text(marker) for marker in markers)
+def _load_warehouse_page_templates(vision: Any) -> Dict[str, List[Any]]:
+    templates = {}
+    for category in _INVENTORY_CATEGORY_ORDER:
+        try:
+            templates[category] = [
+                vision.load_image_file(
+                    _WAREHOUSE_PAGE_TEMPLATE_ROOT / f"{category}_{state}.png", cv2.IMREAD_GRAYSCALE,
+                )
+                for state in ("selected", "unselected")
+            ]
+        except (OSError, ValueError) as exc:
+            raise StopTaskException(
+                f"Player data refresh failed: warehouse category icon template is unavailable: {category}.",
+                success=False,
+            ) from exc
+    return templates
+
+
+def _match_warehouse_page(app: Any, templates: Mapping[str, Sequence[Any]]) -> Dict[str, Any]:
+    # Observe every category in one frame, so an animation cannot mix page states.
+    capture = app.capture(rect=_INVENTORY_PAGE_REGION)
+    image = getattr(capture, "image", None)
+    if not getattr(capture, "success", False) or image is None:
+        return {"found": False, "icons": {}, "reason": "capture_failed"}
+    if image.shape[:2] != (_INVENTORY_PAGE_REGION[3], _INVENTORY_PAGE_REGION[2]):
+        return {"found": False, "icons": {}, "reason": "capture_size_mismatch"}
+    gray = image if image.ndim == 2 else cv2.cvtColor(
+        image, cv2.COLOR_BGRA2GRAY if image.shape[2] == 4 else cv2.COLOR_BGR2GRAY,
     )
+    icons = {}
+    for category, (x, y, width, height) in _WAREHOUSE_PAGE_ICON_REGIONS.items():
+        x -= _INVENTORY_PAGE_REGION[0]
+        y -= _INVENTORY_PAGE_REGION[1]
+        roi = gray[y:y + height, x:x + width]
+        confidence = 0.0
+        for template in templates[category]:
+            if roi.shape[0] < template.shape[0] or roi.shape[1] < template.shape[1]:
+                continue
+            scores = cv2.matchTemplate(roi, template, cv2.TM_CCOEFF_NORMED)
+            score = float(cv2.minMaxLoc(scores)[1])
+            if math.isfinite(score):
+                confidence = max(confidence, score)
+        icons[category] = {
+            "found": confidence >= _WAREHOUSE_PAGE_ICON_THRESHOLD,
+            "confidence": confidence,
+        }
+    return {"found": all(hit["found"] for hit in icons.values()), "icons": icons}
 
 
 def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
@@ -284,37 +334,58 @@ def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
 
 def _enter_warehouse_page(
     app: Any,
-    ocr: Any,
     vision: Any,
     *,
     timeout_sec: float = _WAREHOUSE_ENTRY_TIMEOUT_SEC,
     interval_sec: float = 0.15,
     click_interval_sec: float = 0.55,
 ) -> None:
-    """Continuously template-match, click and verify the warehouse entry for up to 3s."""
+    """Confirm all three category icons in two consecutive frames; no page OCR."""
 
-    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    templates = _load_warehouse_page_templates(vision)
+    started_at = time.monotonic()
+    deadline = started_at + max(float(timeout_sec), 0.1)
     next_click_at = 0.0
-    last_page_text = ""
+    consecutive_hits = 0
+    observations = 0
+    clicks = 0
+    last_page_match: Dict[str, Any] = {"found": False, "icons": {}}
     last_entry_match: Dict[str, Any] = {"found": False, "confidence": 0.0}
     while time.monotonic() < deadline:
+        check_cancelled()
+        last_page_match = _match_warehouse_page(app, templates)
+        observations += 1
+        consecutive_hits = consecutive_hits + 1 if last_page_match["found"] else 0
         now = time.monotonic()
-        if now >= next_click_at:
-            last_entry_match = _match_warehouse_entry(app, vision)
-            if last_entry_match.get("found"):
-                center = last_entry_match["center"]
-                app.click(x=int(center[0]), y=int(center[1]))
-                next_click_at = now + max(float(click_interval_sec), 0.1)
-
-        page_items = _capture_ocr_items(app, ocr, _INVENTORY_PAGE_REGION)
-        last_page_text = _join_text(page_items)
-        if _has_all_markers(page_items, ("道具", "材料", "装备")):
+        if now >= deadline:
+            break
+        if consecutive_hits >= 2:
+            logger.info(
+                "[WarehouseNavigation] phase=confirmed observations=%s clicks=%s elapsed_sec=%.3f icons=%s",
+                observations, clicks, time.monotonic() - started_at, last_page_match["icons"],
+            )
             return
+        if not last_page_match.get("reason") and not last_page_match["found"] and now >= next_click_at:
+            last_entry_match = _match_warehouse_entry(app, vision)
+            if last_entry_match.get("found") and time.monotonic() < deadline:
+                center = last_entry_match["center"]
+                check_cancelled()
+                app.click(x=int(center[0]), y=int(center[1]))
+                clicks += 1
+                logger.info(
+                    "[WarehouseNavigation] phase=clicked point=%s confidence=%.3f clicks=%s elapsed_sec=%.3f",
+                    center, last_entry_match["confidence"], clicks, time.monotonic() - started_at,
+                )
+                next_click_at = time.monotonic() + max(float(click_interval_sec), 0.1)
         time.sleep(max(float(interval_sec), 0.05))
 
+    logger.warning(
+        "[WarehouseNavigation] phase=timeout observations=%s clicks=%s elapsed_sec=%.3f page=%s",
+        observations, clicks, time.monotonic() - started_at, last_page_match,
+    )
     raise StopTaskException(
-        "Player data refresh failed: warehouse page was not confirmed within "
-        f"{float(timeout_sec):.1f}s. Last page OCR: {_normalize_text(last_page_text)[:120]}; "
+        "Player data refresh failed: warehouse category icons were not confirmed twice consecutively within "
+        f"{float(timeout_sec):.1f}s. Last icon matches: {last_page_match}; "
         f"last entry template confidence: {float(last_entry_match.get('confidence') or 0.0):.3f}",
         success=False,
     )
@@ -785,7 +856,7 @@ def resonance_pc_player_data_refresh(
 
             if "inventory" in selected:
                 current_page = "inventory"
-                _enter_warehouse_page(app, ocr, vision)
+                _enter_warehouse_page(app, vision)
                 category_results: Dict[str, Dict[str, Any]] = {}
                 for category in selected_inventory_categories:
                     _select_inventory_category(app, category)
