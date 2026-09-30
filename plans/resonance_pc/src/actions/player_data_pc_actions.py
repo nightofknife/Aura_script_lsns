@@ -1,8 +1,9 @@
-"""PC actions for refreshing Resonance player data from in-game OCR screens."""
+"""PC actions for refreshing Resonance player data from in-game screens."""
 
 from __future__ import annotations
 
 import copy
+import math
 import re
 import time
 from datetime import datetime, timezone
@@ -13,6 +14,7 @@ import cv2
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
+from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from .character_pc_actions import (
@@ -35,6 +37,7 @@ from .passenger_pc_actions import (
     PassengerPcError,
     _click_blank_and_confirm_main,
     _match_template as _match_navigation_template,
+    _wait_main_stable,
 )
 
 Region = Tuple[int, int, int, int]
@@ -83,10 +86,16 @@ _CLICK_INVENTORY_CATEGORY = {
 _WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
 _WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates" / "player_data_warehouse_entry.png"
 _WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD = 0.82
+_WAREHOUSE_PAGE_ICON_THRESHOLD = 0.85
+_WAREHOUSE_PAGE_TEMPLATE_ROOT = _PLAN_ROOT / "templates" / "warehouse_navigation"
+_WAREHOUSE_PAGE_ICON_REGIONS: Dict[str, Region] = {
+    "items": (1090, 15, 70, 70),
+    "materials": (1090, 91, 70, 70),
+    "equipment": (1090, 167, 70, 70),
+}
 _INVENTORY_CATEGORY_TIMEOUT_SEC = 3.0
 
 _MAIN_CITY_REGION: Region = (65, 105, 150, 70)
-_PROFILE_REGION: Region = (90, 0, 600, 340)
 _MAIN_PAGE_REGION: Region = (0, 0, 1280, 720)
 _INVENTORY_PAGE_REGION: Region = (1050, 0, 230, 520)
 _WAREHOUSE_ENTRY_REGION: Region = (110, 560, 140, 150)
@@ -179,7 +188,19 @@ def _wait_for_any_marker(
     timeout_sec: float = 8.0,
     interval_sec: float = 0.5,
     label: str = "page",
+    vision: Any = None,
+    prefer_main_template: bool = False,
 ) -> List[Dict[str, Any]]:
+    if prefer_main_template and vision is not None:
+        main = _wait_main_stable(app, vision, timeout_sec=timeout_sec)
+        if main.get("confirmed"):
+            return []
+        confidence = float((main.get("match") or {}).get("confidence") or 0.0)
+        raise StopTaskException(
+            f"Player data refresh failed: expected {label} template was not confirmed. "
+            f"Last confidence: {confidence:.3f}",
+            success=False,
+        )
     normalized_markers = [_normalize_text(marker) for marker in markers]
     deadline = time.time() + max(float(timeout_sec), 0.1)
     last_text = ""
@@ -195,6 +216,35 @@ def _wait_for_any_marker(
     )
 
 
+def _wait_for_profile_panel(
+    app: Any,
+    vision: Any,
+    *,
+    label: str = "profile panel",
+    timeout_sec: float = 8.0,
+    interval_sec: float = 0.5,
+) -> None:
+    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    consecutive_hits = 0
+    attempts = 0
+    last_confidence = 0.0
+    while time.monotonic() < deadline:
+        match = _match_navigation_template(
+            app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=0.85,
+        )
+        attempts += 1
+        last_confidence = float(match.get("confidence") or 0.0)
+        consecutive_hits = consecutive_hits + 1 if match.get("found") else 0
+        if consecutive_hits >= 2:
+            return
+        time.sleep(max(float(interval_sec), 0.05))
+    raise StopTaskException(
+        f"Player data refresh failed: {label} template did not match twice consecutively "
+        f"(attempts={attempts}, last_confidence={last_confidence:.3f}).",
+        success=False,
+    )
+
+
 def _find_text_item(items: Iterable[Mapping[str, Any]], marker: str) -> Optional[Dict[str, Any]]:
     normalized_marker = _normalize_text(marker)
     for item in items:
@@ -203,12 +253,53 @@ def _find_text_item(items: Iterable[Mapping[str, Any]], marker: str) -> Optional
     return None
 
 
-def _has_all_markers(items: Iterable[Any], markers: Iterable[str]) -> bool:
-    normalized_text = _normalize_text(_join_text(items))
-    return all(
-        normalized_marker and normalized_marker in normalized_text
-        for normalized_marker in (_normalize_text(marker) for marker in markers)
+def _load_warehouse_page_templates(vision: Any) -> Dict[str, List[Any]]:
+    templates = {}
+    for category in _INVENTORY_CATEGORY_ORDER:
+        try:
+            templates[category] = [
+                vision.load_image_file(
+                    _WAREHOUSE_PAGE_TEMPLATE_ROOT / f"{category}_{state}.png", cv2.IMREAD_GRAYSCALE,
+                )
+                for state in ("selected", "unselected")
+            ]
+        except (OSError, ValueError) as exc:
+            raise StopTaskException(
+                f"Player data refresh failed: warehouse category icon template is unavailable: {category}.",
+                success=False,
+            ) from exc
+    return templates
+
+
+def _match_warehouse_page(app: Any, templates: Mapping[str, Sequence[Any]]) -> Dict[str, Any]:
+    # Observe every category in one frame, so an animation cannot mix page states.
+    capture = app.capture(rect=_INVENTORY_PAGE_REGION)
+    image = getattr(capture, "image", None)
+    if not getattr(capture, "success", False) or image is None:
+        return {"found": False, "icons": {}, "reason": "capture_failed"}
+    if image.shape[:2] != (_INVENTORY_PAGE_REGION[3], _INVENTORY_PAGE_REGION[2]):
+        return {"found": False, "icons": {}, "reason": "capture_size_mismatch"}
+    gray = image if image.ndim == 2 else cv2.cvtColor(
+        image, cv2.COLOR_BGRA2GRAY if image.shape[2] == 4 else cv2.COLOR_BGR2GRAY,
     )
+    icons = {}
+    for category, (x, y, width, height) in _WAREHOUSE_PAGE_ICON_REGIONS.items():
+        x -= _INVENTORY_PAGE_REGION[0]
+        y -= _INVENTORY_PAGE_REGION[1]
+        roi = gray[y:y + height, x:x + width]
+        confidence = 0.0
+        for template in templates[category]:
+            if roi.shape[0] < template.shape[0] or roi.shape[1] < template.shape[1]:
+                continue
+            scores = cv2.matchTemplate(roi, template, cv2.TM_CCOEFF_NORMED)
+            score = float(cv2.minMaxLoc(scores)[1])
+            if math.isfinite(score):
+                confidence = max(confidence, score)
+        icons[category] = {
+            "found": confidence >= _WAREHOUSE_PAGE_ICON_THRESHOLD,
+            "confidence": confidence,
+        }
+    return {"found": all(hit["found"] for hit in icons.values()), "icons": icons}
 
 
 def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
@@ -256,37 +347,58 @@ def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
 
 def _enter_warehouse_page(
     app: Any,
-    ocr: Any,
     vision: Any,
     *,
     timeout_sec: float = _WAREHOUSE_ENTRY_TIMEOUT_SEC,
     interval_sec: float = 0.15,
     click_interval_sec: float = 0.55,
 ) -> None:
-    """Continuously template-match, click and verify the warehouse entry for up to 3s."""
+    """Confirm all three category icons in two consecutive frames; no page OCR."""
 
-    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    templates = _load_warehouse_page_templates(vision)
+    started_at = time.monotonic()
+    deadline = started_at + max(float(timeout_sec), 0.1)
     next_click_at = 0.0
-    last_page_text = ""
+    consecutive_hits = 0
+    observations = 0
+    clicks = 0
+    last_page_match: Dict[str, Any] = {"found": False, "icons": {}}
     last_entry_match: Dict[str, Any] = {"found": False, "confidence": 0.0}
     while time.monotonic() < deadline:
+        check_cancelled()
+        last_page_match = _match_warehouse_page(app, templates)
+        observations += 1
+        consecutive_hits = consecutive_hits + 1 if last_page_match["found"] else 0
         now = time.monotonic()
-        if now >= next_click_at:
-            last_entry_match = _match_warehouse_entry(app, vision)
-            if last_entry_match.get("found"):
-                center = last_entry_match["center"]
-                app.click(x=int(center[0]), y=int(center[1]))
-                next_click_at = now + max(float(click_interval_sec), 0.1)
-
-        page_items = _capture_ocr_items(app, ocr, _INVENTORY_PAGE_REGION)
-        last_page_text = _join_text(page_items)
-        if _has_all_markers(page_items, ("道具", "材料", "装备")):
+        if now >= deadline:
+            break
+        if consecutive_hits >= 2:
+            logger.info(
+                "[WarehouseNavigation] phase=confirmed observations=%s clicks=%s elapsed_sec=%.3f icons=%s",
+                observations, clicks, time.monotonic() - started_at, last_page_match["icons"],
+            )
             return
+        if not last_page_match.get("reason") and not last_page_match["found"] and now >= next_click_at:
+            last_entry_match = _match_warehouse_entry(app, vision)
+            if last_entry_match.get("found") and time.monotonic() < deadline:
+                center = last_entry_match["center"]
+                check_cancelled()
+                app.click(x=int(center[0]), y=int(center[1]))
+                clicks += 1
+                logger.info(
+                    "[WarehouseNavigation] phase=clicked point=%s confidence=%.3f clicks=%s elapsed_sec=%.3f",
+                    center, last_entry_match["confidence"], clicks, time.monotonic() - started_at,
+                )
+                next_click_at = time.monotonic() + max(float(click_interval_sec), 0.1)
         time.sleep(max(float(interval_sec), 0.05))
 
+    logger.warning(
+        "[WarehouseNavigation] phase=timeout observations=%s clicks=%s elapsed_sec=%.3f page=%s",
+        observations, clicks, time.monotonic() - started_at, last_page_match,
+    )
     raise StopTaskException(
-        "Player data refresh failed: warehouse page was not confirmed within "
-        f"{float(timeout_sec):.1f}s. Last page OCR: {_normalize_text(last_page_text)[:120]}; "
+        "Player data refresh failed: warehouse category icons were not confirmed twice consecutively within "
+        f"{float(timeout_sec):.1f}s. Last icon matches: {last_page_match}; "
         f"last entry template confidence: {float(last_entry_match.get('confidence') or 0.0):.3f}",
         success=False,
     )
@@ -718,6 +830,8 @@ def resonance_pc_player_data_refresh(
         markers=_MAIN_PAGE_MARKERS,
         region=_MAIN_PAGE_REGION,
         label="main page before player data refresh",
+        vision=vision,
+        prefer_main_template=True,
     )
 
     if "location" in selected:
@@ -736,11 +850,9 @@ def resonance_pc_player_data_refresh(
         try:
             app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
             current_page = "unknown"
-            _wait_for_any_marker(
+            _wait_for_profile_panel(
                 app,
-                ocr,
-                markers=("UID", "资产", "查看更多信息"),
-                region=_PROFILE_REGION,
+                vision,
                 label="profile panel",
             )
             current_page = "profile"
@@ -759,7 +871,7 @@ def resonance_pc_player_data_refresh(
 
             if "inventory" in selected:
                 current_page = "inventory"
-                _enter_warehouse_page(app, ocr, vision)
+                _enter_warehouse_page(app, vision)
                 category_results: Dict[str, Dict[str, Any]] = {}
                 for category in selected_inventory_categories:
                     _select_inventory_category(app, category)
@@ -780,11 +892,9 @@ def resonance_pc_player_data_refresh(
                 if currencies:
                     result["currencies"] = currencies
                 app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                _wait_for_any_marker(
+                _wait_for_profile_panel(
                     app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
+                    vision,
                     label="profile panel after warehouse item page",
                 )
                 current_page = "profile"
@@ -806,11 +916,9 @@ def resonance_pc_player_data_refresh(
                     first_page_image=first_page_image,
                 )
                 app.click(x=_CLICK_BACK[0], y=_CLICK_BACK[1])
-                _wait_for_any_marker(
+                _wait_for_profile_panel(
                     app,
-                    ocr,
-                    markers=("UID", "资产", "查看更多信息"),
-                    region=_PROFILE_REGION,
+                    vision,
                     label="profile panel after character page",
                 )
                 current_page = "profile"

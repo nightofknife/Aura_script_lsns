@@ -366,6 +366,7 @@ def test_inventory_failure_does_not_persist_partial_category_results(monkeypatch
 
     persistent_data = PersistentDataService(tmp_path)
     monkeypatch.setattr(player_data, "_wait_for_any_marker", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(player_data, "_wait_for_profile_panel", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_enter_warehouse_page", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_select_inventory_category", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_best_effort_return_to_main", lambda *_args, **_kwargs: None)
@@ -404,6 +405,7 @@ def test_inventory_three_category_orchestration_is_ordered_and_persisted(monkeyp
     scanned: list[str] = []
     persistent_data = PersistentDataService(tmp_path)
     monkeypatch.setattr(player_data, "_wait_for_any_marker", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(player_data, "_wait_for_profile_panel", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_enter_warehouse_page", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data, "_close_profile_panel_to_main", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(player_data.time, "sleep", lambda *_args, **_kwargs: None)

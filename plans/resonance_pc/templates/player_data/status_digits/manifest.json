@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "source_font": "SourceHanSansCN-Bold",
+  "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+  "rendered_font_size": 16,
+  "pixel_cutoff": 120,
+  "template_size": [
+    12,
+    16
+  ],
+  "matching": "binary centered glyph; classify all 11 characters, not first threshold hit",
+  "characters": {
+    "0": "0.png",
+    "1": "1.png",
+    "2": "2.png",
+    "3": "3.png",
+    "4": "4.png",
+    "5": "5.png",
+    "6": "6.png",
+    "7": "7.png",
+    "8": "8.png",
+    "9": "9.png",
+    "/": "slash.png"
+  }
+}

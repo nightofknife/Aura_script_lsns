@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_screenshot_sha256": [
+    "195fe5e2eb33db5c64fcb1e01b7811193c2895b60e55fa4b29c88567b6f0b5db",
+    "a691297a70ce190a876075de6ddce406c72bb499734158a6e79fba21e65cfbec"
+  ],
+  "client_crop": [26, 56, 1280, 720],
+  "profile_panel_marker": {"image": "profile_panel_marker.png", "client_roi": [305, 293, 215, 45]},
+  "notes": "Only the three status-field ROIs are retained from each supplied screenshot; the UID and rest of the profile panel are excluded. These two frames are offline evidence, not live validation.",
+  "fields": {
+    "clarity": {"image": "clarity_258_286.png", "client_roi": [145, 255, 99, 25], "expected": "258/286"},
+    "fatigue": {"image": "fatigue_58_864.png", "client_roi": [340, 255, 98, 25], "expected": "58/864"},
+    "cargo": {"image": "cargo_7_998.png", "client_roi": [545, 250, 125, 45], "expected": "7/998"},
+    "clarity_second": {"image": "clarity_148_286.png", "client_roi": [145, 255, 99, 25], "expected": "148/286"},
+    "fatigue_second": {"image": "fatigue_45_864.png", "client_roi": [340, 255, 98, 25], "expected": "45/864"},
+    "cargo_second": {"image": "cargo_7_1003.png", "client_roi": [545, 250, 125, 45], "expected": "7/1003"}
+  }
+}

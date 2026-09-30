@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "generator": "tools/build_warehouse_navigation_assets.py",
+  "reference_resolution": [
+    1920,
+    1080
+  ],
+  "target_resolution": [
+    1280,
+    720
+  ],
+  "geometry_note": "Icon dimensions come from the prefab; centers reflect the runtime ordered tab list.",
+  "source": {
+    "atlas": {
+      "resource": "Patch/Asset/ui/depot.asset",
+      "sha256": "b9429912820d5a738a164ac991acc7eba241d9c5af65a821870c9a4210f8301a"
+    },
+    "prefab": {
+      "resource": "Patch/Asset/ui/depot/depot.asset",
+      "sha256": "9922c2336f24f761c08d0a398f658d94775640f88f8df9192c8c21e7fb850190"
+    }
+  },
+  "entries": [
+    {
+      "category": "items",
+      "state": "selected",
+      "file": "items_selected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabItem/Group_On",
+      "icon_sprite": "Item_picked",
+      "background_sprite": "Page_picked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        51.67
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        15,
+        70,
+        70
+      ],
+      "sha256": "e72c6af15f77b87ba21f16f44a308928942ee7a55aed99986a06793dc5944a65"
+    },
+    {
+      "category": "items",
+      "state": "unselected",
+      "file": "items_unselected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabItem/Group_Off",
+      "icon_sprite": "Item_unpicked",
+      "background_sprite": "Page_unpicked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        51.67
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        15,
+        70,
+        70
+      ],
+      "sha256": "8d80a865b61adc2afae749ee1b3fcefd87bfd061f3a8129be8cd0628ac69c2bb"
+    },
+    {
+      "category": "materials",
+      "state": "selected",
+      "file": "materials_selected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabMaterial/Group_On",
+      "icon_sprite": "Material_picked",
+      "background_sprite": "Page_picked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        128.33
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        91,
+        70,
+        70
+      ],
+      "sha256": "299067f100ee8b559fd73df61a964f3a979d5d67b198bc8dea44c33a14247282"
+    },
+    {
+      "category": "materials",
+      "state": "unselected",
+      "file": "materials_unselected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabMaterial/Group_Off",
+      "icon_sprite": "Material_unpicked",
+      "background_sprite": "Page_unpicked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        128.33
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        91,
+        70,
+        70
+      ],
+      "sha256": "4d86755e161ab1079308560b62aa8a5d35c3ae363e7794037e7c70b9595b0a15"
+    },
+    {
+      "category": "equipment",
+      "state": "selected",
+      "file": "equipment_selected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabEquipment/Group_On",
+      "icon_sprite": "Equipment_picked",
+      "background_sprite": "Page_picked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        205.0
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        167,
+        70,
+        70
+      ],
+      "sha256": "94f2718eb97291a9b15c87fed82b0b4e8e2980763bce08bf7d6a676dfe1a01d6"
+    },
+    {
+      "category": "equipment",
+      "state": "unselected",
+      "file": "equipment_unselected.png",
+      "size": [
+        56,
+        56
+      ],
+      "prefab_node": "/Depot/Group_Tab/Btn_TabEquipment/Group_Off",
+      "icon_sprite": "Equipment_unpicked",
+      "background_sprite": "Page_unpicked",
+      "icon_rect_native": [
+        80,
+        80
+      ],
+      "icon_offset_native": [
+        -85.0,
+        0.0
+      ],
+      "expected_center_1280x720": [
+        1126.67,
+        205.0
+      ],
+      "recommended_search_region_1280x720": [
+        1090,
+        167,
+        70,
+        70
+      ],
+      "sha256": "8290879b266057b8bc8d089b18bb4e58b3aedd580244782e56b43e361408a83c"
+    }
+  ]
+}
