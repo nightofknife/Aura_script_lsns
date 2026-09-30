@@ -1,0 +1,1314 @@
+{
+  "schema": "resonance_pc.deep_dive_planned_run.v1",
+  "session_key": "deep_dive_planned_run:58ed3c778e994e45a27d754806a7d47a",
+  "cid": "760456813765201920",
+  "sequence": 312,
+  "strategy": "chase",
+  "safety_round_limit": 100,
+  "scan_time_budget_sec": 60.0,
+  "planning_time_budget_sec": 30.0,
+  "status": "blocked",
+  "phase": "scan_turn",
+  "phase_started": 1802073.203,
+  "reason": "scan_not_complete:glyph_anchor_support_lost:insufficient_centres",
+  "plane_index": 1,
+  "plane_epoch": "ef3ade09a6654b2bae10617d0c4e5058",
+  "planes_completed": 0,
+  "completed_plane_indices": [],
+  "plane_turns": 0,
+  "turns_completed": 0,
+  "rounds_remaining": 6,
+  "scan_epoch": 2,
+  "map_revision": 2,
+  "pose_epoch": 4,
+  "known_cells": 20,
+  "layout": null,
+  "plan": null,
+  "pending_action": null,
+  "operation_frame": null,
+  "wide_reference": null,
+  "event_stack": [],
+  "event_history": [
+    {
+      "context_id": "9c10d8ada7a24050a97091ccf03847ae",
+      "event_type": "elite_battle",
+      "owner": "player_move_node",
+      "source_action_id": "b6c112213b1d48a280bf979a70da47b3",
+      "victory": true,
+      "trace": [
+        {
+          "action": "battle_start",
+          "at": 1802008.031
+        },
+        {
+          "action": "battle_next",
+          "at": 1802054.031
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "b6c112213b1d48a280bf979a70da47b3",
+      "kind": "move",
+      "destination_slot": 1,
+      "rotation_id": null,
+      "snapshot_version": {
+        "plane_epoch": "ef3ade09a6654b2bae10617d0c4e5058",
+        "scan_epoch": 1,
+        "map_revision": 0
+      },
+      "target_occupant": "none",
+      "confirmed_at": 1790766377.137674,
+      "outcome": "confirmed",
+      "confirmation_evidence": {
+        "quota": {
+          "plane_index": 1,
+          "rounds_remaining": 6,
+          "moves_used": 1,
+          "moves_total": 1,
+          "rotations_used": 0,
+          "rotations_total": 1,
+          "collected_count": 0,
+          "inspiration_total": 2
+        },
+        "registered_selection": true,
+        "verified_preview": false,
+        "node_completed": true
+      }
+    }
+  ],
+  "reward_ledger": {
+    "1": {
+      "initial": 0,
+      "confirmed": 0,
+      "gained": 0
+    }
+  },
+  "collected_count": 0,
+  "terminal_reached": false,
+  "terminal": null,
+  "outcome": "unknown",
+  "final_frame": null,
+  "last_frame": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\scans\\0002\\frames\\0177.png",
+  "output_dir": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a",
+  "json_path": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\session.json",
+  "report_path": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\report.md",
+  "input_owner": null,
+  "hud_stable": 2,
+  "terminal_stable": 0,
+  "scene_stable": 0,
+  "awaiting_plane_end": false,
+  "enemy_seen": false,
+  "terminal_signature": null,
+  "last_scene": "board",
+  "last_hud_read": {
+    "plane_index": 1,
+    "rounds_remaining": 6,
+    "moves_used": 1,
+    "moves_total": 1,
+    "rotations_used": 0,
+    "rotations_total": 1,
+    "collected_count": 0,
+    "inspiration_total": 2,
+    "schema": "resonance_pc.deep_dive_hud.v1",
+    "plane_name": null,
+    "raw_text": {
+      "moves": "√ 1/1"
+    },
+    "errors": {},
+    "known_fields": [
+      "plane_index",
+      "rounds_remaining",
+      "moves_used",
+      "moves_total",
+      "rotations_used",
+      "rotations_total",
+      "collected_count",
+      "inspiration_total"
+    ],
+    "unknown_fields": [],
+    "insufficient_battle_roles": false,
+    "boss_entry_title_confirmed": false,
+    "evidence_source": {
+      "plane_index": "native_plane_icon",
+      "rounds_remaining": "native_round_glyph_templates",
+      "rotations_used": "native_font_pair_templates",
+      "rotations_total": "native_font_pair_templates",
+      "collected_count": "native_font_pair_templates",
+      "inspiration_total": "native_font_pair_templates",
+      "moves_used": "ocr_pair",
+      "moves_total": "ocr_pair"
+    },
+    "scene": "board",
+    "single_action_flags": {
+      "move_pending": false,
+      "move_done": true,
+      "rotate_pending": true,
+      "rotate_done": false,
+      "requires_known_single_action_baseline": true
+    },
+    "rounds_template_evidence": {
+      "value": 6,
+      "status": "recognized",
+      "source": "native_round_glyph_templates",
+      "roi": [
+        1190,
+        128,
+        1231,
+        160
+      ],
+      "scores": [
+        {
+          "value": 6,
+          "confidence": 0.7387
+        },
+        {
+          "value": 0,
+          "confidence": 0.5956
+        },
+        {
+          "value": 8,
+          "confidence": 0.522
+        }
+      ],
+      "glyph_box": [
+        1204,
+        130,
+        12,
+        28
+      ],
+      "margin": 0.1431,
+      "confidence": 0.7387
+    },
+    "numeric_pair_template_evidence": {
+      "moves": {
+        "status": "unknown",
+        "region": [
+          1165,
+          386,
+          1250,
+          432
+        ],
+        "source": "native_font_templates",
+        "foreground": "light",
+        "cyan_background_fraction": 0.0,
+        "fonts": [
+          "HarmonyOS_Sans_Medium"
+        ],
+        "font_size": 22,
+        "confidence": 0.0,
+        "glyphs": [],
+        "reason": "incomplete_or_extra_numeric_components"
+      },
+      "rotations": {
+        "status": "recognized",
+        "region": [
+          1165,
+          457,
+          1250,
+          505
+        ],
+        "source": "native_font_templates",
+        "foreground": "light",
+        "cyan_background_fraction": 0.0,
+        "fonts": [
+          "HarmonyOS_Sans_Medium"
+        ],
+        "font_size": 22,
+        "confidence": 0.9348,
+        "glyphs": [
+          {
+            "box": [
+              1194,
+              471,
+              10,
+              16
+            ],
+            "match": {
+              "character": "0",
+              "confidence": 0.943,
+              "margin": 0.1628,
+              "alternatives": [
+                [
+                  "0",
+                  0.9430380277733885
+                ],
+                [
+                  "8",
+                  0.7801947752411296
+                ],
+                [
+                  "3",
+                  0.7300460604478687
+                ]
+              ],
+              "font": "harmony_n32",
+              "template": "harmony_n32_22_0_phase0.png"
+            }
+          },
+          {
+            "box": [
+              1206,
+              471,
+              8,
+              16
+            ],
+            "match": {
+              "character": "/",
+              "confidence": 0.9348,
+              "margin": 0.3535,
+              "alternatives": [
+                [
+                  "/",
+                  0.9347826086956522
+                ],
+                [
+                  "7",
+                  0.5812996051800637
+                ],
+                [
+                  "2",
+                  0.46324743169600785
+                ]
+              ],
+              "font": "harmony_n32",
+              "template": "harmony_n32_22_slash_phase2.png"
+            }
+          },
+          {
+            "box": [
+              1217,
+              471,
+              6,
+              16
+            ],
+            "match": {
+              "character": "1",
+              "confidence": 0.9675,
+              "margin": 0.4395,
+              "alternatives": [
+                [
+                  "1",
+                  0.9674698788346021
+                ],
+                [
+                  "4",
+                  0.52792646798324
+                ],
+                [
+                  "3",
+                  0.4989781133541677
+                ]
+              ],
+              "font": "harmony_n32",
+              "template": "harmony_n32_22_1_phase3.png"
+            }
+          }
+        ],
+        "text": "0/1"
+      },
+      "inspirations": {
+        "status": "recognized",
+        "region": [
+          1215,
+          257,
+          1271,
+          287
+        ],
+        "source": "native_font_templates",
+        "foreground": "light",
+        "cyan_background_fraction": 0.0,
+        "fonts": [
+          "HarmonyOS_Sans_Medium",
+          "SourceHanSansCN-Medium"
+        ],
+        "font_size": 18,
+        "confidence": 0.7672,
+        "glyphs": [
+          {
+            "box": [
+              1224,
+              264,
+              3,
+              15
+            ],
+            "match": {
+              "character": "(",
+              "confidence": 0.7672,
+              "margin": 0.2842,
+              "alternatives": [
+                [
+                  "(",
+                  0.7672029371522804
+                ],
+                [
+                  "1",
+                  0.4830234154128953
+                ],
+                [
+                  ")",
+                  0.36415288893938536
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_18_open_phase2.png"
+            }
+          },
+          {
+            "box": [
+              1230,
+              266,
+              8,
+              12
+            ],
+            "match": {
+              "character": "0",
+              "confidence": 0.821,
+              "margin": 0.099,
+              "alternatives": [
+                [
+                  "0",
+                  0.8210440451187014
+                ],
+                [
+                  "8",
+                  0.7219995820694359
+                ],
+                [
+                  "9",
+                  0.6867550298619282
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_18_0_phase0.png"
+            }
+          },
+          {
+            "box": [
+              1239,
+              265,
+              6,
+              16
+            ],
+            "match": {
+              "character": "/",
+              "confidence": 0.8325,
+              "margin": 0.3727,
+              "alternatives": [
+                [
+                  "/",
+                  0.8325047213137986
+                ],
+                [
+                  "7",
+                  0.4598373770966264
+                ],
+                [
+                  ")",
+                  0.42096939691867796
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_slash_phase3.png"
+            }
+          },
+          {
+            "box": [
+              1247,
+              266,
+              8,
+              12
+            ],
+            "match": {
+              "character": "2",
+              "confidence": 0.808,
+              "margin": 0.1329,
+              "alternatives": [
+                [
+                  "2",
+                  0.807985652484828
+                ],
+                [
+                  "7",
+                  0.6751189811667502
+                ],
+                [
+                  "9",
+                  0.586752921407619
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_2_phase2.png"
+            }
+          },
+          {
+            "box": [
+              1257,
+              264,
+              4,
+              15
+            ],
+            "match": {
+              "character": ")",
+              "confidence": 0.8029,
+              "margin": 0.2838,
+              "alternatives": [
+                [
+                  ")",
+                  0.8028638072337068
+                ],
+                [
+                  "1",
+                  0.5190425035254584
+                ],
+                [
+                  "7",
+                  0.4028061009194316
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_close_phase1.png"
+            }
+          }
+        ],
+        "text": "0/2"
+      }
+    },
+    "ocr_regions_requested": [
+      "moves"
+    ],
+    "ocr_regions_skipped": {
+      "plane": "not_applicable_for_scene",
+      "rounds": "not_applicable_for_scene",
+      "rotations": "not_applicable_for_scene",
+      "inspirations": "not_applicable_for_scene",
+      "popup": "not_applicable_for_scene",
+      "entry_title": "not_applicable_for_scene",
+      "turn_label": "not_applicable_for_scene"
+    },
+    "enemy_turn": false,
+    "status": "complete"
+  },
+  "hud": {
+    "plane_index": 1,
+    "rounds_remaining": 6,
+    "moves_used": 1,
+    "moves_total": 1,
+    "rotations_used": 0,
+    "rotations_total": 1,
+    "collected_count": 0,
+    "inspiration_total": 2
+  },
+  "last_event": {
+    "at": 1790766394.3953247,
+    "kind": "blocked",
+    "plane_index": 1,
+    "turn": 0,
+    "scan_epoch": 2,
+    "reason": "scan_not_complete:glyph_anchor_support_lost:insufficient_centres"
+  },
+  "scan_start_hud": {
+    "plane_index": 1,
+    "rounds_remaining": 6,
+    "moves_used": 1,
+    "moves_total": 1,
+    "rotations_used": 0,
+    "rotations_total": 1,
+    "collected_count": 0,
+    "inspiration_total": 2
+  },
+  "scan_progress": {
+    "phase": "continuous_scan",
+    "known_cells": 20,
+    "frame_id": 173,
+    "elapsed_sec": 14.686999999918044
+  },
+  "latest_scan": {
+    "success": false,
+    "status": "blocked",
+    "stop_reason": "glyph_anchor_support_lost:insufficient_centres",
+    "reason": "glyph_anchor_support_lost:insufficient_centres",
+    "layout_complete": false,
+    "run_id": "20260930-190618-761bca7c",
+    "last_frame": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\scans\\0002\\frames\\0177.png",
+    "output_dir": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\scans\\0002",
+    "steps": 5,
+    "known_cells": 20,
+    "faces_observed": 6,
+    "report_path": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\scans\\0002\\report.html",
+    "json_path": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\scans\\0002\\layout.json",
+    "total_elapsed_sec": 15.578,
+    "target_elapsed_sec": 50.0,
+    "reserve_used": false
+  },
+  "wide_reset": {
+    "success": true,
+    "reset": {
+      "point": [
+        640,
+        528
+      ],
+      "stable_frames": 4,
+      "stability": {
+        "stable": true,
+        "motion_px": 4.782480716705322,
+        "scale": 1.000708062008708,
+        "angle_deg": 0.010358624579286444,
+        "inlier_ratio": 0.528
+      }
+    },
+    "last_frame": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\wide_reference\\0001\\reset_verified.png",
+    "freshness": {
+      "method": "wgc_generation",
+      "before": 2907,
+      "after": 2909
+    },
+    "latest_scene_observation": {
+      "valid": true,
+      "scene": "board",
+      "options": [],
+      "scores": {
+        "player_turn": 1.0,
+        "settlement_failure": 0.0187,
+        "event_enter": 0.238,
+        "event_vortex_choice_title": 0.1514,
+        "event_vortex_floor": 0.3904,
+        "rotate_confirm": 0.2981,
+        "rotate_cancel": 0.2032,
+        "move_pending": 1.0,
+        "move_done": 0.5755,
+        "rotate_pending": 1.0,
+        "shop_title": 0.0983,
+        "shop_back": 0.7913
+      },
+      "result_visual": [
+        39,
+        39,
+        39,
+        40,
+        40,
+        39,
+        40,
+        41,
+        41,
+        40,
+        37,
+        40,
+        43,
+        45,
+        42,
+        42,
+        40,
+        40,
+        40,
+        40,
+        41,
+        38,
+        39,
+        40,
+        41,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        41,
+        42,
+        41,
+        42,
+        45,
+        45,
+        44,
+        41,
+        41,
+        42,
+        42,
+        42,
+        40,
+        40,
+        39,
+        43,
+        43,
+        43,
+        41,
+        41,
+        40,
+        41,
+        41,
+        42,
+        46,
+        56,
+        66,
+        78,
+        63,
+        48,
+        45,
+        47,
+        45,
+        43,
+        42,
+        42,
+        41,
+        41,
+        40,
+        43,
+        44,
+        43,
+        43,
+        43,
+        42,
+        43,
+        39,
+        40,
+        39,
+        61,
+        131,
+        128,
+        66,
+        41,
+        37,
+        41,
+        48,
+        49,
+        44,
+        43,
+        42,
+        42,
+        42,
+        43,
+        43,
+        44,
+        49,
+        66,
+        79,
+        83,
+        94,
+        60,
+        41,
+        39,
+        95,
+        97,
+        39,
+        43,
+        43,
+        72,
+        132,
+        113,
+        81,
+        60,
+        55,
+        43,
+        44,
+        85,
+        68,
+        52,
+        39,
+        39,
+        61,
+        66,
+        52,
+        80,
+        89,
+        95,
+        99,
+        147,
+        98,
+        104,
+        83,
+        60,
+        58,
+        57,
+        62,
+        47,
+        40,
+        44,
+        55,
+        140,
+        116,
+        127,
+        53,
+        47,
+        33,
+        41,
+        121,
+        64,
+        56,
+        123,
+        72,
+        95,
+        124,
+        55,
+        69,
+        127,
+        44,
+        48,
+        44,
+        45,
+        71,
+        91,
+        77,
+        76,
+        84,
+        57,
+        40,
+        56,
+        56,
+        51,
+        70,
+        39,
+        52,
+        75,
+        70,
+        67,
+        67,
+        35,
+        42,
+        47,
+        75,
+        62,
+        52,
+        43,
+        41,
+        46,
+        61,
+        76,
+        45,
+        38,
+        46,
+        119,
+        151,
+        121,
+        146,
+        61,
+        36,
+        39,
+        33,
+        31,
+        48,
+        54,
+        51,
+        71,
+        88,
+        81,
+        87,
+        61,
+        45,
+        39,
+        32,
+        41,
+        44,
+        28,
+        33,
+        47,
+        45,
+        46,
+        50,
+        35,
+        32,
+        44,
+        80,
+        84,
+        45,
+        37,
+        40,
+        41,
+        43,
+        46,
+        41,
+        31,
+        29,
+        38,
+        33,
+        69,
+        67,
+        56,
+        47,
+        32,
+        26,
+        27,
+        38,
+        43,
+        47,
+        59,
+        123,
+        115,
+        116,
+        82,
+        61,
+        48,
+        30,
+        40,
+        37,
+        31,
+        31,
+        43,
+        32,
+        61,
+        69,
+        39,
+        33,
+        35,
+        34,
+        29,
+        28,
+        34,
+        41,
+        51,
+        45,
+        50,
+        65,
+        50,
+        48,
+        53,
+        29,
+        38,
+        32,
+        28,
+        33,
+        49,
+        35,
+        45,
+        66,
+        47,
+        30,
+        31,
+        37,
+        37,
+        38,
+        33,
+        27,
+        43,
+        27,
+        37,
+        57,
+        47,
+        49,
+        56,
+        31,
+        38,
+        33,
+        30,
+        34,
+        39,
+        58,
+        44,
+        55,
+        49,
+        62,
+        79,
+        41,
+        31,
+        59,
+        54,
+        31,
+        40,
+        27,
+        38,
+        53,
+        39,
+        41,
+        59,
+        40,
+        58,
+        72,
+        53,
+        45,
+        42,
+        57,
+        42,
+        49,
+        72,
+        92,
+        75,
+        100,
+        113,
+        68,
+        76,
+        46,
+        58,
+        39,
+        52,
+        51,
+        55,
+        58,
+        107,
+        115,
+        88,
+        67,
+        77,
+        66,
+        63,
+        49,
+        45,
+        51,
+        61,
+        60,
+        63,
+        102,
+        42,
+        80,
+        99,
+        98,
+        83,
+        53,
+        62,
+        75,
+        101,
+        90,
+        68,
+        76,
+        108,
+        52,
+        38,
+        39,
+        38,
+        42,
+        67,
+        49,
+        37,
+        34,
+        38,
+        43,
+        42,
+        69,
+        93,
+        77,
+        69,
+        90,
+        85,
+        72,
+        76,
+        85,
+        79,
+        51,
+        64,
+        45,
+        42,
+        36,
+        34,
+        37,
+        29,
+        32,
+        52,
+        49,
+        47,
+        47,
+        43,
+        51,
+        62,
+        67,
+        80,
+        86,
+        70,
+        77,
+        49,
+        50,
+        46,
+        51,
+        59,
+        69,
+        55,
+        37,
+        29,
+        27,
+        36,
+        32,
+        34,
+        49,
+        55,
+        71,
+        67,
+        53,
+        36,
+        27,
+        31,
+        91,
+        78,
+        32,
+        38,
+        30,
+        42,
+        44,
+        44,
+        39,
+        46,
+        32,
+        29,
+        27,
+        72,
+        43,
+        79,
+        81,
+        69,
+        39,
+        29,
+        27,
+        33,
+        35,
+        36,
+        90,
+        78,
+        30,
+        34,
+        26,
+        26,
+        27,
+        30,
+        57,
+        119,
+        83,
+        29,
+        27,
+        102,
+        48,
+        70,
+        44,
+        67,
+        47,
+        33,
+        37,
+        49,
+        64,
+        84,
+        95,
+        78,
+        27,
+        38,
+        36,
+        34,
+        29,
+        51,
+        104,
+        94,
+        86,
+        28,
+        26,
+        57,
+        41,
+        46,
+        75,
+        84,
+        66,
+        59,
+        87,
+        97,
+        83,
+        69,
+        69,
+        58,
+        33,
+        38,
+        30,
+        32,
+        26,
+        55,
+        91,
+        107,
+        36,
+        33,
+        37,
+        32,
+        33,
+        40,
+        47,
+        41,
+        61,
+        109,
+        97,
+        80,
+        75,
+        85,
+        76,
+        65,
+        71,
+        43,
+        39,
+        40,
+        26,
+        32,
+        54,
+        45,
+        48,
+        31,
+        27,
+        27,
+        49,
+        39,
+        44,
+        49,
+        43,
+        61,
+        48,
+        38,
+        39,
+        44,
+        80,
+        81,
+        41,
+        29,
+        33,
+        38,
+        38,
+        39,
+        40,
+        32,
+        35,
+        29,
+        26
+      ],
+      "rotate_confirm_point": [
+        813,
+        556
+      ],
+      "player_turn": true,
+      "move_pending": true,
+      "move_done": false,
+      "rotate_pending": true,
+      "event_board": true,
+      "cyan_pixels": {
+        "move": 0,
+        "rotate": 0
+      },
+      "rotate_done": false,
+      "raw_move_options": [],
+      "raw_rotation_options": [
+        {
+          "point": [
+            579,
+            221
+          ],
+          "box": [
+            567,
+            215,
+            27,
+            12
+          ],
+          "evidence": 180
+        },
+        {
+          "point": [
+            550,
+            234
+          ],
+          "box": [
+            537,
+            229,
+            26,
+            12
+          ],
+          "evidence": 184
+        }
+      ],
+      "yellow_frame_candidates": [],
+      "white_frame_candidates": [],
+      "fresh_scan_ready": true,
+      "enemy_turn": false,
+      "plane_index": 1,
+      "selected_cell_evidence": {
+        "status": "absent",
+        "point": null,
+        "candidates": [],
+        "reason": "client_entry_selection_has_no_distinct_tile_marker",
+        "evidence_mode": "unsupported_by_client_visuals"
+      },
+      "battle_defeat_detection": "unsupported",
+      "planned_scores": {
+        "settlement_victory": 0.0657,
+        "settlement_failure": 0.0368,
+        "settlement_layout": 0.2441,
+        "rest_title": 0.1248,
+        "rest_next": 0.0612,
+        "boss_entry_title": 0.1642,
+        "insufficient_roles": 0.1315,
+        "insufficient_roles_followup": 0.1153,
+        "enemy_turn_title": 0.4164,
+        "board_actions_heading": 0.988
+      },
+      "plane_evidence": {
+        "plane_index": 1,
+        "status": "recognized",
+        "scores": {
+          "1": 0.9202,
+          "3": 0.2887,
+          "2": 0.2774
+        }
+      },
+      "rotate_cancel_point": [
+        510,
+        540
+      ],
+      "rotation_mode_evidence": {
+        "active_button": false,
+        "player_turn": true,
+        "cyan_arrow_count": 2,
+        "arrow_roi": [
+          295,
+          80,
+          955,
+          620
+        ]
+      },
+      "single_action_flags": {
+        "move_pending": true,
+        "move_done": false,
+        "rotate_pending": true,
+        "rotate_done": false,
+        "requires_known_single_action_baseline": true
+      }
+    },
+    "latest_frame_metadata": {
+      "frame_id": null,
+      "frame_time": 1801991.218,
+      "generation": 2909,
+      "session_id": 222418220782956225876365658205329596480,
+      "capture_backend": "wgc",
+      "generation_source": "atomic_wgc"
+    },
+    "elapsed_sec": 2.625
+  },
+  "latest_plan": {
+    "status": "solved",
+    "metrics": {
+      "optimal_expected_turns": 2.285904255319149,
+      "expected_encounter_turns": 2.285904255319149,
+      "deadline_encounter_probability": 0.9999186197916666,
+      "maximum_deadline_encounter_probability": 0.9999457465277778,
+      "expected_encounter_turns_given_deadline": 2.285505005290144
+    },
+    "next_action": {
+      "kind": "move",
+      "actor": "player",
+      "origin": {
+        "slot": 4,
+        "face": "U",
+        "row": 1,
+        "col": 1
+      },
+      "destination": {
+        "slot": 1,
+        "face": "U",
+        "row": 0,
+        "col": 1
+      }
+    },
+    "json_path": "D:\\project\\aura_s_lsns\\logs\\deep_dive_planned_run\\58ed3c778e994e45a27d754806a7d47a\\plans\\0001.json"
+  },
+  "input_inflight": null,
+  "input_maybe_held": false,
+  "scan_candidate": null,
+  "snapshot_invalidated_by": "own_action_completed",
+  "hud_signature": [
+    1,
+    6,
+    1,
+    1,
+    0,
+    1,
+    0,
+    2
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "normal": {
+    "values": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      2
+    ],
+    "status": "complete",
+    "confidence": {
+      "moves": 0.9182,
+      "rotations": 0.9348,
+      "inspirations": 0.7672
+    }
+  },
+  "active_move": {
+    "values": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      2
+    ],
+    "status": "complete",
+    "confidence": {
+      "moves": 0.9722,
+      "rotations": 0.9348,
+      "inspirations": 0.7672
+    }
+  },
+  "active_rotate": {
+    "values": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      2
+    ],
+    "status": "complete",
+    "confidence": {
+      "moves": 0.9182,
+      "rotations": 0.9526,
+      "inspirations": 0.7672
+    }
+  }
+}

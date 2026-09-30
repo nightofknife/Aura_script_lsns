@@ -1,0 +1,470 @@
+{
+  "hud": {
+    "plane_index": 1,
+    "rounds_remaining": 6,
+    "moves_used": 0,
+    "moves_total": 1,
+    "rotations_used": 0,
+    "rotations_total": 1,
+    "collected_count": 0,
+    "inspiration_total": 2,
+    "schema": "resonance_pc.deep_dive_hud.v1",
+    "plane_name": null,
+    "raw_text": {},
+    "errors": {},
+    "known_fields": [
+      "plane_index",
+      "rounds_remaining",
+      "moves_used",
+      "moves_total",
+      "rotations_used",
+      "rotations_total",
+      "collected_count",
+      "inspiration_total"
+    ],
+    "unknown_fields": [],
+    "insufficient_battle_roles": false,
+    "boss_entry_title_confirmed": false,
+    "evidence_source": {
+      "plane_index": "native_plane_icon",
+      "rounds_remaining": "native_round_glyph_templates",
+      "moves_used": "native_font_pair_templates",
+      "moves_total": "native_font_pair_templates",
+      "rotations_used": "native_font_pair_templates",
+      "rotations_total": "native_font_pair_templates",
+      "collected_count": "native_font_pair_templates",
+      "inspiration_total": "native_font_pair_templates"
+    },
+    "scene": "board",
+    "single_action_flags": {
+      "move_pending": true,
+      "move_done": false,
+      "rotate_pending": true,
+      "rotate_done": false,
+      "requires_known_single_action_baseline": true
+    },
+    "rounds_template_evidence": {
+      "value": 6,
+      "status": "recognized",
+      "source": "native_round_glyph_templates",
+      "roi": [
+        1190,
+        128,
+        1231,
+        160
+      ],
+      "scores": [
+        {
+          "value": 6,
+          "confidence": 0.7387
+        },
+        {
+          "value": 0,
+          "confidence": 0.5956
+        },
+        {
+          "value": 8,
+          "confidence": 0.522
+        }
+      ],
+      "glyph_box": [
+        1204,
+        130,
+        12,
+        28
+      ],
+      "margin": 0.1431,
+      "confidence": 0.7387
+    },
+    "numeric_pair_template_evidence": {
+      "moves": {
+        "status": "recognized",
+        "region": [
+          1165,
+          386,
+          1250,
+          432
+        ],
+        "source": "native_font_templates",
+        "fonts": [
+          "HarmonyOS_Sans_Medium"
+        ],
+        "font_size": 22,
+        "confidence": 0.9182,
+        "glyphs": [
+          {
+            "box": [
+              1194,
+              399,
+              11,
+              17
+            ],
+            "match": {
+              "character": "0",
+              "confidence": 0.9182,
+              "margin": 0.1526,
+              "alternatives": [
+                [
+                  "0",
+                  0.9181817785486023
+                ],
+                [
+                  "8",
+                  0.7656249889423926
+                ],
+                [
+                  "3",
+                  0.6785714025747671
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_0_phase1.png"
+            }
+          },
+          {
+            "box": [
+              1207,
+              400,
+              7,
+              16
+            ],
+            "match": {
+              "character": "/",
+              "confidence": 0.936,
+              "margin": 0.4088,
+              "alternatives": [
+                [
+                  "/",
+                  0.9360082925705704
+                ],
+                [
+                  "7",
+                  0.5272272418336686
+                ],
+                [
+                  "2",
+                  0.4119750165584273
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_slash_phase0.png"
+            }
+          },
+          {
+            "box": [
+              1217,
+              400,
+              7,
+              16
+            ],
+            "match": {
+              "character": "1",
+              "confidence": 0.9567,
+              "margin": 0.368,
+              "alternatives": [
+                [
+                  "1",
+                  0.9566567816351955
+                ],
+                [
+                  "3",
+                  0.588702021932272
+                ],
+                [
+                  "4",
+                  0.5198551732980915
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_1_phase0.png"
+            }
+          }
+        ],
+        "text": "0/1"
+      },
+      "rotations": {
+        "status": "recognized",
+        "region": [
+          1165,
+          457,
+          1250,
+          505
+        ],
+        "source": "native_font_templates",
+        "fonts": [
+          "HarmonyOS_Sans_Medium"
+        ],
+        "font_size": 22,
+        "confidence": 0.8045,
+        "glyphs": [
+          {
+            "box": [
+              1194,
+              471,
+              10,
+              16
+            ],
+            "match": {
+              "character": "0",
+              "confidence": 0.8549,
+              "margin": 0.1091,
+              "alternatives": [
+                [
+                  "0",
+                  0.8548769402163884
+                ],
+                [
+                  "8",
+                  0.7457769824798348
+                ],
+                [
+                  "3",
+                  0.688380286553182
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_0_phase0.png"
+            }
+          },
+          {
+            "box": [
+              1206,
+              471,
+              8,
+              16
+            ],
+            "match": {
+              "character": "/",
+              "confidence": 0.8365,
+              "margin": 0.2717,
+              "alternatives": [
+                [
+                  "/",
+                  0.8364887920068369
+                ],
+                [
+                  "7",
+                  0.5647912329605561
+                ],
+                [
+                  "2",
+                  0.4284742487212894
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_slash_phase3.png"
+            }
+          },
+          {
+            "box": [
+              1217,
+              471,
+              6,
+              16
+            ],
+            "match": {
+              "character": "1",
+              "confidence": 0.8045,
+              "margin": 0.2766,
+              "alternatives": [
+                [
+                  "1",
+                  0.8045158157343145
+                ],
+                [
+                  "4",
+                  0.52792646798324
+                ],
+                [
+                  "3",
+                  0.4989781133541677
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_22_1_phase1.png"
+            }
+          }
+        ],
+        "text": "0/1"
+      },
+      "inspirations": {
+        "status": "recognized",
+        "region": [
+          1215,
+          257,
+          1271,
+          287
+        ],
+        "source": "native_font_templates",
+        "fonts": [
+          "HarmonyOS_Sans_Medium",
+          "SourceHanSansCN-Medium"
+        ],
+        "font_size": 18,
+        "confidence": 0.7672,
+        "glyphs": [
+          {
+            "box": [
+              1224,
+              264,
+              3,
+              15
+            ],
+            "match": {
+              "character": "(",
+              "confidence": 0.7672,
+              "margin": 0.2842,
+              "alternatives": [
+                [
+                  "(",
+                  0.7672029371522804
+                ],
+                [
+                  "1",
+                  0.4830234154128953
+                ],
+                [
+                  ")",
+                  0.36415288893938536
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_18_open_phase2.png"
+            }
+          },
+          {
+            "box": [
+              1230,
+              266,
+              8,
+              12
+            ],
+            "match": {
+              "character": "0",
+              "confidence": 0.821,
+              "margin": 0.099,
+              "alternatives": [
+                [
+                  "0",
+                  0.8210440451187014
+                ],
+                [
+                  "8",
+                  0.7219995820694359
+                ],
+                [
+                  "9",
+                  0.6867550298619282
+                ]
+              ],
+              "font": "harmony",
+              "template": "harmony_18_0_phase0.png"
+            }
+          },
+          {
+            "box": [
+              1239,
+              265,
+              6,
+              16
+            ],
+            "match": {
+              "character": "/",
+              "confidence": 0.8325,
+              "margin": 0.3727,
+              "alternatives": [
+                [
+                  "/",
+                  0.8325047213137986
+                ],
+                [
+                  "7",
+                  0.4598373770966264
+                ],
+                [
+                  ")",
+                  0.42096939691867796
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_slash_phase3.png"
+            }
+          },
+          {
+            "box": [
+              1247,
+              266,
+              8,
+              12
+            ],
+            "match": {
+              "character": "2",
+              "confidence": 0.808,
+              "margin": 0.1329,
+              "alternatives": [
+                [
+                  "2",
+                  0.807985652484828
+                ],
+                [
+                  "7",
+                  0.6751189811667502
+                ],
+                [
+                  "9",
+                  0.586752921407619
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_2_phase2.png"
+            }
+          },
+          {
+            "box": [
+              1257,
+              264,
+              4,
+              15
+            ],
+            "match": {
+              "character": ")",
+              "confidence": 0.8029,
+              "margin": 0.2838,
+              "alternatives": [
+                [
+                  ")",
+                  0.8028638072337068
+                ],
+                [
+                  "1",
+                  0.5190425035254584
+                ],
+                [
+                  "7",
+                  0.4028061009194316
+                ]
+              ],
+              "font": "sourcehan",
+              "template": "sourcehan_18_close_phase1.png"
+            }
+          }
+        ],
+        "text": "0/2"
+      }
+    },
+    "ocr_regions_requested": [],
+    "ocr_regions_skipped": {
+      "plane": "not_applicable_for_scene",
+      "rounds": "not_applicable_for_scene",
+      "moves": "not_applicable_for_scene",
+      "rotations": "not_applicable_for_scene",
+      "inspirations": "not_applicable_for_scene",
+      "popup": "not_applicable_for_scene",
+      "entry_title": "not_applicable_for_scene",
+      "turn_label": "not_applicable_for_scene"
+    },
+    "enemy_turn": false,
+    "status": "complete"
+  },
+  "ocr_calls": 0
+}

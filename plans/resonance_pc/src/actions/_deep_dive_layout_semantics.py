@@ -91,12 +91,42 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
                 continue
             heads.append((float(radius), {"kind": "player", "point": [float(cx), float(cy)],
                 "box": [int(cx - radius), int(cy - radius), int(radius * 2 + 1), int(radius * 2 + 1)],
+                "anchor_type": "head", "confirmable": True,
                 "confidence": float(round(min(.85, .62 + .12 * pink_fraction + .08 * sectors / 12), 3))}))
         # The broad base of the same pawn can also fit a circle. Within one
         # pawn-length retain the smaller sphere; do not infer a global winner.
         for radius, head in sorted(heads, key=lambda item: item[0]):
             if not any(other["kind"] == "player" and np.linalg.norm(np.array(head["point"]) - other["point"]) < 50 for other in candidates):
                 candidates.append(head)
+
+    # Side views may hide the sphere while leaving the pawn's narrow waist and
+    # flared foot. These are occlusion/contact clues only: pink or a white rim
+    # never establishes a player cell without the existing head evidence.
+    body_mask = ((hue >= 132) & (hue <= 177) & (saturation > 45) &
+                 (value > 100) & allowed)
+    for contour in _contours(body_mask)[0]:
+        x, y, w, h = cv2.boundingRect(contour)
+        area = cv2.contourArea(contour)
+        if not (10 <= w <= 38 and 28 <= h <= 80 and h >= w * 1.4 and 80 <= area <= 1300):
+            continue
+        patch = body_mask[y:y+h, x:x+w]
+        widths = patch.sum(axis=1)
+        middle = float(np.median(widths[h//3:2*h//3]))
+        bottom = float(np.median(widths[3*h//4:]))
+        if middle < 3 or bottom < middle * 1.3:
+            continue
+        boundary = cv2.dilate(patch.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+        pale = (saturation[y:y+h, x:x+w] < 110) & (value[y:y+h, x:x+w] > 175)
+        if np.count_nonzero(boundary & ~patch & pale) < 15:
+            continue
+        centre = [x+w/2, y+h/2]
+        if any(item['kind'] == 'player' and np.linalg.norm(np.asarray(item['point'])-centre) < 65
+               for item in candidates):
+            continue
+        candidates.append(dict(kind='player', point=centre, box=[x, y, w, h],
+                               confidence=.38, anchor_type='body', confirmable=False))
+        candidates.append(dict(kind='player', point=[x+w/2, y+h-1], box=[x, y, w, h],
+                               confidence=.32, anchor_type='contact', confirmable=False))
 
     # Inspiration has a thin yellow ring with a projecting star. Hexagonal
     # node icons have several internal cells; require one dominant open hole.
@@ -199,7 +229,9 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
     # count (a frame may show none, one or multiple inspiration targets).
     merged = []
     for candidate in sorted(filtered, key=lambda item: item["confidence"], reverse=True):
-        if any(candidate["kind"] == other["kind"] and np.linalg.norm(np.array(candidate["point"]) - other["point"]) < 30 for other in merged):
+        if any(candidate["kind"] == other["kind"] and
+               candidate.get('anchor_type') == other.get('anchor_type') and
+               np.linalg.norm(np.array(candidate["point"]) - other["point"]) < 30 for other in merged):
             continue
         merged.append(candidate)
     sx, sy = original_w / 1280, original_h / 720

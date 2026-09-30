@@ -1527,6 +1527,31 @@ exports:
     description: Enter the Consciousness Deep Dive board using fixed strategy and
       middle boon selection.
     parameters: []
+  - name: resonance_pc.plan_consciousness_deep_dive_layout
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_plan_pc_actions
+    function: plan_consciousness_deep_dive_layout
+    public: true
+    read_only: true
+    timeout: -1
+    description: Plan chase or inspiration actions from a saved full cube layout without
+      game input.
+    parameters:
+    - name: layout_path
+      type: Any
+      required: false
+      default: ''
+    - name: strategy
+      type: Any
+      required: false
+      default: chase
+    - name: turn_budget
+      type: Any
+      required: false
+      default: 6
+    - name: time_budget_sec
+      type: Any
+      required: false
+      default: 30
   - name: resonance_pc.scan_consciousness_deep_dive_layout
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_scan_pc_actions
     function: scan_consciousness_deep_dive_layout
@@ -1556,6 +1581,52 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.deep_dive_planned_run_initialize
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: initialize_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Start observed 3x3 in-level play without activity entry.
+    parameters:
+    - name: strategy
+      type: str
+      required: false
+      default: chase
+    - name: safety_round_limit
+      type: int
+      required: false
+      default: 100
+    - name: scan_time_budget_sec
+      type: float
+      required: false
+      default: 60
+    - name: planning_time_budget_sec
+      type: float
+      required: false
+      default: 30
+  - name: resonance_pc.deep_dive_planned_run_advance
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: advance_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Advance one owned in-level stage or bounded complete scan.
+    parameters:
+    - name: session_key
+      type: str
+      required: true
+  - name: resonance_pc.deep_dive_planned_run_finish
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: finish_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Persist an in-level result without settlement clicks or restart.
+    parameters:
+    - name: session_key
+      type: str
+      required: true
   - name: resonance_pc.deep_dive_single_run_initialize
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
     function: initialize_deep_dive_single_run
@@ -2928,6 +2999,22 @@ exports:
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+  - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
+    title: 识海深潜移动规划（离线）
+    source: tasks/consciousness_deep_dive_plan_pc.yaml
+    description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
+  - id: consciousness_deep_dive_plan_pc
+    title: 识海深潜移动规划（离线）
+    source: tasks/consciousness_deep_dive_plan_pc.yaml
+    description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
+  - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
+    title: 识海深潜关卡内自动运行（3×3）
+    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
+    description: 每玩家回合完整观测并使用三面联合映射执行规划；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+  - id: consciousness_deep_dive_planned_run_pc
+    title: 识海深潜关卡内自动运行（3×3）
+    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
+    description: 每玩家回合完整观测并使用三面联合映射执行规划；覆盖关卡内位面，人数不足暂停，结算只检测停止。
   - id: consciousness_deep_dive_scan_pc/consciousness_deep_dive_scan_pc
     title: 识海深潜魔方布局扫描（人工对比）
     source: tasks/consciousness_deep_dive_scan_pc.yaml
@@ -3069,4 +3156,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-27T11:48:42Z'
+  generated_at: '2026-09-30T03:08:59Z'

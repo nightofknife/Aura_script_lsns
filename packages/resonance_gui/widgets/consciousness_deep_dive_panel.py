@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Mapping
 from pathlib import Path
 
 from PySide6.QtCore import Signal, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -23,6 +29,8 @@ class ConsciousnessDeepDivePanel(QWidget):
     runSingleRunRequested = Signal(object)
     runLoopRequested = Signal(object)
     runScanRequested = Signal()
+    runPlanRequested = Signal(object)
+    runPlannedRunRequested = Signal(object)
     cancelRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -31,10 +39,21 @@ class ConsciousnessDeepDivePanel(QWidget):
         self._task_running = False
         self._mode = "entry"
         self._scan_report_path = ""
+        self._plan_report_path = ""
+        self._planned_run_snapshot: dict[str, Any] = {}
         self._build_ui()
 
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(9)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        content = QWidget(scroll)
+        scroll.setWidget(content)
+        root.addWidget(scroll, 1)
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(9)
 
@@ -80,6 +99,29 @@ class ConsciousnessDeepDivePanel(QWidget):
         loop_note = QLabel('完整循环从活动首页开始，回到首页后才计为完成一局。',self)
         loop_note.setWordWrap(True)
         layout.addWidget(loop_note)
+        planned_run_note = QLabel(
+            "关卡内自动运行从玩家棋盘或位面间隙开始，实时扫描、规划并执行行动。"
+            "队员不足五人时暂停；到达结算后保存结果并保留画面。", self
+        )
+        planned_run_note.setWordWrap(True)
+        planned_run_note.setProperty("caption", True)
+        layout.addWidget(planned_run_note)
+        planned_run_options = QHBoxLayout()
+        planned_run_options.addWidget(QLabel("运行策略", self))
+        self.planned_run_strategy_combo = QComboBox(self)
+        self.planned_run_strategy_combo.addItem("只追奇点", "chase")
+        self.planned_run_strategy_combo.addItem("灵感收益优先", "inspiration")
+        planned_run_options.addWidget(self.planned_run_strategy_combo)
+        planned_run_options.addWidget(QLabel("自动运行回合安全上限", self))
+        self.planned_run_safety_limit_spin = QSpinBox(self)
+        self.planned_run_safety_limit_spin.setRange(1, 100)
+        self.planned_run_safety_limit_spin.setValue(100)
+        planned_run_options.addWidget(self.planned_run_safety_limit_spin)
+        planned_run_options.addStretch(1)
+        layout.addLayout(planned_run_options)
+        self.planned_run_button = QPushButton("关卡内自动运行", self)
+        self.planned_run_button.clicked.connect(self._request_planned_run)
+        layout.addWidget(self.planned_run_button)
         scan_note = QLabel("布局扫描从魔方界面开始，拖动观察六面并导出目标位置和节点图标，供人工对照。", self)
         scan_note.setWordWrap(True)
         scan_note.setProperty("caption", True)
@@ -94,6 +136,54 @@ class ConsciousnessDeepDivePanel(QWidget):
         scan_row.addWidget(self.scan_report_button)
         scan_row.addStretch(1)
         layout.addLayout(scan_row)
+
+        plan_note = QLabel(
+            "移动规划默认使用最近一次完整成功的扫描，也可选择已有布局 JSON。"
+            "请确认游戏布局仍与扫描一致。生成方案仅离线计算，不会操作游戏。", self
+        )
+        plan_note.setWordWrap(True)
+        plan_note.setProperty("caption", True)
+        layout.addWidget(plan_note)
+        plan_options = QHBoxLayout()
+        plan_options.addWidget(QLabel("规划策略", self))
+        self.plan_strategy_combo = QComboBox(self)
+        self.plan_strategy_combo.addItem("只追奇点", "chase")
+        self.plan_strategy_combo.addItem("灵感收益优先", "inspiration")
+        plan_options.addWidget(self.plan_strategy_combo)
+        plan_options.addWidget(QLabel("规划回合数", self))
+        self.plan_turn_budget_spin = QSpinBox(self)
+        self.plan_turn_budget_spin.setRange(1, 30)
+        self.plan_turn_budget_spin.setValue(6)
+        plan_options.addWidget(self.plan_turn_budget_spin)
+        plan_options.addStretch(1)
+        layout.addLayout(plan_options)
+        layout_row = QHBoxLayout()
+        self.plan_layout_edit = QLineEdit(self)
+        self.plan_layout_edit.setReadOnly(True)
+        self.plan_layout_edit.setPlaceholderText("自动使用最近完整扫描")
+        layout_row.addWidget(self.plan_layout_edit, 1)
+        self.plan_layout_button = QPushButton("选择布局", self)
+        self.plan_layout_button.clicked.connect(self._select_plan_layout)
+        layout_row.addWidget(self.plan_layout_button)
+        self.plan_latest_button = QPushButton("使用最近扫描", self)
+        self.plan_latest_button.clicked.connect(self.plan_layout_edit.clear)
+        layout_row.addWidget(self.plan_latest_button)
+        layout.addLayout(layout_row)
+        plan_actions = QHBoxLayout()
+        self.plan_button = QPushButton("生成移动方案", self)
+        self.plan_button.clicked.connect(self._request_plan)
+        plan_actions.addWidget(self.plan_button)
+        self.plan_report_button = QPushButton("打开方案", self)
+        self.plan_report_button.setEnabled(False)
+        self.plan_report_button.clicked.connect(self._open_plan_report)
+        plan_actions.addWidget(self.plan_report_button)
+        plan_actions.addStretch(1)
+        layout.addLayout(plan_actions)
+        self.plan_details = QPlainTextEdit(self)
+        self.plan_details.setReadOnly(True)
+        self.plan_details.setMaximumHeight(180)
+        self.plan_details.hide()
+        layout.addWidget(self.plan_details)
         layout.addStretch(1)
 
         action_band = QFrame(self)
@@ -126,7 +216,7 @@ class ConsciousnessDeepDivePanel(QWidget):
         self.loop_button = QPushButton('开始完整循环',action_band)
         self.loop_button.clicked.connect(self._request_loop)
         run_actions.addWidget(self.loop_button)
-        layout.addWidget(action_band)
+        root.addWidget(action_band)
 
     def begin_scan(self) -> None:
         self._mode = "scan"
@@ -136,6 +226,182 @@ class ConsciousnessDeepDivePanel(QWidget):
         self._set_result_status("正在拖动魔方并识别布局……", "running")
         self._set_run_status("扫描中", "running")
         self._sync_controls()
+
+    def _request_planned_run(self) -> None:
+        if self._runner_busy or self._task_running:
+            return
+        self.runPlannedRunRequested.emit({
+            "strategy": self.planned_run_strategy_combo.currentData(),
+            "safety_round_limit": self.planned_run_safety_limit_spin.value(),
+        })
+
+    def begin_planned_run(self) -> None:
+        self._mode = "planned_run"
+        self._task_running = True
+        self._planned_run_snapshot = {}
+        self.summary_label.clear()
+        self.plan_details.hide()
+        self._set_result_status("正在检查关卡状态并准备自动规划……", "running")
+        self._set_run_status("关卡内运行中", "running")
+        self._sync_controls()
+
+    def apply_planned_run_progress(self, event: Mapping[str, Any]) -> None:
+        if self._mode != "planned_run" or not self._task_running:
+            return
+        payload = event.get("payload", event)
+        if not isinstance(payload, Mapping):
+            return
+        self._planned_run_snapshot.update(payload)
+        self._render_planned_run_snapshot()
+        self._set_result_status(
+            f"关卡内运行中 · {self._planned_run_phase_label(payload.get('phase'))}", "running"
+        )
+
+    @staticmethod
+    def _planned_run_phase_label(phase: Any) -> str:
+        value = str(phase or "准备")
+        return {
+            "initializing": "准备运行", "check": "检查关卡状态",
+            "observe": "观察棋盘", "scan": "扫描魔方布局",
+            "scan_turn": "扫描当前回合布局", "accept_scan": "核对扫描结果",
+            "reset_wide": "重置到宽视图", "wide_reference": "确认三面与玩家位置",
+            "planning": "计算移动方案", "plan": "计算移动方案",
+            "operation": "执行玩家行动", "operation_outcome": "确认行动结果",
+            "verify_move": "核验玩家位置", "event_dispatch": "处理节点事件",
+            "enemy_wait": "等待奇点行动", "plane_transition": "等待位面转换",
+            "rest_area": "处理休整区", "next_plane_wait": "等待下一位面棋盘",
+            "stopped": "已停止运行",
+            "execute": "执行玩家行动", "move": "移动玩家", "rotate": "旋转魔方层",
+            "event": "处理节点事件", "battle": "处理战斗",
+            "wait_enemy": "等待奇点行动", "enemy": "等待奇点行动",
+            "next_plane": "进入下一位面", "transition": "等待位面转换",
+            "settlement": "结算", "terminal": "结算", "blocked": "等待人工处理",
+        }.get(value, value)
+
+    def _render_planned_run_snapshot(self) -> None:
+        payload = self._planned_run_snapshot
+        strategy = {"chase": "只追奇点", "inspiration": "灵感收益优先"}.get(
+            str(payload.get("strategy") or ""), ""
+        )
+        summary = [f"运行策略：{strategy}"] if strategy else []
+        for key, label in (("plane_index", "当前位面"), ("turns_completed", "已完成回合"),
+                           ("rounds_remaining", "剩余回合")):
+            if payload.get(key) is not None:
+                summary.append(f"{label}：{payload[key]}")
+        if payload.get("phase"):
+            summary.append(f"阶段：{self._planned_run_phase_label(payload['phase'])}")
+        for key, label in (("report_path", "运行报告"), ("json_path", "运行 JSON"),
+                           ("final_frame", "停止截图"), ("output_dir", "输出目录")):
+            if payload.get(key):
+                summary.append(f"{label}：{payload[key]}")
+        self.summary_label.setText("\n".join(summary))
+
+    def apply_planned_run_result(self, payload: Mapping[str, Any]) -> None:
+        self._task_running = False
+        self._planned_run_snapshot.update(payload)
+        self._render_planned_run_snapshot()
+        status = str(payload.get("status") or "blocked")
+        completed = (payload.get("success") is True and status == "completed"
+                     and payload.get("terminal_reached") is True)
+        if completed:
+            outcome = {"victory": "胜利", "failure": "失败"}.get(str(payload.get("outcome") or ""))
+            message = "已到达结算" + (f"（{outcome}）" if outcome else "")
+        else:
+            message = "关卡内自动运行已取消" if status == "cancelled" else "关卡内自动运行已停止"
+            if payload.get("reason"):
+                message += f"：{payload['reason']}"
+        self._set_result_status(message, "success" if completed else "error")
+        self._set_run_status("已到达结算" if completed else "运行已停止", "success" if completed else "error")
+        self._sync_controls()
+
+    def show_planned_run_error(self, message: str) -> None:
+        self.apply_planned_run_result({"success": False, "status": "blocked", "reason": message})
+
+    def _select_plan_layout(self) -> None:
+        selected, _ = QFileDialog.getOpenFileName(
+            self, "选择完整扫描布局", self.plan_layout_edit.text(), "布局 JSON (*.json)"
+        )
+        if selected:
+            self.plan_layout_edit.setText(selected)
+
+    def _request_plan(self) -> None:
+        if self._runner_busy or self._task_running:
+            return
+        self.runPlanRequested.emit({
+            "strategy": self.plan_strategy_combo.currentData(),
+            "turn_budget": self.plan_turn_budget_spin.value(),
+            "layout_path": self.plan_layout_edit.text().strip(),
+            "time_budget_sec": 30,
+        })
+
+    def begin_plan(self) -> None:
+        self._mode = "plan"
+        self._task_running = True
+        self._plan_report_path = ""
+        self.summary_label.clear()
+        self.plan_details.clear()
+        self.plan_details.hide()
+        self._set_result_status("正在读取扫描布局并计算移动方案……", "running")
+        self._set_run_status("规划中", "running")
+        self._sync_controls()
+
+    def apply_plan_result(self, payload: Mapping[str, Any]) -> None:
+        self._task_running = False
+        status = str(payload.get("status") or "blocked")
+        solved = status == "solved" and payload.get("success") is True
+        self._plan_report_path = str(payload.get("report_path") or "")
+        metrics = payload.get("metrics")
+        summary = []
+        if isinstance(metrics, Mapping):
+            for key, label, percent in (
+                ("deadline_encounter_probability", "限时到达率", True),
+                ("expected_new_inspirations", "平均获取灵感", False),
+                ("expected_successful_new_inspirations", "按期到达灵感收益", False),
+                ("expected_boss_consumed_inspirations", "平均被奇点摧毁灵感", False),
+                ("expected_encounter_turns_given_deadline", "按期到达平均回合", False),
+                ("optimal_expected_turns", "最短平均回合", False),
+            ):
+                value = metrics.get(key)
+                if isinstance(value, (float, int)) and not isinstance(value, bool):
+                    if percent:
+                        display = ">99.9999%" if 1 - 5e-7 < value < 1 else f"{value * 100:.4f}%"
+                    else:
+                        display = f"{value:.3f}"
+                    summary.append(f"{label}：{display}")
+        for key, label in (("report_path", "方案"), ("json_path", "方案 JSON"),
+                           ("output_dir", "输出目录")):
+            if payload.get(key):
+                summary.append(f"{label}：{payload[key]}")
+        self.summary_label.setText("\n".join(summary))
+        details = {
+            "下一步": payload.get("next_action"),
+            "玩家回合动作": payload.get("player_turn_actions"),
+            "评估结果": metrics,
+        }
+        if any(value is not None for value in details.values()):
+            self.plan_details.setPlainText(json.dumps(details, ensure_ascii=False, indent=2))
+            self.plan_details.show()
+        message = "移动方案已生成，请打开方案查看动作和随机分支" if solved else {
+            "blocked": "未能生成移动方案",
+            "cancelled": "移动规划已取消",
+            "search_budget_exhausted": "计算预算已耗尽，当前结果尚未完成求解",
+        }.get(status, "移动规划未完成")
+        if payload.get("reason"):
+            message += f"：{payload['reason']}"
+        self._set_result_status(message, "success" if solved else "error")
+        self._set_run_status("规划完成" if solved else "规划未完成", "success" if solved else "error")
+        self._sync_controls()
+
+    def show_plan_error(self, message: str) -> None:
+        self.apply_plan_result({"status": "blocked", "reason": message})
+
+    def _open_plan_report(self) -> None:
+        if self._plan_report_path:
+            report = Path(self._plan_report_path).resolve()
+            if report.is_file():
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(report)))
+            else:
+                self._set_result_status("移动方案文件不存在，请查看输出目录。", "error")
 
     def apply_scan_result(self, payload: Mapping[str, Any]) -> None:
         self._task_running = False
@@ -295,6 +561,17 @@ class ConsciousnessDeepDivePanel(QWidget):
         self.run_button.setEnabled(not self._runner_busy and not self._task_running)
         self.test_button.setEnabled(not self._runner_busy and not self._task_running)
         self.scan_button.setEnabled(not self._runner_busy and not self._task_running)
+        idle = not self._runner_busy and not self._task_running
+        self.plan_button.setEnabled(idle)
+        self.planned_run_button.setEnabled(idle)
+        self.planned_run_strategy_combo.setEnabled(idle)
+        self.planned_run_safety_limit_spin.setEnabled(idle)
+        self.plan_strategy_combo.setEnabled(idle)
+        self.plan_turn_budget_spin.setEnabled(idle)
+        self.plan_layout_button.setEnabled(idle)
+        self.plan_latest_button.setEnabled(idle)
+        self.plan_layout_edit.setEnabled(idle)
+        self.plan_report_button.setEnabled(bool(self._plan_report_path) and not self._task_running)
         self.scan_report_button.setEnabled(bool(self._scan_report_path) and not self._task_running)
         self.round_budget_spin.setEnabled(not self._runner_busy and not self._task_running)
         self.loop_button.setEnabled(not self._runner_busy and not self._task_running)

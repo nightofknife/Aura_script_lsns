@@ -27,12 +27,13 @@ def _json_value(value):
 
 class ScanVisionStream:
     """Tracker and semantic scanners each have exactly one owning thread."""
-    def __init__(self, scanner, adapter, output_dir, frames, started):
+    def __init__(self, scanner, adapter, output_dir, frames, started, *, observe_fn=None):
         if not scanner.ready:
             raise ValueError('stream_scanner_not_initialized')
         self._scanner = scanner
         self._semantic = scanner.fork_semantic()
         self._adapter = adapter
+        self._observe = observe_fn or observe_scene
         self._directory = Path(output_dir)
         (self._directory / 'frames').mkdir(parents=True, exist_ok=True)
         self._frames, self._started = frames, started
@@ -48,6 +49,8 @@ class ScanVisionStream:
         self._semantic_state = self._result_state(self._semantic.result())
         self._scene, self._scene_valid = 'board', True
         self._scene_time = time.monotonic()
+        self._scene_observation = None
+        self._scene_metadata = None
         self._mask_cache = dict(mask_observation=deepcopy(scanner.target_mask_observation()), frame_time=self._scene_time)
         self._semantic_revision = 0
         self._stats = dict(processed_frames=0, dropped_frames=0, written_frames=0,
@@ -88,6 +91,8 @@ class ScanVisionStream:
             state['semantic_revision']=self._semantic_revision
             age=time.monotonic()-self._scene_time
             state.update(scene_age_sec=age,scene=self._scene)
+            state['scene_observation'] = deepcopy(self._scene_observation)
+            state['scene_metadata'] = deepcopy(self._scene_metadata)
             if not self._scene_valid or age>.5:
                 state['tracking_ok']=False
                 state['pause_reason']='scene_unknown' if not self._scene_valid else 'scene_feedback_stale'
@@ -243,6 +248,11 @@ class ScanVisionStream:
                         submitted_rotation=self._scanner.rotation.copy();submitted_at=now
                         self._condition.notify_all()
                 if not observation.get('tracking_ok'):
+                    # The failed geometry frame may be an overlay. Let the
+                    # semantic owner classify that exact packet before join.
+                    with self._condition:
+                        self._slot = frozen
+                        self._condition.notify_all()
                     self._save(frozen,self._scanner.annotate(image),observation,'tracking_failed',False)
                     self._fault(observation.get('reason','stream_tracking_lost'))
                 self._stop.wait(max(0.,1./30.-(time.monotonic()-begun)))
@@ -261,12 +271,15 @@ class ScanVisionStream:
                 with self._condition:packet,self._slot=self._slot,None
                 if packet is None:continue
                 begun=time.monotonic()
-                scene=observe_scene(packet['image'])
-                is_board=bool(scene.get('valid') and scene.get('scene')=='board')
+                scene=self._observe(packet['image'])
+                is_board=bool(scene.get('valid') and scene.get('scene')=='board' and scene.get('player_turn'))
                 unknown=unknown+1 if scene.get('scene')=='unknown' else 0
                 with self._lock:
                     self._scene=scene.get('scene','invalid');self._scene_valid=is_board
                     self._scene_time=packet['frame_time']
+                    self._scene_observation = deepcopy(scene)
+                    self._scene_metadata = {key: packet[key] for key in
+                                            ('frame_id', 'generation', 'session_id', 'frame_time')}
                 if not is_board:observation=dict(tracking_ok=False,reason='scene_not_board')
                 else:
                     revision=self._semantic.identity_corrections
@@ -280,6 +293,9 @@ class ScanVisionStream:
                 self._stats['semantic_latency_total_sec']+=time.monotonic()-packet['frame_time']
                 with self._lock:
                     self._semantic_state=self._result_state(self._semantic.result())
+                    self._semantic_state.update(fusion_paused=bool(observation.get('fusion_paused')),
+                        glyph_anchor_age_sec=observation.get('glyph_anchor_age_sec'),
+                        refine_diagnostic=deepcopy(observation.get('refine_diagnostic')))
                     if is_board and observation.get('tracking_ok'):
                         self._semantic_revision+=1
                         correction=observation.get('pose_correction')
@@ -320,7 +336,8 @@ class ScanVisionStream:
                 status='not_applied_after_stop'))
             self._correction_slot=None
         for field in('evidence','view_rotations','group','group_rotation','icon_anchors',
-                     'best_known','stagnant_frames','identity_corrections'):
+                     'best_known','stagnant_frames','identity_corrections',
+                     'glyph_anchor_at','glyph_anchor_reason'):
             setattr(self._scanner,field,deepcopy(getattr(self._semantic,field)))
         if self._latest_packet is not None:
             packet=self._latest_packet

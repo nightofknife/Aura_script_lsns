@@ -1,0 +1,64 @@
+{
+  "id": 86100103,
+  "idCN": "事件生成/事件类型包/常规格/难度01/01第一位面",
+  "mod": "事件类型包",
+  "isInformalData": {
+    "kind": 3,
+    "hex": "00"
+  },
+  "rogueEventTypeList": [
+    {
+      "id": {
+        "reference": 86100100
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 86100140
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 86100138
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 86100141
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 86100137
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 86100139
+      },
+      "weight": 10
+    }
+  ]
+}
+{
+  "id": 86100362,
+  "idCN": "事件生成/事件类型包/BOSS格/难度01/01第一位面",
+  "mod": "事件类型包",
+  "isInformalData": {
+    "kind": 3,
+    "hex": "00"
+  },
+  "rogueEventTypeList": [
+    {
+      "id": {
+        "reference": 86100099
+      },
+      "weight": 10
+    }
+  ]
+}

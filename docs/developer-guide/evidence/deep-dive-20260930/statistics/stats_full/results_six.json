@@ -1,0 +1,481 @@
+{
+  "assumptions": {
+    "inspiration_spawn": "uniform unordered pair among 52 non-role slots",
+    "boss": "uniform admissible neighbour; uniform four layer rotations",
+    "destroyed_inspiration": "not player collected; no recovery credited",
+    "items_events": "no extra actions or movement effects",
+    "initial_positions": {
+      "player": [
+        "U",
+        1,
+        1
+      ],
+      "boss": [
+        "D",
+        1,
+        1
+      ]
+    }
+  },
+  "layout_count": 1326,
+  "canonical_state_count": 164453,
+  "modes": {
+    "deadline_first": [
+      {
+        "meet_probability": 0.0,
+        "all_two_then_meet_probability": 0.0,
+        "mean_collected": 0.4117647058823529,
+        "mean_boss_consumed": 0.02262443438914027,
+        "collected_distribution": [
+          0.5882352941176471,
+          0.4117647058823529,
+          0.0
+        ],
+        "mean_rounds_given_meeting": null,
+        "mean_rounds_given_all_two_and_meeting": null,
+        "mean_success_weighted_collected": 0.0,
+        "mean_collected_given_meeting": null,
+        "layout_mean_collected_range": [
+          0.0,
+          1.0
+        ],
+        "layout_meet_probability_range": [
+          0.0,
+          0.0
+        ],
+        "horizon": 1,
+        "no_inspiration_meet_probability": 0.0
+      },
+      {
+        "meet_probability": 0.75,
+        "all_two_then_meet_probability": 0.004901960784313725,
+        "mean_collected": 0.4167609351432881,
+        "mean_boss_consumed": 0.03833584715937658,
+        "collected_distribution": [
+          0.5956825037707391,
+          0.39187405731523384,
+          0.012443438914027133
+        ],
+        "mean_rounds_given_meeting": 2.0,
+        "mean_rounds_given_all_two_and_meeting": 2.0,
+        "mean_success_weighted_collected": 0.22068250377073906,
+        "mean_collected_given_meeting": 0.29424333836098543,
+        "layout_mean_collected_range": [
+          0.0,
+          1.5625
+        ],
+        "layout_meet_probability_range": [
+          0.75,
+          0.75
+        ],
+        "horizon": 2,
+        "no_inspiration_meet_probability": 0.75
+      },
+      {
+        "meet_probability": 0.9687500000000002,
+        "all_two_then_meet_probability": 0.02158748114630474,
+        "mean_collected": 0.47735985419809007,
+        "mean_boss_consumed": 0.04498963046757173,
+        "collected_distribution": [
+          0.5475741578682752,
+          0.4274918300653595,
+          0.02493401206636528
+        ],
+        "mean_rounds_given_meeting": 2.391232423490487,
+        "mean_rounds_given_all_two_and_meeting": 2.772925764192131,
+        "mean_success_weighted_collected": 0.44983345902463523,
+        "mean_collected_given_meeting": 0.4643442157673653,
+        "layout_mean_collected_range": [
+          0.0,
+          1.5625
+        ],
+        "layout_meet_probability_range": [
+          0.9687500000000001,
+          0.9687500000000001
+        ],
+        "horizon": 3,
+        "no_inspiration_meet_probability": 0.9687500000000001
+      },
+      {
+        "meet_probability": 0.99609375,
+        "all_two_then_meet_probability": 0.036001720399698234,
+        "mean_collected": 0.5439507132981397,
+        "mean_boss_consumed": 0.05580399226998495,
+        "collected_distribution": [
+          0.49319106649069805,
+          0.4696671537204642,
+          0.03714177978883776
+        ],
+        "mean_rounds_given_meeting": 2.4945198592257425,
+        "mean_rounds_given_all_two_and_meeting": 3.2183945667294074,
+        "mean_success_weighted_collected": 0.5392588926596287,
+        "mean_collected_given_meeting": 0.5413736334151567,
+        "layout_mean_collected_range": [
+          0.023437499999999997,
+          1.5
+        ],
+        "layout_meet_probability_range": [
+          0.99609375,
+          0.99609375
+        ],
+        "horizon": 4,
+        "no_inspiration_meet_probability": 0.99609375
+      },
+      {
+        "meet_probability": 0.9995659722221933,
+        "all_two_then_meet_probability": 0.05018388899363149,
+        "mean_collected": 0.5697398721942034,
+        "mean_boss_consumed": 0.05180091659727466,
+        "collected_distribution": [
+          0.4806301397595632,
+          0.4689998482866702,
+          0.050370011953766614
+        ],
+        "mean_rounds_given_meeting": 2.7893584602418096,
+        "mean_rounds_given_all_two_and_meeting": 3.8281534337353684,
+        "mean_success_weighted_collected": 0.5691472982589133,
+        "mean_collected_given_meeting": 0.569394431258608,
+        "layout_mean_collected_range": [
+          0.05143229166666667,
+          1.5169270833333333
+        ],
+        "layout_meet_probability_range": [
+          0.9995659722222223,
+          0.9995659722222223
+        ],
+        "horizon": 5,
+        "no_inspiration_meet_probability": 0.9995659722222223
+      },
+      {
+        "meet_probability": 0.9999457465278067,
+        "all_two_then_meet_probability": 0.05399061547904769,
+        "mean_collected": 0.5774584514962517,
+        "mean_boss_consumed": 0.051712746180926514,
+        "collected_distribution": [
+          0.47656146689277956,
+          0.46941861471818913,
+          0.05401991838903131
+        ],
+        "mean_rounds_given_meeting": 2.8483830646985218,
+        "mean_rounds_given_all_two_and_meeting": 3.994091376635357,
+        "mean_success_weighted_collected": 0.5773767056088783,
+        "mean_collected_given_meeting": 0.5774080319994866,
+        "layout_mean_collected_range": [
+          0.05052863226996528,
+          1.5170661078559027
+        ],
+        "layout_meet_probability_range": [
+          0.9999457465277777,
+          0.9999457465277778
+        ],
+        "horizon": 6,
+        "no_inspiration_meet_probability": 0.9999457465277778
+      }
+    ],
+    "all_inspirations_first": [
+      {
+        "meet_probability": 0.0,
+        "all_two_then_meet_probability": 0.0,
+        "mean_collected": 0.4117647058823529,
+        "mean_boss_consumed": 0.02262443438914027,
+        "collected_distribution": [
+          0.5882352941176471,
+          0.4117647058823529,
+          0.0
+        ],
+        "mean_rounds_given_meeting": null,
+        "mean_rounds_given_all_two_and_meeting": null,
+        "mean_success_weighted_collected": 0.0,
+        "mean_collected_given_meeting": null,
+        "layout_mean_collected_range": [
+          0.0,
+          1.0
+        ],
+        "layout_meet_probability_range": [
+          0.0,
+          0.0
+        ],
+        "horizon": 1,
+        "no_inspiration_meet_probability": 0.0
+      },
+      {
+        "meet_probability": 0.7439668174962293,
+        "all_two_then_meet_probability": 0.00942684766214178,
+        "mean_collected": 0.4571078431372549,
+        "mean_boss_consumed": 0.03783308195072902,
+        "collected_distribution": [
+          0.5730580693815989,
+          0.39677601809954743,
+          0.030165912518853727
+        ],
+        "mean_rounds_given_meeting": 2.0,
+        "mean_rounds_given_all_two_and_meeting": 2.0,
+        "mean_success_weighted_collected": 0.2410444947209653,
+        "mean_collected_given_meeting": 0.323998986315256,
+        "layout_mean_collected_range": [
+          0.0,
+          1.5625
+        ],
+        "layout_meet_probability_range": [
+          0.625,
+          0.75
+        ],
+        "horizon": 2,
+        "no_inspiration_meet_probability": 0.75
+      },
+      {
+        "meet_probability": 0.856774761186526,
+        "all_two_then_meet_probability": 0.13265145801910525,
+        "mean_collected": 0.8735624057315229,
+        "mean_boss_consumed": 0.029985231271996014,
+        "collected_distribution": [
+          0.35986990950226166,
+          0.4066977752639538,
+          0.23343231523378455
+        ],
+        "mean_rounds_given_meeting": 2.624477371084867,
+        "mean_rounds_given_all_two_and_meeting": 2.928935212602152,
+        "mean_success_weighted_collected": 0.6386689291101056,
+        "mean_collected_given_meeting": 0.7454338736888433,
+        "layout_mean_collected_range": [
+          0.0,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.5729166666666666,
+          0.9687500000000001
+        ],
+        "horizon": 3,
+        "no_inspiration_meet_probability": 0.9687500000000001
+      },
+      {
+        "meet_probability": 0.8499172204939658,
+        "all_two_then_meet_probability": 0.42660732662456013,
+        "mean_collected": 1.4723309746574873,
+        "mean_boss_consumed": 0.030731032396933134,
+        "collected_distribution": [
+          0.08743106617647867,
+          0.35280689298955537,
+          0.559762040833966
+        ],
+        "mean_rounds_given_meeting": 3.6117239351448376,
+        "mean_rounds_given_all_two_and_meeting": 3.6902702481854597,
+        "mean_success_weighted_collected": 1.1898456648284312,
+        "mean_collected_given_meeting": 1.3999547675206552,
+        "layout_mean_collected_range": [
+          0.18489583333333334,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.7161458333333334,
+          0.99609375
+        ],
+        "horizon": 4,
+        "no_inspiration_meet_probability": 0.99609375
+      },
+      {
+        "meet_probability": 0.8792036621339258,
+        "all_two_then_meet_probability": 0.7510713015007019,
+        "mean_collected": 1.859549932670051,
+        "mean_boss_consumed": 0.022435079133149047,
+        "collected_distribution": [
+          0.008163715539632688,
+          0.12412263625068354,
+          0.8677136482096838
+        ],
+        "mean_rounds_given_meeting": 4.311924362782653,
+        "mean_rounds_given_all_two_and_meeting": 4.290571413357144,
+        "mean_success_weighted_collected": 1.6221688566084893,
+        "mean_collected_given_meeting": 1.8450433346368278,
+        "layout_mean_collected_range": [
+          1.1054687499999998,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.7437608506944444,
+          0.9981553819444446
+        ],
+        "horizon": 5,
+        "no_inspiration_meet_probability": 0.9995659722222223
+      },
+      {
+        "meet_probability": 0.9587630893150423,
+        "all_two_then_meet_probability": 0.9259922589531729,
+        "mean_collected": 1.965089873091264,
+        "mean_boss_consumed": 0.007476813886013949,
+        "collected_distribution": [
+          0.0015505967636484375,
+          0.031808933381439086,
+          0.9666404698549125
+        ],
+        "mean_rounds_given_meeting": 4.723712057367567,
+        "mean_rounds_given_all_two_and_meeting": 4.696489072076706,
+        "mean_success_weighted_collected": 1.8832133232258663,
+        "mean_collected_given_meeting": 1.9642113304249833,
+        "layout_mean_collected_range": [
+          1.5051328870985243,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.8141004774305558,
+          0.9997694227430556
+        ],
+        "horizon": 6,
+        "no_inspiration_meet_probability": 0.9999457465277778
+      }
+    ],
+    "successful_inspiration_yield": [
+      {
+        "meet_probability": 0.0,
+        "all_two_then_meet_probability": 0.0,
+        "mean_collected": 0.4117647058823529,
+        "mean_boss_consumed": 0.02262443438914027,
+        "collected_distribution": [
+          0.5882352941176471,
+          0.4117647058823529,
+          0.0
+        ],
+        "mean_rounds_given_meeting": null,
+        "mean_rounds_given_all_two_and_meeting": null,
+        "mean_success_weighted_collected": 0.0,
+        "mean_collected_given_meeting": null,
+        "layout_mean_collected_range": [
+          0.0,
+          1.0
+        ],
+        "layout_meet_probability_range": [
+          0.0,
+          0.0
+        ],
+        "horizon": 1,
+        "no_inspiration_meet_probability": 0.0
+      },
+      {
+        "meet_probability": 0.6821266968325792,
+        "all_two_then_meet_probability": 0.008672699849170438,
+        "mean_collected": 0.7088046757164405,
+        "mean_boss_consumed": 0.031359979889391695,
+        "collected_distribution": [
+          0.32475490196078427,
+          0.641685520361991,
+          0.03355957767722473
+        ],
+        "mean_rounds_given_meeting": 2.0,
+        "mean_rounds_given_all_two_and_meeting": 2.0,
+        "mean_success_weighted_collected": 0.3886689291101056,
+        "mean_collected_given_meeting": 0.5697899391929243,
+        "layout_mean_collected_range": [
+          0.0,
+          1.5625
+        ],
+        "layout_meet_probability_range": [
+          0.625,
+          0.75
+        ],
+        "horizon": 2,
+        "no_inspiration_meet_probability": 0.75
+      },
+      {
+        "meet_probability": 0.84373428858723,
+        "all_two_then_meet_probability": 0.09447272498743094,
+        "mean_collected": 1.10704185520362,
+        "mean_boss_consumed": 0.031149839743589723,
+        "collected_distribution": [
+          0.027542106586224357,
+          0.8378739316239312,
+          0.13458396178984444
+        ],
+        "mean_rounds_given_meeting": 2.660906483929834,
+        "mean_rounds_given_all_two_and_meeting": 2.900216198237151,
+        "mean_success_weighted_collected": 0.9119453871292106,
+        "mean_collected_given_meeting": 1.0808442888533012,
+        "layout_mean_collected_range": [
+          0.53125,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.5989583333333331,
+          0.9687500000000001
+        ],
+        "horizon": 3,
+        "no_inspiration_meet_probability": 0.9687500000000001
+      },
+      {
+        "meet_probability": 0.9054722850678735,
+        "all_two_then_meet_probability": 0.38747633468451337,
+        "mean_collected": 1.461793281014333,
+        "mean_boss_consumed": 0.03407772697754316,
+        "collected_distribution": [
+          0.0009338470965239987,
+          0.536339024792619,
+          0.46272712811085703
+        ],
+        "mean_rounds_given_meeting": 3.4770047630202265,
+        "mean_rounds_given_all_two_and_meeting": 3.642893255971028,
+        "mean_success_weighted_collected": 1.2920599429675714,
+        "mean_collected_given_meeting": 1.4269458759532543,
+        "layout_mean_collected_range": [
+          0.9527994791666669,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.8333333333333334,
+          0.9856770833333334
+        ],
+        "horizon": 4,
+        "no_inspiration_meet_probability": 0.99609375
+      },
+      {
+        "meet_probability": 0.9435490575770916,
+        "all_two_then_meet_probability": 0.7091350040784217,
+        "mean_collected": 1.760940728204344,
+        "mean_boss_consumed": 0.021912122304183462,
+        "collected_distribution": [
+          0.00015265437772438162,
+          0.23875396304020713,
+          0.7610933825820685
+        ],
+        "mean_rounds_given_meeting": 4.246536378712502,
+        "mean_rounds_given_all_two_and_meeting": 4.2496272252998555,
+        "mean_success_weighted_collected": 1.652538444681421,
+        "mean_collected_given_meeting": 1.7514070216178477,
+        "layout_mean_collected_range": [
+          1.0075412326388888,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.861111111111111,
+          0.9981553819444446
+        ],
+        "horizon": 5,
+        "no_inspiration_meet_probability": 0.9995659722222223
+      },
+      {
+        "meet_probability": 0.9672085042972348,
+        "all_two_then_meet_probability": 0.9203757159330717,
+        "mean_collected": 1.9526090613957026,
+        "mean_boss_consumed": 0.009794224254858963,
+        "collected_distribution": [
+          1.3305091242310496e-05,
+          0.04736432842181282,
+          0.9526223664869449
+        ],
+        "mean_rounds_given_meeting": 4.6870122117651185,
+        "mean_rounds_given_all_two_and_meeting": 4.670942761050919,
+        "mean_success_weighted_collected": 1.8875713652055668,
+        "mean_collected_given_meeting": 1.9515661378278095,
+        "layout_mean_collected_range": [
+          1.3030548095703125,
+          2.0
+        ],
+        "layout_meet_probability_range": [
+          0.8453233506944442,
+          0.9997694227430556
+        ],
+        "horizon": 6,
+        "no_inspiration_meet_probability": 0.9999457465277778
+      }
+    ]
+  },
+  "elapsed_sec": 12.266000000061467
+}

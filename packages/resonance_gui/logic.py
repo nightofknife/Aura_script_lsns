@@ -37,6 +37,12 @@ PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF = (
 PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF = (
     "tasks:consciousness_deep_dive_scan_pc.yaml:consciousness_deep_dive_scan_pc"
 )
+PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF = (
+    "tasks:consciousness_deep_dive_plan_pc.yaml:consciousness_deep_dive_plan_pc"
+)
+PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF = (
+    "tasks:consciousness_deep_dive_planned_run_pc.yaml:consciousness_deep_dive_planned_run_pc"
+)
 PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF = (
     "tasks:consciousness_deep_dive_capture_pc.yaml:consciousness_deep_dive_capture_pc"
 )
@@ -636,6 +642,58 @@ def extract_deep_dive_scan_result(payload: Mapping[str, Any]) -> dict[str, Any]:
         scan = nodes.get("scan") if isinstance(nodes, Mapping) else result.get("scan")
         if isinstance(scan, Mapping) and isinstance(scan.get("output"), Mapping):
             return dict(scan["output"])
+        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
+            child = result.get(key)
+            if isinstance(child, Mapping):
+                pending.append(child)
+    return {}
+
+
+def extract_deep_dive_plan_result(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Read the planning result independently of the runner's completion status."""
+    pending = [extract_final_result(payload), normalize_run_payload(payload)]
+    seen: set[int] = set()
+    while pending:
+        result = pending.pop(0)
+        if id(result) in seen:
+            continue
+        seen.add(id(result))
+        plan = result.get("deep_dive_plan")
+        if isinstance(plan, Mapping):
+            return dict(plan)
+        if result.get("schema") == "resonance_pc.deep_dive_plan.v1":
+            return dict(result)
+        nodes = result.get("nodes")
+        plan = nodes.get("plan") if isinstance(nodes, Mapping) else result.get("plan")
+        if isinstance(plan, Mapping) and isinstance(plan.get("output"), Mapping):
+            return dict(plan["output"])
+        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
+            child = result.get(key)
+            if isinstance(child, Mapping):
+                pending.append(child)
+    return {}
+
+
+def extract_deep_dive_planned_run_result(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Read an in-level planning run, including partial and cancelled snapshots."""
+    pending = [extract_final_result(payload), normalize_run_payload(payload)]
+    seen: set[int] = set()
+    while pending:
+        result = pending.pop(0)
+        if id(result) in seen:
+            continue
+        seen.add(id(result))
+        planned_run = result.get("deep_dive_planned_run")
+        if isinstance(planned_run, Mapping):
+            return dict(planned_run)
+        if result.get("schema") == "resonance_pc.deep_dive_planned_run.v1":
+            return dict(result)
+        nodes = result.get("nodes")
+        if isinstance(nodes, Mapping):
+            for node in nodes.values():
+                output = node.get("output") if isinstance(node, Mapping) else None
+                if isinstance(output, Mapping):
+                    pending.append(output)
         for key in ("user_data", "final_result", "run", "detail", "framework_data"):
             child = result.get(key)
             if isinstance(child, Mapping):

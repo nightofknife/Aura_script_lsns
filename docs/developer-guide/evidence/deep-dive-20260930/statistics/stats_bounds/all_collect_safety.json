@@ -1,0 +1,148 @@
+{
+  "state_count": 164453,
+  "safe_count": 160201,
+  "initial_layout_count": 1326,
+  "initial_unsafe_layouts": 4,
+  "initial_safe_layouts": 1322,
+  "iterations": [
+    {
+      "iteration": 1,
+      "removed": 3901,
+      "remaining": 160552
+    },
+    {
+      "iteration": 2,
+      "removed": 291,
+      "remaining": 160261
+    },
+    {
+      "iteration": 3,
+      "removed": 25,
+      "remaining": 160236
+    },
+    {
+      "iteration": 4,
+      "removed": 30,
+      "remaining": 160206
+    },
+    {
+      "iteration": 5,
+      "removed": 3,
+      "remaining": 160203
+    },
+    {
+      "iteration": 6,
+      "removed": 2,
+      "remaining": 160201
+    },
+    {
+      "iteration": 7,
+      "removed": 0,
+      "remaining": 160201
+    }
+  ],
+  "unsafe_examples": [
+    {
+      "inspirations": [
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "raw_slots": [
+        28,
+        30
+      ],
+      "state_index": 164449,
+      "elimination_iteration": 1
+    },
+    {
+      "inspirations": [
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "raw_slots": [
+        28,
+        32
+      ],
+      "state_index": 164449,
+      "elimination_iteration": 1
+    },
+    {
+      "inspirations": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          7
+        ]
+      ],
+      "raw_slots": [
+        30,
+        34
+      ],
+      "state_index": 164449,
+      "elimination_iteration": 1
+    },
+    {
+      "inspirations": [
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          7
+        ]
+      ],
+      "raw_slots": [
+        32,
+        34
+      ],
+      "state_index": 164449,
+      "elimination_iteration": 1
+    }
+  ],
+  "explanation": "Any almost-sure all-collection policy must stay forever within greatest safety set. A state removed in iteration k has failure probability>0 within k turns under every policy. Thus removed initial layouts cannot reach all collected+encounter almost surely. Surviving safety states are not by this computation alone proven live.",
+  "initial_failure_certificates": [
+    {
+      "state_index": 164449,
+      "minimum_first_turn_failure_probability_exact": "1/4",
+      "action_risk_distribution": {
+        "1/4": 28,
+        "1/2": 4
+      }
+    }
+  ],
+  "uniform_initial_unbounded_all_goal_probability_upper_bound_exact": "1325/1326",
+  "uniform_initial_unbounded_all_goal_probability_upper_bound": 0.9992458521870287,
+  "almost_sure_winning_state_count": 160201,
+  "almost_sure_initial_winning_layout_count": 1322,
+  "almost_sure_nested_fixed_point_iterations": [
+    {
+      "outer": 1,
+      "inner_iterations": 8,
+      "winning_count": 160201
+    }
+  ],
+  "almost_sure_equals_safety_set": true,
+  "initial_unsafe_attained_success_certificates": [
+    {
+      "state_index": 164449,
+      "best_first_turn_probability_entering_almost_sure_winning_set_exact": "3/4"
+    }
+  ],
+  "uniform_initial_unbounded_all_goal_optimum_exact": "1325/1326"
+}

@@ -74,6 +74,8 @@ class SmallTasksPage(QWidget):
     runConsciousnessDeepDiveRequested = Signal()
     runConsciousnessDeepDiveSingleRunRequested = Signal(object)
     runConsciousnessDeepDiveScanRequested = Signal()
+    runConsciousnessDeepDivePlanRequested = Signal(object)
+    runConsciousnessDeepDivePlannedRunRequested = Signal(object)
     runConsciousnessDeepDiveLoopRequested = Signal(object)
     runEternalScuffleRequested = Signal(object)
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
@@ -154,6 +156,12 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.runLoopRequested.connect(self.runConsciousnessDeepDiveLoopRequested.emit)
         self.consciousness_deep_dive_panel.runScanRequested.connect(
             self.runConsciousnessDeepDiveScanRequested.emit
+        )
+        self.consciousness_deep_dive_panel.runPlanRequested.connect(
+            self.runConsciousnessDeepDivePlanRequested.emit
+        )
+        self.consciousness_deep_dive_panel.runPlannedRunRequested.connect(
+            self.runConsciousnessDeepDivePlannedRunRequested.emit
         )
         self.consciousness_deep_dive_panel.runSingleRunRequested.connect(
             self.runConsciousnessDeepDiveSingleRunRequested.emit
@@ -339,6 +347,36 @@ class SmallTasksPage(QWidget):
     def begin_consciousness_deep_dive_scan(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
         self.consciousness_deep_dive_panel.begin_scan()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_plan(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_plan()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_planned_run(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_planned_run()
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_planned_run_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_planned_run_result(payload)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_planned_run_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_planned_run_error(message)
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_plan_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_plan_result(payload)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_plan_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_plan_error(message)
         self._sync_controls()
 
     def apply_consciousness_deep_dive_scan_result(self, payload: Mapping[str, Any]) -> None:

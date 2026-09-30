@@ -1,0 +1,567 @@
+{
+  "id": 89400001,
+  "idCN": "魔方配置/难度01/01第一位面",
+  "mod": "魔方生成",
+  "isInformalData": {
+    "kind": 3,
+    "hex": "00"
+  },
+  "cameraX": -50.0,
+  "cameraY": 41.5,
+  "cameraZ": 50.0,
+  "rotateX": 29.6,
+  "cameraView": 12.0,
+  "moveCameraY": 46.0,
+  "moveCameraView": 8.0,
+  "cubeModle": "CubeRoguePath/Model/Prefab/Rogue_Cube_MF_N_07",
+  "cubeCornerModle": "CubeRoguePath\\Model\\Prefab\\Rogue_Cube_MF_01",
+  "cubeSideModle": "CubeRoguePath\\Model\\Prefab\\Rogue_Cube_MF_01",
+  "cubeCenterModle": "CubeRoguePath\\Model\\Prefab\\Rogue_Cube_MF_01",
+  "cubeEntiretyModle": "CubeRoguePath\\Model\\Prefab\\Rubik",
+  "enterAnimation": "rogue_cube_in",
+  "outAnimation": "rogue_cube_out",
+  "currentColor": "255,255,255",
+  "moveColor": "70,255,231",
+  "spinSideColor": "255,221,26",
+  "bossMoveColor": "255,221,26",
+  "spinX": 7.0,
+  "spinY": 7.0,
+  "rotSpeed": 3.0,
+  "rotTime": 1.0,
+  "outlineWidth": 70.0,
+  "resetSpeed": 3.0,
+  "initialDistance": 1,
+  "initialX": 2.0,
+  "initialY": 2.0,
+  "initialZ": 1.0,
+  "faceIndex": 1,
+  "planesName": "情感宣泄位面",
+  "numIcon": "UI/CubeRogue/Main/Image/Icon_Plane1",
+  "firstPlotId": {
+    "reference": 4294967295
+  },
+  "enterGetList": [
+    {
+      "id": {
+        "reference": 86100105
+      },
+      "num": 1
+    }
+  ],
+  "specialNum": 2,
+  "certainlyGenerateList": [],
+  "specialGenerateList": [
+    {
+      "id": {
+        "reference": 12601542
+      },
+      "weight": 10
+    },
+    {
+      "id": {
+        "reference": 12601540
+      },
+      "numMax": 2,
+      "numMin": 1,
+      "weight": 10
+    }
+  ],
+  "planeSkill": {
+    "reference": 80307031
+  },
+  "bossPlaneNum": 1,
+  "elitePlaneNum": 0,
+  "ordinaryPlaneNum": 0,
+  "museSkill": {
+    "reference": 80307061
+  },
+  "bossMuseNum": 2,
+  "eliteMuseNum": 2,
+  "ordinaryMuseNum": 1,
+  "typeLimitList": [
+    {
+      "id": {
+        "reference": 12601617
+      },
+      "num": 9
+    },
+    {
+      "id": {
+        "reference": 12601614
+      },
+      "num": 8
+    },
+    {
+      "id": {
+        "reference": 12601616
+      },
+      "num": 9
+    },
+    {
+      "id": {
+        "reference": 12601615
+      },
+      "num": 8
+    },
+    {
+      "id": {
+        "reference": 12601542
+      },
+      "num": 9
+    },
+    {
+      "id": {
+        "reference": 12601541
+      },
+      "num": 1
+    },
+    {
+      "id": {
+        "reference": 12601540
+      },
+      "num": 9
+    }
+  ],
+  "actionNum": 6,
+  "cubeSize": 3,
+  "cubeList": [
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 4294967295
+      },
+      "x": 2,
+      "y": 2,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 1
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 2,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 2
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 2,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 3
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 2,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 4
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 2,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 5
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 1,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 1,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 1,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 2,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100362
+      },
+      "x": 2,
+      "y": 2,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 2,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 1,
+      "y": 3,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 2,
+      "y": 3,
+      "z": 6
+    },
+    {
+      "id": {
+        "reference": 86100103
+      },
+      "x": 3,
+      "y": 3,
+      "z": 6
+    }
+  ],
+  "nextId": {
+    "reference": 89400003
+  },
+  "restId": {
+    "reference": 89800001
+  }
+}

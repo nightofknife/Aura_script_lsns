@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from copy import deepcopy
+from contextvars import ContextVar
 from datetime import datetime
 import json
 import math
@@ -27,6 +29,84 @@ from ._deep_dive_scan_policy import FaceScanPolicy, CellScanPolicy
 from ._deep_dive_scan_stream import ScanVisionStream
 
 MIN_DRAG_GAP_SEC = .2
+_SCAN_CONTROL = ContextVar('deep_dive_scan_control', default=None)
+
+
+class _SceneInterrupted(RuntimeError):
+    pass
+
+
+def _player_board(observation):
+    return bool(observation.get('valid') and observation.get('scene') == 'board'
+                and observation.get('player_turn'))
+
+
+def _observe(image, frame_id=None):
+    control = _SCAN_CONTROL.get()
+    if control is not None and frame_id is not None:
+        control['latest_frame_metadata']['frame_id'] = frame_id
+    observed = (control['observe_fn'] if control else observe_scene)(image)
+    if control is not None:
+        control['latest_scene_observation'] = observed
+        if _player_board(observed) and control.get('initial_board_observation') is None:
+            control['initial_board_observation'] = deepcopy(observed)
+        if observed.get('valid') and observed.get('scene') != 'unknown' and not _player_board(observed):
+            control['interruption'] = dict(observation=observed,
+                                           metadata=dict(control.get('latest_frame_metadata') or {}))
+    return observed
+
+
+def _capture_metadata(app, capture, *, frame_id=None):
+    metadata = dict(frame_id=frame_id, frame_time=time.monotonic(),
+                    generation=None, session_id=None,
+                    capture_backend=getattr(capture, 'backend', None))
+    try:
+        adapter = app.target_runtime._get_or_create_session()
+        check = adapter.capture_backend.self_check()
+        metadata.update(generation=check.get('generation'),
+                        session_id=getattr(getattr(adapter.capture_backend, '_session', None), 'stream_id', None),
+                        generation_source='post_capture_health')
+    except (AttributeError, KeyError, TypeError):
+        pass
+    return metadata
+
+
+async def _capture_serial(app, timeout=None):
+    # wait_for may cancel capture_async while its synchronous worker continues.
+    # Shield and drain it before any subsequent input, rebind, or task exit.
+    started = time.monotonic()
+    operation = _await_serial(app.capture_async())
+    capture, cancelled = await (asyncio.wait_for(operation, timeout) if timeout else operation)
+    if cancelled:
+        _cancel_check()
+        if timeout is not None and time.monotonic() - started >= timeout:
+            raise RuntimeError('scan_capture_timeout_after_drain')
+        raise asyncio.CancelledError()
+    control = _SCAN_CONTROL.get()
+    if control is not None:
+        metadata = _capture_metadata(app, capture)
+        try:
+            packet = app.target_runtime._get_or_create_session().capture_stream_frame()
+        except (AttributeError, RuntimeError):
+            packet = None
+        if packet is not None:
+            capture = packet['capture']
+            metadata.update(generation=packet['generation'], session_id=packet['session_id'],
+                            frame_time=packet['arrived_at_monotonic'], generation_source='atomic_wgc')
+        control['latest_frame_metadata'] = metadata
+    return capture
+
+
+def _progress(**values):
+    control = _SCAN_CONTROL.get()
+    callback = control.get('on_progress') if control else None
+    if callback is not None:
+        now = time.monotonic()
+        if (values.get('phase') == control.get('progress_phase') and
+                now - control.get('progress_at', 0.) < .25):
+            return
+        control.update(progress_phase=values.get('phase'), progress_at=now)
+        callback(dict(values))
 
 
 async def _await_serial(operation):
@@ -64,9 +144,7 @@ async def _capture_after_input(app, fallback_wait=.04):
         freshness = {'method': 'wgc_generation', 'before': generation, 'after': current}
     else:
         await asyncio.sleep(fallback_wait)
-    capture, cancelled = await _await_serial(app.capture_async())
-    if cancelled:
-        raise asyncio.CancelledError()
+    capture = await _capture_serial(app)
     return capture, freshness
 
 
@@ -164,17 +242,20 @@ async def _segmented_drag(app, scanner, start, end, duration, frame_wait,
                 failure = 'segment_capture_failed'
                 break
             image = capture.image
-            frame_id = len(frames)
+            frame_id = max((row['frame_id'] for row in frames), default=-1) + 1
             path = output_dir/'frames'/f'{frame_id:04d}.png'
             if not cv2.imwrite(str(path), cv2.cvtColor(image,cv2.COLOR_RGB2BGR)):
                 raise OSError('segment_frame_save_failed')
-            scene = observe_scene(image)
+            scene = _observe(image, frame_id)
             row = dict(frame_id=frame_id,path=path.relative_to(output_dir).as_posix(),
                        elapsed_sec=round(time.monotonic()-started,3),scene=scene.get('scene'),
                        during_drag=True, segment_index=index, freshness=freshness)
             frames.append(row)
+            control = _SCAN_CONTROL.get()
+            if control is not None:
+                control['latest_frame_metadata']['frame_id'] = frame_id
             segment['frame_id'] = frame_id
-            if scene.get('scene') != 'board' or not scene.get('valid'):
+            if not _player_board(scene):
                 failure = 'unexpected_scene:'+str(scene.get('scene'))
                 break
             observation = scanner.observe(image, frame_id=frame_id, semantic='auto')
@@ -206,7 +287,9 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                            started, deadline, step_limit):
     """Own input here; the independent worker exclusively owns scanner state."""
     adapter = app.target_runtime._get_or_create_session()
-    stream = ScanVisionStream(scanner, adapter, output_dir, frames, started)
+    control = _SCAN_CONTROL.get()
+    stream = ScanVisionStream(scanner, adapter, output_dir, frames, started,
+                              observe_fn=control['observe_fn'] if control else None)
     policy = CellScanPolicy(base_step_px=policy.base_step_px, max_step_px=policy.max_step_px)
     pressed = False
     position = None
@@ -252,6 +335,11 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
             if not snapshot:
                 await asyncio.sleep(.01)
                 continue
+            scene = snapshot.get('scene_observation')
+            if scene is not None and not _player_board(scene) and scene.get('valid') and scene.get('scene') != 'unknown':
+                await release()
+                status, reason = 'interrupted', 'unexpected_scene:' + str(scene.get('scene'))
+                break
             if snapshot.get('error'):
                 status, reason = 'blocked', snapshot['error']
                 break
@@ -261,9 +349,6 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                     break
                 await asyncio.sleep(.01)
                 continue
-            if snapshot.get('layout_complete'):
-                status, reason = 'completed', 'layout_complete'
-                break
             age = now - snapshot['frame_time']
             if age > .35 or not snapshot.get('tracking_ok'):
                 # Do not keep rotating on an outdated pose. Resume only when a
@@ -275,7 +360,13 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                 await asyncio.sleep(.01)
                 continue
             stale_since = None
+            if (snapshot.get('layout_complete') and not snapshot.get('fusion_paused') and
+                    scene is not None and _player_board(scene)):
+                status, reason = 'completed', 'layout_complete'
+                break
             if snapshot['seq'] != sequence:
+                _progress(phase='continuous_scan', known_cells=snapshot.get('known_cells', 0),
+                          frame_id=snapshot.get('frame_id'), elapsed_sec=now-started)
                 if published is not None:
                     interval = .6*interval + .4*max(.02, snapshot['published_at']-published)
                 published = snapshot['published_at']
@@ -391,13 +482,28 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
         if cancelled:
             raise asyncio.CancelledError()
     stats = stream.stats
+    snapshot = stream.snapshot()
+    if control is not None:
+        if snapshot.get('scene_observation') is not None:
+            control['latest_scene_observation'] = snapshot['scene_observation']
+            control['latest_frame_metadata'] = snapshot.get('scene_metadata') or {}
     stats['control'] = dict(policy.stats)
-    if stats.get('error'):
+    scene = snapshot.get('scene_observation')
+    if scene is not None and scene.get('valid') and scene.get('scene') != 'unknown' and not _player_board(scene):
+        if control is not None:
+            control['interruption'] = dict(observation=scene, metadata=snapshot.get('scene_metadata'))
+        status, reason = 'interrupted', 'unexpected_scene:' + str(scene.get('scene'))
+    elif stats.get('error'):
         status, reason = 'blocked', stats['error']
+    elif status == 'completed' and snapshot.get('fusion_paused'):
+        status, reason = 'partial', 'glyph_anchor_fusion_paused_after_drain'
     return status, reason, snapshot or {}, stats
 
 
 def _cancel_check():
+    control = _SCAN_CONTROL.get()
+    if control is not None and control.get('cancel_check') is not None and control['cancel_check']():
+        raise StopTaskException('魔方布局扫描已取消。', success=False)
     if is_current_task_cancel_requested():
         raise StopTaskException("魔方布局扫描已取消。", success=False)
 
@@ -452,12 +558,12 @@ async def _reset_view(app, output_dir, deadline):
     point = None
     for index in range(2):
         _cancel_check()
-        capture = await asyncio.wait_for(app.capture_async(), max(.1, min(5., deadline - time.monotonic())))
+        capture = await _capture_serial(app, max(.1, min(5., deadline - time.monotonic())))
         if not capture.success or capture.image is None:
             raise RuntimeError("reset_capture_failed")
-        scene = observe_scene(capture.image)
-        if scene.get("scene") != "board" or not scene.get("player_turn"):
-            raise RuntimeError("reset_requires_normal_player_board:" + str(scene.get("scene")))
+        scene = _observe(capture.image)
+        if not _player_board(scene):
+            raise _SceneInterrupted("reset_requires_normal_player_board:" + str(scene.get("scene")))
         gray = cv2.cvtColor(capture.image, cv2.COLOR_RGB2GRAY)
         response = cv2.matchTemplate(gray[480:590, 590:700], template, cv2.TM_CCORR_NORMED, mask=mask)
         _, score, _, location = cv2.minMaxLoc(response)
@@ -493,13 +599,13 @@ async def _reset_view(app, output_dir, deadline):
     reset_deadline = min(deadline, time.monotonic() + 8.)
     while time.monotonic() < reset_deadline:
         await _settle(.25)
-        capture = await asyncio.wait_for(app.capture_async(), max(.1, min(3., reset_deadline - time.monotonic())))
+        capture = await _capture_serial(app, max(.1, min(3., reset_deadline - time.monotonic())))
         if not capture.success or capture.image is None:
             stable = 0
             continue
-        scene = observe_scene(capture.image)
-        if scene.get("scene") != "board" or not scene.get("player_turn"):
-            raise RuntimeError("scene_changed_after_reset:" + str(scene.get("scene")))
+        scene = _observe(capture.image)
+        if not _player_board(scene):
+            raise _SceneInterrupted("scene_changed_after_reset:" + str(scene.get("scene")))
         gray = cv2.cvtColor(capture.image[150:490, 440:840], cv2.COLOR_RGB2GRAY)
         diagnostic = {"stable": False}
         if previous is not None:
@@ -528,14 +634,10 @@ async def _reset_view(app, output_dir, deadline):
     raise RuntimeError("reset_structure_did_not_stabilize")
 
 
-@action_info(name="resonance_pc.scan_consciousness_deep_dive_layout", public=True,
-             read_only=False, timeout=-1,
-             description="Scan an already open normal Deep Dive board and save its reconstructed layout.")
-@requires_services(app="plans/aura_base/app")
-async def scan_consciousness_deep_dive_layout(
+async def _run_layout_scan(
     max_steps: int = 96, time_budget_sec: float = 60,
     drag_step_px: int = 300, drag_duration_sec: float = .15,
-    settle_sec: float = .2, app=None,
+    settle_sec: float = .2, app=None, output_dir=None,
 ):
     """No node clicks, game-layer rotations, or automatic battle entry are issued.
 
@@ -544,7 +646,10 @@ async def scan_consciousness_deep_dive_layout(
     """
     started = time.monotonic()
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:8]
-    output_dir = resolve_base_path() / "logs" / "deep_dive_scan" / run_id
+    output_dir = (Path(output_dir) if output_dir is not None else
+                  resolve_base_path() / "logs" / "deep_dive_scan" / run_id)
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise ValueError('scan_output_directory_not_empty')
     scanner = None
     frames, actions = [], []
     status, reason = "blocked", "initialization_failed"
@@ -552,7 +657,7 @@ async def scan_consciousness_deep_dive_layout(
     reset = {}
     streaming = {}
     try:
-        output_dir.mkdir(parents=True, exist_ok=False)
+        output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "frames").mkdir()
         raw_parameters = tuple(float(value) for value in
                                (max_steps, time_budget_sec, drag_step_px,
@@ -569,6 +674,7 @@ async def scan_consciousness_deep_dive_layout(
         # Leave a small portion of the hard budget for draining evidence and
         # producing the report. Normal operation targets 50s, with reserve to 60s.
         deadline = started + max(4., budget-1.)
+        _progress(phase='reset', known_cells=0, elapsed_sec=time.monotonic()-started)
         reset = await _reset_view(app, output_dir, deadline)
         scanner = LayoutScanner()
         policy = FaceScanPolicy(base_step_px=step_px, max_step_px=450)
@@ -591,18 +697,22 @@ async def scan_consciousness_deep_dive_layout(
                     break
                 await _settle(settle)
                 continue
-            frame_id = len(frames)
+            frame_id = max((row['frame_id'] for row in frames), default=-1) + 1
             frame_path = output_dir / "frames" / f"{frame_id:04d}.png"
             if not cv2.imwrite(str(frame_path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR)):
                 raise OSError(f"Cannot save frame: {frame_path}")
-            scene = observe_scene(image)
+            scene = _observe(image, frame_id)
+            control = _SCAN_CONTROL.get()
+            if control is not None:
+                control['latest_frame_metadata']['frame_id'] = frame_id
             row = {"frame_id": frame_id, "path": frame_path.relative_to(output_dir).as_posix(),
                    "elapsed_sec": round(time.monotonic() - started, 3),
                    "scene": scene.get("scene"), "freshness": freshness,
                    "capture_backend": getattr(capture, "backend", None)}
             frames.append(row)
-            if scene.get("scene") != "board" or not scene.get("valid"):
-                status, reason = "blocked", "unexpected_scene:" + str(scene.get("scene"))
+            if not _player_board(scene):
+                status, reason = ("interrupted" if scene.get('valid') and scene.get('scene') != 'unknown'
+                                  else "blocked"), "unexpected_scene:" + str(scene.get("scene"))
                 break
             duplicate = previous_image is not None and np.array_equal(image, previous_image)
             previous_image = image.copy()
@@ -616,6 +726,8 @@ async def scan_consciousness_deep_dive_layout(
                 continue
             observation = scanner.observe(image, frame_id=frame_id)
             last_observation = observation
+            _progress(phase='calibration', known_cells=observation.get('known_cells', 0),
+                      frame_id=frame_id, elapsed_sec=time.monotonic()-started)
             overlay_path = frame_path.with_name(f"{frame_id:04d}_overlay.png")
             if not cv2.imwrite(str(overlay_path), cv2.cvtColor(scanner.annotate(image), cv2.COLOR_RGB2BGR)):
                 raise OSError(f"Cannot save overlay: {overlay_path}")
@@ -685,15 +797,60 @@ async def scan_consciousness_deep_dive_layout(
             failure = await _segmented_drag(app, scanner, start, end, duration, .04,
                                            output_dir, frames, action, started, deadline)
             if failure and failure.startswith('unexpected_scene:'):
-                status, reason = 'blocked', failure
+                status, reason = 'interrupted', failure
                 break
             pending_response = True
             await _settle(settle)
     except (asyncio.CancelledError, StopTaskException):
         status, reason = "cancelled", "cancel_requested"
+    except _SceneInterrupted as exc:
+        observed = (_SCAN_CONTROL.get() or {}).get('latest_scene_observation') or {}
+        status = 'interrupted' if observed.get('valid') and observed.get('scene') != 'unknown' else 'blocked'
+        reason = str(exc)
     except Exception as exc:
         status, reason = "blocked", f"{type(exc).__name__}: {exc}"
         logger.warning("[DeepDiveScan] stopped: %s", reason)
+    # No scanner owner or input remains alive here. A fresh board gate must
+    # follow release/join, because the final semantic 54/54 may predate an overlay.
+    if status != 'cancelled' and app is not None:
+        try:
+            _cancel_check()
+            capture, freshness = await _capture_after_input(app)
+            if not capture.success or capture.image is None:
+                raise RuntimeError('final_capture_failed')
+            frame_id = max((row['frame_id'] for row in frames), default=-1) + 1
+            observed = _observe(capture.image, frame_id)
+            path = output_dir/'frames'/f'{frame_id:04d}.png'
+            if not cv2.imwrite(str(path), cv2.cvtColor(capture.image, cv2.COLOR_RGB2BGR)):
+                raise OSError('final_frame_save_failed')
+            frames.append(dict(frame_id=frame_id, path=path.relative_to(output_dir).as_posix(),
+                               scene=observed.get('scene'), freshness=freshness,
+                               final_gate=True, elapsed_sec=time.monotonic()-started))
+            control = _SCAN_CONTROL.get()
+            if control is not None:
+                control['latest_frame_metadata']['frame_id'] = frame_id
+            if not _player_board(observed):
+                status = 'interrupted' if observed.get('valid') and observed.get('scene') != 'unknown' else 'blocked'
+                reason = 'final_scene:' + str(observed.get('scene'))
+            elif status == 'completed':
+                initial = (control or {}).get('initial_board_observation') or {}
+                changed = [key for key in ('move_pending', 'move_done', 'rotate_pending', 'rotate_done',
+                                          'player_turn', 'plane_index')
+                           if initial.get(key) is not None and observed.get(key) is not None
+                           and initial[key] != observed[key]]
+                if changed:
+                    status, reason = 'blocked', 'gameplay_changed_during_scan:' + ','.join(changed)
+                expected_session = streaming.get('session_id')
+                current_session = (control or {}).get('latest_frame_metadata', {}).get('session_id')
+                if expected_session is not None and current_session != expected_session:
+                    status, reason = 'blocked', 'capture_session_changed_after_scan'
+                if (control or {}).get('interruption') is not None:
+                    status, reason = 'interrupted', 'scene_interrupted_during_scan'
+        except (asyncio.CancelledError, StopTaskException):
+            status, reason = 'cancelled', 'cancel_requested'
+        except Exception as exc:
+            if status == 'completed':
+                status, reason = 'blocked', 'final_board_gate_failed:' + str(exc)
     try:
         result = scanner.result() if scanner is not None else {"layout_complete": False, "faces": {}}
     except Exception as exc:
@@ -701,6 +858,8 @@ async def scan_consciousness_deep_dive_layout(
         result = {"layout_complete": False, "faces": {}, "reconstruction_error": str(exc)}
         if status != "cancelled":
             status, reason = "blocked", "result_export_failed"
+    if status == 'completed' and not result.get('layout_complete'):
+        status, reason = 'partial', 'final_layout_incomplete_after_drain'
     _attach_frame_paths(result, {frame["frame_id"]: frame for frame in frames})
     last_frame = str(output_dir / frames[-1]["path"]) if frames else None
     result.update(status=status, stop_reason=reason, reason=reason, run_id=run_id,
@@ -715,6 +874,11 @@ async def scan_consciousness_deep_dive_layout(
     if not result["map_valid"]:
         result["layout_complete"] = False
     result["success"] = status == "completed" and bool(result.get("layout_complete"))
+    control = _SCAN_CONTROL.get() or {}
+    result['latest_scene_observation'] = control.get('latest_scene_observation')
+    result['latest_frame_metadata'] = control.get('latest_frame_metadata')
+    result['interruption'] = control.get('interruption')
+    result['initial_board_observation'] = control.get('initial_board_observation')
     try:
         _write_cell_crops(result, output_dir)
     except Exception as exc:
@@ -741,5 +905,83 @@ async def scan_consciousness_deep_dive_layout(
     if "report_error" in result:
         summary["report_error"] = result["report_error"]
     logger.info("[DeepDiveScan] status=%s reason=%s output=%s", status, reason, output_dir)
+    return {**summary, 'layout': result, 'summary': summary,
+            'reset': result.get('reset'),
+            'latest_scene_observation': control.get('latest_scene_observation'),
+            'latest_frame_metadata': control.get('latest_frame_metadata'),
+            'interruption': control.get('interruption')}
+
+
+async def run_layout_scan(app, *, max_steps=96, time_budget_sec=60, drag_step_px=300,
+                          drag_duration_sec=.15, settle_sec=.2, output_dir=None,
+                          observe_fn=None, cancel_check=None, on_progress=None):
+    """Own one fresh scan epoch, drain input/threads, and return its full layout.
+
+    Callers must await this operation before using the app for gameplay input.
+    Hooks are synchronous: the observer is also called by the semantic owner;
+    progress and cancellation hooks run only in the engine's async context.
+    """
+    control = dict(observe_fn=observe_fn or observe_scene, cancel_check=cancel_check,
+                   on_progress=on_progress, latest_scene_observation=None,
+                   latest_frame_metadata={}, interruption=None)
+    token = _SCAN_CONTROL.set(control)
+    try:
+        return await _run_layout_scan(max_steps=max_steps, time_budget_sec=time_budget_sec,
+                                      drag_step_px=drag_step_px, drag_duration_sec=drag_duration_sec,
+                                      settle_sec=settle_sec, app=app, output_dir=output_dir)
+    finally:
+        _SCAN_CONTROL.reset(token)
+
+
+async def reset_layout_view(app, output_dir, *, time_budget_sec=10, observe_fn=None,
+                            cancel_check=None):
+    """Reset one ordinary board view and return evidence without scanning a map.
+
+    The caller owns the app exclusively and must await completion. The wrapper
+    drains captures/input on cancellation and never returns a layout prediction.
+    """
+    budget=float(time_budget_sec)
+    if not math.isfinite(budget) or not 1<=budget<=60:
+        raise ValueError('Invalid reset time budget')
+    directory=Path(output_dir)
+    directory.mkdir(parents=True,exist_ok=True)
+    control=dict(observe_fn=observe_fn or observe_scene,cancel_check=cancel_check,
+                 on_progress=None,latest_scene_observation=None,latest_frame_metadata={},
+                 interruption=None)
+    token=_SCAN_CONTROL.set(control)
+    started=time.monotonic()
+    try:
+        reset=await _reset_view(app,directory,started+budget)
+        _cancel_check()
+        capture,freshness=await _capture_after_input(app)
+        if not capture.success or capture.image is None:
+            raise RuntimeError('reset_final_capture_failed')
+        observed=_observe(capture.image)
+        if not _player_board(observed) or control.get('interruption') is not None:
+            raise _SceneInterrupted('reset_final_scene:'+str(observed.get('scene')))
+        path=directory/'reset_verified.png'
+        if not cv2.imwrite(str(path),cv2.cvtColor(capture.image,cv2.COLOR_RGB2BGR)):
+            raise OSError('reset_verified_frame_save_failed')
+        return dict(success=True,reset=reset,last_frame=str(path),freshness=freshness,
+                    latest_scene_observation=observed,
+                    latest_frame_metadata=control['latest_frame_metadata'],
+                    elapsed_sec=time.monotonic()-started)
+    finally:
+        _SCAN_CONTROL.reset(token)
+
+
+@action_info(name="resonance_pc.scan_consciousness_deep_dive_layout", public=True,
+             read_only=False, timeout=-1,
+             description="Scan an already open normal Deep Dive board and save its reconstructed layout.")
+@requires_services(app="plans/aura_base/app")
+async def scan_consciousness_deep_dive_layout(max_steps: int = 96, time_budget_sec: float = 60,
+                                            drag_step_px: int = 300, drag_duration_sec: float = .15,
+                                            settle_sec: float = .2, app=None):
+    outcome = await run_layout_scan(app, max_steps=max_steps, time_budget_sec=time_budget_sec,
+                                    drag_step_px=drag_step_px, drag_duration_sec=drag_duration_sec,
+                                    settle_sec=settle_sec)
+    summary = dict(outcome['summary'])
+    if summary['status'] == 'interrupted':
+        summary['status'] = 'blocked'
     return summary
 

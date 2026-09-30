@@ -1,0 +1,42 @@
+{
+  "refine": {
+    "candidates": 9,
+    "confirmed": 9,
+    "reason": "known_multi_face_joint_fit",
+    "joint_confirmed_inliers": 9,
+    "angle_deg": 0.8505805260736393,
+    "median_before": 12.107986095915841,
+    "median_after": 1.5501637638473338,
+    "max_after": 3.0658178421760995,
+    "translation_pixels": [
+      -1.7629056448077516,
+      8.888715607607185
+    ],
+    "depth_delta_fraction": 0.01673793180624979
+  },
+  "translation_delta": [
+    -0.016506326618013274,
+    0.08322625970705122,
+    0.7016470677389961
+  ],
+  "correction_applied": true,
+  "translation_error": 1.4210854715202004e-14,
+  "rotation_error": 0.0,
+  "once_epoch": 4,
+  "repeat_epoch": 4,
+  "stale_repeat_applied": false,
+  "guards": {
+    "2.5": {
+      "tracking_ok": true,
+      "fusion_paused": true,
+      "reason": null,
+      "new_votes": 0
+    },
+    "7.0": {
+      "tracking_ok": false,
+      "fusion_paused": null,
+      "reason": "glyph_anchor_support_lost:insufficient_centres",
+      "new_votes": 0
+    }
+  }
+}

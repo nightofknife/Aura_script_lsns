@@ -53,7 +53,8 @@ def step(state,o,now):
             # A centered portal is also shown during event entrance. Never skip
             # it as an outro until an actual choice/reward page has been observed.
             accepted=option_page or selection or result
-            retry=scene=='event_entry' and o.get('event_type')==state['pending_move']['event']
+            event_type=state.get('context_event_type') or state.get('pending_move',{}).get('event')
+            retry=scene=='event_entry' and o.get('event_type')==event_type
         elif kind in ('option_select','option_submit'):
             rows=o.get('event_options',[]);i=pending['index']
             target=rows[i] if i<len(rows) else None

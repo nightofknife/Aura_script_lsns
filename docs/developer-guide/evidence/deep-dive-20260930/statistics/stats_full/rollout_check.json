@@ -1,0 +1,89 @@
+{
+  "deadline_first": {
+    "mean_collected": {
+      "dp": 0.5774584514962517,
+      "rollout": 0.58054,
+      "standard_error": 0.0018774805149454942
+    },
+    "mean_boss_consumed": {
+      "dp": 0.051712746180926514,
+      "rollout": 0.05143,
+      "standard_error": 0.0006994637596044556
+    },
+    "meet_probability": {
+      "dp": 0.9999457465278067,
+      "rollout": 0.99996,
+      "standard_error": 1.9999599995999918e-05
+    },
+    "all_two_then_meet_probability": {
+      "dp": 0.05399061547904769,
+      "rollout": 0.05446,
+      "standard_error": 0.0007175939548240357
+    },
+    "mean_success_weighted_collected": {
+      "dp": 0.5773767056088783,
+      "rollout": 0.58047,
+      "standard_error": 0.001877350737342386
+    },
+    "samples": 100000,
+    "p_any_consumed": 0.05136
+  },
+  "all_inspirations_first": {
+    "mean_collected": {
+      "dp": 1.965089873091264,
+      "rollout": 1.9644,
+      "standard_error": 0.0006080513136241053
+    },
+    "mean_boss_consumed": {
+      "dp": 0.007476813886013949,
+      "rollout": 0.00777,
+      "standard_error": 0.00027766215262437193
+    },
+    "meet_probability": {
+      "dp": 0.9587630893150423,
+      "rollout": 0.95891,
+      "standard_error": 0.0006277070327788275
+    },
+    "all_two_then_meet_probability": {
+      "dp": 0.9259922589531729,
+      "rollout": 0.92529,
+      "standard_error": 0.0008314349998646915
+    },
+    "mean_success_weighted_collected": {
+      "dp": 1.8832133232258663,
+      "rollout": 1.8829,
+      "standard_error": 0.0013717419217914133
+    },
+    "samples": 100000,
+    "p_any_consumed": 0.00777
+  },
+  "successful_inspiration_yield": {
+    "mean_collected": {
+      "dp": 1.9526090613957026,
+      "rollout": 1.95179,
+      "standard_error": 0.0006775381605489094
+    },
+    "mean_boss_consumed": {
+      "dp": 0.009794224254858963,
+      "rollout": 0.00999,
+      "standard_error": 0.00031448688207936425
+    },
+    "meet_probability": {
+      "dp": 0.9672085042972348,
+      "rollout": 0.96656,
+      "standard_error": 0.0005685223513636027
+    },
+    "all_two_then_meet_probability": {
+      "dp": 0.9203757159330717,
+      "rollout": 0.919,
+      "standard_error": 0.0008627803892068943
+    },
+    "mean_success_weighted_collected": {
+      "dp": 1.8875713652055668,
+      "rollout": 1.88555,
+      "standard_error": 0.0012971167931223463
+    },
+    "samples": 100000,
+    "p_any_consumed": 0.00999
+  }
+}

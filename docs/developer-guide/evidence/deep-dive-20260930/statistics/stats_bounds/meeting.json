@@ -1,0 +1,354 @@
+{
+  "state_count": 120,
+  "all_ordered_pairs": 2862,
+  "symmetry_count": 24,
+  "start": [
+    "U",
+    1,
+    1
+  ],
+  "boss": [
+    "D",
+    1,
+    1
+  ],
+  "guaranteed_minimum_turns": null,
+  "optimal_expected_turns": 2.285904255319149,
+  "expectation_max_error_bound": 1.3322676295501878e-15,
+  "finite_horizon_lower_bound": 2.285904255319149,
+  "value_iteration_depth": 21,
+  "expected_policy_worst_case_turns": null,
+  "all_state_guaranteed_max": null,
+  "expected_policy_all_state_guaranteed_max": null,
+  "rank_counts": {
+    "1.0": 56,
+    "2.0": 42,
+    "inf": 22
+  },
+  "encounter_turn_distribution": [
+    {
+      "turn": 1,
+      "probability": 0.0,
+      "remaining": 1.0
+    },
+    {
+      "turn": 2,
+      "probability": 0.75,
+      "remaining": 0.25
+    },
+    {
+      "turn": 3,
+      "probability": 0.21875,
+      "remaining": 0.03125
+    },
+    {
+      "turn": 4,
+      "probability": 0.02734375,
+      "remaining": 0.00390625
+    },
+    {
+      "turn": 5,
+      "probability": 0.003255208333333333,
+      "remaining": 0.0006510416666666666
+    },
+    {
+      "turn": 6,
+      "probability": 0.0005696614583333333,
+      "remaining": 8.138020833333333e-05
+    },
+    {
+      "turn": 7,
+      "probability": 6.781684027777778e-05,
+      "remaining": 1.3563368055555555e-05
+    },
+    {
+      "turn": 8,
+      "probability": 1.1867947048611113e-05,
+      "remaining": 1.6954210069444444e-06
+    },
+    {
+      "turn": 9,
+      "probability": 1.4128508391203703e-06,
+      "remaining": 2.8257016782407406e-07
+    },
+    {
+      "turn": 10,
+      "probability": 2.472488968460648e-07,
+      "remaining": 3.532127097800926e-08
+    },
+    {
+      "turn": 11,
+      "probability": 2.943439248167438e-08,
+      "remaining": 5.886878496334876e-09
+    },
+    {
+      "turn": 12,
+      "probability": 5.151018684293017e-09,
+      "remaining": 7.358598120418595e-10
+    },
+    {
+      "turn": 13,
+      "probability": 6.132165100348829e-10,
+      "remaining": 1.2264330200697658e-10
+    },
+    {
+      "turn": 14,
+      "probability": 1.073128892561045e-10,
+      "remaining": 1.533041275087207e-11
+    },
+    {
+      "turn": 15,
+      "probability": 1.2775343959060058e-11,
+      "remaining": 2.5550687918120118e-12
+    },
+    {
+      "turn": 16,
+      "probability": 2.2356851928355102e-12,
+      "remaining": 3.1938359897650147e-13
+    },
+    {
+      "turn": 17,
+      "probability": 2.6615299914708455e-13,
+      "remaining": 5.323059982941691e-14
+    },
+    {
+      "turn": 18,
+      "probability": 4.65767748507398e-14,
+      "remaining": 6.653824978677113e-15
+    }
+  ],
+  "optimal_expected_turns_exact": "1719/752",
+  "exact_all_action_bellman_verified": true,
+  "all_2862_quotient_actions_verified": true,
+  "non_guaranteed_closed_complement_verified": true,
+  "optimal_deadline_encounter_probability": [
+    {
+      "turn_budget": 1,
+      "best_success_probability_exact": "0",
+      "best_success_probability": 0.0
+    },
+    {
+      "turn_budget": 2,
+      "best_success_probability_exact": "3/4",
+      "best_success_probability": 0.75
+    },
+    {
+      "turn_budget": 3,
+      "best_success_probability_exact": "31/32",
+      "best_success_probability": 0.96875
+    },
+    {
+      "turn_budget": 4,
+      "best_success_probability_exact": "255/256",
+      "best_success_probability": 0.99609375
+    },
+    {
+      "turn_budget": 5,
+      "best_success_probability_exact": "2303/2304",
+      "best_success_probability": 0.9995659722222222
+    },
+    {
+      "turn_budget": 6,
+      "best_success_probability_exact": "18431/18432",
+      "best_success_probability": 0.9999457465277778
+    }
+  ],
+  "adversarial_cycle_under_fastest_expected_policy": {
+    "prefix_and_cycle": [
+      {
+        "canonical_state": 119,
+        "player": [
+          "U",
+          1,
+          1
+        ],
+        "boss": [
+          "D",
+          1,
+          1
+        ],
+        "player_action": {
+          "order": "move_then_rotate",
+          "destination": [
+            "U",
+            2,
+            1
+          ],
+          "rotation_actor": [
+            "U",
+            2,
+            1
+          ],
+          "tangent_axis_index": 1,
+          "sign": 1
+        },
+        "after_player": [
+          [
+            "L",
+            1,
+            2
+          ],
+          [
+            "D",
+            1,
+            1
+          ]
+        ],
+        "boss_move": [
+          "D",
+          2,
+          1
+        ],
+        "boss_rotation_tangent_axis_index": 1,
+        "boss_rotation_sign": -1,
+        "next_canonical_state": 80
+      },
+      {
+        "canonical_state": 80,
+        "player": [
+          "U",
+          0,
+          1
+        ],
+        "boss": [
+          "D",
+          0,
+          1
+        ],
+        "player_action": {
+          "order": "move_then_rotate",
+          "destination": [
+            "U",
+            1,
+            1
+          ],
+          "rotation_actor": [
+            "U",
+            1,
+            1
+          ],
+          "tangent_axis_index": 1,
+          "sign": -1
+        },
+        "after_player": [
+          [
+            "R",
+            1,
+            1
+          ],
+          [
+            "D",
+            0,
+            1
+          ]
+        ],
+        "boss_move": [
+          "D",
+          0,
+          2
+        ],
+        "boss_rotation_tangent_axis_index": 1,
+        "boss_rotation_sign": 1,
+        "next_canonical_state": 117
+      },
+      {
+        "canonical_state": 117,
+        "player": [
+          "U",
+          1,
+          1
+        ],
+        "boss": [
+          "D",
+          0,
+          0
+        ],
+        "player_action": {
+          "order": "rotate_then_move",
+          "rotation_actor": [
+            "U",
+            1,
+            1
+          ],
+          "tangent_axis_index": 1,
+          "sign": 1,
+          "destination": [
+            "L",
+            1,
+            2
+          ]
+        },
+        "after_player": [
+          [
+            "L",
+            1,
+            2
+          ],
+          [
+            "D",
+            0,
+            0
+          ]
+        ],
+        "boss_move": [
+          "D",
+          1,
+          0
+        ],
+        "boss_rotation_tangent_axis_index": 1,
+        "boss_rotation_sign": -1,
+        "next_canonical_state": 84
+      },
+      {
+        "canonical_state": 84,
+        "player": [
+          "U",
+          0,
+          1
+        ],
+        "boss": [
+          "D",
+          1,
+          2
+        ],
+        "player_action": {
+          "order": "rotate_then_move",
+          "rotation_actor": [
+            "U",
+            0,
+            1
+          ],
+          "tangent_axis_index": 1,
+          "sign": -1,
+          "destination": [
+            "R",
+            1,
+            1
+          ]
+        },
+        "after_player": [
+          [
+            "R",
+            1,
+            1
+          ],
+          [
+            "D",
+            1,
+            2
+          ]
+        ],
+        "boss_move": [
+          "D",
+          2,
+          2
+        ],
+        "boss_rotation_tangent_axis_index": 1,
+        "boss_rotation_sign": 1,
+        "next_canonical_state": 117
+      }
+    ],
+    "cycle_starts_at_index": 2,
+    "note": "Each row normalized by a whole-cube rotation; this is a concrete positive-probability indefinitely extendable path, while closed-complement check handles every player policy."
+  }
+}

@@ -1,0 +1,13 @@
+{"at": 1790766234.700813, "kind": "plane_observed", "plane_index": 1, "turn": 0, "scan_epoch": 0, "index": 1}
+{"at": 1790766298.5210285, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [1100, 406], "scene": "board", "action": "open_move"}
+{"at": 1790766304.8331785, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [748, 313], "scene": "choose_move", "action": "select_move"}
+{"at": 1790766308.8257883, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [1086, 542], "scene": "event_entry", "action": null}
+{"at": 1790766308.8257883, "kind": "node_entered", "plane_index": 1, "turn": 0, "scan_epoch": 1, "event_type": "elite_battle", "owner": "player_move_node", "action_id": "b6c112213b1d48a280bf979a70da47b3"}
+{"at": 1790766312.1833847, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [1104, 605], "scene": "battle_formation", "action": null}
+{"at": 1790766358.1592765, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [1096, 634], "scene": "battle_victory", "action": null}
+{"at": 1790766363.1437194, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [640, 340], "scene": "battle_reward_selection", "action": null}
+{"at": 1790766364.6925468, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [643, 640], "scene": "battle_reward_selection", "action": null}
+{"at": 1790766368.1360705, "kind": "input", "plane_index": 1, "turn": 0, "scan_epoch": 1, "point": [280, 630], "scene": "reward_obtained", "action": null}
+{"at": 1790766375.524033, "kind": "event_completed", "plane_index": 1, "turn": 0, "scan_epoch": 1, "owner": "player_move_node", "event_type": "elite_battle"}
+{"at": 1790766377.1431842, "kind": "action_confirmed", "plane_index": 1, "turn": 0, "scan_epoch": 1, "action": {"action_id": "b6c112213b1d48a280bf979a70da47b3", "kind": "move", "destination_slot": 1, "rotation_id": null, "snapshot_version": {"plane_epoch": "ef3ade09a6654b2bae10617d0c4e5058", "scan_epoch": 1, "map_revision": 0}, "target_occupant": "none", "confirmed_at": 1790766377.137674, "outcome": "confirmed", "confirmation_evidence": {"quota": {"plane_index": 1, "rounds_remaining": 6, "moves_used": 1, "moves_total": 1, "rotations_used": 0, "rotations_total": 1, "collected_count": 0, "inspiration_total": 2}, "registered_selection": true, "verified_preview": false, "node_completed": true}}}
+{"at": 1790766394.3953247, "kind": "blocked", "plane_index": 1, "turn": 0, "scan_epoch": 2, "reason": "scan_not_complete:glyph_anchor_support_lost:insufficient_centres"}

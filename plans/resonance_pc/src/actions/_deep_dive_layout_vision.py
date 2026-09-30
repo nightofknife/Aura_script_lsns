@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import itertools
+import time
 from collections import Counter
 from copy import deepcopy
 
@@ -55,6 +56,23 @@ def _quad(cell):
     centre = _point(cell)
     return np.array([centre + u*x*HALF_TILE + v*y*HALF_TILE
                      for x,y in ((-1,-1),(1,-1),(1,1),(-1,1))])
+
+
+def _anchor_heights(target):
+    if target['kind'] == 'player':
+        return {'head': (.20, .85), 'body': (.06, .55),
+                'contact': (0., .12)}.get(target.get('anchor_type', 'head'), (.20, .85))
+    return {'inspiration': (.05, .65), 'singularity': (.20, 1.)}[target['kind']]
+
+
+def _multi_face_grid_support(objects,points,minimum=6):
+    if len(objects)<minimum:
+        return False
+    faces=Counter((int(np.argmax(np.abs(point))),int(np.sign(point[np.argmax(np.abs(point))])))
+                  for point in objects)
+    return bool(sum(count>=2 for count in faces.values())>=2 and
+                np.min(np.ptp(points,axis=0))>=80 and
+                cv2.contourArea(cv2.convexHull(np.float32(points)))>=7000)
 
 
 def _neighbors(cell):
@@ -111,6 +129,8 @@ class LayoutScanner:
         self.icon_anchors={}
         self.identity_corrections=0
         self.correction_epoch=0
+        self.glyph_anchor_at=None
+        self.glyph_anchor_reason='not_initialized'
         centres=np.array([_point(c) for c in self.cells])
         self.symmetries=[]
         for axes in itertools.permutations(range(3)):
@@ -225,6 +245,8 @@ class LayoutScanner:
         self.quality=min(.92,len(ids)/max(1,len(obj)))
         self.pivot_reference=tv.copy()
         self.ready=True
+        self.glyph_anchor_at=time.monotonic()
+        self.glyph_anchor_reason='reset_bootstrap'
         return True
 
     def _surface_mask(self, targets):
@@ -429,6 +451,45 @@ class LayoutScanner:
             obj.append(_point(self.cells[item['index']]));pixels.append(p)
             confirmed.append(self.icon_anchors.get(item['index'])==classification['icon_id'] and classification.get('confidence',0)>=.70)
         self.refine_diagnostic.update(candidates=len(obj),confirmed=sum(confirmed))
+        confirmed_ids=np.flatnonzero(confirmed)
+        if len(confirmed_ids)>=6:
+            objects=np.asarray(obj)[confirmed_ids];points=np.asarray(pixels)[confirmed_ids]
+            broad=_multi_face_grid_support(objects,points)
+            if broad and hasattr(self,'pivot_reference'):
+                before=np.linalg.norm(self.project(objects)-points,axis=1)
+                rv,tv,error=self._bounded_pose_fit(objects,points)
+                inliers=error<=6.
+                if not np.all(inliers) and _multi_face_grid_support(objects[inliers],points[inliers]):
+                    objects,points=objects[inliers],points[inliers]
+                    before=np.linalg.norm(self.project(objects)-points,axis=1)
+                    rv,tv,error=self._bounded_pose_fit(objects,points)
+                self.refine_diagnostic['joint_confirmed_inliers']=len(objects)
+                rotation=cv2.Rodrigues(rv)[0]
+                angle=_angle(rotation,self.rotation)
+                pixel_delta=(tv[:2,0]-self.tvec[:2,0])*np.diag(K)[:2]/float(self.tvec[2,0])
+                depth_delta=abs(float(tv[2,0]-self.tvec[2,0]))/float(self.pivot_reference[2,0])
+                supported=(np.max(error)<=6 and np.median(error)<=3 and angle<=4 and
+                           np.linalg.norm(pixel_delta)<=12 and depth_delta<=.035)
+                improvement=np.median(error)<=max(.5,np.median(before)*.85)
+                if supported and improvement:
+                    self.rvec,self.tvec,self.rotation=rv,tv,rotation
+                    self.glyph_anchor_at=time.monotonic()
+                    self.glyph_anchor_reason='known_multi_face_joint_fit'
+                    self.refine_diagnostic.update(reason=self.glyph_anchor_reason,angle_deg=angle,
+                        median_before=float(np.median(before)),median_after=float(np.median(error)),
+                        max_after=float(np.max(error)),translation_pixels=pixel_delta.tolist(),
+                        depth_delta_fraction=depth_delta)
+                    self.points=np.empty((0,2),np.float32);self.objects=np.empty((0,3))
+                    return
+                if np.max(before)<=4 and np.median(before)<=3:
+                    self.glyph_anchor_at=time.monotonic()
+                    self.glyph_anchor_reason='known_multi_face_grid_verified'
+                    self.refine_diagnostic.update(reason=self.glyph_anchor_reason,
+                        median_before=float(np.median(before)),median_after=float(np.median(before)))
+                    return
+                self.refine_diagnostic['joint_rejected']=dict(angle_deg=angle,
+                    median_before=float(np.median(before)),median_after=float(np.median(error)),
+                    max_after=float(np.max(error)),translation_pixels=pixel_delta.tolist())
         if len(obj)<7:
             if sum(confirmed)<4:return
             ids=np.flatnonzero(confirmed)
@@ -456,6 +517,8 @@ class LayoutScanner:
                     np.median(error)>np.median(before)*.85):
                 self.refine_diagnostic['reason']='confirmed_residual_gate';return
             self.rvec,self.rotation=rv,rotation
+            self.glyph_anchor_at=time.monotonic()
+            self.glyph_anchor_reason='known_four_glyph_consensus'
             self.refine_diagnostic['reason']='confirmed_consensus'
             self.refine_diagnostic.update(angle_deg=angle,median_before=float(np.median(before)),median_after=float(np.median(error)))
             if angle>1.:
@@ -470,6 +533,22 @@ class LayoutScanner:
             self.refine_diagnostic['reason']='correction_too_large';return
         self.refine_diagnostic['reason']='seven_centres'
         self.rvec,self.rotation=rv,rotation
+        # Even a tiny fitted correction can provide independent grid evidence.
+        # New labels need multi-face support; known atlas labels can also prove
+        # a broad single-face grid with seven independently matching glyphs.
+        face_counts=Counter(tuple(np.sign(point[np.argmax(np.abs(point))])*np.eye(3)[np.argmax(np.abs(point))])
+                            for point in obj)
+        points=np.asarray(pixels)
+        independent=(sum(count>=2 for count in face_counts.values())>=2 or sum(confirmed)>=7)
+        inlier_errors=errors[errors<9.]
+        if (independent and np.min(np.ptp(points,axis=0))>=80 and
+                cv2.contourArea(cv2.convexHull(np.float32(points)))>=7000 and
+                len(inlier_errors)>=7 and np.median(inlier_errors)<=5 and
+                _angle(rotation,old_rotation)<=4):
+            self.glyph_anchor_at=time.monotonic()
+            self.glyph_anchor_reason='independent_seven_glyph_grid'
+        self.refine_diagnostic.update(median_after=float(np.median(errors)),
+                                     max_after=float(np.max(errors)))
         # Start fresh feature rays after a model correction, never reuse old
         # inaccurate geometry observations as if they came from the corrected pose.
         if _angle(rotation,old_rotation)>1.0:
@@ -526,7 +605,7 @@ class LayoutScanner:
                 index=item['index'];cell=self.cells[index]
                 normal=np.asarray(BASES[cell['face']][0],float)
                 # A finite normal corridor, not a nearest 2D tile-centre rule.
-                heights={'player':(.20,.85),'inspiration':(.05,.65),'singularity':(.20,1.0)}[target['kind']]
+                heights=_anchor_heights(target)
                 corridor=self.project([_point(cell)+normal*h for h in np.linspace(*heights,16)])
                 scale=max(20.,math.sqrt(item['area']))
                 error=float(np.min(np.linalg.norm(corridor-p,axis=1)))/scale
@@ -536,7 +615,8 @@ class LayoutScanner:
             close=[i for error,i in ranks if error<.5]
             uncertain.update(close)
             margin=ranks[1][0]-ranks[0][0] if len(ranks)>1 else 1.
-            if ranks[0][0]<.30 and margin>.12 and target.get('confidence',0)>=.6:
+            if (ranks[0][0]<.30 and margin>.12 and target.get('confidence',0)>=.6
+                    and target.get('confirmable', True)):
                 index=ranks[0][1]
                 entry=dict(target,association_confidence=max(.55,1-ranks[0][0]),cell_index=index)
                 if index in assigned and assigned[index]['kind']!=entry['kind']:
@@ -561,6 +641,7 @@ class LayoutScanner:
                 observation.update(occupant=target['kind'],icon_id=None,
                     confidence=round(min(target['confidence'],target['association_confidence'],self.quality),3),
                     target_box=target['box'],target_point=target['point'])
+                observation['anchor_type'] = target.get('anchor_type')
             elif i in uncertain:
                 continue
             else:
@@ -604,15 +685,19 @@ class LayoutScanner:
         other=LayoutScanner()
         for name in ('evidence','view_rotations','group','group_rotation','icon_anchors',
                      'identity_corrections','correction_epoch','best_known','stagnant_frames','rvec','tvec',
-                     'rotation','quality','ready','last_targets','last_projected'):
+                     'rotation','quality','ready','last_targets','last_projected',
+                     'glyph_anchor_at','glyph_anchor_reason'):
             setattr(other,name,deepcopy(getattr(self,name)))
+        if hasattr(self,'pivot_reference'):
+            other.pivot_reference=self.pivot_reference.copy()
         return other
 
     def pose_snapshot(self):
         """Copy geometry for another scanner; never share mutable pose arrays."""
         return dict(rvec=self.rvec.copy(),tvec=self.tvec.copy(),
                     rotation=self.rotation.copy(),quality=float(self.quality),
-                    map_revision=int(self.identity_corrections),correction_epoch=int(self.correction_epoch))
+                    map_revision=int(self.identity_corrections),correction_epoch=int(self.correction_epoch),
+                    pivot_reference=getattr(self,'pivot_reference',self.tvec).copy())
 
     def track_frame(self,image_rgb,frame_id=0,mask_targets=None,pose_correction=None):
         """Geometry-only hot path. Does not detect targets, classify or fuse cells.
@@ -640,13 +725,27 @@ class LayoutScanner:
         correction_applied=False
         if pose_correction is not None and pose_correction.get('source_epoch')==self.correction_epoch:
             body=np.asarray(pose_correction.get('body_rotation'),float)
+            translation=np.asarray(pose_correction.get('translation_delta',[0.,0.,0.]),float)
+            valid_translation=translation.size==3 and np.isfinite(translation).all()
+            candidate_tv=self.tvec+translation.reshape(3,1) if valid_translation else self.tvec
+            anchor=getattr(self,'pivot_reference',self.tvec)
+            bounds=12.*float(anchor[2,0])/np.diag(K)[:2]
+            step_pixels=translation.ravel()[:2]*np.diag(K)[:2]/float(self.tvec[2,0]) if valid_translation else np.array([np.inf,np.inf])
+            valid_translation=bool(valid_translation and np.linalg.norm(step_pixels)<=12.+1e-6 and
+                abs(float(translation.ravel()[2]))<=float(anchor[2,0])*.035+1e-6 and
+                np.all(np.abs(candidate_tv[:2,0]-anchor[:2,0])<=bounds+1e-6) and
+                float(anchor[2,0])*.965-1e-6<=float(candidate_tv[2,0])<=float(anchor[2,0])*1.035+1e-6)
             if (body.shape==(3,3) and np.isfinite(body).all() and
                     np.allclose(body.T@body,np.eye(3),atol=1e-5) and
-                    abs(float(np.linalg.det(body))-1.)<1e-5 and _angle(body,np.eye(3))<=8.):
+                    abs(float(np.linalg.det(body))-1.)<1e-5 and _angle(body,np.eye(3))<=8. and valid_translation):
                 # The semantic frame may be old. A right/body correction carries
                 # its model alignment through subsequent camera-space motion.
                 self.rotation=self.rotation@body
                 self.rvec=cv2.Rodrigues(self.rotation)[0]
+                self.tvec=candidate_tv
+                if pose_correction.get('glyph_anchor_at') is not None:
+                    self.glyph_anchor_at=float(pose_correction['glyph_anchor_at'])
+                    self.glyph_anchor_reason=pose_correction.get('glyph_anchor_reason','semantic_grid_correction')
                 self.correction_epoch+=1
                 self.points=np.empty((0,2),np.float32);self.objects=np.empty((0,3))
                 self.keyframes=[];self._stream_keyframe_rotation=None
@@ -677,14 +776,20 @@ class LayoutScanner:
         self.rotation=np.asarray(pose_snapshot['rotation'],float).reshape(3,3).copy()
         self.quality=float(pose_snapshot['quality']);self.ready=True
         self.correction_epoch=int(pose_snapshot.get('correction_epoch',0))
+        if 'pivot_reference' in pose_snapshot:
+            self.pivot_reference=np.asarray(pose_snapshot['pivot_reference'],float).reshape(3,1).copy()
         source_rotation=self.rotation.copy()
+        source_translation=self.tvec.copy()
         self.last_targets=detect_targets(image_rgb) if targets is None else targets
         self._refine_centres(image_rgb,self.last_targets)
         body=source_rotation.T@self.rotation
         correction_angle=_angle(self.rotation,source_rotation)
+        translation_delta=self.tvec-source_translation
         correction=(dict(body_rotation=body.tolist(),source_epoch=self.correction_epoch,
-                         source_frame_id=int(frame_id),angle_deg=correction_angle)
-                    if .1<correction_angle<=8. else None)
+                          source_frame_id=int(frame_id),angle_deg=correction_angle,
+                          translation_delta=translation_delta.ravel().tolist(),
+                          glyph_anchor_at=self.glyph_anchor_at,glyph_anchor_reason=self.glyph_anchor_reason)
+                    if correction_angle<=8. and (.1<correction_angle or np.linalg.norm(translation_delta)>1e-4) else None)
         self.last_projected=self.visible();self.frames_seen+=1
         if not self._atlas_alignment(image_rgb,self.last_targets,allow_correction=False):
             self.tracking_failures+=1
@@ -695,7 +800,16 @@ class LayoutScanner:
         if new_group:self.view_rotations.append(self.rotation.copy())
         self.group=len(self.view_rotations) if new_group else int(np.argmin(distances))+1
         self.group_rotation=self.view_rotations[self.group-1]
-        self._observe_cells(image_rgb,frame_id,self.last_targets)
+        anchor_age=time.monotonic()-(self.glyph_anchor_at or 0.)
+        if anchor_age>6.:
+            self.last_observation=dict(tracking_ok=False,quality=self.quality,
+                reason='glyph_anchor_support_lost:'+str(self.refine_diagnostic.get('reason')),
+                frame_id=int(frame_id),glyph_anchor_age_sec=anchor_age,
+                refine_diagnostic=deepcopy(self.refine_diagnostic))
+            return self.last_observation
+        fusion_paused=anchor_age>2.
+        if not fusion_paused:
+            self._observe_cells(image_rgb,frame_id,self.last_targets)
         result=self.result()
         for i,cell in enumerate(result['cells']):
             if cell['occupant']=='none' and cell['node_status']=='known' and cell['confidence']>=.70:
@@ -704,7 +818,8 @@ class LayoutScanner:
         self.last_observation=dict(tracking_ok=True,quality=self.quality,frame_id=int(frame_id),
             known_cells=result['known_cells'],faces_observed=result['faces_observed'],view_group=self.group,
             mask_observation=self.target_mask_observation(),pose_correction=correction,
-            pose=self.pose_snapshot())
+            pose=self.pose_snapshot(),fusion_paused=fusion_paused,glyph_anchor_age_sec=anchor_age,
+            refine_diagnostic=deepcopy(self.refine_diagnostic))
         return self.last_observation
 
     def target_mask_observation(self):
@@ -712,12 +827,13 @@ class LayoutScanner:
         assigned,_=self._associate_targets(self.last_targets,self.last_projected)
         output=[]
         for target in self.last_targets:
-            entry=dict(kind=target['kind'],box=list(target['box']),point=list(target['point']))
+            entry=dict(kind=target['kind'],box=list(target['box']),point=list(target['point']),
+                       anchor_type=target.get('anchor_type'), confirmable=target.get('confirmable', True))
             match=next((t for t in assigned.values() if t.get('kind')==target['kind']
                         and t.get('point')==target['point']),None)
             if match is not None:
                 cell=self.cells[match['cell_index']];normal=np.asarray(BASES[cell['face']][0],float)
-                heights={'player':(.20,.85),'inspiration':(.05,.65),'singularity':(.20,1.)}[target['kind']]
+                heights=_anchor_heights(target)
                 xyz=np.array([_point(cell)+normal*h for h in np.linspace(*heights,16)])
                 index=int(np.argmin(np.linalg.norm(self.project(xyz)-np.asarray(target['point']),axis=1)))
                 entry.update(object_point=xyz[index].tolist(),cell_index=match['cell_index'],
@@ -887,9 +1003,12 @@ class LayoutScanner:
             diagnostics=dict(frames_seen=self.frames_seen,tracking_failures=self.tracking_failures,
                 last_error=self.last_error,view_groups=len(self.view_rotations),geometry='recording_20260927_reset_seed_v1',
                 identity_corrections=self.identity_corrections,
+                glyph_anchor_age_sec=time.monotonic()-(self.glyph_anchor_at or 0.),
+                glyph_anchor_reason=self.glyph_anchor_reason,
                 geometry_note='Experimental 1280x720 reset-view calibration; human comparison required',
                 response_axes={str(k):v.tolist() for k,v in self.response_axes.items()}),
-            pose=dict(rvec=self.rvec.ravel().tolist(),tvec=self.tvec.ravel().tolist(),camera_matrix=K.tolist()))
+            pose=dict(rvec=self.rvec.ravel().tolist(),tvec=self.tvec.ravel().tolist(),camera_matrix=K.tolist()),
+            target_clues=deepcopy(self.last_targets))
 
     def annotate(self,image_rgb):
         image=image_rgb.copy();result=self.result()
