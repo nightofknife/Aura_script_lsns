@@ -54,8 +54,7 @@ def load_consumption_layout(vision):
         value = layout[name]
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"Invalid bento timing: {name}")
-    for key in ("detail_name_roi", "confirm_text_roi"):
-        layout[key] = _roi(layout[key], (1280, 720), key)
+    layout["detail_name_roi"] = _roi(layout["detail_name_roi"], (1280, 720), "detail_name_roi")
     for key in ("work_selected_rois",):
         if len(layout[key]) != 3:
             raise ValueError(f"Three work-meal ROIs are required: {key}")
@@ -334,27 +333,16 @@ class BentoConsumptionSession:
         self.click(use["center"])
         self.page = "transition"
         confirmed = False
-        confirmation_matches = 0
         def effect():
-            nonlocal confirmed, confirmation_matches
+            nonlocal confirmed
             if self.match("effect")["found"]:
                 return True
-            if self.match("confirm_use")["found"]:
-                confirmation_text = self.text(self.layout["confirm_text_roi"])
-                if not confirmation_text:
-                    confirmation_matches = 0
-                    return False
-                if expected_name not in confirmation_text:
-                    self.fail("bento_confirmation_mismatch", "Use confirmation names a different meal")
-                confirmation_matches += 1
-                if confirmation_matches < 2:
-                    return False
-                if not confirmed:
+            if not confirmed:
+                confirmation = self.match("confirm_use")
+                if confirmation["found"]:
                     self.stage = "confirm_use"
-                    self.click(self.match("confirm_use")["center"])
+                    self.click(confirmation["center"])
                     confirmed = True
-            else:
-                confirmation_matches = 0
             return False
         self.wait(effect, "consumption effect", self.layout["animation_timeout_sec"], confirmations=2)
         self.page = "effect"
