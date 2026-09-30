@@ -37,6 +37,7 @@ from .passenger_pc_actions import (
     PassengerPcError,
     _click_blank_and_confirm_main,
     _match_template as _match_navigation_template,
+    _wait_main_stable,
 )
 
 Region = Tuple[int, int, int, int]
@@ -187,7 +188,19 @@ def _wait_for_any_marker(
     timeout_sec: float = 8.0,
     interval_sec: float = 0.5,
     label: str = "page",
+    vision: Any = None,
+    prefer_main_template: bool = False,
 ) -> List[Dict[str, Any]]:
+    if prefer_main_template and vision is not None:
+        main = _wait_main_stable(app, vision, timeout_sec=timeout_sec)
+        if main.get("confirmed"):
+            return []
+        confidence = float((main.get("match") or {}).get("confidence") or 0.0)
+        raise StopTaskException(
+            f"Player data refresh failed: expected {label} template was not confirmed. "
+            f"Last confidence: {confidence:.3f}",
+            success=False,
+        )
     normalized_markers = [_normalize_text(marker) for marker in markers]
     deadline = time.time() + max(float(timeout_sec), 0.1)
     last_text = ""
@@ -817,6 +830,8 @@ def resonance_pc_player_data_refresh(
         markers=_MAIN_PAGE_MARKERS,
         region=_MAIN_PAGE_REGION,
         label="main page before player data refresh",
+        vision=vision,
+        prefer_main_template=True,
     )
 
     if "location" in selected:
