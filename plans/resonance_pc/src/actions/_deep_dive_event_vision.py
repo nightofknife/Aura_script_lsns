@@ -7,6 +7,8 @@ import math
 import cv2
 import numpy as np
 
+from ._deep_dive_match_cache import exact_roi_cache
+
 PLAN = Path(__file__).resolve().parents[2]
 ROOT = PLAN / 'templates/deep_dive_events'
 
@@ -24,6 +26,9 @@ def catalog():
     return json.loads((PLAN / 'data/deep_dive_events/healing.json').read_text(encoding='utf8'))
 
 
+@exact_roi_cache(region=lambda name, box: box,
+                 dependencies=lambda name, box: (template, template(name),
+                     cv2.matchTemplate, cv2.minMaxLoc))
 def match(gray, name, box):
     x,y,x2,y2 = box
     ref = template(name)

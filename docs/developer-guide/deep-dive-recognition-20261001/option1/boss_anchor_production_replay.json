@@ -1,0 +1,365 @@
+[
+  {
+    "run": "live_scan_02",
+    "frame": 398,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 402,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 407,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 411,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 419,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 423,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 432,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 441,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 445,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 453,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 458,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 462,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 467,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 488,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 498,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 513,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 522,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_02",
+    "frame": 527,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 270,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 274,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 277,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 283,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 286,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 290,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 293,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 297,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 302,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 306,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 310,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 313,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 317,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_03",
+    "frame": 322,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 320,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 323,
+    "index": 28,
+    "kept": false,
+    "decisions": [
+      {
+        "index": 28,
+        "kind": "singularity",
+        "reason": "bbox_center_height_boundary_ambiguous",
+        "source_frame_id": 323,
+        "source_frame_time": 56454.515,
+        "source_map_revision": 0,
+        "error": 0.04286226396157771,
+        "competitor_index": 31,
+        "competitor_error": 0.31940774879277617,
+        "margin": 0.27654548483119845,
+        "rvec": [
+          -1.3002891715772094,
+          2.31989445946473,
+          -0.5472095059468473
+        ],
+        "rotation": [
+          [
+            -0.4722966248969497,
+            -0.6983602511713087,
+            0.5378000164511868
+          ],
+          [
+            -0.8650827475737795,
+            0.48425092197239905,
+            -0.13089264463323655
+          ],
+          [
+            -0.16901993362071444,
+            -0.5270616701609299,
+            -0.8328494809303902
+          ]
+        ],
+        "tvec": [
+          -0.05744030730959633,
+          0.4618697115255753,
+          41.687439804069854
+        ],
+        "anchor_center_reliability": {
+          "height_sample": 0,
+          "fitted_height": 0.2,
+          "centre_uncertainty_px": 17.0,
+          "competitor_index": 31,
+          "competitor_error": 0.05198909941047406,
+          "margin": 0.05198909941047406
+        }
+      }
+    ]
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 331,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 336,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 339,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 348,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 353,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 357,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 362,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 367,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 372,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 379,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  },
+  {
+    "run": "live_scan_04",
+    "frame": 382,
+    "index": 31,
+    "kept": true,
+    "decisions": []
+  }
+]

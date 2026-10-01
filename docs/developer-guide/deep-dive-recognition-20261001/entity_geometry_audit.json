@@ -1,0 +1,935 @@
+{
+  "evidence": "new manuallyauditedheldoutcapture; realfrozenpose replay; sameboardtruthplayerU11 BossD11 inspirationsU10D22; framescorrelated; no live speedclaim",
+  "records": [
+    {
+      "frame": 0,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            376,
+            95,
+            27,
+            29
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            285,
+            76,
+            72,
+            37
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            567.7421875,
+            135.07683181762695
+          ],
+          "box": [
+            533,
+            112,
+            69,
+            47
+          ],
+          "confidence": 0.8109645843505859,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 1
+        },
+        {
+          "kind": "player",
+          "point": [
+            639.6458435058594,
+            148.4953498840332
+          ],
+          "box": [
+            625,
+            134,
+            30,
+            29
+          ],
+          "confidence": 0.6897943615913391,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 1,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [
+        {
+          "index": 3,
+          "kind": "inspiration",
+          "confidence": 0.8109645843505859,
+          "valid_world_location": true
+        },
+        {
+          "index": 4,
+          "kind": "player",
+          "confidence": 0.6897943615913391,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        3,
+        4
+      ]
+    },
+    {
+      "frame": 6,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            377,
+            128,
+            26,
+            28
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            263,
+            110,
+            70,
+            60
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            546.7469329833984,
+            178.42876434326172
+          ],
+          "box": [
+            513,
+            148,
+            68,
+            61
+          ],
+          "confidence": 0.8665533065795898,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 2
+        },
+        {
+          "kind": "player",
+          "point": [
+            639.6844024658203,
+            182.6321792602539
+          ],
+          "box": [
+            625,
+            169,
+            30,
+            28
+          ],
+          "confidence": 0.8028863072395325,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 2,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [
+        {
+          "index": 3,
+          "kind": "inspiration",
+          "confidence": 0.8665533065795898,
+          "valid_world_location": true
+        },
+        {
+          "index": 4,
+          "kind": "player",
+          "confidence": 0.8028863072395325,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        3,
+        4
+      ]
+    },
+    {
+      "frame": 65,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            461,
+            128,
+            27,
+            29
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            356,
+            157,
+            60,
+            50
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            636.5068817138672,
+            220.2183380126953
+          ],
+          "box": [
+            605,
+            193,
+            63,
+            55
+          ],
+          "confidence": 0.822331964969635,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 3
+        },
+        {
+          "kind": "player",
+          "point": [
+            723.5860137939453,
+            182.41567993164062
+          ],
+          "box": [
+            709,
+            166,
+            30,
+            33
+          ],
+          "confidence": 0.7898512482643127,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 3,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [
+        {
+          "index": 3,
+          "kind": "inspiration",
+          "confidence": 0.822331964969635,
+          "valid_world_location": true
+        },
+        {
+          "index": 4,
+          "kind": "player",
+          "confidence": 0.7898512482643127,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        3,
+        4
+      ]
+    },
+    {
+      "frame": 108,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            463,
+            78,
+            28,
+            28
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            374,
+            85,
+            63,
+            56
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            651.4258422851562,
+            152.92832946777344
+          ],
+          "box": [
+            620,
+            124,
+            63,
+            58
+          ],
+          "confidence": 0.745803952217102,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 4
+        },
+        {
+          "kind": "player",
+          "point": [
+            727.57763671875,
+            131.7818489074707
+          ],
+          "box": [
+            714,
+            118,
+            27,
+            27
+          ],
+          "confidence": 0.7164841294288635,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 4,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [
+        {
+          "index": 3,
+          "kind": "inspiration",
+          "confidence": 0.745803952217102,
+          "valid_world_location": true
+        },
+        {
+          "index": 4,
+          "kind": "player",
+          "confidence": 0.7164841294288635,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        1,
+        2,
+        3,
+        4,
+        6
+      ]
+    },
+    {
+      "frame": 176,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            376,
+            58,
+            27,
+            30
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            364,
+            74,
+            68,
+            55
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            645.4144897460938,
+            137.65567016601562
+          ],
+          "box": [
+            611,
+            109,
+            69,
+            56
+          ],
+          "confidence": 0.8014068007469177,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 5
+        },
+        {
+          "kind": "player",
+          "point": [
+            638.4523162841797,
+            112.9230899810791
+          ],
+          "box": [
+            626,
+            101,
+            25,
+            24
+          ],
+          "confidence": 0.3604666292667389,
+          "confirmable": false,
+          "source": "research_trained_yolo_directml",
+          "source_request": 5,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [],
+      "uncertain": []
+    },
+    {
+      "frame": 236,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            315,
+            73,
+            28,
+            28
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            346,
+            73,
+            75,
+            57
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            633.580078125,
+            142.31536865234375
+          ],
+          "box": [
+            599,
+            113,
+            70,
+            58
+          ],
+          "confidence": 0.8528703451156616,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 6
+        },
+        {
+          "kind": "player",
+          "point": [
+            578.3433532714844,
+            124.50179672241211
+          ],
+          "box": [
+            566,
+            112,
+            26,
+            25
+          ],
+          "confidence": 0.8209272027015686,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 6,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [],
+      "uncertain": []
+    },
+    {
+      "frame": 353,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            422,
+            78,
+            29,
+            28
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            451,
+            76,
+            46,
+            45
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            718.6272888183594,
+            135.0221710205078
+          ],
+          "box": [
+            689,
+            111,
+            58,
+            48
+          ],
+          "confidence": 0.7623938918113708,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 7
+        }
+      ],
+      "accepted": [],
+      "uncertain": []
+    },
+    {
+      "frame": 384,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            517,
+            105,
+            28,
+            28
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            490,
+            96,
+            39,
+            59
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "inspiration",
+          "point": [
+            779.3736877441406,
+            159.6751708984375
+          ],
+          "box": [
+            764,
+            143,
+            32,
+            33
+          ],
+          "confidence": 0.9618557095527649,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 8
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            439.9449234008789,
+            589.2965087890625
+          ],
+          "box": [
+            418,
+            563,
+            44,
+            53
+          ],
+          "confidence": 0.7557910680770874,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 8
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            764.0681304931641,
+            155.75332260131836
+          ],
+          "box": [
+            738,
+            136,
+            52,
+            39
+          ],
+          "confidence": 0.5475867986679077,
+          "confirmable": false,
+          "source": "research_trained_yolo_directml",
+          "source_request": 8
+        },
+        {
+          "kind": "player",
+          "point": [
+            780.38427734375,
+            158.88665390014648
+          ],
+          "box": [
+            767,
+            145,
+            28,
+            28
+          ],
+          "confidence": 0.28304800391197205,
+          "confirmable": false,
+          "source": "research_trained_yolo_directml",
+          "source_request": 8,
+          "anchor_type": "head"
+        }
+      ],
+      "accepted": [],
+      "uncertain": []
+    },
+    {
+      "frame": 417,
+      "manual": [
+        {
+          "class_id": 0,
+          "box": [
+            555,
+            129,
+            28,
+            29
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            499,
+            105,
+            40,
+            63
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "player",
+          "point": [
+            820.322509765625,
+            185.29625701904297
+          ],
+          "box": [
+            807,
+            171,
+            27,
+            28
+          ],
+          "confidence": 0.8443838357925415,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 9,
+          "anchor_type": "head"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            767.7515869140625,
+            177.05218505859375
+          ],
+          "box": [
+            746,
+            145,
+            43,
+            63
+          ],
+          "confidence": 0.75180983543396,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 9
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            442.82686614990234,
+            573.1260375976562
+          ],
+          "box": [
+            419,
+            550,
+            47,
+            47
+          ],
+          "confidence": 0.38616716861724854,
+          "confirmable": false,
+          "source": "research_trained_yolo_directml",
+          "source_request": 9
+        }
+      ],
+      "accepted": [],
+      "uncertain": []
+    },
+    {
+      "frame": 525,
+      "manual": [
+        {
+          "class_id": 1,
+          "box": [
+            102,
+            406,
+            138,
+            134
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            155,
+            535,
+            42,
+            58
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "singularity",
+          "point": [
+            421.86668395996094,
+            509.3062438964844
+          ],
+          "box": [
+            346,
+            438,
+            152,
+            143
+          ],
+          "confidence": 0.8591979146003723,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 10
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            425.9841842651367,
+            605.1083068847656
+          ],
+          "box": [
+            398,
+            577,
+            56,
+            57
+          ],
+          "confidence": 0.7984784245491028,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 10
+        }
+      ],
+      "accepted": [
+        {
+          "index": 31,
+          "kind": "singularity",
+          "confidence": 0.8591979146003723,
+          "valid_world_location": true
+        },
+        {
+          "index": 35,
+          "kind": "inspiration",
+          "confidence": 0.7984784245491028,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        31,
+        34,
+        35
+      ]
+    },
+    {
+      "frame": 561,
+      "manual": [
+        {
+          "class_id": 1,
+          "box": [
+            210,
+            431,
+            146,
+            130
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "singularity",
+          "point": [
+            531.9614334106445,
+            530.1354522705078
+          ],
+          "box": [
+            454,
+            455,
+            155,
+            150
+          ],
+          "confidence": 0.7512040138244629,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 11
+        }
+      ],
+      "accepted": [
+        {
+          "index": 31,
+          "kind": "singularity",
+          "confidence": 0.7512040138244629,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        31
+      ]
+    },
+    {
+      "frame": 616,
+      "manual": [
+        {
+          "class_id": 1,
+          "box": [
+            328,
+            365,
+            132,
+            133
+          ],
+          "source": "manual_pixel_grid"
+        },
+        {
+          "class_id": 2,
+          "box": [
+            327,
+            527,
+            62,
+            63
+          ],
+          "source": "manual_pixel_grid"
+        }
+      ],
+      "predictions": [
+        {
+          "kind": "singularity",
+          "point": [
+            648.7123718261719,
+            465.86997985839844
+          ],
+          "box": [
+            561,
+            380,
+            175,
+            171
+          ],
+          "confidence": 0.8260483741760254,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 12
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            600.1779022216797,
+            602.2855529785156
+          ],
+          "box": [
+            570,
+            572,
+            60,
+            62
+          ],
+          "confidence": 0.7777436971664429,
+          "confirmable": true,
+          "source": "research_trained_yolo_directml",
+          "source_request": 12
+        }
+      ],
+      "accepted": [
+        {
+          "index": 31,
+          "kind": "singularity",
+          "confidence": 0.8260483741760254,
+          "valid_world_location": true
+        },
+        {
+          "index": 35,
+          "kind": "inspiration",
+          "confidence": 0.7777436971664429,
+          "valid_world_location": true
+        }
+      ],
+      "uncertain": [
+        31,
+        35
+      ]
+    }
+  ],
+  "timings_gpu_contended": [
+    {
+      "total_sec": 0.011803400004282594,
+      "inference_sec": 0.009457599997404031
+    },
+    {
+      "total_sec": 0.012775399998645298,
+      "inference_sec": 0.01059519999398617
+    },
+    {
+      "total_sec": 0.011002899998857174,
+      "inference_sec": 0.008823199998005293
+    },
+    {
+      "total_sec": 0.010828700003912672,
+      "inference_sec": 0.008699700003489852
+    },
+    {
+      "total_sec": 0.012155199998233002,
+      "inference_sec": 0.010121699997398537
+    },
+    {
+      "total_sec": 0.012968199996976182,
+      "inference_sec": 0.010897299995122012
+    },
+    {
+      "total_sec": 0.010833000000275206,
+      "inference_sec": 0.008715500000107568
+    },
+    {
+      "total_sec": 0.011208000003534835,
+      "inference_sec": 0.008920199994463474
+    },
+    {
+      "total_sec": 0.011179900000570342,
+      "inference_sec": 0.009038500000315253
+    },
+    {
+      "total_sec": 0.012614200000825804,
+      "inference_sec": 0.010298400004103314
+    },
+    {
+      "total_sec": 0.012235500005772337,
+      "inference_sec": 0.010237299997243099
+    },
+    {
+      "total_sec": 0.011277600002358668,
+      "inference_sec": 0.009185199996863957
+    }
+  ]
+}

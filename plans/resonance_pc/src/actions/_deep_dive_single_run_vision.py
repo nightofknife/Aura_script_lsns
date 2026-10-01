@@ -12,6 +12,7 @@ import numpy as np
 from ._deep_dive_entry_card_vision import classify_entry_card
 from ._deep_dive_battle_vision import detect_battle_page
 from ._deep_dive_event_vision import detect_event_page, board_visible
+from ._deep_dive_match_cache import exact_roi_cache
 
 
 TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "consciousness_deep_dive_single_run"
@@ -50,6 +51,9 @@ def _crop(image: np.ndarray, box: tuple[int, int, int, int]) -> np.ndarray:
     return image[y1:y2, x1:x2]
 
 
+@exact_roi_cache(region=lambda name: REGIONS[name],
+                 dependencies=lambda name: (_template, _template(name),
+                     cv2.matchTemplate, cv2.minMaxLoc))
 def _match(gray: np.ndarray, name: str) -> dict:
     x1, y1, x2, y2 = REGIONS[name]
     template = _template(name)

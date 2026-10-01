@@ -1,7 +1,7 @@
 consciousness_deep_dive_planned_run_pc:
   meta:
     title: 识海深潜关卡内自动运行（3×3）
-    description: 从玩家棋盘或位面间隙开始，每玩家回合重新完整观测，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
     entry_point: true
     inputs:
       - {name: strategy, type: string, default: chase}

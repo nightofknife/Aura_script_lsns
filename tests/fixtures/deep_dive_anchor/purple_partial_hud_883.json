@@ -1,0 +1,34 @@
+{
+  "source_provenance": {
+    "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0883.png",
+    "quad": [
+      [
+        678.0527723500916,
+        526.0881673318561
+      ],
+      [
+        652.6465195317318,
+        615.0731435061845
+      ],
+      [
+        568.2567822145711,
+        586.3041463859175
+      ],
+      [
+        593.296679433365,
+        497.8276643163641
+      ]
+    ],
+    "label": "Manual source/crop review: HUD occludes most of ring, only partial border visible",
+    "development_diagnosis_not_accuracy": true
+  },
+  "manual_truth": "unknown_no_complete_ring",
+  "manual_review": "Manual source/crop review: HUD occludes most of ring, only partial border visible",
+  "fixture_sha256": "ea4a61a72826dc62d045de23fe7434bacdc3c26fdf885ef403698d5bb6918716",
+  "purpose": "Fixed visual regression only, not a reference/training template",
+  "structural_evidence": {
+    "accepted": false,
+    "reason": "no_complete_central_curved_hole",
+    "considered": []
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "source_run": "c4a03c0853844bd08046e3f07d45fd5c",
+  "samples": [
+    {
+      "name": "u10_initial",
+      "frame": 2,
+      "source_rect": [
+        462,
+        60,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "u10_front",
+      "frame": 33,
+      "source_rect": [
+        454,
+        266,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "u10_low",
+      "frame": 44,
+      "source_rect": [
+        454,
+        318,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "u10_partial",
+      "frame": 28,
+      "source_rect": [
+        455,
+        208,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": false
+    },
+    {
+      "name": "d22_oblique",
+      "frame": 220,
+      "source_rect": [
+        463,
+        55,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "d22_side",
+      "frame": 236,
+      "source_rect": [
+        476,
+        84,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "d22_star",
+      "frame": 275,
+      "source_rect": [
+        508,
+        127,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "d22_partial_star",
+      "frame": 490,
+      "source_rect": [
+        838,
+        289,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "d22_boss_neighbour",
+      "frame": 507,
+      "source_rect": [
+        789,
+        318,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "d22_last",
+      "frame": 576,
+      "source_rect": [
+        780,
+        321,
+        180,
+        180
+      ],
+      "real_inspiration": true,
+      "strong_inspiration": true
+    },
+    {
+      "name": "hex_red_490",
+      "frame": 490,
+      "source_rect": [
+        738,
+        215,
+        180,
+        180
+      ],
+      "real_inspiration": false,
+      "strong_inspiration": false
+    },
+    {
+      "name": "hex_red_502",
+      "frame": 502,
+      "source_rect": [
+        727,
+        224,
+        180,
+        180
+      ],
+      "real_inspiration": false,
+      "strong_inspiration": false
+    },
+    {
+      "name": "hex_red_507",
+      "frame": 507,
+      "source_rect": [
+        703,
+        236,
+        180,
+        180
+      ],
+      "real_inspiration": false,
+      "strong_inspiration": false
+    },
+    {
+      "name": "hex_red_576",
+      "frame": 576,
+      "source_rect": [
+        697,
+        239,
+        180,
+        180
+      ],
+      "real_inspiration": false,
+      "strong_inspiration": false
+    }
+  ]
+}

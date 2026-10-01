@@ -35,6 +35,13 @@ exports:
     replace: null
     description: Resolve ResonancePc city names and city shop coordinates from static
       data.
+  - name: resonance_pc_deep_dive_entity_detector
+    module: plans.resonance_pc.src.services.deep_dive_entity_detector_service
+    class: DeepDiveEntityDetectorService
+    public: true
+    singleton: true
+    replace: null
+    description: Three-class deep-dive ONNX entity inference and local pink-head fusion.
   - name: resonance_pc_input_bridge
     module: plans.resonance_pc.src.services.input_bridge_service
     class: ResonancePcInputBridgeService
@@ -1552,6 +1559,54 @@ exports:
       type: Any
       required: false
       default: 30
+  - name: resonance_pc.deep_dive_planned_run_initialize
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: initialize_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Start observed 3x3 in-level play without activity entry.
+    parameters:
+    - name: strategy
+      type: Any
+      required: false
+      default: chase
+    - name: safety_round_limit
+      type: Any
+      required: false
+      default: 100
+    - name: scan_time_budget_sec
+      type: Any
+      required: false
+      default: 60
+    - name: planning_time_budget_sec
+      type: Any
+      required: false
+      default: 30
+  - name: resonance_pc.deep_dive_planned_run_advance
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: advance_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Advance one owned in-level stage or bounded complete scan.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.deep_dive_planned_run_finish
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
+    function: finish_deep_dive_planned_run
+    public: true
+    read_only: false
+    timeout: -1
+    description: Persist an in-level result without settlement clicks or restart.
+    parameters:
+    - name: session_key
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.scan_consciousness_deep_dive_layout
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_scan_pc_actions
     function: scan_consciousness_deep_dive_layout
@@ -1581,52 +1636,10 @@ exports:
       type: Any
       required: false
       default: 0.2
-  - name: resonance_pc.deep_dive_planned_run_initialize
-    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
-    function: initialize_deep_dive_planned_run
-    public: true
-    read_only: false
-    timeout: -1
-    description: Start observed 3x3 in-level play without activity entry.
-    parameters:
-    - name: strategy
-      type: str
+    - name: recognition_goal
+      type: Any
       required: false
-      default: chase
-    - name: safety_round_limit
-      type: int
-      required: false
-      default: 100
-    - name: scan_time_budget_sec
-      type: float
-      required: false
-      default: 60
-    - name: planning_time_budget_sec
-      type: float
-      required: false
-      default: 30
-  - name: resonance_pc.deep_dive_planned_run_advance
-    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
-    function: advance_deep_dive_planned_run
-    public: true
-    read_only: false
-    timeout: -1
-    description: Advance one owned in-level stage or bounded complete scan.
-    parameters:
-    - name: session_key
-      type: str
-      required: true
-  - name: resonance_pc.deep_dive_planned_run_finish
-    module: plans.resonance_pc.src.actions.consciousness_deep_dive_planned_run_pc_actions
-    function: finish_deep_dive_planned_run
-    public: true
-    read_only: false
-    timeout: -1
-    description: Persist an in-level result without settlement clicks or restart.
-    parameters:
-    - name: session_key
-      type: str
-      required: true
+      default: targets
   - name: resonance_pc.deep_dive_single_run_initialize
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_single_run_pc_actions
     function: initialize_deep_dive_single_run
@@ -2999,6 +3012,14 @@ exports:
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+  - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
+    title: 识海深潜关卡内自动运行（3×3）
+    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
+    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+  - id: consciousness_deep_dive_planned_run_pc
+    title: 识海深潜关卡内自动运行（3×3）
+    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
+    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
   - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
     title: 识海深潜移动规划（离线）
     source: tasks/consciousness_deep_dive_plan_pc.yaml
@@ -3007,22 +3028,16 @@ exports:
     title: 识海深潜移动规划（离线）
     source: tasks/consciousness_deep_dive_plan_pc.yaml
     description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
-  - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
-    title: 识海深潜关卡内自动运行（3×3）
-    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 每玩家回合完整观测并使用三面联合映射执行规划；覆盖关卡内位面，人数不足暂停，结算只检测停止。
-  - id: consciousness_deep_dive_planned_run_pc
-    title: 识海深潜关卡内自动运行（3×3）
-    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 每玩家回合完整观测并使用三面联合映射执行规划；覆盖关卡内位面，人数不足暂停，结算只检测停止。
   - id: consciousness_deep_dive_scan_pc/consciousness_deep_dive_scan_pc
     title: 识海深潜魔方布局扫描（人工对比）
     source: tasks/consciousness_deep_dive_scan_pc.yaml
-    description: 从普通魔方界面开始，持续拖动与最新帧识别并发扫描六面，输出目标位置、节点图标及未知格供人工对比。
+    description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full
+      可继续完整图案扫描。
   - id: consciousness_deep_dive_scan_pc
     title: 识海深潜魔方布局扫描（人工对比）
     source: tasks/consciousness_deep_dive_scan_pc.yaml
-    description: 从普通魔方界面开始，持续拖动与最新帧识别并发扫描六面，输出目标位置、节点图标及未知格供人工对比。
+    description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full
+      可继续完整图案扫描。
   - id: consciousness_deep_dive_sensitivity_probe_pc/consciousness_deep_dive_sensitivity_probe_pc
     title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
     source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
@@ -3156,4 +3171,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-30T03:08:59Z'
+  generated_at: '2026-10-01T04:02:58Z'

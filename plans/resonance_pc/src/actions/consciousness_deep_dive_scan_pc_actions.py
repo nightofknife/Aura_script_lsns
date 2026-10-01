@@ -27,9 +27,21 @@ from ._deep_dive_layout_vision import LayoutScanner, BASES
 from ._deep_dive_layout_report import write_layout_report
 from ._deep_dive_scan_policy import FaceScanPolicy, CellScanPolicy
 from ._deep_dive_scan_stream import ScanVisionStream
+from ._deep_dive_target_readiness import targets_readiness
 
 MIN_DRAG_GAP_SEC = .2
 _SCAN_CONTROL = ContextVar('deep_dive_scan_control', default=None)
+
+
+def _completion(result):
+    """Keep a target scan distinct from a complete glyph atlas."""
+    control = _SCAN_CONTROL.get() or {}
+    if control.get('recognition_goal', 'full') == 'full':
+        return bool(result.get('layout_complete')), 'layout_complete'
+    candidate = dict(result, recognition_goal='targets',
+                     expected_inspirations=control.get('expected_inspirations'))
+    ready = targets_readiness(candidate, control.get('expected_inspirations'))
+    return bool(ready['ready']), ready['reason']
 
 
 class _SceneInterrupted(RuntimeError):
@@ -290,7 +302,9 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
     control = _SCAN_CONTROL.get()
     stream = ScanVisionStream(scanner, adapter, output_dir, frames, started,
                               observe_fn=control['observe_fn'] if control else None)
-    policy = CellScanPolicy(base_step_px=policy.base_step_px, max_step_px=policy.max_step_px)
+    policy = CellScanPolicy(base_step_px=policy.base_step_px, max_step_px=policy.max_step_px,
+                           recognition_goal=(control or {}).get('recognition_goal', 'full'),
+                           expected_inspirations=(control or {}).get('expected_inspirations'))
     pressed = False
     position = None
     action = None
@@ -302,6 +316,20 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
     interval = .12
     published = None
     stale_since = None
+    feedback_history = deque(maxlen=256)
+    feedback_events = deque(maxlen=256)
+    stop_snapshot = None
+
+    def feedback_record(current, observed_at, causes):
+        keys = ('seq', 'frame_id', 'generation', 'session_id', 'frame_time', 'published_at',
+                'processing_sec', 'geometry_tracking_ok', 'geometry_reason', 'tracking_ok',
+                'scene_tracking_ok', 'scene', 'scene_age_sec', 'scene_metadata',
+                'semantic_metadata', 'pause_reason', 'error', 'correction_epoch',
+                'glyph_anchor_at', 'glyph_anchor_age_sec', 'glyph_anchor_frame_id',
+                'glyph_anchor_map_revision', 'refine_diagnostic')
+        return dict(at=observed_at, elapsed_sec=observed_at-started,
+                    frame_age_sec=observed_at-current['frame_time'], causes=causes,
+                    **{key:deepcopy(current.get(key)) for key in keys})
     status, reason = 'partial', 'time_budget_exhausted'
     cancelled = False
     issued_since_snapshot = 0.
@@ -341,6 +369,7 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                 status, reason = 'interrupted', 'unexpected_scene:' + str(scene.get('scene'))
                 break
             if snapshot.get('error'):
+                stop_snapshot = deepcopy(snapshot)
                 status, reason = 'blocked', snapshot['error']
                 break
             if snapshot['seq'] == 0:
@@ -350,20 +379,34 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                 await asyncio.sleep(.01)
                 continue
             age = now - snapshot['frame_time']
+            causes = []
+            if age > .35:causes.append('geometry_frame_stale')
+            if not snapshot.get('geometry_tracking_ok'):causes.append('geometry_tracking_failed')
+            if snapshot.get('pause_reason'):causes.append(snapshot['pause_reason'])
+            diagnostic = feedback_record(snapshot, now, causes)
+            feedback_history.append(diagnostic)
             if age > .35 or not snapshot.get('tracking_ok'):
                 # Do not keep rotating on an outdated pose. Resume only when a
                 # fresh observation arrives; no stale command queue is replayed.
-                stale_since = stale_since or now
+                if stale_since is None:
+                    feedback_events.append(dict(event='pause', **diagnostic))
+                    stale_since = now
                 if now-stale_since > 1.:
+                    stop_snapshot = deepcopy(snapshot)
+                    feedback_events.append(dict(event='timeout', **diagnostic))
                     status, reason = 'blocked', 'stream_feedback_timeout'
                     break
                 await asyncio.sleep(.01)
                 continue
-            stale_since = None
-            if (snapshot.get('layout_complete') and not snapshot.get('fusion_paused') and
+            if stale_since is not None:
+                feedback_events.append(dict(event='recovered', pause_sec=now-stale_since, **diagnostic))
+                stale_since = None
+            scan_ready, ready_reason = _completion(snapshot)
+            if (scan_ready and not snapshot.get('fusion_paused') and
                     scene is not None and _player_board(scene)):
-                status, reason = 'completed', 'layout_complete'
-                break
+                if stream.seal_result_if(lambda result: _completion(result)[0]):
+                    status, reason = 'completed', ready_reason
+                    break
             if snapshot['seq'] != sequence:
                 _progress(phase='continuous_scan', known_cells=snapshot.get('known_cells', 0),
                           frame_id=snapshot.get('frame_id'), elapsed_sec=now-started)
@@ -387,12 +430,14 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                 choice = policy.choose(predicted, snapshot['cells'], axes,
                     quality=snapshot['quality'], observed_rotation=snapshot['rotation'],
                     tvec=snapshot['tvec'], elapsed=now-started,
-                    semantic_revision=snapshot.get('semantic_revision'))
+                    semantic_revision=snapshot.get('semantic_revision'), anchor_feedback=snapshot)
                 if choice.get('direction') is None:
                     if choice.get('phase') == 'observe':
                         await asyncio.sleep(.01)
                         continue
-                    status, reason = 'partial', choice.get('reason', 'no_useful_view_direction')
+                    status = 'blocked' if choice.get('phase') == 'recover' else 'partial'
+                    stop_snapshot = deepcopy(snapshot)
+                    reason = choice.get('reason', 'no_useful_view_direction')
                     break
                 if action is not None:
                     action['feedback'].append(dict(frame_id=snapshot['frame_id'],
@@ -452,6 +497,16 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
             # Keep enough angular overlap for independent semantic samples;
             # the 35s best case leaves room for a steadier 450px/s ceiling.
             speed_cap = min(450., 50./max(.07, interval, age))
+            angular_rate = np.linalg.norm(sum((np.asarray(axes[k])*direction[k] for k in (0,1)), np.zeros(3)))
+            metadata = snapshot.get('semantic_metadata') or {}
+            semantic_delay = max(.25, float(metadata.get('latency_sec', .25)),
+                now-float(metadata.get('frame_time', now)))
+            # Preserve angular overlap while semantics catch up. Weak support
+            # gets a tighter overlap without admitting unverified map labels.
+            weak = (snapshot.get('glyph_anchor_age_sec') or 0.) > .8
+            overlap = math.radians(8. if weak or choice.get('phase') == 'anchor_recovery' else 16.)
+            if angular_rate > 1e-7:
+                speed_cap = min(speed_cap, overlap/(angular_rate*semantic_delay))
             speed = min(speed_cap, max(80., choice['distance_px']*5.))
             speed *= max(.4, min(1., snapshot['quality']))
             target = position + direction*min(speed*elapsed, allowance)
@@ -488,6 +543,13 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
             control['latest_scene_observation'] = snapshot['scene_observation']
             control['latest_frame_metadata'] = snapshot.get('scene_metadata') or {}
     stats['control'] = dict(policy.stats)
+    feedback_diagnostic = dict(evidence_kind='real_game', stop_reason=reason,
+        stop_snapshot=stop_snapshot, timeline=list(feedback_history), events=list(feedback_events))
+    stats['feedback_diagnostic'] = feedback_diagnostic
+    (output_dir / 'feedback_diagnostic.json').write_text(
+        json.dumps(feedback_diagnostic, ensure_ascii=False, indent=2,
+                   default=lambda value:value.tolist() if isinstance(value,np.ndarray) else value.item()),
+        encoding='utf-8')
     scene = snapshot.get('scene_observation')
     if scene is not None and scene.get('valid') and scene.get('scene') != 'unknown' and not _player_board(scene):
         if control is not None:
@@ -671,12 +733,17 @@ async def _run_layout_scan(
         settle = max(MIN_DRAG_GAP_SEC, min(2., raw_parameters[4]))
         if app is None or tuple(app.get_window_size() or ()) != (1280, 720):
             raise ValueError("扫描要求 1280×720 游戏客户区")
-        # Leave a small portion of the hard budget for draining evidence and
-        # producing the report. Normal operation targets 50s, with reserve to 60s.
-        deadline = started + max(4., budget-1.)
+        # Real-game evidence drain/reporting exceeded the former 1s reserve.
+        # Spend less time acquiring, keeping output preparation inside the same
+        # requested budget; never extend recognition to finish more cells.
+        deadline = started + max(1., budget-3.)
         _progress(phase='reset', known_cells=0, elapsed_sec=time.monotonic()-started)
         reset = await _reset_view(app, output_dir, deadline)
-        scanner = LayoutScanner()
+        control = _SCAN_CONTROL.get() or {}
+        detector = control.get('entity_detector')
+        scanner = (LayoutScanner(target_detector=detector.detect_packet,
+                                 target_negative_evidence=True)
+                   if detector is not None else LayoutScanner())
         policy = FaceScanPolicy(base_step_px=step_px, max_step_px=450)
         pending_response = False
         failures = 0
@@ -734,8 +801,9 @@ async def _run_layout_scan(
             row["overlay_path"] = overlay_path.relative_to(output_dir).as_posix()
             row["observation"] = {key: observation.get(key) for key in
                                   ("tracking_ok", "pose_delta_deg", "motion_px", "quality", "faces_observed", "known_cells")}
-            if scanner.result().get("layout_complete", False):
-                status, reason = "completed", "layout_complete"
+            scan_ready, ready_reason = _completion(scanner.result())
+            if scan_ready:
+                status, reason = "completed", ready_reason
                 break
             if not observation.get("tracking_ok", False):
                 failures += 1
@@ -852,13 +920,16 @@ async def _run_layout_scan(
             if status == 'completed':
                 status, reason = 'blocked', 'final_board_gate_failed:' + str(exc)
     try:
-        result = scanner.result() if scanner is not None else {"layout_complete": False, "faces": {}}
+        result = (deepcopy(scanner.last_fused_result) if scanner is not None and streaming
+                  and scanner.last_fused_result is not None else
+                  scanner.result() if scanner is not None else {"layout_complete": False, "faces": {}})
     except Exception as exc:
         # Even a reconstruction failure must leave capture evidence available.
         result = {"layout_complete": False, "faces": {}, "reconstruction_error": str(exc)}
         if status != "cancelled":
             status, reason = "blocked", "result_export_failed"
-    if status == 'completed' and not result.get('layout_complete'):
+    scan_ready, ready_reason = _completion(result)
+    if status == 'completed' and not scan_ready:
         status, reason = 'partial', 'final_layout_incomplete_after_drain'
     _attach_frame_paths(result, {frame["frame_id"]: frame for frame in frames})
     last_frame = str(output_dir / frames[-1]["path"]) if frames else None
@@ -873,8 +944,21 @@ async def _run_layout_scan(
     result["map_valid"] = status in ("completed", "partial")
     if not result["map_valid"]:
         result["layout_complete"] = False
-    result["success"] = status == "completed" and bool(result.get("layout_complete"))
     control = _SCAN_CONTROL.get() or {}
+    result['recognition_goal'] = control.get('recognition_goal', 'full')
+    result['expected_inspirations'] = control.get('expected_inspirations')
+    result['targets_ready'] = bool(status == 'completed' and scan_ready)
+    if (result['targets_ready'] and result['recognition_goal'] == 'targets'
+            and not result.get('layout_complete')):
+        status = result['status'] = 'targets_ready'
+    result["success"] = status in ('completed', 'targets_ready') and scan_ready
+    result['recognition_backend'] = ('entity_model' if control.get('entity_detector') is not None else 'rules')
+    detector_status = getattr(control.get('entity_detector'), 'status', None)
+    if callable(detector_status):
+        model = detector_status()
+        result['detector'] = {key:model.get(key) for key in
+                              ('model_path', 'provider', 'weak_confidence', 'confirm_confidence',
+                               'model_executions', 'cache_hits')}
     result['latest_scene_observation'] = control.get('latest_scene_observation')
     result['latest_frame_metadata'] = control.get('latest_frame_metadata')
     result['interruption'] = control.get('interruption')
@@ -895,7 +979,7 @@ async def _run_layout_scan(
             paths = {"json_path": str(fallback)}
         except Exception as save_exc:
             result["report_error"] += "; " + str(save_exc)
-    summary = {key: result.get(key) for key in ("success", "status", "stop_reason", "reason", "layout_complete", "run_id", "last_frame")}
+    summary = {key: result.get(key) for key in ("success", "status", "stop_reason", "reason", "layout_complete", "targets_ready", "recognition_goal", "recognition_backend", "run_id", "last_frame")}
     summary.update(output_dir=str(output_dir), steps=len(actions),
                    known_cells=result.get("known_cells", last_observation.get("known_cells", 0)),
                    faces_observed=result.get("faces_observed", last_observation.get("faces_observed", 0)),
@@ -914,14 +998,21 @@ async def _run_layout_scan(
 
 async def run_layout_scan(app, *, max_steps=96, time_budget_sec=60, drag_step_px=300,
                           drag_duration_sec=.15, settle_sec=.2, output_dir=None,
-                          observe_fn=None, cancel_check=None, on_progress=None):
+                          observe_fn=None, cancel_check=None, on_progress=None,
+                          recognition_goal='full', expected_inspirations=None, entity_detector=None):
     """Own one fresh scan epoch, drain input/threads, and return its full layout.
 
     Callers must await this operation before using the app for gameplay input.
     Hooks are synchronous: the observer is also called by the semantic owner;
     progress and cancellation hooks run only in the engine's async context.
     """
+    if recognition_goal not in ('full', 'targets'):
+        raise ValueError('recognition_goal must be full or targets')
+    if recognition_goal == 'targets' and entity_detector is None:
+        raise ValueError('target scan requires the entity model service')
     control = dict(observe_fn=observe_fn or observe_scene, cancel_check=cancel_check,
+                   recognition_goal=recognition_goal, expected_inspirations=expected_inspirations,
+                   entity_detector=entity_detector,
                    on_progress=on_progress, latest_scene_observation=None,
                    latest_frame_metadata={}, interruption=None)
     token = _SCAN_CONTROL.set(control)
@@ -973,15 +1064,48 @@ async def reset_layout_view(app, output_dir, *, time_budget_sec=10, observe_fn=N
 @action_info(name="resonance_pc.scan_consciousness_deep_dive_layout", public=True,
              read_only=False, timeout=-1,
              description="Scan an already open normal Deep Dive board and save its reconstructed layout.")
-@requires_services(app="plans/aura_base/app")
+@requires_services(app="plans/aura_base/app", ocr='plans/aura_base/ocr',
+                   entity_detector='resonance_pc_deep_dive_entity_detector')
 async def scan_consciousness_deep_dive_layout(max_steps: int = 96, time_budget_sec: float = 60,
                                             drag_step_px: int = 300, drag_duration_sec: float = .15,
-                                            settle_sec: float = .2, app=None):
-    outcome = await run_layout_scan(app, max_steps=max_steps, time_budget_sec=time_budget_sec,
+                                            settle_sec: float = .2, recognition_goal: str = 'targets',
+                                            app=None, ocr=None, entity_detector=None):
+    from ._deep_dive_planned_run_vision import observe, read_hud
+    invocation_started = time.monotonic()
+    expected = None
+    if recognition_goal == 'targets':
+        captures = []
+        for attempt in range(2):
+            if attempt == 0:
+                # Start WGC before waiting on its generations. At task startup
+                # no capture producer necessarily exists yet.
+                capture = await _capture_serial(app)
+            else:
+                capture, _ = await _capture_after_input(app)
+            if not capture.success or capture.image is None:
+                return dict(success=False, status='blocked', reason='initial_hud_capture_failed')
+            observed = observe(capture.image)
+            hud, cancelled = await _await_serial(asyncio.to_thread(
+                read_hud, capture.image, ocr, observation=observed))
+            if cancelled:
+                raise asyncio.CancelledError()
+            pair = (hud.get('collected_count'), hud.get('inspiration_total'))
+            if not _player_board(observed) or any(type(value) is not int for value in pair):
+                return dict(success=False, status='blocked', reason='initial_target_inventory_unknown')
+            captures.append(pair)
+        if captures[0] != captures[1] or not 0 <= captures[0][0] <= captures[0][1]:
+            return dict(success=False, status='blocked', reason='initial_target_inventory_unstable')
+        expected = captures[0][1]-captures[0][0]
+    remaining = min(60., float(time_budget_sec))-(time.monotonic()-invocation_started)
+    if remaining < 5.:
+        return dict(success=False, status='blocked', reason='initial_hud_time_budget_exhausted')
+    outcome = await run_layout_scan(app, max_steps=max_steps, time_budget_sec=remaining,
                                     drag_step_px=drag_step_px, drag_duration_sec=drag_duration_sec,
-                                    settle_sec=settle_sec)
+                                    settle_sec=settle_sec, recognition_goal=recognition_goal,
+                                    expected_inspirations=expected, entity_detector=entity_detector,
+                                    observe_fn=observe)
     summary = dict(outcome['summary'])
+    summary['invocation_elapsed_sec'] = round(time.monotonic()-invocation_started, 3)
     if summary['status'] == 'interrupted':
         summary['status'] = 'blocked'
     return summary
-

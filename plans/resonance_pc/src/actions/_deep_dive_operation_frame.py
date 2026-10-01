@@ -11,6 +11,7 @@ import hashlib
 import itertools
 import math
 import time
+from copy import deepcopy
 from functools import lru_cache
 
 import cv2
@@ -20,6 +21,7 @@ from ._deep_dive_layout_semantics import classify_icon, detect_targets
 from ._deep_dive_layout_vision import K as _NORMAL_K, LayoutScanner, _crop, _point, _quad
 from ._deep_dive_planner_rules import cell_to_slot, geometry, slot_to_cell, validate_slot
 from ._deep_dive_single_run_vision import observe
+from ._deep_dive_target_readiness import is_targets_layout, targets_readiness
 
 
 _VISIBLE = tuple(range(27))  # Operation U/R/F, not logical U/R/F.
@@ -36,12 +38,63 @@ _MODES = {"move": "choose_move", "rotate": "choose_rotate",
 _ARROWS = {"NW": (2, -1), "NE": (0, -1), "SW": (0, 1), "SE": (2, 1)}
 
 
+def _current_targets(rgb, target_detector=None) -> list[dict]:
+    """Get masks from this RGB; failed injected coverage cannot become empty."""
+    detector = detect_targets if target_detector is None else target_detector
+    if not callable(detector):
+        raise TypeError("target_detector_not_callable")
+    value = detector(rgb)
+    if isinstance(value, dict):
+        # An exact-current-RGB model cache can supply masks without executing
+        # again. Coverage must still be valid; no independent negative votes
+        # are created by this operation-frame helper.
+        if value.get("coverage_valid") is not True or "targets" not in value:
+            raise ValueError("target_detector_coverage_invalid")
+        value = value["targets"]
+    if not isinstance(value, list):
+        raise TypeError("target_detector_targets_not_list")
+    for target in value:
+        if not isinstance(target, dict) or target.get("kind") not in ("player", "singularity", "inspiration"):
+            raise ValueError("target_detector_target_invalid")
+        for key, size in (("box", 4), ("point", 2)):
+            coordinates = target.get(key)
+            if not isinstance(coordinates, (tuple, list, np.ndarray)) or len(coordinates) != size:
+                raise ValueError("target_detector_geometry_invalid")
+            if any(isinstance(value, (bool, np.bool_)) for value in coordinates):
+                raise ValueError("target_detector_geometry_invalid")
+            values = np.asarray(coordinates)
+            if (values.shape != (size,) or values.dtype.kind not in "iuf"
+                    or not np.isfinite(values).all()):
+                raise ValueError("target_detector_geometry_invalid")
+        x,y,width,height = target["box"]
+        frame_height,frame_width = rgb.shape[:2]
+        if (not 0 < width <= 2*frame_width or not 0 < height <= 2*frame_height
+                or not -frame_width <= x < frame_width or not -frame_height <= y < frame_height
+                or x+width <= 0 or y+height <= 0):
+            raise ValueError("target_detector_box_invalid")
+        if not (0 <= target["point"][0] < frame_width and 0 <= target["point"][1] < frame_height):
+            raise ValueError("target_detector_point_outside_rgb")
+        confidence = target.get("confidence", 0.)
+        if (isinstance(confidence, (bool, np.bool_)) or not isinstance(confidence, (int, float, np.integer, np.floating))
+                or not np.isfinite(confidence) or not 0 <= confidence <= 1):
+            raise ValueError("target_detector_confidence_invalid")
+    return deepcopy(value)
+
+
 def _cell(slot: int) -> dict:
     value = slot_to_cell(slot)
     return dict(face=value.face, row=value.row, col=value.col)
 
 
 def _layout(layout: dict) -> tuple[dict[int, dict], int]:
+    if layout.get("prediction_only"):
+        raise ValueError("prediction_only_layout")
+    if layout.get("recognition_goal") == "targets":
+        if not is_targets_layout(layout):
+            raise ValueError("operation_mapping_requires_targets_ready")
+        readiness = targets_readiness(layout)
+        if not readiness["ready"]:
+            raise ValueError(readiness["reason"])
     cells = {cell_to_slot(cell): cell for cell in layout.get("cells", ())}
     if len(cells) != 54:
         raise ValueError("operation_mapping_requires_54_unique_cells")
@@ -57,6 +110,8 @@ def _known_icon(cell: dict) -> str | None:
     # Occupied cells can have a stale icon from an earlier observation. They
     # cannot become orientation evidence for the obscured underlying node.
     if cell.get("occupant", "unknown") != "none":
+        return None
+    if cell.get("occupant_status") != "confirmed":
         return None
     if cell.get("node_status") != "known":
         return None
@@ -571,13 +626,16 @@ def _move_labels(options, fit) -> list[dict]:
     return [row for row in result if sum(other["operation_slot"] == row["operation_slot"] for other in result) == 1]
 
 
-def build_wide_reference_frame(image_rgb, layout, *, scan_epoch=0, map_revision=0, view_epoch=0) -> dict:
+def build_wide_reference_frame(image_rgb, layout, *, scan_epoch=0, map_revision=0, view_epoch=0,
+                               target_detector=None) -> dict:
     """Register the ordinary wide board after a runtime-controlled Reset View.
 
     The reset and unchanged HUD/actor are caller preconditions. A temporary
     scanner supplies only a current-image ordinary-camera geometry proposal;
     current glyph classification on all three planes must independently agree
     with one proper Q before this reference can be used for an operation mode.
+    target_detector, when supplied, provides this RGB's entity masks as a list
+    or a coverage-valid packet. Detection failure blocks the reference.
     """
     deadline = time.monotonic() + _BUILD_BUDGET_SEC
     base = dict(status="waiting", reason="wide_reset_reference_unconfirmed", mode="board",
@@ -598,11 +656,15 @@ def build_wide_reference_frame(image_rgb, layout, *, scan_epoch=0, map_revision=
     cyan = observation.get("cyan_pixels", {})
     if cyan.get("move", 0) >= 2000 or cyan.get("rotate", 0) >= 2000:
         return dict(base, reason="ordinary_wide_board_has_selected_mode")
+    try:
+        targets = _current_targets(rgb, target_detector)
+    except Exception as error:
+        base["evidence"]["target_detector_error"] = type(error).__name__
+        return dict(base, status="blocked", reason="operation_target_detector_failed")
     proposal = LayoutScanner()
     if not proposal._bootstrap(rgb):
         base["evidence"]["ordinary_geometry_reason"] = proposal.last_error
         return dict(base, reason="ordinary_reset_geometry_unconfirmed")
-    targets = detect_targets(rgb)
     features = _features(rgb, targets)
     solutions = []
     for operation_actor in range(9):
@@ -659,7 +721,7 @@ def build_wide_reference_frame(image_rgb, layout, *, scan_epoch=0, map_revision=
 
 
 def build_operation_frame(image_rgb, layout, mode, *, scan_epoch=0, map_revision=0, view_epoch=0,
-                          registration_frame=None) -> dict:
+                          registration_frame=None, target_detector=None) -> dict:
     """Fit a new mode view and map its three visible faces to one logical cube.
 
     One image does not establish temporal settling. The runtime must require
@@ -668,6 +730,7 @@ def build_operation_frame(image_rgb, layout, mode, *, scan_epoch=0, map_revision
     HUD quotas/round/plane and an input ledger containing only the mode toggle.
     This function checks the referenced atlas and current camera/content; it
     does not independently certify that runtime transition or its HUD values.
+    target_detector has the same current-RGB mask contract as the wide builder.
     """
     deadline = time.monotonic() + _BUILD_BUDGET_SEC
     base = dict(status="waiting", reason="operation_view_not_registered", mode=_MODES.get(mode, mode),
@@ -718,7 +781,11 @@ def build_operation_frame(image_rgb, layout, mode, *, scan_epoch=0, map_revision
         old_k = np.asarray(reference["pose"]["K"], float)
         ratio = _camera("choose_move")[0][0, 0] / _camera("choose_rotate")[0][0, 0]
         intrinsic[0, 0], intrinsic[1, 1] = old_k[0, 0] * ratio, old_k[1, 1] * ratio
-    targets = detect_targets(rgb)
+    try:
+        targets = _current_targets(rgb, target_detector)
+    except Exception as error:
+        base["evidence"]["target_detector_error"] = type(error).__name__
+        return dict(base, status="blocked", reason="operation_target_detector_failed")
     features = _features(rgb, targets)
     seeds = _geometry_seeds(options, mode, intrinsic, prior_r)
     if reference is not None:
@@ -965,7 +1032,7 @@ def _preview_score(cells, readings, mapping, rotation_id):
                             and changed >= 3 and static >= 3 and independent_static), details=details)
 
 
-def verify_rotation_preview(image_rgb, layout, rotation_id, frame) -> dict:
+def verify_rotation_preview(image_rgb, layout, rotation_id, frame, *, target_detector=None) -> dict:
     """Compare all four legal endpoint permutations at the locked before pose.
 
     Unknown is intentional for still-moving, occluded, or repetitive layouts.
@@ -989,7 +1056,12 @@ def verify_rotation_preview(image_rgb, layout, rotation_id, frame) -> dict:
     pose = frame["pose"]
     intrinsic = np.asarray(pose["K"], float)
     rvec, tvec = np.asarray(pose["rvec"], float).reshape(3, 1), np.asarray(pose["tvec"], float).reshape(3, 1)
-    features = _features(rgb, detect_targets(rgb), preview=True)
+    try:
+        targets = _current_targets(rgb, target_detector)
+    except Exception as error:
+        return dict(unknown, reason="operation_target_detector_failed",
+                    evidence=dict(target_detector_error=type(error).__name__))
+    features = _features(rgb, targets, preview=True)
     surface = _surface(intrinsic, rvec, tvec)
     readings = _readings(rgb, surface, features)
     if len(readings) < _MIN_ANCHORS:

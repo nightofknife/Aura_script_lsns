@@ -1,0 +1,1060 @@
+{
+  "plan_name": "resonance_pc",
+  "plan_path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc",
+  "summary": {
+    "errors": 0,
+    "warnings": 131,
+    "infos": 0,
+    "checked_files": 118
+  },
+  "findings": [
+    {
+      "severity": "warn",
+      "code": "pycache_present",
+      "message": "Plan package contains __pycache__ directory.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\__pycache__",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pycache_present",
+      "message": "Plan package contains __pycache__ directory.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\__pycache__",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pycache_present",
+      "message": "Plan package contains __pycache__ directory.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pycache_present",
+      "message": "Plan package contains __pycache__ directory.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\bridge\\__pycache__",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pycache_present",
+      "message": "Plan package contains __pycache__ directory.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\__pycache__\\__init__.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\__pycache__\\__init__.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\__pycache__\\__init__.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\__pycache__\\__init__.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\__init__.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\__init__.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_bento_consumption_policy.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_bento_consumption_store.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_bento_target_locator.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_battle_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_chase_planner.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_cleanup_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_directed_operation_flow.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_entry_card_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_event_flow.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_event_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_hud_templates.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_inspiration_planner.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_layout_report.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_layout_semantics.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_layout_semantics.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_layout_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_match_cache.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_movement_planner.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_node_rewards.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_operation_frame.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_planned_run_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_planner_rules.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_runtime_events.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_scan_policy.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_scan_stream.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_single_run_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_vortex_flow.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_deep_dive_vortex_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_policy.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_policy.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_runtime.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_runtime.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_vision.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_eternal_scuffle_vision.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_freight_recovery_policy.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_player_data_persistence.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_player_data_persistence.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_sparkling_water_policy.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\_trade_sell_state.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\battle_dispatch_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\battle_dispatch_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\bento_auto_recovery_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\bento_consumption_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\cape_island_investment_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\cape_island_investment_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\character_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\character_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\city_trade_flow_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\city_trade_flow_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\city_travel_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\city_travel_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\combined_commerce_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\combined_commerce_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_capture_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_capture_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_cleanup_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_drag_probe_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_drag_probe_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_entry_card_probe_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_loop_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_plan_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_planned_run_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_scan_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_sensitivity_probe_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\consciousness_deep_dive_single_run_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\eternal_scuffle_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\eternal_scuffle_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\game_startup_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\game_startup_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\inventory_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\inventory_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\love_bento_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\market_data_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\market_data_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\passenger_flow_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\passenger_flow_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\passenger_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\passenger_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\player_data_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\player_data_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\player_recovery_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\player_recovery_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\purchase_book_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\purchase_book_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\reforming_center_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\reforming_center_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\rubbish_recycling_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\rubbish_recycling_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\runtime_preflight_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\runtime_preflight_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\sparkling_water_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\team_recommendation_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\team_recommendation_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\trade_negotiation_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\trade_negotiation_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\trade_planner_pc_actions.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\actions\\__pycache__\\trade_planner_pc_actions.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\bridge\\__pycache__\\__init__.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\bridge\\__pycache__\\client.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\__init__.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\__init__.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\bridge_app_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\bridge_controller_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\city_shop_data_pc_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\city_shop_data_pc_service.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\input_bridge_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_market_data_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_market_data_service.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_exact_solver.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_exact_solver.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_planner_service.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_planner_service.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_common.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_common.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_dense.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_dense.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_sparse.cpython-312.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    },
+    {
+      "severity": "warn",
+      "code": "pyc_present",
+      "message": "Plan package contains compiled Python bytecode.",
+      "path": "D:\\python_project\\Aura_script_lsns\\plans\\resonance_pc\\src\\services\\__pycache__\\resonance_pc_trade_solver_sparse.cpython-313.pyc",
+      "hint": "Remove transient Python cache artifacts before finalizing the package.",
+      "remediation": "Fix the reported path/config and rerun plan_doctor to confirm the finding is cleared."
+    }
+  ]
+}

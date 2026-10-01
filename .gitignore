@@ -41,9 +41,14 @@ dist/
 
 # Local models and generated ML artifacts
 models/
+!plans/resonance_pc/data/models/
+plans/resonance_pc/data/models/*
+!plans/resonance_pc/data/models/README.md
+!plans/resonance_pc/data/models/deep_dive_entities.json
 plans/aura_base/assets/mumu/
 plans/aura_base/src/services/ocr_model/
 *.onnx
+!plans/resonance_pc/data/models/deep_dive_entities.onnx
 *.pt
 *.pth
 *.ckpt

@@ -6,6 +6,8 @@ import math
 import cv2
 import numpy as np
 
+from ._deep_dive_match_cache import exact_roi_cache
+
 ROOT = Path(__file__).resolve().parents[2] / "templates/consciousness_deep_dive_single_run"
 
 
@@ -19,6 +21,9 @@ def template(name):
     return image
 
 
+@exact_roi_cache(region=lambda name, region: region,
+                 dependencies=lambda name, region: (template, template(name),
+                     cv2.matchTemplate, cv2.minMaxLoc))
 def match(gray, name, region):
     x1, y1, x2, y2 = region
     ref = template(name)

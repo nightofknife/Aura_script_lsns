@@ -1,0 +1,173 @@
+{
+  "evidence": "Observed middle-x layer turn plus 24 exact scan-local rotations; selected only by old confirmed glyph patterns. Prior board atlas labels provisional; this is an action-consistency check, not independent 99% certification.",
+  "best": {
+    "rotation_id": 3,
+    "rotation_spec": [
+      0,
+      0,
+      1
+    ],
+    "symmetry_id": 7,
+    "compared": 47,
+    "matches": 47,
+    "wrong": []
+  },
+  "runner_up": {
+    "rotation_id": 2,
+    "rotation_spec": [
+      0,
+      0,
+      -1
+    ],
+    "symmetry_id": 7,
+    "compared": 47,
+    "matches": 41,
+    "wrong": [
+      [
+        7,
+        34,
+        "purple_ring",
+        "blue_scales"
+      ],
+      [
+        22,
+        49,
+        "orange_triple_eye",
+        "yellow_hex"
+      ],
+      [
+        25,
+        46,
+        "blue_scales",
+        "purple_ring"
+      ],
+      [
+        28,
+        1,
+        "yellow_hex",
+        "blue_scales"
+      ],
+      [
+        34,
+        7,
+        "blue_scales",
+        "purple_ring"
+      ],
+      [
+        49,
+        22,
+        "yellow_hex",
+        "orange_triple_eye"
+      ]
+    ]
+  },
+  "expected_targets": {
+    "player_cell": {
+      "slot": 4,
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "singularity_cell": {
+      "slot": 31,
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "slot": 50,
+        "face": "B",
+        "row": 1,
+        "col": 2
+      },
+      {
+        "slot": 26,
+        "face": "F",
+        "row": 2,
+        "col": 2
+      }
+    ]
+  },
+  "reported_targets": {
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "singularity_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ]
+  },
+  "mapping": [
+    53,
+    1,
+    51,
+    50,
+    4,
+    48,
+    47,
+    7,
+    45,
+    11,
+    14,
+    17,
+    10,
+    13,
+    16,
+    9,
+    12,
+    15,
+    0,
+    19,
+    2,
+    3,
+    22,
+    5,
+    6,
+    25,
+    8,
+    18,
+    28,
+    20,
+    21,
+    31,
+    23,
+    24,
+    34,
+    26,
+    42,
+    39,
+    36,
+    43,
+    40,
+    37,
+    44,
+    41,
+    38,
+    35,
+    46,
+    33,
+    32,
+    49,
+    30,
+    29,
+    52,
+    27,
+    54
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_-25_25.png",
+  "frame": 130,
+  "rect": [
+    440,
+    93,
+    96,
+    96
+  ],
+  "baseline": {
+    "icon_id": null,
+    "confidence": 0.0
+  },
+  "label": "unknown",
+  "split": "train",
+  "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+  "label_provenance": "manual_visual_no_red_or_orange_eye_glyph",
+  "audit_index": 12,
+  "source": ".pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_-25_25.png",
+  "manual_review": "Re-reviewed actual crop: red Boss body/glow, no complete red single-eye or orange triple-eye node glyph.",
+  "source_sha256": "2583810edbd7c97fb258dd6cbd31bc2cd114dae98ddc2cd6fa9174ea1f6904a6",
+  "purpose": "Actual hard-negative regression, not a reference/training template."
+}

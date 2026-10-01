@@ -1,0 +1,4555 @@
+{
+  "warning": "Research only: original shape positive preserved; union evaluated only after original rejection, color/geometry/NCC/margin unchanged. Native references only. Repeat diagnostic not independent accuracy; live rules01 atlas labels provisional same board.",
+  "live_source_unavailable": [
+    {
+      "frame": 2,
+      "cell": "F00",
+      "reason": "source_frozen_pose_unavailable"
+    },
+    {
+      "frame": 0,
+      "cell": "F01",
+      "reason": "source_frozen_pose_unavailable"
+    }
+  ],
+  "results": {
+    "train": {
+      "summary": {
+        "baseline": {
+          "count": 77,
+          "correct": 77,
+          "rejected": 0,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 77,
+          "correct": 77,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0422_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0393_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0415_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0348_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0405_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R02_0373_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0415_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0422_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0438_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0373_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0405_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R12_0386_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R20_0432_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.829
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.829
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R20_0381_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R20_0386_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R20_0363_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0381_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.855
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.855
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0341_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0422_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0432_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0354_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.846
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.846
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_R22_0405_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F00_0016_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F00_0002_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F00_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F00_0005_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0000_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0009_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0438_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0447_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0002_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F01_0457_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F10_0016_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F10_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F10_0002_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F10_0005_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F11_0005_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F11_0002_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F11_0000_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F11_0447_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F11_0432_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F12_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F12_0432_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F12_0422_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F12_0447_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F12_0457_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_F22_0457_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_D10_0226_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.839
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.839
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L20_0188_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L20_0180_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.81
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.81
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L20_0202_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L21_0140_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L21_0147_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L21_0192_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.845
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.845
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L21_0180_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.844
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.844
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L21_0130_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0188_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0151_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0180_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.851
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0165_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0140_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.849
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_L22_0210_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B00_0081_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B00_0063_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B00_0102_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B00_0071_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B00_0116_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.813
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0071_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0081_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.837
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.837
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0126_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.828
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.828
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0102_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0116_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.826
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_B21_0226_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_gold_icon_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_gold_icon_orange_triple_eye_2.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_gold_icon_orange_triple_eye_3.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\train_gold_icon_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        }
+      ]
+    },
+    "validation": {
+      "summary": {
+        "baseline": {
+          "count": 12,
+          "correct": 12,
+          "rejected": 0,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 12,
+          "correct": 12,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F00_0004_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F00_0009_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F00_0005_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F00_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F01_0000_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F01_0008_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F01_0002_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.814
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.814
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F01_0005_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F10_0004_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F10_0008_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F10_0005_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\validation_F10_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.814
+          }
+        }
+      ]
+    },
+    "test": {
+      "summary": {
+        "baseline": {
+          "count": 18,
+          "correct": 18,
+          "rejected": 0,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 18,
+          "correct": 18,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0004_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.822
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0121_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0053_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0007_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0161_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F00_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F01_0000_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.855
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.855
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F01_0070_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F01_0013_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F01_0004_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F10_0063_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F10_0007_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F10_0004_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F10_0091_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F10_0000_red_single_eye.png",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F11_0000_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.847
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.847
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F11_0005_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\node_experiment_v1\\test_F11_0004_orange_triple_eye.png",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          }
+        }
+      ]
+    },
+    "unknown_train": {
+      "summary": {
+        "baseline": {
+          "count": 37,
+          "correct": 37,
+          "rejected": 37,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 37,
+          "correct": 37,
+          "rejected": 37,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_45_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_-25_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_0_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_25_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_45_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_-45_0.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_81_0_0.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_45_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_25_0.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_45_0.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_-45_25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_-25_25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_0_25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_130_-25_45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_-25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_-45_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_25_-25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_-45_25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_45_25.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_-25_45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_188_0_45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_0_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_45_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_65_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_-45_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_-25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_0_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_249_25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_-65_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_65_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_-65_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_-45_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_294_-25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        }
+      ]
+    },
+    "unknown_validation": {
+      "summary": {
+        "baseline": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 3,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 3,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_502_0_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_502_25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_502_0_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        }
+      ]
+    },
+    "unknown_test": {
+      "summary": {
+        "baseline": {
+          "count": 10,
+          "correct": 10,
+          "rejected": 10,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 10,
+          "correct": 10,
+          "rejected": 10,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_507_25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_507_45_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_507_25_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_507_45_-45.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_-45_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_-25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_0_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_25_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_45_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\model\\warm_eye_v1\\proposal_576_65_-65.png",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        }
+      ]
+    },
+    "native_90deg": {
+      "summary": {
+        "baseline": {
+          "count": 16,
+          "correct": 16,
+          "rejected": 0,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 16,
+          "correct": 16,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        }
+      ]
+    },
+    "native_invariance_stress": {
+      "summary": {
+        "baseline": {
+          "count": 144,
+          "correct": 64,
+          "rejected": 80,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 144,
+          "correct": 80,
+          "rejected": 64,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.808
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.808
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.808
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.82
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.809
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.808
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.811
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.816
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.86
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.839
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.87
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.869
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.815
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.812
+          }
+        }
+      ]
+    },
+    "repeat_D10_diagnostic_not_accuracy": {
+      "summary": {
+        "baseline": {
+          "count": 10,
+          "correct": 3,
+          "rejected": 7,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 10,
+          "correct": 10,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "orange_triple_eye",
+          "frame": 375,
+          "group": 32,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 380,
+          "group": 32,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.83
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 386,
+          "group": 32,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.819
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 391,
+          "group": 33,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 397,
+          "group": 34,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 403,
+          "group": 35,
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 408,
+          "group": 35,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.817
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 413,
+          "group": 35,
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.852
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 420,
+          "group": 36,
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.818
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 424,
+          "group": 36,
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.85
+          }
+        }
+      ]
+    },
+    "synthetic_filled_wall": {
+      "summary": {
+        "baseline": {
+          "count": 5,
+          "correct": 5,
+          "rejected": 5,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 5,
+          "correct": 5,
+          "rejected": 5,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "unknown",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        },
+        {
+          "label": "unknown",
+          "baseline": {
+            "icon_id": null,
+            "confidence": 0.0
+          },
+          "hybrid": {
+            "icon_id": null,
+            "confidence": 0.0
+          }
+        }
+      ]
+    },
+    "live_rules01_untrained_provisional": {
+      "summary": {
+        "baseline": {
+          "count": 39,
+          "correct": 39,
+          "rejected": 0,
+          "wrong_accepted": 0
+        },
+        "hybrid": {
+          "count": 39,
+          "correct": 39,
+          "rejected": 0,
+          "wrong_accepted": 0
+        }
+      },
+      "rows": [
+        {
+          "label": "red_single_eye",
+          "frame": 657,
+          "cell": "R20",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 861,
+          "cell": "R20",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 879,
+          "cell": "R20",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 648,
+          "cell": "R20",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 714,
+          "cell": "R20",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.821
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 198,
+          "cell": "F00",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 710,
+          "cell": "F00",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 155,
+          "cell": "F00",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 168,
+          "cell": "F00",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 605,
+          "cell": "F00",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 115,
+          "cell": "F01",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 265,
+          "cell": "F01",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 284,
+          "cell": "F01",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 247,
+          "cell": "F01",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 557,
+          "cell": "F01",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.853
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 897,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.827
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.827
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 724,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 596,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 742,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 778,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 110,
+          "cell": "F10",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.823
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 83,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 265,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 710,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.856
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 101,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 216,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "orange_triple_eye",
+          "frame": 271,
+          "cell": "F11",
+          "baseline": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          },
+          "hybrid": {
+            "icon_id": "orange_triple_eye",
+            "confidence": 0.854
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 897,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 399,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 584,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 627,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 868,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.825
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 271,
+          "cell": "F12",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.824
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 861,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.83
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.83
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 783,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 819,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 879,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.828
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 619,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.827
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.827
+          }
+        },
+        {
+          "label": "red_single_eye",
+          "frame": 324,
+          "cell": "F22",
+          "baseline": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.826
+          },
+          "hybrid": {
+            "icon_id": "red_single_eye",
+            "confidence": 0.826
+          }
+        }
+      ]
+    }
+  },
+  "diagnostic_hybrid_shape_timing": {
+    "median_ms": 6.133250000857515,
+    "p95_ms": 6.943285000306787
+  }
+}

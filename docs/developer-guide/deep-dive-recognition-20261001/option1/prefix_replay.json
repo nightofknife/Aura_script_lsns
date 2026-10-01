@@ -1,0 +1,38 @@
+[
+  {
+    "episode": "planned_binding_02",
+    "source_frame": 145,
+    "source_time": 15.282,
+    "retained_rows_with_votes": 24,
+    "target_face": "D",
+    "planned_travel_deg": 75.0,
+    "route_waypoints": 3,
+    "planning_ms": 256.56,
+    "predicted_face_read": {
+      "D": 4.46
+    },
+    "predicted_known_anchor_count": 3,
+    "predicted_known_multiface": false,
+    "discounted_incoming_anchor_support": 0.85,
+    "route_overlap_support": 0.85,
+    "note": "Conservative subset of retained six source observations per cell; unpublished adapted axes unavailable, so measured calibration axes used. Geometry is opportunity, not real votes."
+  },
+  {
+    "episode": "live_scan_05",
+    "source_frame": 128,
+    "source_time": 14.218,
+    "retained_rows_with_votes": 28,
+    "target_face": "D",
+    "planned_travel_deg": 97.0,
+    "route_waypoints": 4,
+    "planning_ms": 243.7,
+    "predicted_face_read": {
+      "D": 3.02
+    },
+    "predicted_known_anchor_count": 6,
+    "predicted_known_multiface": true,
+    "discounted_incoming_anchor_support": 1.25,
+    "route_overlap_support": 1.0,
+    "note": "Conservative subset of retained six source observations per cell; unpublished adapted axes unavailable, so measured calibration axes used. Geometry is opportunity, not real votes."
+  }
+]

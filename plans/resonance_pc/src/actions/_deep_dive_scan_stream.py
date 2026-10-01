@@ -1,4 +1,4 @@
-"""Independent geometry, latest-slot semantics, and bounded evidence writing."""
+"""Independent geometry, page checks, latest-slot semantics, and evidence writing."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -27,13 +27,15 @@ def _json_value(value):
 
 class ScanVisionStream:
     """Tracker and semantic scanners each have exactly one owning thread."""
-    def __init__(self, scanner, adapter, output_dir, frames, started, *, observe_fn=None):
+    def __init__(self, scanner, adapter, output_dir, frames, started, *, observe_fn=None,
+                 evidence_kind='real_game'):
         if not scanner.ready:
             raise ValueError('stream_scanner_not_initialized')
         self._scanner = scanner
         self._semantic = scanner.fork_semantic()
         self._adapter = adapter
         self._observe = observe_fn or observe_scene
+        self._evidence_kind = evidence_kind
         self._directory = Path(output_dir)
         (self._directory / 'frames').mkdir(parents=True, exist_ok=True)
         self._frames, self._started = frames, started
@@ -41,19 +43,29 @@ class ScanVisionStream:
         self._condition = threading.Condition(self._lock)
         self._stop = threading.Event()
         self._writes = Queue(maxsize=16)
-        self._thread = self._semantic_thread = self._writer = None
+        self._thread = self._scene_thread = self._semantic_thread = self._writer = None
         self._closed, self._error = False, None
         self._slot = self._latest_packet = None
+        self._scene_slot = None
+        self._semantic_metadata = None
         self._correction_slot = None
         self._axes = deepcopy(scanner.response_axes)
         self._semantic_state = self._result_state(self._semantic.result())
-        self._scene, self._scene_valid = 'board', True
+        self._semantic_result = deepcopy(self._semantic.result())
+        self._sealed_result = None
+        self._semantic_state.update(glyph_anchor_at=scanner.glyph_anchor_at,
+            glyph_anchor_rotation=(scanner.glyph_anchor_rotation.tolist()
+                if scanner.glyph_anchor_rotation is not None else None),
+            glyph_anchor_map_revision=scanner.glyph_anchor_map_revision)
+        self._scene, self._scene_valid = 'unknown', False
         self._scene_time = time.monotonic()
         self._scene_observation = None
         self._scene_metadata = None
         self._mask_cache = dict(mask_observation=deepcopy(scanner.target_mask_observation()), frame_time=self._scene_time)
         self._semantic_revision = 0
         self._stats = dict(processed_frames=0, dropped_frames=0, written_frames=0,
+                           evidence_kind=evidence_kind, scene_frames=0, scene_replaced=0,
+                           scene_total_sec=0., scene_latency_total_sec=0.,
                            semantic_frames=0, generation=None, session_id=None,
                            writer_queue_peak=0, semantic_queue_peak=0,
                            semantic_replaced=0, semantic_latency_total_sec=0.,
@@ -67,9 +79,9 @@ class ScanVisionStream:
                               rotation=scanner.rotation.copy(), tvec=scanner.tvec.copy(),
                               correction_epoch=scanner.pose_snapshot()['correction_epoch'],
                               response_axes=deepcopy(self._axes),quality=scanner.quality,
-                              tracking_ok=True,projected=deepcopy(scanner.last_projected),
-                              targets=deepcopy(scanner.last_targets),error=None,
-                              **deepcopy(self._semantic_state))
+                              tracking_ok=True,geometry_tracking_ok=True,
+                              projected=deepcopy(scanner.last_projected),
+                              targets=deepcopy(scanner.last_targets),error=None)
 
     @staticmethod
     def _result_state(result):
@@ -78,11 +90,18 @@ class ScanVisionStream:
             cell={key:deepcopy(source[key]) for key in
                   ('face','row','col','occupant','occupant_status','node_status','icon_id',
                    'occupant_evidence_counts','confidence') if key in source}
-            cell['evidence']=[{key:deepcopy(entry[key]) for key in ('frame_id','group','cosine','quad') if key in entry}
+            cell['evidence']=[{key:deepcopy(entry[key]) for key in
+                              ('frame_id','group','cosine','quad','occupant','confidence','quality',
+                               'target_box','target_point','anchor_type') if key in entry}
                               for entry in source.get('evidence',[])[:3]]
             cells.append(cell)
         return dict(cells=cells,layout_complete=result['layout_complete'],
-                    known_cells=result['known_cells'],faces_observed=result['faces_observed'])
+                    known_cells=result['known_cells'],faces_observed=result['faces_observed'],
+                    semantic_map_revision=result.get('map_revision'),
+                    **{key:deepcopy(result[key]) for key in
+                       ('schema','coordinate_frame','player_cell','singularity_cell',
+                        'inspiration_cells','diagnostics','target_clues',
+                        'target_candidate_associations') if key in result})
 
     def snapshot(self):
         with self._lock:
@@ -93,15 +112,54 @@ class ScanVisionStream:
             state.update(scene_age_sec=age,scene=self._scene)
             state['scene_observation'] = deepcopy(self._scene_observation)
             state['scene_metadata'] = deepcopy(self._scene_metadata)
+            state['semantic_metadata'] = deepcopy(self._semantic_metadata)
+            anchor_at = state.get('glyph_anchor_at')
+            state['glyph_anchor_age_sec'] = time.monotonic()-anchor_at if anchor_at else None
+            state['fusion_paused'] = bool(state.get('fusion_paused') or
+                (anchor_at and state['glyph_anchor_age_sec'] > 2.))
+            if state.get('glyph_anchor_map_revision') != state.get('map_revision'):
+                state['glyph_anchor_rotation'] = None
+            state['evidence_kind'] = self._evidence_kind
+            state['geometry_tracking_ok'] = bool(state.get('geometry_tracking_ok', state.get('tracking_ok')))
+            metadata = self._scene_metadata
+            same_frame_source = bool(metadata and metadata.get('session_id') == state.get('session_id')
+                                     and metadata.get('map_revision') == state.get('map_revision'))
+            state['scene_tracking_ok'] = bool(self._scene_valid and age <= .5 and same_frame_source)
             if not self._scene_valid or age>.5:
                 state['tracking_ok']=False
                 state['pause_reason']='scene_unknown' if not self._scene_valid else 'scene_feedback_stale'
+            elif not same_frame_source:
+                state['tracking_ok']=False
+                state['pause_reason']='scene_source_mismatch'
             return state
 
     @property
     def error(self):
         with self._lock:
             return self._error
+
+    def seal_result_if(self, predicate):
+        """Atomically finish at the actual semantic frame that meets the goal.
+
+        Draining a packet already in flight cannot replace this accepted source
+        with geometry or entity boxes from another frame. The caller still owns
+        the final fresh page/session/unchanged-gameplay checks after stop().
+        """
+        with self._lock:
+            now = time.monotonic()
+            source = self._semantic_result.get('semantic_source') or {}
+            if (self._error or self._semantic_state.get('fusion_paused') or not self._scene_valid
+                    or now-self._scene_time > .5 or now-self._snapshot['frame_time'] > .35
+                    or not self._snapshot.get('geometry_tracking_ok')
+                    or not source or now-source['frame_time'] > .8
+                    or source['session_id'] != self._snapshot.get('session_id')
+                    or source['map_revision'] != self._snapshot.get('map_revision')):
+                return False
+            if not predicate(self._semantic_result):
+                return False
+            if self._sealed_result is None:
+                self._sealed_result = deepcopy(self._semantic_result)
+            return True
 
     @property
     def stats(self):
@@ -124,10 +182,12 @@ class ScanVisionStream:
         self._stream_started=time.monotonic()
         self._writer=threading.Thread(target=self._write_loop,name='cube-scan-png',daemon=True)
         self._semantic_thread=threading.Thread(target=self._semantic_loop,name='cube-scan-semantics',daemon=True)
+        self._scene_thread=threading.Thread(target=self._scene_loop,name='cube-scan-page',daemon=True)
         self._thread=threading.Thread(target=self._run,name='cube-scan-tracking',daemon=True)
         try:
             self._writer.start()
             self._semantic_thread.start()
+            self._scene_thread.start()
             self._thread.start()
         except Exception:
             self.stop()
@@ -167,7 +227,6 @@ class ScanVisionStream:
 
     def _run(self):
         generation,session,seq=-1,None,0
-        submitted_rotation,submitted_at=None,0.
         try:
             while not self._stop.is_set():
                 packet=self._adapter.capture_stream_frame(after_generation=generation,expected_session_id=session)
@@ -222,13 +281,16 @@ class ScanVisionStream:
                 elapsed=time.monotonic()-begun;seq+=1
                 pose=deepcopy(observation.get('pose') or self._scanner.pose_snapshot())
                 frozen=dict(frame_id=frame_id,image=image,generation=generation,session_id=session,
-                            frame_time=frame_time,pose=pose,observation=deepcopy(observation))
+                            frame_time=frame_time,pose=pose,observation=deepcopy(observation),
+                            map_revision=self._scanner.identity_corrections)
                 state=dict(seq=seq,frame_id=frame_id,frame_time=frame_time,published_at=time.monotonic(),
                            generation=generation,session_id=session,rotation=self._scanner.rotation.copy(),
                            tvec=self._scanner.tvec.copy(),map_revision=self._scanner.identity_corrections,
                            correction_epoch=pose.get('correction_epoch',0),
                            elapsed=frame_time-self._started,response_axes=deepcopy(self._axes),
                            quality=self._scanner.quality,tracking_ok=bool(observation.get('tracking_ok')),
+                           geometry_tracking_ok=bool(observation.get('tracking_ok')),
+                           geometry_reason=observation.get('reason'),
                            projected=deepcopy(self._scanner.last_projected),targets=deepcopy(self._scanner.last_targets),
                            processing_sec=elapsed,dropped_frames=self._stats['dropped_frames'],semantic_fused=False,error=None)
                 self._stats['processed_frames']+=1
@@ -236,31 +298,67 @@ class ScanVisionStream:
                 self._stats.update(generation=generation,session_id=session)
                 with self._condition:
                     self._latest_packet=frozen
-                    state.update(deepcopy(self._semantic_state))
                     if self._error:state.update(error=self._error,tracking_ok=False)
                     self._snapshot=state
-                    now=time.monotonic()
-                    submit=(submitted_rotation is None or _angle(self._scanner.rotation,submitted_rotation)>=8 or now-submitted_at>=.25)
-                    if submit and observation.get('tracking_ok'):
-                        if self._slot is not None:self._stats['semantic_replaced']+=1
-                        self._slot=frozen
-                        self._stats['semantic_queue_peak']=1
-                        submitted_rotation=self._scanner.rotation.copy();submitted_at=now
-                        self._condition.notify_all()
+                    if self._scene_slot is not None:self._stats['scene_replaced']+=1
+                    self._scene_slot=frozen
+                    self._condition.notify_all()
                 if not observation.get('tracking_ok'):
                     # The failed geometry frame may be an overlay. Let the
-                    # semantic owner classify that exact packet before join.
-                    with self._condition:
-                        self._slot = frozen
-                        self._condition.notify_all()
+                    # page owner classify that exact packet before join.
                     self._save(frozen,self._scanner.annotate(image),observation,'tracking_failed',False)
                     self._fault(observation.get('reason','stream_tracking_lost'))
                 self._stop.wait(max(0.,1./30.-(time.monotonic()-begun)))
         except Exception as exc:
             self._fault(f'stream_geometry:{type(exc).__name__}:{exc}')
 
+    def _scene_loop(self):
+        """Check pages independently; only its verified packets may be fused."""
+        unknown=0
+        submitted_rotation,submitted_at=None,0.
+        try:
+            while True:
+                with self._condition:
+                    while self._scene_slot is None and not self._stop.is_set():self._condition.wait(.05)
+                    if self._scene_slot is None and self._stop.is_set():return
+                    packet,self._scene_slot=self._scene_slot,None
+                begun=time.monotonic()
+                scene=self._observe(packet['image'])
+                ended=time.monotonic()
+                is_board=bool(scene.get('valid') and scene.get('scene')=='board' and scene.get('player_turn'))
+                unknown=unknown+1 if scene.get('scene')=='unknown' else 0
+                checked=dict(packet,scene_observation=scene)
+                rotation=np.asarray(packet['pose']['rotation'],float)
+                with self._condition:
+                    self._scene=scene.get('scene','invalid');self._scene_valid=is_board
+                    self._scene_time=packet['frame_time']
+                    self._scene_observation=deepcopy(scene)
+                    self._scene_metadata={key:packet[key] for key in
+                        ('frame_id','generation','session_id','frame_time','map_revision')}
+                    self._scene_metadata.update(started_at=begun,ended_at=ended,processing_sec=ended-begun,
+                        latency_sec=ended-packet['frame_time'])
+                    self._stats['scene_frames']+=1
+                    self._stats['scene_total_sec']+=ended-begun
+                    self._stats['scene_latency_total_sec']+=ended-packet['frame_time']
+                    submit=(submitted_rotation is None or _angle(rotation,submitted_rotation)>=8 or ended-submitted_at>=.25)
+                    if (is_board and packet['observation'].get('tracking_ok') and submit
+                            and not self._stop.is_set()):
+                        if self._slot is not None:self._stats['semantic_replaced']+=1
+                        self._slot=checked
+                        self._stats['semantic_queue_peak']=1
+                        submitted_rotation=rotation.copy();submitted_at=ended
+                    self._condition.notify_all()
+                if not is_board:
+                    self._save(packet,packet['image'].copy(),dict(tracking_ok=False,reason='scene_not_board'),
+                               scene.get('scene'),False)
+                    if scene.get('scene')!='unknown' or unknown>=3:
+                        self._fault('scene_not_board')
+                        return
+        except Exception as exc:
+            self._fault(f'stream_scene:{type(exc).__name__}:{exc}')
+
     def _semantic_loop(self):
-        unknown=0;next_allowed=0.
+        next_allowed=0.
         try:
             while True:
                 with self._condition:
@@ -271,32 +369,35 @@ class ScanVisionStream:
                 with self._condition:packet,self._slot=self._slot,None
                 if packet is None:continue
                 begun=time.monotonic()
-                scene=self._observe(packet['image'])
-                is_board=bool(scene.get('valid') and scene.get('scene')=='board' and scene.get('player_turn'))
-                unknown=unknown+1 if scene.get('scene')=='unknown' else 0
-                with self._lock:
-                    self._scene=scene.get('scene','invalid');self._scene_valid=is_board
-                    self._scene_time=packet['frame_time']
-                    self._scene_observation = deepcopy(scene)
-                    self._scene_metadata = {key: packet[key] for key in
-                                            ('frame_id', 'generation', 'session_id', 'frame_time')}
-                if not is_board:observation=dict(tracking_ok=False,reason='scene_not_board')
-                else:
-                    revision=self._semantic.identity_corrections
-                    observation=self._semantic.semantic_view(packet['image'],packet['frame_id'],packet['pose'])
-                    if self._semantic.identity_corrections!=revision:
-                        observation=dict(tracking_ok=False,reason='semantic_identity_revision_requires_rescan')
-                artifact=dict(packet,fused_pose=self._semantic.pose_snapshot() if is_board else None)
-                self._save(artifact,self._semantic.annotate(packet['image']),observation,scene.get('scene'),is_board)
-                elapsed=time.monotonic()-begun
+                scene=packet['scene_observation']
+                revision=self._semantic.identity_corrections
+                observation=self._semantic.semantic_view(packet['image'],packet['frame_id'],packet['pose'],
+                    source_frame_time=packet['frame_time'])
+                fused_at=time.monotonic()
+                if self._semantic.identity_corrections!=revision:
+                    observation=dict(tracking_ok=False,reason='semantic_identity_revision_requires_rescan')
+                artifact=dict(packet,fused_pose=self._semantic.pose_snapshot())
+                elapsed=fused_at-begun
                 self._stats['semantic_frames']+=1;self._stats['semantic_total_sec']+=elapsed
                 self._stats['semantic_latency_total_sec']+=time.monotonic()-packet['frame_time']
                 with self._lock:
-                    self._semantic_state=self._result_state(self._semantic.result())
+                    self._semantic_metadata={key:packet[key] for key in
+                        ('frame_id','generation','session_id','frame_time','map_revision')}
+                    self._semantic_metadata.update(started_at=begun,ended_at=fused_at,
+                        fusion_sec=fused_at-begun,artifact_sec=None,
+                        source_epoch=packet['pose'].get('correction_epoch'),
+                        processing_sec=elapsed,latency_sec=time.monotonic()-packet['frame_time'])
+                    self._semantic_result=deepcopy(self._semantic.last_fused_result or self._semantic.result())
+                    self._semantic_result['semantic_source'] = dict(self._semantic_metadata,
+                        pose=_json_value(self._semantic.pose_snapshot()))
+                    self._semantic_state=self._result_state(self._semantic_result)
                     self._semantic_state.update(fusion_paused=bool(observation.get('fusion_paused')),
                         glyph_anchor_age_sec=observation.get('glyph_anchor_age_sec'),
                         refine_diagnostic=deepcopy(observation.get('refine_diagnostic')))
-                    if is_board and observation.get('tracking_ok'):
+                    for key in ('glyph_anchor_at','glyph_anchor_rotation','glyph_anchor_frame_id',
+                                'glyph_anchor_map_revision','glyph_anchor_faces','glyph_anchor_reason'):
+                        if key in observation:self._semantic_state[key]=deepcopy(observation[key])
+                    if observation.get('tracking_ok'):
                         self._semantic_revision+=1
                         correction=observation.get('pose_correction')
                         if correction is not None:
@@ -311,10 +412,14 @@ class ScanVisionStream:
                             else:
                                 if self._correction_slot is not None:self._stats['pose_corrections_replaced']+=1
                                 self._correction_slot=deepcopy(correction)
-                    if is_board:
-                        self._mask_cache=dict(mask_observation=deepcopy(observation.get('mask_observation',[])),
-                                              frame_time=packet['frame_time'])
-                if not observation.get('tracking_ok') and not(scene.get('scene')=='unknown' and unknown<3):
+                    self._mask_cache=dict(mask_observation=deepcopy(observation.get('mask_observation',[])),
+                                          frame_time=packet['frame_time'])
+                # Publish control feedback before rendering evidence. The PNG
+                # owner still receives the exact source image and fused pose.
+                self._save(artifact,self._semantic.annotate(packet['image']),observation,scene.get('scene'),True)
+                with self._lock:
+                    self._semantic_metadata['artifact_sec']=time.monotonic()-fused_at
+                if not observation.get('tracking_ok'):
                     self._fault(observation.get('reason','semantic_failed'))
                     return
                 next_allowed=begun+.2
@@ -326,7 +431,7 @@ class ScanVisionStream:
         if self._closed:return
         self._stop.set()
         with self._condition:self._condition.notify_all()
-        for thread in(self._thread,self._semantic_thread):
+        for thread in(self._thread,self._scene_thread,self._semantic_thread):
             if thread is not None and thread.ident is not None:thread.join()
         if self._correction_slot is not None:
             correction=self._correction_slot
@@ -337,8 +442,13 @@ class ScanVisionStream:
             self._correction_slot=None
         for field in('evidence','view_rotations','group','group_rotation','icon_anchors',
                      'best_known','stagnant_frames','identity_corrections',
-                     'glyph_anchor_at','glyph_anchor_reason'):
+                     'glyph_anchor_at','glyph_anchor_reason','glyph_anchor_rotation',
+                     'glyph_anchor_frame_id','glyph_anchor_map_revision','glyph_anchor_faces'):
             setattr(self._scanner,field,deepcopy(getattr(self._semantic,field)))
+        # Retain the semantic owner's frozen source/pose/target associations.
+        # The geometry owner's current pose may be newer and cannot be mixed
+        # with the older entity boxes when exporting target readiness.
+        self._scanner.last_fused_result = deepcopy(self._sealed_result or self._semantic.last_fused_result)
         if self._latest_packet is not None:
             packet=self._latest_packet
             if not any(row['frame_id']==packet['frame_id'] for row in self._frames):
@@ -351,6 +461,8 @@ class ScanVisionStream:
         self._stats.update(error=self.error,duration_sec=duration,
                            track_fps=self._stats['processed_frames']/duration,
                            semantic_fps=self._stats['semantic_frames']/duration,
+                           scene_fps=self._stats['scene_frames']/duration,
+                           scene_mean_latency_sec=self._stats['scene_latency_total_sec']/max(1,self._stats['scene_frames']),
                            semantic_mean_latency_sec=self._stats['semantic_latency_total_sec']/max(1,self._stats['semantic_frames']))
         self._closed=True
 

@@ -17,6 +17,7 @@ import numpy as np
 
 from . import _deep_dive_single_run_vision as single
 from . import _deep_dive_hud_templates as hud_templates
+from ._deep_dive_match_cache import exact_roi_cache
 
 
 ROOT = Path(__file__).resolve().parents[2] / "templates/deep_dive_planned_run"
@@ -83,18 +84,49 @@ def _template(name: str) -> tuple[np.ndarray, np.ndarray | None]:
     return gray, mask
 
 
+@exact_roi_cache(region=lambda name: REGIONS[name],
+                 dependencies=lambda name: (_template, *_template(name),
+                     _binary_masked_ncc, _ncc_template, cv2.matchTemplate, cv2.minMaxLoc))
 def _match(gray: np.ndarray, name: str) -> tuple[float, list[int] | None]:
     x1, y1, x2, y2 = REGIONS[name]
     reference, mask = _template(name)
     roi = gray[y1:y2, x1:x2]
     if roi.shape[0] < reference.shape[0] or roi.shape[1] < reference.shape[1]:
         return 0., None
-    response = cv2.matchTemplate(roi, reference, cv2.TM_CCOEFF_NORMED, mask=mask)
+    response = (_binary_masked_ncc(roi,name) if mask is not None
+                else cv2.matchTemplate(roi,reference,cv2.TM_CCOEFF_NORMED))
     if not np.isfinite(response).any():
         return 0., None
     response = np.where(np.isfinite(response), response, -1.).astype(np.float32)
     _, score, _, (x, y) = cv2.minMaxLoc(response)
     return float(score), [x1+x+reference.shape[1]//2, y1+y+reference.shape[0]//2]
+
+
+@lru_cache(maxsize=None)
+def _ncc_template(name):
+    reference,mask=_template(name)
+    binary=(mask>0).astype(np.float32)
+    count=float(binary.sum())
+    centred=(reference.astype(np.float32)-float((reference*binary).sum())/count)*binary
+    return binary,count,centred,float((centred*centred).sum()),float(centred.sum())/count
+
+
+def _binary_masked_ncc(roi,name):
+    """The same binary-mask CCOEFF score via three unmasked correlations.
+
+    Our alpha-ring masks contain only 0/255. Thus masked first and second
+    moments share one kernel, avoiding OpenCV's generic weighted-mask path.
+    Constant windows have no defined normalized correlation and stay rejected.
+    """
+    mask,count,centred,variance,offset=_ncc_template(name)
+    image=roi.astype(np.float32)
+    total=cv2.matchTemplate(image,mask,cv2.TM_CCORR)
+    squared=cv2.matchTemplate(image*image,mask,cv2.TM_CCORR)
+    numerator=cv2.matchTemplate(image,centred,cv2.TM_CCORR)-total*offset
+    denominator=np.sqrt(np.maximum(squared-total*total/count,0.)*variance)
+    response=np.full_like(denominator,-1.)
+    np.divide(numerator,denominator,out=response,where=denominator>1.)
+    return response
 
 
 def _plane_icon(gray: np.ndarray) -> dict:
@@ -182,6 +214,23 @@ def _rest_modal_evidence(rgb: np.ndarray) -> dict | None:
     return None
 
 
+class _FrameProbes(dict):
+    """Evaluate only the probes reached by the unchanged page predicates."""
+    def __init__(self, gray, result):
+        super().__init__()
+        self.gray = gray
+        self.scores = result['planned_scores'] = {}
+        self.pending = result['planned_probes_not_evaluated'] = [
+            name for name in REGIONS if not name.startswith('plane_')]
+
+    def __missing__(self, name):
+        value = _match(self.gray, name)
+        self[name] = value
+        self.scores[name] = round(value[0], 4)
+        self.pending.remove(name)
+        return value
+
+
 def observe(rgb: np.ndarray, event_family: str = "healing") -> dict:
     """Extend legacy page observations without input or temporal assumptions."""
     result = single.observe(rgb, event_family=event_family)
@@ -196,15 +245,16 @@ def observe(rgb: np.ndarray, event_family: str = "healing") -> dict:
     if not result.get("valid"):
         return result
     gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    probes = {name: _match(gray, name) for name in REGIONS if not name.startswith("plane_")}
-    result["planned_scores"] = {name: round(value[0], 4) for name, value in probes.items()}
+    probes = _FrameProbes(gray, result)
     # Title and a distinct summary/details layout marker are both required.
     summary = probes["settlement_layout"][0] >= .85
     detail_score, _ = _legacy_cleanup_match(gray, "confirm", (510, 590, 790, 710))
     layout = summary or detail_score >= .87
-    failure = max(probes["settlement_failure"][0],
-                  float(result.get("scores", {}).get("settlement_failure", 0.)))
-    victory = probes["settlement_victory"][0]
+    failure = victory = 0.
+    if layout:
+        failure = max(probes["settlement_failure"][0],
+                      float(result.get("scores", {}).get("settlement_failure", 0.)))
+        victory = probes["settlement_victory"][0]
     if layout and max(failure, victory) >= .86:
         outcome = ("victory" if victory >= .86 and victory-failure >= .06 else
                    "failure" if failure >= .86 and failure-victory >= .06 else "unknown")

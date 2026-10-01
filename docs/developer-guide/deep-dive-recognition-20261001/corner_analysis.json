@@ -1,0 +1,622 @@
+{
+  "warning": "Geometric opportunities are not accepted votes or an accuracy/time proof. Tracked pose variation includes tracker jitter and corrections. Endpoint-only coverage is insufficient.",
+  "results": [
+    {
+      "source": "live_hybrid_03",
+      "planning_ms": 443.14749999466585,
+      "views": 4,
+      "broad_path_opportunities": 39,
+      "predicted_uncovered_votes": 0,
+      "predicted_axis_travel_deg": 593.4894419217768,
+      "min_cell_path_opportunities": 3,
+      "min_cell_endpoint_opportunities": 0,
+      "face_min_path_opportunities": {
+        "U": 7,
+        "R": 4,
+        "F": 5,
+        "D": 3,
+        "L": 8,
+        "B": 3
+      },
+      "source_elapsed": 47.0,
+      "source_tracked_pose_variation_deg": 844.4070833684317,
+      "actual_remaining_vote_deficits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_missing_cells": [],
+      "route": [
+        {
+          "corner": [
+            1,
+            1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -21.47226886150186,
+            -80.46198128234845
+          ],
+          "opportunities": 88,
+          "planning_gain": 53
+        },
+        {
+          "corner": [
+            -1,
+            -1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -4.530865985135882,
+            -179.7685791885448
+          ],
+          "opportunities": 123,
+          "planning_gain": 72
+        },
+        {
+          "corner": [
+            1,
+            -1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            40.0527362986059,
+            -110.93680655235146
+          ],
+          "opportunities": 108,
+          "planning_gain": 20
+        },
+        {
+          "corner": [
+            1,
+            1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -59.43442990870312,
+            -96.83177384458526
+          ],
+          "opportunities": 135,
+          "planning_gain": 17
+        }
+      ]
+    },
+    {
+      "source": "live_hybrid_repeat/run1",
+      "planning_ms": 444.3459000030998,
+      "views": 4,
+      "broad_path_opportunities": 40,
+      "predicted_uncovered_votes": 0,
+      "predicted_axis_travel_deg": 598.2572878188843,
+      "min_cell_path_opportunities": 3,
+      "min_cell_endpoint_opportunities": 0,
+      "face_min_path_opportunities": {
+        "U": 11,
+        "R": 4,
+        "F": 5,
+        "D": 3,
+        "L": 9,
+        "B": 3
+      },
+      "source_elapsed": 48.688,
+      "source_tracked_pose_variation_deg": 829.7040006697482,
+      "actual_remaining_vote_deficits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_missing_cells": [],
+      "route": [
+        {
+          "corner": [
+            1,
+            1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -22.536285576046176,
+            -81.29635209305607
+          ],
+          "opportunities": 95,
+          "planning_gain": 58
+        },
+        {
+          "corner": [
+            -1,
+            -1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -0.639661411146608,
+            -179.9870970524047
+          ],
+          "opportunities": 121,
+          "planning_gain": 72
+        },
+        {
+          "corner": [
+            1,
+            -1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            42.16151384139544,
+            -107.95222775387998
+          ],
+          "opportunities": 118,
+          "planning_gain": 20
+        },
+        {
+          "corner": [
+            1,
+            1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -67.09257930005425,
+            -96.59157079090106
+          ],
+          "opportunities": 144,
+          "planning_gain": 12
+        }
+      ]
+    },
+    {
+      "source": "live_hybrid_repeat/run2",
+      "planning_ms": 442.7581999989343,
+      "views": 4,
+      "broad_path_opportunities": 39,
+      "predicted_uncovered_votes": 0,
+      "predicted_axis_travel_deg": 595.3826445988326,
+      "min_cell_path_opportunities": 3,
+      "min_cell_endpoint_opportunities": 0,
+      "face_min_path_opportunities": {
+        "U": 10,
+        "R": 3,
+        "F": 5,
+        "D": 3,
+        "L": 9,
+        "B": 3
+      },
+      "source_elapsed": 57.0,
+      "source_tracked_pose_variation_deg": 1118.0173310598698,
+      "actual_remaining_vote_deficits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_missing_cells": [
+        {
+          "face": "D",
+          "row": 1,
+          "col": 0,
+          "node_status": "unknown",
+          "counts": {
+            "none": 2
+          }
+        },
+        {
+          "face": "L",
+          "row": 0,
+          "col": 2,
+          "node_status": "unknown",
+          "counts": {
+            "none": 2
+          }
+        }
+      ],
+      "route": [
+        {
+          "corner": [
+            1,
+            1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -22.190440530654485,
+            -80.90647774755465
+          ],
+          "opportunities": 86,
+          "planning_gain": 54
+        },
+        {
+          "corner": [
+            -1,
+            -1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -2.00414613968674,
+            -179.97073741993063
+          ],
+          "opportunities": 123,
+          "planning_gain": 72
+        },
+        {
+          "corner": [
+            1,
+            -1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            38.17935796126341,
+            -108.34218155729496
+          ],
+          "opportunities": 117,
+          "planning_gain": 21
+        },
+        {
+          "corner": [
+            1,
+            1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -68.68336547836664,
+            -95.10593776408112
+          ],
+          "opportunities": 126,
+          "planning_gain": 15
+        }
+      ]
+    },
+    {
+      "source": "live_hybrid_repeat/run3",
+      "planning_ms": 433.0709999994724,
+      "views": 4,
+      "broad_path_opportunities": 39,
+      "predicted_uncovered_votes": 0,
+      "predicted_axis_travel_deg": 598.2220615487824,
+      "min_cell_path_opportunities": 3,
+      "min_cell_endpoint_opportunities": 0,
+      "face_min_path_opportunities": {
+        "U": 10,
+        "R": 4,
+        "F": 5,
+        "D": 3,
+        "L": 9,
+        "B": 3
+      },
+      "source_elapsed": 57.0,
+      "source_tracked_pose_variation_deg": 996.4965313517027,
+      "actual_remaining_vote_deficits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "actual_missing_cells": [
+        {
+          "face": "D",
+          "row": 0,
+          "col": 1,
+          "node_status": "unknown",
+          "counts": {
+            "none": 1
+          }
+        }
+      ],
+      "route": [
+        {
+          "corner": [
+            1,
+            1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -22.90416704131776,
+            -81.46705605698901
+          ],
+          "opportunities": 95,
+          "planning_gain": 58
+        },
+        {
+          "corner": [
+            -1,
+            -1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -0.8577513764609456,
+            -179.97673818548816
+          ],
+          "opportunities": 121,
+          "planning_gain": 72
+        },
+        {
+          "corner": [
+            1,
+            -1,
+            -1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            44.145085952469245,
+            -108.03408453166489
+          ],
+          "opportunities": 119,
+          "planning_gain": 20
+        },
+        {
+          "corner": [
+            1,
+            1,
+            1
+          ],
+          "axis_order": [
+            0,
+            1
+          ],
+          "angles_deg": [
+            -62.79761271802888,
+            -98.03956568636357
+          ],
+          "opportunities": 135,
+          "planning_gain": 12
+        }
+      ]
+    }
+  ]
+}

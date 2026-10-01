@@ -234,8 +234,21 @@ class CellScanPolicy:
     never by the number of high-frequency controller calls.
     """
 
-    def __init__(self, base_step_px=300, max_step_px=450):
+    def __init__(self, base_step_px=300, max_step_px=450, *,
+                 recognition_goal='full', expected_inspirations=None):
         from ._deep_dive_layout_vision import BASES, K, DISTANCE, HALF_TILE, SEED_T
+        if recognition_goal not in ('full', 'layout', 'targets'):
+            raise ValueError('unsupported_recognition_goal')
+        if expected_inspirations is not None and (isinstance(expected_inspirations, bool)
+                or not isinstance(expected_inspirations, (int, np.integer))
+                or not 0 <= expected_inspirations <= 54):
+            raise ValueError('invalid_expected_inspirations')
+        self.recognition_goal = recognition_goal
+        self.expected_inspirations = expected_inspirations
+        self._current_target_deficits = set()
+        self._observed_motion_rate = None
+        self._motion_pose = None
+        self._motion_time = None
         self.base_step_px = float(base_step_px)
         self.max_step_px = float(max_step_px)
         self.allow_diagonal = True
@@ -244,6 +257,7 @@ class CellScanPolicy:
         self.insufficient = []
         self.visits = {face: 0 for face in _NORMALS}
         self._K = K.copy()
+        self._tile_span = 2.*HALF_TILE
         self.tvec = SEED_T.copy()
         self._keys = [(face, row, col) for face in _NORMALS
                       for row in range(3) for col in range(3)]
@@ -280,6 +294,10 @@ class CellScanPolicy:
         self._progress_votes = 0.
         self._no_descent_since = None
         self._pending_replan_reason = None
+        self._anchor_recovery = None
+        self._anchor_recovery_count = 0
+        self._anchor_failed_frames = 0
+        self._anchor_feedback_frame = None
         self._calibrator = FaceScanPolicy(base_step_px, max_step_px)
 
     def request_replan(self, reason='controller_requested_replan'):
@@ -294,6 +312,85 @@ class CellScanPolicy:
         return [lookup.get(key, {}) for key in self._keys]
 
     @staticmethod
+    def _observed(row):
+        # A label or camera-facing prediction alone is not face coverage.
+        return any(isinstance(item, dict) and isinstance(item.get('frame_id'), (int, np.integer))
+                   and not isinstance(item.get('frame_id'), bool)
+                   and isinstance(item.get('group'), (int, np.integer))
+                   and not isinstance(item.get('group'), bool)
+                   and item['frame_id'] >= 0 and item['group'] >= 0
+                   for item in row.get('evidence', ()))
+
+    def _objective(self, rows):
+        """Planning deficits only; this never changes atlas classes or votes."""
+        if self.recognition_goal != 'targets':
+            complete = np.array([r.get('occupant_status') == 'confirmed' and
+                r.get('node_status') in ('known', 'not_required_target') for r in rows])
+            seen = np.array([bool(r.get('evidence') or r.get('occupant_evidence_counts')
+                                 or r.get('occupant_status') == 'confirmed') for r in rows])
+            return complete, seen
+        seen = np.array([self._observed(row) for row in rows])
+        complete = np.array([r.get('occupant_status') == 'confirmed' for r in rows])
+        positive = {}
+        for kind in ('player', 'singularity', 'inspiration'):
+            positive[kind] = []
+            for index, row in enumerate(rows):
+                if row.get('occupant') != kind or not complete[index]:
+                    continue
+                groups = {entry.get('group') for entry in row.get('evidence', ())
+                          if isinstance(entry, dict) and self._observed(dict(evidence=[entry]))
+                          and entry.get('occupant', kind) == kind}
+                if (row.get('occupant_evidence_counts', {}).get(kind, 0) >= 2
+                        and len(groups) >= 2 and row.get('confidence', 0.) >= .70):
+                    positive[kind].append(index)
+                else:
+                    complete[index] = False
+        closed = (self.expected_inspirations is not None
+                  and len(positive['player']) == len(positive['singularity']) == 1
+                  and len(positive['inspiration']) == self.expected_inspirations)
+        if closed:
+            # HUD closure excludes another target, but does not assign 'none'
+            # to any cell. Unresolved positive votes still require real reads.
+            for index, row in enumerate(rows):
+                if not complete[index] and not any(row.get('occupant_evidence_counts', {}).get(kind, 0)
+                        for kind in ('player', 'singularity', 'inspiration')):
+                    complete[index] = True
+        # Multiple confirmed unique entities are a contradiction, not success.
+        for kind in ('player', 'singularity'):
+            if len(positive[kind]) > 1:
+                complete[positive[kind]] = False
+        if (self.expected_inspirations is not None
+                and len(positive['inspiration']) > self.expected_inspirations):
+            complete[positive['inspiration']] = False
+        if self._current_target_deficits:
+            complete[list(self._current_target_deficits)] = False
+        return complete, seen
+
+    def _candidate_deficits(self, rows, feedback):
+        """Relevant current detections need another real view if not attached."""
+        from ._deep_dive_target_readiness import _relevant
+        targets = ('player', 'singularity', 'inspiration')
+        deficits = set()
+        associations = feedback.get('target_candidate_associations', feedback.get('mask_observation', ())) or ()
+        clues = feedback.get('target_clues', ()) or ()
+        relevant = [entry for entry in associations if isinstance(entry, dict) and _relevant(entry)]
+        for entry in relevant:
+            index, kind = entry.get('cell_index'), entry.get('kind')
+            valid_index = isinstance(index, (int, np.integer)) and not isinstance(index, bool) and 0 <= index < 54
+            if (valid_index and rows[index].get('occupant_status') == 'confirmed'
+                    and rows[index].get('occupant') == kind and kind in targets):
+                continue
+            if valid_index:
+                deficits.add(int(index))
+            else:
+                deficits.update(i for i, row in enumerate(rows) if row.get('occupant') == kind)
+        for kind in targets:
+            if (sum(isinstance(entry, dict) and _relevant(entry) and entry.get('kind') == kind for entry in clues)
+                    > sum(entry.get('kind') == kind for entry in relevant)):
+                deficits.update(i for i, row in enumerate(rows) if row.get('occupant') == kind)
+        return deficits
+
+    @staticmethod
     def _votes(rows):
         # Vote counts represent independent accepted observations, whereas
         # semantic revision alone also advances on entirely unreadable frames.
@@ -303,10 +400,9 @@ class CellScanPolicy:
 
     def _feedback(self, rows, pose, now, reason, force_failure=False):
         votes = self._votes(rows)
+        complete, _ = self._objective(rows)
         failed = [i for i in self._target_indices if force_failure or
-                  (votes[i] <= self._plan_votes[i] and not
-                   (rows[i].get('occupant_status') == 'confirmed' and
-                    rows[i].get('node_status') in ('known','not_required_target')))]
+                  (votes[i] <= self._plan_votes[i] and not complete[i])]
         if self._target_indices:
             self._last_attempt[self._target_indices] = now
         if failed:
@@ -315,7 +411,78 @@ class CellScanPolicy:
             self.insufficient.append(dict(face=self.target_face, reason=reason,
                 target_cells=[self._keys[i] for i in failed]))
 
-    def _readability(self, rotations, rows):
+    def _sprite_footprint(self, row):
+        """Infer a billboard size from accepted same-image sprite/tile evidence.
+
+        Tile area divided by facing cosine estimates an unforeshortened pixel
+        scale. Sprite rectangles are screen-facing, so their extent must not
+        shrink with the candidate face's cosine. These are planning bounds,
+        never fresh image evidence, labels or renewed calibration.
+        """
+        occupant = row.get('occupant')
+        limits = {'singularity': (.20, 1.), 'inspiration': (.05, .65),
+                  'player': (.06, .85)}.get(occupant)
+        if limits is None:
+            return None
+        radii, heights = [], []
+        for evidence in row.get('evidence', [])[-12:]:
+            if (evidence.get('occupant') != occupant or
+                    evidence.get('confidence', 0.) < .60 or
+                    evidence.get('quality', 1.) < .50):
+                continue
+            try:
+                box = np.asarray(evidence.get('target_box', []), float)
+                quad = np.asarray(evidence.get('quad', []), float)
+                cosine = float(evidence.get('cosine', 0.))
+            except (TypeError, ValueError):
+                continue
+            if (box.shape != (4,) or quad.shape != (4, 2) or
+                    not np.isfinite(box).all() or not np.isfinite(quad).all() or
+                    not math.isfinite(cosine) or not .20 <= cosine <= 1. or
+                    min(box[2:]) < 8. or max(box[2:]) > 400.):
+                continue
+            area = .5*abs(np.sum(quad[:, 0]*np.roll(quad[:, 1], -1)
+                                -quad[:, 1]*np.roll(quad[:, 0], -1)))
+            if area < 400.:
+                continue
+            scale = math.sqrt(area/cosine)/self._tile_span
+            radius = (box[2:]*.5+8.)/scale
+            if max(radius) > 2.:
+                continue
+            radii.append(radius)
+            # Near a face-normal view the projected normal is too short to
+            # estimate height. Keep the finite physical prior in that case.
+            if occupant != 'player' and cosine < .95:
+                try:
+                    point = np.asarray(evidence.get('target_point', box[:2]+box[2:]*.5), float)
+                except (TypeError, ValueError):
+                    continue
+                if (point.shape == (2,) and np.isfinite(point).all() and
+                        (point >= box[:2]-15.).all() and
+                        (point <= box[:2]+box[2:]+15.).all()):
+                    height = np.linalg.norm(point-quad.mean(axis=0))/(scale*math.sqrt(1.-cosine*cosine))
+                    if limits[0]-.15 <= height <= limits[1]+.15:
+                        heights.append(float(np.clip(height, *limits)))
+        if not radii:
+            return None
+        # Keep the largest observed animation footprint. A player's head box
+        # alone does not cover the body, so retain its full normal-height band.
+        height_range = (max(limits[0], min(heights)-.10),
+                        min(limits[1], max(heights)+.10)) if heights else limits
+        return np.max(radii, axis=0), height_range
+
+    def _sprite_occlusion_bounds(self, rotations, index, row, pixel_scale, corridor):
+        profile = self._sprite_footprint(row)
+        if profile is None:
+            return corridor.min(axis=1)-14., corridor.max(axis=1)+14.
+        radius, heights = profile
+        points = self._points[index]+self._normals[index]*np.asarray(heights)[:, None]
+        camera = np.einsum('bij,nj->bni', rotations, points)+np.asarray(self.tvec).reshape(3)
+        projected = camera[..., :2]/camera[..., 2, None]*self._K[0, 0]+self._K[:2, 2]
+        extent = np.maximum(14., pixel_scale[:, None]*radius[None, :])
+        return projected.min(axis=1)-extent, projected.max(axis=1)+extent
+
+    def _readability(self, rotations, rows, *, anchors=False, known_only=True):
         """Vectorized, conservative counterpart of the scanner's image gates."""
         translations = np.asarray(self.tvec, float).reshape(3)
         def project(points):
@@ -331,7 +498,7 @@ class CellScanPolicy:
                                 -q[...,1]*np.roll(q[...,0], -1, axis=2), axis=2))
         valid = ((q[...,0] >= 300).all(axis=2) & (q[...,0] <= 950).all(axis=2)
                  & (q[...,1] >= 84).all(axis=2) & (q[...,1] <= 615).all(axis=2)
-                 & (area >= 800) & (cosine >= .48))
+                 & (area >= (900 if anchors else 800)) & (cosine >= (.30 if anchors else .48)))
         # Convex projected tile contains the fixed reset button centre.
         edge = np.roll(q, -1, axis=2)-q
         delta = np.array((640., 534.))-q
@@ -346,13 +513,20 @@ class CellScanPolicy:
                               & (corridor[...,1] > 480) & (corridor[...,1] < 590))).all(axis=2))
         target = np.array([row.get('occupant') in ('player','inspiration','singularity')
                            for row in rows])
+        if anchors and known_only:
+            known = np.array([row.get('occupant') == 'none' and
+                row.get('node_status') == 'known' and row.get('confidence', 0) >= .70
+                for row in rows])
+            valid &= known[None, :]
         valid &= clear_corridor | target[None, :]
-        # Already located raised objects predict likely obstruction. Actual
-        # sprite rectangles remain authoritative in the semantic worker.
+        # Predict the observed sprite's full screen-facing footprint over a
+        # finite normal-height band. Actual current-frame rectangles remain
+        # authoritative in the semantic worker; no-box rows keep the old prior.
+        qlo, qhi = q.min(axis=2), q.max(axis=2)
+        pixel_scale = np.sqrt(area/np.clip(cosine, .20, 1.))/self._tile_span
         for index in np.flatnonzero(target):
-            lo = corridor[:, index].min(axis=1)-14.
-            hi = corridor[:, index].max(axis=1)+14.
-            qlo, qhi = q.min(axis=2), q.max(axis=2)
+            lo, hi = self._sprite_occlusion_bounds(rotations, index, rows[index],
+                pixel_scale[:, index], corridor[:, index])
             overlap = np.maximum(0., np.minimum(qhi, hi[:, None])-np.maximum(qlo, lo[:, None]))
             blocked = (overlap[...,0]*overlap[...,1] > area*.16) & (cosine[:,index,None] > .2)
             blocked[:,index] = False
@@ -360,18 +534,150 @@ class CellScanPolicy:
         quality = np.clip((cosine-.40)/.50, .15, 1.)
         return valid * quality
 
+    def _anchor_support(self, rotations, rows):
+        visible = self._readability(rotations, rows, anchors=True) > 0
+        counts = visible.sum(axis=1)
+        faces = np.stack([visible[:, i*9:(i+1)*9].sum(axis=1) for i in range(6)], axis=1)
+        # This predicts support only. Actual pixels and residual gates still
+        # decide whether the scanner can renew calibration.
+        return counts, (counts >= 6) & ((faces >= 2).sum(axis=1) >= 2)
+
+    @staticmethod
+    def _short_waypoints(observed, route):
+        """Preserve an axis route while bounding each tracked approach to 30°.
+
+        The controller can rotate more slowly when current semantics require
+        overlap. A 110° leg must not consume the whole approach watchdog before
+        it reaches its first checkpoint. These checkpoints neither accept map
+        labels nor introduce extra semantic dwell.
+        """
+        waypoints = []
+        previous = observed
+        for destination in route:
+            delta = _pose_vector(destination, previous)
+            count = max(1, int(math.ceil(np.linalg.norm(delta)/math.radians(30.))))
+            waypoints.extend(_matrix(delta*(index/count)) @ previous
+                             for index in range(1, count))
+            waypoints.append(destination)
+            previous = destination
+        return waypoints
+
+    def _planning_anchor_support(self, rotations, rows, *, route=False):
+        """Predict overlap without requiring every incoming face to be learned.
+
+        A new grid can renew the real fitter only with independent support on
+        more than one face. Such views get a discounted planning prior; a view
+        containing only an unlearned face keeps its original low support.
+        Actual pixels, residuals and semantic confirmation remain authoritative.
+        """
+        visible = self._readability(rotations, rows, anchors=True, known_only=False) > 0
+        regular = np.array([row.get('occupant') not in ('player', 'inspiration', 'singularity')
+                            for row in rows])
+        known = np.array([row.get('occupant') == 'none' and row.get('node_status') == 'known'
+                          and row.get('confidence', 0) >= .70 for row in rows])
+        known_visible = visible & known[None, :]
+        counts = known_visible.sum(axis=1)
+        if route:
+            support = np.clip(counts/4., .12, 1.)
+        else:
+            faces = np.stack([known_visible[:, i*9:(i+1)*9].sum(axis=1) for i in range(6)], axis=1)
+            support = np.clip(counts/6., .12, 1.)
+            support[(counts >= 6) & ((faces >= 2).sum(axis=1) >= 2)] = 1.25
+        potential = visible & regular[None, :]
+        potential_faces = np.stack([potential[:, i*9:(i+1)*9].sum(axis=1) for i in range(6)], axis=1)
+        incoming = (potential & ~known[None, :]).any(axis=1)
+        independent = ((potential.sum(axis=1) >= 7) &
+                       ((potential_faces >= 2).sum(axis=1) >= 2) & incoming)
+        support[independent] = np.maximum(support[independent], .85)
+        return support
+
+    def _route_anchor_support(self, paths, rows, *, allow_potential=False):
+        # Project the whole candidate batch once. Rebuilding the same cell
+        # arrays for each one/two-pose path stalls the live input controller.
+        lengths = np.array([len(path) for path in paths], dtype=int)
+        poses = np.asarray([pose for path in paths for pose in path])
+        offsets = np.r_[0, np.cumsum(lengths)[:-1]]
+        if allow_potential:
+            return np.minimum.reduceat(self._planning_anchor_support(poses, rows, route=True), offsets)
+        counts, _ = self._anchor_support(poses, rows)
+        minima = np.minimum.reduceat(counts, offsets)
+        return np.clip(minima/4., .12, 1.)
+
+    def _recovery_search_goal(self, anchor, axes, rows, tried):
+        """Choose a local view that preserves unoccluded known glyphs.
+
+        The signs of the measured input axes depend on the current camera.
+        Search both signs and prefer support on two faces instead of assuming
+        that a positive 12° turn makes the last verified view easier to read.
+        This only chooses an input goal; current image fits finish recovery.
+        """
+        candidates = np.array([_matrix(_unit(axes[axis])*math.radians(sign*angle)) @ anchor
+            for axis in (0, 1) for sign in (-1, 1) for angle in (6., 12.)])
+        readable = self._readability(candidates, rows, anchors=True)
+        counts = (readable > 0).sum(axis=1)
+        face_counts = np.stack([(readable[:, index*9:(index+1)*9] > 0).sum(axis=1)
+                                for index in range(6)], axis=1)
+        second_face = np.sort(face_counts, axis=1)[:, -2]
+        multi_face = (counts >= 6) & (second_face >= 2)
+        eligible = [index for index, pose in enumerate(candidates)
+                    if all(_pose_angle(pose, prior) > math.radians(4.) for prior in tried)]
+        if not eligible:
+            return None
+        best = max(eligible, key=lambda index: (multi_face[index], second_face[index],
+            readable[index].sum(), counts[index], -_pose_angle(candidates[index], anchor)))
+        return candidates[best]
+
+    def _coverage_prefixes(self, observed, paths):
+        """Offer the first useful checkpoint, not just a remote final view.
+
+        Every candidate remains an executable prefix of the same two-axis
+        feedback route. Repeated first-leg checkpoints share one candidate;
+        different noncommuting paths retain their own actual rotations.
+        """
+        unique = {}
+        for path in paths:
+            prefix = []
+            previous = observed
+            travel = 0.
+            for pose in self._short_waypoints(observed, path):
+                prefix.append(pose)
+                travel += _pose_angle(pose, previous)
+                previous = pose
+                key = tuple(np.round(pose.ravel(), 6))
+                if key not in unique or travel < unique[key][2]:
+                    unique[key] = (pose, list(prefix), travel)
+        values = list(unique.values())
+        return (np.asarray([value[0] for value in values]),
+                [value[1] for value in values],
+                np.array([value[2] for value in values]))
+
+    def _coverage_gain(self, readable, weights, unseen_faces):
+        # A first view of three usable cells is already a face-observation
+        # opportunity. Nine cells at a remote endpoint must not outbid that
+        # shorter view merely because their ordinary pages remain unknown.
+        gain = np.zeros(len(readable))
+        for face in unseen_faces:
+            indices = [i for i, key in enumerate(self._keys) if key[0] == face]
+            evidence = readable[:, indices]
+            saturation = np.minimum(evidence.sum(axis=1)/3., 1.)
+            saturation[(evidence > 0).sum(axis=1) < 3] = 0.
+            gain += saturation * float(weights[indices].mean())
+        return gain
+
     def _plan(self, observed, rows, axes, now):
         plan_started = time.perf_counter()
-        complete = np.array([r.get('occupant_status') == 'confirmed' and
-            r.get('node_status') in ('known','not_required_target') for r in rows])
-        seen = np.array([bool(r.get('evidence') or r.get('occupant_evidence_counts')
-                             or r.get('occupant_status') == 'confirmed') for r in rows])
+        complete, seen = self._objective(rows)
         unseen_faces = {face for face in _NORMALS
                         if not any(seen[i] for i, key in enumerate(self._keys) if key[0] == face)}
-        weights = np.array([0. if complete[i] else
+        pending = ~complete
+        if self.recognition_goal == 'targets' and unseen_faces:
+            # Coverage first: observed-face page deficits cannot win another
+            # route while an entire target-bearing face remains unobserved.
+            pending = np.array([key[0] in unseen_faces for key in self._keys])
+        weights = np.array([0. if not pending[i] else
             (3. if key[0] in unseen_faces else 1.) *
-            (1.6 if rows[i].get('node_status') == 'conflict' or
-             rows[i].get('occupant_status') == 'conflict' else 1.) *
+            (1.6 if rows[i].get('occupant_status') == 'conflict' or
+             (self.recognition_goal != 'targets' and rows[i].get('node_status') == 'conflict') else 1.) *
             (1.+min(4., max(0., now-self._last_gain[i])/8.)) *
             (.25+.75*min(1., max(0., now-self._last_attempt[i])/6.))
             for i, key in enumerate(self._keys)])
@@ -393,6 +699,9 @@ class CellScanPolicy:
                                  + ([final] if abs(b) > .01 else []))
                     costs.append(abs(a)+abs(b))
         candidates = np.asarray(candidates)
+        prefix_coverage = self.recognition_goal == 'targets' and bool(unseen_faces)
+        if prefix_coverage:
+            candidates, paths, costs = self._coverage_prefixes(observed, paths)
         readable = self._readability(candidates, rows)
         # A geometrically plausible view that produced no accepted votes is
         # evidence against that pose-cell pair, not evidence against the cell.
@@ -411,24 +720,37 @@ class CellScanPolicy:
         for prior in self._reached[-48:] + self._failed_views[-12:] + [observed]:
             traces = np.einsum('bij,ij->b', candidates, prior)
             novelty &= traces < 1.+2.*math.cos(math.radians(9.))
-        gain = adjusted @ weights
-        score = gain / (1.+np.asarray(costs)/math.radians(100.))
+        gain = (self._coverage_gain(adjusted, weights, unseen_faces)
+                if prefix_coverage else adjusted @ weights)
+        if prefix_coverage:
+            # Observed angular travel includes the real frame/semantic speed
+            # ceiling. Calibration provides a conservative prior until enough
+            # fresh tracked movement is available; no input speed is changed.
+            rate = self._observed_motion_rate or min(
+                math.radians(24.), max(np.linalg.norm(value) for value in axes.values())*450.)
+            score = gain / (.65+np.asarray(costs)/max(math.radians(3.), rate))
+        else:
+            score = gain / (1.+np.asarray(costs)/math.radians(100.))
+        if any(r.get('node_status') == 'known' for r in rows):
+            # Retain routes whose intermediate pose also preserves overlap.
+            score *= self._planning_anchor_support(candidates, rows)*self._route_anchor_support(
+                paths, rows, allow_potential=True)
         score[~novelty] = -1.
         best = int(np.argmax(score))
         if score[best] <= 0:
             # Widened exploration still preserves a real, executable target;
             # no map label is inferred from failure to find a readable pose.
             best = int(np.argmax(gain-.02*np.asarray(costs)))
-        self._route = paths[best]
+        self._route = self._short_waypoints(observed, paths[best])
         self._final_rotation = candidates[best]
-        self._target_indices = list(np.flatnonzero((readable[best] > 0) & ~complete))
+        self._target_indices = list(np.flatnonzero((readable[best] > 0) & pending))
         self._plan_votes = self._votes(rows)
         if self._target_indices:
             anchor = max(self._target_indices, key=lambda i: weights[i]*readable[best,i])
             self.target_face = self._keys[anchor][0]
             self.visits[self.target_face] += 1
         else:
-            self.target_face = next(key[0] for i,key in enumerate(self._keys) if not complete[i])
+            self.target_face = next(key[0] for i,key in enumerate(self._keys) if pending[i])
         self._started = now
         self._at_goal_since = None
         self._last_plan_time = now
@@ -439,7 +761,8 @@ class CellScanPolicy:
         self.planning_time_ms = (time.perf_counter()-plan_started)*1000.
 
     def choose(self, rotation, cells, response_axes, quality=1.0,
-               observed_rotation=None, tvec=None, elapsed=None, semantic_revision=None):
+               observed_rotation=None, tvec=None, elapsed=None, semantic_revision=None,
+               anchor_feedback=None):
         rotation = np.asarray(rotation, float)
         observed = rotation if observed_rotation is None else np.asarray(observed_rotation, float)
         now = time.monotonic() if elapsed is None else float(elapsed)
@@ -457,23 +780,102 @@ class CellScanPolicy:
         if len(axes) < 2:
             return self._calibrator.choose(rotation, cells, axes, quality, observed)
         rows = self._rows(cells)
+        feedback = anchor_feedback or {}
+        if self.recognition_goal == 'targets':
+            self._current_target_deficits = self._candidate_deficits(rows, feedback)
+            if self._motion_pose is not None:
+                duration = now-self._motion_time
+                movement = _pose_angle(observed, self._motion_pose)
+                if .03 <= duration <= .7 and math.radians(.4) <= movement <= math.radians(20.):
+                    measured = min(math.radians(70.), movement/duration)
+                    self._observed_motion_rate = (measured if self._observed_motion_rate is None
+                        else .8*self._observed_motion_rate+.2*measured)
+            self._motion_pose, self._motion_time = observed.copy(), now
         votes = self._votes(rows)
         if self._last_gain is None:
             self._last_gain = np.full(54, now, dtype=float)
             self._last_attempt = np.full(54, now-6., dtype=float)
         self._last_gain[votes > self._latest_votes] = now
         self._latest_votes = votes
-        complete = [r.get('occupant_status') == 'confirmed' and
-                    r.get('node_status') in ('known','not_required_target') for r in rows]
-        if all(complete):
+        complete, seen = self._objective(rows)
+        six_faces = all(any(seen[i] for i, key in enumerate(self._keys) if key[0] == face)
+                        for face in _NORMALS)
+        objective_covered = all(complete) and (self.recognition_goal != 'targets' or six_faces)
+        if objective_covered and self.recognition_goal != 'targets':
             return dict(direction=None, phase='complete', reason='all_cells_confirmed')
+        anchor_age = feedback.get('glyph_anchor_age_sec', 0.) or 0.
+        anchor_at = feedback.get('glyph_anchor_at')
+        diagnostic = feedback.get('refine_diagnostic')
+        if diagnostic is not None:
+            source_frame = diagnostic.get('source_frame_id')
+            if source_frame != self._anchor_feedback_frame:
+                self._anchor_feedback_frame = source_frame
+                self._anchor_failed_frames = 0 if diagnostic.get('renewed') else self._anchor_failed_frames+1
+        elif anchor_feedback is not None:
+            return dict(direction=None,phase='observe',reason='await_first_current_glyph_evidence')
+        if (self._anchor_recovery is None and anchor_age >= 1.25 and
+                feedback.get('glyph_anchor_rotation') is not None and
+                (anchor_feedback is None or self._anchor_failed_frames >= 2)):
+            if self._anchor_recovery_count >= 6:
+                return dict(direction=None, phase='recover', reason='anchor_recovery_budget_exhausted')
+            goal = np.asarray(feedback['glyph_anchor_rotation'], float)
+            if goal.shape == (3,3) and np.isfinite(goal).all():
+                self._anchor_recovery_count += 1
+                self.stats['anchor_recoveries'] = self._anchor_recovery_count
+                self._anchor_recovery = dict(started=now, anchor_at=anchor_at,
+                    goal=goal.copy(), anchor=goal.copy(), tried=[goal.copy()],
+                    attempt=0, at_goal=None)
+                self._route = []
+                self._at_goal_since = None
+        if self._anchor_recovery is None and anchor_age >= 2.:
+            return dict(direction=None,phase='observe',reason='await_fresh_glyph_evidence')
+        recovery = self._anchor_recovery
+        if recovery is not None:
+            renewed = (anchor_at is not None and recovery['anchor_at'] is not None and
+                       anchor_at > recovery['anchor_at'] and anchor_age < .9)
+            if renewed:
+                self._anchor_recovery = None
+                self._route = []
+                self._pending_replan_reason = None
+            else:
+                if now-recovery['started'] > 4.:
+                    return dict(direction=None, phase='recover', reason='anchor_recovery_failed')
+                if _pose_angle(recovery['goal'], observed) <= math.radians(4.):
+                    if recovery['at_goal'] is None:
+                        recovery['at_goal'] = now
+                    if now-recovery['at_goal'] > .65:
+                        recovery['attempt'] += 1
+                        if recovery['attempt'] > 2:
+                            return dict(direction=None, phase='recover', reason='anchor_recovery_no_current_evidence')
+                        # Search near the last verified pose, not an arbitrary
+                        # reset. Only new current-frame glyphs can finish recovery.
+                        goal = self._recovery_search_goal(recovery['anchor'], axes, rows, recovery['tried'])
+                        if goal is None:
+                            return dict(direction=None, phase='recover', reason='anchor_recovery_no_current_evidence')
+                        recovery['goal'] = goal
+                        recovery['tried'].append(goal.copy())
+                        recovery['at_goal'] = None
+                    else:
+                        return dict(direction=None, phase='observe', reason='await_current_anchor_evidence')
+                self._route = [recovery['goal']]
+                self._final_rotation = recovery['goal']
+                self._target_indices = []
+                self.target_face = max(_NORMALS, key=lambda face: float(-(observed @ _NORMALS[face])[2]))
+                self._started = now
+                self._progress_goal = None
+                self._pending_replan_reason = None
+        if objective_covered and self._anchor_recovery is None:
+            # Root's public readiness remains the only success authority. A
+            # current pose can finish its queued semantics; stale anchors above
+            # still take the existing bounded recovery route instead of waiting.
+            return dict(direction=None, phase='observe', reason='target_objective_covered_await_readiness')
         if self._route and self._pending_replan_reason is not None:
             self._feedback(rows, self._final_rotation, now, self._pending_replan_reason, True)
             self._route = []
         self._pending_replan_reason = None
         # Never advance from the controller's extrapolated pose: only a tracked
         # observation can satisfy a waypoint and start semantic dwell time.
-        if self._route:
+        if self._route and self._anchor_recovery is None:
             observed_angle = _pose_angle(self._route[0], observed)
             # Once stopped for semantics, tolerate tracking jitter before moving
             # again. This concerns the camera target, never label confidence.
@@ -482,6 +884,9 @@ class CellScanPolicy:
             if reached and quality >= .5:
                 if len(self._route) > 1:
                     self._route.pop(0)
+                    # Only a fresh tracked arrival renews the next approach
+                    # deadline. Repeated calls or extrapolated poses cannot.
+                    self._started = now
                 else:
                     if self._at_goal_since is None:
                         self._at_goal_since = now
@@ -531,7 +936,10 @@ class CellScanPolicy:
                                               target_cells=[self._keys[i] for i in self._target_indices]))
                 self._feedback(rows, self._final_rotation, now, 'pose_approach_timeout', True)
                 self._route = []
-            elif self._route and self._target_indices and all(complete[i] for i in self._target_indices):
+            elif self._route and self._target_indices and all(complete[i] for i in self._target_indices) and (
+                    self.recognition_goal != 'targets' or
+                    all(any(seen[j] for j, key in enumerate(self._keys) if key[0] == self._keys[i][0])
+                        for i in self._target_indices)):
                 self._route = []
         if not self._route:
             self._plan(observed, rows, axes, now)
@@ -583,7 +991,7 @@ class CellScanPolicy:
                     final_goal_rotation=self._final_rotation.tolist(),
                     goal_normal=(goal @ _NORMALS[self.target_face]).tolist(),
                     target_cells=[dict(zip(('face','row','col'),self._keys[i])) for i in self._target_indices],
-                    phase='coverage' if any(not r.get('evidence') and not r.get('occupant_evidence_counts')
+                    phase='anchor_recovery' if self._anchor_recovery is not None else 'coverage' if any(not r.get('evidence') and not r.get('occupant_evidence_counts')
                         and r.get('occupant_status') != 'confirmed' for r in rows) else 'detail',
                     plan_revision=self._plan_serial, planning_time_ms=self.planning_time_ms,
                     replans=self.stats['replans'], no_descent=self.stats['no_descent'],

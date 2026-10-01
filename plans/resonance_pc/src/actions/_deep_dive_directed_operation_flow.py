@@ -11,6 +11,7 @@ from ._deep_dive_planner_rules import cell_to_slot, coord_dict, geometry
 from ._deep_dive_operation_frame import (
     build_operation_frame, build_wide_reference_frame, bind_move, bind_rotation, verify_rotation_preview,
 )
+from ._deep_dive_target_readiness import check_required_cells, is_targets_layout, targets_readiness
 
 MODE_POINTS = {'move': [1100, 406], 'rotate': [1100, 480]}
 
@@ -23,8 +24,15 @@ def prepare_operation(mode, snapshot):
     if mode not in {'move', 'rotate'}:
         raise ValueError('Unsupported operation mode')
     layout = snapshot['layout']
-    if not layout.get('success') or not layout.get('layout_complete'):
+    if layout.get('prediction_only'):
+        raise ValueError('prediction_only_layout')
+    target_mode = is_targets_layout(layout)
+    if not (layout.get('success') and layout.get('layout_complete')) and not target_mode:
         raise ValueError('A current complete scan is required')
+    if target_mode:
+        readiness = targets_readiness(layout)
+        if not readiness['ready']:
+            raise ValueError(readiness['reason'])
     reference = deepcopy(snapshot.get('wide_reference'))
     return dict(action_id=uuid4().hex, kind=mode,
                 phase='open_mode' if reference else 'wide_reference',
@@ -47,6 +55,9 @@ def begin_move(destination_slot, expected_origin_slot, snapshot):
     if destination not in geo.moves[origin, :geo.counts[origin]]:
         raise ValueError('target_not_adjacent_same_face')
     target = next(row for row in snapshot['layout']['cells'] if cell_to_slot(row) == destination)
+    required = check_required_cells(snapshot['layout'], dict(kind='move', destination_slot=destination))
+    if not required['ready']:
+        raise ValueError(required['reason'])
     action.update(destination_slot=destination, target_occupant=target['occupant'],
                   target_node_kind=target.get('node_kind'), target_icon_id=target.get('icon_id'))
     return action
@@ -113,12 +124,13 @@ def _issue(action, name, point, now, expected_scene):
                 expected_scene=expected_scene, action_id=action['action_id'])
 
 
-def _frame(image, action, snapshot):
+def _frame(image, action, snapshot, **detector_kwargs):
     return build_operation_frame(image, snapshot['layout'], action['kind'],
                                  scan_epoch=snapshot['scan_epoch'],
                                  map_revision=snapshot['map_revision'],
                                  view_epoch=snapshot.get('pose_epoch', 0),
-                                 registration_frame=action.get('registration_frame') if action['kind'] == 'move' else None)
+                                 registration_frame=action.get('registration_frame') if action['kind'] == 'move' else None,
+                                 **detector_kwargs)
 
 
 def _stable_reference(action, frame):
@@ -153,11 +165,18 @@ def _probe_choice(action, frame, desired):
     return dict(status='blocked', reason='rotation_probe_candidates_exhausted')
 
 
-def advance_operation(action, image, observation, snapshot, now=None):
+def advance_operation(action, image, observation, snapshot, now=None, *, target_detector=None):
     """Mutate a working copy; the caller commits it only after fresh input guards."""
     now = time.monotonic() if now is None else now
+    detector_kwargs = {} if target_detector is None else {'target_detector': target_detector}
     if action['snapshot_version'] != snapshot_version(snapshot):
         return _blocked('stale_layout')
+    if snapshot['layout'].get('prediction_only'):
+        return _blocked('prediction_only_layout')
+    if action['kind'] == 'move' and 'destination_slot' in action:
+        required = check_required_cells(snapshot['layout'], action)
+        if not required['ready']:
+            return dict(_blocked(required['reason']), required_cells=required['required_cells'])
     if not observation.get('valid'):
         action['stable_signature'] = None
         action['stable'] = 0
@@ -174,7 +193,7 @@ def advance_operation(action, image, observation, snapshot, now=None):
         frame = build_wide_reference_frame(image, snapshot['layout'],
                                           scan_epoch=snapshot['scan_epoch'],
                                           map_revision=snapshot['map_revision'],
-                                          view_epoch=snapshot.get('pose_epoch', 0))
+                                          view_epoch=snapshot.get('pose_epoch', 0), **detector_kwargs)
         if frame.get('status') != 'ready':
             action['last_mapping_reason'] = frame.get('reason', 'reference_three_faces_unconfirmed')
             if frame.get('status') == 'blocked' or now - action['progress_at'] > 30:
@@ -205,7 +224,7 @@ def advance_operation(action, image, observation, snapshot, now=None):
         frame = build_operation_frame(image, snapshot['layout'], 'rotate',
                                       scan_epoch=snapshot['scan_epoch'],
                                       map_revision=snapshot['map_revision'],
-                                      view_epoch=snapshot.get('pose_epoch', 0))
+                                      view_epoch=snapshot.get('pose_epoch', 0), **detector_kwargs)
         if frame.get('status') != 'ready':
             action['last_mapping_reason'] = frame.get('reason', 'reference_three_faces_unconfirmed')
             if frame.get('status') == 'blocked' or now - action['progress_at'] > 30:
@@ -239,7 +258,7 @@ def advance_operation(action, image, observation, snapshot, now=None):
     if phase == 'mapping':
         if scene != mode_scene:
             return _wait('waiting_for_operation_mode')
-        frame = _frame(image, action, snapshot)
+        frame = _frame(image, action, snapshot, **detector_kwargs)
         if frame.get('status') != 'ready':
             action['last_mapping_reason'] = frame.get('reason', 'three_face_mapping_unresolved')
             if frame.get('status') == 'blocked':
@@ -291,7 +310,8 @@ def advance_operation(action, image, observation, snapshot, now=None):
             return _wait()
         if not _stable(action, ('preview', action['rotation_id'])):
             return _wait()
-        verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'])
+        verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
+                                               **detector_kwargs)
         action['preview_evidence'] = verification
         if verification.get('status') == 'matched':
             action.update(phase='rotation_confirm_wait', submitted=True)
@@ -314,7 +334,7 @@ def advance_operation(action, image, observation, snapshot, now=None):
             return _issue(action, 'cancel_rotation', observation['rotate_cancel_point'], now, 'rotate_preview')
         if scene != mode_scene:
             return _wait()
-        restored = _frame(image, action, snapshot)
+        restored = _frame(image, action, snapshot, **detector_kwargs)
         if restored.get('status') != 'ready' or not _stable(action, ('restored', action['action_id'])):
             return _wait('cancel_restore_unverified')
         if action.get('stop_after_restore') or len(action['probes']) >= 4:
@@ -329,7 +349,8 @@ def advance_operation(action, image, observation, snapshot, now=None):
         if pending and now - pending['at'] >= 2:
             if action['confirm_attempts'] >= 3:
                 return _blocked('rotation_confirmation_limit')
-            verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'])
+            verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
+                                                   **detector_kwargs)
             if verification.get('status') != 'matched':
                 return _blocked('rotation_confirmation_preview_changed')
             action['confirm_attempts'] += 1

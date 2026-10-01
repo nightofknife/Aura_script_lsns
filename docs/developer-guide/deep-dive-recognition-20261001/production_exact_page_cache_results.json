@@ -1,0 +1,1458 @@
+{
+  "samples": 236,
+  "differing_pages": 0,
+  "matching_calls": 7816,
+  "hits": 1642,
+  "thread_cache": {
+    "plans.resonance_pc.src.actions._deep_dive_planned_run_vision._match": {
+      "hits": 314,
+      "misses": 1299,
+      "maxsize": 32,
+      "currsize": 10
+    },
+    "plans.resonance_pc.src.actions._deep_dive_single_run_vision._match": {
+      "hits": 950,
+      "misses": 2077,
+      "maxsize": 32,
+      "currsize": 12
+    },
+    "plans.resonance_pc.src.actions._deep_dive_battle_vision.match": {
+      "hits": 274,
+      "misses": 1574,
+      "maxsize": 32,
+      "currsize": 8
+    },
+    "plans.resonance_pc.src.actions._deep_dive_event_vision.match": {
+      "hits": 104,
+      "misses": 1224,
+      "maxsize": 32,
+      "currsize": 9
+    }
+  },
+  "median_ms": {
+    "baseline_ms": 48.349600001529325,
+    "cached_ms": 44.585750001715496
+  },
+  "p95_ms": {
+    "baseline_ms": 81.489625001268,
+    "cached_ms": 76.3693750013772
+  },
+  "records": [
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\01-board.png",
+      "differences": [],
+      "baseline_ms": 80.38829999713926,
+      "cached_ms": 49.95280000002822
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\02-move-options.png",
+      "differences": [],
+      "baseline_ms": 53.6904999971739,
+      "cached_ms": 50.20640000293497
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\03-rotate-options.png",
+      "differences": [],
+      "baseline_ms": 51.82800000329735,
+      "cached_ms": 50.582600000780076
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\04-settlement.png",
+      "differences": [],
+      "baseline_ms": 30.137699999613687,
+      "cached_ms": 24.53850000165403
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\05-move-detected.png",
+      "differences": [],
+      "baseline_ms": 50.00309999741148,
+      "cached_ms": 52.76099999900907
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\06-rotate-detected.png",
+      "differences": [],
+      "baseline_ms": 49.94550000265008,
+      "cached_ms": 53.210699996270705
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\07-center-move-detected.png",
+      "differences": [],
+      "baseline_ms": 51.38930000248365,
+      "cached_ms": 48.62110000249231
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\08-center-rotate-detected.png",
+      "differences": [],
+      "baseline_ms": 49.52830000547692,
+      "cached_ms": 49.909900000784546
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\09-move-event-item.png",
+      "differences": [],
+      "baseline_ms": 93.93700000509853,
+      "cached_ms": 77.61880000180099
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\10-move-event-vortex.png",
+      "differences": [],
+      "baseline_ms": 74.68200000585057,
+      "cached_ms": 66.23199999739882
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\11-rotate-preview-confirm.png",
+      "differences": [],
+      "baseline_ms": 46.10530000354629,
+      "cached_ms": 45.226499998534564
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\12-move-enter-detected.png",
+      "differences": [],
+      "baseline_ms": 49.84900000272319,
+      "cached_ms": 48.05379999743309
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\13-rotate-confirm-detected.png",
+      "differences": [],
+      "baseline_ms": 45.74180000054184,
+      "cached_ms": 45.536499994341284
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\14-yellow-reward-popup.png",
+      "differences": [],
+      "baseline_ms": 40.66859999875305,
+      "cached_ms": 39.02879999805009
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\15-healing-stone-three-options.png",
+      "differences": [],
+      "baseline_ms": 369.8231999951531,
+      "cached_ms": 254.33809999958612
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\16-healing-stone-option-selected.png",
+      "differences": [],
+      "baseline_ms": 298.86009999609087,
+      "cached_ms": 234.7890000019106
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\17-push-discard-selection.png",
+      "differences": [],
+      "baseline_ms": 55.375400006596465,
+      "cached_ms": 45.82910000317497
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\18-push-discard-selected.png",
+      "differences": [],
+      "baseline_ms": 53.00870000064606,
+      "cached_ms": 42.49040000286186
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\19-push-discard-result.png",
+      "differences": [],
+      "baseline_ms": 43.56489999918267,
+      "cached_ms": 42.35030000563711
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\20-healing-stone-event-ending.png",
+      "differences": [],
+      "baseline_ms": 254.520099995716,
+      "cached_ms": 245.9387999988394
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\21-purple-workshop-options-disabled.png",
+      "differences": [],
+      "baseline_ms": 264.2518999928143,
+      "cached_ms": 235.02739999821642
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\22-purple-workshop-reward.png",
+      "differences": [],
+      "baseline_ms": 40.4666999966139,
+      "cached_ms": 40.64720000314992
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\23-shop-exit-only.png",
+      "differences": [],
+      "baseline_ms": 36.68720000132453,
+      "cached_ms": 41.398800000024494
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\24-node-preview-empty.png",
+      "differences": [],
+      "baseline_ms": 74.6900000012829,
+      "cached_ms": 76.08140000229469
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\25-node-preview-adventure.png",
+      "differences": [],
+      "baseline_ms": 73.8651000065147,
+      "cached_ms": 64.88299999909941
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\26-node-preview-reward.png",
+      "differences": [],
+      "baseline_ms": 73.50890000088839,
+      "cached_ms": 64.14020000374876
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\27-node-preview-battle.png",
+      "differences": [],
+      "baseline_ms": 72.29840000218246,
+      "cached_ms": 61.342399996647146
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\28-node-preview-elite-battle.png",
+      "differences": [],
+      "baseline_ms": 82.14340000267839,
+      "cached_ms": 75.16380000015488
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\29-node-preview-shop.png",
+      "differences": [],
+      "baseline_ms": 77.10590000351658,
+      "cached_ms": 70.12030000623781
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\30-node-preview-heal.png",
+      "differences": [],
+      "baseline_ms": 81.27170000079786,
+      "cached_ms": 62.53909999941243
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\31-live-elite-preview-variable-portrait.png",
+      "differences": [],
+      "baseline_ms": 77.35240000329213,
+      "cached_ms": 77.23329999862472
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\32-battle-formation.png",
+      "differences": [],
+      "baseline_ms": 42.19880000164267,
+      "cached_ms": 41.4193000033265
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\33-battle-victory.png",
+      "differences": [],
+      "baseline_ms": 39.441599998099264,
+      "cached_ms": 38.92710000218358
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\34-battle-reward-choices.png",
+      "differences": [],
+      "baseline_ms": 45.98909999913303,
+      "cached_ms": 43.19899999973131
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\35-battle-reward-middle-selected.png",
+      "differences": [],
+      "baseline_ms": 43.815500001073815,
+      "cached_ms": 34.272700002475176
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\36-battle-reward-obtained.png",
+      "differences": [],
+      "baseline_ms": 47.87840000062715,
+      "cached_ms": 38.289999996777624
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\37-shop-exit-only-alternate-stock.png",
+      "differences": [],
+      "baseline_ms": 41.22020000068005,
+      "cached_ms": 34.49830000317888
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\38-healing-two-options.png",
+      "differences": [],
+      "baseline_ms": 250.9448000055272,
+      "cached_ms": 241.9926000002306
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\39-healing-disabled-option.png",
+      "differences": [],
+      "baseline_ms": 241.9104999935371,
+      "cached_ms": 238.84969999926398
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\40-empty-node-preview.png",
+      "differences": [],
+      "baseline_ms": 72.80029999674298,
+      "cached_ms": 73.12989999627462
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\41-guardian-options.png",
+      "differences": [],
+      "baseline_ms": 239.8964000021806,
+      "cached_ms": 253.69070000306237
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\42-guardian-ending.png",
+      "differences": [],
+      "baseline_ms": 281.4059000011184,
+      "cached_ms": 238.80629999621306
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\43-extra-activation-result.png",
+      "differences": [],
+      "baseline_ms": 45.2136999956565,
+      "cached_ms": 44.17390000162413
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\44-inspiration-buff.png",
+      "differences": [],
+      "baseline_ms": 42.2686000019894,
+      "cached_ms": 40.62970000086352
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\45-inspiration-intuition.png",
+      "differences": [],
+      "baseline_ms": 41.99259999586502,
+      "cached_ms": 37.611799998558126
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\46-inspiration-item.png",
+      "differences": [],
+      "baseline_ms": 42.61279999627732,
+      "cached_ms": 43.65170000528451
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\47-settlement-summary.png",
+      "differences": [],
+      "baseline_ms": 23.99209999566665,
+      "cached_ms": 11.912099995242897
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\48-settlement-details.png",
+      "differences": [],
+      "baseline_ms": 23.344100001850165,
+      "cached_ms": 26.392200001282617
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\49-activity-home.png",
+      "differences": [],
+      "baseline_ms": 47.47040000074776,
+      "cached_ms": 53.29369999526534
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\50-mode-buttons-idle.png",
+      "differences": [],
+      "baseline_ms": 46.08620000362862,
+      "cached_ms": 51.45479999919189
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\51-move-button-selected.png",
+      "differences": [],
+      "baseline_ms": 52.62219999713125,
+      "cached_ms": 53.29920000076527
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\52-rotate-button-selected.png",
+      "differences": [],
+      "baseline_ms": 53.89609999838285,
+      "cached_ms": 54.94959999487037
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\53-body-two-options.png",
+      "differences": [],
+      "baseline_ms": 235.0302000049851,
+      "cached_ms": 262.0473999995738
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\54-currency-obtained.png",
+      "differences": [],
+      "baseline_ms": 39.96029999689199,
+      "cached_ms": 43.48619999655057
+    },
+    {
+      "path": "docs\\developer-guide\\images\\resonance-pc-deep-dive-simple\\55-body-two-ending.png",
+      "differences": [],
+      "baseline_ms": 264.8946999979671,
+      "cached_ms": 232.87590000109049
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0000.png",
+      "differences": [],
+      "baseline_ms": 51.521200002753176,
+      "cached_ms": 47.214500002155546
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0001.png",
+      "differences": [],
+      "baseline_ms": 51.53910000080941,
+      "cached_ms": 46.939100000599865
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0002.png",
+      "differences": [],
+      "baseline_ms": 48.001000002841465,
+      "cached_ms": 48.29549999703886
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0003.png",
+      "differences": [],
+      "baseline_ms": 53.27059999399353,
+      "cached_ms": 36.08570000506006
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0004.png",
+      "differences": [],
+      "baseline_ms": 51.42160000104923,
+      "cached_ms": 37.8569000022253
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0005.png",
+      "differences": [],
+      "baseline_ms": 52.63099999865517,
+      "cached_ms": 46.53050000342773
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0006.png",
+      "differences": [],
+      "baseline_ms": 48.91219999990426,
+      "cached_ms": 40.74660000333097
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0007.png",
+      "differences": [],
+      "baseline_ms": 54.812499998661224,
+      "cached_ms": 36.3500000021304
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0008.png",
+      "differences": [],
+      "baseline_ms": 54.34460000105901,
+      "cached_ms": 41.75219999888213
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0009.png",
+      "differences": [],
+      "baseline_ms": 48.768000000563916,
+      "cached_ms": 39.95430000213673
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0015.png",
+      "differences": [],
+      "baseline_ms": 50.09229999996023,
+      "cached_ms": 36.84549999888986
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0019.png",
+      "differences": [],
+      "baseline_ms": 51.84329999610782,
+      "cached_ms": 40.98179999709828
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0022.png",
+      "differences": [],
+      "baseline_ms": 49.39990000275429,
+      "cached_ms": 41.32450000179233
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0028.png",
+      "differences": [],
+      "baseline_ms": 48.649999996996485,
+      "cached_ms": 47.16259999986505
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0032.png",
+      "differences": [],
+      "baseline_ms": 51.93159999907948,
+      "cached_ms": 45.8513000048697
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0036.png",
+      "differences": [],
+      "baseline_ms": 51.8787999972119,
+      "cached_ms": 45.6454000013764
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0041.png",
+      "differences": [],
+      "baseline_ms": 52.98249999759719,
+      "cached_ms": 47.95870000089053
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0047.png",
+      "differences": [],
+      "baseline_ms": 61.16520000068704,
+      "cached_ms": 48.34400000254391
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0051.png",
+      "differences": [],
+      "baseline_ms": 63.176000003295485,
+      "cached_ms": 39.717199993901886
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0057.png",
+      "differences": [],
+      "baseline_ms": 67.62129999697208,
+      "cached_ms": 45.787600000039674
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0062.png",
+      "differences": [],
+      "baseline_ms": 71.7408000055002,
+      "cached_ms": 46.43669999495614
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0067.png",
+      "differences": [],
+      "baseline_ms": 59.09290000272449,
+      "cached_ms": 42.70479999831878
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0072.png",
+      "differences": [],
+      "baseline_ms": 73.34160000027623,
+      "cached_ms": 40.97889999684412
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0078.png",
+      "differences": [],
+      "baseline_ms": 68.69410000217613,
+      "cached_ms": 37.35939999751281
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0084.png",
+      "differences": [],
+      "baseline_ms": 64.77830000221729,
+      "cached_ms": 39.58060000149999
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0089.png",
+      "differences": [],
+      "baseline_ms": 55.10099999810336,
+      "cached_ms": 40.37410000455566
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0096.png",
+      "differences": [],
+      "baseline_ms": 46.32619999756571,
+      "cached_ms": 37.902600000961684
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0101.png",
+      "differences": [],
+      "baseline_ms": 47.432500003196765,
+      "cached_ms": 43.29640000651125
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0105.png",
+      "differences": [],
+      "baseline_ms": 57.90250000427477,
+      "cached_ms": 44.36770000029355
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0109.png",
+      "differences": [],
+      "baseline_ms": 54.802899998321664,
+      "cached_ms": 48.43040000559995
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0114.png",
+      "differences": [],
+      "baseline_ms": 59.29560000367928,
+      "cached_ms": 41.836800002784
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0119.png",
+      "differences": [],
+      "baseline_ms": 55.89189999591326,
+      "cached_ms": 38.41999999713153
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0126.png",
+      "differences": [],
+      "baseline_ms": 51.56159999751253,
+      "cached_ms": 38.6551000046893
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0131.png",
+      "differences": [],
+      "baseline_ms": 55.723900004522875,
+      "cached_ms": 41.23000000254251
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0137.png",
+      "differences": [],
+      "baseline_ms": 51.16960000304971,
+      "cached_ms": 40.21820000343723
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0142.png",
+      "differences": [],
+      "baseline_ms": 50.76820000249427,
+      "cached_ms": 44.11989999789512
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0147.png",
+      "differences": [],
+      "baseline_ms": 57.30290000064997,
+      "cached_ms": 40.464000005158596
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0151.png",
+      "differences": [],
+      "baseline_ms": 55.673200004093815,
+      "cached_ms": 41.505499997583684
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0156.png",
+      "differences": [],
+      "baseline_ms": 54.37589999928605,
+      "cached_ms": 38.792799998191185
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0161.png",
+      "differences": [],
+      "baseline_ms": 49.257499995292164,
+      "cached_ms": 39.377900000545196
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0166.png",
+      "differences": [],
+      "baseline_ms": 47.42190000251867,
+      "cached_ms": 40.0934999997844
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0170.png",
+      "differences": [],
+      "baseline_ms": 47.59130000456935,
+      "cached_ms": 48.04479999438627
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0175.png",
+      "differences": [],
+      "baseline_ms": 48.345299997890834,
+      "cached_ms": 44.95879999740282
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0180.png",
+      "differences": [],
+      "baseline_ms": 48.14210000040475,
+      "cached_ms": 39.52230000140844
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0185.png",
+      "differences": [],
+      "baseline_ms": 55.47939999814844,
+      "cached_ms": 41.93709999526618
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0191.png",
+      "differences": [],
+      "baseline_ms": 47.87110000324901,
+      "cached_ms": 41.90599999856204
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0196.png",
+      "differences": [],
+      "baseline_ms": 45.93670000031125,
+      "cached_ms": 38.241399997787084
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0200.png",
+      "differences": [],
+      "baseline_ms": 47.46460000023944,
+      "cached_ms": 32.884100000956096
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0204.png",
+      "differences": [],
+      "baseline_ms": 50.98810000345111,
+      "cached_ms": 32.63560000050347
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0209.png",
+      "differences": [],
+      "baseline_ms": 46.90470000059577,
+      "cached_ms": 42.376099998364225
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0214.png",
+      "differences": [],
+      "baseline_ms": 45.74280000088038,
+      "cached_ms": 45.82630000368226
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0218.png",
+      "differences": [],
+      "baseline_ms": 46.25490000034915,
+      "cached_ms": 45.23069999413565
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0222.png",
+      "differences": [],
+      "baseline_ms": 48.353900005167816,
+      "cached_ms": 42.848199998843484
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0226.png",
+      "differences": [],
+      "baseline_ms": 48.185300001932774,
+      "cached_ms": 45.52420000254642
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0231.png",
+      "differences": [],
+      "baseline_ms": 54.37670000537764,
+      "cached_ms": 45.02499999944121
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0235.png",
+      "differences": [],
+      "baseline_ms": 48.36590000195429,
+      "cached_ms": 42.4907999986317
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0242.png",
+      "differences": [],
+      "baseline_ms": 49.63069999939762,
+      "cached_ms": 44.92539999773726
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0247.png",
+      "differences": [],
+      "baseline_ms": 47.449400000914466,
+      "cached_ms": 44.16219999984605
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0252.png",
+      "differences": [],
+      "baseline_ms": 46.56290000275476,
+      "cached_ms": 42.40199999912875
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0258.png",
+      "differences": [],
+      "baseline_ms": 47.95680000097491,
+      "cached_ms": 47.10019999765791
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0262.png",
+      "differences": [],
+      "baseline_ms": 50.720699997327756,
+      "cached_ms": 43.827300003613345
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0267.png",
+      "differences": [],
+      "baseline_ms": 45.15250000258675,
+      "cached_ms": 47.01589999604039
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0272.png",
+      "differences": [],
+      "baseline_ms": 48.216399998636916,
+      "cached_ms": 45.68250000011176
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0278.png",
+      "differences": [],
+      "baseline_ms": 46.37939999520313,
+      "cached_ms": 48.26809999940451
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0284.png",
+      "differences": [],
+      "baseline_ms": 53.592600001138635,
+      "cached_ms": 46.22250000102213
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0287.png",
+      "differences": [],
+      "baseline_ms": 47.45120000006864,
+      "cached_ms": 47.30810000182828
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0293.png",
+      "differences": [],
+      "baseline_ms": 48.10889999498613,
+      "cached_ms": 46.93529999349266
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0297.png",
+      "differences": [],
+      "baseline_ms": 46.60080000030575,
+      "cached_ms": 45.83270000148332
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0303.png",
+      "differences": [],
+      "baseline_ms": 46.396700003242586,
+      "cached_ms": 44.928899995284155
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0308.png",
+      "differences": [],
+      "baseline_ms": 45.2584000013303,
+      "cached_ms": 45.14430000563152
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0313.png",
+      "differences": [],
+      "baseline_ms": 46.196799994504545,
+      "cached_ms": 42.45210000226507
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0317.png",
+      "differences": [],
+      "baseline_ms": 46.45910000544973,
+      "cached_ms": 42.88939999969443
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0321.png",
+      "differences": [],
+      "baseline_ms": 45.8751000041957,
+      "cached_ms": 44.5940999998129
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0327.png",
+      "differences": [],
+      "baseline_ms": 49.41770000004908,
+      "cached_ms": 46.45219999656547
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0331.png",
+      "differences": [],
+      "baseline_ms": 47.90059999504592,
+      "cached_ms": 50.3649999955087
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0336.png",
+      "differences": [],
+      "baseline_ms": 51.405899997917004,
+      "cached_ms": 48.49869999452494
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0340.png",
+      "differences": [],
+      "baseline_ms": 47.78529999748571,
+      "cached_ms": 49.88380000577308
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0344.png",
+      "differences": [],
+      "baseline_ms": 46.29370000475319,
+      "cached_ms": 45.72060000646161
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0348.png",
+      "differences": [],
+      "baseline_ms": 47.24910000368254,
+      "cached_ms": 46.62810000445461
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0352.png",
+      "differences": [],
+      "baseline_ms": 48.557800000708085,
+      "cached_ms": 45.83659999480005
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0357.png",
+      "differences": [],
+      "baseline_ms": 47.798200001125224,
+      "cached_ms": 44.055099999241065
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0361.png",
+      "differences": [],
+      "baseline_ms": 48.67820000072243,
+      "cached_ms": 46.63230000005569
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0366.png",
+      "differences": [],
+      "baseline_ms": 46.85179999796674,
+      "cached_ms": 47.94479999691248
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0371.png",
+      "differences": [],
+      "baseline_ms": 48.891799997363705,
+      "cached_ms": 45.721800001047086
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0376.png",
+      "differences": [],
+      "baseline_ms": 47.033599999849685,
+      "cached_ms": 43.03319999598898
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0382.png",
+      "differences": [],
+      "baseline_ms": 50.52099999738857,
+      "cached_ms": 52.603099997213576
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0386.png",
+      "differences": [],
+      "baseline_ms": 46.827500002109446,
+      "cached_ms": 42.66780000034487
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0391.png",
+      "differences": [],
+      "baseline_ms": 47.13550000451505,
+      "cached_ms": 41.925999998056795
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0397.png",
+      "differences": [],
+      "baseline_ms": 46.76150000159396,
+      "cached_ms": 43.99929999635788
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0401.png",
+      "differences": [],
+      "baseline_ms": 46.44539999571862,
+      "cached_ms": 44.422899998608045
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0406.png",
+      "differences": [],
+      "baseline_ms": 45.48829999839654,
+      "cached_ms": 43.29729999881238
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0412.png",
+      "differences": [],
+      "baseline_ms": 47.8785000013886,
+      "cached_ms": 43.75620000064373
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0417.png",
+      "differences": [],
+      "baseline_ms": 47.440199996344745,
+      "cached_ms": 43.23619999922812
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0422.png",
+      "differences": [],
+      "baseline_ms": 47.55190000287257,
+      "cached_ms": 44.77690000203438
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0427.png",
+      "differences": [],
+      "baseline_ms": 49.60330000176327,
+      "cached_ms": 45.69249999622116
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0432.png",
+      "differences": [],
+      "baseline_ms": 49.414000000979286,
+      "cached_ms": 49.893399998836685
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0437.png",
+      "differences": [],
+      "baseline_ms": 51.34589999943273,
+      "cached_ms": 48.91530000168132
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0443.png",
+      "differences": [],
+      "baseline_ms": 47.984500000893604,
+      "cached_ms": 47.405800003616605
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0448.png",
+      "differences": [],
+      "baseline_ms": 49.34240000147838,
+      "cached_ms": 48.710499999288004
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0453.png",
+      "differences": [],
+      "baseline_ms": 48.10660000657663,
+      "cached_ms": 45.56890000094427
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0457.png",
+      "differences": [],
+      "baseline_ms": 47.515599995676894,
+      "cached_ms": 42.8200000023935
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0460.png",
+      "differences": [],
+      "baseline_ms": 47.26640000444604,
+      "cached_ms": 45.995699998456985
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0466.png",
+      "differences": [],
+      "baseline_ms": 46.94279999966966,
+      "cached_ms": 46.35299999790732
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0473.png",
+      "differences": [],
+      "baseline_ms": 46.859599999152124,
+      "cached_ms": 44.253200001548976
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0478.png",
+      "differences": [],
+      "baseline_ms": 46.59430000174325,
+      "cached_ms": 45.034700000542216
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0484.png",
+      "differences": [],
+      "baseline_ms": 47.43859999871347,
+      "cached_ms": 46.54010000376729
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0490.png",
+      "differences": [],
+      "baseline_ms": 51.54209999454906,
+      "cached_ms": 50.05860000528628
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0495.png",
+      "differences": [],
+      "baseline_ms": 46.70000000623986,
+      "cached_ms": 53.66230000072392
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0501.png",
+      "differences": [],
+      "baseline_ms": 47.070399996300694,
+      "cached_ms": 46.240299998316914
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0506.png",
+      "differences": [],
+      "baseline_ms": 48.52810000011232,
+      "cached_ms": 42.52799999812851
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0511.png",
+      "differences": [],
+      "baseline_ms": 47.22899999615038,
+      "cached_ms": 42.63970000465633
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0515.png",
+      "differences": [],
+      "baseline_ms": 50.85500000132015,
+      "cached_ms": 44.623999994655605
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0520.png",
+      "differences": [],
+      "baseline_ms": 47.98000000300817,
+      "cached_ms": 44.89280000416329
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0524.png",
+      "differences": [],
+      "baseline_ms": 47.74049999832641,
+      "cached_ms": 42.47899999609217
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0529.png",
+      "differences": [],
+      "baseline_ms": 48.775499999464955,
+      "cached_ms": 42.35969999717781
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0533.png",
+      "differences": [],
+      "baseline_ms": 49.66689999855589,
+      "cached_ms": 43.85539999930188
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0538.png",
+      "differences": [],
+      "baseline_ms": 50.67399999825284,
+      "cached_ms": 42.33050000038929
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0544.png",
+      "differences": [],
+      "baseline_ms": 52.80849999689963,
+      "cached_ms": 44.769100000848994
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0549.png",
+      "differences": [],
+      "baseline_ms": 50.01339999580523,
+      "cached_ms": 56.13009999797214
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0554.png",
+      "differences": [],
+      "baseline_ms": 49.055900002713315,
+      "cached_ms": 45.25160000048345
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0558.png",
+      "differences": [],
+      "baseline_ms": 47.466399999393616,
+      "cached_ms": 47.50810000405181
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0563.png",
+      "differences": [],
+      "baseline_ms": 48.15880000387551,
+      "cached_ms": 41.892499997629784
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0568.png",
+      "differences": [],
+      "baseline_ms": 52.79799999698298,
+      "cached_ms": 40.41339999821503
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0574.png",
+      "differences": [],
+      "baseline_ms": 53.92740000388585,
+      "cached_ms": 38.08839999692282
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0579.png",
+      "differences": [],
+      "baseline_ms": 50.22100000496721,
+      "cached_ms": 39.77670000313083
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0584.png",
+      "differences": [],
+      "baseline_ms": 47.31200000242097,
+      "cached_ms": 44.77329999645008
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0588.png",
+      "differences": [],
+      "baseline_ms": 50.894899999548215,
+      "cached_ms": 47.67560000618687
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0593.png",
+      "differences": [],
+      "baseline_ms": 49.278899998171255,
+      "cached_ms": 43.27419999754056
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0598.png",
+      "differences": [],
+      "baseline_ms": 44.915900005435105,
+      "cached_ms": 43.04250000132015
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0604.png",
+      "differences": [],
+      "baseline_ms": 46.38100000011036,
+      "cached_ms": 47.313800001575146
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0609.png",
+      "differences": [],
+      "baseline_ms": 46.583700001065154,
+      "cached_ms": 44.34220000257483
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0613.png",
+      "differences": [],
+      "baseline_ms": 47.90409999986878,
+      "cached_ms": 56.52330000157235
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0618.png",
+      "differences": [],
+      "baseline_ms": 46.93639999459265,
+      "cached_ms": 55.559799999173265
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0623.png",
+      "differences": [],
+      "baseline_ms": 46.457399999781046,
+      "cached_ms": 56.06610000540968
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0628.png",
+      "differences": [],
+      "baseline_ms": 45.00950000510784,
+      "cached_ms": 39.25339999841526
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0633.png",
+      "differences": [],
+      "baseline_ms": 47.90050000156043,
+      "cached_ms": 38.80679999565473
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0637.png",
+      "differences": [],
+      "baseline_ms": 47.94830000173533,
+      "cached_ms": 36.05749999405816
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0640.png",
+      "differences": [],
+      "baseline_ms": 51.35819999850355,
+      "cached_ms": 37.49670000252081
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0643.png",
+      "differences": [],
+      "baseline_ms": 48.84660000243457,
+      "cached_ms": 35.884299999452196
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0649.png",
+      "differences": [],
+      "baseline_ms": 49.63629999838304,
+      "cached_ms": 37.756999998237006
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0653.png",
+      "differences": [],
+      "baseline_ms": 48.47709999739891,
+      "cached_ms": 41.892200002621394
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0658.png",
+      "differences": [],
+      "baseline_ms": 47.68540000077337,
+      "cached_ms": 41.62969999742927
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0664.png",
+      "differences": [],
+      "baseline_ms": 45.46330000448506,
+      "cached_ms": 45.87159999937285
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0670.png",
+      "differences": [],
+      "baseline_ms": 47.98569999547908,
+      "cached_ms": 40.53619999467628
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0673.png",
+      "differences": [],
+      "baseline_ms": 46.3887000005343,
+      "cached_ms": 38.838799999211915
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0679.png",
+      "differences": [],
+      "baseline_ms": 46.53939999843715,
+      "cached_ms": 38.538799999514595
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0683.png",
+      "differences": [],
+      "baseline_ms": 45.52770000009332,
+      "cached_ms": 34.02210000058403
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0688.png",
+      "differences": [],
+      "baseline_ms": 51.80829999881098,
+      "cached_ms": 42.86829999909969
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0693.png",
+      "differences": [],
+      "baseline_ms": 45.92070000217063,
+      "cached_ms": 39.065999997546896
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0696.png",
+      "differences": [],
+      "baseline_ms": 46.3579999996,
+      "cached_ms": 37.7922000043327
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0701.png",
+      "differences": [],
+      "baseline_ms": 46.23089999950025,
+      "cached_ms": 45.89989999658428
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0707.png",
+      "differences": [],
+      "baseline_ms": 52.941599999030586,
+      "cached_ms": 45.574399999168236
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0712.png",
+      "differences": [],
+      "baseline_ms": 56.79509999754373,
+      "cached_ms": 49.40999999962514
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0717.png",
+      "differences": [],
+      "baseline_ms": 47.534199999063276,
+      "cached_ms": 52.66470000060508
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0722.png",
+      "differences": [],
+      "baseline_ms": 45.5703000043286,
+      "cached_ms": 43.64250000071479
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0727.png",
+      "differences": [],
+      "baseline_ms": 47.21310000604717,
+      "cached_ms": 42.95089999504853
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0732.png",
+      "differences": [],
+      "baseline_ms": 46.53349999716738,
+      "cached_ms": 44.65080000227317
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0737.png",
+      "differences": [],
+      "baseline_ms": 50.86740000115242,
+      "cached_ms": 42.59299999830546
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0742.png",
+      "differences": [],
+      "baseline_ms": 53.149999999732245,
+      "cached_ms": 44.577400003618095
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0747.png",
+      "differences": [],
+      "baseline_ms": 47.1322000012151,
+      "cached_ms": 45.94530000031227
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0751.png",
+      "differences": [],
+      "baseline_ms": 48.56180000206223,
+      "cached_ms": 43.49170000205049
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0755.png",
+      "differences": [],
+      "baseline_ms": 48.790000000735745,
+      "cached_ms": 39.65650000463938
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0760.png",
+      "differences": [],
+      "baseline_ms": 46.30339999857824,
+      "cached_ms": 45.66550000163261
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0764.png",
+      "differences": [],
+      "baseline_ms": 45.713199993770104,
+      "cached_ms": 44.84970000339672
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0769.png",
+      "differences": [],
+      "baseline_ms": 46.50060000130907,
+      "cached_ms": 43.960700000752695
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0774.png",
+      "differences": [],
+      "baseline_ms": 49.375700000382494,
+      "cached_ms": 46.19570000068052
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0779.png",
+      "differences": [],
+      "baseline_ms": 47.41350000404054,
+      "cached_ms": 47.50960000092164
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0786.png",
+      "differences": [],
+      "baseline_ms": 46.25970000051893,
+      "cached_ms": 42.878899999777786
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0791.png",
+      "differences": [],
+      "baseline_ms": 53.96369999652961,
+      "cached_ms": 46.02970000269124
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0797.png",
+      "differences": [],
+      "baseline_ms": 47.15009999927133,
+      "cached_ms": 46.25340000347933
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0803.png",
+      "differences": [],
+      "baseline_ms": 47.08730000129435,
+      "cached_ms": 47.954400004528
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0808.png",
+      "differences": [],
+      "baseline_ms": 46.840000002703164,
+      "cached_ms": 44.306999996479135
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0813.png",
+      "differences": [],
+      "baseline_ms": 45.49309999856632,
+      "cached_ms": 49.83310000534402
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0818.png",
+      "differences": [],
+      "baseline_ms": 47.991600004024804,
+      "cached_ms": 43.411200000264216
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0824.png",
+      "differences": [],
+      "baseline_ms": 48.18099999829428,
+      "cached_ms": 40.026599999691825
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0829.png",
+      "differences": [],
+      "baseline_ms": 46.322100002726074,
+      "cached_ms": 42.34990000259131
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0835.png",
+      "differences": [],
+      "baseline_ms": 46.09669999626931,
+      "cached_ms": 42.9052999970736
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0839.png",
+      "differences": [],
+      "baseline_ms": 46.57310000038706,
+      "cached_ms": 42.719299999589566
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0844.png",
+      "differences": [],
+      "baseline_ms": 49.757500004488975,
+      "cached_ms": 42.94859999936307
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0848.png",
+      "differences": [],
+      "baseline_ms": 51.785200004815124,
+      "cached_ms": 44.442699996579904
+    },
+    {
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0849.png",
+      "differences": [],
+      "baseline_ms": 52.867299993522465,
+      "cached_ms": 43.0320000014035
+    }
+  ]
+}

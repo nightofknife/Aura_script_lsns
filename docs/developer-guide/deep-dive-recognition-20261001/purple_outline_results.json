@@ -1,0 +1,2030 @@
+{
+  "parameters": {
+    "close_kernel": 5,
+    "roi_min": 12,
+    "roi_max": 84,
+    "hole_area_min": 350.0,
+    "hole_area_max": 1100.0,
+    "parent_area_min": 1500.0,
+    "hole_fraction_min": 0.16,
+    "hole_fraction_max": 0.45,
+    "centre_max_offset": 13.0,
+    "ellipse_axis_min": 24.0,
+    "ellipse_axis_max": 45.0,
+    "ellipse_axis_ratio_max": 1.4,
+    "hole_convexity_min": 0.9,
+    "ellipse_residual90_max": 0.15,
+    "hole_polygon_vertices_min": 7
+  },
+  "warning": "Fixed structural research helper. Native/reference and prior atlas positive tests are retention/invariance checks, repeat examples are development diagnosis, four actual wall/border negatives manually reviewed. No 99% or comprehensive accuracy claim.",
+  "cases": [
+    {
+      "name": "native_rotation_0",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\native_rotation_0.png",
+      "expected": true,
+      "provenance": "Named native reference, fixed rotation invariance only",
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 638.0,
+        "parent_area": 3058.5,
+        "hole_fraction": 0.20859898643125716,
+        "centre": [
+          42.12954330444336,
+          37.06300735473633
+        ],
+        "ellipse_axes": [
+          27.56747817993164,
+          30.16384506225586
+        ],
+        "convexity": 0.9522388059701492,
+        "ellipse_residual90": 0.08877467635405882,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "native_rotation_90",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\native_rotation_90.png",
+      "expected": true,
+      "provenance": "Named native reference, fixed rotation invariance only",
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 631.5,
+        "parent_area": 3046.5,
+        "hole_fraction": 0.20728705071393402,
+        "centre": [
+          37.171661376953125,
+          52.673648834228516
+        ],
+        "ellipse_axes": [
+          27.27680015563965,
+          30.024572372436523
+        ],
+        "convexity": 0.9648586707410237,
+        "ellipse_residual90": 0.07970067919766023,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "native_rotation_180",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\native_rotation_180.png",
+      "expected": true,
+      "provenance": "Named native reference, fixed rotation invariance only",
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 638.0,
+        "parent_area": 3058.5,
+        "hole_fraction": 0.20859898643125716,
+        "centre": [
+          52.87045669555664,
+          57.93699264526367
+        ],
+        "ellipse_axes": [
+          27.56747817993164,
+          30.16384506225586
+        ],
+        "convexity": 0.9522388059701492,
+        "ellipse_residual90": 0.08877467635405882,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "native_rotation_270",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\native_rotation_270.png",
+      "expected": true,
+      "provenance": "Named native reference, fixed rotation invariance only",
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 631.5,
+        "parent_area": 3046.5,
+        "hole_fraction": 0.20728705071393402,
+        "centre": [
+          57.828338623046875,
+          42.326351165771484
+        ],
+        "ellipse_axes": [
+          27.27680015563965,
+          30.024572372436523
+        ],
+        "convexity": 0.9648586707410237,
+        "ellipse_residual90": 0.07970067919766023,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "repeat_L02_217",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_217.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0217.png",
+        "quad": [
+          [
+            506.46089897858894,
+            340.2246189007519
+          ],
+          [
+            544.0142909754691,
+            402.75191350285905
+          ],
+          [
+            512.2042972733095,
+            473.7651222249589
+          ],
+          [
+            475.5372051020867,
+            411.0152877663906
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 641.0,
+        "parent_area": 2883.5,
+        "hole_fraction": 0.22229928905843593,
+        "centre": [
+          45.96128463745117,
+          51.83784103393555
+        ],
+        "ellipse_axes": [
+          27.819665908813477,
+          29.795345306396484
+        ],
+        "convexity": 0.9653614457831325,
+        "ellipse_residual90": 0.06844786562968833,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_222",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_222.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0222.png",
+        "quad": [
+          [
+            523.6013693954712,
+            349.24891591588965
+          ],
+          [
+            567.1826779226197,
+            411.29092250970086
+          ],
+          [
+            533.7471561015848,
+            480.5272847829715
+          ],
+          [
+            491.08858982669176,
+            418.3563447929512
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 631.0,
+        "parent_area": 2900.5,
+        "hole_fraction": 0.21754869850025857,
+        "centre": [
+          43.42146301269531,
+          50.06976318359375
+        ],
+        "ellipse_axes": [
+          27.63401985168457,
+          29.46308708190918
+        ],
+        "convexity": 0.9626239511823036,
+        "ellipse_residual90": 0.061768086171302604,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_241",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_241.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0241.png",
+        "quad": [
+          [
+            594.5584223560535,
+            366.14063675456384
+          ],
+          [
+            661.4793759485358,
+            419.98066885019045
+          ],
+          [
+            625.4558369858951,
+            494.36292584947466
+          ],
+          [
+            559.4995983346814,
+            440.40271438229695
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 667.5,
+        "parent_area": 2978.0,
+        "hole_fraction": 0.22414372061786433,
+        "centre": [
+          46.078792572021484,
+          50.4742431640625
+        ],
+        "ellipse_axes": [
+          28.812658309936523,
+          29.74638557434082
+        ],
+        "convexity": 0.9583632447954056,
+        "ellipse_residual90": 0.07416882654148602,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_349",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_349.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0349.png",
+        "quad": [
+          [
+            902.2062455705745,
+            436.1762607810486
+          ],
+          [
+            936.9274168372915,
+            497.78864061332644
+          ],
+          [
+            872.4996003729964,
+            555.1491656322139
+          ],
+          [
+            836.8403149544383,
+            493.9213358675899
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 662.0,
+        "parent_area": 2882.5,
+        "hole_fraction": 0.22966175195143104,
+        "centre": [
+          45.02773666381836,
+          48.765872955322266
+        ],
+        "ellipse_axes": [
+          28.714330673217773,
+          29.715667724609375
+        ],
+        "convexity": 0.9587255611875453,
+        "ellipse_residual90": 0.05663114810571135,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_361",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_361.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0361.png",
+        "quad": [
+          [
+            907.4541678739374,
+            419.67096413341295
+          ],
+          [
+            943.434027149629,
+            491.25408855205615
+          ],
+          [
+            876.7936870467568,
+            546.0153752255683
+          ],
+          [
+            839.9137983870021,
+            474.4651339032654
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 639.5,
+        "parent_area": 2752.0,
+        "hole_fraction": 0.2323764534883721,
+        "centre": [
+          44.61091232299805,
+          48.28035354614258
+        ],
+        "ellipse_axes": [
+          28.09778594970703,
+          29.51106834411621
+        ],
+        "convexity": 0.9509293680297398,
+        "ellipse_residual90": 0.07614920245020393,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_366",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_366.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0366.png",
+        "quad": [
+          [
+            902.7379781006462,
+            402.4228259921125
+          ],
+          [
+            939.3359128639418,
+            478.6584968697638
+          ],
+          [
+            873.2071765945464,
+            527.7739616528056
+          ],
+          [
+            835.8488915169726,
+            451.2365511871434
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 651.0,
+        "parent_area": 2809.0,
+        "hole_fraction": 0.23175507297970807,
+        "centre": [
+          44.761905670166016,
+          48.04314422607422
+        ],
+        "ellipse_axes": [
+          28.12244987487793,
+          29.80159568786621
+        ],
+        "convexity": 0.9531478770131772,
+        "ellipse_residual90": 0.0730738515048299,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_370",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_370.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0370.png",
+        "quad": [
+          [
+            902.7036651283603,
+            386.56200307543287
+          ],
+          [
+            939.9794879557126,
+            465.99266928063156
+          ],
+          [
+            874.1730340308536,
+            510.3278234197406
+          ],
+          [
+            836.2379449948257,
+            430.3272803795582
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 644.5,
+        "parent_area": 2849.0,
+        "hole_fraction": 0.22621972621972622,
+        "centre": [
+          44.212703704833984,
+          48.562835693359375
+        ],
+        "ellipse_axes": [
+          28.15349769592285,
+          29.366308212280273
+        ],
+        "convexity": 0.9633781763826607,
+        "ellipse_residual90": 0.04771983116368523,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_375",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_375.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0375.png",
+        "quad": [
+          [
+            904.9721830984224,
+            368.4864224855844
+          ],
+          [
+            943.4961934889903,
+            451.62342250836974
+          ],
+          [
+            878.2660262587685,
+            488.8803155489078
+          ],
+          [
+            839.1862154273655,
+            404.8118370432644
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 652.0,
+        "parent_area": 2832.0,
+        "hole_fraction": 0.23022598870056496,
+        "centre": [
+          43.56072235107422,
+          47.92390823364258
+        ],
+        "ellipse_axes": [
+          28.121929168701172,
+          30.069841384887695
+        ],
+        "convexity": 0.9511305616338439,
+        "ellipse_residual90": 0.07599077836992935,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_386",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_386.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0386.png",
+        "quad": [
+          [
+            901.672775473384,
+            356.4429641639245
+          ],
+          [
+            939.661953496279,
+            439.1480952647545
+          ],
+          [
+            873.6091600785293,
+            469.1151401895251
+          ],
+          [
+            835.2241179883899,
+            385.3699579801644
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 644.5,
+        "parent_area": 2887.5,
+        "hole_fraction": 0.2232034632034632,
+        "centre": [
+          43.85626220703125,
+          48.408660888671875
+        ],
+        "ellipse_axes": [
+          28.50345802307129,
+          29.07591438293457
+        ],
+        "convexity": 0.9728301886792453,
+        "ellipse_residual90": 0.05232643923458693,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "repeat_L02_403",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_403.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0403.png",
+        "quad": [
+          [
+            900.6246986736033,
+            314.90370670182796
+          ],
+          [
+            941.2902687412442,
+            388.2670999343845
+          ],
+          [
+            875.670545003486,
+            393.30288341290964
+          ],
+          [
+            835.0215746746412,
+            318.868541532281
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 662.0,
+        "parent_area": 2942.5,
+        "hole_fraction": 0.22497875955819882,
+        "centre": [
+          45.107242584228516,
+          51.104286193847656
+        ],
+        "ellipse_axes": [
+          27.950891494750977,
+          30.32571792602539
+        ],
+        "convexity": 0.9566473988439307,
+        "ellipse_residual90": 0.06664890893948638,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "repeat_L02_408",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_408.png",
+      "expected": true,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0408.png",
+        "quad": [
+          [
+            894.9431949020525,
+            307.21696970291237
+          ],
+          [
+            933.3182221050622,
+            376.6315264135789
+          ],
+          [
+            867.5920513027271,
+            376.24664507432294
+          ],
+          [
+            829.365310383858,
+            305.9057447827478
+          ]
+        ],
+        "label": "Manual full source/crop review: complete purple ring",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 656.0,
+            "parent_area": 2950.5,
+            "hole_fraction": 0.2223351974241654,
+            "centre": [
+              46.2137451171875,
+              44.4983024597168
+            ],
+            "ellipse_axes": [
+              28.013973236083984,
+              30.209362030029297
+            ],
+            "convexity": 0.9647058823529412,
+            "ellipse_residual90": 0.05789711295349398,
+            "polygon_vertices": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "repeat_L02_883",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\repeat_L02_883.png",
+      "expected": false,
+      "provenance": {
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0883.png",
+        "quad": [
+          [
+            678.0527723500916,
+            526.0881673318561
+          ],
+          [
+            652.6465195317318,
+            615.0731435061845
+          ],
+          [
+            568.2567822145711,
+            586.3041463859175
+          ],
+          [
+            593.296679433365,
+            497.8276643163641
+          ]
+        ],
+        "label": "Manual source/crop review: HUD occludes most of ring, only partial border visible",
+        "development_diagnosis_not_accuracy": true
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "actual_wall_0",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\actual_wall_0.png",
+      "expected": false,
+      "provenance": {
+        "index": 0,
+        "frame": 217,
+        "run": "run2",
+        "xy": [
+          510,
+          440
+        ],
+        "box": [
+          510,
+          440,
+          24,
+          24
+        ],
+        "purple_pixels": 372,
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0217.png",
+        "manual_label": "Filled glowing purple wall"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "actual_wall_1",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\actual_wall_1.png",
+      "expected": false,
+      "provenance": {
+        "index": 1,
+        "frame": 217,
+        "run": "run2",
+        "xy": [
+          550,
+          440
+        ],
+        "box": [
+          550,
+          440,
+          24,
+          24
+        ],
+        "purple_pixels": 395,
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0217.png",
+        "manual_label": "Filled glowing purple wall"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "actual_wall_2",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\actual_wall_2.png",
+      "expected": false,
+      "provenance": {
+        "index": 2,
+        "frame": 391,
+        "run": "run2",
+        "xy": [
+          510,
+          320
+        ],
+        "box": [
+          510,
+          320,
+          24,
+          24
+        ],
+        "purple_pixels": 395,
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0391.png",
+        "manual_label": "Filled glowing purple wall"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "actual_wall_3",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\actual_wall_3.png",
+      "expected": false,
+      "provenance": {
+        "index": 3,
+        "frame": 391,
+        "run": "run2",
+        "xy": [
+          470,
+          340
+        ],
+        "box": [
+          470,
+          340,
+          24,
+          24
+        ],
+        "purple_pixels": 375,
+        "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0391.png",
+        "manual_label": "Partial purple glyph border and wall, no complete ring"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "prior_train_R00_0000_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0000_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 0,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0000_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "a8ad94310b023d42cac800099ea5d0f6385abd8cde9482155e3bac81e9c2d376",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 653.0,
+        "parent_area": 2829.0,
+        "hole_fraction": 0.23082361258395193,
+        "centre": [
+          54.68716049194336,
+          53.73329544067383
+        ],
+        "ellipse_axes": [
+          28.18568992614746,
+          30.0052433013916
+        ],
+        "convexity": 0.9539810080350621,
+        "ellipse_residual90": 0.07134723264233887,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R00_0348_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0348_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 348,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0348_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "265e2810c8ec1dd602efb5c11b316d4ff7b78dee6080c807a24acae1c6b30c7a",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 578.5,
+            "parent_area": 2094.0,
+            "hole_fraction": 0.27626552053486153,
+            "centre": [
+              58.988224029541016,
+              65.2059326171875
+            ],
+            "ellipse_axes": [
+              26.49374771118164,
+              28.327598571777344
+            ],
+            "convexity": 0.9554087530966143,
+            "ellipse_residual90": 0.07505865452559049,
+            "polygon_vertices": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_R00_0373_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0373_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 373,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0373_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "894014e0be95ce874c9b8b3c47af8ac69688829a49e258ae60fbc0cb5c0618b4",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 625.0,
+        "parent_area": 2750.5,
+        "hole_fraction": 0.22723141247045991,
+        "centre": [
+          53.43074417114258,
+          54.45346450805664
+        ],
+        "ellipse_axes": [
+          27.42071533203125,
+          29.64373016357422
+        ],
+        "convexity": 0.9556574923547401,
+        "ellipse_residual90": 0.07311028650027385,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R00_0386_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0386_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 386,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0386_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "b1791e6505a971dd54e8d067a635d8c2646c9862c83306cdc2af9060cfd92b21",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 641.0,
+        "parent_area": 2768.5,
+        "hole_fraction": 0.23153332129311902,
+        "centre": [
+          50.827064514160156,
+          52.411956787109375
+        ],
+        "ellipse_axes": [
+          27.74546241760254,
+          30.09950065612793
+        ],
+        "convexity": 0.9574309185959672,
+        "ellipse_residual90": 0.08050273194846776,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R00_0399_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0399_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 399,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0399_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "bdaa45c61c56a92e60b4cd4566e5b7ede3d2a038ab5a61d55b283a623bf45419",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 636.5,
+        "parent_area": 2779.5,
+        "hole_fraction": 0.22899802122683935,
+        "centre": [
+          48.17666244506836,
+          53.72198486328125
+        ],
+        "ellipse_axes": [
+          28.011276245117188,
+          29.44221305847168
+        ],
+        "convexity": 0.9578630549285176,
+        "ellipse_residual90": 0.07305911238136173,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "prior_train_R00_0415_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R00_0415_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 415,
+        "cell": "R00",
+        "label": "purple_ring",
+        "path": "train_R00_0415_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "61028a8edac329c4898c295195e0a3ef9d1f82a99e6d5d52209bdf0394843135",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 645.0,
+        "parent_area": 2801.0,
+        "hole_fraction": 0.23027490182077828,
+        "centre": [
+          48.732479095458984,
+          51.48191452026367
+        ],
+        "ellipse_axes": [
+          27.731006622314453,
+          30.265384674072266
+        ],
+        "convexity": 0.9576837416481069,
+        "ellipse_residual90": 0.08313469862016909,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R10_0000_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0000_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 0,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0000_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "68b2c378a6dffe9b4cf2d780e5ad73882ab4b17fc08a498af3196c2966c7bce9",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 656.5,
+        "parent_area": 2800.5,
+        "hole_fraction": 0.2344224245670416,
+        "centre": [
+          53.2780647277832,
+          50.734107971191406
+        ],
+        "ellipse_axes": [
+          28.008953094482422,
+          30.358625411987305
+        ],
+        "convexity": 0.9556040756914119,
+        "ellipse_residual90": 0.08141444681319569,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R10_0330_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0330_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 330,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0330_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "90dd3d66d7e258023472a15a7ef80097f1593507bc462383b5fa1ab96a1bbd2e",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "prior_train_R10_0341_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0341_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 341,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0341_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "20d0a3ed65bf5fc92c6766ecc2e77e4fb65abe106d90a26cb4a64313b90bbaa3",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 530.5,
+            "parent_area": 1701.5,
+            "hole_fraction": 0.31178372024684103,
+            "centre": [
+              64.31507873535156,
+              67.63154602050781
+            ],
+            "ellipse_axes": [
+              25.006380081176758,
+              27.403579711914062
+            ],
+            "convexity": 0.9698354661791591,
+            "ellipse_residual90": 0.05249448278576282,
+            "polygon_vertices": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_R10_0354_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0354_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 354,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0354_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "defdee2aea4e6fc08a42b93aa28f2f5ec77f6af91d16552b0eee2082a7c22630",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 625.5,
+        "parent_area": 2707.0,
+        "hole_fraction": 0.23106760251200592,
+        "centre": [
+          49.36995315551758,
+          54.791439056396484
+        ],
+        "ellipse_axes": [
+          27.741451263427734,
+          29.038421630859375
+        ],
+        "convexity": 0.9586206896551724,
+        "ellipse_residual90": 0.05704504035312571,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_R10_0373_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0373_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 373,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0373_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "d000b88016cd28a2268b77d4a20c5a1fa47fbe414f84134ea65d1c31334a9811",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 633.5,
+        "parent_area": 2800.5,
+        "hole_fraction": 0.2262096054276022,
+        "centre": [
+          51.16325378417969,
+          49.87484359741211
+        ],
+        "ellipse_axes": [
+          27.62981605529785,
+          29.558246612548828
+        ],
+        "convexity": 0.9569486404833837,
+        "ellipse_residual90": 0.07087579361698904,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "prior_train_R10_0432_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_R10_0432_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 432,
+        "cell": "R10",
+        "label": "purple_ring",
+        "path": "train_R10_0432_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "58a6121048f79ad12906c67b0e5ec2b71c4288e45d4fe8e317cd3366eea7a520",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 635.5,
+        "parent_area": 2807.5,
+        "hole_fraction": 0.2263579697239537,
+        "centre": [
+          47.4527587890625,
+          41.72331237792969
+        ],
+        "ellipse_axes": [
+          27.081745147705078,
+          30.23236656188965
+        ],
+        "convexity": 0.9534883720930233,
+        "ellipse_residual90": 0.08071717551205436,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_F20_0000_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_F20_0000_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 0,
+        "cell": "F20",
+        "label": "purple_ring",
+        "path": "train_F20_0000_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "47a81f61e9d5bdaebc1f45b3f0b349a959bf81c81ff7be4ace51631b4052300f",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 662.5,
+        "parent_area": 2743.0,
+        "hole_fraction": 0.24152387896463726,
+        "centre": [
+          50.07495880126953,
+          42.07085037231445
+        ],
+        "ellipse_axes": [
+          28.329666137695312,
+          30.056947708129883
+        ],
+        "convexity": 0.9629360465116279,
+        "ellipse_residual90": 0.060632743726781936,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_F20_0490_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_F20_0490_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 490,
+        "cell": "F20",
+        "label": "purple_ring",
+        "path": "train_F20_0490_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "deeef3bd0406d64a39f99cd20d17dbddf59717680c6daa5ddc9f86e3847f2b50",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 627.5,
+            "parent_area": 2302.0,
+            "hole_fraction": 0.27258905299739355,
+            "centre": [
+              56.800758361816406,
+              29.001956939697266
+            ],
+            "ellipse_axes": [
+              27.067678451538086,
+              29.76902961730957
+            ],
+            "convexity": 0.9550989345509894,
+            "ellipse_residual90": 0.06300729993593354,
+            "polygon_vertices": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_F20_0457_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_F20_0457_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 457,
+        "cell": "F20",
+        "label": "purple_ring",
+        "path": "train_F20_0457_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "d0b004e2b653c9bcdd3f3fc95ff5cef201b12bc8f0b57c14916748d492e1b55f",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 610.0,
+        "parent_area": 2467.0,
+        "hole_fraction": 0.24726388325901905,
+        "centre": [
+          59.33972930908203,
+          38.86373519897461
+        ],
+        "ellipse_axes": [
+          26.49482536315918,
+          29.94523048400879
+        ],
+        "convexity": 0.9523809523809523,
+        "ellipse_residual90": 0.061857576682100644,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_D20_0240_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_D20_0240_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 240,
+        "cell": "D20",
+        "label": "purple_ring",
+        "path": "train_D20_0240_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "cf90753f74defb9475613fc546ad90c3da8c1da33e4f8fe480e3ff7a19e761b9",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 598.5,
+        "parent_area": 2627.0,
+        "hole_fraction": 0.22782641796726305,
+        "centre": [
+          48.56345748901367,
+          50.162376403808594
+        ],
+        "ellipse_axes": [
+          27.60003662109375,
+          28.494638442993164
+        ],
+        "convexity": 0.9553072625698324,
+        "ellipse_residual90": 0.08760045654953703,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_D20_0249_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_D20_0249_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 249,
+        "cell": "D20",
+        "label": "purple_ring",
+        "path": "train_D20_0249_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "85219fbbe13c413c81adb09c1d55741077d97be34c354efa1a703cb08453991e",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 617.0,
+        "parent_area": 2749.0,
+        "hole_fraction": 0.224445252819207,
+        "centre": [
+          52.35366439819336,
+          48.71269989013672
+        ],
+        "ellipse_axes": [
+          27.353713989257812,
+          28.978290557861328
+        ],
+        "convexity": 0.9648162627052385,
+        "ellipse_residual90": 0.06521598602036444,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_D20_0259_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_D20_0259_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 259,
+        "cell": "D20",
+        "label": "purple_ring",
+        "path": "train_D20_0259_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "087fb144fdcf83a6289d168b666e5e89c874af5241d982bb13376f0a9ec8f32b",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 615.0,
+        "parent_area": 2720.0,
+        "hole_fraction": 0.2261029411764706,
+        "centre": [
+          46.766807556152344,
+          52.727882385253906
+        ],
+        "ellipse_axes": [
+          27.787487030029297,
+          28.393701553344727
+        ],
+        "convexity": 0.9579439252336449,
+        "ellipse_residual90": 0.06732509001319278,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B01_0071_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B01_0071_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 71,
+        "cell": "B01",
+        "label": "purple_ring",
+        "path": "train_B01_0071_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "965ec54da594818f7d7c1465e5a24b14007581a6855330f6608084fdb1c65172",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 607.0,
+        "parent_area": 2651.5,
+        "hole_fraction": 0.22892702244012822,
+        "centre": [
+          52.01156997680664,
+          48.75944900512695
+        ],
+        "ellipse_axes": [
+          27.047632217407227,
+          29.187265396118164
+        ],
+        "convexity": 0.955153422501967,
+        "ellipse_residual90": 0.07170213057249386,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B01_0081_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B01_0081_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 81,
+        "cell": "B01",
+        "label": "purple_ring",
+        "path": "train_B01_0081_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "1d4cf3766e74cef5c7f5d77cca5622467829ff6299e305cecd4ecca9c8777711",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 609.0,
+        "parent_area": 2690.0,
+        "hole_fraction": 0.22639405204460966,
+        "centre": [
+          51.69139099121094,
+          51.17731475830078
+        ],
+        "ellipse_axes": [
+          26.993558883666992,
+          28.959484100341797
+        ],
+        "convexity": 0.96513470681458,
+        "ellipse_residual90": 0.060914196449751386,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B01_0116_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B01_0116_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 116,
+        "cell": "B01",
+        "label": "purple_ring",
+        "path": "train_B01_0116_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "431f8a58d1bd6fcd1b0822de1b5609590991ddeb6048323cfe06589e7c9b4055",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 607.5,
+        "parent_area": 2671.0,
+        "hole_fraction": 0.22744290527892175,
+        "centre": [
+          51.43848419189453,
+          52.94395065307617
+        ],
+        "ellipse_axes": [
+          27.252437591552734,
+          28.990562438964844
+        ],
+        "convexity": 0.9650516282764099,
+        "ellipse_residual90": 0.07411829328832664,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B01_0126_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B01_0126_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 126,
+        "cell": "B01",
+        "label": "purple_ring",
+        "path": "train_B01_0126_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "9fffab790e52a482acfa50e210c559369a4c8ac815969bf4809f47c2ea2dcf23",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 615.5,
+        "parent_area": 2716.5,
+        "hole_fraction": 0.22657831768820172,
+        "centre": [
+          49.26060104370117,
+          52.78282165527344
+        ],
+        "ellipse_axes": [
+          26.940834045410156,
+          29.77631187438965
+        ],
+        "convexity": 0.96171875,
+        "ellipse_residual90": 0.06741853421685873,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B10_0063_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0063_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 63,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0063_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "f60b66db7166bc93e16b84938461d8ea15554cc871cbbdedcb62545c413c1427",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 581.5,
+            "parent_area": 2465.5,
+            "hole_fraction": 0.23585479618738592,
+            "centre": [
+              53.38642883300781,
+              33.71643829345703
+            ],
+            "ellipse_axes": [
+              25.487905502319336,
+              30.001222610473633
+            ],
+            "convexity": 0.9659468438538206,
+            "ellipse_residual90": 0.07451806449017478,
+            "polygon_vertices": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B10_0071_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0071_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 71,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0071_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "ee2ccdc5f4c13c372abc1e97ae5f3f8356747d44e34d4602e452c064f0910c06",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 592.5,
+        "parent_area": 2460.0,
+        "hole_fraction": 0.24085365853658536,
+        "centre": [
+          56.72609329223633,
+          36.727596282958984
+        ],
+        "ellipse_axes": [
+          26.348819732666016,
+          29.056856155395508
+        ],
+        "convexity": 0.9548751007252216,
+        "ellipse_residual90": 0.08146107326376938,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "prior_train_B10_0112_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0112_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 112,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0112_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "c416d30f3b72ac4c478b1c0a86332104c77ead2d4c535a951bfb50eff237f375",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 604.0,
+        "parent_area": 2615.0,
+        "hole_fraction": 0.2309751434034417,
+        "centre": [
+          55.16933059692383,
+          44.539451599121094
+        ],
+        "ellipse_axes": [
+          26.86435317993164,
+          29.035369873046875
+        ],
+        "convexity": 0.9602543720190779,
+        "ellipse_residual90": 0.06392945679635438,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B10_0093_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0093_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 93,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0093_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "286b995cf3dbf99825d87d3cdb8b0b9a6a0d554da0dcec251803595ecd7ebecf",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 603.5,
+        "parent_area": 2607.5,
+        "hole_fraction": 0.2314477468839885,
+        "centre": [
+          55.43764877319336,
+          43.023101806640625
+        ],
+        "ellipse_axes": [
+          27.29425048828125,
+          28.60843276977539
+        ],
+        "convexity": 0.957936507936508,
+        "ellipse_residual90": 0.07472287819193825,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B10_0236_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0236_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 236,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0236_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "975357df487d0783f961693c2a73a0305ab18dc530ef3a20621a12e4a034e339",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 607.5,
+            "parent_area": 2524.5,
+            "hole_fraction": 0.24064171122994651,
+            "centre": [
+              60.4226188659668,
+              53.52069854736328
+            ],
+            "ellipse_axes": [
+              27.18490219116211,
+              28.9846248626709
+            ],
+            "convexity": 0.9521943573667712,
+            "ellipse_residual90": 0.0715618192552154,
+            "polygon_vertices": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B10_0087_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B10_0087_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 87,
+        "cell": "B10",
+        "label": "purple_ring",
+        "path": "train_B10_0087_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "5d4afba8c4cd879837f10307832302f9cba6fa71ae18fd81b9fd259d3fe304b1",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 597.0,
+        "parent_area": 2550.5,
+        "hole_fraction": 0.23407175063712998,
+        "centre": [
+          56.574485778808594,
+          44.43873977661133
+        ],
+        "ellipse_axes": [
+          27.18061637878418,
+          28.664770126342773
+        ],
+        "convexity": 0.9644588045234249,
+        "ellipse_residual90": 0.07087668667824687,
+        "polygon_vertices": 8
+      }
+    },
+    {
+      "name": "prior_train_B20_0071_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0071_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 71,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0071_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "2da328d48366c528206c4aebae34666883b40f8a6863fc69b77751f777d3ab50",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 576.0,
+            "parent_area": 2024.5,
+            "hole_fraction": 0.2845146949864164,
+            "centre": [
+              56.04891586303711,
+              26.608057022094727
+            ],
+            "ellipse_axes": [
+              25.813756942749023,
+              29.10235595703125
+            ],
+            "convexity": 0.9512799339388934,
+            "ellipse_residual90": 0.0815772765969338,
+            "polygon_vertices": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B20_0081_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0081_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 81,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0081_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "f4c4fb1ed30cfcd228bbaf53b8a923ec8df8f4234982a3f34be2953de4708139",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 595.5,
+            "parent_area": 2214.0,
+            "hole_fraction": 0.268970189701897,
+            "centre": [
+              58.5196647644043,
+              32.03704833984375
+            ],
+            "ellipse_axes": [
+              26.621795654296875,
+              28.70676612854004
+            ],
+            "convexity": 0.9612590799031477,
+            "ellipse_residual90": 0.0631380821113951,
+            "polygon_vertices": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B20_0087_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0087_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 87,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0087_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "f1fec63a47298fb0f7e1812719a641a36297a7319a623da05ec183ff8cd187a2",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 596.5,
+        "parent_area": 2394.0,
+        "hole_fraction": 0.24916457811194653,
+        "centre": [
+          57.416297912597656,
+          35.46636962890625
+        ],
+        "ellipse_axes": [
+          26.584684371948242,
+          29.43769073486328
+        ],
+        "convexity": 0.9605475040257649,
+        "ellipse_residual90": 0.08666226411827545,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "prior_train_B20_0093_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0093_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 93,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0093_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "caf55716d671fed1574b8410aba096124e8f883203d8a5bd6a8f4241982b24d4",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 597.5,
+            "parent_area": 2398.0,
+            "hole_fraction": 0.24916597164303586,
+            "centre": [
+              55.853946685791016,
+              34.388431549072266
+            ],
+            "ellipse_axes": [
+              26.783798217773438,
+              29.02680778503418
+            ],
+            "convexity": 0.9537110933758979,
+            "ellipse_residual90": 0.07498135217984325,
+            "polygon_vertices": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B20_0116_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0116_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 116,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0116_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "6dd167759a5f846acf361dd5611f1c3dbe3da1c6fc342d92c683d0f36cda2c21",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": [
+          {
+            "hole_area": 593.0,
+            "parent_area": 2347.0,
+            "hole_fraction": 0.25266297400937365,
+            "centre": [
+              57.63108444213867,
+              34.1646614074707
+            ],
+            "ellipse_axes": [
+              26.834514617919922,
+              28.642765045166016
+            ],
+            "convexity": 0.9634443541835905,
+            "ellipse_residual90": 0.08026758230258632,
+            "polygon_vertices": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "prior_train_B20_0126_purple_ring",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\prior_train_B20_0126_purple_ring.png",
+      "expected": true,
+      "provenance": {
+        "split": "train",
+        "source_session": "c4a03c0853844bd08046e3f07d45fd5c",
+        "source_frame": 126,
+        "cell": "B20",
+        "label": "purple_ring",
+        "path": "train_B20_0126_purple_ring.png",
+        "label_provenance": "provisional_current_atlas_high_confidence_not_independent_ground_truth",
+        "sha256": "a3f810b62104c871dfc2ea701240168957c4a69c65b4a0cf1bc8f29afe07e1cb",
+        "note": "Earlier atlas-derived labels provisional; this positive set checks retention, not independent accuracy"
+      },
+      "result": {
+        "accepted": true,
+        "reason": "complete_central_curved_hole",
+        "hole_area": 586.5,
+        "parent_area": 2436.0,
+        "hole_fraction": 0.24076354679802955,
+        "centre": [
+          56.577205657958984,
+          35.19755554199219
+        ],
+        "ellipse_axes": [
+          26.572649002075195,
+          28.609167098999023
+        ],
+        "convexity": 0.9536585365853658,
+        "ellipse_residual90": 0.08529304756695787,
+        "polygon_vertices": 7
+      }
+    },
+    {
+      "name": "half_removed_left",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\half_removed_left.png",
+      "expected": false,
+      "provenance": "Synthetic half of native source replaced; shape stress only",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "half_removed_right",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\half_removed_right.png",
+      "expected": false,
+      "provenance": "Synthetic half of native source replaced; shape stress only",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "half_removed_top",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\half_removed_top.png",
+      "expected": false,
+      "provenance": "Synthetic half of native source replaced; shape stress only",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "half_removed_bottom",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\half_removed_bottom.png",
+      "expected": false,
+      "provenance": "Synthetic half of native source replaced; shape stress only",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "filled",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\filled.png",
+      "expected": false,
+      "provenance": "Synthetic filled wall or square-border shape stress",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    },
+    {
+      "name": "square_border",
+      "path": ".pytest_tmp\\deep_dive_perf_20261001\\purple_outline_cases\\square_border.png",
+      "expected": false,
+      "provenance": "Synthetic filled wall or square-border shape stress",
+      "result": {
+        "accepted": false,
+        "reason": "no_complete_central_curved_hole",
+        "considered": []
+      }
+    }
+  ],
+  "summary": {
+    "total": 60,
+    "correct": 49,
+    "positive_total": 49,
+    "positive_accepted": 38,
+    "negative_total": 11,
+    "negative_wrong_accepted": 0
+  },
+  "timing": {
+    "median_ms": 0.25459999960730784,
+    "p95_ms": 0.38986999934422784
+  }
+}

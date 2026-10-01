@@ -27,6 +27,8 @@ from packages.aura_core.utils.exceptions import StopTaskException
 from ._deep_dive_planned_run_vision import observe, read_hud, enrich_observation, NODE_EVENT_TYPES
 from .consciousness_deep_dive_scan_pc_actions import run_layout_scan, reset_layout_view
 from ._deep_dive_movement_planner import plan_current_state
+from ._deep_dive_target_readiness import targets_readiness, check_required_cells
+from ._deep_dive_required_cell_reader import read_required_cells, promote_read_reference
 from ._deep_dive_planner_rules import cell_to_slot
 from . import _deep_dive_directed_operation_flow as directed
 from ._deep_dive_operation_frame import (
@@ -40,11 +42,19 @@ POLL = .35
 HUD_KEYS = ('plane_index', 'rounds_remaining', 'moves_used', 'moves_total',
             'rotations_used', 'rotations_total', 'collected_count', 'inspiration_total')
 PHASE_LIMITS = {'scan_turn': 90, 'accept_scan': 30, 'planning': 45,
-                'reset_wide': 20, 'wide_reference': 45,
+                'reset_wide': 20, 'wide_reference': 45, 'supplement_cells': 15,
                 'operation': 100, 'operation_outcome': 45, 'verify_move': 45,
                 'enemy_wait': 180, 'plane_transition': 90, 'rest_area': 45,
                 'next_plane_wait': 90, 'event_dispatch': 960}
 _RUN_OCR = ContextVar('deep_dive_planned_run_ocr', default=None)
+_RUN_DETECTOR = ContextVar('deep_dive_planned_run_detector', default=None)
+
+
+def _entity_detector_callable():
+    detector = _RUN_DETECTOR.get()
+    if detector is None:
+        raise ValueError('entity_detector_required_for_planned_run')
+    return detector.detect_packet
 
 
 def _cancel_check():
@@ -93,7 +103,19 @@ async def _capture(app, family='healing'):
     capture = await _owned(app.capture_async())
     if not getattr(capture, 'success', False) or getattr(capture, 'image', None) is None:
         return None, dict(valid=False, scene='capture_failed')
-    return capture.image, observe(capture.image, event_family=family)
+    source = None
+    try:
+        packet = app.target_runtime._get_or_create_session().capture_stream_frame()
+        if packet is not None and time.monotonic()-packet['arrived_at_monotonic'] <= .35:
+            capture = packet['capture']
+            source = dict(session_id=packet['session_id'], generation=packet['generation'],
+                          frame_time=packet['arrived_at_monotonic'])
+    except (AttributeError, RuntimeError, KeyError):
+        pass
+    observed = observe(capture.image, event_family=family)
+    if source is not None:
+        observed['_capture_source'] = source
+    return capture.image, observed
 
 
 async def _click_owned(state, app, x, y):
@@ -124,6 +146,8 @@ def _invalidate(state, reason):
     state['operation_frame'] = None
     state['wide_reference'] = None
     state.pop('wide_reference_stability', None)
+    for key in ('resume_planned_action', 'required_cells', 'required_cell_votes', 'required_reference_stability'):
+        state.pop(key, None)
     state['known_cells'] = 0
     state['map_revision'] += 1
     state['pose_epoch'] += 1
@@ -167,7 +191,7 @@ def _summary(state):
             'plane_index', 'planes_completed', 'turns_completed', 'rounds_remaining',
             'scan_epoch', 'map_revision', 'known_cells', 'terminal_reached', 'terminal',
             'outcome', 'final_frame', 'last_frame', 'output_dir', 'json_path', 'report_path',
-            'latest_scan', 'latest_plan', 'reward_ledger')
+            'latest_scan', 'latest_plan', 'reward_ledger', 'recognition_elapsed_sec')
     result = {key: _jsonable(state.get(key)) for key in keys}
     result['success'] = state['status'] == 'completed' and state['terminal_reached']
     result['game_success'] = (True if state.get('outcome') == 'victory' else
@@ -308,10 +332,14 @@ def _complete_plane(state):
 def _compact_layout(layout, state):
     result = {key: deepcopy(layout.get(key)) for key in (
         'schema', 'coordinate_frame', 'status', 'success', 'layout_complete', 'faces',
-        'player_cell', 'singularity_cell', 'inspiration_cells', 'known_cells', 'run_id')}
+        'player_cell', 'singularity_cell', 'inspiration_cells', 'known_cells', 'run_id',
+        'recognition_goal', 'targets_ready', 'expected_inspirations', 'faces_observed',
+        'diagnostics', 'target_clues', 'target_candidate_associations', 'map_valid',
+        'semantic_source', 'recognition_backend')}
     result['cells'] = sorted([{key: deepcopy(row.get(key)) for key in (
         'face', 'row', 'col', 'occupant', 'occupant_status', 'icon_id', 'node_kind',
-        'node_status', 'confidence')} for row in layout.get('cells', [])], key=cell_to_slot)
+        'node_status', 'confidence', 'evidence', 'occupant_evidence_counts') if key in row}
+        for row in layout.get('cells', [])], key=cell_to_slot)
     result.update(scan_epoch=state['scan_epoch'], plane_epoch=state['plane_epoch'])
     return result
 
@@ -468,7 +496,8 @@ async def _fresh_click(state, app, point, expected, image, *, action=None, inten
             build_operation_frame, fresh, state['layout'], action['kind'],
             scan_epoch=state['scan_epoch'], map_revision=state['map_revision'],
             view_epoch=state['pose_epoch'],
-            registration_frame=action.get('registration_frame') if action['kind'] == 'move' else None))
+            registration_frame=action.get('registration_frame') if action['kind'] == 'move' else None,
+            target_detector=_entity_detector_callable()))
         if registered.get('status') != 'ready':
             state['input_guard_reason'] = registered.get('reason', 'fresh_mapping_unresolved')
             if registered.get('status') == 'blocked':
@@ -498,7 +527,8 @@ async def _fresh_click(state, app, point, expected, image, *, action=None, inten
         action.update(frame=registered, binding=binding)
     elif intent and intent.get('action') in {'confirm_rotation', 'cancel_rotation'}:
         if intent['action'] == 'confirm_rotation':
-            verification = verify_rotation_preview(fresh, state['layout'], action['rotation_id'], action['frame'])
+            verification = verify_rotation_preview(fresh, state['layout'], action['rotation_id'], action['frame'],
+                                                   target_detector=_entity_detector_callable())
             if verification.get('status') != 'matched':
                 state['input_guard_reason'] = 'preview_changed_before_confirm'
                 return False
@@ -548,6 +578,46 @@ def _hud_unchanged(first, second):
     return all(first.get(key) == second.get(key) for key in HUD_KEYS)
 
 
+def _inspiration_consistency(layout, hud):
+    """Free sprites cannot exceed the actual HUD's uncollected total.
+
+    The boss may swallow inspiration, so fewer free sprites are valid. Both
+    strategy modes use this gate; candidate scores cannot decide which excess
+    sprite to discard.
+    """
+    collected, total = hud.get('collected_count'), hud.get('inspiration_total')
+    if type(collected) is not int or type(total) is not int or not 0 <= collected <= total:
+        return dict(valid=False, reason='inspiration_hud_unresolved')
+    occupants = {(row.get('face'), row.get('row'), row.get('col'))
+                 for row in layout.get('cells', []) if row.get('occupant') == 'inspiration'}
+    count = max(len(occupants), len(layout.get('inspiration_cells') or []))
+    upper_bound = total - collected
+    return dict(valid=count <= upper_bound, free_count=count, upper_bound=upper_bound,
+                reason='inspiration_count_exceeds_hud' if count > upper_bound else '')
+
+
+def _accept_scan_candidate(state, hud, image=None):
+    candidate = state.get('scan_candidate') or {}
+    consistency = _inspiration_consistency(candidate, hud)
+    state['inspiration_consistency'] = consistency
+    if not consistency['valid']:
+        signature = [hud.get(key) for key in HUD_KEYS]
+        retry = state.get('inspiration_conflict_retry') or {}
+        attempts = retry.get('attempts', 0) if retry.get('hud_signature') == signature else 0
+        _log(state, 'scan_inspiration_conflict', evidence=consistency, rescan_attempts=attempts)
+        if consistency['reason'] == 'inspiration_hud_unresolved' or attempts >= 1:
+            _stop(state, consistency['reason'], image)
+        else:
+            _invalidate(state, consistency['reason'])
+            state['inspiration_conflict_retry'] = dict(hud_signature=signature, attempts=attempts + 1)
+            _phase(state, 'scan_turn')
+        return False
+    state.pop('inspiration_conflict_retry', None)
+    state['layout'] = state.pop('scan_candidate')
+    state['layout']['inspiration_consistency'] = deepcopy(consistency)
+    return True
+
+
 async def _scan_turn(state, app, state_store, event_bus, hud):
     if hud is None:
         return
@@ -585,9 +655,11 @@ async def _scan_turn(state, app, state_store, event_bus, hud):
             worker.add_done_callback(pending_events.discard)
 
     try:
-        outcome = await run_layout_scan(app, time_budget_sec=state['scan_time_budget_sec'],
+        outcome = await run_layout_scan(app, time_budget_sec=min(60., state['scan_time_budget_sec']),
                                         output_dir=_directory(state) / 'scans' / f"{state['scan_epoch']:04d}",
-                                        observe_fn=observe, cancel_check=_cancel_check, on_progress=progress)
+                                        observe_fn=observe, cancel_check=_cancel_check, on_progress=progress,
+                                        recognition_goal='targets', entity_detector=_RUN_DETECTOR.get(),
+                                        expected_inspirations=hud['inspiration_total']-hud['collected_count'])
     finally:
         if pending_events:
             await _owned(asyncio.gather(*list(pending_events), return_exceptions=True))
@@ -607,10 +679,12 @@ async def _scan_turn(state, app, state_store, event_bus, hud):
             _stop(state, 'unexpected_scene_during_scan:' + str(observation.get('scene')))
         return
     layout = outcome.get('layout', {})
+    readiness = targets_readiness(layout)
     if not (outcome.get('success') is True and layout.get('success') is True
-            and layout.get('layout_complete') is True and len(layout.get('cells', [])) == 54):
+            and readiness['ready'] and len(layout.get('cells', [])) == 54):
         _stop(state, 'scan_not_complete:' + str(outcome.get('reason')))
         return
+    state['recognition_elapsed_sec'] = outcome['summary']['total_elapsed_sec']
     state['scan_candidate'] = _compact_layout(layout, state)
     state['known_cells'] = layout.get('known_cells', 54)
     state.pop('hud_signature', None)
@@ -624,6 +698,11 @@ async def _plan(state, state_store, event_bus):
         return
     hud = state['hud']
     layout = deepcopy(state['layout'])
+    consistency = _inspiration_consistency(layout, hud)
+    if not consistency['valid']:
+        state['inspiration_consistency'] = consistency
+        _stop(state, consistency['reason'])
+        return
     quota = dict(rounds_remaining=hud['rounds_remaining'], moves_left=1-hud['moves_used'],
                  rotations_left=1-hud['rotations_used'], collected_count=state['collected_count'], move_distance=1)
     layout['planning_state'] = quota
@@ -654,6 +733,18 @@ async def _plan(state, state_store, event_bus):
         return
     state['plan'] = result
     primitive = result['next_action']
+    required = check_required_cells(state['layout'], primitive)
+    if not required['ready']:
+        state['required_cells'] = required['required_cells']
+        state['required_cell_votes'] = {}
+        state['required_reference_stability'] = {}
+        _phase(state, 'supplement_cells')
+        return
+    _begin_planned_action(state, primitive)
+
+
+def _begin_planned_action(state, primitive):
+    hud = state['hud']
     actor = cell_to_slot(state['layout']['player_cell'])
     snapshot = _snapshot(state)
     if primitive['kind'] == 'move':
@@ -701,7 +792,8 @@ async def _operation(state, app, image, observation):
     if action is None:
         raise RuntimeError('missing_directed_transaction')
     working = deepcopy(action)
-    step = directed.advance_operation(working, image, observation, _snapshot(state))
+    step = directed.advance_operation(working, image, observation, _snapshot(state),
+                                     target_detector=_entity_detector_callable())
     status = step['status']
     if status == 'blocked':
         state['pending_action'] = _jsonable(working)
@@ -946,7 +1038,8 @@ async def _advance_state(state, app, state_store, event_bus, image, observation,
         if not _hud_unchanged(state['scan_start_hud'], hud):
             _stop(state, 'game_state_changed_during_scan', image)
             return
-        state['layout'] = state.pop('scan_candidate')
+        if not _accept_scan_candidate(state, hud, image):
+            return
         state['layout']['planning_state'] = dict(moves_left=1-hud['moves_used'],
                                                  rotations_left=1-hud['rotations_used'], move_distance=1,
                                                  rounds_remaining=hud['rounds_remaining'],
@@ -985,7 +1078,7 @@ async def _advance_state(state, app, state_store, event_bus, image, observation,
         reference = await _owned(asyncio.to_thread(
             build_wide_reference_frame, image, state['layout'],
             scan_epoch=state['scan_epoch'], map_revision=state['map_revision'],
-            view_epoch=state['pose_epoch']))
+            view_epoch=state['pose_epoch'], target_detector=_entity_detector_callable()))
         if reference.get('status') != 'ready':
             state['last_mapping_reason'] = reference.get('reason', 'wide_reference_unconfirmed')
             if reference.get('status') == 'blocked':
@@ -1001,13 +1094,63 @@ async def _advance_state(state, app, state_store, event_bus, image, observation,
         _frame(state, image, 'wide_reference')
         _phase(state, 'planning')
         return
+    if state['phase'] == 'supplement_cells':
+        if scene != 'board' or hud is None:
+            return
+        if not _hud_unchanged(state['scan_start_hud'], hud):
+            _stop(state, 'game_state_changed_during_requested_node_read', image)
+            return
+        reference = await _owned(asyncio.to_thread(
+            build_wide_reference_frame, image, state['layout'],
+            scan_epoch=state['scan_epoch'], map_revision=state['map_revision'],
+            view_epoch=state['pose_epoch'], target_detector=_entity_detector_callable()))
+        detector = _RUN_DETECTOR.get()
+        if detector is None:
+            _stop(state, 'entity_detector_required_for_requested_node_read', image)
+            return
+        packet = await _owned(asyncio.to_thread(detector.detect_packet, image))
+        if not packet.get('coverage_valid'):
+            _stop(state, 'requested_node_entity_coverage_invalid', image)
+            return
+        source = observation.get('_capture_source')
+        if not source:
+            _stop(state, 'requested_node_fresh_source_missing', image)
+            return
+        reading = read_required_cells(image, state['layout'], reference,
+            state['required_cells'], state['required_cell_votes'],
+            source_id=f"{source['session_id']}:{source['generation']}",
+            source_time=source['frame_time'], source_session=source['session_id'], targets=packet['targets'])
+        state['last_node_read'] = _jsonable(reading)
+        stable = (reference.get('status') == 'ready' and directed._stable_reference(
+            state.setdefault('required_reference_stability', {}), reference))
+        if not reading['ready'] or not stable:
+            return
+        promoted = promote_read_reference(reference, state['layout'], reading['cells'],
+                                          map_revision=state['map_revision']+1)
+        updates = {cell_to_slot(row): row for row in reading['cells']}
+        state['layout']['cells'] = [updates.get(cell_to_slot(row), row)
+                                    for row in state['layout']['cells']]
+        state['map_revision'] += 1
+        state['wide_reference'] = _jsonable(promoted)
+        state.pop('required_cell_votes', None)
+        state.pop('required_cells', None)
+        state.pop('required_reference_stability', None)
+        state['plan']['snapshot_version'] = directed.snapshot_version(_snapshot(state))
+        _write_json(_directory(state) / 'wide_reference' / f"{state['scan_epoch']:04d}_requested.json", promoted)
+        _begin_planned_action(state, state['plan']['next_action'])
+        return
     if state['phase'] == 'planning':
         if hud is None:
             return
         if not _hud_unchanged(state['scan_start_hud'], hud):
             _stop(state, 'game_state_changed_before_planning', image)
             return
-        await _plan(state, state_store, event_bus)
+        primitive = state.pop('resume_planned_action', None)
+        if primitive is not None:
+            state['plan']['snapshot_version'] = directed.snapshot_version(_snapshot(state))
+            _begin_planned_action(state, primitive)
+        else:
+            await _plan(state, state_store, event_bus)
         return
 
 
@@ -1043,16 +1186,23 @@ def _report(state):
 @action_info(name='resonance_pc.deep_dive_planned_run_advance', public=True,
              read_only=False, timeout=-1, description='Advance one owned in-level stage or bounded complete scan.')
 @requires_services(app='plans/aura_base/app', ocr='plans/aura_base/ocr',
-                   state_store='core/state_store', event_bus='core/event_bus')
+                   state_store='core/state_store', event_bus='core/event_bus',
+                   entity_detector='resonance_pc_deep_dive_entity_detector')
 async def advance_deep_dive_planned_run(session_key: str, app: Any = None, ocr: Any = None,
-                                       state_store: Any = None, event_bus: Any = None):
+                                       state_store: Any = None, event_bus: Any = None, entity_detector: Any = None):
     state = await _load(session_key, state_store)
     if state['status'] != 'running':
         return _summary(state)
     image = None
+    recognition_phase = state['phase'] in {'reset_wide', 'wide_reference', 'supplement_cells'}
+    recognition_started = time.monotonic()
     token = _RUN_OCR.set(ocr)
+    detector_token = _RUN_DETECTOR.set(entity_detector)
     try:
         _cancel_check()
+        if recognition_phase and state.get('recognition_elapsed_sec', 0.) >= min(60., state['scan_time_budget_sec'])-3.:
+            _stop(state, 'recognition_time_budget_exhausted', image)
+            return _summary(state)
         if tuple(app.get_window_size() or ()) != (1280, 720):
             raise ValueError('client_resolution_changed')
         image, observation = await _capture(app, _family(state))
@@ -1082,7 +1232,10 @@ async def advance_deep_dive_planned_run(session_key: str, app: Any = None, ocr: 
         logger.warning('Deep Dive planned run blocked: %s', exc)
         _stop(state, f'{type(exc).__name__}: {exc}', image)
     finally:
+        if recognition_phase:
+            state['recognition_elapsed_sec'] = state.get('recognition_elapsed_sec', 0.) + time.monotonic()-recognition_started
         _RUN_OCR.reset(token)
+        _RUN_DETECTOR.reset(detector_token)
         if state['status'] != 'running':
             await _release_owned_input(state, app)
             _report(state)

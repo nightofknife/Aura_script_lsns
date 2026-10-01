@@ -1,0 +1,359 @@
+[
+  {
+    "run": "live_scan_01",
+    "task_transport_status": "failed",
+    "business_status": null,
+    "reason": null,
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 523,
+    "known_cells": null,
+    "faces_observed": null,
+    "player_cell": null,
+    "boss_cell": null,
+    "inspiration_cells": null,
+    "scan_status": null,
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "live_scan_02",
+    "task_transport_status": "success",
+    "business_status": "partial",
+    "reason": "final_layout_incomplete_after_drain",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": 47.688,
+    "task_duration_ms": 47717,
+    "known_cells": 48,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "partial",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "live_scan_03",
+    "task_transport_status": "success",
+    "business_status": "partial",
+    "reason": "final_layout_incomplete_after_drain",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": 48.703,
+    "task_duration_ms": 48726,
+    "known_cells": 36,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "partial",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "live_scan_04",
+    "task_transport_status": "success",
+    "business_status": "partial",
+    "reason": "time_budget_exhausted",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": 59.578,
+    "task_duration_ms": 59607,
+    "known_cells": 47,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "partial",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "live_scan_05",
+    "task_transport_status": "success",
+    "business_status": "targets_ready",
+    "reason": "targets_ready",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": 32.671,
+    "task_duration_ms": 32691,
+    "known_cells": 29,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "targets_ready",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_binding_01",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "scan_not_complete:time_budget_exhausted",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": 59.265,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 64343,
+    "known_cells": 35,
+    "faces_observed": 5,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": null,
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "partial",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_binding_02",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "recognition_time_budget_exhausted",
+    "recognition_elapsed_sec": 59.25,
+    "initial_scan_elapsed_sec": 55.235,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 67375,
+    "known_cells": 32,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "targets_ready",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_binding_03",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "recognition_time_budget_exhausted",
+    "recognition_elapsed_sec": 58.76499999999942,
+    "initial_scan_elapsed_sec": 52.094,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 67183,
+    "known_cells": 49,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "targets_ready",
+    "last_mapping_reason": null,
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_binding_04",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "recognition_time_budget_exhausted",
+    "recognition_elapsed_sec": 57.46799999999348,
+    "initial_scan_elapsed_sec": 43.062,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 66179,
+    "known_cells": 38,
+    "faces_observed": 6,
+    "player_cell": {
+      "face": "U",
+      "row": 1,
+      "col": 1
+    },
+    "boss_cell": {
+      "face": "D",
+      "row": 1,
+      "col": 1
+    },
+    "inspiration_cells": [
+      {
+        "face": "F",
+        "row": 2,
+        "col": 2
+      },
+      {
+        "face": "B",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "scan_status": "targets_ready",
+    "last_mapping_reason": "wide_three_face_geometry_or_content_unconfirmed",
+    "testing_scope": "production_live_scan_or_flow",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_segment_01",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "KeyError: 'total_elapsed_sec'",
+    "recognition_elapsed_sec": null,
+    "initial_scan_elapsed_sec": null,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 5031,
+    "known_cells": null,
+    "faces_observed": null,
+    "player_cell": null,
+    "boss_cell": null,
+    "inspiration_cells": null,
+    "scan_status": null,
+    "last_mapping_reason": null,
+    "testing_scope": "saved_actual_scan_downstream_segment_only",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  },
+  {
+    "run": "planned_segment_02",
+    "task_transport_status": "success",
+    "business_status": "blocked",
+    "reason": "three_face_geometry_or_content_unconfirmed",
+    "recognition_elapsed_sec": 28.24899999999616,
+    "initial_scan_elapsed_sec": 0.0,
+    "invocation_elapsed_sec": null,
+    "task_duration_ms": 71466,
+    "known_cells": null,
+    "faces_observed": null,
+    "player_cell": null,
+    "boss_cell": null,
+    "inspiration_cells": null,
+    "scan_status": null,
+    "last_mapping_reason": null,
+    "testing_scope": "saved_actual_scan_downstream_segment_only",
+    "note": "Task transport success does not imply business success; same-board repeats are not independent accuracy validation."
+  }
+]

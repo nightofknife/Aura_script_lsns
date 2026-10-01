@@ -1,0 +1,6094 @@
+{
+  "provider": "CPUExecutionProvider",
+  "load_sec": 0.29657379999844125,
+  "frame_count": 30,
+  "mean_ms": 75.68256333373331,
+  "median_ms": 71.22739999977057,
+  "p95_ms": 98.4513950013934,
+  "mean_inference_ms": 52.94586333402549,
+  "weak_below025_total": 9,
+  "standard_candidate_total": 67,
+  "worker_parity": {
+    "compared_pairs": 25,
+    "all_integer_boxes_equal": true,
+    "max_point_error": 6.394597860046467e-05,
+    "max_confidence_error": 7.152557373046875e-07,
+    "unmatched_baseline": 0,
+    "unmatched_production": 0
+  },
+  "manual_live02_counts": {
+    "player": {
+      "correct": 9,
+      "extra": 0,
+      "missing": 0
+    },
+    "singularity": {
+      "correct": 3,
+      "extra": 0,
+      "missing": 0
+    },
+    "inspiration": {
+      "correct": 10,
+      "extra": 0,
+      "missing": 1
+    }
+  },
+  "parity": [
+    {
+      "frame": 0,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 7.62939453125e-06,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              567.7421875,
+              135.07683181762695
+            ],
+            "box": [
+              533,
+              112,
+              69,
+              47
+            ],
+            "confidence": 0.8109645843505859,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 1
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              567.7421875,
+              135.07683944702148
+            ],
+            "box": [
+              533,
+              112,
+              69,
+              47
+            ],
+            "anchor_type": null,
+            "confidence": 0.8109647631645203,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 3.0755072587198445e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              639.6458435058594,
+              148.4953498840332
+            ],
+            "box": [
+              625,
+              134,
+              30,
+              29
+            ],
+            "confidence": 0.6897943615913391,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 1,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              639.6458129882812,
+              148.49534606933594
+            ],
+            "box": [
+              625,
+              134,
+              30,
+              29
+            ],
+            "anchor_type": "head",
+            "confidence": 0.6897941827774048,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 6,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 1.52587890625e-05,
+          "box_equal": true,
+          "confidence_error": 5.960464477539063e-08,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              546.7469329833984,
+              178.42876434326172
+            ],
+            "box": [
+              513,
+              148,
+              68,
+              61
+            ],
+            "confidence": 0.8665533065795898,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 2
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              546.7469482421875,
+              178.42876434326172
+            ],
+            "box": [
+              513,
+              148,
+              68,
+              61
+            ],
+            "anchor_type": null,
+            "confidence": 0.8665533661842346,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 1.52587890625e-05,
+          "box_equal": true,
+          "confidence_error": 5.960464477539063e-08,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              639.6844024658203,
+              182.6321792602539
+            ],
+            "box": [
+              625,
+              169,
+              30,
+              28
+            ],
+            "confidence": 0.8028863072395325,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 2,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              639.6844177246094,
+              182.6321792602539
+            ],
+            "box": [
+              625,
+              169,
+              30,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.8028862476348877,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 65,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 2.1579186437577746e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              636.5068817138672,
+              220.2183380126953
+            ],
+            "box": [
+              605,
+              193,
+              63,
+              55
+            ],
+            "confidence": 0.822331964969635,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 3
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              636.5068664550781,
+              220.21835327148438
+            ],
+            "box": [
+              605,
+              193,
+              63,
+              55
+            ],
+            "anchor_type": null,
+            "confidence": 0.8223321437835693,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 1.52587890625e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              723.5860137939453,
+              182.41567993164062
+            ],
+            "box": [
+              709,
+              166,
+              30,
+              33
+            ],
+            "confidence": 0.7898512482643127,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 3,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              723.5860290527344,
+              182.41567993164062
+            ],
+            "box": [
+              709,
+              166,
+              30,
+              33
+            ],
+            "anchor_type": "head",
+            "confidence": 0.7898510694503784,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 108,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 0.0,
+          "box_equal": true,
+          "confidence_error": 4.172325134277344e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              651.4258422851562,
+              152.92832946777344
+            ],
+            "box": [
+              620,
+              124,
+              63,
+              58
+            ],
+            "confidence": 0.745803952217102,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 4
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              651.4258422851562,
+              152.92832946777344
+            ],
+            "box": [
+              620,
+              124,
+              63,
+              58
+            ],
+            "anchor_type": null,
+            "confidence": 0.7458043694496155,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 1.9073486328125e-05,
+          "box_equal": true,
+          "confidence_error": 5.960464477539063e-08,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              727.57763671875,
+              131.7818489074707
+            ],
+            "box": [
+              714,
+              118,
+              27,
+              27
+            ],
+            "confidence": 0.7164841294288635,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 4,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              727.57763671875,
+              131.78186798095703
+            ],
+            "box": [
+              714,
+              118,
+              27,
+              27
+            ],
+            "anchor_type": "head",
+            "confidence": 0.7164840698242188,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 176,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 0.0,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              645.4144897460938,
+              137.65567016601562
+            ],
+            "box": [
+              611,
+              109,
+              69,
+              56
+            ],
+            "confidence": 0.8014068007469177,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 5
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              645.4144897460938,
+              137.65567016601562
+            ],
+            "box": [
+              611,
+              109,
+              69,
+              56
+            ],
+            "anchor_type": null,
+            "confidence": 0.801406979560852,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 1.5377536293599222e-05,
+          "box_equal": true,
+          "confidence_error": 3.2782554626464844e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              638.4523162841797,
+              112.9230899810791
+            ],
+            "box": [
+              626,
+              101,
+              25,
+              24
+            ],
+            "confidence": 0.3604666292667389,
+            "confirmable": false,
+            "source": "research_trained_yolo_directml",
+            "source_request": 5,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              638.4523315429688,
+              112.92308807373047
+            ],
+            "box": [
+              626,
+              101,
+              25,
+              24
+            ],
+            "anchor_type": "head",
+            "confidence": 0.3604663014411926,
+            "confirmable": false,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 236,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 6.394597860046467e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              633.580078125,
+              142.31536865234375
+            ],
+            "box": [
+              599,
+              113,
+              70,
+              58
+            ],
+            "confidence": 0.8528703451156616,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 6
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              633.5800170898438,
+              142.31534957885742
+            ],
+            "box": [
+              599,
+              113,
+              70,
+              58
+            ],
+            "anchor_type": null,
+            "confidence": 0.852870523929596,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 3.0755072587198445e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              578.3433532714844,
+              124.50179672241211
+            ],
+            "box": [
+              566,
+              112,
+              26,
+              25
+            ],
+            "confidence": 0.8209272027015686,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 6,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              578.3433837890625,
+              124.50180053710938
+            ],
+            "box": [
+              566,
+              112,
+              26,
+              25
+            ],
+            "anchor_type": "head",
+            "confidence": 0.8209273815155029,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 353,
+      "baseline_count": 1,
+      "production_count": 1,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 3.814697265625e-06,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              718.6272888183594,
+              135.0221710205078
+            ],
+            "box": [
+              689,
+              111,
+              58,
+              48
+            ],
+            "confidence": 0.7623938918113708,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 7
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              718.6272888183594,
+              135.02216720581055
+            ],
+            "box": [
+              689,
+              111,
+              58,
+              48
+            ],
+            "anchor_type": null,
+            "confidence": 0.7623940706253052,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 384,
+      "baseline_count": 4,
+      "production_count": 4,
+      "pairs": [
+        {
+          "kind": "inspiration",
+          "point_error": 0.0,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              779.3736877441406,
+              159.6751708984375
+            ],
+            "box": [
+              764,
+              143,
+              32,
+              33
+            ],
+            "confidence": 0.9618557095527649,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 8
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              779.3736877441406,
+              159.6751708984375
+            ],
+            "box": [
+              764,
+              143,
+              32,
+              33
+            ],
+            "anchor_type": null,
+            "confidence": 0.9618558883666992,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 2.288818359375e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              439.9449234008789,
+              589.2965087890625
+            ],
+            "box": [
+              418,
+              563,
+              44,
+              53
+            ],
+            "confidence": 0.7557910680770874,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 8
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              439.9449005126953,
+              589.2965087890625
+            ],
+            "box": [
+              418,
+              563,
+              44,
+              53
+            ],
+            "anchor_type": null,
+            "confidence": 0.7557908892631531,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 1.5728399755926745e-05,
+          "box_equal": true,
+          "confidence_error": 1.1920928955078125e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              764.0681304931641,
+              155.75332260131836
+            ],
+            "box": [
+              738,
+              136,
+              52,
+              39
+            ],
+            "confidence": 0.5475867986679077,
+            "confirmable": false,
+            "source": "research_trained_yolo_directml",
+            "source_request": 8
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              764.068115234375,
+              155.75332641601562
+            ],
+            "box": [
+              738,
+              136,
+              52,
+              39
+            ],
+            "anchor_type": null,
+            "confidence": 0.5475866794586182,
+            "confirmable": false,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "player",
+          "point_error": 3.814697265625e-06,
+          "box_equal": true,
+          "confidence_error": 2.682209014892578e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              780.38427734375,
+              158.88665390014648
+            ],
+            "box": [
+              767,
+              145,
+              28,
+              28
+            ],
+            "confidence": 0.28304800391197205,
+            "confirmable": false,
+            "source": "research_trained_yolo_directml",
+            "source_request": 8,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              780.38427734375,
+              158.88665771484375
+            ],
+            "box": [
+              767,
+              145,
+              28,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.28304773569107056,
+            "confirmable": false,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 417,
+      "baseline_count": 3,
+      "production_count": 3,
+      "pairs": [
+        {
+          "kind": "player",
+          "point_error": 0.0,
+          "box_equal": true,
+          "confidence_error": 3.5762786865234375e-07,
+          "baseline": {
+            "kind": "player",
+            "point": [
+              820.322509765625,
+              185.29625701904297
+            ],
+            "box": [
+              807,
+              171,
+              27,
+              28
+            ],
+            "confidence": 0.8443838357925415,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 9,
+            "anchor_type": "head"
+          },
+          "production": {
+            "kind": "player",
+            "point": [
+              820.322509765625,
+              185.29625701904297
+            ],
+            "box": [
+              807,
+              171,
+              27,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.8443834781646729,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 0.0,
+          "box_equal": true,
+          "confidence_error": 1.1920928955078125e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              767.7515869140625,
+              177.05218505859375
+            ],
+            "box": [
+              746,
+              145,
+              43,
+              63
+            ],
+            "confidence": 0.75180983543396,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 9
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              767.7515869140625,
+              177.05218505859375
+            ],
+            "box": [
+              746,
+              145,
+              43,
+              63
+            ],
+            "anchor_type": null,
+            "confidence": 0.7518097162246704,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 7.62939453125e-06,
+          "box_equal": true,
+          "confidence_error": 4.470348358154297e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              442.82686614990234,
+              573.1260375976562
+            ],
+            "box": [
+              419,
+              550,
+              47,
+              47
+            ],
+            "confidence": 0.38616716861724854,
+            "confirmable": false,
+            "source": "research_trained_yolo_directml",
+            "source_request": 9
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              442.8268737792969,
+              573.1260375976562
+            ],
+            "box": [
+              419,
+              550,
+              47,
+              47
+            ],
+            "anchor_type": null,
+            "confidence": 0.38616761565208435,
+            "confirmable": false,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 525,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "singularity",
+          "point_error": 3.0517578125e-05,
+          "box_equal": true,
+          "confidence_error": 1.7881393432617188e-07,
+          "baseline": {
+            "kind": "singularity",
+            "point": [
+              421.86668395996094,
+              509.3062438964844
+            ],
+            "box": [
+              346,
+              438,
+              152,
+              143
+            ],
+            "confidence": 0.8591979146003723,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 10
+          },
+          "production": {
+            "kind": "singularity",
+            "point": [
+              421.86671447753906,
+              509.3062438964844
+            ],
+            "box": [
+              346,
+              438,
+              152,
+              143
+            ],
+            "anchor_type": null,
+            "confidence": 0.859197735786438,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 7.62939453125e-06,
+          "box_equal": true,
+          "confidence_error": 7.152557373046875e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              425.9841842651367,
+              605.1083068847656
+            ],
+            "box": [
+              398,
+              577,
+              56,
+              57
+            ],
+            "confidence": 0.7984784245491028,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 10
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              425.98419189453125,
+              605.1083068847656
+            ],
+            "box": [
+              398,
+              577,
+              56,
+              57
+            ],
+            "anchor_type": null,
+            "confidence": 0.7984791398048401,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 561,
+      "baseline_count": 1,
+      "production_count": 1,
+      "pairs": [
+        {
+          "kind": "singularity",
+          "point_error": 7.62939453125e-06,
+          "box_equal": true,
+          "confidence_error": 2.980232238769531e-07,
+          "baseline": {
+            "kind": "singularity",
+            "point": [
+              531.9614334106445,
+              530.1354522705078
+            ],
+            "box": [
+              454,
+              455,
+              155,
+              150
+            ],
+            "confidence": 0.7512040138244629,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 11
+          },
+          "production": {
+            "kind": "singularity",
+            "point": [
+              531.96142578125,
+              530.1354522705078
+            ],
+            "box": [
+              454,
+              455,
+              155,
+              150
+            ],
+            "anchor_type": null,
+            "confidence": 0.751203715801239,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    },
+    {
+      "frame": 616,
+      "baseline_count": 2,
+      "production_count": 2,
+      "pairs": [
+        {
+          "kind": "singularity",
+          "point_error": 3.0517578125e-05,
+          "box_equal": true,
+          "confidence_error": 0.0,
+          "baseline": {
+            "kind": "singularity",
+            "point": [
+              648.7123718261719,
+              465.86997985839844
+            ],
+            "box": [
+              561,
+              380,
+              175,
+              171
+            ],
+            "confidence": 0.8260483741760254,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 12
+          },
+          "production": {
+            "kind": "singularity",
+            "point": [
+              648.7123413085938,
+              465.86997985839844
+            ],
+            "box": [
+              561,
+              380,
+              175,
+              171
+            ],
+            "anchor_type": null,
+            "confidence": 0.8260483741760254,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        },
+        {
+          "kind": "inspiration",
+          "point_error": 1.52587890625e-05,
+          "box_equal": true,
+          "confidence_error": 4.172325134277344e-07,
+          "baseline": {
+            "kind": "inspiration",
+            "point": [
+              600.1779022216797,
+              602.2855529785156
+            ],
+            "box": [
+              570,
+              572,
+              60,
+              62
+            ],
+            "confidence": 0.7777436971664429,
+            "confirmable": true,
+            "source": "research_trained_yolo_directml",
+            "source_request": 12
+          },
+          "production": {
+            "kind": "inspiration",
+            "point": [
+              600.1778869628906,
+              602.2855529785156
+            ],
+            "box": [
+              570,
+              572,
+              60,
+              62
+            ],
+            "anchor_type": null,
+            "confidence": 0.7777441143989563,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          }
+        }
+      ],
+      "unmatched_baseline": [],
+      "unmatched_production": []
+    }
+  ],
+  "evaluation": [
+    {
+      "frame": 0,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              567.7421875,
+              135.07683944702148
+            ],
+            "box": [
+              533,
+              112,
+              69,
+              47
+            ],
+            "anchor_type": null,
+            "confidence": 0.8109647631645203,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              535,
+              116,
+              72,
+              37
+            ]
+          },
+          "iou": 0.7231621936989499
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              640.5,
+              148.5
+            ],
+            "box": [
+              625,
+              134,
+              30,
+              29
+            ],
+            "anchor_type": "head",
+            "confidence": 0.807,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              629,
+              137,
+              23,
+              23
+            ],
+            "model_support_confidence": 0.6897941827774048,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              626,
+              135,
+              27,
+              29
+            ]
+          },
+          "iou": 0.842809364548495
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 6,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              546.7469482421875,
+              178.42876434326172
+            ],
+            "box": [
+              513,
+              148,
+              68,
+              61
+            ],
+            "anchor_type": null,
+            "confidence": 0.8665533661842346,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              513,
+              150,
+              70,
+              60
+            ]
+          },
+          "iou": 0.9252767527675276
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              640.5,
+              181.5
+            ],
+            "box": [
+              625,
+              169,
+              30,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.802,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              628,
+              169,
+              25,
+              25
+            ],
+            "model_support_confidence": 0.8028862476348877,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              627,
+              168,
+              26,
+              28
+            ]
+          },
+          "iou": 0.8106235565819861
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 65,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              636.5068664550781,
+              220.21835327148438
+            ],
+            "box": [
+              605,
+              193,
+              63,
+              55
+            ],
+            "anchor_type": null,
+            "confidence": 0.8223321437835693,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              606,
+              197,
+              60,
+              50
+            ]
+          },
+          "iou": 0.8658008658008658
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              723.5,
+              182.5
+            ],
+            "box": [
+              709,
+              166,
+              30,
+              33
+            ],
+            "anchor_type": "head",
+            "confidence": 0.808,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              710,
+              169,
+              27,
+              27
+            ],
+            "model_support_confidence": 0.7898510694503784,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              711,
+              168,
+              27,
+              29
+            ]
+          },
+          "iou": 0.7909090909090909
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 108,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              651.4258422851562,
+              152.92832946777344
+            ],
+            "box": [
+              620,
+              124,
+              63,
+              58
+            ],
+            "anchor_type": null,
+            "confidence": 0.7458043694496155,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              624,
+              125,
+              63,
+              56
+            ]
+          },
+          "iou": 0.851985559566787
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              726.5,
+              132.5
+            ],
+            "box": [
+              714,
+              118,
+              27,
+              27
+            ],
+            "anchor_type": "head",
+            "confidence": 0.812,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              713,
+              119,
+              27,
+              27
+            ],
+            "model_support_confidence": 0.7164840698242188,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              713,
+              118,
+              28,
+              28
+            ]
+          },
+          "iou": 0.9298469387755102
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 176,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              645.4144897460938,
+              137.65567016601562
+            ],
+            "box": [
+              611,
+              109,
+              69,
+              56
+            ],
+            "anchor_type": null,
+            "confidence": 0.801406979560852,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              614,
+              114,
+              68,
+              55
+            ]
+          },
+          "iou": 0.7942425672487022
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              638.5,
+              112.5
+            ],
+            "box": [
+              626,
+              101,
+              25,
+              24
+            ],
+            "anchor_type": "head",
+            "confidence": 0.806,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              625,
+              99,
+              27,
+              27
+            ],
+            "model_support_confidence": 0.3604663014411926,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              626,
+              98,
+              27,
+              30
+            ]
+          },
+          "iou": 0.7407407407407407
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 236,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              633.5800170898438,
+              142.31534957885742
+            ],
+            "box": [
+              599,
+              113,
+              70,
+              58
+            ],
+            "anchor_type": null,
+            "confidence": 0.852870523929596,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              596,
+              113,
+              75,
+              57
+            ]
+          },
+          "iou": 0.9182968929804373
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              577.5,
+              124.5
+            ],
+            "box": [
+              566,
+              112,
+              26,
+              25
+            ],
+            "anchor_type": "head",
+            "confidence": 0.811,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              565,
+              112,
+              26,
+              26
+            ],
+            "model_support_confidence": 0.8209273815155029,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              565,
+              113,
+              28,
+              28
+            ]
+          },
+          "iou": 0.7703703703703704
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 353,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              718.6272888183594,
+              135.02216720581055
+            ],
+            "box": [
+              689,
+              111,
+              58,
+              48
+            ],
+            "anchor_type": null,
+            "confidence": 0.7623940706253052,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              701,
+              116,
+              46,
+              45
+            ]
+          },
+          "iou": 0.6877607788595271
+        },
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              686.5,
+              132.5
+            ],
+            "box": [
+              673,
+              120,
+              24,
+              26
+            ],
+            "anchor_type": "head",
+            "confidence": 0.811,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              673,
+              119,
+              27,
+              27
+            ],
+            "model_support_confidence": 0.2443353533744812,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              672,
+              118,
+              29,
+              28
+            ]
+          },
+          "iou": 0.7684729064039408
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 384,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              780.5,
+              158.5
+            ],
+            "box": [
+              767,
+              145,
+              28,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.813,
+            "confirmable": true,
+            "source": "deep_dive_local_pink_head",
+            "circle_box": [
+              768,
+              146,
+              24,
+              24
+            ],
+            "model_support_confidence": 0.28304773569107056,
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              767,
+              145,
+              28,
+              28
+            ]
+          },
+          "iou": 1.0
+        }
+      ],
+      "extra": [],
+      "missing": [
+        {
+          "kind": "inspiration",
+          "box": [
+            740,
+            136,
+            39,
+            59
+          ]
+        }
+      ]
+    },
+    {
+      "frame": 417,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "player",
+            "point": [
+              820.322509765625,
+              185.29625701904297
+            ],
+            "box": [
+              807,
+              171,
+              27,
+              28
+            ],
+            "anchor_type": "head",
+            "confidence": 0.8443834781646729,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "player",
+            "box": [
+              805,
+              169,
+              28,
+              29
+            ]
+          },
+          "iou": 0.8106235565819861
+        },
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              767.7515869140625,
+              177.05218505859375
+            ],
+            "box": [
+              746,
+              145,
+              43,
+              63
+            ],
+            "anchor_type": null,
+            "confidence": 0.7518097162246704,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              749,
+              145,
+              40,
+              63
+            ]
+          },
+          "iou": 0.9302325581395349
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 525,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "singularity",
+            "point": [
+              421.86671447753906,
+              509.3062438964844
+            ],
+            "box": [
+              346,
+              438,
+              152,
+              143
+            ],
+            "anchor_type": null,
+            "confidence": 0.859197735786438,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "singularity",
+            "box": [
+              352,
+              446,
+              138,
+              134
+            ]
+          },
+          "iou": 0.8507545086492455
+        },
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              425.98419189453125,
+              605.1083068847656
+            ],
+            "box": [
+              398,
+              577,
+              56,
+              57
+            ],
+            "anchor_type": null,
+            "confidence": 0.7984791398048401,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              405,
+              575,
+              42,
+              58
+            ]
+          },
+          "iou": 0.717948717948718
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 561,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "singularity",
+            "point": [
+              531.96142578125,
+              530.1354522705078
+            ],
+            "box": [
+              454,
+              455,
+              155,
+              150
+            ],
+            "anchor_type": null,
+            "confidence": 0.751203715801239,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "singularity",
+            "box": [
+              460,
+              471,
+              146,
+              130
+            ]
+          },
+          "iou": 0.8163440860215053
+        }
+      ],
+      "extra": [],
+      "missing": []
+    },
+    {
+      "frame": 616,
+      "correct": [
+        {
+          "prediction": {
+            "kind": "singularity",
+            "point": [
+              648.7123413085938,
+              465.86997985839844
+            ],
+            "box": [
+              561,
+              380,
+              175,
+              171
+            ],
+            "anchor_type": null,
+            "confidence": 0.8260483741760254,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "singularity",
+            "box": [
+              578,
+              405,
+              132,
+              133
+            ]
+          },
+          "iou": 0.5866666666666667
+        },
+        {
+          "prediction": {
+            "kind": "inspiration",
+            "point": [
+              600.1778869628906,
+              602.2855529785156
+            ],
+            "box": [
+              570,
+              572,
+              60,
+              62
+            ],
+            "anchor_type": null,
+            "confidence": 0.7777441143989563,
+            "confirmable": true,
+            "source": "deep_dive_entity_onnx"
+          },
+          "ground": {
+            "kind": "inspiration",
+            "box": [
+              577,
+              567,
+              62,
+              63
+            ]
+          },
+          "iou": 0.6753075571177505
+        }
+      ],
+      "extra": [],
+      "missing": []
+    }
+  ],
+  "rows": [
+    {
+      "scope": "live02",
+      "frame": 0,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0000.png",
+      "total_ms": 79.23899999877904,
+      "diagnostics": {
+        "inference_sec": 0.054787799999758136,
+        "total_sec": 0.0790500000002794,
+        "head": {
+          "pink_components": 640,
+          "local_windows": 84
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              640.5,
+              148.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              567.7421875,
+              135.07683944702148
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              639.6458129882812,
+              148.49534606933594
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            567.7421875,
+            135.07683944702148
+          ],
+          "box": [
+            533,
+            112,
+            69,
+            47
+          ],
+          "anchor_type": null,
+          "confidence": 0.8109647631645203,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            639.6458129882812,
+            148.49534606933594
+          ],
+          "box": [
+            625,
+            134,
+            30,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.6897941827774048,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            567.7421875,
+            135.07683944702148
+          ],
+          "box": [
+            533,
+            112,
+            69,
+            47
+          ],
+          "anchor_type": null,
+          "confidence": 0.8109647631645203,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            640.5,
+            148.5
+          ],
+          "box": [
+            625,
+            134,
+            30,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.807,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            629,
+            137,
+            23,
+            23
+          ],
+          "model_support_confidence": 0.6897941827774048,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 6,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0006.png",
+      "total_ms": 76.00860000093235,
+      "diagnostics": {
+        "inference_sec": 0.05198810000001686,
+        "total_sec": 0.07581260000006296,
+        "head": {
+          "pink_components": 657,
+          "local_windows": 70
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              640.5,
+              181.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              546.7469482421875,
+              178.42876434326172
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              639.6844177246094,
+              182.6321792602539
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              640.6710510253906,
+              217.42343139648438
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            546.7469482421875,
+            178.42876434326172
+          ],
+          "box": [
+            513,
+            148,
+            68,
+            61
+          ],
+          "anchor_type": null,
+          "confidence": 0.8665533661842346,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            639.6844177246094,
+            182.6321792602539
+          ],
+          "box": [
+            625,
+            169,
+            30,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8028862476348877,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            640.6710510253906,
+            217.42343139648438
+          ],
+          "box": [
+            624,
+            202,
+            33,
+            32
+          ],
+          "anchor_type": "head",
+          "confidence": 0.0902339518070221,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            546.7469482421875,
+            178.42876434326172
+          ],
+          "box": [
+            513,
+            148,
+            68,
+            61
+          ],
+          "anchor_type": null,
+          "confidence": 0.8665533661842346,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            640.5,
+            181.5
+          ],
+          "box": [
+            625,
+            169,
+            30,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.802,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            628,
+            169,
+            25,
+            25
+          ],
+          "model_support_confidence": 0.8028862476348877,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "player",
+          "point": [
+            640.6710510253906,
+            217.42343139648438
+          ],
+          "box": [
+            624,
+            202,
+            33,
+            32
+          ],
+          "anchor_type": "head",
+          "confidence": 0.0902339518070221,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 65,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0065.png",
+      "total_ms": 66.27170000137994,
+      "diagnostics": {
+        "inference_sec": 0.04541289999906439,
+        "total_sec": 0.06608119999873452,
+        "head": {
+          "pink_components": 604,
+          "local_windows": 53
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              723.5,
+              182.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              636.5068664550781,
+              220.21835327148438
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              723.5860290527344,
+              182.41567993164062
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              707.7593994140625,
+              216.22388458251953
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            636.5068664550781,
+            220.21835327148438
+          ],
+          "box": [
+            605,
+            193,
+            63,
+            55
+          ],
+          "anchor_type": null,
+          "confidence": 0.8223321437835693,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            723.5860290527344,
+            182.41567993164062
+          ],
+          "box": [
+            709,
+            166,
+            30,
+            33
+          ],
+          "anchor_type": "head",
+          "confidence": 0.7898510694503784,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            707.7593994140625,
+            216.22388458251953
+          ],
+          "box": [
+            694,
+            201,
+            28,
+            30
+          ],
+          "anchor_type": "head",
+          "confidence": 0.09908145666122437,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            636.5068664550781,
+            220.21835327148438
+          ],
+          "box": [
+            605,
+            193,
+            63,
+            55
+          ],
+          "anchor_type": null,
+          "confidence": 0.8223321437835693,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            723.5,
+            182.5
+          ],
+          "box": [
+            709,
+            166,
+            30,
+            33
+          ],
+          "anchor_type": "head",
+          "confidence": 0.808,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            710,
+            169,
+            27,
+            27
+          ],
+          "model_support_confidence": 0.7898510694503784,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "player",
+          "point": [
+            707.7593994140625,
+            216.22388458251953
+          ],
+          "box": [
+            694,
+            201,
+            28,
+            30
+          ],
+          "anchor_type": "head",
+          "confidence": 0.09908145666122437,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 108,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0108.png",
+      "total_ms": 68.40039999951841,
+      "diagnostics": {
+        "inference_sec": 0.04518149999785237,
+        "total_sec": 0.06818349999957718,
+        "head": {
+          "pink_components": 626,
+          "local_windows": 63
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              726.5,
+              132.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              651.4258422851562,
+              152.92832946777344
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              727.57763671875,
+              131.78186798095703
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            651.4258422851562,
+            152.92832946777344
+          ],
+          "box": [
+            620,
+            124,
+            63,
+            58
+          ],
+          "anchor_type": null,
+          "confidence": 0.7458043694496155,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            727.57763671875,
+            131.78186798095703
+          ],
+          "box": [
+            714,
+            118,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.7164840698242188,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            651.4258422851562,
+            152.92832946777344
+          ],
+          "box": [
+            620,
+            124,
+            63,
+            58
+          ],
+          "anchor_type": null,
+          "confidence": 0.7458043694496155,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            726.5,
+            132.5
+          ],
+          "box": [
+            714,
+            118,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.812,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            713,
+            119,
+            27,
+            27
+          ],
+          "model_support_confidence": 0.7164840698242188,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 176,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0176.png",
+      "total_ms": 61.20919999375474,
+      "diagnostics": {
+        "inference_sec": 0.04516410000360338,
+        "total_sec": 0.06101660000422271,
+        "head": {
+          "pink_components": 373,
+          "local_windows": 39
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              638.5,
+              112.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              645.4144897460938,
+              137.65567016601562
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              638.4523315429688,
+              112.92308807373047
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            645.4144897460938,
+            137.65567016601562
+          ],
+          "box": [
+            611,
+            109,
+            69,
+            56
+          ],
+          "anchor_type": null,
+          "confidence": 0.801406979560852,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            638.4523315429688,
+            112.92308807373047
+          ],
+          "box": [
+            626,
+            101,
+            25,
+            24
+          ],
+          "anchor_type": "head",
+          "confidence": 0.3604663014411926,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            645.4144897460938,
+            137.65567016601562
+          ],
+          "box": [
+            611,
+            109,
+            69,
+            56
+          ],
+          "anchor_type": null,
+          "confidence": 0.801406979560852,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            638.5,
+            112.5
+          ],
+          "box": [
+            626,
+            101,
+            25,
+            24
+          ],
+          "anchor_type": "head",
+          "confidence": 0.806,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            625,
+            99,
+            27,
+            27
+          ],
+          "model_support_confidence": 0.3604663014411926,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 236,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0236.png",
+      "total_ms": 63.43940000078874,
+      "diagnostics": {
+        "inference_sec": 0.0453754000045592,
+        "total_sec": 0.063216000002285,
+        "head": {
+          "pink_components": 525,
+          "local_windows": 46
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              577.5,
+              124.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              633.5800170898438,
+              142.31534957885742
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              578.3433837890625,
+              124.50180053710938
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            633.5800170898438,
+            142.31534957885742
+          ],
+          "box": [
+            599,
+            113,
+            70,
+            58
+          ],
+          "anchor_type": null,
+          "confidence": 0.852870523929596,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            578.3433837890625,
+            124.50180053710938
+          ],
+          "box": [
+            566,
+            112,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8209273815155029,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            633.5800170898438,
+            142.31534957885742
+          ],
+          "box": [
+            599,
+            113,
+            70,
+            58
+          ],
+          "anchor_type": null,
+          "confidence": 0.852870523929596,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            577.5,
+            124.5
+          ],
+          "box": [
+            566,
+            112,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.811,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            565,
+            112,
+            26,
+            26
+          ],
+          "model_support_confidence": 0.8209273815155029,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 353,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0353.png",
+      "total_ms": 69.58780000422848,
+      "diagnostics": {
+        "inference_sec": 0.050001400006294716,
+        "total_sec": 0.0694017999994685,
+        "head": {
+          "pink_components": 428,
+          "local_windows": 54
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              686.5,
+              132.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              718.6272888183594,
+              135.02216720581055
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              684.9930725097656,
+              132.53501510620117
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            718.6272888183594,
+            135.02216720581055
+          ],
+          "box": [
+            689,
+            111,
+            58,
+            48
+          ],
+          "anchor_type": null,
+          "confidence": 0.7623940706253052,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            684.9930725097656,
+            132.53501510620117
+          ],
+          "box": [
+            673,
+            120,
+            24,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.2443353533744812,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            718.6272888183594,
+            135.02216720581055
+          ],
+          "box": [
+            689,
+            111,
+            58,
+            48
+          ],
+          "anchor_type": null,
+          "confidence": 0.7623940706253052,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            686.5,
+            132.5
+          ],
+          "box": [
+            673,
+            120,
+            24,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.811,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            673,
+            119,
+            27,
+            27
+          ],
+          "model_support_confidence": 0.2443353533744812,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 1
+    },
+    {
+      "scope": "live02",
+      "frame": 384,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0384.png",
+      "total_ms": 66.80950000009034,
+      "diagnostics": {
+        "inference_sec": 0.04719059999479214,
+        "total_sec": 0.06659480000234907,
+        "head": {
+          "pink_components": 562,
+          "local_windows": 41
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              780.5,
+              158.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              779.3736877441406,
+              159.6751708984375
+            ],
+            "rejected": "majority_box_is_confirmed_pink_head"
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              439.9449005126953,
+              589.2965087890625
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              764.068115234375,
+              155.75332641601562
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              780.38427734375,
+              158.88665771484375
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 4
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            779.3736877441406,
+            159.6751708984375
+          ],
+          "box": [
+            764,
+            143,
+            32,
+            33
+          ],
+          "anchor_type": null,
+          "confidence": 0.9618558883666992,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            439.9449005126953,
+            589.2965087890625
+          ],
+          "box": [
+            418,
+            563,
+            44,
+            53
+          ],
+          "anchor_type": null,
+          "confidence": 0.7557908892631531,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            764.068115234375,
+            155.75332641601562
+          ],
+          "box": [
+            738,
+            136,
+            52,
+            39
+          ],
+          "anchor_type": null,
+          "confidence": 0.5475866794586182,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            780.38427734375,
+            158.88665771484375
+          ],
+          "box": [
+            767,
+            145,
+            28,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.28304773569107056,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            439.9449005126953,
+            589.2965087890625
+          ],
+          "box": [
+            418,
+            563,
+            44,
+            53
+          ],
+          "anchor_type": null,
+          "confidence": 0.7557908892631531,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            764.068115234375,
+            155.75332641601562
+          ],
+          "box": [
+            738,
+            136,
+            52,
+            39
+          ],
+          "anchor_type": null,
+          "confidence": 0.5475866794586182,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            780.5,
+            158.5
+          ],
+          "box": [
+            767,
+            145,
+            28,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.813,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            768,
+            146,
+            24,
+            24
+          ],
+          "model_support_confidence": 0.28304773569107056,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            779.3736877441406,
+            159.6751708984375
+          ],
+          "box": [
+            764,
+            143,
+            32,
+            33
+          ],
+          "anchor_type": null,
+          "confidence": 0.9618558883666992,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx",
+          "fusion_rejection": "majority_box_is_confirmed_pink_head",
+          "evidence_role": "mask_only"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 4
+    },
+    {
+      "scope": "live02",
+      "frame": 417,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0417.png",
+      "total_ms": 71.25530000485014,
+      "diagnostics": {
+        "inference_sec": 0.046658799998112954,
+        "total_sec": 0.0710659000033047,
+        "head": {
+          "pink_components": 511,
+          "local_windows": 56
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              820.322509765625,
+              185.29625701904297
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              767.7515869140625,
+              177.05218505859375
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              442.8268737792969,
+              573.1260375976562
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            820.322509765625,
+            185.29625701904297
+          ],
+          "box": [
+            807,
+            171,
+            27,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8443834781646729,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            767.7515869140625,
+            177.05218505859375
+          ],
+          "box": [
+            746,
+            145,
+            43,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.7518097162246704,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            442.8268737792969,
+            573.1260375976562
+          ],
+          "box": [
+            419,
+            550,
+            47,
+            47
+          ],
+          "anchor_type": null,
+          "confidence": 0.38616761565208435,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            820.322509765625,
+            185.29625701904297
+          ],
+          "box": [
+            807,
+            171,
+            27,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8443834781646729,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            767.7515869140625,
+            177.05218505859375
+          ],
+          "box": [
+            746,
+            145,
+            43,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.7518097162246704,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            442.8268737792969,
+            573.1260375976562
+          ],
+          "box": [
+            419,
+            550,
+            47,
+            47
+          ],
+          "anchor_type": null,
+          "confidence": 0.38616761565208435,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 3
+    },
+    {
+      "scope": "live02",
+      "frame": 525,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0525.png",
+      "total_ms": 72.21900000149617,
+      "diagnostics": {
+        "inference_sec": 0.051018300000578165,
+        "total_sec": 0.07195050000154879,
+        "head": {
+          "pink_components": 696,
+          "local_windows": 49
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              421.86671447753906,
+              509.3062438964844
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              425.98419189453125,
+              605.1083068847656
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            421.86671447753906,
+            509.3062438964844
+          ],
+          "box": [
+            346,
+            438,
+            152,
+            143
+          ],
+          "anchor_type": null,
+          "confidence": 0.859197735786438,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            425.98419189453125,
+            605.1083068847656
+          ],
+          "box": [
+            398,
+            577,
+            56,
+            57
+          ],
+          "anchor_type": null,
+          "confidence": 0.7984791398048401,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            421.86671447753906,
+            509.3062438964844
+          ],
+          "box": [
+            346,
+            438,
+            152,
+            143
+          ],
+          "anchor_type": null,
+          "confidence": 0.859197735786438,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            425.98419189453125,
+            605.1083068847656
+          ],
+          "box": [
+            398,
+            577,
+            56,
+            57
+          ],
+          "anchor_type": null,
+          "confidence": 0.7984791398048401,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "live02",
+      "frame": 561,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0561.png",
+      "total_ms": 65.33490000583697,
+      "diagnostics": {
+        "inference_sec": 0.04754509999474976,
+        "total_sec": 0.06514629999583121,
+        "head": {
+          "pink_components": 666,
+          "local_windows": 43
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              531.96142578125,
+              530.1354522705078
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 1
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            531.96142578125,
+            530.1354522705078
+          ],
+          "box": [
+            454,
+            455,
+            155,
+            150
+          ],
+          "anchor_type": null,
+          "confidence": 0.751203715801239,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            531.96142578125,
+            530.1354522705078
+          ],
+          "box": [
+            454,
+            455,
+            155,
+            150
+          ],
+          "anchor_type": null,
+          "confidence": 0.751203715801239,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 1
+    },
+    {
+      "scope": "live02",
+      "frame": 616,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_rules_02\\scan\\frames\\0616.png",
+      "total_ms": 60.42279999383027,
+      "diagnostics": {
+        "inference_sec": 0.04412890000094194,
+        "total_sec": 0.06024440000328468,
+        "head": {
+          "pink_components": 663,
+          "local_windows": 38
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              648.7123413085938,
+              465.86997985839844
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              600.1778869628906,
+              602.2855529785156
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            648.7123413085938,
+            465.86997985839844
+          ],
+          "box": [
+            561,
+            380,
+            175,
+            171
+          ],
+          "anchor_type": null,
+          "confidence": 0.8260483741760254,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            600.1778869628906,
+            602.2855529785156
+          ],
+          "box": [
+            570,
+            572,
+            60,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.7777441143989563,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            648.7123413085938,
+            465.86997985839844
+          ],
+          "box": [
+            561,
+            380,
+            175,
+            171
+          ],
+          "anchor_type": null,
+          "confidence": 0.8260483741760254,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            600.1778869628906,
+            602.2855529785156
+          ],
+          "box": [
+            570,
+            572,
+            60,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.7777441143989563,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 0,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0000.png",
+      "total_ms": 68.3500000013737,
+      "diagnostics": {
+        "inference_sec": 0.04430999999749474,
+        "total_sec": 0.06814160000067204,
+        "head": {
+          "pink_components": 700,
+          "local_windows": 84
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              638.5,
+              147.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              639.6256713867188,
+              145.5525894165039
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              517.7243957519531,
+              625.4185180664062
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            639.6256713867188,
+            145.5525894165039
+          ],
+          "box": [
+            627,
+            133,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.4914814233779907,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            517.7243957519531,
+            625.4185180664062
+          ],
+          "box": [
+            491,
+            601,
+            53,
+            49
+          ],
+          "anchor_type": null,
+          "confidence": 0.4643748104572296,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            638.5,
+            147.5
+          ],
+          "box": [
+            627,
+            133,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.807,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            627,
+            136,
+            22,
+            22
+          ],
+          "model_support_confidence": 0.4914814233779907,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            517.7243957519531,
+            625.4185180664062
+          ],
+          "box": [
+            491,
+            601,
+            53,
+            49
+          ],
+          "anchor_type": null,
+          "confidence": 0.4643748104572296,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 15,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0015.png",
+      "total_ms": 74.09419999748934,
+      "diagnostics": {
+        "inference_sec": 0.04798970000410918,
+        "total_sec": 0.07391379999899073,
+        "head": {
+          "pink_components": 743,
+          "local_windows": 69
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              638.5,
+              200.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              640.4743041992188,
+              200.55498504638672
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 1
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            640.4743041992188,
+            200.55498504638672
+          ],
+          "box": [
+            628,
+            188,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.7768110036849976,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            638.5,
+            200.5
+          ],
+          "box": [
+            628,
+            188,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.808,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            626,
+            188,
+            24,
+            24
+          ],
+          "model_support_confidence": 0.7768110036849976,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 1
+    },
+    {
+      "scope": "changed",
+      "frame": 67,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0067.png",
+      "total_ms": 71.199499994691,
+      "diagnostics": {
+        "inference_sec": 0.04693450000195298,
+        "total_sec": 0.0710179999950924,
+        "head": {
+          "pink_components": 665,
+          "local_windows": 90
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              602.5,
+              127.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              602.1581420898438,
+              126.66771697998047
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              494.65960693359375,
+              606.7669372558594
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            602.1581420898438,
+            126.66771697998047
+          ],
+          "box": [
+            589,
+            114,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8236905932426453,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            494.65960693359375,
+            606.7669372558594
+          ],
+          "box": [
+            476,
+            582,
+            37,
+            49
+          ],
+          "anchor_type": null,
+          "confidence": 0.06611672043800354,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            602.5,
+            127.5
+          ],
+          "box": [
+            589,
+            114,
+            26,
+            25
+          ],
+          "anchor_type": "head",
+          "confidence": 0.807,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            590,
+            115,
+            25,
+            25
+          ],
+          "model_support_confidence": 0.8236905932426453,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            494.65960693359375,
+            606.7669372558594
+          ],
+          "box": [
+            476,
+            582,
+            37,
+            49
+          ],
+          "anchor_type": null,
+          "confidence": 0.06611672043800354,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 1
+    },
+    {
+      "scope": "changed",
+      "frame": 119,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0119.png",
+      "total_ms": 67.56399999721907,
+      "diagnostics": {
+        "inference_sec": 0.04712900000595255,
+        "total_sec": 0.06737599999905797,
+        "head": {
+          "pink_components": 755,
+          "local_windows": 72
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              498.1944274902344,
+              371.3455047607422
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 1
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            498.1944274902344,
+            371.3455047607422
+          ],
+          "box": [
+            465,
+            344,
+            66,
+            54
+          ],
+          "anchor_type": null,
+          "confidence": 0.8647779226303101,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            498.1944274902344,
+            371.3455047607422
+          ],
+          "box": [
+            465,
+            344,
+            66,
+            54
+          ],
+          "anchor_type": null,
+          "confidence": 0.8647779226303101,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 1
+    },
+    {
+      "scope": "changed",
+      "frame": 175,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0175.png",
+      "total_ms": 72.07650000054855,
+      "diagnostics": {
+        "inference_sec": 0.047619000004488043,
+        "total_sec": 0.07188239999959478,
+        "head": {
+          "pink_components": 629,
+          "local_windows": 61
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              834.6365966796875,
+              621.9707946777344
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              384.7751159667969,
+              242.01878356933594
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              397.42335510253906,
+              528.5550537109375
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              430.9259490966797,
+              557.3763732910156
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 4
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            834.6365966796875,
+            621.9707946777344
+          ],
+          "box": [
+            807,
+            599,
+            56,
+            45
+          ],
+          "anchor_type": null,
+          "confidence": 0.6867796778678894,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            384.7751159667969,
+            242.01878356933594
+          ],
+          "box": [
+            362,
+            211,
+            47,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.6864127516746521,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            397.42335510253906,
+            528.5550537109375
+          ],
+          "box": [
+            372,
+            511,
+            52,
+            35
+          ],
+          "anchor_type": null,
+          "confidence": 0.3475264310836792,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            430.9259490966797,
+            557.3763732910156
+          ],
+          "box": [
+            368,
+            513,
+            125,
+            88
+          ],
+          "anchor_type": null,
+          "confidence": 0.33558714389801025,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            834.6365966796875,
+            621.9707946777344
+          ],
+          "box": [
+            807,
+            599,
+            56,
+            45
+          ],
+          "anchor_type": null,
+          "confidence": 0.6867796778678894,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            384.7751159667969,
+            242.01878356933594
+          ],
+          "box": [
+            362,
+            211,
+            47,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.6864127516746521,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            397.42335510253906,
+            528.5550537109375
+          ],
+          "box": [
+            372,
+            511,
+            52,
+            35
+          ],
+          "anchor_type": null,
+          "confidence": 0.3475264310836792,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            430.9259490966797,
+            557.3763732910156
+          ],
+          "box": [
+            368,
+            513,
+            125,
+            88
+          ],
+          "anchor_type": null,
+          "confidence": 0.33558714389801025,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 4
+    },
+    {
+      "scope": "changed",
+      "frame": 222,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0222.png",
+      "total_ms": 72.3851000002469,
+      "diagnostics": {
+        "inference_sec": 0.05301010000403039,
+        "total_sec": 0.0721823999992921,
+        "head": {
+          "pink_components": 538,
+          "local_windows": 40
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              842.3323059082031,
+              501.64984130859375
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              443.5243225097656,
+              284.02308654785156
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            842.3323059082031,
+            501.64984130859375
+          ],
+          "box": [
+            811,
+            472,
+            62,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.825615406036377,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            443.5243225097656,
+            284.02308654785156
+          ],
+          "box": [
+            360,
+            207,
+            166,
+            154
+          ],
+          "anchor_type": null,
+          "confidence": 0.7905320525169373,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            842.3323059082031,
+            501.64984130859375
+          ],
+          "box": [
+            811,
+            472,
+            62,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.825615406036377,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            443.5243225097656,
+            284.02308654785156
+          ],
+          "box": [
+            360,
+            207,
+            166,
+            154
+          ],
+          "anchor_type": null,
+          "confidence": 0.7905320525169373,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 278,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0278.png",
+      "total_ms": 69.18030000088038,
+      "diagnostics": {
+        "inference_sec": 0.04769550000492018,
+        "total_sec": 0.06897739999840269,
+        "head": {
+          "pink_components": 542,
+          "local_windows": 50
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              453.3270263671875,
+              137.34331512451172
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              630.5374755859375,
+              451.5406951904297
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            453.3270263671875,
+            137.34331512451172
+          ],
+          "box": [
+            387,
+            74,
+            132,
+            126
+          ],
+          "anchor_type": null,
+          "confidence": 0.9830626249313354,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            630.5374755859375,
+            451.5406951904297
+          ],
+          "box": [
+            601,
+            416,
+            60,
+            70
+          ],
+          "anchor_type": null,
+          "confidence": 0.7854918241500854,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            453.3270263671875,
+            137.34331512451172
+          ],
+          "box": [
+            387,
+            74,
+            132,
+            126
+          ],
+          "anchor_type": null,
+          "confidence": 0.9830626249313354,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            630.5374755859375,
+            451.5406951904297
+          ],
+          "box": [
+            601,
+            416,
+            60,
+            70
+          ],
+          "anchor_type": null,
+          "confidence": 0.7854918241500854,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 331,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0331.png",
+      "total_ms": 67.83859999995911,
+      "diagnostics": {
+        "inference_sec": 0.051669200001924764,
+        "total_sec": 0.06764999999722932,
+        "head": {
+          "pink_components": 504,
+          "local_windows": 33
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              361.0717315673828,
+              365.03759765625
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              469.68873596191406,
+              260.35472869873047
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              882.9420776367188,
+              410.33837890625
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            361.0717315673828,
+            365.03759765625
+          ],
+          "box": [
+            340,
+            340,
+            42,
+            51
+          ],
+          "anchor_type": null,
+          "confidence": 0.8829668760299683,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            469.68873596191406,
+            260.35472869873047
+          ],
+          "box": [
+            395,
+            184,
+            150,
+            153
+          ],
+          "anchor_type": null,
+          "confidence": 0.8320350646972656,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            882.9420776367188,
+            410.33837890625
+          ],
+          "box": [
+            856,
+            379,
+            54,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.7268616557121277,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            361.0717315673828,
+            365.03759765625
+          ],
+          "box": [
+            340,
+            340,
+            42,
+            51
+          ],
+          "anchor_type": null,
+          "confidence": 0.8829668760299683,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            469.68873596191406,
+            260.35472869873047
+          ],
+          "box": [
+            395,
+            184,
+            150,
+            153
+          ],
+          "anchor_type": null,
+          "confidence": 0.8320350646972656,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            882.9420776367188,
+            410.33837890625
+          ],
+          "box": [
+            856,
+            379,
+            54,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.7268616557121277,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 3
+    },
+    {
+      "scope": "changed",
+      "frame": 376,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0376.png",
+      "total_ms": 69.42369999887887,
+      "diagnostics": {
+        "inference_sec": 0.049748099998396356,
+        "total_sec": 0.06922769999800948,
+        "head": {
+          "pink_components": 473,
+          "local_windows": 45
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              356.66851806640625,
+              432.3092498779297
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              614.8627624511719,
+              171.07907104492188
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            356.66851806640625,
+            432.3092498779297
+          ],
+          "box": [
+            324,
+            402,
+            65,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.8943714499473572,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            614.8627624511719,
+            171.07907104492188
+          ],
+          "box": [
+            536,
+            95,
+            158,
+            153
+          ],
+          "anchor_type": null,
+          "confidence": 0.8914204835891724,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            356.66851806640625,
+            432.3092498779297
+          ],
+          "box": [
+            324,
+            402,
+            65,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.8943714499473572,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            614.8627624511719,
+            171.07907104492188
+          ],
+          "box": [
+            536,
+            95,
+            158,
+            153
+          ],
+          "anchor_type": null,
+          "confidence": 0.8914204835891724,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 432,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0432.png",
+      "total_ms": 63.27330000203801,
+      "diagnostics": {
+        "inference_sec": 0.044483400000899564,
+        "total_sec": 0.06308859999990091,
+        "head": {
+          "pink_components": 527,
+          "local_windows": 64
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              623.3172302246094,
+              104.47978591918945
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              370.41029357910156,
+              292.01153564453125
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              912.2522583007812,
+              424.8321228027344
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            623.3172302246094,
+            104.47978591918945
+          ],
+          "box": [
+            571,
+            71,
+            105,
+            68
+          ],
+          "anchor_type": null,
+          "confidence": 0.7183405160903931,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            370.41029357910156,
+            292.01153564453125
+          ],
+          "box": [
+            346,
+            262,
+            49,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.7177532911300659,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            912.2522583007812,
+            424.8321228027344
+          ],
+          "box": [
+            896,
+            406,
+            33,
+            37
+          ],
+          "anchor_type": null,
+          "confidence": 0.20389556884765625,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            623.3172302246094,
+            104.47978591918945
+          ],
+          "box": [
+            571,
+            71,
+            105,
+            68
+          ],
+          "anchor_type": null,
+          "confidence": 0.7183405160903931,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            370.41029357910156,
+            292.01153564453125
+          ],
+          "box": [
+            346,
+            262,
+            49,
+            60
+          ],
+          "anchor_type": null,
+          "confidence": 0.7177532911300659,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            912.2522583007812,
+            424.8321228027344
+          ],
+          "box": [
+            896,
+            406,
+            33,
+            37
+          ],
+          "anchor_type": null,
+          "confidence": 0.20389556884765625,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 484,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0484.png",
+      "total_ms": 92.59270000620745,
+      "diagnostics": {
+        "inference_sec": 0.06850010000198381,
+        "total_sec": 0.09233110000059241,
+        "head": {
+          "pink_components": 681,
+          "local_windows": 57
+        },
+        "fusion": [
+          {
+            "kind": "inspiration",
+            "point": [
+              373.47515869140625,
+              271.99609375
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              912.2001953125,
+              465.3116455078125
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              625.3708190917969,
+              620.6831970214844
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            373.47515869140625,
+            271.99609375
+          ],
+          "box": [
+            343,
+            241,
+            62,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.8985165357589722,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            912.2001953125,
+            465.3116455078125
+          ],
+          "box": [
+            889,
+            439,
+            47,
+            53
+          ],
+          "anchor_type": null,
+          "confidence": 0.6961696147918701,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            625.3708190917969,
+            620.6831970214844
+          ],
+          "box": [
+            609,
+            604,
+            32,
+            34
+          ],
+          "anchor_type": "head",
+          "confidence": 0.17545542120933533,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            373.47515869140625,
+            271.99609375
+          ],
+          "box": [
+            343,
+            241,
+            62,
+            62
+          ],
+          "anchor_type": null,
+          "confidence": 0.8985165357589722,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            912.2001953125,
+            465.3116455078125
+          ],
+          "box": [
+            889,
+            439,
+            47,
+            53
+          ],
+          "anchor_type": null,
+          "confidence": 0.6961696147918701,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            625.3708190917969,
+            620.6831970214844
+          ],
+          "box": [
+            609,
+            604,
+            32,
+            34
+          ],
+          "anchor_type": "head",
+          "confidence": 0.17545542120933533,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 538,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0538.png",
+      "total_ms": 96.7638000001898,
+      "diagnostics": {
+        "inference_sec": 0.06360770000173943,
+        "total_sec": 0.09654519999457989,
+        "head": {
+          "pink_components": 733,
+          "local_windows": 75
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              490.5,
+              535.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              899.2032775878906,
+              485.1007995605469
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              491.53968811035156,
+              533.77099609375
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              512.9953002929688,
+              513.8019104003906
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              503.6989440917969,
+              523.7415771484375
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 4
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            899.2032775878906,
+            485.1007995605469
+          ],
+          "box": [
+            868,
+            453,
+            62,
+            64
+          ],
+          "anchor_type": null,
+          "confidence": 0.8809584975242615,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            491.53968811035156,
+            533.77099609375
+          ],
+          "box": [
+            477,
+            519,
+            30,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.742485523223877,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            512.9953002929688,
+            513.8019104003906
+          ],
+          "box": [
+            498,
+            499,
+            30,
+            30
+          ],
+          "anchor_type": "head",
+          "confidence": 0.36979880928993225,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            503.6989440917969,
+            523.7415771484375
+          ],
+          "box": [
+            495,
+            514,
+            17,
+            20
+          ],
+          "anchor_type": "head",
+          "confidence": 0.16344895958900452,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            899.2032775878906,
+            485.1007995605469
+          ],
+          "box": [
+            868,
+            453,
+            62,
+            64
+          ],
+          "anchor_type": null,
+          "confidence": 0.8809584975242615,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            490.5,
+            535.5
+          ],
+          "box": [
+            477,
+            519,
+            30,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.786,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            479,
+            524,
+            22,
+            22
+          ],
+          "model_support_confidence": 0.742485523223877,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "player",
+          "point": [
+            512.9953002929688,
+            513.8019104003906
+          ],
+          "box": [
+            498,
+            499,
+            30,
+            30
+          ],
+          "anchor_type": "head",
+          "confidence": 0.36979880928993225,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            503.6989440917969,
+            523.7415771484375
+          ],
+          "box": [
+            495,
+            514,
+            17,
+            20
+          ],
+          "anchor_type": "head",
+          "confidence": 0.16344895958900452,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 3
+    },
+    {
+      "scope": "changed",
+      "frame": 593,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0593.png",
+      "total_ms": 100.95920000458136,
+      "diagnostics": {
+        "inference_sec": 0.07251779999933206,
+        "total_sec": 0.10071189999871422,
+        "head": {
+          "pink_components": 592,
+          "local_windows": 71
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              496.5,
+              229.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              894.5876770019531,
+              328.2942657470703
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              498.4976806640625,
+              230.0865707397461
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            894.5876770019531,
+            328.2942657470703
+          ],
+          "box": [
+            864,
+            295,
+            60,
+            66
+          ],
+          "anchor_type": null,
+          "confidence": 0.8736838102340698,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            498.4976806640625,
+            230.0865707397461
+          ],
+          "box": [
+            485,
+            216,
+            27,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.6910656690597534,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "inspiration",
+          "point": [
+            894.5876770019531,
+            328.2942657470703
+          ],
+          "box": [
+            864,
+            295,
+            60,
+            66
+          ],
+          "anchor_type": null,
+          "confidence": 0.8736838102340698,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            496.5,
+            229.5
+          ],
+          "box": [
+            485,
+            216,
+            27,
+            29
+          ],
+          "anchor_type": "head",
+          "confidence": 0.795,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            484,
+            217,
+            24,
+            24
+          ],
+          "model_support_confidence": 0.6910656690597534,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 640,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0640.png",
+      "total_ms": 99.59030000027269,
+      "diagnostics": {
+        "inference_sec": 0.06676989999687066,
+        "total_sec": 0.09933479999745032,
+        "head": {
+          "pink_components": 682,
+          "local_windows": 68
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              485.5,
+              437.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              486.78358459472656,
+              438.8876037597656
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              898.9341430664062,
+              449.3231201171875
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              497.7783966064453,
+              434.88929748535156
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            486.78358459472656,
+            438.8876037597656
+          ],
+          "box": [
+            473,
+            425,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8930007219314575,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            898.9341430664062,
+            449.3231201171875
+          ],
+          "box": [
+            873,
+            416,
+            52,
+            66
+          ],
+          "anchor_type": null,
+          "confidence": 0.8318644762039185,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            497.7783966064453,
+            434.88929748535156
+          ],
+          "box": [
+            491,
+            422,
+            13,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.17360427975654602,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            485.5,
+            437.5
+          ],
+          "box": [
+            473,
+            425,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.807,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            472,
+            424,
+            27,
+            27
+          ],
+          "model_support_confidence": 0.8930007219314575,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            898.9341430664062,
+            449.3231201171875
+          ],
+          "box": [
+            873,
+            416,
+            52,
+            66
+          ],
+          "anchor_type": null,
+          "confidence": 0.8318644762039185,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            497.7783966064453,
+            434.88929748535156
+          ],
+          "box": [
+            491,
+            422,
+            13,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.17360427975654602,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 2
+    },
+    {
+      "scope": "changed",
+      "frame": 693,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0693.png",
+      "total_ms": 97.05940000276314,
+      "diagnostics": {
+        "inference_sec": 0.07093680000252789,
+        "total_sec": 0.0968628999980865,
+        "head": {
+          "pink_components": 546,
+          "local_windows": 52
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              401.5,
+              520.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              402.5583953857422,
+              521.7026062011719
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              815.2291259765625,
+              577.3323669433594
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              905.3740844726562,
+              280.07408142089844
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              438.25794982910156,
+              503.25132751464844
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 4
+      },
+      "raw_targets": [
+        {
+          "kind": "player",
+          "point": [
+            402.5583953857422,
+            521.7026062011719
+          ],
+          "box": [
+            389,
+            508,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8279275298118591,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            815.2291259765625,
+            577.3323669433594
+          ],
+          "box": [
+            781,
+            555,
+            68,
+            45
+          ],
+          "anchor_type": null,
+          "confidence": 0.8102635145187378,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            905.3740844726562,
+            280.07408142089844
+          ],
+          "box": [
+            867,
+            238,
+            77,
+            85
+          ],
+          "anchor_type": null,
+          "confidence": 0.7871360778808594,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            438.25794982910156,
+            503.25132751464844
+          ],
+          "box": [
+            424,
+            488,
+            29,
+            31
+          ],
+          "anchor_type": "head",
+          "confidence": 0.2592778205871582,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "player",
+          "point": [
+            401.5,
+            520.5
+          ],
+          "box": [
+            389,
+            508,
+            27,
+            27
+          ],
+          "anchor_type": "head",
+          "confidence": 0.806,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            390,
+            509,
+            23,
+            23
+          ],
+          "model_support_confidence": 0.8279275298118591,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            815.2291259765625,
+            577.3323669433594
+          ],
+          "box": [
+            781,
+            555,
+            68,
+            45
+          ],
+          "anchor_type": null,
+          "confidence": 0.8102635145187378,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "singularity",
+          "point": [
+            905.3740844726562,
+            280.07408142089844
+          ],
+          "box": [
+            867,
+            238,
+            77,
+            85
+          ],
+          "anchor_type": null,
+          "confidence": 0.7871360778808594,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            438.25794982910156,
+            503.25132751464844
+          ],
+          "box": [
+            424,
+            488,
+            29,
+            31
+          ],
+          "anchor_type": "head",
+          "confidence": 0.2592778205871582,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 4
+    },
+    {
+      "scope": "changed",
+      "frame": 742,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0742.png",
+      "total_ms": 94.00540000206092,
+      "diagnostics": {
+        "inference_sec": 0.0651852000009967,
+        "total_sec": 0.09370900000067195,
+        "head": {
+          "pink_components": 713,
+          "local_windows": 59
+        },
+        "fusion": [
+          {
+            "kind": "player",
+            "point": [
+              398.5,
+              558.5
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "singularity",
+            "point": [
+              909.8309020996094,
+              243.42340087890625
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              400.5174560546875,
+              560.1618957519531
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              555.7823181152344,
+              150.00851440429688
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              818.2781066894531,
+              611.4473876953125
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              558.7725524902344,
+              140.5921630859375
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 5
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            909.8309020996094,
+            243.42340087890625
+          ],
+          "box": [
+            853,
+            187,
+            114,
+            114
+          ],
+          "anchor_type": null,
+          "confidence": 0.9191873073577881,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            400.5174560546875,
+            560.1618957519531
+          ],
+          "box": [
+            387,
+            546,
+            27,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8905499577522278,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            555.7823181152344,
+            150.00851440429688
+          ],
+          "box": [
+            534,
+            124,
+            44,
+            52
+          ],
+          "anchor_type": null,
+          "confidence": 0.5876733064651489,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            818.2781066894531,
+            611.4473876953125
+          ],
+          "box": [
+            798,
+            593,
+            42,
+            37
+          ],
+          "anchor_type": null,
+          "confidence": 0.3840146064758301,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            558.7725524902344,
+            140.5921630859375
+          ],
+          "box": [
+            541,
+            125,
+            36,
+            31
+          ],
+          "anchor_type": null,
+          "confidence": 0.1060904860496521,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            909.8309020996094,
+            243.42340087890625
+          ],
+          "box": [
+            853,
+            187,
+            114,
+            114
+          ],
+          "anchor_type": null,
+          "confidence": 0.9191873073577881,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            398.5,
+            558.5
+          ],
+          "box": [
+            387,
+            546,
+            27,
+            28
+          ],
+          "anchor_type": "head",
+          "confidence": 0.803,
+          "confirmable": true,
+          "source": "deep_dive_local_pink_head",
+          "circle_box": [
+            386,
+            546,
+            25,
+            25
+          ],
+          "model_support_confidence": 0.8905499577522278,
+          "box_evidence": "existing_model_box_with_confirmed_head_center"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            555.7823181152344,
+            150.00851440429688
+          ],
+          "box": [
+            534,
+            124,
+            44,
+            52
+          ],
+          "anchor_type": null,
+          "confidence": 0.5876733064651489,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            818.2781066894531,
+            611.4473876953125
+          ],
+          "box": [
+            798,
+            593,
+            42,
+            37
+          ],
+          "anchor_type": null,
+          "confidence": 0.3840146064758301,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            558.7725524902344,
+            140.5921630859375
+          ],
+          "box": [
+            541,
+            125,
+            36,
+            31
+          ],
+          "anchor_type": null,
+          "confidence": 0.1060904860496521,
+          "confirmable": false,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 1,
+      "raw_standard_count": 4
+    },
+    {
+      "scope": "changed",
+      "frame": 797,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0797.png",
+      "total_ms": 89.41609999601496,
+      "diagnostics": {
+        "inference_sec": 0.06286869999894407,
+        "total_sec": 0.08915600000182167,
+        "head": {
+          "pink_components": 683,
+          "local_windows": 52
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              912.2531433105469,
+              214.06863403320312
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              552.8993225097656,
+              118.23963165283203
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "player",
+            "point": [
+              402.0409393310547,
+              580.3834228515625
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 3
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            912.2531433105469,
+            214.06863403320312
+          ],
+          "box": [
+            843,
+            146,
+            139,
+            136
+          ],
+          "anchor_type": null,
+          "confidence": 0.9167606234550476,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            552.8993225097656,
+            118.23963165283203
+          ],
+          "box": [
+            520,
+            87,
+            67,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.8912684917449951,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            402.0409393310547,
+            580.3834228515625
+          ],
+          "box": [
+            389,
+            567,
+            26,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8160371780395508,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            912.2531433105469,
+            214.06863403320312
+          ],
+          "box": [
+            843,
+            146,
+            139,
+            136
+          ],
+          "anchor_type": null,
+          "confidence": 0.9167606234550476,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            552.8993225097656,
+            118.23963165283203
+          ],
+          "box": [
+            520,
+            87,
+            67,
+            63
+          ],
+          "anchor_type": null,
+          "confidence": 0.8912684917449951,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "player",
+          "point": [
+            402.0409393310547,
+            580.3834228515625
+          ],
+          "box": [
+            389,
+            567,
+            26,
+            26
+          ],
+          "anchor_type": "head",
+          "confidence": 0.8160371780395508,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 3
+    },
+    {
+      "scope": "changed",
+      "frame": 849,
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0849.png",
+      "total_ms": 84.50720000109868,
+      "diagnostics": {
+        "inference_sec": 0.0629482999938773,
+        "total_sec": 0.08424300000478979,
+        "head": {
+          "pink_components": 652,
+          "local_windows": 44
+        },
+        "fusion": [
+          {
+            "kind": "singularity",
+            "point": [
+              914.0408325195312,
+              262.97196197509766
+            ],
+            "rejected": null
+          },
+          {
+            "kind": "inspiration",
+            "point": [
+              597.3970336914062,
+              116.09250259399414
+            ],
+            "rejected": null
+          }
+        ],
+        "target_count": 2
+      },
+      "raw_targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            914.0408325195312,
+            262.97196197509766
+          ],
+          "box": [
+            838,
+            190,
+            153,
+            146
+          ],
+          "anchor_type": null,
+          "confidence": 0.9105851650238037,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            597.3970336914062,
+            116.09250259399414
+          ],
+          "box": [
+            565,
+            95,
+            66,
+            43
+          ],
+          "anchor_type": null,
+          "confidence": 0.7561138868331909,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "targets": [
+        {
+          "kind": "singularity",
+          "point": [
+            914.0408325195312,
+            262.97196197509766
+          ],
+          "box": [
+            838,
+            190,
+            153,
+            146
+          ],
+          "anchor_type": null,
+          "confidence": 0.9105851650238037,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        },
+        {
+          "kind": "inspiration",
+          "point": [
+            597.3970336914062,
+            116.09250259399414
+          ],
+          "box": [
+            565,
+            95,
+            66,
+            43
+          ],
+          "anchor_type": null,
+          "confidence": 0.7561138868331909,
+          "confirmable": true,
+          "source": "deep_dive_entity_onnx"
+        }
+      ],
+      "weak_below025": 0,
+      "raw_standard_count": 2
+    }
+  ]
+}

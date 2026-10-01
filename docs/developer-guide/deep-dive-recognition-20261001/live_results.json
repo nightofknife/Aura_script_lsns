@@ -1,0 +1,1123 @@
+{
+  "warning": "Small correlated board samples. Scan time includes drain/report but excludes separately recorded cold startup and task dispatch overhead. Partial/blocked runs count as failures. No stable 99% claim.",
+  "groups": {
+    "pure_entity_hybrid_old": {
+      "episodes": [
+        {
+          "episode": "live_hybrid_03",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-064057-1c7e173c",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_03\\scan\\frames\\0734.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_03\\scan",
+            "steps": 20,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_03\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_03\\scan\\layout.json",
+            "total_elapsed_sec": 49.219,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": false
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "U",
+                "row": 1,
+                "col": 0
+              },
+              {
+                "face": "D",
+                "row": 2,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 17.784428199972314,
+            "semantic_fps": 3.5078251484083327,
+            "scene_fps": 10.523475445224998,
+            "semantic_mean_latency_sec": 0.3645594405588145
+          },
+          "model_startup": {
+            "seconds": 1.1817374000020209,
+            "ready": {
+              "ready": true,
+              "providers": [
+                "DmlExecutionProvider",
+                "CPUExecutionProvider"
+              ],
+              "names": {
+                "0": "player_head",
+                "1": "singularity",
+                "2": "inspiration"
+              }
+            }
+          }
+        },
+        {
+          "episode": "live_hybrid_repeat/run1",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-064546-e73daeef",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run1\\scan\\frames\\0760.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run1\\scan",
+            "steps": 19,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run1\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run1\\scan\\layout.json",
+            "total_elapsed_sec": 50.938,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "U",
+                "row": 1,
+                "col": 0
+              },
+              {
+                "face": "D",
+                "row": 2,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 17.70934043907877,
+            "semantic_fps": 3.560732897870698,
+            "scene_fps": 10.870846794161535,
+            "semantic_mean_latency_sec": 0.35617218543060314
+          },
+          "dispatch_elapsed": {
+            "seconds": 53.25374490000104
+          }
+        },
+        {
+          "episode": "live_hybrid_repeat/run2",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-064637-5db2d0b1",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0928.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan",
+            "steps": 25,
+            "known_cells": 52,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\layout.json",
+            "total_elapsed_sec": 59.391,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "U",
+                "row": 1,
+                "col": 0
+              },
+              {
+                "face": "D",
+                "row": 2,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "D",
+              "row": 1,
+              "col": 0,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "L",
+              "row": 0,
+              "col": 2,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 17.860613363393274,
+            "semantic_fps": 3.556574804680053,
+            "scene_fps": 10.708594084036662,
+            "semantic_mean_latency_sec": 0.3386448087428599
+          },
+          "dispatch_elapsed": {
+            "seconds": 59.42795820000174
+          }
+        },
+        {
+          "episode": "live_hybrid_repeat/run3",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-064737-31b518b5",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run3\\scan\\frames\\0854.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run3\\scan",
+            "steps": 24,
+            "known_cells": 53,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run3\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run3\\scan\\layout.json",
+            "total_elapsed_sec": 59.391,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "U",
+                "row": 1,
+                "col": 0
+              },
+              {
+                "face": "D",
+                "row": 2,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "D",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 1
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 16.47751647751672,
+            "semantic_fps": 3.549003549003601,
+            "scene_fps": 10.569010569010725,
+            "semantic_mean_latency_sec": 0.35465384615427853
+          },
+          "dispatch_elapsed": {
+            "seconds": 59.68013520000386
+          }
+        }
+      ],
+      "completed": 2,
+      "n": 4,
+      "mean_scan_sec": 54.73475,
+      "maximum_scan_sec": 59.391
+    },
+    "guard_fusion_adaptive": {
+      "episodes": [
+        {
+          "episode": "live_guard_changed_01",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-072542-e30bfd03",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_changed_01\\scan\\frames\\0670.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_changed_01\\scan",
+            "steps": 13,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_changed_01\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_changed_01\\scan\\layout.json",
+            "total_elapsed_sec": 49.281,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": false
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 16.358551736085637,
+            "semantic_fps": 3.316257084168647,
+            "scene_fps": 10.221001311654113,
+            "semantic_mean_latency_sec": 0.5082164179102484
+          },
+          "model_startup": {
+            "seconds": 1.2682763999982853,
+            "ready": {
+              "ready": true,
+              "providers": [
+                "DmlExecutionProvider",
+                "CPUExecutionProvider"
+              ],
+              "names": {
+                "0": "player_head",
+                "1": "singularity",
+                "2": "inspiration"
+              }
+            }
+          }
+        },
+        {
+          "episode": "live_guard_repeat/run1",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-072751-89954c41",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run1\\scan\\frames\\0805.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run1\\scan",
+            "steps": 17,
+            "known_cells": 52,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run1\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run1\\scan\\layout.json",
+            "total_elapsed_sec": 59.406,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "U",
+              "row": 0,
+              "col": 0,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "D",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": null
+            }
+          ],
+          "streaming": {
+            "track_fps": 15.791770820933177,
+            "semantic_fps": 3.3527754632383253,
+            "scene_fps": 11.466888862436402,
+            "semantic_mean_latency_sec": 0.4620059171594065
+          },
+          "dispatch_elapsed": {
+            "seconds": 61.42415980000078
+          }
+        },
+        {
+          "episode": "live_guard_repeat/run2",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-072851-40bde8ed",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run2\\scan\\frames\\0805.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run2\\scan",
+            "steps": 15,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run2\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run2\\scan\\layout.json",
+            "total_elapsed_sec": 58.11,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 16.025124818811836,
+            "semantic_fps": 3.321790948623056,
+            "scene_fps": 10.710259301014945,
+            "semantic_mean_latency_sec": 0.5171393939390493
+          },
+          "dispatch_elapsed": {
+            "seconds": 58.38680849999946
+          }
+        },
+        {
+          "episode": "live_guard_repeat/run3",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-072949-64934070",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run3\\scan\\frames\\0744.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run3\\scan",
+            "steps": 17,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run3\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_guard_repeat\\run3\\scan\\layout.json",
+            "total_elapsed_sec": 55.343,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 15.711506808318717,
+            "semantic_fps": 3.2705585600989986,
+            "scene_fps": 10.474337872212478,
+            "semantic_mean_latency_sec": 0.5158823529414637
+          },
+          "dispatch_elapsed": {
+            "seconds": 55.53258170000481
+          }
+        }
+      ],
+      "completed": 3,
+      "n": 4,
+      "mean_scan_sec": 55.535,
+      "maximum_scan_sec": 59.406
+    },
+    "higher_semantic_frequency_rejected": {
+      "episodes": [
+        {
+          "episode": "live_fresh_repeat/run1",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-073200-0e64e5b0",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run1\\scan\\frames\\0766.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run1\\scan",
+            "steps": 21,
+            "known_cells": 53,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run1\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run1\\scan\\layout.json",
+            "total_elapsed_sec": 59.609,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "D",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 14.962248487963791,
+            "semantic_fps": 3.696090445507568,
+            "scene_fps": 10.31742894414412,
+            "semantic_mean_latency_sec": 0.5148983957214586
+          },
+          "dispatch_elapsed": {
+            "seconds": 61.65243289999489
+          }
+        },
+        {
+          "episode": "live_fresh_repeat/run2",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-073300-d36a41cb",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run2\\scan\\frames\\0788.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run2\\scan",
+            "steps": 19,
+            "known_cells": 52,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run2\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run2\\scan\\layout.json",
+            "total_elapsed_sec": 59.75,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "F",
+              "row": 2,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "D",
+              "row": 0,
+              "col": 0,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 15.181633925785755,
+            "semantic_fps": 4.131587153102157,
+            "scene_fps": 10.309479264108685,
+            "semantic_mean_latency_sec": 0.4879811320755629
+          },
+          "dispatch_elapsed": {
+            "seconds": 59.91566299999977
+          }
+        },
+        {
+          "episode": "live_fresh_repeat/run3",
+          "summary": {
+            "success": true,
+            "status": "completed",
+            "stop_reason": "layout_complete",
+            "reason": "layout_complete",
+            "layout_complete": true,
+            "run_id": "20261001-073400-29616b8b",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run3\\scan\\frames\\0763.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run3\\scan",
+            "steps": 18,
+            "known_cells": 54,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run3\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_fresh_repeat\\run3\\scan\\layout.json",
+            "total_elapsed_sec": 58.64,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [],
+          "streaming": {
+            "track_fps": 15.019022767565467,
+            "semantic_fps": 4.302531721212389,
+            "scene_fps": 10.298189351235209,
+            "semantic_mean_latency_sec": 0.47971296296310795
+          },
+          "dispatch_elapsed": {
+            "seconds": 58.89491429999907
+          }
+        }
+      ],
+      "completed": 1,
+      "n": 3,
+      "mean_scan_sec": 59.333,
+      "maximum_scan_sec": 59.75
+    },
+    "corner_v1": {
+      "episodes": [
+        {
+          "episode": "live_corner_changed_01",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-071043-0160574b",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\frames\\0849.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan",
+            "steps": 21,
+            "known_cells": 51,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_changed_01\\scan\\layout.json",
+            "total_elapsed_sec": 59.484,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "F",
+              "row": 2,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "conflict",
+              "node_status": "conflict",
+              "occupant_evidence_counts": {
+                "none": 5,
+                "inspiration": 1
+              }
+            },
+            {
+              "face": "D",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "D",
+              "row": 0,
+              "col": 2,
+              "occupant": "unknown",
+              "occupant_status": "conflict",
+              "node_status": "conflict",
+              "occupant_evidence_counts": {
+                "none": 7,
+                "inspiration": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 16.455423433306994,
+            "semantic_fps": 3.33026426626451,
+            "scene_fps": 9.775305110976415,
+            "semantic_mean_latency_sec": 0.42679999999989593
+          },
+          "model_startup": {
+            "seconds": 1.269200800001272,
+            "ready": {
+              "ready": true,
+              "providers": [
+                "DmlExecutionProvider",
+                "CPUExecutionProvider"
+              ],
+              "names": {
+                "0": "player_head",
+                "1": "singularity",
+                "2": "inspiration"
+              }
+            }
+          }
+        }
+      ],
+      "completed": 0,
+      "n": 1,
+      "mean_scan_sec": 59.484,
+      "maximum_scan_sec": 59.484
+    },
+    "corner_v2_no_actual_bbox_state": {
+      "episodes": [
+        {
+          "episode": "live_corner_v2_changed",
+          "summary": {
+            "success": false,
+            "status": "blocked",
+            "stop_reason": "research_tail_attempts_exhausted",
+            "reason": "research_tail_attempts_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-073707-e4541cf3",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_v2_changed\\scan\\frames\\0597.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_v2_changed\\scan",
+            "steps": 14,
+            "known_cells": 52,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_v2_changed\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_corner_v2_changed\\scan\\layout.json",
+            "total_elapsed_sec": 44.484,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": false
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "D",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "B",
+              "row": 0,
+              "col": 0,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 16.50526315789474,
+            "semantic_fps": 3.2842105263157895,
+            "scene_fps": 11.059649122807018,
+            "semantic_mean_latency_sec": 0.4991623931623469
+          },
+          "model_startup": {
+            "seconds": 1.2361049000028288,
+            "ready": {
+              "ready": true,
+              "providers": [
+                "DmlExecutionProvider",
+                "CPUExecutionProvider"
+              ],
+              "names": {
+                "0": "player_head",
+                "1": "singularity",
+                "2": "inspiration"
+              }
+            }
+          }
+        }
+      ],
+      "completed": 0,
+      "n": 1,
+      "mean_scan_sec": 44.484,
+      "maximum_scan_sec": 44.484
+    },
+    "actual_bbox_adaptive": {
+      "episodes": [
+        {
+          "episode": "live_actual_footprint",
+          "summary": {
+            "success": false,
+            "status": "partial",
+            "stop_reason": "time_budget_exhausted",
+            "reason": "time_budget_exhausted",
+            "layout_complete": false,
+            "run_id": "20261001-074034-1107ec31",
+            "last_frame": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_actual_footprint\\scan\\frames\\0821.png",
+            "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_actual_footprint\\scan",
+            "steps": 19,
+            "known_cells": 52,
+            "faces_observed": 6,
+            "report_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_actual_footprint\\scan\\report.html",
+            "json_path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep_dive_perf_20261001\\live_actual_footprint\\scan\\layout.json",
+            "total_elapsed_sec": 59.484,
+            "target_elapsed_sec": 50.0,
+            "reserve_used": true
+          },
+          "targets": {
+            "player_cell": {
+              "face": "U",
+              "row": 1,
+              "col": 1
+            },
+            "singularity_cell": {
+              "face": "D",
+              "row": 1,
+              "col": 1
+            },
+            "inspiration_cells": [
+              {
+                "face": "F",
+                "row": 2,
+                "col": 2
+              },
+              {
+                "face": "B",
+                "row": 1,
+                "col": 2
+              }
+            ]
+          },
+          "missing": [
+            {
+              "face": "U",
+              "row": 0,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            },
+            {
+              "face": "F",
+              "row": 2,
+              "col": 1,
+              "occupant": "unknown",
+              "occupant_status": "unknown",
+              "node_status": "unknown",
+              "occupant_evidence_counts": {
+                "none": 2
+              }
+            }
+          ],
+          "streaming": {
+            "track_fps": 16.074433336632868,
+            "semantic_fps": 3.4049292289419375,
+            "scene_fps": 10.887855092546893,
+            "semantic_mean_latency_sec": 0.4732267441859433
+          },
+          "model_startup": {
+            "seconds": 1.2189537000012933,
+            "ready": {
+              "ready": true,
+              "providers": [
+                "DmlExecutionProvider",
+                "CPUExecutionProvider"
+              ],
+              "names": {
+                "0": "player_head",
+                "1": "singularity",
+                "2": "inspiration"
+              }
+            }
+          }
+        }
+      ],
+      "completed": 0,
+      "n": 1,
+      "mean_scan_sec": 59.484,
+      "maximum_scan_sec": 59.484
+    }
+  },
+  "entity_only_checkpoint": {
+    "first_target_ready": {
+      "elapsed_sec": 31.806190899995272,
+      "frame_id": 421,
+      "known_cells": 45,
+      "faces_observed": 6,
+      "player_cell": {
+        "face": "U",
+        "row": 1,
+        "col": 1
+      },
+      "singularity_cell": {
+        "face": "D",
+        "row": 1,
+        "col": 1
+      },
+      "inspiration_cells": [
+        {
+          "face": "F",
+          "row": 2,
+          "col": 2
+        },
+        {
+          "face": "B",
+          "row": 1,
+          "col": 2
+        }
+      ],
+      "targets_ready": true
+    },
+    "later_target_ready_rows": 86,
+    "final_row": {
+      "elapsed_sec": 57.03603479999583,
+      "frame_id": 815,
+      "known_cells": 52,
+      "faces_observed": 6,
+      "player_cell": {
+        "face": "U",
+        "row": 1,
+        "col": 1
+      },
+      "singularity_cell": {
+        "face": "D",
+        "row": 1,
+        "col": 1
+      },
+      "inspiration_cells": [
+        {
+          "face": "F",
+          "row": 2,
+          "col": 2
+        },
+        {
+          "face": "B",
+          "row": 1,
+          "col": 2
+        }
+      ],
+      "targets_ready": true
+    },
+    "warning": "Entity-only intermediate checkpoint, not a completed full scan or an execution-ready partial map."
+  },
+  "entity_model": {
+    "path": ".pytest_tmp\\deep_dive_perf_20261001\\entity_dataset\\runs\\extended_gpu640\\weights\\best.onnx",
+    "sha256": "bff7444233525475ef25173845a6c197c1eec993f2544d204a44846260718123",
+    "bytes": 10566854
+  }
+}

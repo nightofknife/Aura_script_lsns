@@ -16,6 +16,7 @@ from ._deep_dive_planner_rules import (
     FACES, RULES_VERSION, cell_to_slot, coord_dict, geometry, player_actions,
     remaining_player_actions,
 )
+from ._deep_dive_target_readiness import is_targets_layout, required_cells, targets_readiness
 
 SCHEMA = "resonance_pc.deep_dive_plan.v1"
 
@@ -35,9 +36,15 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
         raise ValueError("Unsupported cube layout schema")
     if layout.get("coordinate_frame") != "scan_local":
         raise ValueError("Layout requires explicit scan_local coordinates")
+    target_mode = is_targets_layout(layout)
+    if layout.get("prediction_only"):
+        raise ValueError("Prediction-only layouts cannot establish a current plan")
     if not (layout.get("status") == "completed" and layout.get("layout_complete") is True
-            and layout.get("success") is True):
+            and layout.get("success") is True) and not target_mode:
         raise ValueError("A complete successful scan is required")
+    readiness = targets_readiness(layout) if target_mode else None
+    if readiness is not None and not readiness["ready"]:
+        raise ValueError(readiness["reason"])
     cells = layout.get("cells")
     if not isinstance(cells, list) or len(cells) != 54:
         raise ValueError("Only a three-by-three cube with 54 cells is supported")
@@ -50,8 +57,8 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
         if slot in occupants:
             raise ValueError("Duplicate cube coordinate")
         kind = cell.get("occupant")
-        if cell.get("occupant_status") != "confirmed" or kind not in (
-                "none", "player", "singularity", "inspiration"):
+        if not target_mode and (cell.get("occupant_status") != "confirmed" or kind not in (
+                "none", "player", "singularity", "inspiration")):
             raise ValueError("Unknown or conflicting target occupancy cannot be planned")
         occupants[slot] = kind
         fingerprint_cells.append((slot, kind, cell.get("icon_id"), cell.get("node_status")))
@@ -60,6 +67,10 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
     players = [slot for slot, kind in occupants.items() if kind == "player"]
     bosses = [slot for slot, kind in occupants.items() if kind == "singularity"]
     inspirations = tuple(sorted(slot for slot, kind in occupants.items() if kind == "inspiration"))
+    if target_mode:
+        players = [readiness["player_slot"]]
+        bosses = [readiness["boss_slot"]]
+        inspirations = tuple(readiness["inspiration_slots"])
     if len(players) != 1 or len(bosses) != 1:
         raise ValueError("Exactly one player and one singularity must be confirmed")
     player, boss = players[0], bosses[0]
@@ -124,7 +135,7 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
                 time_budget_sec: float = 30., cancel_check=None,
                 *, collected_count: int = 0,
                 chase_objective: str = "min_expected_encounter_turns") -> dict:
-    """Plan a known complete layout; this function never captures or clicks.
+    """Plan complete content or a proven complete target list, without input.
 
     chase minimizes expected encounter time; inspiration maximizes total
     confirmed-plus-future inspiration at a meeting before the deadline.
@@ -202,6 +213,9 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
     result["requires_observation_after_action"] = True
     result["execution_mode"] = "planning_only"
     result["computation_elapsed_sec"] = time.monotonic() - started
+    if is_targets_layout(layout):
+        result.update(recognition_goal="targets", ordinary_nodes_require_local_verification=True,
+                      required_cells=required_cells(layout, result.get("next_action")))
     if not result["success"]:
         result.setdefault("reason", {
             "cancelled": "cancel_requested",
@@ -250,10 +264,11 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
                          ("rounds_remaining", rounds), ("collected_count", collected)):
         if name in phase and _integer(phase[name], name, 0) != actual:
             raise ValueError(f"planning_state.{name} contradicts the supplied current state")
-    for cell in layout["cells"]:
-        allowed = ("known",) if cell["occupant"] == "none" else ("known", "not_required_target")
-        if cell.get("node_status") not in allowed:
-            raise ValueError("Unknown or conflicting node content cannot be used for runtime planning")
+    if not is_targets_layout(layout):
+        for cell in layout["cells"]:
+            allowed = ("known",) if cell["occupant"] == "none" else ("known", "not_required_target")
+            if cell.get("node_status") not in allowed:
+                raise ValueError("Unknown or conflicting node content cannot be used for runtime planning")
     if strategy == "inspiration" and len(inspirations) > 2:
         raise ValueError("Inspiration planning currently supports at most two free inspirations")
     result = dict(schema=SCHEMA, strategy=strategy, turn_budget=rounds, rounds_remaining=rounds,
@@ -325,4 +340,7 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
         result.pop("predicted_boss_branches", None)
         result.pop("selected_action", None)
         result.setdefault("reason", "planning_not_completed")
+    if is_targets_layout(layout):
+        result.update(recognition_goal="targets", ordinary_nodes_require_local_verification=True,
+                      required_cells=required_cells(layout, result.get("next_action")))
     return result
