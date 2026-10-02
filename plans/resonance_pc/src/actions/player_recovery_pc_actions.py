@@ -59,11 +59,10 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
     count_digits = config["bento_count_digits"]
     if count_digits.get("template_size") != [24, 22]:
         raise ValueError("bento count templates must be 24x22")
-    for key in ("threshold", "min_score_margin"):
-        value = float(count_digits[key])
-        if not math.isfinite(value) or not 0 < value <= 1:
-            raise ValueError(f"invalid bento count {key}")
-        count_digits[key] = value
+    threshold = float(count_digits["threshold"])
+    if not math.isfinite(threshold) or not 0 < threshold <= 1:
+        raise ValueError("invalid bento count threshold")
+    count_digits["threshold"] = threshold
     count_paths = []
     for number in range(13):
         ref = str(Path(count_digits["directory"]) / f"{number}.png")
@@ -438,9 +437,16 @@ class RecoveryReader:
             if all(math.isfinite(score) for score in scores):
                 best, second = sorted(range(13), key=lambda n: scores[n], reverse=True)[:2]
                 margin = scores[best] - scores[second]
-                last_diagnostic = f"candidate={best} score={scores[best]:.4f} margin={margin:.4f}"
+                accepted = hits[best].found and scores[best] >= cfg["threshold"]
+                confirmations = (2 if previous == best else 1) if accepted else 0
+                last_diagnostic = (
+                    f"candidate={best} score={scores[best]:.4f} "
+                    f"second_candidate={second} second_score={scores[second]:.4f} "
+                    f"margin={margin:.4f} threshold={cfg['threshold']:.4f} "
+                    f"confirmations={confirmations}/2"
+                )
                 logger.info("[RecoveryBentoCount] %s", last_diagnostic)
-                if hits[best].found and scores[best] >= cfg["threshold"] and margin >= cfg["min_score_margin"]:
+                if accepted:
                     if previous == best:
                         return {"count": best, "updated_at": datetime.now(timezone.utc).isoformat()}
                     previous = best
