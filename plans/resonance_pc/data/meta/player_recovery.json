@@ -10,8 +10,7 @@
   "bento_count_digits": {
     "directory": "templates/player_recovery/bento_count_digits",
     "template_size": [24, 22],
-    "threshold": 0.74,
-    "min_score_margin": 0.08
+    "threshold": 0.74
   },
   "sparkling_water_digits": {
     "directory": "templates/player_recovery/free_uses_digits",

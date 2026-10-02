@@ -149,6 +149,36 @@ def test_bento_badge_unknown_does_not_become_zero(layout, monkeypatch, fast_cloc
         reader.read_bento_count()
 
 
+@pytest.mark.parametrize("observations,expected", [
+    ([(0, 0.8670, 0.8296), (0, 0.8670, 0.8296)], 0),
+    ([(12, 0.85, 0.8499), (12, 0.85, 0.8499)], 12),
+    ([(5, 0.74, 0.73), (5, 0.74, 0.73)], 5),
+    ([(0, 0.8670, 0.8296), (0, 0.73, 0.72),
+      (0, 0.8670, 0.8296), (0, 0.8670, 0.8296)], 0),
+    ([(0, 0.8670, 0.8296), (8, 0.85, 0.84), (8, 0.85, 0.84)], 8),
+])
+def test_bento_count_uses_score_and_consecutive_confirmation(
+    observations, expected, layout, monkeypatch, fast_clock,
+):
+    pending = iter(observations)
+    calls = []
+
+    def match(**kwargs):
+        best, score, second_score = next(pending)
+        calls.append(best)
+        scores = [0.1] * 13
+        scores[best] = score
+        scores[(best + 1) % 13] = second_score
+        return [NS(confidence=value, found=value >= kwargs["threshold"])
+                for value in scores]
+
+    reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=match), layout)
+    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
+    monkeypatch.setattr(reader, "capture", lambda roi: np.full((22, 24, 3), 220, dtype=np.uint8))
+    assert reader.read_bento_count()["count"] == expected
+    assert len(calls) == len(observations)
+
+
 @pytest.mark.parametrize("count", (10, 11, 12))
 def test_bento_badge_matches_user_screenshots(count, layout, monkeypatch):
     from PIL import Image
