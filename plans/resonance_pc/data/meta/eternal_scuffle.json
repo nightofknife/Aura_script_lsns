@@ -14682,7 +14682,10 @@
       ],
       "source_image": 12,
       "source_image_sha256": "dcea3a63485b14dbad6ca61855fbfd5aba79bd43f2b29f09de073e73d78eb51a",
-      "label": "失败 YOU LOSE 标题"
+      "label": "失败 YOU LOSE 标题",
+      "mask": "templates/eternal_scuffle/controls/T030_battle_lose_title_mask.png",
+      "threshold": 0.9,
+      "mask_description": "Geometric YOU LOSE pixel-font strokes traced as inclusive axis-aligned rectangles; preserves stepped corners and O counters, excludes backdrop and outer glow. No RGB thresholding."
     },
     "battle_lose_face": {
       "template": "templates/eternal_scuffle/controls/T031_battle_lose_face.png",
@@ -41757,6 +41760,15 @@
       ],
       "mode": "L",
       "source_sha256": "2b97311581c9a0d9f94a1b765ab0e156330b23cc5d33990eeb5e883254dc0fe7"
+    },
+    "templates/eternal_scuffle/controls/T030_battle_lose_title_mask.png": {
+      "sha256": "ae1726d84fe8cdb0e9b0e4ec5dd0bba23ad0dc4367f9f4c5e2fb4c2818ca09bb",
+      "size": [
+        634,
+        96
+      ],
+      "mode": "L",
+      "source_sha256": "2db98687e9af11f46d33faecbeb3cfa16321db462d4d412833faaf946a8cc606"
     }
   },
   "profiles": {

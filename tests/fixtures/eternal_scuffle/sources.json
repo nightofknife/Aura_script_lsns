@@ -315,6 +315,81 @@
       "fixture_sha256": "e4871c2d8c8fa525b5e22afae7fda4b354fbecefd4a1dae1f637cf0ddbc9532a",
       "source": "Real game assign screen; selected character 10001357 at screen_index 4. No resampling.",
       "expected_selected_character_id": 10001357
+    },
+    {
+      "file": "live_20261004_unknown_role.png",
+      "original_dimensions": [
+        1296,
+        759
+      ],
+      "crop": [
+        8,
+        31,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "1550305cb8a2cac55dc39d5946dae430dfbf60111bb2d328ded8df0c971a0cd6",
+      "source": "Read-only capture of current game window on 2026-10-04 after CID 761931203136720896 failed; unknown left role is 亚莉奈·危情. Lossless client crop; no resampling.",
+      "expected_identified_roles": {
+        "1": 10001222,
+        "2": 10000854
+      },
+      "unknown_candidate_indices": [
+        0
+      ]
+    },
+    {
+      "file": "user_fixed_assignment_20261004.png",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "a4429396f117eb82ce5f9f806a98b835a9d63712df916bf1e834e96ec9f26272",
+      "source": "User supplied fixed-layout captain screenshot on 2026-10-04; lossless RGB client crop with no resampling.",
+      "expected_empty_indices": {
+        "attack": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "defense": [
+          0,
+          3
+        ],
+        "support": [
+          0,
+          1,
+          2,
+          4
+        ]
+      },
+      "expected_selected_position": 0
+    },
+    {
+      "file": "user_defeat_20261005.png",
+      "original_dimensions": [
+        1332,
+        802
+      ],
+      "crop": [
+        25,
+        56,
+        1280,
+        720
+      ],
+      "right_black_padding": 0,
+      "fixture_sha256": "229733a1e4aebc4fc8eef5d52fc5a819e739c624c9dcd422c0d86374f563c2ee",
+      "source": "User supplied defeat screen with two remaining hearts on 2026-10-05; lossless RGB client crop, no resampling.",
+      "expected_scene": "defeat"
     }
   ]
 }

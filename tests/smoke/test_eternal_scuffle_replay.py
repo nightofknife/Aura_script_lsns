@@ -93,7 +93,13 @@ def test_real_scuffle_graph_two_round_replay(tmp_path, monkeypatch, subprocess):
         assert len([c for c in audit["clicks"] if c["control"] == "play"]) == 2
         assert len([c for c in audit["clicks"] if c["control"] == "min"]) == 2
         assert not [c for c in audit["clicks"] if c["control"] in {"plus", "max"}]
-        assert audit["assignments"] == [{"round": i, "id": 1, "screen_index": 4} for i in (1, 2)]
+        assert audit["assignments"] == [{"round": i, "id": 4, "screen_index": 1} for i in (1, 2)]
+        calls = audit["vision_calls"]
+        assert not [row for row in calls if row["method"] in {"read_team", "read_selected_character"}]
+        assert [row for row in calls if row["method"] == "read_empty_slots"] == [
+            {"method": "read_empty_slots", "round": i, "scene": "assign", "slot_type": "attack"}
+            for i in (1, 2)]
+        assert len([row for row in calls if row["method"] == "read_selected_position"]) >= 6
         boxes = [c for c in audit["clicks"] if c["scene"] == "settlement" and c["control"] is None]
         assert [len([c for c in boxes if c["round"] == i]) for i in (1, 2)] == [7, 4]
         assert audit["observations"] > len(audit["clicks"]) * 2

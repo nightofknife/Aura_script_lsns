@@ -164,6 +164,20 @@ def test_every_promoted_asset_is_local_hash_valid_and_masks_match():
     assert "choose_role_phase" in cat["controls"] and "unopened_box" in cat["controls"]
 
 
+def test_defeat_mask_builder_reproduces_promoted_geometry(tmp_path):
+    from tools.build_eternal_scuffle_assets import add_defeat_title_mask
+
+    catalog = policy.load_catalog()
+    control = catalog["controls"]["battle_lose_title"]
+    template = tmp_path / control["template"]
+    template.parent.mkdir(parents=True)
+    template.write_bytes((PLAN / control["template"]).read_bytes())
+    add_defeat_title_mask(catalog, tmp_path)
+    relative = catalog["controls"]["battle_lose_title"]["mask"]
+    assert (tmp_path / relative).read_bytes() == (PLAN / relative).read_bytes()
+    assert catalog["assets"][relative]["sha256"] == policy.load_catalog()["assets"][relative]["sha256"]
+
+
 def test_identical_equipment_images_have_explicit_name_disambiguation():
     cat = policy.load_catalog()
     rows = {r["id"]: r for r in cat["equipment"]}
