@@ -5,7 +5,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QLabel, QListWidget
 
 from packages.resonance_gui.bridge import RunnerBridge
@@ -28,9 +28,13 @@ def repository(tmp_path):
 
 def test_configuration_and_activity_entry(repository):
     page = SmallTasksPage(repository)
-    category = page.category_list.findItems("活动玩法", Qt.MatchFlag.MatchExactly)[0]
-    page.category_list.setCurrentItem(category)
-    assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == ["识海深潜", "无垠乱斗"]
+    page.show_task("eternal_scuffle")
+    assert page.current_task_id == "eternal_scuffle"
+    assert page.detail_stack.currentWidget() is page.eternal_scuffle_panel
+    assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == [
+        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗", "数据采集",
+    ]
+    assert page.category_list.isHidden()
     panel = page.eternal_scuffle_panel
     panel.coins_spin.setValue(5)
     panel.run_count_spin.setValue(9999)

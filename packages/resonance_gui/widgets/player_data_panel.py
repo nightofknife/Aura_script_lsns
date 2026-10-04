@@ -9,15 +9,16 @@ from typing import Any, Mapping
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
     QComboBox,
     QFrame,
     QGridLayout,
     QHeaderView,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .toggle_button import ToggleButton as QCheckBox
 from ..config_repository import (
     PLAYER_DATA_INVENTORY_CATEGORY_ORDER,
     PLAYER_DATA_STAGE_ORDER,
@@ -36,7 +38,7 @@ from ..config_repository import (
 
 STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("location", "当前位置", "当前所在城市"),
-    ("profile", "用户信息", "独立选择货舱、澄明度、疲劳、气泡水次数、工作餐和爱心便当"),
+    ("profile", "用户信息", "独立选择货舱、澄明度、疲劳、气泡水次数和便当总数"),
     (
         "inventory",
         "仓库",
@@ -127,6 +129,7 @@ class PlayerDataPanel(QWidget):
     def _build_selection_tab(self) -> QWidget:
         page = QWidget(self)
         layout = QVBoxLayout(page)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.setContentsMargins(10, 12, 10, 8)
         layout.setSpacing(10)
 
@@ -159,6 +162,7 @@ class PlayerDataPanel(QWidget):
             row = QFrame(page)
             row.setObjectName("playerDataStageRow")
             row_layout = QVBoxLayout(row)
+            row_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
             row_layout.setContentsMargins(10, 8, 10, 8)
             row_layout.setSpacing(3)
             top = QHBoxLayout()
@@ -178,7 +182,9 @@ class PlayerDataPanel(QWidget):
                 sections = QGridLayout()
                 for section_index, section in enumerate(PLAYER_DATA_PROFILE_SECTION_ORDER):
                     section_check = QCheckBox(PROFILE_SECTION_LABELS[section], row)
+                    section_check.setToolTip(f"刷新玩家基础信息中的{PROFILE_SECTION_LABELS[section]}")
                     sections.addWidget(section_check, section_index // 3, section_index % 3)
+                    sections.setRowMinimumHeight(section_index // 3, 40)
                     self._profile_section_checks[section] = section_check
                 self._profile_section_checks["sparkling_water"].setToolTip("银枝气泡水的剩余免材料次数，不是仓库道具数量")
                 self._profile_section_checks["bento_count"].setToolTip("只读取疲劳恢复页角标上的便当总数，不进入便当柜")
@@ -189,6 +195,7 @@ class PlayerDataPanel(QWidget):
                 categories.addWidget(QLabel("扫描分类", row))
                 for category in PLAYER_DATA_INVENTORY_CATEGORY_ORDER:
                     category_check = QCheckBox(INVENTORY_CATEGORY_LABELS[category], row)
+                    category_check.setToolTip(f"读取仓库中的{INVENTORY_CATEGORY_LABELS[category]}分类")
                     categories.addWidget(category_check)
                     self._inventory_category_checks[category] = category_check
                 categories.addStretch(1)
@@ -222,7 +229,13 @@ class PlayerDataPanel(QWidget):
         self._stage_checks["inventory"].toggled.connect(
             self._sync_inventory_category_controls
         )
-        return page
+        scroll = QScrollArea(self)
+        scroll.setObjectName("playerDataSelectionScroll")
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(page)
+        return scroll
 
     def _build_snapshot_tab(self) -> QWidget:
         page = QWidget(self)

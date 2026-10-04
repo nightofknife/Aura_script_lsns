@@ -107,6 +107,14 @@
         "required": {
           "type": "boolean"
         },
+        "nullable": {
+          "description": "Preserve explicitly supplied null instead of applying a default.",
+          "type": "boolean"
+        },
+        "strict_integer": {
+          "description": "Require an integer value without numeric coercion when type is number.",
+          "type": "boolean"
+        },
         "default": {},
         "enum": {
           "type": "array",

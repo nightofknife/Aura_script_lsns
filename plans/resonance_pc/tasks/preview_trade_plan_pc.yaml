@@ -4,31 +4,63 @@ preview_trade_plan_pc:
     description: Refresh market data and calculate one exact route from a user-selected start city.
     entry_point: true
     inputs:
+      - name: trade_mode
+        type: string
+        required: false
+        default: profit
+        enum: [profit, quick, fixed, target]
+      - name: book_policy
+        type: string
+        required: false
+        default: profit
+        enum: [profit, fill]
+      - name: negotiation_policy
+        type: string
+        required: false
+        default: auto
+        enum: [auto, required, disabled]
+      - name: fixed_route_city_ids
+        type: list
+        required: false
+        item:
+          name: city_id
+          type: string
+          required: true
+      - name: reposition_to_route
+        type: boolean
+        required: false
+        default: false
+      - name: target_profit
+        type: number
+        strict_integer: true
+        required: false
+        min: 1
       - name: start_city_id
         type: string
         required: true
         enum: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"]
       - name: fatigue_budget
         type: number
+        strict_integer: true
         required: false
-        default: 100
+        default: 700
         min: 0
       - name: cargo_capacity
         type: number
+        strict_integer: true
         required: false
-        default: 650
+        default: 750
         min: 1
       - name: book_budget
         type: number
+        strict_integer: true
+        nullable: true
         required: false
         default: 0
         min: 0
-      - name: auto_book
-        type: boolean
-        required: false
-        default: false
       - name: book_profit_threshold
         type: number
+        strict_integer: true
         required: false
         default: 500000
         min: 0
@@ -40,11 +72,13 @@ preview_trade_plan_pc:
         item:
           name: bargain_success_rate_bps
           type: number
+          strict_integer: true
           required: true
           min: 0
           max: 10000
       - name: bargain_step_bps
         type: number
+        strict_integer: true
         required: false
         default: 1000
         min: 1
@@ -57,21 +91,17 @@ preview_trade_plan_pc:
         item:
           name: raise_success_rate_bps
           type: number
+          strict_integer: true
           required: true
           min: 0
           max: 10000
       - name: raise_step_bps
         type: number
+        strict_integer: true
         required: false
         default: 1000
         min: 1
         max: 2000
-      - name: trade_level
-        type: number
-        required: false
-        default: 20
-        min: 1
-        max: 20
       - name: available_city_ids
         type: list
         required: false
@@ -155,31 +185,65 @@ preview_trade_plan_pc:
               name: product_id
               type: string
               required: true
-      - name: active_events
-        type: list
-        required: false
-        default: []
   steps:
     run:
       action: resonance_pc.preview_trade_plan_flow
       params:
+        trade_mode: "{{ inputs.trade_mode }}"
+        book_policy: "{{ inputs.book_policy }}"
+        negotiation_policy: "{{ inputs.negotiation_policy }}"
+        fixed_route_city_ids: "{{ inputs.fixed_route_city_ids }}"
+        reposition_to_route: "{{ inputs.reposition_to_route }}"
+        target_profit: "{{ inputs.target_profit }}"
         start_city_id: "{{ inputs.start_city_id }}"
-        fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
-        cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
+        fatigue_budget: "{{ inputs.fatigue_budget | default(700) }}"
+        cargo_capacity: "{{ inputs.cargo_capacity | default(750) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
-        auto_book: "{{ inputs.auto_book | default(false) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(500000) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
-        trade_level: "{{ inputs.trade_level | default(20) }}"
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
-        active_events: "{{ inputs.active_events | default([]) }}"
   returns:
+    error: "{{ nodes.run.output.error | default(none) }}"
+    trade_mode: "{{ nodes.run.output.trade_mode | default(none) }}"
+    request_kind: "{{ nodes.run.output.request_kind | default(none) }}"
+    input_snapshot: "{{ nodes.run.output.input_snapshot | default(none) }}"
+    planning_status: "{{ nodes.run.output.planning_status | default(none) }}"
+    book_budget: "{{ nodes.run.output.book_budget | default(none) }}"
+    book_budget_unlimited: "{{ nodes.run.output.book_budget_unlimited | default(none) }}"
+    book_policy: "{{ nodes.run.output.book_policy | default(none) }}"
+    negotiation_policy: "{{ nodes.run.output.negotiation_policy | default(none) }}"
+    city_visits: "{{ nodes.run.output.city_visits | default(none) }}"
+    reposition: "{{ nodes.run.output.reposition | default(none) }}"
+    reposition_route: "{{ nodes.run.output.reposition_route | default(none) }}"
+    reposition_expected_fatigue: "{{ nodes.run.output.reposition_expected_fatigue | default(none) }}"
+    reposition_expected_fatigue_exact: "{{ nodes.run.output.reposition_expected_fatigue_exact | default(none) }}"
+    route_expected_fatigue: "{{ nodes.run.output.route_expected_fatigue | default(none) }}"
+    route_expected_fatigue_exact: "{{ nodes.run.output.route_expected_fatigue_exact | default(none) }}"
+    total_expected_fatigue: "{{ nodes.run.output.total_expected_fatigue | default(none) }}"
+    total_expected_fatigue_exact: "{{ nodes.run.output.total_expected_fatigue_exact | default(none) }}"
+    target_profit: "{{ nodes.run.output.target_profit | default(none) }}"
+    target_profit_exact: "{{ nodes.run.output.target_profit_exact | default(none) }}"
+    target_reached: "{{ nodes.run.output.target_reached | default(none) }}"
+    target_gap: "{{ nodes.run.output.target_gap | default(none) }}"
+    target_gap_exact: "{{ nodes.run.output.target_gap_exact | default(none) }}"
+    maximum_reachable_profit: "{{ nodes.run.output.maximum_reachable_profit | default(none) }}"
+    maximum_reachable_profit_exact: "{{ nodes.run.output.maximum_reachable_profit_exact | default(none) }}"
+    fixed_route_city_ids: "{{ nodes.run.output.fixed_route_city_ids | default(none) }}"
+    fixed_route_closed: "{{ nodes.run.output.fixed_route_closed | default(none) }}"
+    completed_circuits: "{{ nodes.run.output.completed_circuits | default(none) }}"
+    partial_circuit_legs: "{{ nodes.run.output.partial_circuit_legs | default(none) }}"
+    partial_circuit_city_path_ids: "{{ nodes.run.output.partial_circuit_city_path_ids | default(none) }}"
+    termination_route_position: "{{ nodes.run.output.termination_route_position | default(none) }}"
+    termination_city_id: "{{ nodes.run.output.termination_city_id | default(none) }}"
+    stop_reason: "{{ nodes.run.output.stop_reason | default(none) }}"
+    diagnostics: "{{ nodes.run.output.diagnostics | default(none) }}"
+    resources: "{{ nodes.run.output.resources | default(none) }}"
     success: "{{ nodes.run.output.success }}"
     preview: "{{ nodes.run.output.preview }}"
     market_refreshed: "{{ nodes.run.output.market_refreshed }}"
@@ -202,9 +266,6 @@ preview_trade_plan_pc:
     expected_fatigue_used_exact: "{{ nodes.run.output.expected_fatigue_used_exact }}"
     remaining_expected_fatigue: "{{ nodes.run.output.remaining_expected_fatigue }}"
     remaining_expected_fatigue_exact: "{{ nodes.run.output.remaining_expected_fatigue_exact }}"
-    books_budget: "{{ nodes.run.output.books_budget }}"
-    auto_book: "{{ nodes.run.output.auto_book }}"
-    book_budget_ignored: "{{ nodes.run.output.book_budget_ignored }}"
     book_profit_threshold: "{{ nodes.run.output.book_profit_threshold }}"
     book_incremental_profit: "{{ nodes.run.output.book_incremental_profit }}"
     book_incremental_profit_exact: "{{ nodes.run.output.book_incremental_profit_exact }}"

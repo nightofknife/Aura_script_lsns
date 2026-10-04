@@ -18,9 +18,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from fractions import Fraction
+import heapq
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from .resonance_pc_trade_candidate_model import EdgeBookCurve, TradeEdgeOption
+from .resonance_pc_trade_objective_solver import solve_fixed, solve_target
 from .resonance_pc_trade_solver_common import (
+    check_solver_cancelled,
     prepare_search,
     solve_prepared_search,
     trade_solver_progress,
@@ -120,44 +124,7 @@ class _NegotiationProfile:
     expected_fatigue: Optional[Fraction]
 
 
-@dataclass(frozen=True)
-class TradeEdgeOption:
-    from_city_id: str
-    to_city_id: str
-    books_used: int
-    bargain_to_cap: bool
-    raise_to_cap: bool
-    travel_fatigue: int
-    expected_bargain_fatigue: Fraction
-    expected_raise_fatigue: Fraction
-    expected_profit: Fraction
-    buy_product_ids: Tuple[str, ...]
-    buy_product_names: Tuple[str, ...]
-    buys: Tuple[Tuple[str, str, int, Fraction], ...]
-    book_incremental_profit: Fraction = Fraction(0, 1)
 
-    @property
-    def full_negotiation_used(self) -> int:
-        return int(self.bargain_to_cap) + int(self.raise_to_cap)
-
-    @property
-    def expected_negotiation_fatigue(self) -> Fraction:
-        return self.expected_bargain_fatigue + self.expected_raise_fatigue
-
-    @property
-    def expected_fatigue_cost(self) -> Fraction:
-        return Fraction(self.travel_fatigue, 1) + self.expected_negotiation_fatigue
-
-    @property
-    def stable_signature(self) -> Tuple[Any, ...]:
-        return (
-            self.from_city_id,
-            self.to_city_id,
-            self.books_used,
-            int(self.bargain_to_cap),
-            int(self.raise_to_cap),
-            self.buy_product_ids,
-        )
 
 
 class ResonancePcExactTradeSolver:
@@ -202,256 +169,360 @@ class ResonancePcExactTradeSolver:
         )
 
     def solve(
-        self,
-        *,
+        self, *,
         start_city_id: str,
-        required_end_city_ids: Optional[Sequence[str]] = None,
         fatigue_budget: int,
         cargo_capacity: int,
-        book_budget: int,
-        book_profit_threshold: Any,
-        negotiation_budget: int,
-        auto_book: bool = False,
-        all_plan: int = 0,
+        book_budget: Optional[int] = 0,
+        book_profit_threshold: Any = 500000,
+        trade_mode: str = "profit",
+        book_policy: str = "profit",
+        negotiation_policy: str = "auto",
+        negotiation_budget: Optional[int] = None,
+        required_end_city_ids: Optional[Sequence[str]] = None,
+        fixed_route_city_ids: Optional[Sequence[str]] = None,
+        reposition_to_route: bool = False,
+        target_profit: Any = None,
         bargain_success_rates_bps: Optional[Sequence[Any]] = None,
         bargain_step_bps: Optional[Any] = None,
         raise_success_rates_bps: Optional[Sequence[Any]] = None,
         raise_step_bps: Optional[Any] = None,
-        trade_level: int = 20,
         city_prestige: Optional[Mapping[str, Any]] = None,
         product_unlocks: Optional[Mapping[str, Any]] = None,
-        active_events: Optional[Sequence[Any]] = None,
         _backend: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """Plan one complete freight request without compatibility aliases."""
+        mode = str(trade_mode).strip().lower()
+        if mode not in {"profit", "quick", "fixed", "target"}:
+            raise ValueError("trade_mode must be profit, quick, fixed, or target")
+        policy = str(book_policy).strip().lower()
+        negotiation = str(negotiation_policy).strip().lower()
+        if mode == "quick":
+            policy, negotiation = "fill", "required"
+        if policy not in {"profit", "fill"}:
+            raise ValueError("book_policy must be profit or fill")
+        if negotiation not in {"auto", "required", "disabled"}:
+            raise ValueError("negotiation_policy must be auto, required, or disabled")
         fatigue_limit = _as_non_negative_int("fatigue_budget", fatigue_budget)
-        capacity = _as_non_negative_int("cargo_capacity", cargo_capacity)
-        if capacity <= 0:
-            raise ValueError("cargo_capacity must be greater than 0")
-        books_limit = _as_non_negative_int("book_budget", book_budget)
-        if not isinstance(auto_book, bool):
-            raise ValueError("auto_book must be a boolean")
-        automatic_books = bool(auto_book)
-        negotiation_limit = _as_non_negative_int("negotiation_budget", negotiation_budget)
-        plan_mode = _as_bounded_int("all_plan", all_plan, minimum=0, maximum=1)
+        capacity = _as_bounded_int("cargo_capacity", cargo_capacity, minimum=1)
+        books_limit = None if book_budget is None else _as_non_negative_int("book_budget", book_budget)
+        negotiation_limit = (0 if negotiation_budget is None else
+                             _as_non_negative_int("negotiation_budget", negotiation_budget))
+        plan_mode = int(negotiation_budget is None)
+        negotiation_cap = None if plan_mode else negotiation_limit
         threshold = _fraction(book_profit_threshold)
         if threshold < 0:
             raise ValueError("book_profit_threshold must be >= 0")
-
-        trade_level_rules = dict(self.rules.get("trade_level") or {})
-        min_trade_level = int(trade_level_rules.get("min", 1))
-        max_trade_level = int(trade_level_rules.get("max", 20))
-        level = _as_bounded_int(
-            "trade_level", trade_level, minimum=min_trade_level, maximum=max_trade_level
-        )
-
         start = str(start_city_id or "").strip()
         if not start or start not in self.fatigue_costs:
             raise ValueError(f"start_city_id '{start}' is not present in the fatigue graph")
-        normalized_end_city_ids = (
-            None
-            if required_end_city_ids is None
-            else tuple(
-                dict.fromkeys(
-                    str(city_id).strip()
-                    for city_id in required_end_city_ids
-                    if str(city_id).strip()
-                )
-            )
-        )
+        end_ids = None
+        fixed_path = None
+        actual_start = start
+        reposition = []
+        reposition_fatigue = 0
+        if mode != "fixed":
+            reposition_to_route = False
+        if not isinstance(reposition_to_route, bool):
+            raise ValueError("reposition_to_route must be a boolean")
+        if mode == "fixed":
+            if isinstance(fixed_route_city_ids, (str, bytes)) or not isinstance(fixed_route_city_ids, Sequence):
+                raise ValueError("fixed_route_city_ids must be an ordered city sequence")
+            fixed_path = tuple(str(city).strip() for city in fixed_route_city_ids)
+            if len(fixed_path) < 2 or any(not city for city in fixed_path):
+                raise ValueError("fixed_route_city_ids must contain at least two cities")
+            if fixed_path[0] != start and not reposition_to_route:
+                raise ValueError("fixed route must begin at the actual start city")
+            if any(city not in self.fatigue_costs for city in fixed_path):
+                raise ValueError("fixed route contains cities outside the fatigue graph")
+            if any(a == b for a, b in zip(fixed_path, fixed_path[1:])):
+                raise ValueError("fixed route may not contain adjacent identical cities")
+            if any(self.fatigue_costs.get(a, {}).get(b, 0) <= 0 for a, b in zip(fixed_path, fixed_path[1:])):
+                raise ValueError("fixed route movement fatigue must be strictly positive on every edge")
+            if fixed_path[0] != start:
+                reposition = self._plan_reposition(start, fixed_path[0])
+                reposition_fatigue = sum(option.travel_fatigue for option in reposition)
+                start = fixed_path[0]
+            planning_cities = sorted(set(fixed_path), key=self._sort_key)
+        else:
+            planning_cities = sorted(set(self.allowed_city_ids) | {start}, key=self._sort_key)
+            if any(city not in self.fatigue_costs for city in planning_cities):
+                raise ValueError("planning cities must be present in the fatigue graph")
+            if required_end_city_ids is not None:
+                if isinstance(required_end_city_ids, (str, bytes)) or not isinstance(required_end_city_ids, Sequence):
+                    raise ValueError("required_end_city_ids must be a city sequence")
+                end_ids = tuple(dict.fromkeys(str(city).strip() for city in required_end_city_ids))
+                if not end_ids or any(city not in planning_cities for city in end_ids):
+                    raise ValueError("required end cities must be selected planning cities")
+        target = None
+        target_integer = None
+        if mode == "target":
+            if target_profit is None:
+                raise ValueError("target_profit is required in target mode")
+            target = _fraction(target_profit)
+            if target <= 0:
+                raise ValueError("target_profit must be greater than 0")
+            target_integer = (target.numerator + target.denominator - 1) // target.denominator
 
-        bargain_profile = self._normalize_negotiation_profile(
-            side="bargain",
-            success_rates_bps=bargain_success_rates_bps,
-            step_bps=bargain_step_bps,
-        )
-        raise_profile = self._normalize_negotiation_profile(
-            side="raise",
-            success_rates_bps=raise_success_rates_bps,
-            step_bps=raise_step_bps,
-        )
-        prestige_by_city = self._normalize_city_prestige(city_prestige)
-        unlocked_products = self._normalize_product_unlocks(product_unlocks)
-        events = list(active_events or [])
-        warnings: List[str] = []
-        source_metadata = dict(self.rules.get("source") or {})
-        verification_status = str(source_metadata.get("verification_status") or "").strip()
-        if verification_status and verification_status != "game_samples_validated":
-            warnings.append(
-                "trade rule metadata is versioned but still requires validation against game samples"
-            )
-        if events:
-            warnings.append("active_events is accepted but ignored by this planner version")
-        if bargain_profile.expected_fatigue is None:
-            warnings.append(
-                "bargain_to_cap is unavailable because a required success-rate stage is 0 bps"
-            )
-        if raise_profile.expected_fatigue is None:
-            warnings.append(
-                "raise_to_cap is unavailable because a required success-rate stage is 0 bps"
-            )
+        bargain = self._normalize_negotiation_profile(side="bargain",
+                    success_rates_bps=bargain_success_rates_bps, step_bps=bargain_step_bps)
+        raising = self._normalize_negotiation_profile(side="raise",
+                    success_rates_bps=raise_success_rates_bps, step_bps=raise_step_bps)
+        prestige = self._normalize_city_prestige(city_prestige)
+        unlocked = self._normalize_product_unlocks(product_unlocks)
+        warnings = []
+        verification = str((self.rules.get("source") or {}).get("verification_status") or "")
+        if verification and verification != "game_samples_validated":
+            warnings.append("trade rule metadata still requires validation against game samples")
+        for side, profile in (("bargain", bargain), ("raise", raising)):
+            if profile.expected_fatigue is None:
+                warnings.append(f"{side}_to_cap is unavailable because a required success-rate stage is 0 bps")
+        assumptions = self._build_assumptions(all_plan=plan_mode, trade_level=20,
+                                             bargain_profile=bargain, raise_profile=raising)
+        assumptions.update({"book_threshold_comparison": "marginal > 0 and marginal >= threshold",
+                            "book_policy": policy, "negotiation_policy": negotiation})
+        route_fatigue_limit = max(fatigue_limit - reposition_fatigue, 0)
+        requested_pairs = None if fixed_path is None else set(zip(fixed_path, fixed_path[1:]))
+        curves = self._build_edge_curves(city_ids=planning_cities, cargo_capacity=capacity,
+                    book_policy=policy, threshold=threshold, negotiation_policy=negotiation,
+                    bargain_profile=bargain, raise_profile=raising, prestige_by_city=prestige,
+                    unlocked_products=unlocked, requested_pairs=requested_pairs)
 
-        planning_cities = list(self.allowed_city_ids)
-        if start not in planning_cities:
-            planning_cities.append(start)
-        planning_cities = sorted(
-            {city for city in planning_cities if city in self.fatigue_costs},
-            key=self._sort_key,
-        )
-
-        edge_options = self._build_edge_options(
-            city_ids=planning_cities,
-            cargo_capacity=capacity,
-            book_budget=books_limit,
-            book_profit_threshold=threshold,
-            auto_book=automatic_books,
-            negotiation_budget=negotiation_limit,
-            all_plan=plan_mode,
-            bargain_profile=bargain_profile,
-            raise_profile=raise_profile,
-            prestige_by_city=prestige_by_city,
-            unlocked_products=unlocked_products,
-        )
-
-        fatigue_limit_fraction = Fraction(fatigue_limit, 1)
-        prepared = prepare_search(
-            city_ids=planning_cities,
-            start_city_id=start,
-            edge_options=edge_options,
-            fatigue_budget=fatigue_limit,
-            book_budget=books_limit,
-            negotiation_budget=negotiation_limit,
-            all_plan=plan_mode,
-            required_end_city_ids=normalized_end_city_ids,
-            unbounded_books=automatic_books,
-        )
-        search_result = (
-            None
-            if prepared is None
-            else solve_prepared_search(prepared, backend=_backend)
-        )
-
-        assumptions = self._build_assumptions(
-            all_plan=plan_mode,
-            trade_level=level,
-            bargain_profile=bargain_profile,
-            raise_profile=raise_profile,
-        )
-        if search_result is None or search_result.expected_profit <= 0:
-            empty = self._empty_result(
-                start=start,
-                fatigue_limit=fatigue_limit,
-                books_limit=books_limit,
-                auto_book=automatic_books,
-                book_profit_threshold=threshold,
-                negotiation_limit=negotiation_limit,
-                all_plan=plan_mode,
-                assumptions=assumptions,
-                warnings=warnings,
-            )
-            empty.update(
-                {
-                    "required_end_city_ids": list(normalized_end_city_ids or []),
-                    "selected_end_city_id": None,
-                    "selected_end_city_name": None,
-                }
-            )
-            return empty
-
-        route = [
-            self._serialize_option(option) for option in search_result.route
-        ]
-        remaining_fatigue = (
-            fatigue_limit_fraction - search_result.expected_fatigue_used
-        )
-        full_bargain_count = sum(
-            int(option.bargain_to_cap) for option in search_result.route
-        )
-        full_raise_count = sum(
-            int(option.raise_to_cap) for option in search_result.route
-        )
-        book_incremental_profit = sum(
-            (
-                Fraction(option.book_incremental_profit)
-                for option in search_result.route
-            ),
-            Fraction(0, 1),
-        )
-        average_book_profit = (
-            None
-            if search_result.books_used <= 0
-            else book_incremental_profit / int(search_result.books_used)
-        )
-        return {
-            "status": "ok",
-            "reason": None,
-            "snapshot_id": self.snapshot.get("snapshot_id"),
-            "required_end_city_ids": list(normalized_end_city_ids or []),
-            "selected_end_city_id": search_result.city_path[-1],
-            "selected_end_city_name": self.city_names.get(
-                search_result.city_path[-1], search_result.city_path[-1]
-            ),
-            "all_plan": plan_mode,
-            "expected_profit": float(search_result.expected_profit),
-            "expected_profit_exact": self._fraction_text(
-                search_result.expected_profit
-            ),
-            "fatigue_budget": fatigue_limit,
-            "expected_fatigue_used": float(
-                search_result.expected_fatigue_used
-            ),
-            "expected_fatigue_used_exact": self._fraction_text(
-                search_result.expected_fatigue_used
-            ),
-            "remaining_expected_fatigue": float(remaining_fatigue),
-            "remaining_expected_fatigue_exact": self._fraction_text(remaining_fatigue),
-            "auto_book": automatic_books,
-            "book_budget_ignored": automatic_books,
-            "books_budget": None if automatic_books else books_limit,
+        # A provable route-wide bound, not an arbitrary replacement for infinity.
+        internal_books = 0
+        route_book_bound = 0
+        if curves:
+            rate = max(Fraction(curve.legal_limit, 1) / curve.baseline.expected_fatigue_cost
+                       for curve in curves)
+            route_book_bound = int(Fraction(route_fatigue_limit) * rate)
+            if books_limit is not None:
+                internal_books = min(books_limit, route_book_bound)
+        unconstrained_books = books_limit is None or books_limit >= route_book_bound
+        single_leg = bool(curves) and route_fatigue_limit < 2 * min(
+            curve.baseline.expected_fatigue_cost for curve in curves)
+        options = {}
+        for curve in curves:
+            check_solver_cancelled()
+            limit = curve.legal_limit if books_limit is None else min(curve.legal_limit, internal_books)
+            counts = (limit,) if unconstrained_books or single_leg else range(limit + 1)
+            family = options.setdefault((curve.baseline.from_city_id, curve.baseline.to_city_id), [])
+            for count in counts:
+                if count % 256 == 0:
+                    check_solver_cancelled()
+                family.append(curve.option(count, budget=books_limit))
+        # This pruning is solely for maximum-profit objectives and the fallback
+        # reachable-profit diagnostic. Target search uses all original curves.
+        options = {pair: tuple(family if mode == "fixed" else self._prune_edge_options(family, all_plan=plan_mode))
+                   for pair, family in options.items()}
+        prepared = prepare_search(city_ids=planning_cities, start_city_id=start,
+                    edge_options=options, fatigue_budget=route_fatigue_limit, book_budget=internal_books,
+                    negotiation_budget=negotiation_limit, all_plan=plan_mode,
+                    required_end_city_ids=end_ids, unbounded_books=unconstrained_books or single_leg)
+        result = None
+        maximum_profit = Fraction(0)
+        if prepared is not None and reposition_fatigue <= fatigue_limit:
+            if mode == "fixed":
+                result = solve_fixed(prepared, city_path=fixed_path, options=options)
+            else:
+                maximum = solve_prepared_search(prepared, backend=_backend)
+                if maximum is not None:
+                    maximum_profit = maximum.expected_profit
+                if mode != "target":
+                    result = maximum
+                elif maximum is not None and maximum_profit >= target:
+                    base_options = {}
+                    for curve in curves:
+                        base_options.setdefault((curve.baseline.from_city_id, curve.baseline.to_city_id), []).append(curve.baseline)
+                    target_prepared = prepare_search(city_ids=planning_cities, start_city_id=start,
+                                edge_options=base_options, fatigue_budget=fatigue_limit,
+                                book_budget=internal_books, negotiation_budget=negotiation_limit,
+                                all_plan=plan_mode, required_end_city_ids=end_ids,
+                                unbounded_books=unconstrained_books)
+                    result = solve_target(target_prepared, curves=curves,
+                                          target=target_integer, incumbent=maximum)
+        status = "ok" if result is not None and (mode == "fixed" or result.expected_profit > 0) else (
+                 "fixed_route_infeasible" if mode == "fixed" else
+                 "target_unreachable" if mode == "target" else "no_plan")
+        actual_profit = Fraction(0) if status != "ok" else result.expected_profit
+        route_fatigue_used = Fraction(0) if status != "ok" else result.expected_fatigue_used
+        fatigue_used = route_fatigue_used + (reposition_fatigue if status == "ok" else 0)
+        books_used = 0 if status != "ok" else result.books_used
+        negotiations_used = 0 if status != "ok" else result.full_negotiation_used
+        selected = () if status != "ok" else result.route
+        path = (start,) if status != "ok" else result.city_path
+        route = [self._serialize_option(option) for option in selected]
+        for index, leg in enumerate(route):
+            leg["route_leg_index"] = index
+            if mode == "fixed":
+                leg["round_index"] = index // (len(fixed_path) - 1)
+                leg["round_leg_index"] = index % (len(fixed_path) - 1)
+        increment = sum((option.book_incremental_profit for option in selected), Fraction(0))
+        average = None if books_used == 0 else increment / books_used
+        remaining = Fraction(fatigue_limit) - fatigue_used
+        visits = []
+        for index, city in enumerate(path):
+            previous = None if index == 0 else route[index - 1]
+            following = None if index == len(route) else route[index]
+            visits.append({"visit_index": index, "city_id": city, "city_name": self._city_name(city),
+                           "sell_intent": None if previous is None or not previous["buys"] else {
+                               "source_leg_index": index - 1, "raise_to_cap": previous["raise_to_cap"]},
+                           "buy_intent": None if following is None or not following["buys"] else {
+                               "source_leg_index": index, "books_used": following["books_used"],
+                               "buy_products": following["buy_products"], "buys": following["buys"],
+                               "bargain_to_cap": following["bargain_to_cap"]}})
+        request = {"trade_mode": mode, "fatigue_budget": fatigue_limit, "cargo_capacity": capacity,
+                   "start_city_id": actual_start, "route_start_city_id": start,
+                   "book_budget": books_limit, "book_profit_threshold_exact": self._fraction_text(threshold),
+                   "book_policy": policy, "negotiation_policy": negotiation,
+                   "negotiation_budget": negotiation_cap,
+                   "available_city_ids": planning_cities, "required_end_city_ids": list(end_ids or []),
+                   "bargain_success_rates_bps": list(bargain.success_rates_bps),
+                   "bargain_step_bps": bargain.step_bps,
+                   "raise_success_rates_bps": list(raising.success_rates_bps), "raise_step_bps": raising.step_bps,
+                   "city_prestige": dict(prestige),
+                   "product_unlocks": None if unlocked is None else sorted(unlocked, key=self._sort_key)}
+        if mode == "fixed":
+            request.update(fixed_route_city_ids=list(fixed_path), reposition_to_route=reposition_to_route)
+        if mode == "target":
+            request["target_profit_exact"] = self._fraction_text(target)
+        response = {
+            "status": status, "reason": None if status == "ok" else status,
+            "trade_mode": mode, "book_policy": policy, "negotiation_policy": negotiation,
+            "request": request, "snapshot_id": self.snapshot.get("snapshot_id"),
+            "required_end_city_ids": list(end_ids or []), "start_city_id": actual_start,
+            "route_start_city_id": start,
+            "route_fatigue_budget": route_fatigue_limit,
+            "selected_end_city_id": path[-1] if status == "ok" else None,
+            "selected_end_city_name": self._city_name(path[-1]) if status == "ok" else None,
+            "expected_profit": self._fraction_number(actual_profit),
+            "expected_profit_exact": self._fraction_text(actual_profit),
+            "fatigue_budget": fatigue_limit, "expected_fatigue_used": float(fatigue_used),
+            "expected_fatigue_used_exact": self._fraction_text(fatigue_used),
+            "remaining_expected_fatigue": float(remaining),
+            "remaining_expected_fatigue_exact": self._fraction_text(remaining),
+            "book_budget": books_limit, "books_budget": books_limit, "books_used": books_used,
+            "remaining_books": None if books_limit is None else books_limit - books_used,
             "book_profit_threshold": self._fraction_number(threshold),
-            "books_used": int(search_result.books_used),
-            "remaining_books": (
-                None
-                if automatic_books
-                else books_limit - int(search_result.books_used)
-            ),
-            "book_incremental_profit": self._fraction_number(
-                book_incremental_profit
-            ),
-            "book_incremental_profit_exact": self._fraction_text(
-                book_incremental_profit
-            ),
-            "average_book_profit": (
-                None
-                if average_book_profit is None
-                else self._fraction_number(average_book_profit)
-            ),
-            "average_book_profit_exact": (
-                None
-                if average_book_profit is None
-                else self._fraction_text(average_book_profit)
-            ),
-            "negotiation_budget": negotiation_limit,
-            "negotiation_budget_ignored": plan_mode == 1,
-            "full_negotiation_used": int(
-                search_result.full_negotiation_used
-            ),
-            "full_bargain_count": full_bargain_count,
-            "full_raise_count": full_raise_count,
-            "remaining_negotiation": (
-                None
-                if plan_mode == 1
-                else negotiation_limit
-                - int(search_result.full_negotiation_used)
-            ),
-            "city_path": [
-                self._city_name(city_id)
-                for city_id in search_result.city_path
-            ],
-            "city_path_ids": list(search_result.city_path),
-            "route": route,
-            "assumptions": assumptions,
-            "warnings": warnings,
+            "book_incremental_profit": self._fraction_number(increment),
+            "book_incremental_profit_exact": self._fraction_text(increment),
+            "average_book_profit": None if average is None else self._fraction_number(average),
+            "average_book_profit_exact": None if average is None else self._fraction_text(average),
+            "negotiation_budget": negotiation_cap, "negotiation_budget_ignored": plan_mode == 1,
+            "full_negotiation_used": negotiations_used,
+            "full_bargain_count": sum(int(option.bargain_to_cap) for option in selected),
+            "full_raise_count": sum(int(option.raise_to_cap) for option in selected),
+            "remaining_negotiation": None if plan_mode else negotiation_limit - negotiations_used,
+            "city_path": [self._city_name(city) for city in path], "city_path_ids": list(path),
+            "city_visits": visits, "route": route, "assumptions": assumptions, "warnings": warnings,
+            "diagnostics": {}, "solver_backend": None if result is None else result.backend,
+            "solver_stats": {} if result is None else dict(result.stats),
         }
+        if mode == "target":
+            response.update(target_profit=self._fraction_number(target),
+                            target_profit_exact=self._fraction_text(target), target_reached=status == "ok",
+                            target_gap=self._fraction_number(max(target - (actual_profit if status == "ok" else maximum_profit), Fraction(0))),
+                            target_gap_exact=self._fraction_text(max(target - (actual_profit if status == "ok" else maximum_profit), Fraction(0))),
+                            maximum_reachable_profit=self._fraction_number(maximum_profit),
+                            maximum_reachable_profit_exact=self._fraction_text(maximum_profit))
+            if status != "ok":
+                response["diagnostics"] = {"code": "target_unreachable",
+                                          "maximum_reachable_profit_exact": self._fraction_text(maximum_profit),
+                                          "execution_allowed": False}
+        if mode == "fixed":
+            completed, partial = divmod(len(route), len(fixed_path) - 1)
+            closed = fixed_path[0] == fixed_path[-1]
+            response.update(fixed_route_city_ids=list(fixed_path), fixed_route_closed=closed,
+                            completed_circuits=completed if closed else 0,
+                            partial_circuit_legs=partial if closed else 0,
+                            partial_circuit_city_path_ids=list(path[-partial - 1:]) if closed and partial else [],
+                            termination_route_position=(len(route) % (len(fixed_path) - 1)) if closed else len(route),
+                            termination_city_id=path[-1] if status == "ok" else None,
+                            stop_reason=("open_route_completed" if not closed and len(route) == len(fixed_path) - 1
+                                         else "fatigue_budget" if status == "ok" else "fixed_route_infeasible"),
+                            reposition_to_route=reposition_to_route,
+                            reposition_route=[dict(self._serialize_option(option), leg_type="reposition")
+                                              for option in reposition] if status == "ok" else [],
+                            reposition_city_path_ids=([actual_start] + [option.to_city_id for option in reposition])
+                                                     if status == "ok" else [actual_start],
+                            reposition_expected_fatigue=reposition_fatigue if status == "ok" else 0,
+                            reposition_expected_fatigue_exact=str(reposition_fatigue if status == "ok" else 0),
+                            route_expected_fatigue=float(route_fatigue_used),
+                            route_expected_fatigue_exact=self._fraction_text(route_fatigue_used),
+                            total_expected_fatigue=float(fatigue_used),
+                            total_expected_fatigue_exact=self._fraction_text(fatigue_used))
+            if status != "ok":
+                response["diagnostics"] = {"code": "fixed_route_infeasible", "execution_allowed": False,
+                                          "minimum_first_leg_fatigue": self.fatigue_costs[fixed_path[0]][fixed_path[1]],
+                                          "reposition_required_fatigue": reposition_fatigue,
+                                          "route_fatigue_budget": route_fatigue_limit}
+        return response
+
+    def _plan_reposition(self, start: str, destination: str) -> List[TradeEdgeOption]:
+        """Shortest positive-cost navigation, with deterministic full-path ties."""
+        heap = [(0, 0, (start,), start)]
+        best = {start: (0, 0, (start,))}
+        while heap:
+            fatigue, depth, path, city = heapq.heappop(heap)
+            check_solver_cancelled()
+            if best.get(city) != (fatigue, depth, path):
+                continue
+            if city == destination:
+                return [TradeEdgeOption(a, b, 0, False, False, self.fatigue_costs[a][b],
+                                        Fraction(0), Fraction(0), Fraction(0), (), (), ())
+                        for a, b in zip(path, path[1:])]
+            for next_city, cost in self.fatigue_costs.get(city, {}).items():
+                if cost <= 0 or next_city not in self.fatigue_costs:
+                    continue
+                key = (fatigue + cost, depth + 1, path + (next_city,))
+                if next_city not in best or key < best[next_city]:
+                    best[next_city] = key
+                    heapq.heappush(heap, (*key, next_city))
+        raise ValueError("fixed route start is unreachable for reposition navigation")
+
+    def _build_edge_curves(
+        self, *, city_ids, cargo_capacity, book_policy, threshold, negotiation_policy,
+        bargain_profile, raise_profile, prestige_by_city, unlocked_products, requested_pairs=None,
+    ):
+        profiles = {"disabled": ((False, False),), "required": ((True, True),),
+                    "auto": ((False, False), (False, True), (True, False), (True, True))}[negotiation_policy]
+        curves = []
+        for from_city in city_ids:
+            check_solver_cancelled()
+            for to_city in city_ids:
+                if from_city == to_city or (requested_pairs is not None and (from_city, to_city) not in requested_pairs):
+                    continue
+                travel = self.fatigue_costs.get(from_city, {}).get(to_city, 0)
+                if travel <= 0:
+                    continue
+                navigation = TradeEdgeOption(from_city, to_city, 0, False, False, travel,
+                                             Fraction(0), Fraction(0), Fraction(0), (), (), (),
+                                             cargo_capacity=cargo_capacity)
+                navigation_index = len(curves)
+                has_trade_candidates = False
+                curves.append(EdgeBookCurve.create(baseline=navigation, candidates=(),
+                              capacity=cargo_capacity, policy=book_policy, threshold=threshold))
+                for bargain, raising in profiles:
+                    if ((bargain and bargain_profile.expected_fatigue is None)
+                            or (raising and raise_profile.expected_fatigue is None)):
+                        continue
+                    candidates = self._prepare_edge_candidates(from_city=from_city, to_city=to_city,
+                                 bargain_to_cap=bargain, raise_to_cap=raising,
+                                 prestige_by_city=prestige_by_city, unlocked_products=unlocked_products)
+                    if not candidates:
+                        continue
+                    has_trade_candidates = True
+                    baseline = self._build_edge_option_from_candidates(from_city=from_city, to_city=to_city,
+                               books_used=0, bargain_to_cap=bargain, raise_to_cap=raising,
+                               travel_fatigue=travel, expected_bargain_fatigue=bargain_profile.expected_fatigue if bargain else Fraction(0),
+                               expected_raise_fatigue=raise_profile.expected_fatigue if raising else Fraction(0),
+                               cargo_capacity=cargo_capacity, candidates=candidates)
+                    baseline = replace(baseline, cargo_capacity=cargo_capacity,
+                                       loaded_quantity=sum(row[2] for row in baseline.buys))
+                    curves.append(EdgeBookCurve.create(baseline=baseline, candidates=candidates,
+                                  capacity=cargo_capacity, policy=book_policy, threshold=threshold))
+                if has_trade_candidates:
+                    curves[navigation_index] = replace(curves[navigation_index], limit_reason="navigation_only")
+        return curves
 
     def _normalize_negotiation_profile(
         self,
@@ -492,334 +563,7 @@ class ResonancePcExactTradeSolver:
             ),
         )
 
-    def _build_edge_options(
-        self,
-        *,
-        city_ids: Sequence[str],
-        cargo_capacity: int,
-        book_budget: int,
-        book_profit_threshold: Fraction,
-        auto_book: bool,
-        negotiation_budget: int,
-        all_plan: int,
-        bargain_profile: _NegotiationProfile,
-        raise_profile: _NegotiationProfile,
-        prestige_by_city: Mapping[str, int],
-        unlocked_products: Optional[set[str]],
-    ) -> Dict[Tuple[str, str], Tuple[TradeEdgeOption, ...]]:
-        table: Dict[Tuple[str, str], Tuple[TradeEdgeOption, ...]] = {}
-        bargain_flags = [False]
-        raise_flags = [False]
-        if bargain_profile.expected_fatigue is not None and (all_plan == 1 or negotiation_budget > 0):
-            bargain_flags.append(True)
-        if raise_profile.expected_fatigue is not None and (all_plan == 1 or negotiation_budget > 0):
-            raise_flags.append(True)
 
-        for from_city in city_ids:
-            row = self.fatigue_costs.get(from_city) or {}
-            for to_city in city_ids:
-                if from_city == to_city:
-                    continue
-                travel_fatigue = int(row.get(to_city, 0))
-                if travel_fatigue <= 0:
-                    continue
-                options: List[TradeEdgeOption] = []
-                for bargain_to_cap in bargain_flags:
-                    for raise_to_cap in raise_flags:
-                        full_used = int(bargain_to_cap) + int(raise_to_cap)
-                        if all_plan == 0 and full_used > negotiation_budget:
-                            continue
-                        option_kwargs = {
-                            "from_city": from_city,
-                            "to_city": to_city,
-                            "bargain_to_cap": bargain_to_cap,
-                            "raise_to_cap": raise_to_cap,
-                            "travel_fatigue": travel_fatigue,
-                            "expected_bargain_fatigue": (
-                                bargain_profile.expected_fatigue
-                                if bargain_to_cap
-                                else Fraction(0, 1)
-                            ),
-                            "expected_raise_fatigue": (
-                                raise_profile.expected_fatigue
-                                if raise_to_cap
-                                else Fraction(0, 1)
-                            ),
-                            "cargo_capacity": cargo_capacity,
-                            "prestige_by_city": prestige_by_city,
-                            "unlocked_products": unlocked_products,
-                        }
-                        if auto_book:
-                            options.append(
-                                self._build_auto_edge_option(
-                                    book_profit_threshold=(
-                                        book_profit_threshold
-                                    ),
-                                    **option_kwargs,
-                                )
-                            )
-                            continue
-
-                        family = self._build_edge_option_family(
-                            book_budget=book_budget,
-                            **option_kwargs,
-                        )
-                        previous_profit: Optional[Fraction] = None
-                        threshold_prefix_valid = True
-                        for option in family:
-                            books_used = option.books_used
-                            if previous_profit is not None:
-                                marginal = option.expected_profit - previous_profit
-                                if marginal < book_profit_threshold:
-                                    threshold_prefix_valid = False
-                            previous_profit = option.expected_profit
-                            if not threshold_prefix_valid:
-                                continue
-                            if books_used > 0 and option.expected_profit <= 0:
-                                continue
-                            options.append(option)
-
-                table[(from_city, to_city)] = tuple(
-                    sorted(
-                        self._prune_edge_options(options, all_plan=all_plan),
-                        key=self._edge_sort_key,
-                    )
-                )
-        return table
-
-    def _build_auto_edge_option(
-        self,
-        *,
-        from_city: str,
-        to_city: str,
-        book_profit_threshold: Fraction,
-        bargain_to_cap: bool,
-        raise_to_cap: bool,
-        travel_fatigue: int,
-        expected_bargain_fatigue: Fraction,
-        expected_raise_fatigue: Fraction,
-        cargo_capacity: int,
-        prestige_by_city: Mapping[str, int],
-        unlocked_products: Optional[set[str]],
-    ) -> TradeEdgeOption:
-        """Choose the last strictly profitable book for one edge profile."""
-
-        candidates = self._prepare_edge_candidates(
-            from_city=from_city,
-            to_city=to_city,
-            bargain_to_cap=bargain_to_cap,
-            raise_to_cap=raise_to_cap,
-            prestige_by_city=prestige_by_city,
-            unlocked_products=unlocked_products,
-        )
-
-        def build(books_used: int) -> TradeEdgeOption:
-            return self._build_edge_option_from_candidates(
-                from_city=from_city,
-                to_city=to_city,
-                books_used=books_used,
-                bargain_to_cap=bargain_to_cap,
-                raise_to_cap=raise_to_cap,
-                travel_fatigue=travel_fatigue,
-                expected_bargain_fatigue=expected_bargain_fatigue,
-                expected_raise_fatigue=expected_raise_fatigue,
-                cargo_capacity=cargo_capacity,
-                candidates=candidates,
-            )
-
-        baseline = build(0)
-        if not candidates:
-            return baseline
-
-        top_profit = candidates[0][0]
-        top_lot = sum(
-            prestige_lot
-            for unit_profit, _product_id, _name, prestige_lot in candidates
-            if unit_profit == top_profit
-        )
-        if top_lot <= 0:
-            return baseline
-        saturation_books = max(
-            (int(cargo_capacity) + top_lot - 1) // top_lot - 1,
-            0,
-        )
-        if saturation_books <= 0:
-            return baseline
-
-        cache: Dict[int, TradeEdgeOption] = {0: baseline}
-
-        def option_at(books_used: int) -> TradeEdgeOption:
-            option = cache.get(books_used)
-            if option is None:
-                option = build(books_used)
-                cache[books_used] = option
-            return option
-
-        low = 1
-        high = saturation_books
-        last_accepted = 0
-        while low <= high:
-            middle = (low + high) // 2
-            marginal = (
-                option_at(middle).expected_profit
-                - option_at(middle - 1).expected_profit
-            )
-            if marginal > book_profit_threshold:
-                last_accepted = middle
-                low = middle + 1
-            else:
-                high = middle - 1
-
-        selected = option_at(last_accepted)
-        return replace(
-            selected,
-            book_incremental_profit=(
-                selected.expected_profit - baseline.expected_profit
-            ),
-        )
-
-    def _build_edge_option_family(
-        self,
-        *,
-        from_city: str,
-        to_city: str,
-        book_budget: int,
-        bargain_to_cap: bool,
-        raise_to_cap: bool,
-        travel_fatigue: int,
-        expected_bargain_fatigue: Fraction,
-        expected_raise_fatigue: Fraction,
-        cargo_capacity: int,
-        prestige_by_city: Mapping[str, int],
-        unlocked_products: Optional[set[str]],
-    ) -> Tuple[TradeEdgeOption, ...]:
-        """Build every book count after pricing and sorting products once."""
-
-        from_prestige = prestige_by_city[from_city]
-        to_prestige = prestige_by_city[to_city]
-        buy_tax_bps = self._tax_bps(from_city, from_prestige)
-        sell_tax_bps = self._tax_bps(to_city, to_prestige)
-        extra_buy_bps = self._prestige_rule(from_prestige)["extra_buy_bps"]
-        max_adjustment_bps = int(
-            (self.rules.get("negotiation") or {}).get(
-                "max_adjustment_bps", 2000
-            )
-        )
-        candidates: List[Tuple[Fraction, str, str, int]] = []
-        city_lots = self.buy_lot.get(from_city) or {}
-        for product_id in sorted(city_lots, key=self._sort_key):
-            product_id = str(product_id)
-            if (
-                unlocked_products is not None
-                and product_id not in unlocked_products
-            ):
-                continue
-            base_lot = int(city_lots.get(product_id, 0))
-            if base_lot <= 0:
-                continue
-            buy_price = self._market_price(product_id, "buy", from_city)
-            sell_price = self._market_price(product_id, "sell", to_city)
-            if buy_price is None or sell_price is None:
-                continue
-            buy_factor_bps = 10_000 - (
-                max_adjustment_bps if bargain_to_cap else 0
-            )
-            sell_factor_bps = 10_000 + (
-                max_adjustment_bps if raise_to_cap else 0
-            )
-            adjusted_buy = js_round(
-                buy_price * Fraction(buy_factor_bps, 10_000)
-            )
-            adjusted_sell = js_round(
-                sell_price * Fraction(sell_factor_bps, 10_000)
-            )
-            net_profit = (
-                Fraction(
-                    adjusted_sell * (10_000 - sell_tax_bps),
-                    10_000,
-                )
-                - Fraction(
-                    adjusted_buy * (10_000 + buy_tax_bps),
-                    10_000,
-                )
-            )
-            unit_profit = Fraction(js_round(net_profit), 1)
-            if unit_profit <= 0:
-                continue
-            prestige_lot = js_round(
-                Fraction(
-                    base_lot * (10_000 + extra_buy_bps),
-                    10_000,
-                )
-            )
-            if prestige_lot <= 0:
-                continue
-            candidates.append(
-                (
-                    unit_profit,
-                    product_id,
-                    self._product_name(product_id),
-                    prestige_lot,
-                )
-            )
-
-        candidates.sort(
-            key=lambda row: (-row[0], self._sort_key(row[1]))
-        )
-        family = []
-        for books_used in range(int(book_budget) + 1):
-            free_capacity = int(cargo_capacity)
-            expected_profit = Fraction(0, 1)
-            buys: List[Tuple[str, str, int, Fraction]] = []
-            quantity_multiplier = books_used + 1
-            for (
-                unit_profit,
-                product_id,
-                product_name,
-                prestige_lot,
-            ) in candidates:
-                if free_capacity <= 0:
-                    break
-                max_quantity = prestige_lot * quantity_multiplier
-                quantity = min(max_quantity, free_capacity)
-                if quantity <= 0:
-                    continue
-                buys.append(
-                    (
-                        product_id,
-                        product_name,
-                        quantity,
-                        unit_profit,
-                    )
-                )
-                expected_profit += unit_profit * quantity
-                free_capacity -= quantity
-            family.append(
-                TradeEdgeOption(
-                    from_city_id=from_city,
-                    to_city_id=to_city,
-                    books_used=books_used,
-                    bargain_to_cap=bool(bargain_to_cap),
-                    raise_to_cap=bool(raise_to_cap),
-                    travel_fatigue=int(travel_fatigue),
-                    expected_bargain_fatigue=expected_bargain_fatigue,
-                    expected_raise_fatigue=expected_raise_fatigue,
-                    expected_profit=expected_profit,
-                    buy_product_ids=tuple(item[0] for item in buys),
-                    buy_product_names=tuple(item[1] for item in buys),
-                    buys=tuple(buys),
-                )
-            )
-        baseline_profit = family[0].expected_profit
-        return tuple(
-            replace(
-                option,
-                book_incremental_profit=(
-                    option.expected_profit - baseline_profit
-                ),
-            )
-            for option in family
-        )
 
     def _build_edge_option(
         self,
@@ -1124,60 +868,20 @@ class ResonancePcExactTradeSolver:
             "tax_applied_to_buy_and_sell_amounts": True,
         }
 
-    def _empty_result(
-        self,
-        *,
-        start: str,
-        fatigue_limit: int,
-        books_limit: int,
-        auto_book: bool,
-        book_profit_threshold: Fraction,
-        negotiation_limit: int,
-        all_plan: int,
-        assumptions: Dict[str, Any],
-        warnings: List[str],
-    ) -> Dict[str, Any]:
-        return {
-            "status": "no_plan",
-            "reason": "no_positive_profit_route",
-            "snapshot_id": self.snapshot.get("snapshot_id"),
-            "all_plan": all_plan,
-            "expected_profit": 0.0,
-            "expected_profit_exact": "0",
-            "fatigue_budget": fatigue_limit,
-            "expected_fatigue_used": 0.0,
-            "expected_fatigue_used_exact": "0",
-            "remaining_expected_fatigue": float(fatigue_limit),
-            "remaining_expected_fatigue_exact": str(fatigue_limit),
-            "auto_book": bool(auto_book),
-            "book_budget_ignored": bool(auto_book),
-            "books_budget": None if auto_book else books_limit,
-            "book_profit_threshold": self._fraction_number(
-                book_profit_threshold
-            ),
-            "books_used": 0,
-            "remaining_books": None if auto_book else books_limit,
-            "book_incremental_profit": 0,
-            "book_incremental_profit_exact": "0",
-            "average_book_profit": None,
-            "average_book_profit_exact": None,
-            "negotiation_budget": negotiation_limit,
-            "negotiation_budget_ignored": all_plan == 1,
-            "full_negotiation_used": 0,
-            "full_bargain_count": 0,
-            "full_raise_count": 0,
-            "remaining_negotiation": None if all_plan == 1 else negotiation_limit,
-            "city_path": [self._city_name(start)],
-            "city_path_ids": [start],
-            "route": [],
-            "assumptions": assumptions,
-            "warnings": warnings,
-        }
+
 
     def _serialize_option(self, option: TradeEdgeOption) -> Dict[str, Any]:
         expected_negotiation_fatigue = option.expected_negotiation_fatigue
         expected_fatigue_cost = option.expected_fatigue_cost
         return {
+            "leg_type": "trade" if option.buys else "navigation",
+            "cargo_capacity": option.cargo_capacity,
+            "loaded_quantity": option.loaded_quantity,
+            "is_full_load": option.cargo_capacity > 0 and option.loaded_quantity == option.cargo_capacity,
+            "load_ratio": option.loaded_quantity / option.cargo_capacity if option.cargo_capacity else 0,
+            "book_stop_reason": option.book_stop_reason,
+            "legal_book_limit": option.legal_book_limit,
+            "next_book_marginal_profit_exact": self._fraction_text(option.next_book_marginal_profit),
             "from_city": self._city_name(option.from_city_id),
             "to_city": self._city_name(option.to_city_id),
             "from_city_id": option.from_city_id,

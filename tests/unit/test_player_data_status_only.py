@@ -106,7 +106,7 @@ def test_panel_displays_status_and_location_without_legacy_identity(tmp_path):
         texts = " ".join(label.text() for label in panel.findChildren(QLabel))
         for removed in ("UID", "昵称", "等级", "8820206170", "Lv.", "账号："):
             assert removed not in texts
-        assert panel._stage_checks["profile"].toolTip() == "独立选择货舱、澄明度、疲劳、气泡水次数、工作餐和爱心便当"
+        assert panel._stage_checks["profile"].toolTip() == "独立选择货舱、澄明度、疲劳、气泡水次数和便当总数"
         panel.apply_refresh_result({"status": {"fatigue": {"current": 12, "max": 848}}, "metadata": {"persisted": True, "section_updated_at": {"profile": "2026-09-05T00:00:00+00:00"}}})
         assert panel.profile_value_labels["fatigue"].text() == "12 / 848"
         assert panel.profile_value_labels["cargo"].text() == "126 / 748"

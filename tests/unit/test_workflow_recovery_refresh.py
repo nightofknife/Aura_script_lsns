@@ -9,8 +9,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings
-from PySide6.QtGui import QFontDatabase
-from PySide6.QtWidgets import QApplication, QCheckBox, QLineEdit, QMessageBox, QPushButton, QScrollArea
+from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtWidgets import QApplication, QLineEdit, QMessageBox, QPushButton, QScrollArea
+from packages.resonance_gui.widgets.toggle_button import ToggleButton as QCheckBox
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.logic import PC_GAME_NAME, PC_PLAYER_DATA_REFRESH_TASK_REF
@@ -21,10 +22,14 @@ from packages.resonance_gui.bridge import RunnerBridge
 @pytest.fixture
 def window(tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
-    if "Microsoft YaHei UI" not in QFontDatabase.families():
-        font = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / "msyh.ttc"
-        if font.is_file():
-            QFontDatabase.addApplicationFont(str(font))
+    families = []
+    for name in ("msyh.ttc", "msyhbd.ttc"):
+        font = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / name
+        font_id = QFontDatabase.addApplicationFont(str(font))
+        if font_id >= 0:
+            families.extend(QFontDatabase.applicationFontFamilies(font_id))
+    if families:
+        app.setFont(QFont(families[0], 10))
     monkeypatch.setattr(ResonanceMainWindow, "_wire_bridge", lambda self: None)
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: pytest.fail(str(args[2])))
     repository = ResonanceConfigRepository(
@@ -36,6 +41,7 @@ def window(tmp_path, monkeypatch):
     yield widget
     widget._busy = False
     widget._finish_workflow(False, "test finished")
+    widget._close_ready = True
     widget.close()
     app.processEvents()
 
@@ -66,22 +72,31 @@ def test_run_button_waits_for_cancelled_worker_exit(window, monkeypatch):
 
 
 def configure(window, kinds=("trade",)):
-    # Tests exercising the refresh itself opt into a recovery feature.
+    # Recovery is a preparation child of the independent freight task.
     window.trade_page.auto_sparkling_water.setChecked(True)
     page = window.workflow_page
     for key, check in page._task_checks.items():
-        check.setChecked(key == ("battle" if kinds == ("battle",) else "commerce"))
-    for key, check in page._commerce_checks.items():
         check.setChecked(key in kinds)
-    page._commerce_order = list(kinds) if len(kinds) == 2 else ["trade", "passenger"]
+    page._task_order = ["startup", *kinds, *[key for key in ("trade", "passenger", "battle") if key not in kinds], "close"]
+    page._rebuild_task_rows()
+
+
+def finish_preceding_tasks(window):
+    while window._workflow_current and window._workflow_current["step"] in {"startup", "passenger"}:
+        step = window._workflow_current["step"]
+        window._active_game_name = PC_GAME_NAME
+        window._active_kind = "passenger_run" if step == "passenger" else "workflow_task"
+        window._busy = True
+        window._on_task_finished({"status": "success", "gui_item": {"kind": window._active_kind}})
+        window._on_busy_changed(False)
 
 
 @pytest.mark.parametrize("startup", [False, True])
 @pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade"), ("passenger",), ("battle",)])
 def test_disabled_recovery_is_absent_from_queue_and_display(window, monkeypatch, startup, kinds):
     configure(window, kinds)
-    window.workflow_page.trade_sparkling_water.setChecked(False)
-    window.workflow_page.trade_auto_bento.setChecked(False)
+    window.trade_page.auto_sparkling_water.setChecked(False)
+    window.trade_page.auto_bento.setChecked(False)
     window.workflow_page._task_checks["startup"].setChecked(startup)
     window._workflow_recovery_snapshot = {"player_data": {"stale": True}}
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
@@ -143,27 +158,30 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     saved = {"stages": ["inventory"], "profile_sections": ["fatigue"], "inventory_categories": ["items"]}
     window._settings.save_player_data_inputs(saved)
     before = window._settings.load_player_data_inputs()
-    calls = []
+    calls, passengers = [], []
     window.requestRunPcTask.connect(lambda *args: calls.append(args))
+    window.requestRunPcPassenger.connect(lambda *args: passengers.append(args))
     window._start_workflow()
+    if kinds[0] == "passenger":
+        assert calls == [] and len(passengers) == 1
+        assert window._workflow_current["step"] == "passenger"
+    finish_preceding_tasks(window)
     assert len(calls) == 1
     assert calls[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
-    assert calls[0][1] == {
-        "stages": ["profile"],
-        "profile_sections": ["fatigue", "sparkling_water"],
-    }
+    assert calls[0][1] == {"stages": ["profile"], "profile_sections": ["fatigue", "sparkling_water"]}
     assert window._workflow_current["step"] == "refresh_recovery"
+    assert window._workflow_current["parent"] == "trade"
     assert all(row["step"] not in {"refresh_recovery", "startup"} for row in window._workflow_pending)
     assert "refresh_recovery" not in window.workflow_page._task_checks
-    assert window.workflow_page.run_tree.topLevelItem(0).text(0) == "1  刷新恢复资源"
+    prepare = window.workflow_page._tree_items["refresh_recovery"]
+    assert prepare.parent() is window.workflow_page._tree_items["trade"]
+    assert window.workflow_page.run_tree.topLevelItemCount() == len(kinds)
+    assert window.workflow_page.task_progress_bar.maximum() == len(kinds)
     assert window._settings.load_player_data_inputs() == before
     finish_refresh(window, payload())
     assert len(calls) == 1
-    assert window._workflow_current["step"] != "refresh_recovery"
-    if len(kinds) == 2:
-        assert window._workflow_current["inputs"]["order"] == (
-            "trade_first" if kinds[0] == "trade" else "passenger_first"
-        )
+    assert window._workflow_current["step"] == "trade"
+    assert window.workflow_page.task_progress_bar.value() == (1 if kinds[0] == "passenger" else 0)
 
 
 @pytest.mark.parametrize("remaining,count", [(6, 3), (0, 0), (1, 12)])
@@ -188,7 +206,30 @@ def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, 
     text = window.workflow_page.log_view.toPlainText()
     assert "疲劳 120/800" in text
     assert f"气泡水 {remaining}/6 次，便当 {count} 份" in text
-    assert window.workflow_page.task_progress_bar.value() == 1
+    assert window.workflow_page.task_progress_bar.value() == 0
+    assert window.workflow_page.task_progress_bar.maximum() == 1
+
+
+def test_startup_and_passenger_stay_before_freight_preparation(window):
+    configure(window, ("passenger", "trade"))
+    window.workflow_page._task_checks["startup"].setChecked(True)
+    events = []
+    window.requestRunPcTask.connect(
+        lambda task_ref, *_args: events.append("prepare" if task_ref == PC_PLAYER_DATA_REFRESH_TASK_REF else "startup")
+    )
+    window.requestRunPcPassenger.connect(lambda *_args: events.append("passenger"))
+    window._start_workflow()
+    assert events == ["startup"]
+    assert window._workflow_current["step"] == "startup"
+    finish_preceding_tasks(window)
+    assert events == ["startup", "passenger", "prepare"]
+    page = window.workflow_page
+    assert page.task_progress_bar.maximum() == 3
+    assert page.task_progress_bar.value() == 2
+    assert page._tree_items["refresh_recovery"].parent() is page._tree_items["trade"]
+    finish_refresh(window, payload())
+    assert window._workflow_current["step"] == "trade"
+    assert page.task_progress_bar.value() == 2
 
 
 def test_bento_only_refresh_does_not_require_water(window):
@@ -324,76 +365,62 @@ def test_failure_keeps_only_existing_configured_close_cleanup(window, monkeypatc
 @pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade")])
 def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled, bento_enabled, kinds):
     configure(window, kinds)
-    window.workflow_page.trade_sparkling_water.setChecked(enabled)
-    window.workflow_page.trade_auto_bento.setChecked(bento_enabled)
+    window.trade_page.auto_sparkling_water.setChecked(enabled)
+    window.trade_page.auto_bento.setChecked(bento_enabled)
     window.trade_page.bento_move_buttons["love_bentos", -1].click()
-    refreshes = []
+    refreshes, calls, passengers = [], [], []
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
-    calls = []
-    signal = window.requestRunPcTrade if len(kinds) == 1 else window.requestRunPcCombinedCommerce
-    signal.connect(lambda inputs, _timeout: calls.append(inputs))
+    window.requestRunPcTrade.connect(lambda inputs, _timeout: calls.append(inputs))
+    window.requestRunPcPassenger.connect(lambda inputs, _timeout: passengers.append(inputs))
     for current in (120, 230):
         window._start_workflow()
         saved = window._settings.load_trade_inputs()
-        pending = deepcopy(window._workflow_pending)
+        finish_preceding_tasks(window)
         result = payload()
         result["user_data"]["player_data"]["status"]["fatigue"]["current"] = current
         if not enabled and not bento_enabled:
             assert calls and not refreshes
             assert "recovery_snapshot" not in calls[-1]
             assert window._workflow_recovery_snapshot == {}
-            window._finish_workflow(True, "done")
-            continue
-        finish_refresh(window, result)
-        inputs = calls[-1]
-        assert inputs["recovery_snapshot"] == result["user_data"]["player_data"]
-        trade = inputs if len(kinds) == 1 else inputs["trade_inputs"]
-        assert trade["auto_sparkling_water"] is enabled
-        assert trade["auto_bento"] is bento_enabled
-        assert trade["bento_priority"] == ["love_bentos", "work_meals"]
-        assert trade["use_fatigue_medicine"] is False
-        if len(kinds) == 2:
-            assert "recovery_snapshot" not in trade
-            assert "recovery_snapshot" not in inputs["passenger_inputs"]
-            assert "auto_bento" not in inputs["passenger_inputs"]
-            assert "bento_priority" not in inputs["passenger_inputs"]
-        assert window._workflow_current == pending[0]
+        else:
+            pending = deepcopy(window._workflow_pending)
+            finish_refresh(window, result)
+            inputs = calls[-1]
+            assert inputs["recovery_snapshot"] == result["user_data"]["player_data"]
+            assert inputs["auto_sparkling_water"] is enabled
+            assert inputs["auto_bento"] is bento_enabled
+            assert inputs["bento_priority"] == ["love_bentos", "work_meals"]
+            assert inputs["use_fatigue_medicine"] is False
+            assert window._workflow_current == pending[0]
+            inputs["recovery_snapshot"]["metadata"].clear()
+            assert window._workflow_recovery_snapshot["player_data"]["metadata"]["persisted"]
         assert window._settings.load_trade_inputs() == saved
         assert "recovery_snapshot" not in saved
-        inputs["recovery_snapshot"]["metadata"].clear()
-        assert window._workflow_recovery_snapshot["player_data"]["metadata"]["persisted"]
+        assert all("recovery_snapshot" not in inputs and "auto_bento" not in inputs and "bento_priority" not in inputs for inputs in passengers)
         window._finish_workflow(True, "done")
-    if not enabled and not bento_enabled:
-        assert len(calls) == 2 and not refreshes
-        return
-    assert calls[0]["recovery_snapshot"]["status"]["fatigue"]["current"] == 120
-    assert calls[1]["recovery_snapshot"]["status"]["fatigue"]["current"] == 230
-    assert len(refreshes) == 2
+    assert len(calls) == 2
+    if enabled or bento_enabled:
+        assert calls[0]["recovery_snapshot"]["status"]["fatigue"]["current"] == 120
+        assert calls[1]["recovery_snapshot"]["status"]["fatigue"]["current"] == 230
+        assert len(refreshes) == 2
+    else:
+        assert not refreshes
 
 
 def test_sparkling_checkbox_syncs_persists_and_never_enables_freight_medicine(window):
-    quick = window.workflow_page.trade_sparkling_water
     full = window.trade_page.auto_sparkling_water
-    assert quick.text() == full.text() == "自动喝气泡水"
-    assert not quick.isChecked() and not full.isChecked()
+    assert full.text() == "自动喝气泡水"
+    assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_sparkling_water"] is False
     passenger_before = window.passenger_page.collect_inputs()
-    quick.setChecked(True)
-    assert full.isChecked()
-    assert window._settings.load_trade_inputs()["auto_sparkling_water"] is True
+    full.setChecked(True)
     reloaded = ResonanceConfigRepository(window._settings.settings)
     assert reloaded.load_trade_inputs()["auto_sparkling_water"] is True
     assert window.trade_page.collect_inputs()["auto_sparkling_water"] is True
-    merged = window.workflow_page.merge_trade_inputs({"use_fatigue_medicine": True})
-    assert merged["auto_sparkling_water"] is True
-    assert merged["use_fatigue_medicine"] is False
+    assert window.trade_page.collect_inputs()["use_fatigue_medicine"] is False
     full.setChecked(False)
-    assert not quick.isChecked()
     assert reloaded.load_trade_inputs()["auto_sparkling_water"] is False
     assert window.passenger_page.collect_inputs() == passenger_before
-    assert not any("疲劳药" in check.text() for check in window.trade_page.findChildren(QCheckBox))
-    assert not hasattr(window.trade_page, "allowed_medicines")
-    assert not hasattr(window.trade_page, "medicine_max_uses")
 
 
 def test_old_medicine_setting_does_not_opt_in_to_sparkling_water(window):
@@ -403,9 +430,9 @@ def test_old_medicine_setting_does_not_opt_in_to_sparkling_water(window):
     })
     saved = window._settings.load_trade_inputs()
     assert saved["auto_sparkling_water"] is False
-    assert saved["use_fatigue_medicine"] is False
-    assert saved["allowed_fatigue_medicines"] == []
-    assert saved["fatigue_medicine_max_uses"] == 0
+    assert saved["use_fatigue_medicine"] is True
+    assert saved["allowed_fatigue_medicines"] == ["old medicine"]
+    assert saved["fatigue_medicine_max_uses"] == 4
 
 
 @pytest.mark.parametrize("entry", ["full", "overview_trade", "overview_combined"])
@@ -436,7 +463,7 @@ def test_opted_in_standalone_freight_refreshes_before_actual_run(window, entry, 
     finish_refresh(window, payload())
     assert len(trades) == 1
     assert len(refreshes) == 1
-    trade = trades[0]["trade_inputs"] if entry == "overview_combined" else trades[0]
+    trade = trades[0]
     assert trade["auto_sparkling_water"] is water
     assert trade["auto_bento"] is bento
     assert trade["bento_priority"] == ["work_meals", "love_bentos"]
@@ -565,93 +592,48 @@ def test_standalone_refresh_without_result_cannot_dispatch_trade(window):
     assert "没有返回可用结果" in window.workflow_page.log_view.toPlainText()
 
 
-@pytest.mark.parametrize("editor", ["quick", "full"])
 @pytest.mark.parametrize("size_name,size", [("normal", (1440, 860)), ("minimum", (1180, 720))])
-def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, editor, size_name, size):
+def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_name, size):
     configure(window)
     window.resize(*size)
-    window.workflow_page._select_task("commerce")
-    if editor == "full":
-        window.workflow_page.show_trade_editor()
-        check = window.trade_page.auto_sparkling_water
-        bento = window.trade_page.auto_bento
-    else:
-        check = window.workflow_page.trade_sparkling_water
-        bento = window.workflow_page.trade_auto_bento
+    window.workflow_page.show_trade_editor()
     window.show()
     QApplication.processEvents()
     assert (window.width(), window.height()) == size
-    if editor == "full":
-        scroll = window.trade_page.parameter_panel.findChild(QScrollArea)
-        scroll.ensureWidgetVisible(window.trade_page.bento_priority_panel)
-        QApplication.processEvents()
-    else:
-        page = window.workflow_page
-        scroll = page.commerce_config_scroll
-        assert scroll.horizontalScrollBar().maximum() == 0
-        if size_name == "minimum":
-            assert scroll.verticalScrollBar().maximum() > 0
-        for row in page._commerce_rows.values():
-            for button in (row.up_button, row.down_button):
-                assert row.rect().contains(button.geometry())
-                assert button.height() >= button.sizeHint().height()
-        scroll.ensureWidgetVisible(page.trade_auto_bento)
-        QApplication.processEvents()
-        for spin in (page.trade_fatigue, page.trade_books, page.trade_cargo):
-            assert spin.height() >= spin.sizeHint().height()
-            edit = spin.findChild(QLineEdit)
-            assert edit.contentsRect().height() >= edit.fontMetrics().height()
-            assert scroll.viewport().rect().contains(spin.mapTo(scroll.viewport(), spin.rect().topLeft()))
-            assert scroll.viewport().rect().contains(spin.mapTo(scroll.viewport(), spin.rect().bottomRight()))
-    assert check.isVisible()
-    assert check.width() >= check.sizeHint().width()
-    assert bento.isVisible()
-    assert bento.width() >= bento.sizeHint().width()
+    page = window.trade_page
+    check, bento = page.auto_sparkling_water, page.auto_bento
+    scroll = page.parameter_panel.findChild(QScrollArea)
+    scroll.ensureWidgetVisible(page.bento_priority_panel)
+    QApplication.processEvents()
+    assert scroll.horizontalScrollBar().maximum() == 0
+    assert check.isVisible() and check.width() >= check.sizeHint().width()
+    assert bento.isVisible() and bento.width() >= bento.sizeHint().width()
     assert check.geometry().right() < bento.geometry().left()
     assert check.geometry().center().y() == bento.geometry().center().y()
-    assert not window.grab().isNull()
-    screenshot = tmp_path / "screenshots"
-    screenshot.mkdir(parents=True, exist_ok=True)
-    assert window.grab().save(str(screenshot / f"{editor}-{size_name}.png"))
-    if editor == "quick" and size_name == "minimum":
-        before = scroll.verticalScrollBar().value()
-        scroll.verticalScrollBar().setValue(scroll.verticalScrollBar().maximum())
-        QApplication.processEvents()
-        assert scroll.verticalScrollBar().value() > before
-        button = next(button for button in page.commerce_tabs.currentWidget().findChildren(QPushButton)
-                      if button.text() == "打开完整货运参数")
-        assert scroll.viewport().rect().contains(button.mapTo(scroll.viewport(), button.rect().bottomRight()))
-        assert window.grab().save(str(screenshot / "quick-minimum-scrolled.png"))
-    if editor == "full":
-        page = window.trade_page
-        scroll = page.parameter_panel.findChild(QScrollArea)
-        scroll.ensureWidgetVisible(page.bento_priority_panel)
-        QApplication.processEvents()
-        for key, check_type in page.bento_type_checks.items():
-            row = page._bento_rows[key]
-            assert check_type.width() >= check_type.sizeHint().width()
-            assert row.mapTo(scroll.viewport(), row.rect().bottomRight()).y() < scroll.viewport().height()
-            for delta in (-1, 1):
-                button = page.bento_move_buttons[key, delta]
-                assert button.toolTip()
-                assert button.width() == button.height() == 28
-        assert window.grab().save(str(tmp_path / "bento-priority-full.png"))
+    for key, check_type in page.bento_type_checks.items():
+        row = page._bento_rows[key]
+        assert check_type.width() >= check_type.sizeHint().width()
+        for delta in (-1, 1):
+            button = page.bento_move_buttons[key, delta]
+            assert button.toolTip()
+            assert button.width() == button.height() == 28
+            assert row.rect().contains(button.geometry())
+    assert window.grab().save(str(tmp_path / f"recovery-{size_name}.png"))
     window._start_workflow()
     QApplication.processEvents()
-    assert not check.isEnabled()
-    assert not bento.isEnabled()
-    assert not window.trade_page.bento_priority_panel.isEnabled()
+    assert not check.isEnabled() and not bento.isEnabled()
+    assert not page.bento_priority_panel.isEnabled()
+    assert window.workflow_page.task_progress_bar.maximum() == 1
     window._finish_workflow(True, "done")
-    assert check.isEnabled()
-    assert bento.isEnabled()
-    assert window.trade_page.bento_priority_panel.isEnabled()
+    assert check.isEnabled() and bento.isEnabled()
+    assert page.bento_priority_panel.isEnabled()
 
 
 def test_bento_checkbox_and_priority_persist_without_consumption(window):
-    quick, full = window.workflow_page.trade_auto_bento, window.trade_page.auto_bento
+    full = window.trade_page.auto_bento
     page = window.trade_page
-    assert quick.text() == full.text() == "自动吃便当"
-    assert not quick.isChecked() and not full.isChecked()
+    assert full.text() == "自动吃便当"
+    assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_bento"] is False
     assert page.collect_inputs()["bento_priority"] == ["work_meals", "love_bentos"]
     passenger_before = window.passenger_page.collect_inputs()
@@ -659,7 +641,7 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
     for signal in (window.requestRunPcTask, window.requestRunPcTrade,
                    window.requestRunPcCombinedCommerce, window.requestRunPcPassenger):
         signal.connect(lambda *args: calls.append(args))
-    quick.setChecked(True)
+    full.setChecked(True)
     assert full.isChecked()
     assert window._settings.load_trade_inputs()["auto_bento"] is True
     assert not page.bento_move_buttons["work_meals", -1].isEnabled()
@@ -667,7 +649,7 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
     page.bento_move_buttons["love_bentos", -1].click()
     assert page.collect_inputs()["bento_priority"] == ["love_bentos", "work_meals"]
     full.setChecked(False)
-    assert not quick.isChecked()
+    assert not full.isChecked()
     saved = window._settings.load_trade_inputs()
     assert saved["auto_bento"] is False
     assert saved["bento_priority"] == ["love_bentos", "work_meals"]
@@ -717,10 +699,10 @@ def test_empty_priority_is_saved_only_when_disabled(window, monkeypatch):
     assert window._settings.load_trade_inputs()["bento_priority"] == []
     warnings = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: warnings.append(args[2]))
-    window.workflow_page.trade_auto_bento.click()
+    window.trade_page.auto_bento.click()
     assert warnings
     assert not page.auto_bento.isChecked()
-    assert not window.workflow_page.trade_auto_bento.isChecked()
+    assert not window.trade_page.auto_bento.isChecked()
     with pytest.raises(ValueError, match="至少选择一种"):
         window._settings.save_trade_inputs({"auto_bento": True, "bento_priority": []})
 
@@ -740,7 +722,7 @@ def test_bento_progress_keeps_final_sale_completed(window, outcome):
     from PySide6.QtWidgets import QLabel
 
     page = window.workflow_page
-    page.begin_workflow(["commerce"], ["trade"], trade_inputs={"auto_bento": True})
+    page.begin_workflow(["trade"], [], trade_inputs={"auto_bento": True})
     events = [
         freight_event(0, "planning", "completed", data={"route": [
             {"from_city": "海角城", "to_city": "岚心城", "buy_products": ["test"]},

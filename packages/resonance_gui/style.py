@@ -158,12 +158,11 @@ QLabel#deepDiveStatus[resultState="error"] {
     border-left-color: #b9785d;
 }
 QTreeWidget#teamRecommendationTree { font-size: 11px; }
-QCheckBox[commerceSwitch="true"] {
+QPushButton[commerceSwitch="true"] {
     color: #273038;
     font-size: 16px;
     font-weight: 600;
-    spacing: 12px;
-    padding: 8px 4px;
+    padding: 8px 12px;
 }
 QPushButton[commerceRun="true"] {
     min-height: 36px;
@@ -211,27 +210,27 @@ QLabel#passengerEstimate {
     font-weight: 700;
 }
 QLabel#passengerPolicy {
-    color: #68737c;
-    background: #f4f6f8;
-    border: 1px solid #e0e5e8;
+    color: #716a5e;
+    background: #eee5d5;
+    border: 1px solid #d4c6ad;
     border-radius: 4px;
     padding: 10px 12px;
     font-size: 11px;
 }
 QFrame#passengerRouteBand {
-    background: #ffffff;
-    border: 1px solid #d7e1e3;
+    background: #fffaf0;
+    border: 1px solid #d4c6ad;
     border-radius: 5px;
 }
 QLabel#passengerTimeline { color: #66745c; font-size: 16px; font-weight: 700; }
 QLabel#passengerStageDetail { color: #4f5b64; font-size: 12px; }
 QFrame#passengerMetrics {
     background: transparent;
-    border-top: 1px solid #dfe5e8;
-    border-bottom: 1px solid #dfe5e8;
+    border-top: 1px solid #d4c6ad;
+    border-bottom: 1px solid #d4c6ad;
 }
 QLabel[metricValue="true"] { color: #20252b; font-size: 14px; font-weight: 700; }
-QTextBrowser#passengerDetails { background: #ffffff; color: #4d5962; }
+QTextBrowser#passengerDetails { background: #fffaf0; color: #554f46; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit, QTextBrowser {
     background: #fffaf0;
     color: #38342e;
@@ -268,7 +267,37 @@ QPushButton {
     min-height: 22px;
 }
 QPushButton:hover { background: #e9e8dc; border-color: #8e9a82; }
-QPushButton:disabled { color: #9ba4aa; background: #edf0f2; border-color: #dce1e4; }
+QPushButton:disabled { color: #9b958b; background: #eee9df; border-color: #d6cec0; }
+QPushButton[toggleButton="true"], QPushButton[cityOption="true"] {
+    background: #f8f3e8;
+    color: #554f46;
+    border-color: #c9b99d;
+    font-weight: 600;
+}
+QPushButton[toggleButton="true"]:hover, QPushButton[cityOption="true"]:hover {
+    background: #eee5d5;
+    border-color: #9b9c89;
+}
+QPushButton[toggleButton="true"]:checked, QPushButton[cityOption="true"]:checked {
+    background: #66745c;
+    color: #fffaf0;
+    border-color: #66745c;
+}
+QPushButton[toggleButton="true"]:checked:hover, QPushButton[cityOption="true"]:checked:hover {
+    background: #52634a;
+    border-color: #52634a;
+}
+QPushButton[toggleButton="true"]:focus { border-color: #383f32; }
+QPushButton[toggleButton="true"]:disabled, QPushButton[cityOption="true"]:disabled {
+    background: #eee9df;
+    color: #9b958b;
+    border-color: #d6cec0;
+}
+QPushButton[toggleButton="true"]:checked:disabled, QPushButton[cityOption="true"]:checked:disabled {
+    background: #a1a894;
+    color: #fffaf0;
+    border-color: #a1a894;
+}
 QPushButton#primaryButton { background: #77866b; border-color: #77866b; color: #ffffff; font-weight: 700; }
 QPushButton#primaryButton:hover { background: #66745c; }
 QPushButton#dangerButton { color: #9b503e; border-color: #b9785d; }
@@ -286,9 +315,9 @@ QPushButton[cityOption="true"] {
 }
 QPushButton[cityOption="true"]:hover { background: #ebe4d6; border-color: #a9a18f; }
 QPushButton[cityOption="true"]:checked {
-    background: #dce3d5;
-    color: #44513f;
-    border-color: #77866b;
+    background: #66745c;
+    color: #fffaf0;
+    border-color: #66745c;
     font-weight: 700;
 }
 QToolButton { color: #47535c; border: 0; padding: 4px 0; font-weight: 600; }
@@ -298,7 +327,7 @@ QTreeWidget, QTableWidget {
     alternate-background-color: #f3ecdf;
     border: 1px solid #c9b99d;
     border-radius: 4px;
-    gridline-color: #e8ecef;
+    gridline-color: #e5dbc9;
     outline: 0;
 }
 QListWidget {
@@ -307,10 +336,10 @@ QListWidget {
     selection-color: #384335;
 }
 QHeaderView::section {
-    background: #edf1f3;
-    color: #4a555d;
+    background: #eee5d5;
+    color: #554f46;
     border: 0;
-    border-bottom: 1px solid #d7dde1;
+    border-bottom: 1px solid #d4c6ad;
     padding: 7px;
     font-weight: 600;
 }

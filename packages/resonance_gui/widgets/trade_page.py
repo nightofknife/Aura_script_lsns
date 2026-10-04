@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
+from decimal import Decimal
 
 from PySide6.QtCore import QSize, QTimer, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QCheckBox,
+    QButtonGroup,
+    QAbstractItemView,
     QComboBox,
     QDoubleSpinBox,
     QDialog,
@@ -19,9 +21,13 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QLayout,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QSpinBox,
     QSplitter,
     QStyle,
@@ -53,6 +59,8 @@ from ..logic import (
     average_book_profit_text,
 )
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
+from .compact_parameter_grid import CompactParameterGrid
+from .toggle_button import ToggleButton as QCheckBox
 
 
 class CityPrestigeDialog(QDialog):
@@ -158,6 +166,8 @@ class ProductUnlockDialog(QDialog):
         self._groups = groups
         self._all_product_ids = set(trade_product_ids(groups))
         self._items_by_product_id: dict[str, list[QTreeWidgetItem]] = {}
+        self._buttons_by_product_id: dict[str, list[QCheckBox]] = {}
+        self._city_buttons: dict[str, QCheckBox] = {}
         self._city_items: list[QTreeWidgetItem] = []
         self._updating = False
 
@@ -179,39 +189,42 @@ class ProductUnlockDialog(QDialog):
         layout.addLayout(toolbar)
 
         self.tree = QTreeWidget(self)
-        self.tree.setColumnCount(2)
-        self.tree.setHeaderLabels(["城市 / 商品（勾选即解锁）", "已解锁数量"])
+        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["城市 / 商品", "解锁状态", "已解锁数量"])
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.tree.header().resizeSection(1, 116)
+        self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.tree.setUniformRowHeights(True)
         layout.addWidget(self.tree, 1)
 
         enabled = self._all_product_ids if unlocked_product_ids is None else set(unlocked_product_ids)
         for group in groups:
             city_item = QTreeWidgetItem([group.city_name, ""])
+            city_item.setFlags(city_item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable & ~Qt.ItemFlag.ItemIsAutoTristate)
             city_item.setData(0, Qt.ItemDataRole.UserRole, {"city_id": group.city_id})
-            city_item.setFlags(
-                city_item.flags()
-                | Qt.ItemFlag.ItemIsUserCheckable
-                | Qt.ItemFlag.ItemIsAutoTristate
-            )
             self.tree.addTopLevelItem(city_item)
             self._city_items.append(city_item)
+            city_button = QCheckBox("整城解锁", self.tree)
+            city_button.setToolTip(f"切换{group.city_name}全部声望商品；共享商品状态会同步到其它城市。")
+            self._city_buttons[group.city_id] = city_button
+            self.tree.setItemWidget(city_item, 1, city_button)
+            city_button.toggled.connect(lambda checked, city=city_item: self._set_city_products(city, checked))
             for product in group.products:
                 item = QTreeWidgetItem([product.name, ""])
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
                 item.setData(0, Qt.ItemDataRole.UserRole, {"product_id": product.product_id})
                 item.setToolTip(0, f"商品 ID: {product.product_id}")
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(
-                    0,
-                    Qt.CheckState.Checked
-                    if product.product_id in enabled
-                    else Qt.CheckState.Unchecked,
-                )
                 city_item.addChild(item)
+                button = QCheckBox("已解锁", self.tree)
+                button.setChecked(product.product_id in enabled)
+                button.setText("已解锁" if button.isChecked() else "未解锁")
+                button.setToolTip(f"{product.name}；商品 ID: {product.product_id}；点击切换解锁状态。")
+                self.tree.setItemWidget(item, 1, button)
+                self._buttons_by_product_id.setdefault(product.product_id, []).append(button)
+                button.toggled.connect(lambda checked, product_id=product.product_id: self._on_product_toggled(product_id, checked))
                 self._items_by_product_id.setdefault(product.product_id, []).append(item)
             self._update_city_count(city_item)
-        self.tree.itemChanged.connect(self._on_item_changed)
 
         self.summary = QLabel(self)
         self.summary.setProperty("caption", True)
@@ -231,34 +244,32 @@ class ProductUnlockDialog(QDialog):
     def unlocked_product_ids(self) -> set[str]:
         return {
             product_id
-            for product_id, items in self._items_by_product_id.items()
-            if items and items[0].checkState(0) == Qt.CheckState.Checked
+            for product_id, buttons in self._buttons_by_product_id.items()
+            if buttons and buttons[0].isChecked()
         }
 
     def _set_all_products(self, checked: bool) -> None:
-        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
         self._updating = True
         try:
-            for items in self._items_by_product_id.values():
-                for item in items:
-                    item.setCheckState(0, state)
+            for buttons in self._buttons_by_product_id.values():
+                for button in buttons:
+                    button.setChecked(checked)
+                    button.setText("已解锁" if checked else "未解锁")
             for city_item in self._city_items:
                 self._update_city_count(city_item)
         finally:
             self._updating = False
         self._update_summary()
 
-    def _on_item_changed(self, item: QTreeWidgetItem, _column: int) -> None:
+    def _on_product_toggled(self, product_id: str, checked: bool) -> None:
         if self._updating:
             return
-        payload = item.data(0, Qt.ItemDataRole.UserRole)
-        product_id = str(payload.get("product_id") or "") if isinstance(payload, dict) else ""
         if product_id:
             self._updating = True
             try:
-                for sibling in self._items_by_product_id.get(product_id, []):
-                    if sibling is not item:
-                        sibling.setCheckState(0, item.checkState(0))
+                for button in self._buttons_by_product_id.get(product_id, []):
+                    button.setChecked(checked)
+                    button.setText("已解锁" if checked else "未解锁")
                 for city_item in self._city_items:
                     self._update_city_count(city_item)
             finally:
@@ -268,12 +279,25 @@ class ProductUnlockDialog(QDialog):
                 self._update_city_count(city_item)
         self._update_summary()
 
+    def _set_city_products(self, city: QTreeWidgetItem, checked: bool) -> None:
+        if self._updating:
+            return
+        for index in range(city.childCount()):
+            payload = city.child(index).data(0, Qt.ItemDataRole.UserRole)
+            self._on_product_toggled(str(payload["product_id"]), checked)
+
     def _update_city_count(self, city_item: QTreeWidgetItem) -> None:
         checked = sum(
-            city_item.child(index).checkState(0) == Qt.CheckState.Checked
+            self._buttons_by_product_id[str(city_item.child(index).data(0, Qt.ItemDataRole.UserRole)["product_id"])][0].isChecked()
             for index in range(city_item.childCount())
         )
-        city_item.setText(1, f"{checked}/{city_item.childCount()}")
+        city_item.setText(2, f"{checked}/{city_item.childCount()}")
+        city_id = str(city_item.data(0, Qt.ItemDataRole.UserRole)["city_id"])
+        button = self._city_buttons[city_id]
+        previous = button.blockSignals(True)
+        button.setChecked(checked == city_item.childCount() and checked > 0)
+        button.setText("整城已解锁" if button.isChecked() else "整城解锁")
+        button.blockSignals(previous)
 
     def _update_summary(self) -> None:
         self.summary.setText(
@@ -301,7 +325,6 @@ class TradePage(QWidget):
     previewRequested = Signal(object, float)
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
-    autoBookChanged = Signal(bool)
 
     def __init__(
         self, settings: ResonanceConfigRepository, parent: QWidget | None = None,
@@ -333,8 +356,38 @@ class TradePage(QWidget):
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
         self._build_ui()
+        self._set_parameter_help()
         self.set_inputs(self._load_inputs())
         self.set_busy(False)
+
+    def _set_parameter_help(self) -> None:
+        descriptions = {
+            "fatigue_budget": "本次货运的规划疲劳上限；固定线路的起点导航消耗也计入预算。",
+            "cargo_capacity": "规划时使用的货舱总容量，请填写游戏中实际可用的容量。",
+            "book_usage": "不用书、有限书数或不限书数；不限书数不会跳过单本收益阈值。",
+            "book_budget": "本次完整货运最多使用的进货书数量，不是每座城市的额度。",
+            "book_policy": "收益优先按新增收益选货；满仓优先按装载目标选货，仍受额度和收益阈值约束。",
+            "negotiation_policy": "选择是否协商价格；快速模式要求协商，其余模式按此选项执行。",
+            "target_profit": "填写预计目标收益，以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
+            "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
+            "reposition_to_route": "当前城市不是固定线路起点时先导航过去；关闭则报错停止，导航疲劳计入本次预算。",
+            "auto_sparkling_water": "到达最后一个符合条件的城市时按实际疲劳和剩余免费次数喝水；运行前需刷新恢复数据。",
+            "base_fatigue_reserve": "气泡水恢复时保留的基础疲劳下限，避免恢复后低于此值。",
+            "auto_bento": "最终清仓后使用已勾选的便当，按下面的优先级尝试；完成便当收尾后才算货运完成。",
+            "auto_pickup": "行车过程中启用沿途拣货，会增加行车中的操作。",
+            "use_fatigue_medicine": "行车任务允许使用疲劳药；默认关闭，开启后仍受使用上限限制。",
+            "fatigue_medicine_max_uses": "本次行车允许使用疲劳药的次数上限；仅在允许使用疲劳药时生效。",
+            "auto_cape_island_investment": "货运到达蜃息岛时尝试投资；不会为投资额外改变货运线路。",
+            "auto_rubbish_recycling": "到达符合条件的城市时尝试垃圾回收，不为回收额外改变线路。",
+            "bargain_rates": "每次砍价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
+            "raise_rates": "每次抬价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
+            "bargain_step": "每次砍价的降价幅度，100 个 bps 等于 1%。",
+            "raise_step": "每次抬价的涨价幅度，100 个 bps 等于 1%。",
+        }
+        for name, description in descriptions.items():
+            getattr(self, name).setToolTip(description)
+        for key, button in self.bento_type_checks.items():
+            button.setToolTip("允许使用工作餐恢复疲劳。" if key == "work_meals" else "允许使用爱心便当恢复疲劳。")
 
     def _load_inputs(self) -> dict[str, Any]:
         if self.preview_mode:
@@ -426,15 +479,9 @@ class TradePage(QWidget):
     def _build_parameter_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
-        panel.setMinimumWidth(290)
-        if not self.preview_mode:
-            panel.setMaximumWidth(390)
+        panel.setMinimumWidth(460)
         outer = QVBoxLayout(panel)
         outer.setContentsMargins(16, 14, 16, 14)
-        title = QLabel("跑商参数", panel)
-        title.setObjectName("pageTitle")
-        outer.addWidget(title)
-
         scroll = QScrollArea(panel)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -443,16 +490,43 @@ class TradePage(QWidget):
         form_stack.setContentsMargins(0, 8, 4, 8)
         form_stack.setSpacing(12)
 
-        common_form = QFormLayout()
-        common_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        mode_row = QHBoxLayout()
+        self.mode_buttons: dict[str, QPushButton] = {}
+        self.mode_group = QButtonGroup(content)
+        self.mode_group.setExclusive(True)
+        for mode, caption in (("profit", "收益模式"), ("quick", "快速模式"),
+                              ("fixed", "固定线路"), ("target", "指定收益")):
+            button = QPushButton(caption, content)
+            button.setCheckable(True)
+            button.setProperty("cityOption", True)
+            self.mode_group.addButton(button)
+            button.setToolTip({"profit": "在疲劳与全任务用书额度内优先预计收益。", "quick": "固定优先满仓和必须协商；单本收益阈值仍然生效。", "fixed": "按有序线路访问，预算内自动继续；不设置执行次数。", "target": "填写正的目标收益；达标表示预计收益，不代表实测现金收益。"}[mode])
+            self.mode_buttons[mode] = button
+            button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+            mode_row.addWidget(button)
+            button.toggled.connect(self._sync_mode_controls)
+        self.mode_buttons["profit"].setChecked(True)
+        mode_row.addStretch(1)
+        form_stack.addLayout(mode_row)
+        form_stack.addWidget(QLabel("规划", content))
+
+        self.common_parameters = CompactParameterGrid(content)
+        common_form = self.common_parameters
         self.fatigue_budget = self._spin(0, 100000)
         self.cargo_capacity = self._spin(1, 100000)
         self.book_budget = self._spin(0, 100000)
-        self.auto_book = QCheckBox("", content)
-        self.auto_book.setObjectName("tradeAutoBookCheck")
-        self.auto_book.setAccessibleName("Auto Book 模式")
-        self.auto_book.setToolTip("按收益阈值自动决定书数，保留手动进货书数量")
-        self.auto_book.toggled.connect(self._auto_book_toggled)
+        self.book_usage = QComboBox(content)
+        for caption, value in (("不用书", "none"), ("限量用书", "finite"), ("无限用书", "unlimited")):
+            self.book_usage.addItem(caption, value)
+        self.book_usage.currentIndexChanged.connect(self._sync_book_controls)
+        self.book_policy = QComboBox(content)
+        self.book_policy.addItem("收益优先", "profit")
+        self.book_policy.addItem("优先满仓", "fill")
+        self.negotiation_policy = QComboBox(content)
+        for caption, value in (("自动协商", "auto"), ("必须协商", "required"), ("不协商", "disabled")):
+            self.negotiation_policy.addItem(caption, value)
+        self._retained_book_policy = "profit"
+        self._retained_negotiation_policy = "auto"
         self.arrival_timeout_minutes = self._spin(1, 240)
         self.arrival_timeout_minutes.setParent(content)
         self.arrival_timeout_minutes.hide()
@@ -460,30 +534,52 @@ class TradePage(QWidget):
         self.arrival_timeout_minutes.setToolTip(
             "超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时"
         )
-        if self.preview_mode:
-            self.start_city = QComboBox(content)
-            self.start_city.currentIndexChanged.connect(self._sync_actions)
-            common_form.addRow("起始城市", self.start_city)
+        self.start_city = QComboBox(content)
+        self.start_city.currentIndexChanged.connect(self._sync_actions)
+        self.start_city.setToolTip("仅试算使用；正式运行重新识别游戏当前城市。固定线路首站由线路列表决定。")
         self.city_selector = self._build_city_selector(content)
-        common_form.addRow("参与规划城市", self.city_selector)
-        self.end_city = QComboBox(content)
-        self.end_city.currentIndexChanged.connect(self._sync_actions)
-        self.end_city.setToolTip("选择“否”时由算法自由选择终点；指定城市必须属于参与规划城市")
-        common_form.addRow("终点城市", self.end_city)
+        self.nonfixed_panel = QWidget(content)
+        nonfixed_form = QFormLayout(self.nonfixed_panel)
+        nonfixed_form.setContentsMargins(0, 0, 0, 0)
+        nonfixed_form.addRow(self.city_selector)
+        self.end_city_selector = self._build_end_city_selector(content)
+        nonfixed_form.addRow("终点城市", self.end_city_selector)
+        self.fixed_panel = self._build_fixed_route_selector(content)
+        self.target_profit = QDoubleSpinBox(content)
+        self.target_profit.setRange(0, 100_000_000)
+        self.target_profit.setDecimals(4)
+        self.target_profit.setSuffix(" 万")
+        self.target_profit.setSpecialValueText("请填写目标收益")
+        self.target_label = QLabel("目标收益", content)
         self.end_city_notice = QLabel(
-            "货运在客运前执行时，终点必须衔接客运线路，因此该参数暂不可用。",
+            "终点约束暂不可编辑，已保留原有选择。",
             content,
         )
         self.end_city_notice.setProperty("status", "warning")
         self.end_city_notice.setWordWrap(True)
         self.end_city_notice.hide()
-        common_form.addRow("", self.end_city_notice)
-        common_form.addRow("疲劳预算", self.fatigue_budget)
-        common_form.addRow("货舱容量", self.cargo_capacity)
-        common_form.addRow("Auto Book 模式", self.auto_book)
-        common_form.addRow("进货书", self.book_budget)
-        form_stack.addLayout(common_form)
+        common_form.add_field("疲劳预算", self.fatigue_budget)
+        common_form.add_field("货舱容量", self.cargo_capacity)
+        common_form.add_field("用书额度", self.book_usage)
+        self.book_budget_label = QLabel("有限书数", content)
+        common_form.add_field(self.book_budget_label, self.book_budget)
+        self.book_profit_threshold = QDoubleSpinBox(content)
+        self.book_profit_threshold.setRange(0, 1_000_000_000)
+        self.book_profit_threshold.setDecimals(4)
+        self.book_profit_threshold.setSuffix(" 万")
+        self.book_profit_threshold.setToolTip("单本新增收益下限，所有用书模式都生效；50 万提交为 500000。")
+        common_form.add_field("单本收益阈值", self.book_profit_threshold)
+        common_form.add_field("用书策略", self.book_policy)
+        common_form.add_field("协商策略", self.negotiation_policy)
+        common_form.add_field("试算当前城市", self.start_city)
+        common_form.add_field(self.target_label, self.target_profit)
+        form_stack.addWidget(common_form)
+        form_stack.addWidget(self.fixed_panel)
+        form_stack.addWidget(self.nonfixed_panel)
+        form_stack.addWidget(self.end_city_notice)
 
+        self.recovery_heading = QLabel("恢复与附加", content)
+        form_stack.addWidget(self.recovery_heading)
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
         self.auto_bento = QCheckBox("自动吃便当", content)
         self.auto_bento.toggled.connect(self._sync_bento_type_checks)
@@ -497,18 +593,41 @@ class TradePage(QWidget):
         self.water_reserve_panel = QWidget(content)
         reserve_form = QFormLayout(self.water_reserve_panel)
         reserve_form.setContentsMargins(0, 0, 0, 0)
+        reserve_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        self.base_fatigue_reserve.setMaximumWidth(220)
         reserve_form.addRow("基础疲劳保留", self.base_fatigue_reserve)
         form_stack.addWidget(self.water_reserve_panel)
         self.bento_priority_panel = self._build_bento_priority_panel(content)
         form_stack.addWidget(self.bento_priority_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
-        form_stack.addWidget(self.auto_pickup)
+        self.use_fatigue_medicine = QCheckBox("行车使用疲劳药", content)
+        self.fatigue_medicine_max_uses = self._spin(0, 100000)
+        self.allowed_fatigue_medicines: list[str] = []
+        self.auto_cape_island_investment = QCheckBox("蜃息岛投资", content)
+        self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
+        self.additional_options = QWidget(content)
+        options_layout = QHBoxLayout(self.additional_options)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setSpacing(8)
+        for button in (self.auto_pickup, self.use_fatigue_medicine,
+                       self.auto_cape_island_investment, self.auto_rubbish_recycling):
+            button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+            options_layout.addWidget(button)
+        options_layout.addStretch(1)
+        form_stack.addWidget(self.additional_options)
+        medicine_form = QFormLayout()
+        medicine_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        self.fatigue_medicine_max_uses.setMaximumWidth(220)
+        self.medicine_limit_label = QLabel("疲劳药使用上限", content)
+        medicine_form.addRow(self.medicine_limit_label, self.fatigue_medicine_max_uses)
+        form_stack.addLayout(medicine_form)
 
-        self.auto_cape_island_investment = QCheckBox("是否自动进行蜃息岛投资", content)
-        form_stack.addWidget(self.auto_cape_island_investment)
-        self.auto_rubbish_recycling = QCheckBox("是否自动倒垃圾", content)
-        form_stack.addWidget(self.auto_rubbish_recycling)
         if self.preview_mode:
+            self.additional_options.hide()
+            self.recovery_heading.hide()
+            self.use_fatigue_medicine.hide()
+            self.fatigue_medicine_max_uses.hide()
+            self.medicine_limit_label.hide()
             self.auto_sparkling_water.hide()
             self.auto_bento.hide()
             self.bento_priority_panel.hide()
@@ -518,7 +637,7 @@ class TradePage(QWidget):
             self.auto_rubbish_recycling.hide()
 
         self.advanced_toggle = QToolButton(content)
-        self.advanced_toggle.setText("高级规划参数")
+        self.advanced_toggle.setText("账号与执行参数")
         self.advanced_toggle.setCheckable(True)
         self.advanced_toggle.setArrowType(Qt.ArrowType.RightArrow)
         self.advanced_toggle.toggled.connect(self._toggle_advanced)
@@ -531,24 +650,104 @@ class TradePage(QWidget):
         outer.addWidget(scroll, 1)
         return panel
 
+    def _build_end_city_selector(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        layout = QGridLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.automatic_end = QCheckBox("自动终点", panel)
+        self.automatic_end.setChecked(True)
+        self.automatic_end.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.automatic_end.toggled.connect(self._sync_end_city_options)
+        layout.addWidget(self.automatic_end, 0, 0, 1, 3, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.end_city_checks: dict[str, QPushButton] = {}
+        for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
+            button = QPushButton(name, panel)
+            button.setCheckable(True)
+            button.setProperty("cityOption", True)
+            self.end_city_checks[city_id] = button
+            layout.addWidget(button, 1 + index // 3, index % 3)
+        return panel
+
+    def _build_fixed_route_selector(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QLabel("点击城市追加线路，拖动调整顺序；双击移除。至少两站，可重复访问。", panel))
+        grid = QGridLayout()
+        for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
+            button = QPushButton(name, panel)
+            button.clicked.connect(lambda _checked=False, city=city_id: self.add_route_city(city))
+            grid.addWidget(button, index // 3, index % 3)
+        layout.addLayout(grid)
+        self.fixed_route = QListWidget(panel)
+        self.fixed_route.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.fixed_route.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.fixed_route.setMaximumHeight(160)
+        self.fixed_route.itemDoubleClicked.connect(lambda item: self.fixed_route.takeItem(self.fixed_route.row(item)))
+        layout.addWidget(self.fixed_route)
+        self.reposition_to_route = QCheckBox("导航到线路起点", panel)
+        layout.addWidget(self.reposition_to_route)
+        return panel
+
+    def add_route_city(self, city_id: str) -> None:
+        names = dict(PC_TRADE_CITY_OPTIONS)
+        if city_id not in names:
+            raise ValueError("未知线路城市")
+        item = QListWidgetItem(names[city_id])
+        item.setData(Qt.ItemDataRole.UserRole, city_id)
+        self.fixed_route.addItem(item)
+
+    def trade_mode(self) -> str:
+        return next((mode for mode, button in self.mode_buttons.items() if button.isChecked()), "profit")
+
+    def _sync_mode_controls(self, *_args: object) -> None:
+        if not hasattr(self, "fixed_panel"):
+            return
+        mode = self.trade_mode()
+        was_quick = getattr(self, "_was_quick", False)
+        if mode == "quick" and not was_quick:
+            self._retained_book_policy = str(self.book_policy.currentData())
+            self._retained_negotiation_policy = str(self.negotiation_policy.currentData())
+        self._was_quick = mode == "quick"
+        self.book_policy.setCurrentIndex(self.book_policy.findData("fill" if mode == "quick" else self._retained_book_policy) if was_quick or mode == "quick" else self.book_policy.currentIndex())
+        self.negotiation_policy.setCurrentIndex(self.negotiation_policy.findData("required" if mode == "quick" else self._retained_negotiation_policy) if was_quick or mode == "quick" else self.negotiation_policy.currentIndex())
+        self.book_policy.setEnabled(mode != "quick" and not self._busy)
+        self.negotiation_policy.setEnabled(mode != "quick" and not self._busy)
+        self.nonfixed_panel.setVisible(mode != "fixed")
+        self.fixed_panel.setVisible(mode == "fixed")
+        self.target_label.setVisible(mode == "target")
+        self.target_profit.setVisible(mode == "target")
+        self.common_parameters.set_field_visible(self.target_profit, mode == "target")
+        self._sync_start_city_options()
+
+    def _sync_book_controls(self, *_args: object) -> None:
+        finite = self.book_usage.currentData() == "finite"
+        self.book_budget.setVisible(finite)
+        self.book_budget_label.setVisible(finite)
+        self.common_parameters.set_field_visible(self.book_budget, finite)
+        self.book_budget.setEnabled(finite and not self._busy)
+
     def _build_bento_priority_panel(self, parent: QWidget) -> QWidget:
         panel = QWidget(parent)
         self._bento_layout = QVBoxLayout(panel)
         self._bento_layout.setContentsMargins(0, 0, 0, 0)
         self._bento_layout.addWidget(QLabel("便当类型优先级", panel))
+        self._bento_rows_layout = QHBoxLayout()
+        self._bento_rows_layout.setSpacing(16)
+        self._bento_layout.addLayout(self._bento_rows_layout)
         self._bento_order = ["work_meals", "love_bentos"]
         self.bento_type_checks: dict[str, QCheckBox] = {}
         self._bento_rows: dict[str, QWidget] = {}
         self.bento_move_buttons: dict[tuple[str, int], QToolButton] = {}
         for key, label in (("work_meals", "工作餐"), ("love_bentos", "爱心便当")):
             row = QWidget(panel)
+            row.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
             layout = QHBoxLayout(row)
             layout.setContentsMargins(0, 0, 0, 0)
             check = QCheckBox(label, row)
             self.bento_type_checks[key] = check
             check.toggled.connect(self._save_bento_priority)
             layout.addWidget(check)
-            layout.addStretch(1)
             for delta, arrow, caption in (
                 (-1, Qt.ArrowType.UpArrow, "上移"),
                 (1, Qt.ArrowType.DownArrow, "下移"),
@@ -564,14 +763,15 @@ class TradePage(QWidget):
                 self.bento_move_buttons[key, delta] = button
                 layout.addWidget(button)
             self._bento_rows[key] = row
-            self._bento_layout.addWidget(row)
+            self._bento_rows_layout.addWidget(row)
+        self._bento_rows_layout.addStretch(1)
         self._sync_bento_order()
         return panel
 
     def _sync_bento_order(self) -> None:
         for index, key in enumerate(self._bento_order):
-            self._bento_layout.removeWidget(self._bento_rows[key])
-            self._bento_layout.insertWidget(index + 1, self._bento_rows[key])
+            self._bento_rows_layout.removeWidget(self._bento_rows[key])
+            self._bento_rows_layout.insertWidget(index, self._bento_rows[key])
             self.bento_move_buttons[key, -1].setEnabled(index > 0)
             self.bento_move_buttons[key, 1].setEnabled(index < len(self._bento_order) - 1)
 
@@ -603,13 +803,8 @@ class TradePage(QWidget):
         self._settings.save_trade_inputs(values)
 
     def _build_advanced_panel(self, parent: QWidget) -> QWidget:
-        panel = QWidget(parent)
-        form = QFormLayout(panel)
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
-        self.book_profit_threshold = QDoubleSpinBox(panel)
-        self.book_profit_threshold.setRange(0, 1_000_000_000)
-        self.book_profit_threshold.setDecimals(2)
+        panel = CompactParameterGrid(parent)
+        form = panel
         self.negotiation_max_attempts = self._spin(1, 6)
         self.negotiation_max_attempts.setToolTip(
             "每次买入砍价或卖出抬价分别计数；达到上限仍未满 20% 时按当前价格继续成交"
@@ -620,29 +815,25 @@ class TradePage(QWidget):
         self.raise_rates = QLineEdit(panel)
         self.raise_rates.setPlaceholderText("5000, 5000")
         self.raise_step = self._spin(1, 2000)
-        self.trade_level = self._spin(1, 20)
         self._city_prestige_default = 20
         self._city_prestige_overrides: dict[str, int] = {}
         self.city_prestige_button = QPushButton("设置城市声望", panel)
         self.city_prestige_button.clicked.connect(self._edit_city_prestige)
         self.product_unlock_button = QPushButton("设置商品解锁", panel)
         self.product_unlock_button.clicked.connect(self._edit_product_unlocks)
-        self.active_events = QLineEdit(panel)
-        self.active_events.setPlaceholderText("活动 ID，使用逗号分隔")
-        form.addRow("进货书收益阈值", self.book_profit_threshold)
         if self.preview_mode:
             self.negotiation_max_attempts.setParent(panel)
             self.negotiation_max_attempts.hide()
         else:
-            form.addRow("单次协商最大尝试次数", self.negotiation_max_attempts)
-        form.addRow("砍价成功率(bps)", self.bargain_rates)
-        form.addRow("砍价幅度(bps)", self.bargain_step)
-        form.addRow("抬价成功率(bps)", self.raise_rates)
-        form.addRow("抬价幅度(bps)", self.raise_step)
-        form.addRow("贸易等级", self.trade_level)
-        form.addRow("城市声望", self.city_prestige_button)
-        form.addRow("商品解锁", self.product_unlock_button)
-        form.addRow("活动", self.active_events)
+            form.add_field("协商尝试上限", self.negotiation_max_attempts)
+        form.add_field("砍价成功率(bps)", self.bargain_rates)
+        form.add_field("砍价幅度(bps)", self.bargain_step)
+        form.add_field("抬价成功率(bps)", self.raise_rates)
+        form.add_field("抬价幅度(bps)", self.raise_step)
+        form.add_field("城市声望", self.city_prestige_button)
+        form.add_field("商品解锁", self.product_unlock_button)
+        if not self.preview_mode:
+            form.add_field("到站等待上限", self.arrival_timeout_minutes)
         return panel
 
     def _build_city_selector(self, parent: QWidget) -> QWidget:
@@ -650,6 +841,17 @@ class TradePage(QWidget):
         layout = QVBoxLayout(selector)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
+        self.city_selector_toggle = QToolButton(selector)
+        self.city_selector_toggle.setText("参与规划城市 · 已选 0 城")
+        self.city_selector_toggle.setCheckable(True)
+        self.city_selector_toggle.setArrowType(Qt.ArrowType.RightArrow)
+        self.city_selector_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.city_selector_toggle.setToolTip("展开城市按钮网格；至少选择两城。当前选项不会因收起而改变。")
+        layout.addWidget(self.city_selector_toggle)
+        self.city_buttons_panel = QWidget(selector)
+        button_layout = QVBoxLayout(self.city_buttons_panel)
+        button_layout.setContentsMargins(0, 4, 0, 0)
+        self.city_selector_toggle.toggled.connect(self._toggle_city_selector)
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(6)
@@ -666,7 +868,7 @@ class TradePage(QWidget):
             grid.addWidget(button, index // 3, index % 3)
         for column in range(3):
             grid.setColumnStretch(column, 1)
-        layout.addLayout(grid)
+        button_layout.addLayout(grid)
 
         actions = QHBoxLayout()
         actions.setContentsMargins(0, 0, 0, 0)
@@ -680,12 +882,23 @@ class TradePage(QWidget):
         actions.addWidget(select_all)
         actions.addWidget(clear_all)
         actions.addStretch(1)
-        layout.addLayout(actions)
+        button_layout.addLayout(actions)
+        layout.addWidget(self.city_buttons_panel)
+        self.city_buttons_panel.hide()
         return selector
 
+    def _toggle_city_selector(self, expanded: bool) -> None:
+        self.city_buttons_panel.setVisible(expanded)
+        self.city_selector_toggle.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+
     def _build_execution_panel(self) -> QWidget:
-        panel = QWidget(self)
+        self.execution_scroll = QScrollArea(self)
+        self.execution_scroll.setWidgetResizable(True)
+        self.execution_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        panel = QWidget(self.execution_scroll)
+        self.execution_scroll.setWidget(panel)
         layout = QVBoxLayout(panel)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.setContentsMargins(18, 14, 18, 12)
         layout.setSpacing(10)
         heading = QVBoxLayout() if self.preview_mode else QHBoxLayout()
@@ -707,6 +920,7 @@ class TradePage(QWidget):
         layout.addLayout(heading)
 
         self.route_tree = QTreeWidget(panel)
+        self.route_tree.setMinimumHeight(160)
         self.route_tree.setColumnCount(6)
         self.route_tree.setHeaderLabels(["路线", "计划买入", "疲劳 / 书", "协商", "预计收益", "状态"])
         self.route_tree.setRootIsDecorated(False)
@@ -748,8 +962,13 @@ class TradePage(QWidget):
         self.result_captions: dict[str, QLabel] = {}
         fields = (
             ("status", "方案状态"),
+            ("trade_mode", "货运模式"),
+            ("planning_status", "规划状态"),
             ("expected_profit", "预计收益"),
             ("fatigue", "预计疲劳"),
+            ("reposition_fatigue", "预计定位疲劳（包含在总疲劳内）"),
+            ("actual_profit", "实际收益（已确认）"),
+            ("actual_fatigue", "实际疲劳（已读取）"),
             ("profit_per_fatigue", "疲劳收益比"),
             ("route", "路线规模"),
             ("books", "进货书"),
@@ -760,10 +979,14 @@ class TradePage(QWidget):
         for index, (key, title) in enumerate(fields):
             row, col = divmod(index, 2 if self.preview_mode else 4)
             box = QVBoxLayout()
+            box.setSpacing(2)
             caption = QLabel(title, self.result_band)
             caption.setProperty("caption", True)
+            caption.setWordWrap(True)
+            caption.setMinimumHeight(caption.fontMetrics().height() + 4)
             value = QLabel("--", self.result_band)
             value.setProperty("value", True)
+            value.setMinimumHeight(value.fontMetrics().height() + 4)
             if self.preview_mode:
                 value.setWordWrap(True)
             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -791,7 +1014,7 @@ class TradePage(QWidget):
         self.debug_view.setVisible(False)
         result_layout.addWidget(self.debug_view)
         layout.addWidget(self.result_band, 2)
-        return panel
+        return self.execution_scroll
 
     def _build_action_bar(self) -> QWidget:
         band = QFrame(self)
@@ -842,6 +1065,8 @@ class TradePage(QWidget):
         self._sync_city_controls()
 
     def _sync_city_controls(self) -> None:
+        if hasattr(self, "city_selector_toggle"):
+            self.city_selector_toggle.setText(f"参与规划城市 · 已选 {len(self.selected_city_ids())} 城")
         self._sync_start_city_options()
         self._sync_end_city_options()
 
@@ -915,7 +1140,7 @@ class TradePage(QWidget):
         if self.start_city is None:
             return
         current_city_id = str(self.start_city.currentData() or "")
-        selected = set(self.selected_city_ids())
+        selected = set(dict(PC_TRADE_CITY_OPTIONS)) if self.trade_mode() == "fixed" else set(self.selected_city_ids())
         self.start_city.blockSignals(True)
         self.start_city.clear()
         self.start_city.addItem("请选择起始城市", "")
@@ -928,19 +1153,16 @@ class TradePage(QWidget):
         self._sync_actions()
 
     def _sync_end_city_options(self) -> None:
-        if not hasattr(self, "end_city"):
+        if not hasattr(self, "end_city_checks"):
             return
-        current_city_id = str(self.end_city.currentData() or "")
         selected = set(self.selected_city_ids())
-        self.end_city.blockSignals(True)
-        self.end_city.clear()
-        self.end_city.addItem("否", "")
-        for city_id, city_name in PC_TRADE_CITY_OPTIONS:
-            if city_id in selected:
-                self.end_city.addItem(city_name, city_id)
-        index = self.end_city.findData(current_city_id)
-        self.end_city.setCurrentIndex(max(index, 0))
-        self.end_city.blockSignals(False)
+        self.automatic_end.setEnabled(self._end_city_constraint_available and not self._busy)
+        for city_id, button in self.end_city_checks.items():
+            button.setVisible(not self.automatic_end.isChecked())
+            button.setEnabled(city_id in selected and not self.automatic_end.isChecked()
+                              and self._end_city_constraint_available and not self._busy)
+            if city_id not in selected:
+                button.setChecked(False)
         self._sync_actions()
 
     def selected_city_ids(self) -> list[str]:
@@ -951,19 +1173,32 @@ class TradePage(QWidget):
             {key: inputs[key] for key in TRADE_PREVIEW_INPUT_KEYS if key in inputs}
             if self.preview_mode else dict(inputs)
         )
-        self.fatigue_budget.setValue(int(values.get("fatigue_budget", 700)))
-        self.cargo_capacity.setValue(int(values.get("cargo_capacity", 750)))
-        self.book_budget.setValue(int(values.get("book_budget", 0)))
-        self.set_auto_book(bool(values.get("auto_book", False)))
-        arrival_timeout_seconds = max(int(values.get("arrival_timeout_seconds", 3600)), 1)
+        self.fatigue_budget.setValue(self._input_integer(values, "fatigue_budget", 700))
+        self.cargo_capacity.setValue(self._input_integer(values, "cargo_capacity", 750, minimum=1))
+        budget = values.get("book_budget", 0)
+        if budget is not None and (type(budget) is not int or budget < 0):
+            raise ValueError("进货书必须为非负整数或无限。")
+        self.book_budget.setValue(self._input_integer(values, "finite_book_budget", budget if budget is not None else 0))
+        enabled = bool(values.get("books_enabled", budget is None or bool(budget)))
+        unlimited = bool(values.get("books_unlimited", budget is None))
+        self.book_usage.setCurrentIndex(self.book_usage.findData("unlimited" if enabled and unlimited else "finite" if enabled else "none"))
+        arrival_timeout_seconds = self._input_integer(values, "arrival_timeout_seconds", 3600, minimum=1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
-        self.book_profit_threshold.setValue(float(values.get("book_profit_threshold", 500000)))
-        self.negotiation_max_attempts.setValue(int(values.get("negotiation_max_attempts", 5)))
+        self.book_profit_threshold.setValue(float(Decimal(str(values.get("book_profit_threshold", 500000))) / Decimal(10000)))
+        self.target_profit.setValue(float(Decimal(str(values.get("target_profit") or 0)) / Decimal(10000)))
+        self._was_quick = False
+        self.book_policy.setCurrentIndex(max(self.book_policy.findData(values.get("book_policy", "profit")), 0))
+        self.negotiation_policy.setCurrentIndex(max(self.negotiation_policy.findData(values.get("negotiation_policy", "auto")), 0))
+        self.fixed_route.clear()
+        for city in values.get("fixed_route_city_ids", []) or []:
+            self.add_route_city(str(city))
+        self.reposition_to_route.setChecked(bool(values.get("reposition_to_route", False)))
+        self.mode_buttons.get(str(values.get("trade_mode", "profit")), self.mode_buttons["profit"]).setChecked(True)
+        self.negotiation_max_attempts.setValue(self._input_integer(values, "negotiation_max_attempts", 5, minimum=1, maximum=6))
         self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
         self.bargain_step.setValue(int(values.get("bargain_step_bps", 1000)))
         self.raise_rates.setText(self._join_values(values.get("raise_success_rates_bps", [5000])))
         self.raise_step.setValue(int(values.get("raise_step_bps", 1000)))
-        self.trade_level.setValue(int(values.get("trade_level", 20)))
         selected_city_ids = {
             str(city_id)
             for city_id in (values.get("available_city_ids") or DEFAULT_PC_TRADE_CITY_IDS)
@@ -980,11 +1215,9 @@ class TradePage(QWidget):
             if str(city_id) in selected_city_ids
         ]
         self._sync_end_city_options()
-        if required_end_city_ids:
-            end_city_index = self.end_city.findData(required_end_city_ids[0])
-            self.end_city.setCurrentIndex(max(end_city_index, 0))
-        else:
-            self.end_city.setCurrentIndex(0)
+        self.automatic_end.setChecked(not required_end_city_ids)
+        for city, button in self.end_city_checks.items():
+            button.setChecked(city in required_end_city_ids)
         prestige = values.get("city_prestige") if isinstance(values.get("city_prestige"), Mapping) else {}
         self._city_prestige_default = max(1, min(int(prestige.get("default", 20)), 20))
         overrides = prestige.get("overrides") if isinstance(prestige.get("overrides"), Mapping) else {}
@@ -1005,7 +1238,6 @@ class TradePage(QWidget):
         else:
             self._unlocked_product_ids = None
         self._update_product_unlock_button()
-        self.active_events.setText(self._join_values(values.get("active_events", [])))
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
         self.auto_bento.setChecked(bool(values.get("auto_bento", False)))
         priority = values.get("bento_priority", ["work_meals", "love_bentos"])
@@ -1016,8 +1248,11 @@ class TradePage(QWidget):
             check.blockSignals(blocked)
         self._sync_bento_order()
         self._sync_bento_type_checks()
-        self.base_fatigue_reserve.setValue(int(values.get("base_fatigue_reserve", 200)))
+        self.base_fatigue_reserve.setValue(self._input_integer(values, "base_fatigue_reserve", 200))
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
+        self.use_fatigue_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
+        self.allowed_fatigue_medicines = list(values.get("allowed_fatigue_medicines") or [])
+        self.fatigue_medicine_max_uses.setValue(self._input_integer(values, "fatigue_medicine_max_uses", 4))
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
@@ -1025,43 +1260,65 @@ class TradePage(QWidget):
             bool(values.get("auto_rubbish_recycling", True))
         )
         self._sync_city_controls()
+        self._sync_book_controls()
+        self._sync_mode_controls()
+
+    def restore_inputs(self, inputs: Mapping[str, Any]) -> None:
+        self.set_inputs(inputs)
+
+    @staticmethod
+    def _input_integer(values: Mapping[str, Any], key: str, default: int,
+                       *, minimum: int = 0, maximum: int | None = None) -> int:
+        value = values.get(key, default)
+        if type(value) is not int or value < minimum or (maximum is not None and value > maximum):
+            raise ValueError(f"{key} 必须为范围内的整数，不能使用布尔或小数。")
+        return value
 
     def collect_inputs(self, *, require_start_city: bool = False) -> dict[str, Any]:
         bargain_rates = self._parse_int_list(self.bargain_rates.text(), "砍价成功率", 0, 10000)
         raise_rates = self._parse_int_list(self.raise_rates.text(), "抬价成功率", 0, 10000)
         selected_city_ids = self.selected_city_ids()
-        if len(selected_city_ids) < 2:
+        mode = self.trade_mode()
+        if mode != "fixed" and len(selected_city_ids) < 2:
             raise ValueError("参与规划城市至少需要选择两个")
-        if self.preview_mode:
+        if self.preview_mode or require_start_city:
             start_city_id = str(self.start_city.currentData() or "") if self.start_city is not None else ""
             if not start_city_id:
                 raise ValueError("请选择起始城市")
-            if start_city_id not in selected_city_ids:
+            if mode != "fixed" and start_city_id not in selected_city_ids:
                 raise ValueError("起始城市必须属于参与规划城市")
-        end_city_id = str(self.end_city.currentData() or "")
-        if end_city_id and end_city_id not in selected_city_ids:
-            raise ValueError("终点城市必须属于参与规划城市")
-        required_end_city_ids = [end_city_id] if end_city_id else None
+        required_end_city_ids = None if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()]
+        if mode != "fixed" and required_end_city_ids == []:
+            raise ValueError("请至少指定一个终点，或选择自动终点")
         inputs = {
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
-            "book_budget": self.book_budget.value(),
-            "auto_book": self.auto_book.isChecked(),
-            "book_profit_threshold": self.book_profit_threshold.value(),
+            "trade_mode": mode,
+            "book_budget": None if self.book_usage.currentData() == "unlimited" else self.book_budget.value() if self.book_usage.currentData() == "finite" else 0,
+            "book_policy": str(self.book_policy.currentData()),
+            "negotiation_policy": str(self.negotiation_policy.currentData()),
+            "book_profit_threshold": self._amount_base_units(self.book_profit_threshold),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
             "raise_success_rates_bps": raise_rates,
             "raise_step_bps": self.raise_step.value(),
-            "trade_level": self.trade_level.value(),
             "available_city_ids": selected_city_ids,
             "required_end_city_ids": required_end_city_ids,
             "city_prestige": self._city_prestige_payload(),
             "product_unlocks": self._product_unlock_payload(),
-            "active_events": self._parse_text_list(self.active_events.text()),
         }
-        if self.preview_mode:
+        if mode == "fixed":
+            route = [str(self.fixed_route.item(index).data(Qt.ItemDataRole.UserRole)) for index in range(self.fixed_route.count())]
+            if len(route) < 2:
+                raise ValueError("固定线路至少需要两个城市")
+            inputs.update(fixed_route_city_ids=route, reposition_to_route=self.reposition_to_route.isChecked())
+        if mode == "target":
+            target = self._amount_base_units(self.target_profit)
+            if target <= 0:
+                raise ValueError("指定收益模式请填写正的目标收益")
+            inputs["target_profit"] = target
+        if self.preview_mode or require_start_city:
             inputs["start_city_id"] = start_city_id
-            return inputs
         if self.auto_bento.isChecked() and not self._selected_bento_priority():
             raise ValueError("自动吃便当开启时，便当类型至少选择一种。")
         inputs.update({
@@ -1072,13 +1329,43 @@ class TradePage(QWidget):
             "bento_priority": self._selected_bento_priority(),
             "base_fatigue_reserve": self.base_fatigue_reserve.value(),
             "auto_pickup": self.auto_pickup.isChecked(),
-            "use_fatigue_medicine": False,
-            "allowed_fatigue_medicines": [],
-            "fatigue_medicine_max_uses": 0,
+            "use_fatigue_medicine": self.use_fatigue_medicine.isChecked(),
+            "allowed_fatigue_medicines": list(self.allowed_fatigue_medicines),
+            "fatigue_medicine_max_uses": self.fatigue_medicine_max_uses.value(),
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         })
+        return normalize_trade_task_inputs(inputs)
+
+    @staticmethod
+    def _amount_base_units(field: QDoubleSpinBox) -> int:
+        # Formatting the four-decimal control first avoids binary float multiplication.
+        return int(Decimal(format(field.value(), ".4f")) * Decimal(10000))
+
+    def collect_task_inputs(self, *, preview: bool = False) -> dict[str, Any]:
+        inputs = self.collect_inputs(require_start_city=preview)
+        if not preview:
+            inputs.pop("start_city_id", None)
         return inputs
+
+    def collect_ui_state(self) -> dict[str, Any]:
+        """Preserve inactive mode fields without dispatching them to a task."""
+        state = self.collect_inputs()
+        state.update(books_enabled=self.book_usage.currentData() != "none",
+                     books_unlimited=self.book_usage.currentData() == "unlimited",
+                     finite_book_budget=self.book_budget.value(),
+                     available_city_ids=self.selected_city_ids(),
+                     required_end_city_ids=None if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()],
+                     fixed_route_city_ids=[str(self.fixed_route.item(index).data(Qt.ItemDataRole.UserRole)) for index in range(self.fixed_route.count())],
+                     reposition_to_route=self.reposition_to_route.isChecked(),
+                     target_profit=self._amount_base_units(self.target_profit) or None,
+                     book_policy=self._retained_book_policy if self.trade_mode() == "quick" else self.book_policy.currentData(),
+                     negotiation_policy=self._retained_negotiation_policy if self.trade_mode() == "quick" else self.negotiation_policy.currentData(),
+                     start_city_id=str(self.start_city.currentData() or ""))
+        return state
+
+    def save_ui_state(self) -> None:
+        self._save_inputs(self.collect_ui_state())
 
     def _request_start(self) -> None:
         if not self.preview_mode:
@@ -1094,25 +1381,9 @@ class TradePage(QWidget):
         except ValueError as exc:
             QMessageBox.warning(self, "参数错误", str(exc))
             return
-        self._save_inputs(inputs)
+        self._save_inputs(self.collect_ui_state())
         self._last_inputs = normalize_trade_task_inputs(inputs)
         signal.emit(dict(self._last_inputs), 0.0)
-
-    def _auto_book_toggled(self, checked: bool) -> None:
-        self._sync_auto_book_controls()
-        values = self._load_inputs()
-        values.update(auto_book=bool(checked), book_budget=self.book_budget.value())
-        self._save_inputs(values)
-        self.autoBookChanged.emit(bool(checked))
-
-    def set_auto_book(self, enabled: bool) -> None:
-        previous = self.auto_book.blockSignals(True)
-        self.auto_book.setChecked(bool(enabled))
-        self.auto_book.blockSignals(previous)
-        self._sync_auto_book_controls()
-
-    def _sync_auto_book_controls(self) -> None:
-        self.book_budget.setEnabled(not self._busy and not self.auto_book.isChecked())
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         if self.target_value is None:
@@ -1354,7 +1625,6 @@ class TradePage(QWidget):
         for widget in (
             self.fatigue_budget,
             self.cargo_capacity,
-            self.auto_book,
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
             self.auto_bento,
@@ -1367,25 +1637,25 @@ class TradePage(QWidget):
             self.advanced_panel,
             self.city_selector,
             self.start_city,
+            self.book_usage,
+            self.book_profit_threshold,
+            self.fixed_panel,
+            self.target_profit,
+            self.use_fatigue_medicine,
+            self.fatigue_medicine_max_uses,
+            *self.mode_buttons.values(),
         ):
             if widget is not None:
                 widget.setEnabled(not busy)
-        self.end_city.setEnabled(not busy and self._end_city_constraint_available)
-        self._sync_auto_book_controls()
+        self._sync_book_controls()
+        self._sync_end_city_options()
+        self._sync_mode_controls()
         self._sync_actions()
 
     def set_end_city_constraint_available(self, available: bool) -> None:
         self._end_city_constraint_available = bool(available)
-        self.end_city.setEnabled(not self._busy and self._end_city_constraint_available)
+        self._sync_end_city_options()
         self.end_city_notice.setVisible(not self._end_city_constraint_available)
-        if self._end_city_constraint_available:
-            self.end_city.setToolTip(
-                "选择“否”时由算法自由选择终点；指定城市必须属于参与规划城市"
-            )
-        else:
-            self.end_city.setToolTip(
-                "货运在客运前执行时，货运终点由客运线路决定，无法手动指定"
-            )
 
     def is_busy(self) -> bool:
         return self._busy
@@ -1456,7 +1726,7 @@ class TradePage(QWidget):
             item.setToolTip(5, labels.get(status, "待执行"))
             item.setTextAlignment(5, Qt.AlignmentFlag.AlignCenter)
             active = status in {"started", "active"}
-            background = QBrush(QColor("#dff3f2")) if active else QBrush()
+            background = QBrush(QColor("#e1e6d8")) if active else QBrush()
             for column in range(self.route_tree.columnCount()):
                 item.setBackground(column, background)
             if active:
@@ -1472,18 +1742,29 @@ class TradePage(QWidget):
         self.result_values["status"].setText(self._status_label(status))
         self.result_values["status"].setProperty(
             "status",
-            "success" if status in {"success", "completed", "ok", "no_plan"} else "warning" if status == "blocked" else "error",
+            "success" if status in {"success", "completed", "ok", "planned"} else "warning" if status in {"blocked", "stopped", "no_plan"} else "error",
         )
         self._render_overview(summary, route=summary.get("route") or [])
         messages = []
         if summary.get("reason"):
             messages.append(str(summary["reason"]))
+        error = summary.get("error")
+        if isinstance(error, Mapping):
+            messages.append(f"{error.get('code', '')}：{error.get('message', '')}".strip("："))
+        if summary.get("planning_status") == "target_unreachable":
+            messages.append("指定收益不可达；诊断路线不是可执行方案。")
         messages.extend(str(item) for item in (summary.get("warnings") or []) if str(item).strip())
         self.reason_label.setText("\n".join(messages))
         self.result_values["status"].style().unpolish(self.result_values["status"])
         self.result_values["status"].style().polish(self.result_values["status"])
 
     def _render_overview(self, summary: Mapping[str, Any], *, route: list[dict[str, Any]]) -> None:
+        self.result_values["trade_mode"].setText({"profit": "收益", "quick": "快速", "fixed": "固定线路", "target": "指定收益"}.get(str(summary.get("trade_mode")), "--"))
+        self.result_values["planning_status"].setText({"ok": "可执行", "no_plan": "无可行方案", "target_unreachable": "目标不可达", "fixed_route_infeasible": "固定线路不可行"}.get(str(summary.get("planning_status")), str(summary.get("planning_status") or "--")))
+        reposition = summary.get("reposition")
+        self.result_values["reposition_fatigue"].setText(self._display(reposition.get("expected_fatigue") if isinstance(reposition, Mapping) else summary.get("reposition_expected_fatigue")))
+        for field in ("actual_profit", "actual_fatigue"):
+            self.result_values[field].setText(self._display(summary.get(field)) if summary.get(field) is not None else "未知")
         average = average_book_profit_text(summary)
         self.result_captions["average_book_profit"].setVisible(average is not None)
         self.result_values["average_book_profit"].setVisible(average is not None)
@@ -1595,6 +1876,8 @@ class TradePage(QWidget):
             "success": "完成",
             "completed": "完成",
             "ok": "可执行",
+            "planned": "方案已计算（未执行）",
+            "stopped": "已停止",
             "no_positive_profit_route": "无可执行路线",
             "no_plan": "无可执行路线",
             "blocked": "已阻断",

@@ -4,32 +4,65 @@ auto_cycle_trade_pc:
     description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
     entry_point: true
     inputs:
-      - name: fatigue_budget
-        type: number
+      - name: trade_mode
+        type: string
         required: false
-        default: 100
-        min: 0
-      - name: cargo_capacity
-        type: number
+        default: profit
+        enum: [profit, quick, fixed, target]
+      - name: book_policy
+        type: string
         required: false
-        default: 650
-        min: 1
-      - name: book_budget
-        type: number
+        default: profit
+        enum: [profit, fill]
+      - name: negotiation_policy
+        type: string
         required: false
-        default: 0
-        min: 0
-      - name: auto_book
+        default: auto
+        enum: [auto, required, disabled]
+      - name: fixed_route_city_ids
+        type: list
+        required: false
+        item:
+          name: city_id
+          type: string
+          required: true
+      - name: reposition_to_route
         type: boolean
         required: false
         default: false
+      - name: target_profit
+        type: number
+        strict_integer: true
+        required: false
+        min: 1
+      - name: fatigue_budget
+        type: number
+        strict_integer: true
+        required: false
+        default: 700
+        min: 0
+      - name: cargo_capacity
+        type: number
+        strict_integer: true
+        required: false
+        default: 750
+        min: 1
+      - name: book_budget
+        type: number
+        strict_integer: true
+        nullable: true
+        required: false
+        default: 0
+        min: 0
       - name: book_profit_threshold
         type: number
+        strict_integer: true
         required: false
         default: 500000
         min: 0
       - name: negotiation_max_attempts
         type: number
+        strict_integer: true
         required: false
         default: 5
         min: 1
@@ -43,11 +76,13 @@ auto_cycle_trade_pc:
         item:
           name: bargain_success_rate_bps
           type: number
+          strict_integer: true
           required: true
           min: 0
           max: 10000
       - name: bargain_step_bps
         type: number
+        strict_integer: true
         required: false
         default: 1000
         min: 1
@@ -61,21 +96,17 @@ auto_cycle_trade_pc:
         item:
           name: raise_success_rate_bps
           type: number
+          strict_integer: true
           required: true
           min: 0
           max: 10000
       - name: raise_step_bps
         type: number
+        strict_integer: true
         required: false
         default: 1000
         min: 1
         max: 2000
-      - name: trade_level
-        type: number
-        required: false
-        default: 20
-        min: 1
-        max: 20
       - name: available_city_ids
         type: list
         required: false
@@ -224,10 +255,6 @@ auto_cycle_trade_pc:
               name: product_id
               type: string
               required: true
-      - name: active_events
-        type: list
-        required: false
-        default: []
       - name: use_fatigue_medicine
         type: boolean
         required: false
@@ -238,6 +265,7 @@ auto_cycle_trade_pc:
         default: []
       - name: fatigue_medicine_max_uses
         type: number
+        strict_integer: true
         required: false
         default: 4
       - name: arrival_timeout_seconds
@@ -248,7 +276,7 @@ auto_cycle_trade_pc:
       - name: auto_cape_island_investment
         type: boolean
         required: false
-        default: false
+        default: true
       - name: auto_pickup
         type: boolean
         required: false
@@ -263,6 +291,7 @@ auto_cycle_trade_pc:
         default: false
       - name: base_fatigue_reserve
         type: number
+        strict_integer: true
         required: false
         default: 200
         min: 0
@@ -352,27 +381,30 @@ auto_cycle_trade_pc:
     run:
       action: resonance_pc.auto_cycle_trade_flow
       params:
-        fatigue_budget: "{{ inputs.fatigue_budget | default(100) }}"
-        cargo_capacity: "{{ inputs.cargo_capacity | default(650) }}"
+        trade_mode: "{{ inputs.trade_mode }}"
+        book_policy: "{{ inputs.book_policy }}"
+        negotiation_policy: "{{ inputs.negotiation_policy }}"
+        fixed_route_city_ids: "{{ inputs.fixed_route_city_ids }}"
+        reposition_to_route: "{{ inputs.reposition_to_route }}"
+        target_profit: "{{ inputs.target_profit }}"
+        fatigue_budget: "{{ inputs.fatigue_budget | default(700) }}"
+        cargo_capacity: "{{ inputs.cargo_capacity | default(750) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
-        auto_book: "{{ inputs.auto_book | default(false) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(500000) }}"
         negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
         raise_success_rates_bps: "{{ inputs.raise_success_rates_bps | default([5000]) }}"
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
-        trade_level: "{{ inputs.trade_level | default(20) }}"
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
-        active_events: "{{ inputs.active_events | default([]) }}"
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(3600) }}"
-        auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(false) }}"
+        auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(true) }}"
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
@@ -405,11 +437,45 @@ auto_cycle_trade_pc:
         auto_bento: "{{ inputs.auto_bento }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
+    error: "{{ nodes.finish.output.error | default(none) }}"
+    trade_mode: "{{ nodes.finish.output.trade_mode | default(none) }}"
+    request_kind: "{{ nodes.finish.output.request_kind | default(none) }}"
+    input_snapshot: "{{ nodes.finish.output.input_snapshot | default(none) }}"
+    planning_status: "{{ nodes.finish.output.planning_status | default(none) }}"
+    book_budget: "{{ nodes.finish.output.book_budget | default(none) }}"
+    book_budget_unlimited: "{{ nodes.finish.output.book_budget_unlimited | default(none) }}"
+    book_policy: "{{ nodes.finish.output.book_policy | default(none) }}"
+    negotiation_policy: "{{ nodes.finish.output.negotiation_policy | default(none) }}"
+    city_visits: "{{ nodes.finish.output.city_visits | default(none) }}"
+    reposition: "{{ nodes.finish.output.reposition | default(none) }}"
+    reposition_route: "{{ nodes.finish.output.reposition_route | default(none) }}"
+    reposition_expected_fatigue: "{{ nodes.finish.output.reposition_expected_fatigue | default(none) }}"
+    reposition_expected_fatigue_exact: "{{ nodes.finish.output.reposition_expected_fatigue_exact | default(none) }}"
+    route_expected_fatigue: "{{ nodes.finish.output.route_expected_fatigue | default(none) }}"
+    route_expected_fatigue_exact: "{{ nodes.finish.output.route_expected_fatigue_exact | default(none) }}"
+    total_expected_fatigue: "{{ nodes.finish.output.total_expected_fatigue | default(none) }}"
+    total_expected_fatigue_exact: "{{ nodes.finish.output.total_expected_fatigue_exact | default(none) }}"
+    target_profit: "{{ nodes.finish.output.target_profit | default(none) }}"
+    target_profit_exact: "{{ nodes.finish.output.target_profit_exact | default(none) }}"
+    target_reached: "{{ nodes.finish.output.target_reached | default(none) }}"
+    target_gap: "{{ nodes.finish.output.target_gap | default(none) }}"
+    target_gap_exact: "{{ nodes.finish.output.target_gap_exact | default(none) }}"
+    maximum_reachable_profit: "{{ nodes.finish.output.maximum_reachable_profit | default(none) }}"
+    maximum_reachable_profit_exact: "{{ nodes.finish.output.maximum_reachable_profit_exact | default(none) }}"
+    fixed_route_city_ids: "{{ nodes.finish.output.fixed_route_city_ids | default(none) }}"
+    fixed_route_closed: "{{ nodes.finish.output.fixed_route_closed | default(none) }}"
+    completed_circuits: "{{ nodes.finish.output.completed_circuits | default(none) }}"
+    partial_circuit_legs: "{{ nodes.finish.output.partial_circuit_legs | default(none) }}"
+    partial_circuit_city_path_ids: "{{ nodes.finish.output.partial_circuit_city_path_ids | default(none) }}"
+    termination_route_position: "{{ nodes.finish.output.termination_route_position | default(none) }}"
+    termination_city_id: "{{ nodes.finish.output.termination_city_id | default(none) }}"
+    stop_reason: "{{ nodes.finish.output.stop_reason | default(none) }}"
+    diagnostics: "{{ nodes.finish.output.diagnostics | default(none) }}"
+    resources: "{{ nodes.finish.output.resources | default(none) }}"
     success: "{{ nodes.finish.output.success }}"
     status: "{{ nodes.finish.output.status }}"
     reason: "{{ nodes.finish.output.reason }}"
     snapshot_id: "{{ nodes.finish.output.snapshot_id }}"
-    all_plan: "{{ nodes.finish.output.all_plan }}"
     city_path: "{{ nodes.finish.output.city_path }}"
     city_path_ids: "{{ nodes.finish.output.city_path_ids }}"
     required_end_city_ids: "{{ nodes.finish.output.required_end_city_ids }}"
@@ -422,9 +488,6 @@ auto_cycle_trade_pc:
     expected_fatigue_used_exact: "{{ nodes.finish.output.expected_fatigue_used_exact }}"
     remaining_expected_fatigue: "{{ nodes.finish.output.remaining_expected_fatigue }}"
     remaining_expected_fatigue_exact: "{{ nodes.finish.output.remaining_expected_fatigue_exact }}"
-    books_budget: "{{ nodes.finish.output.books_budget }}"
-    auto_book: "{{ nodes.finish.output.auto_book }}"
-    book_budget_ignored: "{{ nodes.finish.output.book_budget_ignored }}"
     book_profit_threshold: "{{ nodes.finish.output.book_profit_threshold }}"
     book_incremental_profit: "{{ nodes.finish.output.book_incremental_profit }}"
     book_incremental_profit_exact: "{{ nodes.finish.output.book_incremental_profit_exact }}"
@@ -432,13 +495,10 @@ auto_cycle_trade_pc:
     average_book_profit_exact: "{{ nodes.finish.output.average_book_profit_exact }}"
     books_used: "{{ nodes.finish.output.books_used }}"
     remaining_books: "{{ nodes.finish.output.remaining_books }}"
-    negotiation_budget: "{{ nodes.finish.output.negotiation_budget }}"
     negotiation_max_attempts: "{{ nodes.finish.output.negotiation_max_attempts }}"
-    negotiation_budget_ignored: "{{ nodes.finish.output.negotiation_budget_ignored }}"
     full_negotiation_used: "{{ nodes.finish.output.full_negotiation_used }}"
     full_bargain_count: "{{ nodes.finish.output.full_bargain_count }}"
     full_raise_count: "{{ nodes.finish.output.full_raise_count }}"
-    remaining_negotiation: "{{ nodes.finish.output.remaining_negotiation }}"
     assumptions: "{{ nodes.finish.output.assumptions }}"
     warnings: "{{ nodes.finish.output.warnings }}"
     route: "{{ nodes.finish.output.route }}"

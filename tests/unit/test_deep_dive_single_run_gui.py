@@ -1,10 +1,11 @@
 """The new board-only test must stay separate from the existing entry button."""
 
 import os
+import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QCoreApplication, QEvent, QSettings
 from PySide6.QtWidgets import QApplication
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -40,4 +41,14 @@ def test_single_run_button_dispatches_board_only_task(tmp_path):
         assert "unsupported_event" in panel.status_label.text()
     finally:
         window.close()
-        app.processEvents()
+        # closeEvent starts an asynchronous bridge shutdown. One event pump
+        # can leave its QThread alive until interpreter teardown, where Qt
+        # aborts the process even though pytest reported all tests passed.
+        deadline = time.monotonic() + 3.
+        while (not window._close_ready or window._bridge_thread.isRunning()) and time.monotonic() < deadline:
+            app.processEvents()
+            time.sleep(.01)
+        assert window._bridge_closed and window._close_ready, "GUI bridge did not finish normal shutdown"
+        assert not window._bridge_thread.isRunning(), "GUI bridge thread is still running"
+        window.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

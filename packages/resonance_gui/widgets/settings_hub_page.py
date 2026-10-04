@@ -4,20 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFileDialog,
     QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QListWidget,
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -29,6 +30,7 @@ from packages.aura_game.executable_locator import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from .toggle_button import ToggleButton as QCheckBox
 
 
 GAME_DISPLAY_NAME = "雷索纳斯"
@@ -99,6 +101,7 @@ class SettingsHubPage(QWidget):
         page = QFrame(self)
         page.setObjectName("workflowPanel")
         layout = QVBoxLayout(page)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.setContentsMargins(22, 20, 22, 20)
         title = QLabel("设置 · 游戏与启动", page)
         title.setObjectName("workflowTitle")
@@ -132,15 +135,19 @@ class SettingsHubPage(QWidget):
         startup = QFrame(page)
         startup.setObjectName("linenInset")
         startup_layout = QVBoxLayout(startup)
+        startup_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         startup_layout.addWidget(self._section("进入主界面", startup))
         startup_form = QFormLayout()
-        self.launch_if_needed = QCheckBox("游戏未运行时自动启动", startup)
+        startup_form.setVerticalSpacing(10)
+        startup_form.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        self.launch_if_needed = QCheckBox("自动启动游戏", startup)
+        self.launch_if_needed.setToolTip("游戏未运行时，使用已保存的程序路径启动游戏")
         self.window_timeout = QSpinBox(startup)
         self.window_timeout.setRange(1, 600)
         self.window_timeout.setSuffix(" 秒")
         self.settle_rounds = QSpinBox(startup)
         self.settle_rounds.setRange(1, 3600)
-        startup_form.addRow("启动行为", self.launch_if_needed)
+        startup_form.addRow(self.launch_if_needed)
         startup_form.addRow("窗口等待上限", self.window_timeout)
         startup_form.addRow("识别轮次", self.settle_rounds)
         startup_layout.addLayout(startup_form)
@@ -149,18 +156,22 @@ class SettingsHubPage(QWidget):
         close = QFrame(page)
         close.setObjectName("linenInset")
         close_layout = QVBoxLayout(close)
+        close_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         close_layout.addWidget(self._section("关闭游戏", close))
         close_form = QFormLayout()
+        close_form.setVerticalSpacing(10)
+        close_form.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         self.close_mode = QComboBox(close)
         self.close_mode.addItem("正常关闭，失败时结束进程", True)
         self.close_mode.addItem("仅正常关闭", False)
         self.close_timeout = QSpinBox(close)
         self.close_timeout.setRange(0, 120)
         self.close_timeout.setSuffix(" 秒")
-        self.close_on_failure = QCheckBox("流程失败时仍执行关闭游戏", close)
+        self.close_on_failure = QCheckBox("失败后关闭游戏", close)
+        self.close_on_failure.setToolTip("流程失败时仍执行关闭游戏步骤，使用上方选择的关闭方式")
         close_form.addRow("关闭方式", self.close_mode)
         close_form.addRow("等待退出时间", self.close_timeout)
-        close_form.addRow("失败清理", self.close_on_failure)
+        close_form.addRow(self.close_on_failure)
         close_layout.addLayout(close_form)
         two_columns.addWidget(close, 1)
         layout.addLayout(two_columns)
@@ -190,7 +201,13 @@ class SettingsHubPage(QWidget):
         self.advanced_panel.hide()
         layout.addWidget(self.advanced_panel)
         layout.addStretch(1)
-        return page
+        scroll = QScrollArea(self)
+        scroll.setObjectName("settingsGameScroll")
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(page)
+        return scroll
 
     def _toggle_advanced(self, expanded: bool) -> None:
         self.advanced_panel.setVisible(expanded)

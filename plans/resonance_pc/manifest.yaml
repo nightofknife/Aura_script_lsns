@@ -936,19 +936,39 @@ exports:
     - name: fatigue_budget
       type: Any
       required: false
-      default: 100
+      default: 700
     - name: cargo_capacity
       type: Any
       required: false
-      default: 650
+      default: 750
     - name: book_budget
       type: Any
       required: false
       default: 0
-    - name: auto_book
+    - name: trade_mode
+      type: Any
+      required: false
+      default: profit
+    - name: book_policy
+      type: Any
+      required: false
+      default: profit
+    - name: negotiation_policy
+      type: Any
+      required: false
+      default: auto
+    - name: fixed_route_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: reposition_to_route
       type: Any
       required: false
       default: false
+    - name: target_profit
+      type: Any
+      required: false
+      default: null
     - name: book_profit_threshold
       type: Any
       required: false
@@ -971,10 +991,6 @@ exports:
       type: Any
       required: false
       default: 1000
-    - name: trade_level
-      type: Any
-      required: false
-      default: 20
     - name: available_city_ids
       type: Any
       required: false
@@ -991,10 +1007,6 @@ exports:
       type: Any
       required: false
       default: null
-    - name: active_events
-      type: Any
-      required: false
-      default: null
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -1007,19 +1019,39 @@ exports:
     - name: fatigue_budget
       type: Any
       required: false
-      default: 100
+      default: 700
     - name: cargo_capacity
       type: Any
       required: false
-      default: 650
+      default: 750
     - name: book_budget
       type: Any
       required: false
       default: 0
-    - name: auto_book
+    - name: trade_mode
+      type: Any
+      required: false
+      default: profit
+    - name: book_policy
+      type: Any
+      required: false
+      default: profit
+    - name: negotiation_policy
+      type: Any
+      required: false
+      default: auto
+    - name: fixed_route_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: reposition_to_route
       type: Any
       required: false
       default: false
+    - name: target_profit
+      type: Any
+      required: false
+      default: null
     - name: book_profit_threshold
       type: Any
       required: false
@@ -1046,10 +1078,6 @@ exports:
       type: Any
       required: false
       default: 1000
-    - name: trade_level
-      type: Any
-      required: false
-      default: 20
     - name: available_city_ids
       type: Any
       required: false
@@ -1063,10 +1091,6 @@ exports:
       required: false
       default: null
     - name: product_unlocks
-      type: Any
-      required: false
-      default: null
-    - name: active_events
       type: Any
       required: false
       default: null
@@ -1089,7 +1113,7 @@ exports:
     - name: auto_cape_island_investment
       type: Any
       required: false
-      default: false
+      default: true
     - name: auto_rubbish_recycling
       type: Any
       required: false
@@ -2262,33 +2286,49 @@ exports:
     public: true
     read_only: true
     timeout: null
-    description: Plan the exact binary-to-cap maximum expected after-tax profit route
-      for one frozen market snapshot.
+    description: Plan one exact freight route using the selected trade objective and
+      frozen market snapshot.
     parameters:
     - name: fatigue_budget
       type: Any
       required: false
-      default: 100
+      default: 700
     - name: cargo_capacity
       type: Any
       required: false
-      default: 650
+      default: 750
     - name: book_budget
       type: Any
       required: false
       default: 0
+    - name: trade_mode
+      type: Any
+      required: false
+      default: profit
+    - name: book_policy
+      type: Any
+      required: false
+      default: profit
+    - name: negotiation_policy
+      type: Any
+      required: false
+      default: auto
+    - name: fixed_route_city_ids
+      type: Any
+      required: false
+      default: null
+    - name: reposition_to_route
+      type: Any
+      required: false
+      default: false
+    - name: target_profit
+      type: Any
+      required: false
+      default: null
     - name: book_profit_threshold
       type: Any
       required: false
       default: 500000
-    - name: negotiation_budget
-      type: Any
-      required: false
-      default: 0
-    - name: all_plan
-      type: Any
-      required: false
-      default: 0
     - name: bargain_success_rates_bps
       type: Any
       required: false
@@ -2307,10 +2347,6 @@ exports:
       type: Any
       required: false
       default: 1000
-    - name: trade_level
-      type: Any
-      required: false
-      default: 20
     - name: available_city_ids
       type: Any
       required: false
@@ -2324,10 +2360,6 @@ exports:
       required: false
       default: null
     - name: product_unlocks
-      type: Any
-      required: false
-      default: null
-    - name: active_events
       type: Any
       required: false
       default: null
@@ -2347,10 +2379,6 @@ exports:
       type: Any
       required: false
       default: null
-    - name: auto_book
-      type: Any
-      required: false
-      default: false
   - name: resonance_pc.trade_plan_next
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_next
@@ -3069,4 +3097,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-27T11:48:42Z'
+  generated_at: '2026-10-04T18:23:26Z'

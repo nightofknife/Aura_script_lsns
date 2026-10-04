@@ -8,7 +8,6 @@ from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QFrame,
@@ -37,6 +36,7 @@ from ..battle_catalog import (
     load_battle_routes,
 )
 from ..config_repository import ResonanceConfigRepository
+from .toggle_button import ToggleButton as QCheckBox
 from ..logic import extract_run_id, extract_status, pretty_json, render_result_text
 
 
@@ -206,7 +206,8 @@ class BattlePage(QWidget):
         title.setObjectName("pageTitle")
         title_row.addWidget(title)
         title_row.addStretch(1)
-        self.stop_on_failure = QCheckBox("普通失败时停止后续任务", panel)
+        self.stop_on_failure = QCheckBox("失败即停止", panel)
+        self.stop_on_failure.setToolTip("普通作战任务失败后，停止执行任务单中的后续任务")
         self.stop_on_failure.toggled.connect(self._save_inputs)
         title_row.addWidget(self.stop_on_failure)
         layout.addLayout(title_row)

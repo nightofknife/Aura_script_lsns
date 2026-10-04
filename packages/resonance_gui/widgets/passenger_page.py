@@ -6,13 +6,16 @@ from typing import Any, Mapping
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QCheckBox,
+    QButtonGroup,
     QComboBox,
     QFormLayout,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QTextBrowser,
     QVBoxLayout,
@@ -20,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from .toggle_button import ToggleButton as QCheckBox
 from ..passenger_catalog import PassengerRouteEstimate, load_passenger_route_catalog
 from ..logic import (
     PassengerProgressState,
@@ -101,56 +105,90 @@ class PassengerPage(QWidget):
     def _build_parameter_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
-        panel.setMinimumWidth(280)
-        panel.setMaximumWidth(330)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(20, 20, 20, 18)
-        title = QLabel("客运任务", panel)
-        title.setObjectName("pageTitle")
-        layout.addWidget(title)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        layout.setContentsMargins(18, 10, 18, 10)
+        layout.setSpacing(8)
         self.route_title = QLabel(panel)
         self.route_title.setObjectName("passengerRouteTitle")
         layout.addWidget(self.route_title)
         route_note = QLabel("自选线路 · 传单揽客 · 可选倒货", panel)
-        route_note.setObjectName("passengerRouteNote")
         route_note.setProperty("caption", True)
         layout.addWidget(route_note)
-        layout.addSpacing(22)
+        layout.addSpacing(8)
 
         input_title = QLabel("运行设置", panel)
         input_title.setObjectName("sectionTitle")
         layout.addWidget(input_title)
-        input_note = QLabel("设置单程次数，并按需启用倒货或自动归位。", panel)
-        input_note.setProperty("caption", True)
-        layout.addWidget(input_note)
-        layout.addSpacing(10)
-
         form = QFormLayout()
-        form.setSpacing(12)
-        self.city_a = QComboBox(panel)
-        self.city_b = QComboBox(panel)
-        for city in self._route_catalog.cities:
-            self.city_a.addItem(city.name, city.city_id)
-            self.city_b.addItem(city.name, city.city_id)
-        form.addRow("线路城市 A", self.city_a)
-        form.addRow("线路城市 B", self.city_b)
-
+        form.setSpacing(8)
         self.trip_count = QSpinBox(panel)
         self.trip_count.setRange(1, 198)
         self.trip_count.setSuffix(" 次")
         self.trip_count.valueChanged.connect(self._refresh_expected_fatigue)
         form.addRow("客运次数", self.trip_count)
-
-        self.trade_during_trip = QCheckBox("启用", panel)
+        layout.addLayout(form)
+        options = QHBoxLayout()
+        self.trade_during_trip = QCheckBox("中途买卖货", panel)
         self.trade_during_trip.setChecked(True)
         self.trade_during_trip.setToolTip("每程揽客前强制刷新行情，先卖后买；末站只清仓")
-        form.addRow("中途买卖货", self.trade_during_trip)
-
-        self.auto_reposition = QCheckBox("启用", panel)
+        self.auto_reposition = QCheckBox("自动前往线路", panel)
         self.auto_reposition.setChecked(True)
         self.auto_reposition.setToolTip("当前不在线路端点时，前往疲劳消耗较低的端点")
-        form.addRow("自动前往线路", self.auto_reposition)
-        layout.addLayout(form)
+        options.addWidget(self.trade_during_trip)
+        options.addWidget(self.auto_reposition)
+        layout.addLayout(options)
+
+        # One state adapter per endpoint keeps the existing workflow contract.
+        self.city_a = QComboBox(panel)
+        self.city_b = QComboBox(panel)
+        for city in self._route_catalog.cities:
+            self.city_a.addItem(city.name, city.city_id)
+            self.city_b.addItem(city.name, city.city_id)
+        self.city_a.hide()
+        self.city_b.hide()
+        layout.addWidget(QLabel("客运线路 · 点击端点更改", panel))
+        endpoint_summary = QHBoxLayout()
+        self.endpoint_selector_buttons: dict[str, QCheckBox] = {}
+        self.endpoint_panels: dict[str, QWidget] = {}
+        self.endpoint_buttons: dict[str, dict[str, QCheckBox]] = {}
+        self._endpoint_groups: list[QButtonGroup] = []
+        for endpoint in ("A", "B"):
+            selector = QCheckBox(f"{endpoint} · 选择城市", panel)
+            selector.setToolTip(f"展开线路城市 {endpoint} 的可选城市；选择后收起")
+            endpoint_summary.addWidget(selector)
+            self.endpoint_selector_buttons[endpoint] = selector
+        layout.addLayout(endpoint_summary)
+        for endpoint, combo in (("A", self.city_a), ("B", self.city_b)):
+            choices = QWidget(panel)
+            choices_layout = QVBoxLayout(choices)
+            choices_layout.setContentsMargins(0, 2, 0, 4)
+            choices_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+            choices_layout.addWidget(QLabel(f"选择线路城市 {endpoint}", choices))
+            grid = QGridLayout()
+            grid.setSpacing(6)
+            group = QButtonGroup(choices)
+            group.setExclusive(True)
+            buttons = {}
+            for index, city in enumerate(self._route_catalog.cities):
+                button = QCheckBox(city.name, choices)
+                button.setProperty("cityOption", True)
+                button.setToolTip(f"选择{city.name}作为线路城市 {endpoint}；两个端点不能相同")
+                button.clicked.connect(
+                    lambda _checked=False, key=endpoint, city_id=city.city_id:
+                    self._choose_endpoint(key, city_id)
+                )
+                group.addButton(button)
+                grid.addWidget(button, index // 3, index % 3)
+                grid.setRowMinimumHeight(index // 3, 40)
+                buttons[city.city_id] = button
+            choices_layout.addLayout(grid)
+            choices.hide()
+            self.endpoint_panels[endpoint] = choices
+            self.endpoint_buttons[endpoint] = buttons
+            self.endpoint_selector_buttons[endpoint].toggled.connect(choices.setVisible)
+            self._endpoint_groups.append(group)
+            layout.addWidget(choices)
         self.city_a.currentIndexChanged.connect(
             lambda _index: self._route_changed(self.city_a, self.city_b)
         )
@@ -168,7 +206,14 @@ class PassengerPage(QWidget):
         self.policy_label.setObjectName("passengerPolicy")
         layout.addWidget(self.policy_label)
         layout.addStretch(1)
-        return panel
+        scroll = QScrollArea(self)
+        scroll.setObjectName("passengerParameters")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFixedWidth(490)
+        scroll.setWidget(panel)
+        return scroll
 
     def _build_progress_panel(self) -> QWidget:
         panel = QFrame(self)
@@ -274,6 +319,10 @@ class PassengerPage(QWidget):
         self.startRequested.emit(self.collect_inputs(), 0.0)
 
     def _refresh_expected_fatigue(self) -> None:
+        for endpoint, combo in (("A", self.city_a), ("B", self.city_b)):
+            self.endpoint_selector_buttons[endpoint].setText(f"{endpoint} · {combo.currentText()}")
+            for city_id, button in self.endpoint_buttons[endpoint].items():
+                button.setChecked(city_id == combo.currentData())
         try:
             estimate = self._current_route_estimate()
         except ValueError as exc:
@@ -283,7 +332,7 @@ class PassengerPage(QWidget):
         self._route_estimate = estimate
         trips = self.trip_count.value()
         total = estimate.trip_fatigue * trips
-        self.route_title.setText(f"{estimate.city_a.name}  ↔  {estimate.city_b.name}")
+        self.route_title.setText(f"{estimate.city_a.name}  往返  {estimate.city_b.name}")
         self.timeline_value.setText(self._route_timeline())
         self.policy_label.setText(
             "倒货只购买强制刷新行情中税后预计盈利的商品，不使用砍价、抬价或进货书。"
@@ -293,6 +342,11 @@ class PassengerPage(QWidget):
             f"预计疲劳  {total}\n"
             f"{trips} 次 × 单次疲劳 {estimate.trip_fatigue}"
         )
+
+    def _choose_endpoint(self, endpoint: str, city_id: str) -> None:
+        combo = self.city_a if endpoint == "A" else self.city_b
+        combo.setCurrentIndex(combo.findData(city_id))
+        self.endpoint_selector_buttons[endpoint].setChecked(False)
 
     def _route_changed(self, changed: QComboBox, other: QComboBox) -> None:
         if changed.currentData() == other.currentData():
@@ -419,6 +473,11 @@ class PassengerPage(QWidget):
         self._busy = bool(busy)
         self.city_a.setEnabled(not self._busy)
         self.city_b.setEnabled(not self._busy)
+        for buttons in self.endpoint_buttons.values():
+            for button in buttons.values():
+                button.setEnabled(not self._busy)
+        for button in self.endpoint_selector_buttons.values():
+            button.setEnabled(not self._busy)
         self.trip_count.setEnabled(not self._busy)
         self.trade_during_trip.setEnabled(not self._busy)
         self.auto_reposition.setEnabled(not self._busy)
