@@ -49,8 +49,9 @@ class ScuffleVision:
 
     ``observe`` returns ``valid``, ``scene``, ``controls``, ``boxes``,
     ``_image`` and ``diagnostics``. Match dictionaries have ``center``, ``rect``
-    and ``score``. ``read_candidates`` and ``read_team`` return an empty list
-    when *any* identity is uncertain, retaining top candidates in diagnostics.
+    and ``score``. ``read_candidates`` returns reliable identities with verified
+    SELECT buttons. ``read_team`` still requires every identity to be certain.
+    Top candidates are retained in diagnostics for uncertain identities.
     They use exactly the observation's image, never capture another frame.
     """
 
@@ -189,26 +190,19 @@ class ScuffleVision:
             return self._variants[key]
         templates, masks, identities = [], [], []
         for row in self.catalog["characters" if kind == "role" else "equipment"]:
-            paths = row.get("stand_templates", []) if profile == "stand" else [row.get(profile)]
-            mask_paths = row.get("stand_masks", []) if profile == "stand" else [row.get(profile.replace("template", "mask"))]
+            paths = [row.get(profile)]
+            mask_paths = [row.get(profile.replace("template", "mask"))]
             for i, path in enumerate(paths):
                 if not path:
                     continue
                 original = self._image(path)
                 mp = mask_paths[i] if i < len(mask_paths) else None
                 original_mask = self._image(mp) if mp else (original[:, :, 3] if original.ndim == 3 and original.shape[2] == 4 else None)
-                # Body frames have a large native transparent canvas: trim before scale.
-                if profile == "stand" and original_mask is not None:
-                    yy, xx = np.where(original_mask > 245)
-                    if not len(xx):
-                        continue
-                    box = (slice(yy.min(), yy.max()+1), slice(xx.min(), xx.max()+1))
-                    original, original_mask = original[box], original_mask[box]
                 for size in sizes or (None,):
                     if size is None:
                         template, mask = original, original_mask
                     else:
-                        shape = (round(original.shape[1]*size), round(original.shape[0]*size)) if profile == "stand" else (size, size)
+                        shape = (size, size)
                         template = cv2.resize(original, shape, interpolation=cv2.INTER_AREA)
                         mask = cv2.resize(original_mask, shape, interpolation=cv2.INTER_NEAREST) if original_mask is not None else None
                     if mask is not None and profile != "name_template":
@@ -234,7 +228,7 @@ class ScuffleVision:
             image, [templates[i] for i in indices], mask_images=[masks[i] for i in indices],
             threshold=-1., use_grayscale=True, match_method=method,
         )
-        # Multiple scales/phases of one identity are not runner-up identities.
+        # Multiple sizes of one identity are not runner-up identities.
         scores: dict[int, float] = {}
         for i, result in zip(indices, results):
             score = float(result.confidence)
@@ -247,21 +241,14 @@ class ScuffleVision:
     def _accepted(ranked: list, threshold: float, margin: float) -> bool:
         return len(ranked) >= 2 and ranked[0]["score"] >= threshold and ranked[0]["score"]-ranked[1]["score"] >= margin
 
-    def _role(self, image: np.ndarray, name_box: list, card_box: list, include_spine: bool) -> tuple[dict | None, list]:
+    def _role(self, image: np.ndarray, name_box: list) -> tuple[dict | None, list]:
         source, _ = self._crop(image, name_box)
         # Keep the whole name field (including blank margins) when comparing.
         source = np.pad(source, ((4, 4), (5, 5), (0, 0)))
         ranked = self._rank(source, "role", "name_template")
-        if self._accepted(ranked, .80, .05):
-            return dict(ranked[0], margin=ranked[0]["score"]-ranked[1]["score"], method="name"), ranked[:3]
-        if include_spine:
-            source, _ = self._crop(image, card_box)
-            # The prefab and independent nine-character calibration agree on
-            # 2/3 scale; freeze a narrow bank rather than thousands of guesses.
-            body = self._rank(source, "role", "stand", (.66, 2/3, .67), method=cv2.TM_CCORR_NORMED)
-            if self._accepted(body, .93, .05):
-                return dict(body[0], margin=body[0]["score"]-body[1]["score"], method="stand"), body[:3]
-            return None, body[:3]
+        if ranked and ranked[0]["score"] >= .80:
+            margin = ranked[0]["score"]-ranked[1]["score"] if len(ranked) > 1 else None
+            return dict(ranked[0], margin=margin, method="name"), ranked[:3]
         return None, ranked[:3]
 
     def _equipment_name(self, image: np.ndarray, name_box: list, scale_x: float = 1.) -> tuple[dict | None, list]:
@@ -284,7 +271,7 @@ class ScuffleVision:
             return dict(names[0], margin=names[0]["score"]-names[1]["score"], method="equipment_name"), names
         return None, names
 
-    def read_candidates(self, observation: dict, kind: str, include_spine: bool = False) -> list[dict]:
+    def read_candidates(self, observation: dict, kind: str) -> list[dict]:
         scene = observation.get("scene")
         if not observation.get("valid") or kind not in {"role", "equipment"}:
             return []
@@ -298,7 +285,7 @@ class ScuffleVision:
             x, y = round((left+242*index)*sx)+dx, 191+dy
             rect = [x, y, round(155*sx), 227]
             if kind == "role":
-                identity, ranked = self._role(image, [x+round(7*sx), y+145, round(138*sx), 23], rect, include_spine)
+                identity, ranked = self._role(image, [x+round(7*sx), y+145, round(138*sx), 23])
             else:
                 identity, ranked = self._equipment_name(image, [x-round(6*sx), y+168, round(164*sx), 23], sx)
             detail = {"index": index, "top": ranked[:3]}
@@ -312,7 +299,7 @@ class ScuffleVision:
                 if point:
                     output.append(dict(identity, index=index, rect=rect, center=[x+77, y+113], select_point=point["center"]))
         observation["diagnostics"]["candidates"] = diagnostics
-        return output if len(output) == 3 else []
+        return output
 
     def _occupied(self, source: np.ndarray) -> bool:
         for quality in ("UR", "SSR", "SR", "R"):
@@ -342,6 +329,46 @@ class ScuffleVision:
         score = float(result.confidence)
         return bool(result.found and np.isfinite(score)), score
 
+    def read_empty_slots(self, observation: dict, slot_type: str) -> dict | None:
+        """One frame, five fixed slots of the chosen type; no identity matching."""
+        if (not observation.get("valid") or observation.get("scene") not in {"captain", "assign"}
+                or slot_type not in _SLOTS):
+            return None
+        dx, dy = observation.get("_anchor_offset", (0, 0))
+        sx = observation.get("_scale_x", 1.)
+        spec = self._control_spec("D09")
+        template = self._image(spec["template"])
+        image, positions, empty_indices, diagnostics = observation["_image"], [], [], []
+        slot_index = _SLOTS.index(slot_type)
+        for index, (base_x, base_y) in enumerate(_TEAM_CARDS):
+            x, y = round(base_x*sx)+dx, base_y+dy
+            source, _ = self._crop(image, [x+round(160*sx), y+12+slot_index*68, 72, 72])
+            match = self.vision.find_template(source, template, threshold=.90)
+            score = float(match.confidence)
+            found = bool(match.found and np.isfinite(score))
+            if found:
+                empty_indices.append(index)
+            positions.append({"screen_index": index, "center": [x+77, y+114]})
+            diagnostics.append({"screen_index": index, "found": found, "score": score})
+        observation["diagnostics"]["empty_slots"] = {"slot_type": slot_type, "matches": diagnostics}
+        return {"slot_type": slot_type, "empty_indices": empty_indices, "positions": positions}
+
+    def read_selected_position(self, observation: dict) -> dict | None:
+        """Locate the unique SELECT marker at a fixed position, without names."""
+        if not observation.get("valid") or observation.get("scene") not in {"captain", "assign"}:
+            return None
+        dx, dy = observation.get("_anchor_offset", (0, 0))
+        sx = observation.get("_scale_x", 1.)
+        image, selected, diagnostics = observation["_image"], [], []
+        for index, (base_x, base_y) in enumerate(_TEAM_CARDS):
+            x, y = round(base_x*sx)+dx, base_y+dy
+            found, score = self._selected_banner(image, x, y)
+            diagnostics.append({"screen_index": index, "found": found, "marker_score": score})
+            if found:
+                selected.append({"screen_index": index, "center": [x+77, y+114], "marker_score": score, "selected": True})
+        observation["diagnostics"]["selection_markers"] = diagnostics
+        return selected[0] if len(selected) == 1 else None
+
     def read_selected_character(self, observation: dict) -> dict | None:
         """Cheap post-click confirmation: five markers and ONE full name.
 
@@ -366,14 +393,14 @@ class ScuffleVision:
             return None
         index, x, y, marker_score = selected[0]
         rect = [x, y, 155, 228]
-        identity, ranked = self._role(image, [x+round(8*sx), y+147 if index < 3 else y+145, round(138*sx), 23], rect, False)
+        identity, ranked = self._role(image, [x+round(8*sx), y+147 if index < 3 else y+145, round(138*sx), 23])
         observation["diagnostics"]["selected_name"] = ranked
         if identity is None:
             return None
         return dict(identity, screen_index=index, center=[x+77, y+114], rect=rect,
                     marker_score=marker_score, selected=True)
 
-    def read_team(self, observation: dict, include_spine: bool = False) -> list[dict]:
+    def read_team(self, observation: dict) -> list[dict]:
         if not observation.get("valid") or observation.get("scene") not in {"captain", "assign"}:
             return []
         dx, dy = observation.get("_anchor_offset", (0, 0))
@@ -382,7 +409,7 @@ class ScuffleVision:
         for index, (base_x, base_y) in enumerate(_TEAM_CARDS):
             x, y = round(base_x*sx)+dx, base_y+dy
             rect = [x, y, 155, 228]
-            identity, ranked = self._role(image, [x+round(8*sx), y+147 if index < 3 else y+145, round(138*sx), 23], rect, include_spine)
+            identity, ranked = self._role(image, [x+round(8*sx), y+147 if index < 3 else y+145, round(138*sx), 23])
             detail = {"index": index, "top": ranked}
             diagnostics.append(detail)
             if identity is None:

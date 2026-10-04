@@ -22,7 +22,7 @@ from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ....aura_base.src.actions.wait_actions import sleep as aura_sleep
 from ._eternal_scuffle_policy import (
-    SLOT_TYPES, choose_character, choose_equipment, choose_loot, load_catalog, validate_inputs,
+    SLOT_TYPES, choose_character, choose_equipment, load_catalog, validate_inputs,
 )
 from ._eternal_scuffle_vision import ScuffleVision
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
@@ -273,29 +273,28 @@ class ScuffleRuntime:
                                signature=lambda f: f["scene"], timeout=timeout, interval=interval, label="/".join(scenes))
 
     async def candidates(self, kind: str):
-        started = time.monotonic()
-
         def probe():
             f = self.probe()
             if not f.get("valid"):
                 return []
-            rows = self.observer.read_candidates(f, kind, include_spine=time.monotonic()-started >= 3)
+            rows = self.observer.read_candidates(f, kind)
             return rows
 
-        rows = await self.wait(probe, lambda r: len(r) == 3, stable=3,
+        rows = await self.wait(probe, lambda r: bool(r), stable=3,
                                signature=lambda r: tuple((v["id"], v["index"]) for v in r),
-                               timeout=TRANSITION_TIMEOUT, label="三个候选身份")
-        await self.record("candidates", candidate_kind=kind, scene=self.last_observation.get("scene"), candidates=rows)
+                               timeout=TRANSITION_TIMEOUT, label="可可靠识别的候选身份")
+        recognized_indices = {row["index"] for row in rows}
+        await self.record("candidates", candidate_kind=kind, scene=self.last_observation.get("scene"), candidates=rows,
+                          skipped_indices=[index for index in range(3) if index not in recognized_indices],
+                          diagnostics=self.last_observation.get("diagnostics", {}).get("candidates", []))
         return rows
 
     async def team(self, *, expected_scene: str, selected_id: int | None = None, timeout=TRANSITION_TIMEOUT):
-        started = time.monotonic()
-
         def probe():
             f = self.probe()
             if not f.get("valid") or f.get("scene") != expected_scene:
                 return []
-            return self.observer.read_team(f, include_spine=time.monotonic()-started >= 3)
+            return self.observer.read_team(f)
 
         def valid(rows):
             return (len(rows) == 5 and len({int(x["id"]) for x in rows}) == 5
@@ -318,6 +317,20 @@ class ScuffleRuntime:
             and int(row["id"]) == character_id and int(row["screen_index"]) == screen_index,
             stable=3, signature=lambda row: (row["id"], row["screen_index"]),
             timeout=timeout, label="目标角色的 SELECT 标识",
+        )
+
+    async def selected_position(self, screen_index: int, *, timeout=RETRY_WINDOW):
+        def probe():
+            frame = self.probe()
+            if not frame.get("valid") or frame.get("scene") != "assign":
+                return None
+            return self.observer.read_selected_position(frame)
+
+        return await self.wait(
+            probe, lambda row: bool(row) and row.get("selected") is True
+            and int(row["screen_index"]) == screen_index,
+            stable=3, signature=lambda row: row["screen_index"],
+            timeout=timeout, label="目标位置的 SELECT 标识",
         )
 
     def reconcile_team(self, rows):
@@ -439,7 +452,7 @@ class ScuffleRuntime:
             if f is cached_frame:
                 return cached_candidate
             cached_frame, cached_candidate = f, None
-            rows = self.observer.read_candidates(f, kind, include_spine=True)
+            rows = self.observer.read_candidates(f, kind)
             if tuple((int(r["id"]), int(r["index"])) for r in rows) != fingerprint:
                 return None
             cached_candidate = next((r for r in rows if r["id"] == selected["id"] and r["index"] == selected["index"]), None)
@@ -516,8 +529,7 @@ class ScuffleRuntime:
 
     async def captain(self):
         self.require_phase("captain")
-        rows = await self.team(expected_scene="captain")
-        self.reconcile_team(rows)
+        await self.scene("captain")
         await self.click_transition("captain", "confirm", ("stage",))
         self.round["phase"] = "stage"
         await self.commit("stage")
@@ -557,57 +569,56 @@ class ScuffleRuntime:
         self.require_phase("loot")
         await self.scene("loot_select")
         candidates = await self.candidates("equipment")
-        decision = choose_loot(candidates, self.round["team"], self.catalog)
-        selected = next(r for r in candidates if int(r["id"]) == decision["equipment_id"])
+        selected = choose_equipment(candidates, self.catalog)
+        equipment_id = int(selected["id"])
+        decision = {"equipment_id": equipment_id, "slot_type": self.equipment[equipment_id]["slot_type"]}
         await self.record("loot_choice_intent", decision=decision, candidates=candidates)
         await self.select_candidate("loot_select", "equipment", candidates, selected, "assign")
-        self.round["pending_loot"] = {"equipment_id": decision["equipment_id"], "candidates": _json_safe(candidates)}
+        self.round["pending_loot"] = decision
         self.round["phase"] = "assign"
         await self.commit("assign")
 
     async def assign_loot(self):
         self.require_phase("assign")
-        rows = await self.team(expected_scene="assign")
-        self.reconcile_team(rows)
         pending = self.round["pending_loot"]
-        # Recompute recipient using the CURRENT screen order (including fallback).
-        decision = choose_loot(pending["candidates"], self.round["team"], self.catalog)
-        if decision["equipment_id"] != pending["equipment_id"]:
-            raise ScuffleError("scuffle_loot_decision_changed", "装备记录变化，无法确认当前分配。")
-        target = next(r for r in rows if int(r["id"]) == decision["character_id"])
+        equipment_id = int(pending["equipment_id"])
+        slot_type = self.equipment[equipment_id]["slot_type"]
+        if pending.get("slot_type") != slot_type:
+            raise ScuffleError("scuffle_loot_decision_changed", "待分配装备的类型不一致。")
+        frame = await self.scene("assign")
+        slots = await _run_blocking(self.observer.read_empty_slots, frame, slot_type)
+        if not slots or slots.get("slot_type") != slot_type:
+            raise ScuffleError("scuffle_assignment_slots_invalid", "无法检查当前分配页的固定空槽。")
+        empty_indices = slots["empty_indices"]
+        target_index = min(empty_indices) if empty_indices else 0
+        target = next(row for row in slots["positions"] if row["screen_index"] == target_index)
+        decision = {"equipment_id": equipment_id, "slot_type": slot_type, "screen_index": target_index,
+                    "reason": "fill_empty" if empty_indices else "fallback_first"}
+        await self.record("assignment_slots", slot_type=slot_type, empty_indices=empty_indices, target_index=target_index,
+                          diagnostics=frame.get("diagnostics", {}).get("empty_slots", {}))
+        selected = await _run_blocking(self.observer.read_selected_position, frame)
         for attempt in range(1, MAX_CLICKS + 1):
-            if target.get("selected"):
-                break
-            await self.send_click(target["center"], "character", attempt)
+            if not selected or selected.get("screen_index") != target_index:
+                await self.send_click(target["center"], "character", attempt)
             try:
-                await self.selected_character(decision["character_id"], int(target["screen_index"]))
-                target = {**target, "selected": True}
+                selected = await self.selected_position(target_index)
                 break
             except ScuffleError as exc:
                 if exc.code != "scuffle_observation_timeout" or attempt == MAX_CLICKS:
                     raise
-                rows = await self.team(expected_scene="assign")
-                self.reconcile_team(rows)
-                target = next(r for r in rows if int(r["id"]) == decision["character_id"])
-        if not target.get("selected"):
-            raise ScuffleError("scuffle_selection_unconfirmed", "无法确认目标角色已选中。")
-        # Full inventory reconciliation has its own identity timeout. It is not
-        # part of the short, SELECT-only click response window.
-        rows = await self.team(expected_scene="assign", selected_id=decision["character_id"])
-        self.reconcile_team(rows)
-        target = next(row for row in rows if int(row["id"]) == decision["character_id"])
+                frame = await self.scene("assign")
+                selected = await _run_blocking(self.observer.read_selected_position, frame)
 
         def still_selected(frame):
-            selected = self.observer.read_selected_character(frame)
+            selected = self.observer.read_selected_position(frame)
             return (bool(selected) and selected.get("selected") is True
-                    and int(selected["id"]) == decision["character_id"]
-                    and int(selected["screen_index"]) == int(target["screen_index"]))
+                    and int(selected["screen_index"]) == target_index)
 
         await self.record("assignment_intent", decision=decision)
         frame = await self.click_transition("assign", "confirm", ("stage", "settlement"), guard=still_selected)
-        member = next(r for r in self.round["team"] if int(r["id"]) == decision["character_id"])
-        slot = self.equipment[decision["equipment_id"]]["slot_type"]
-        member["equipment"][slot] = decision["equipment_id"]
+        # Draft identities are not inferred from screen order. The assignment
+        # is recorded by its fixed position only after the page transition.
+        self.round["last_assignment"] = decision
         self.round["pending_loot"] = None
         self.round["phase"] = "stage" if frame["scene"] == "stage" else "ready_settlement"
         if frame["scene"] == "settlement":

@@ -57,6 +57,40 @@ def test_supplied_scenes_and_shared_reward_boxes(number, normalized):
     asyncio.run(run())
 
 
+def test_live_defeat_title_mask_recovers_page_and_next_button():
+    async def run():
+        image = np.array(Image.open(FIXTURES / "user_defeat_20261005.png").convert("RGB"))
+        helper = probe(image)
+        control = helper.catalog["controls"]["battle_lose_title"]
+        mask_path = control.pop("mask")
+        old = await asyncio.to_thread(helper.observe)
+        assert old["scene"] == "unknown"
+        assert old["diagnostics"]["control_scores"]["battle_lose_title"] < .90
+        control["mask"] = mask_path
+        observation = await asyncio.to_thread(helper.observe)
+        assert observation["scene"] == "defeat", observation["diagnostics"]
+        assert observation["diagnostics"]["control_scores"]["battle_lose_title"] >= .90
+        assert observation["controls"]["next"]["score"] >= .90
+        assert 790 <= observation["controls"]["next"]["center"][0] <= 820
+    asyncio.run(run())
+
+
+def test_defeat_title_mask_ignores_pixels_outside_red_letters():
+    async def run():
+        image = np.array(Image.open(FIXTURES / "user_defeat_20261005.png").convert("RGB"))
+        helper = probe(image)
+        control = helper.catalog["controls"]["battle_lose_title"]
+        x, y, w, h = control["client_box"]
+        mask = np.array(Image.open(PLAN / control["mask"]).convert("L"))
+        before = await asyncio.to_thread(helper.observe)
+        image[y:y+h, x:x+w][mask == 0] = [220, 220, 220]
+        after = await asyncio.to_thread(helper.observe)
+        assert after["scene"] == "defeat"
+        assert abs(before["diagnostics"]["control_scores"]["battle_lose_title"]
+                   - after["diagnostics"]["control_scores"]["battle_lose_title"]) < .001
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize("number,kind,expected", (
     (3, "role", [10000890, 10000154, 10001356]),
     (5, "role", [10000468, 10000095, 10000139]),
@@ -91,6 +125,54 @@ def test_team_reordering_and_all_fifteen_slot_states(number, normalized):
         filled = {10001356: "attack", 10000468: "support", 10000072: "support", 10000027: "support", 10000389: "defense"}
         for row in rows:
             assert row["slots"] == {s: "occupied" if s == filled[row["id"]] else "empty" for s in ("attack", "defense", "support")}
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("slot_type,expected", (("attack", [1, 2, 3, 4]), ("defense", [0, 3]), ("support", [0, 1, 2, 4])))
+def test_user_fixed_layout_checks_only_five_slots_without_identity_matching(monkeypatch, slot_type, expected):
+    async def run():
+        image = np.array(Image.open(FIXTURES / "user_fixed_assignment_20261004.png").convert("RGB"))
+        helper = probe(image)
+        observation = await asyncio.to_thread(helper.observe)
+        assert observation["scene"] == "captain"
+        helper.app.capture = lambda: pytest.fail("Slot reading must reuse the same frame")
+        monkeypatch.setattr(helper, "_rank", lambda *a, **kw: pytest.fail("No full catalog comparisons"))
+        monkeypatch.setattr(helper, "_role", lambda *a, **kw: pytest.fail("No role-name matching"))
+        original = helper.vision.find_template
+        matches = []
+
+        def count_match(source, *args, **kwargs):
+            matches.append(source.shape[:2])
+            return original(source, *args, **kwargs)
+
+        monkeypatch.setattr(helper.vision, "find_template", count_match)
+        result = await asyncio.to_thread(helper.read_empty_slots, observation, slot_type)
+        assert result["empty_indices"] == expected
+        assert [row["screen_index"] for row in result["positions"]] == list(range(5))
+        assert matches == [(72, 72)] * 5
+        matches.clear()
+        selected = await asyncio.to_thread(helper.read_selected_position, observation)
+        assert selected["screen_index"] == 0
+        assert selected["selected"] is True
+        assert len(matches) == 5
+    asyncio.run(run())
+
+
+def test_fixed_position_selection_rejects_zero_or_multiple_markers(monkeypatch):
+    async def run():
+        helper = probe(frame(10))
+        observation = await asyncio.to_thread(helper.observe)
+        for marked_indices in (set(), {0, 1}):
+            counter = 0
+
+            def marker(*args):
+                nonlocal counter
+                found = counter in marked_indices
+                counter += 1
+                return found, 1.0 if found else .2
+
+            monkeypatch.setattr(helper, "_selected_banner", marker)
+            assert await asyncio.to_thread(helper.read_selected_position, observation) is None
     asyncio.run(run())
 
 
@@ -142,8 +224,42 @@ def test_unreadable_role_and_missing_select_are_not_random_choices():
             helper = probe(image)
             observation = await asyncio.to_thread(helper.observe)
             assert observation["scene"] == "role_select"
-            assert await asyncio.to_thread(helper.read_candidates, observation, "role") == []
+            rows = await asyncio.to_thread(helper.read_candidates, observation, "role")
+            assert [row["index"] for row in rows] == ([1, 2] if erase == "name" else [])
+            if erase == "name":
+                assert [row["id"] for row in rows] == [10000154, 10001356]
             assert len(observation["diagnostics"]["candidates"]) == 3
+    asyncio.run(run())
+
+
+def test_live_unknown_role_is_skipped_without_blocking_known_roles():
+    async def run():
+        image = np.array(Image.open(FIXTURES / "live_20261004_unknown_role.png").convert("RGB"))
+        helper = probe(image)
+        assert not any(row["name"] == "亚莉奈·危情" for row in helper.catalog["characters"])
+        observation = await asyncio.to_thread(helper.observe)
+        assert observation["scene"] == "role_select"
+        rows = await asyncio.to_thread(helper.read_candidates, observation, "role")
+        assert [(row["index"], row["id"]) for row in rows] == [(1, 10001222), (2, 10000854)]
+        assert all(row["select_point"][0] > 600 for row in rows)
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("number", (4, 9))
+def test_unreadable_equipment_preserves_other_candidates_and_screen_indices(number):
+    async def run():
+        image = frame(number)
+        helper = probe(image)
+        observation = await asyncio.to_thread(helper.observe)
+        baseline = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
+        # Erase only the left equipment name, retaining the scene and buttons.
+        dx, dy = observation.get("_anchor_offset", (0, 0))
+        sx = observation.get("_scale_x", 1.)
+        left = 309 if number == 9 else 369
+        x = round(left * sx) + dx
+        image[359 + dy:382 + dy, x - 15:x + 175] = 0
+        rows = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
+        assert [(row["index"], row["id"]) for row in rows] == [(row["index"], row["id"]) for row in baseline[1:]]
     asyncio.run(run())
 
 
@@ -162,7 +278,7 @@ def test_rank_collapses_scales_and_phases_before_runner_up(monkeypatch):
     helper = ScuffleVision(None, NS(find_templates_batch=lambda *a, **kw: [NS(confidence=.96), NS(confidence=.95), NS(confidence=.89)]), {}, PLAN)
     templates = [np.ones((3, 3), np.uint8)]*3
     monkeypatch.setattr(helper, "_identity_variants", lambda *a, **kw: (templates, [None]*3, [100, 100, 200]))
-    ranked = helper._rank(np.ones((10, 10), np.uint8), "role", "stand")
+    ranked = helper._rank(np.ones((10, 10), np.uint8), "equipment", "small_icon_template")
     assert [r["id"] for r in ranked] == [100, 200]
     assert helper._accepted(ranked, .93, .05)
 
@@ -187,17 +303,38 @@ def test_same_art_different_equipment_ids_require_readable_full_name():
     asyncio.run(run())
 
 
-def test_real_spine_bank_recovers_three_roles_when_names_are_hidden():
+def test_visible_role_art_never_recovers_hidden_names(monkeypatch):
     async def run():
         image = frame(3)
         image[330:365, 350:1015] = 0
         helper = probe(image)
         observation = await asyncio.to_thread(helper.observe)
+        original_rank = helper._rank
+
+        def names_only(source, kind, profile, *args, **kwargs):
+            assert profile == "name_template", "Role recognition must never load artwork templates"
+            return original_rank(source, kind, profile, *args, **kwargs)
+
+        monkeypatch.setattr(helper, "_rank", names_only)
         assert await asyncio.to_thread(helper.read_candidates, observation, "role") == []
-        recovered = await asyncio.to_thread(helper.read_candidates, observation, "role", True)
-        assert [r["id"] for r in recovered] == [10000890, 10000154, 10001356]
-        assert all(r["method"] == "stand" and r["margin"] >= .05 for r in recovered)
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("best,runner_up,accepted", ((.936419, .886790, True), (.85, .8499, True), (.80, .80, True), (.799, .20, False)))
+def test_role_names_use_absolute_score_without_runner_up_requirement(monkeypatch, best, runner_up, accepted):
+    helper = ScuffleVision(None, None, {}, PLAN)
+
+    def ranked_names(_source, kind, profile):
+        assert (kind, profile) == ("role", "name_template")
+        return [{"id": 10001089, "score": best}, {"id": 10000254, "score": runner_up}]
+
+    monkeypatch.setattr(helper, "_rank", ranked_names)
+    identity, _ = helper._role(np.zeros((23, 138, 3), np.uint8), [0, 0, 138, 23])
+    if accepted:
+        assert identity["id"] == 10001089
+        assert identity["method"] == "name"
+    else:
+        assert identity is None
 
 
 def live_equipment_frame():
@@ -224,7 +361,8 @@ def test_erased_live_equipment_name_is_not_guessed_from_art_or_frame():
         helper = probe(image)
         observation = await asyncio.to_thread(helper.observe)
         assert observation["scene"] == "initial_equipment"
-        assert await asyncio.to_thread(helper.read_candidates, observation, "equipment") == []
+        rows = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
+        assert [(row["index"], row["id"]) for row in rows] == [(1, 11800240), (2, 11800094)]
     asyncio.run(run())
 
 

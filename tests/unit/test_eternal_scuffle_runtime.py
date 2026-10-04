@@ -81,24 +81,40 @@ class Observer:
         self.candidates = []
         self.team = []
         self.observations = 0
+        self.empty_slot_reads = []
+        self.selected_position_reads = 0
 
     def observe(self):
         self.observations += 1
         return deepcopy(self.queued.popleft() if self.queued else self.current)
 
-    def read_candidates(self, observation, kind, include_spine=False):
+    def read_candidates(self, observation, kind):
         return deepcopy(self.candidates)
 
-    def read_team(self, observation, include_spine=False):
-        return deepcopy(self.team)
+    def read_team(self, observation):
+        pytest.fail("runtime must not scan the full team")
 
     def read_selected_character(self, observation):
+        pytest.fail("runtime must not match a selected character identity")
+
+    def read_empty_slots(self, observation, slot_type):
+        self.empty_slot_reads.append(slot_type)
+        if not observation.get("valid") or observation.get("scene") != "assign":
+            return None
+        return {"slot_type": slot_type,
+                "empty_indices": [row["screen_index"] for row in self.team
+                                  if row["slots"][slot_type] == "empty"],
+                "positions": [{"screen_index": row["screen_index"], "center": deepcopy(row["center"])}
+                              for row in self.team]}
+
+    def read_selected_position(self, observation):
+        self.selected_position_reads += 1
         selected = [row for row in self.team if row.get("selected")]
         if not observation.get("valid") or observation.get("scene") != "assign" or len(selected) != 1:
             return None
         row = selected[0]
-        return {"id": row["id"], "screen_index": row["screen_index"],
-                "center": deepcopy(row["center"]), "score": 1.0, "marker_score": 1.0, "selected": True}
+        return {"screen_index": row["screen_index"], "center": deepcopy(row["center"]),
+                "marker_score": 1.0, "selected": True}
 
 
 @pytest.fixture
@@ -246,6 +262,56 @@ def test_failed_role_transition_never_commits_selected_identity(rig):
     assert rig.store.values[rig.key]["round"]["pending_role"] is None
 
 
+@pytest.mark.parametrize("indices", ((1,), (1, 2)))
+@pytest.mark.parametrize("kind", ("role", "equipment"))
+def test_partial_candidates_select_known_best_at_original_position(rig, indices, kind):
+    rows = candidates([3, 1, 2] if kind == "role" else [12, 10, 11])
+    rig.fake_observer.candidates = [rows[index] for index in indices]
+    rig.round["phase"] = "draft" if kind == "role" else "draft_equipment"
+    if kind == "equipment":
+        rig.round["pending_role"] = 1
+    rig.fake_observer.current = frame("role_select" if kind == "role" else "initial_equipment")
+    rig.on_click = lambda point: setattr(rig.fake_observer, "current", frame("initial_equipment" if kind == "role" else "role_select"))
+    asyncio.run(rig.choose_role() if kind == "role" else rig.choose_initial_equipment())
+    assert rig.clicks == [[500, 500]]
+    if kind == "role":
+        assert rig.round["pending_role"] == 1
+    else:
+        assert rig.round["team"][0]["equipment"]["attack"] == 10
+    record = next(row["payload"] for row in rig.captured_logs if row["payload"]["type"] == "candidates")
+    assert record["skipped_indices"] == [index for index in range(3) if index not in indices]
+
+
+def test_all_unrecognized_candidates_timeout_without_input(rig):
+    rig.round["phase"] = "draft"
+    rig.fake_observer.current = frame("role_select")
+    with pytest.raises(runtime.ScuffleError, match="scuffle_observation_timeout"):
+        asyncio.run(rig.choose_role())
+    assert rig.clicks == []
+    assert rig.round["pending_role"] is None
+
+
+def test_partial_candidate_identity_change_before_click_is_rejected(rig):
+    rig.round["phase"] = "draft"
+    rig.fake_observer.current = frame("role_select")
+    initial = candidates([3, 1, 2])[1:]
+    calls = 0
+
+    def read_candidates(_observation, _kind):
+        nonlocal calls
+        calls += 1
+        rows = deepcopy(initial)
+        if calls > 3:
+            rows[0]["id"] = 4
+        return rows
+
+    rig.fake_observer.read_candidates = read_candidates
+    with pytest.raises(runtime.ScuffleError):
+        asyncio.run(rig.choose_role())
+    assert rig.clicks == []
+    assert rig.round["pending_role"] is None
+
+
 def test_changed_candidates_after_click_are_not_reclicked_or_committed(rig):
     rig.round["phase"] = "draft"
     rig.fake_observer.current = frame("role_select")
@@ -260,58 +326,60 @@ def test_changed_candidates_after_click_are_not_reclicked_or_committed(rig):
     assert rig.round["team"] == []
 
 
-def test_fallback_recipient_uses_current_team_screen_order(rig):
+def configure_assignment(rig, *, selected=False, empty_indices=()):
     rig.round["phase"] = "assign"
     rig.round["team"] = [{"id": i, "screen_index": i - 1,
         "equipment": {"attack": 10, "defense": 20, "support": 30}} for i in range(1, 6)]
-    rig.round["pending_loot"] = {"equipment_id": 11, "candidates": candidates([13, 12, 11])}
+    rig.round["pending_loot"] = {"equipment_id": 11, "slot_type": "attack"}
     rig.fake_observer.current = frame("assign")
+    # Actual screen identities differ from drafting order. Positions alone govern assignment.
     rig.fake_observer.team = [{"id": i, "screen_index": index, "center": [100 + index * 150, 300],
-        "slots": {slot: "occupied" for slot in runtime.SLOT_TYPES}, "selected": False}
+        "slots": {slot: "empty" if slot == "attack" and index in empty_indices else "occupied"
+                  for slot in runtime.SLOT_TYPES}, "selected": selected and index == 0}
         for index, i in enumerate([5, 2, 3, 4, 1])]
+
+
+@pytest.mark.parametrize("empty_indices,target_index,reason", [
+    ((), 0, "fallback_first"), ((4,), 4, "fill_empty"), ((1, 3, 4), 1, "fill_empty"),
+])
+def test_assignment_reads_requested_empty_slots_once_and_uses_fixed_screen_order(rig, empty_indices, target_index, reason):
+    configure_assignment(rig, empty_indices=empty_indices)
+    drafting_team = deepcopy(rig.round["team"])
+    target = [100 + target_index * 150, 300]
+
     def clicked(point):
-        if point == [100, 300]:
-            rig.fake_observer.team[0]["selected"] = True
+        if point == target:
+            for row in rig.fake_observer.team:
+                row["selected"] = row["screen_index"] == target_index
         elif point == [200, 200]:
-            assert all(member["equipment"]["attack"] == 10 for member in rig.round["team"])
+            assert "last_assignment" not in rig.round
+            assert rig.round["team"] == drafting_team
             rig.fake_observer.current = frame("stage")
+        else:
+            pytest.fail(f"unexpected input {point}")
+
     rig.on_click = clicked
     asyncio.run(rig.assign_loot())
-    assert rig.clicks == [[100, 300], [200, 200]]
-    equipped = {member["id"]: member["equipment"]["attack"] for member in rig.round["team"]}
-    assert equipped == {1: 10, 2: 10, 3: 10, 4: 10, 5: 11}
+    assert rig.clicks == [target, [200, 200]]
+    assert rig.fake_observer.empty_slot_reads == ["attack"]
+    assert rig.round["last_assignment"] == {"equipment_id": 11, "slot_type": "attack",
+                                             "screen_index": target_index, "reason": reason}
+    assert rig.round["team"] == drafting_team
+    assert rig.round["pending_loot"] is None
 
 
-def configure_assignment(rig, *, selected=False):
-    rig.round["phase"] = "assign"
-    rig.round["team"] = [{"id": i, "screen_index": i - 1,
-        "equipment": {"attack": 10, "defense": 20, "support": 30}} for i in range(1, 6)]
-    rig.round["pending_loot"] = {"equipment_id": 11, "candidates": candidates([13, 12, 11])}
-    rig.fake_observer.current = frame("assign")
-    rig.fake_observer.team = [{"id": i, "screen_index": index, "center": [100 + index * 150, 300],
-        "slots": {slot: "occupied" for slot in runtime.SLOT_TYPES}, "selected": selected and index == 0}
-        for index, i in enumerate([5, 2, 3, 4, 1])]
-
-
-def test_two_second_selected_confirmation_never_reads_full_team(rig, monkeypatch):
+def test_selected_position_confirmation_requires_three_marker_observations(rig):
     configure_assignment(rig, selected=True)
-    observed = []
-    original = rig.fake_observer.read_selected_character
-
-    def selected(observation):
-        observed.append(observation["scene"])
-        return original(observation)
-
-    monkeypatch.setattr(rig.fake_observer, "read_selected_character", selected)
-    monkeypatch.setattr(rig.fake_observer, "read_team", lambda *args, **kwargs: pytest.fail("2-second selection confirmation must not scan the full team"))
-    result = asyncio.run(rig.selected_character(5, 0, timeout=2))
-    assert result["id"] == 5
+    result = asyncio.run(rig.selected_position(0, timeout=2))
     assert result["screen_index"] == 0
-    assert len(observed) >= 3
+    assert "id" not in result
+    assert rig.fake_observer.selected_position_reads >= 3
+    assert rig.fake_observer.empty_slot_reads == []
 
 
-def test_already_selected_recipient_only_clicks_confirm(rig):
+def test_already_selected_fixed_position_only_clicks_confirm(rig):
     configure_assignment(rig, selected=True)
+    drafting_team = deepcopy(rig.round["team"])
 
     def clicked(point):
         assert point == [200, 200]
@@ -320,16 +388,16 @@ def test_already_selected_recipient_only_clicks_confirm(rig):
     rig.on_click = clicked
     asyncio.run(rig.assign_loot())
     assert rig.clicks == [[200, 200]]
-    assert next(row for row in rig.round["team"] if row["id"] == 5)["equipment"]["attack"] == 11
+    assert rig.fake_observer.empty_slot_reads == ["attack"]
+    assert rig.round["team"] == drafting_team
+    assert rig.round["last_assignment"]["screen_index"] == 0
 
 
-def test_clicking_wrong_character_never_confirms_equipment(rig):
+def test_clicking_wrong_position_never_confirms_equipment(rig):
     configure_assignment(rig)
 
     def clicked(point):
         assert point == [100, 300]
-        # The input was sent to the intended point, but the game selected a
-        # different card. Do not equate 'some SELECT exists' with success.
         rig.fake_observer.team[1]["selected"] = True
 
     rig.on_click = clicked
@@ -337,12 +405,13 @@ def test_clicking_wrong_character_never_confirms_equipment(rig):
         asyncio.run(rig.assign_loot())
     assert 1 <= len(rig.clicks) <= 4
     assert [200, 200] not in rig.clicks
-    assert all(row["equipment"]["attack"] == 10 for row in rig.round["team"])
+    assert "last_assignment" not in rig.round
     assert rig.round["pending_loot"] is not None
+    assert rig.fake_observer.empty_slot_reads == ["attack"]
 
 
-@pytest.mark.parametrize("change", ["marker_disappears", "different_character", "different_position"])
-def test_final_confirmation_rechecks_selected_identity_and_position(rig, monkeypatch, change):
+@pytest.mark.parametrize("change", ["marker_disappears", "different_position", "multiple_markers"])
+def test_final_confirmation_rechecks_unique_selected_position(rig, monkeypatch, change):
     configure_assignment(rig, selected=True)
     original_record = rig.record
 
@@ -351,17 +420,71 @@ def test_final_confirmation_rechecks_selected_identity_and_position(rig, monkeyp
         if kind == "assignment_intent":
             if change == "marker_disappears":
                 rig.fake_observer.team[0]["selected"] = False
-            elif change == "different_character":
+            elif change == "different_position":
                 rig.fake_observer.team[0]["selected"] = False
                 rig.fake_observer.team[1]["selected"] = True
             else:
-                rig.fake_observer.team[0]["screen_index"] = 1
+                rig.fake_observer.team[1]["selected"] = True
 
     monkeypatch.setattr(rig, "record", record)
     with pytest.raises(runtime.ScuffleError):
         asyncio.run(rig.assign_loot())
     assert rig.clicks == []
-    assert all(row["equipment"]["attack"] == 10 for row in rig.round["team"])
+    assert "last_assignment" not in rig.round
+    assert rig.round["pending_loot"] is not None
+    assert rig.fake_observer.empty_slot_reads == ["attack"]
+
+
+def test_failed_assignment_transition_never_commits(rig):
+    configure_assignment(rig, selected=True)
+    drafting_team = deepcopy(rig.round["team"])
+    with pytest.raises(runtime.ScuffleError, match="click_ineffective"):
+        asyncio.run(rig.assign_loot())
+    assert rig.clicks == [[200, 200]] * 4
+    assert "last_assignment" not in rig.round
+    assert rig.round["pending_loot"] is not None
+    assert rig.round["team"] == drafting_team
+    assert rig.fake_observer.empty_slot_reads == ["attack"]
+
+
+def test_cancel_after_position_click_never_confirms_or_commits(rig, monkeypatch):
+    configure_assignment(rig)
+    cancelled = False
+    monkeypatch.setattr(runtime, "is_current_task_cancel_requested", lambda: cancelled)
+
+    def clicked(point):
+        nonlocal cancelled
+        assert point == [100, 300]
+        cancelled = True
+
+    rig.on_click = clicked
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(rig.assign_loot())
+    assert rig.clicks == [[100, 300]]
+    assert "last_assignment" not in rig.round
+    assert rig.round["pending_loot"] is not None
+
+
+def test_loot_choice_uses_catalog_rank_without_cached_team_equipment(rig):
+    rig.round["phase"] = "loot"
+    rig.round["team"] = [{"id": 5, "equipment": {"attack": 10, "defense": None, "support": None}}]
+    rig.fake_observer.current = frame("loot_select")
+    rig.fake_observer.candidates = candidates([20, 11, 10])
+    rig.on_click = lambda point: setattr(rig.fake_observer, "current", frame("assign"))
+    asyncio.run(rig.choose_loot())
+    assert rig.clicks == [[700, 500]]
+    assert rig.round["pending_loot"] == {"equipment_id": 10, "slot_type": "attack"}
+
+
+def test_captain_confirmation_requires_only_ready_scene(rig):
+    rig.round["phase"] = "captain"
+    rig.round["team"] = [{"id": i} for i in range(1, 6)]
+    rig.fake_observer.current = frame("captain")
+    rig.on_click = lambda point: setattr(rig.fake_observer, "current", frame("stage"))
+    asyncio.run(rig.captain())
+    assert rig.clicks == [[200, 200]]
+    assert rig.fake_observer.empty_slot_reads == []
+    assert rig.fake_observer.selected_position_reads == 0
 
 
 @pytest.mark.parametrize("total,already_open", [(4, 0), (7, 0), (7, 2)])

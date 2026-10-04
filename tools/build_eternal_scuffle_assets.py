@@ -121,6 +121,52 @@ def add_selected_marker_mask(catalog: dict, plan: Path = PLAN):
                                   "source_sha256": digest(template_path)}
 
 
+def add_defeat_title_mask(catalog: dict, plan: Path = PLAN):
+    """Reconstruct the reference's orthogonal YOU LOSE strokes, not its backdrop."""
+    control = catalog["controls"]["battle_lose_title"]
+    template_path = plan / control["template"]
+    with Image.open(template_path) as original:
+        if original.size != (634, 96):
+            raise ValueError("Unexpected defeat title reference size")
+        mask = Image.new("L", original.size)
+    # Inclusive rectangles traced from the reference's straight pixel-font edges.
+    # Each group is one glyph; adjoining bands preserve the stepped corners and
+    # O counters without accepting backdrop pixels or threshold-induced holes.
+    # The outermost glow/partially covered row is omitted at y=4 and y=90.
+    strokes = (
+        # Y
+        ((6, 5, 30, 41), (67, 5, 79, 41), (18, 41, 67, 53), (30, 53, 54, 89)),
+        # O
+        ((103, 5, 152, 16), (91, 17, 115, 78),
+         (152, 17, 164, 78), (103, 78, 152, 89)),
+        # U
+        ((176, 5, 201, 78), (237, 5, 249, 78), (188, 78, 237, 89)),
+        # L
+        ((298, 5, 323, 89), (324, 78, 371, 89)),
+        # O
+        ((396, 5, 445, 16), (384, 17, 408, 78),
+         (445, 17, 457, 78), (396, 78, 445, 89)),
+        # S
+        ((481, 5, 530, 16), (469, 17, 493, 41), (530, 17, 542, 29),
+         (481, 41, 530, 53), (518, 53, 542, 78),
+         (469, 65, 481, 78), (481, 78, 530, 89)),
+        # E
+        ((555, 5, 579, 89), (580, 5, 628, 16),
+         (580, 41, 615, 53), (580, 78, 628, 89)),
+    )
+    draw = ImageDraw.Draw(mask)
+    for glyph in strokes:
+        for bounds in glyph:
+            draw.rectangle(bounds, fill=255)
+    path = template_path.with_name(template_path.stem + "_mask.png")
+    mask.save(path)
+    relative = path.relative_to(plan).as_posix()
+    control.update(mask=relative, threshold=.90,
+                   mask_description="Geometric YOU LOSE pixel-font strokes traced as inclusive axis-aligned rectangles; preserves stepped corners and O counters, excludes backdrop and outer glow. No RGB thresholding.")
+    catalog["assets"][relative] = {"sha256": digest(path), "size": list(mask.size), "mode": "L",
+                                  "source_sha256": digest(template_path)}
+
+
 def build(research: Path, metadata_research: Path, review_v1: Path):
     spec = importlib.util.spec_from_file_location("scuffle_policy", PLAN / "src/actions/_eternal_scuffle_policy.py")
     policy = importlib.util.module_from_spec(spec)
@@ -248,6 +294,7 @@ def build(research: Path, metadata_research: Path, review_v1: Path):
     add_equipment_name_templates(catalog, research)
     add_occupied_templates(catalog, research)
     add_selected_marker_mask(catalog)
+    add_defeat_title_mask(catalog)
     out = PLAN / "data/meta/eternal_scuffle.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

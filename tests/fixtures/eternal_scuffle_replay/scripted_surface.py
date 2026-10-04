@@ -26,6 +26,8 @@ class ScriptedSurface:
         self.clicks = []
         self.observations = 0
         self.assignments = []
+        self.vision_calls = []
+        self.assigned_equipment = {}
 
     def get_window_size(self):
         return (1280, 720)
@@ -67,12 +69,13 @@ class ScriptedSurface:
             if self.scene == "settlement":
                 self.boxes = list(range(7))
         elif old == "loot_select":
-            assert [x, y] == [300, 200]  # defense wins over occupied attack slots
+            assert [x, y] == [100, 200]  # Catalog rank governs loot choice.
             self.scene = "assign"
             self.selected = 5
         elif old == "assign" and control == "confirm":
-            assert self.selected == 1
-            self.assignments.append({"round": self.round, "id": self.selected, "screen_index": 4})
+            assert self.selected == 4  # First empty attack slot: screen position 1.
+            self.assigned_equipment[(self.round, self.selected, "attack")] = 201
+            self.assignments.append({"round": self.round, "id": self.selected, "screen_index": 1})
             self.scene = "stage"
         elif old == "assign":
             self.selected = 5 - ((x - 100) // 100)
@@ -107,6 +110,7 @@ class ScriptedSurface:
                 for i, item in enumerate(ids)]
 
     def read_team(self, frame, **kwargs):
+        self.vision_calls.append({"method": "read_team", "round": self.round, "scene": self.scene})
         ids = [5, 4, 3, 2, 1] if self.scene == "assign" else [1, 2, 3, 4, 5]
         return [{"id": item, "screen_index": i, "center": [100 + i * 100, 300],
                  "selected": item == self.selected,
@@ -116,8 +120,25 @@ class ScriptedSurface:
 
 
     def read_selected_character(self, frame):
+        self.vision_calls.append({"method": "read_selected_character", "round": self.round, "scene": self.scene})
         selected = [row for row in self.read_team(frame) if row.get("selected")]
         return selected[0] if len(selected) == 1 else None
+
+    def read_empty_slots(self, frame, slot_type):
+        self.vision_calls.append({"method": "read_empty_slots", "round": self.round,
+                                  "scene": self.scene, "slot_type": slot_type})
+        if not frame.get("valid") or frame.get("scene") != "assign":
+            return None
+        return {"slot_type": slot_type, "empty_indices": [1, 3] if slot_type == "attack" else list(range(5)),
+                "positions": [{"screen_index": i, "center": [100 + i * 100, 300]} for i in range(5)]}
+
+    def read_selected_position(self, frame):
+        self.vision_calls.append({"method": "read_selected_position", "round": self.round, "scene": self.scene})
+        if not frame.get("valid") or frame.get("scene") != "assign" or self.selected is None:
+            return None
+        index = 5 - self.selected
+        return {"screen_index": index, "center": [100 + index * 100, 300],
+                "marker_score": 1.0, "selected": True}
 
 
 GAME = ScriptedSurface()
@@ -141,10 +162,19 @@ runtime.poll_until = accelerated_poll
 runtime.aura_sleep = accelerated_sleep
 
 
+def write_audit(path, payload):
+    # IPC cancellation may report status while the final action writes its audit.
+    # Readers must see a complete previous or next JSON document.
+    staged = path.with_suffix(".json.tmp")
+    staged.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    staged.replace(path)
+
+
 def save_audit(engine, **extra):
     path = runtime.plan_root_for(engine).parents[1] / "replay_audit.json"
-    path.write_text(json.dumps({"clicks": GAME.clicks, "observations": GAME.observations,
-                               "assignments": GAME.assignments, **extra}, indent=2), encoding="utf-8")
+    write_audit(path, {"clicks": GAME.clicks, "observations": GAME.observations,
+                               "assignments": GAME.assignments, "vision_calls": GAME.vision_calls,
+                               **extra})
 
 
 async def replay_invoke(*args, **kwargs):
@@ -157,8 +187,9 @@ async def replay_invoke(*args, **kwargs):
 async def replay_finish(session_key, state_store, event_bus, round_results=None):
     result = await runtime.finish(session_key, state_store, event_bus, round_results=round_results)
     path = Path(__file__).parent / "replay_audit.json"
-    path.write_text(json.dumps({"clicks": GAME.clicks, "observations": GAME.observations,
+    write_audit(path, {"clicks": GAME.clicks, "observations": GAME.observations,
                                "assignments": GAME.assignments,
+                               "vision_calls": GAME.vision_calls,
                                "session_deleted": await state_store.get(session_key) is None,
-                               "summary": result}, indent=2), encoding="utf-8")
+                               "summary": result})
     return result
