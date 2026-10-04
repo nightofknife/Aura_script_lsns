@@ -8,7 +8,7 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication, QLabel
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -27,9 +27,10 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     page = SmallTasksPage(ResonanceConfigRepository(settings))
 
     labels = {label.text() for label in page.findChildren(QLabel)}
-    assert {"任务分类", "任务列表", "任务详情"}.issubset(labels)
-    assert page.category_list.currentItem().text() == "用户数据"
-    assert page.task_list.count() == 1
+    assert {"功能", "任务详情"}.issubset(labels)
+    assert "任务分类" not in labels
+    assert page.category_list.isHidden()
+    assert page.task_list.count() == 6
     assert page.task_list.currentItem().text() == "刷新用户数据"
     assert not page.task_panel.isHidden()
     assert page.current_task_id == "player_data_refresh"
@@ -128,10 +129,9 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     _application()
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     page = SmallTasksPage(ResonanceConfigRepository(settings))
-    team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
-    page.category_list.setCurrentItem(team_category)
+    page.show_task("team_recommendation")
 
-    assert page.task_list.count() == 1
+    assert page.task_list.count() == 6
     assert page.task_list.currentItem().text() == "配队推荐"
     assert not page.task_panel.isHidden()
     assert page.current_task_id == "team_recommendation"
@@ -217,7 +217,8 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert not window.back_to_workflow_button.isVisible()
         assert window.workflow_page.workflow_steps() == [
             "startup",
-            "commerce",
+            "trade",
+            "passenger",
             "battle",
             "close",
         ]
@@ -268,10 +269,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window.small_tasks_page.player_data_panel.tabs.currentIndex() == 1
         assert window._small_task_active_ref == ""
 
-        team_category = window.small_tasks_page.category_list.findItems(
-            "配队工具", Qt.MatchFlag.MatchExactly
-        )[0]
-        window.small_tasks_page.category_list.setCurrentItem(team_category)
+        window.small_tasks_page.show_task("team_recommendation")
         window.small_tasks_page.team_recommendation_panel.run_button.click()
         assert dispatches[-1] == (
             "tasks:team_recommendation_pc.yaml:team_recommendation_pc",
@@ -320,7 +318,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert not window._bridge_thread.isRunning()
 
 
-def test_workflow_rejects_removed_player_data_configuration(tmp_path) -> None:
+def test_workflow_migrates_removed_player_data_configuration(tmp_path) -> None:
     _application()
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
     settings.setValue(
@@ -329,5 +327,7 @@ def test_workflow_rejects_removed_player_data_configuration(tmp_path) -> None:
     )
     repository = ResonanceConfigRepository(settings)
 
-    with pytest.raises(ValueError, match="workflow/task_order"):
-        WorkflowPage(repository)
+    page = WorkflowPage(repository)
+    assert page._task_order == ["startup", "trade", "passenger", "battle", "close"]
+    assert "player_data" not in page._task_checks
+    page.close()

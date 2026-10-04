@@ -46,6 +46,9 @@ from ._freight_recovery_policy import (
     plan_water_use, validate_bento_priority,
 )
 from ._player_data_persistence import load_pc_user_info
+from ._freight_contract import (
+    fixed_start_stop, integer, normalize_planning_inputs, plan_view, planning_event_data, start_mismatch,
+)
 from .sparkling_water_pc_actions import (
     resonance_pc_drink_sparkling_water_from_city_panel, _water_counts,
 )
@@ -93,6 +96,13 @@ class _TradeProgressReporter:
         self._loop = loop
         self._sequence = initial_sequence
         self._lock = threading.Lock()
+        self.fields: Dict[str, Any] = {}
+        self.resources: Dict[str, Any] = {"confirmed_books_used": 0,
+                                         "confirmed_negotiation_fatigue": 0,
+                                         "actual_fatigue": None, "actual_profit": None}
+        self._total_units: Optional[int] = None
+        self._completed_units: set[Tuple[Any, ...]] = set()
+        self._phase_keys: set[Tuple[Any, ...]] = set()
 
     @property
     def sequence(self) -> int:
@@ -109,7 +119,34 @@ class _TradeProgressReporter:
             "stage": str(stage),
             "state": str(state),
         }
+        payload.update(self.fields)
         payload.update({key: value for key, value in fields.items() if value is not None})
+        data = dict(payload.get("data") or {})
+        if stage == "planning" and state == "completed" and data.get("city_visits"):
+            self._total_units = (1 + len((data.get("reposition") or {}).get("route") or [])
+                                 + sum(phase["status"] == "waiting"
+                                       for visit in data["city_visits"] for phase in visit["phases"]))
+            self._completed_units.add(("preparation",))
+            self._phase_keys = {(phase["key"], visit["city_index"])
+                                for visit in data["city_visits"] for phase in visit["phases"]
+                                if phase["status"] == "waiting"}
+        if self._total_units is not None:
+            if stage == "reposition" and state == "completed":
+                self._completed_units.add((stage, (data.get("reposition") or {}).get("leg_index")))
+            elif stage in {"arrival", "investment", "rubbish_recycling", "sparkling_water",
+                           "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"}:
+                key = (stage, payload.get("city_index"))
+                if key in self._phase_keys:
+                    self._completed_units.add(key)
+                if stage == "arrival" and state == "completed" and type(payload.get("city_index")) is int:
+                    self._completed_units.add(("travel", payload["city_index"] - 1))
+            completed = len(self._completed_units)
+            if stage == "task" and state == "completed":
+                completed = self._total_units
+            data["progress"] = {"completed_units": min(completed, self._total_units),
+                                "total_units": self._total_units}
+        data.setdefault("resources", dict(self.resources))
+        payload["data"] = data
         try:
             await self._event_bus.publish(Event(name=_TRADE_PROGRESS_EVENT, payload=payload))
         except Exception as exc:  # noqa: BLE001
@@ -145,6 +182,9 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
         if event_bus is not None and cid:
             reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop())
         token = _ACTIVE_PROGRESS_REPORTER.set(reporter)
+        if reporter is not None:
+            reporter.fields.update(trade_mode=kwargs.get("trade_mode", "profit"),
+                                   request_kind="preview" if "preview" in func.__name__ else "run")
         try:
             if reporter is not None:
                 await reporter.emit("task", "started")
@@ -152,10 +192,16 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
             if reporter is not None:
                 if result.get("bento_pending"):
                     result["bento_progress_sequence"] = reporter.sequence
+                    result["bento_progress_checkpoint"] = {
+                        "total_units": reporter._total_units,
+                        "completed_units": [list(key) for key in reporter._completed_units],
+                        "phase_keys": [list(key) for key in reporter._phase_keys],
+                    }
                 else:
                     failed = (result.get("success") is False or
                               str(result.get("status") or "").lower() in {"failed", "blocked", "error", "cancelled"})
-                    await reporter.emit("task", "failed" if failed else "completed",
+                    terminal = result.get("status") if result.get("status") in {"blocked", "cancelled"} else "failed" if failed else "completed"
+                    await reporter.emit("task", terminal,
                                         data={"status": result.get("status")})
             return result
         except Exception as exc:
@@ -178,6 +224,10 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
         return
     context = dict(_WORKER_PROGRESS_CONTEXT.get())
     context.update(fields)
+    if stage == "negotiation" and state == "completed":
+        used = (fields.get("data") or {}).get("actual_fatigue_used")
+        if type(used) is int:
+            reporter.resources["confirmed_negotiation_fatigue"] += used
     reporter.emit_from_worker(stage, state, **context)
 
 
@@ -894,12 +944,19 @@ def resonance_pc_buy_goods_on_buy_page(
     )
     book_result: Dict[str, Any] = {"ok": True, "used": 0, "skipped": True}
     if int(books_used or 0) > 0:
+        _report_worker("books", "started", data={"requested": books_used})
         book_result = resonance_pc_use_purchase_books(
             books_used=int(books_used),
             item_name="进货采买书",
             app=app,
             vision=vision,
         )
+        reporter = _ACTIVE_PROGRESS_REPORTER.get()
+        if reporter and type(book_result.get("used")) is int and book_result["used"] >= 0:
+            reporter.resources["confirmed_books_used"] += book_result["used"]
+        if book_result.get("ok") is not True or book_result.get("used") != books_used:
+            _raise_error("purchase_books_not_confirmed", "Requested purchase books were not confirmed", book_result)
+        _report_worker("books", "completed", data={"result": book_result})
 
     pending = list(requested_products)
     selected: List[str] = []
@@ -958,6 +1015,10 @@ def resonance_pc_buy_goods_on_buy_page(
         len(scan_trace),
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
+
+    if pending:
+        _raise_error("buy_selection_incomplete", "Not all planned products were selected",
+                     {"selected_products": selected, "missing_products": pending, "book_result": book_result})
 
     if bool(bargain_to_cap) and not selected:
         _raise_error(
@@ -1037,6 +1098,11 @@ def resonance_pc_buy_goods_on_buy_page(
     bought = bool(settlement.get("closed")) or bool(
         isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
     )
+    if not bought:
+        _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
+                     {"book_result": book_result, "negotiation": negotiation,
+                      "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
+                      "selected_products": selected})
     log_method = logger.info if bought else logger.warning
     log_method(
         "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
@@ -1284,6 +1350,8 @@ def _execute_city_trade_inside_current_city_scoped(
         ocr=ocr,
         vision=vision,
     )
+    if sell.get("success") is not True or sell.get("page_state") != "shop_page":
+        _raise_error("sell_transaction_not_confirmed", "Cannot buy after an unconfirmed sale", sell)
     sold_confirmed = bool(sell.get("sold_confirmed"))
     log_method = logger.info if sold_confirmed else logger.warning
     log_method(
@@ -1323,6 +1391,8 @@ def _execute_city_trade_inside_current_city_scoped(
         buy_confirmed = bool((buy.get("settlement") or {}).get("closed")) or bool(
             (buy.get("settlement_after_confirm") or {}).get("closed")
         )
+        if buy.get("success") is not True or not buy_confirmed or buy.get("missing_products"):
+            _raise_error("buy_transaction_not_confirmed", "Cannot depart after an unconfirmed purchase", buy)
     logger.info(
         "[CityTrade] phase=before_return_city_main city=%s sold_confirmed=%s buy_required=%s buy_confirmed=%s declared_sell_page_state=%s declared_buy_page_state=%s context=%s",
         current_city,
@@ -1334,6 +1404,8 @@ def _execute_city_trade_inside_current_city_scoped(
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
     main = resonance_pc_go_city_main_direct(app=app, vision=vision)
+    if main.get("success") is not True or main.get("page_state") != "city_main":
+        _raise_error("trade_main_not_restored", "City trade did not return to main", main)
     logger.info(
         "[CityTrade] phase=completed city=%s sold_confirmed=%s buy_confirmed=%s page_state=%s context=%s",
         current_city,
@@ -1411,6 +1483,9 @@ async def _plan_and_execute_water_arrival(
     app, ocr, vision, city_shop_data, persistent_data,
 ) -> dict:
     current = await _refresh_recovery_fatigue(page_state=page_state, context=context, engine=engine)
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    if reporter:
+        reporter.resources["actual_fatigue"] = current
     remaining = estimate_remaining_consumption(route, selection["city_index"], travel_costs)
     free_uses, _ = _water_counts(load_pc_user_info(persistent_data))
     selection.update(remaining)
@@ -1419,6 +1494,9 @@ async def _plan_and_execute_water_arrival(
                                     selection["base_fatigue_reserve"], free_uses))
     logger.info("[FreightRecovery] water arrival plan=%s", selection)
     if selection["drink_count"] == 0:
+        if reporter:
+            await reporter.emit("sparkling_water", "skipped", city_index=selection["city_index"],
+                                current_city=selection["city_name"], data={"reason": selection["reason"]})
         return {"success": True, "triggered": False, "status": "skipped",
                 "reason": selection["reason"], "page_state": "city_main", "selection": dict(selection)}
     return await _execute_sparkling_water_stop(
@@ -1458,6 +1536,7 @@ async def _execute_sparkling_water_stop(
             await reporter.emit("sparkling_water", "failed", **fields, data={"error": str(exc), "code": getattr(exc, "code", None)})
         raise
     if reporter is not None:
+        reporter.resources["water_basic_recovered_fatigue"] = int(result.get("completed_count") or 0) * 50
         await reporter.emit("sparkling_water", "completed", **fields, data={"result": result})
     return {**result, "triggered": True, "selection": dict(selection)}
 
@@ -1490,6 +1569,7 @@ async def _execute_route(
     route_run_key = str(route_state.get("run_key") or "")
     page_state = start_page_state
     leg_results: List[Dict[str, Any]] = []
+    failure: Optional[Dict[str, Any]] = None
     rubbish_recycling_attempted = False
     selection = sparkling_water_plan if sparkling_water_plan is not None else {}
     water_result: Dict[str, Any] = {"triggered": False, "status": "not_triggered", "reason": selection.get("reason")}
@@ -1506,32 +1586,45 @@ async def _execute_route(
             }
             if reporter is not None:
                 await reporter.emit("leg", "started", **progress_fields, data={"leg": dict(leg)})
-            leg_result = await _execute_trade_leg(
-                index=index,
-                leg=leg,
-                sell_raise_to_cap=(
-                    bool(route[index - 1].get("raise_to_cap")) if index > 0 else False
-                ),
-                page_state=page_state,
-                use_fatigue_medicine=use_fatigue_medicine,
-                allowed_fatigue_medicines=allowed_fatigue_medicines,
-                fatigue_medicine_max_uses=fatigue_medicine_max_uses,
-                negotiation_max_attempts=negotiation_max_attempts,
-                arrival_timeout_seconds=arrival_timeout_seconds,
-                auto_pickup=auto_pickup,
-                app=app,
-                ocr=ocr,
-                vision=vision,
-                city_shop_data=city_shop_data,
-                progress_fields=progress_fields,
-                auto_cape_island_investment=bool(auto_cape_island_investment),
-                auto_rubbish_recycling=bool(
-                    auto_rubbish_recycling
-                    and not rubbish_recycling_attempted
-                    and is_rubbish_recycling_arrival(leg)
-                ),
-                engine=engine,
-            )
+            try:
+                leg_result = await _execute_trade_leg(
+                    index=index,
+                    leg=leg,
+                    sell_raise_to_cap=(
+                        bool(route[index - 1].get("raise_to_cap")) if index > 0 else False
+                    ),
+                    page_state=page_state,
+                    use_fatigue_medicine=use_fatigue_medicine,
+                    allowed_fatigue_medicines=allowed_fatigue_medicines,
+                    fatigue_medicine_max_uses=fatigue_medicine_max_uses,
+                    negotiation_max_attempts=negotiation_max_attempts,
+                    arrival_timeout_seconds=arrival_timeout_seconds,
+                    auto_pickup=auto_pickup,
+                    app=app,
+                    ocr=ocr,
+                    vision=vision,
+                    city_shop_data=city_shop_data,
+                    progress_fields=progress_fields,
+                    auto_cape_island_investment=bool(auto_cape_island_investment),
+                    auto_rubbish_recycling=bool(
+                        auto_rubbish_recycling
+                        and not rubbish_recycling_attempted
+                        and is_rubbish_recycling_arrival(leg)
+                    ),
+                    engine=engine,
+                )
+            except Exception as exc:
+                if not hasattr(exc, "code"):
+                    raise
+                failure = {"status": "cancelled" if "cancel" in str(exc.code) else "failed",
+                           "reason": str(exc.code), "failed_leg_index": index,
+                           "error": {"code": str(exc.code), "message": str(exc),
+                                     "detail": dict(getattr(exc, "detail", {}) or {})}}
+                leg_results.append({"leg": leg, **failure})
+                page_state = "unknown"
+                if reporter:
+                    await reporter.emit("leg", failure["status"], **progress_fields, data=failure)
+                break
             page_state = str(leg_result.get("page_state") or "city_main")
             if bool((leg_result.get("rubbish_recycling") or {}).get("triggered")):
                 rubbish_recycling_attempted = True
@@ -1576,6 +1669,8 @@ async def _execute_route(
                 break
             await asyncio.sleep(2.0)
         summary = await resonance_pc_trade_route_execution_summary(route_run_key, state_store=state_store)
+        if failure:
+            summary.update(failure)
         summary["page_state"] = page_state
         summary["leg_results"] = leg_results
         summary["sparkling_water"] = water_result
@@ -1662,6 +1757,8 @@ async def _execute_trade_leg(
         progress_context=progress_fields,
     )
     page_state = str(city_trade.get("page_state") or "city_main")
+    if city_trade.get("success") is not True or page_state != "city_main":
+        _raise_error("city_trade_not_confirmed", "Trade failed; departure is disabled", city_trade)
 
     if reporter is not None:
         await reporter.emit("travel", "started", **progress_fields)
@@ -2030,29 +2127,95 @@ def _summarize_negotiation_execution(
     }
 
 
+async def _execute_freight_reposition(
+    route: List[Dict[str, Any]], *, page_state: str, app, ocr, vision, city_shop_data,
+    arrival_timeout_seconds: float, use_fatigue_medicine: bool,
+    allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
+) -> Dict[str, Any]:
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    results: List[Dict[str, Any]] = []
+    if page_state == "city_panel":
+        restored = await asyncio.to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
+        if restored.get("success") is not True or restored.get("page_state") != "city_main":
+            _raise_error("reposition_main_not_restored", "Cannot depart for route start", restored)
+    elif page_state != "city_main":
+        _raise_error("reposition_invalid_start_page", "Cannot depart from unknown page", {"page_state": page_state})
+    for index, leg in enumerate(route):
+        _check_trade_cancelled()
+        fields = {"current_city": leg["from_city"], "from_city": leg["from_city"],
+                  "to_city": leg["to_city"], "data": {"reposition": {
+                      "leg_index": index, "leg_count": len(route), "leg": leg}}}
+        if reporter:
+            await reporter.emit("reposition", "started", **fields)
+        try:
+            travel = await asyncio.to_thread(
+                resonance_pc_intercity_depart_and_wait,
+                to_city_name=leg["to_city"], from_city_name=leg["from_city"],
+                enter_station_timeout_seconds=arrival_timeout_seconds,
+                location_file_path="data/meta/location_pc.json", city_search_region=[130, 120, 1000, 500],
+                drag_center=[640, 360], drag_span_px=450, max_search_steps=12,
+                fallback_enabled=True, target_match_mode="contains", click_y_offset=-15,
+                drag_duration_sec=1.0, drag_hold_sec=0.5, auto_pickup=False,
+                use_fatigue_medicine=use_fatigue_medicine,
+                allowed_fatigue_medicines=allowed_fatigue_medicines or [],
+                fatigue_medicine_max_uses=fatigue_medicine_max_uses, app=app, ocr=ocr, vision=vision,
+            )
+        except Exception as exc:
+            if not hasattr(exc, "code"):
+                raise
+            return {"success": False, "status": "cancelled" if "cancel" in str(exc.code) else "failed",
+                    "reason": str(exc.code), "page_state": "unknown", "leg_results": results,
+                    "blocked_leg": leg, "error": {"code": str(exc.code), "message": str(exc),
+                                                  "detail": dict(getattr(exc, "detail", {}) or {})}}
+        results.append({"leg": dict(leg), "travel": travel})
+        blocked = travel.get("status") == "blocked"
+        confirmed = travel.get("success") is True and not blocked
+        if reporter:
+            await reporter.emit("reposition", "completed" if confirmed else "blocked" if blocked else "failed",
+                                current_city=leg["to_city"] if confirmed else leg["from_city"],
+                                data={"reposition": {"leg_index": index, "leg_count": len(route),
+                                                     "travel": travel}})
+        if not confirmed:
+            return {"success": False, "status": "blocked" if blocked else "failed",
+                    "reason": travel.get("reason") or "reposition_arrival_not_confirmed",
+                    "leg_results": results, "page_state": travel.get("page_state", "unknown"),
+                    "blocked_at": travel.get("blocked_at"), "blocked_leg": leg}
+    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+    if opened.get("success") is not True:
+        _raise_error("reposition_panel_not_opened", "Cannot confirm route starting city", opened)
+    current = await asyncio.to_thread(resonance_pc_read_city_name_on_city_panel, app=app, ocr=ocr,
+                                     resonance_pc_city_shop_data=city_shop_data)
+    if current.get("city_name") != route[-1]["to_city"]:
+        _raise_error("reposition_city_mismatch", "Route starting city was not confirmed", current)
+    return {"success": True, "status": "completed", "leg_results": results,
+            "page_state": "city_panel", "current_city": current}
+
+
 async def _preview_trade_plan_from_start_city(
     start_city_id: str,
-    fatigue_budget: int = 100,
-    cargo_capacity: int = 650,
-    book_budget: int = 0,
-    auto_book: bool = False,
-    book_profit_threshold: float = 500000,
+    fatigue_budget: int = 700,
+    cargo_capacity: int = 750,
+    book_budget: Optional[int] = 0,
+    trade_mode: str = "profit",
+    book_policy: str = "profit",
+    negotiation_policy: str = "auto",
+    fixed_route_city_ids: Optional[List[str]] = None,
+    reposition_to_route: bool = False,
+    target_profit: Optional[int] = None,
+    book_profit_threshold: int = 500000,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
     raise_step_bps: Optional[Any] = 1000,
-    trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
-    active_events: Optional[List[Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     reporter: _TradeProgressReporter | None = None,
 ) -> Dict[str, Any]:
-    if type(auto_book) is not bool:
-        raise ValueError("auto_book must be a boolean")
+    request = normalize_planning_inputs(locals())
     normalized_start_city_id = str(start_city_id or "").strip()
     if not normalized_start_city_id:
         raise ValueError("start_city_id is required")
@@ -2064,6 +2227,13 @@ async def _preview_trade_plan_from_start_city(
         success_rates_bps=[5000] if raise_success_rates_bps is None else raise_success_rates_bps,
         step_bps=1000 if raise_step_bps is None else raise_step_bps,
     )
+    if start_mismatch(request, normalized_start_city_id):
+        result = plan_view(fixed_start_stop(request), request, kind="preview")
+        result.update(success=False, status="stopped", preview=True, page_state="not_applicable")
+        result.update(initial_city={"city_id": normalized_start_city_id, "source": "user_input"},
+                      market_refreshed=False, market_source=None, market_stale_reason=None,
+                      market_fetched_at=None)
+        return result
     if resonance_pc_market_data is None or resonance_pc_trade_planner is None:
         raise RuntimeError("preview_trade_plan_flow requires market-data and planner services")
 
@@ -2116,29 +2286,12 @@ async def _preview_trade_plan_from_start_city(
         plan = await asyncio.to_thread(
             resonance_pc_trade_plan_optimal_route,
             current_city_id=normalized_start_city_id,
-            fatigue_budget=int(fatigue_budget),
-            cargo_capacity=int(cargo_capacity),
-            book_budget=int(book_budget),
-            auto_book=auto_book,
-            book_profit_threshold=book_profit_threshold,
-            negotiation_budget=0,
-            all_plan=1,
-            bargain_success_rates_bps=bargain_success_rates_bps,
-            bargain_step_bps=bargain_step_bps,
-            raise_success_rates_bps=raise_success_rates_bps,
-            raise_step_bps=raise_step_bps,
-            trade_level=int(trade_level),
-            available_city_ids=available_city_ids,
-            required_end_city_ids=required_end_city_ids,
-            city_prestige=city_prestige
-            or {"default": 20, "overrides": {}},
-            product_unlocks=product_unlocks
-            or {"mode": "all", "product_ids": []},
-            active_events=active_events or [],
+            **request,
             snapshot_id=market.get("snapshot_id"),
             resonance_pc_trade_planner=resonance_pc_trade_planner,
         )
-    route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    plan = plan_view(plan, request, kind="preview")
+    route = plan["route"]
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -2146,30 +2299,13 @@ async def _preview_trade_plan_from_start_city(
             leg_count=len(route),
             current_city=start_city_name,
             snapshot_id=snapshot_id,
-            data={
-                "route": route,
-                "summary": {
-                    "status": plan.get("status"),
-                    "expected_profit": plan.get("expected_profit"),
-                    "expected_fatigue_used": plan.get("expected_fatigue_used"),
-                    "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
-                    "books_used": plan.get("books_used"),
-                    "auto_book": plan.get("auto_book"),
-                    "book_budget_ignored": plan.get("book_budget_ignored"),
-                    "book_profit_threshold": plan.get("book_profit_threshold"),
-                    "book_incremental_profit": plan.get("book_incremental_profit"),
-                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
-                    "average_book_profit": plan.get("average_book_profit"),
-                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
-                    "full_bargain_count": plan.get("full_bargain_count"),
-                    "full_raise_count": plan.get("full_raise_count"),
-                },
-            },
+            data=planning_event_data(plan),
         )
     result = dict(plan)
     result.update(
         {
-            "success": True,
+            "success": plan["planning_status"] == "ok" and bool(route),
+            "status": "planned" if plan["planning_status"] == "ok" and route else "stopped",
             "preview": True,
             "market_refreshed": not stale,
             "market_source": market_source,
@@ -2200,21 +2336,24 @@ async def _preview_trade_plan_from_start_city(
 @_with_trade_progress
 async def resonance_pc_preview_trade_plan_flow(
     start_city_id: str,
-    fatigue_budget: int = 100,
-    cargo_capacity: int = 650,
-    book_budget: int = 0,
-    auto_book: bool = False,
-    book_profit_threshold: float = 500000,
+    fatigue_budget: int = 700,
+    cargo_capacity: int = 750,
+    book_budget: Optional[int] = 0,
+    trade_mode: str = "profit",
+    book_policy: str = "profit",
+    negotiation_policy: str = "auto",
+    fixed_route_city_ids: Optional[List[str]] = None,
+    reposition_to_route: bool = False,
+    target_profit: Optional[int] = None,
+    book_profit_threshold: int = 500000,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
     raise_step_bps: Optional[Any] = 1000,
-    trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
-    active_events: Optional[List[Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     event_bus: EventBus | None = None,
@@ -2226,18 +2365,21 @@ async def resonance_pc_preview_trade_plan_flow(
         fatigue_budget=fatigue_budget,
         cargo_capacity=cargo_capacity,
         book_budget=book_budget,
-        auto_book=auto_book,
+        trade_mode=trade_mode,
+        book_policy=book_policy,
+        negotiation_policy=negotiation_policy,
+        fixed_route_city_ids=fixed_route_city_ids,
+        reposition_to_route=reposition_to_route,
+        target_profit=target_profit,
         book_profit_threshold=book_profit_threshold,
         bargain_success_rates_bps=bargain_success_rates_bps,
         bargain_step_bps=bargain_step_bps,
         raise_success_rates_bps=raise_success_rates_bps,
         raise_step_bps=raise_step_bps,
-        trade_level=trade_level,
         available_city_ids=available_city_ids,
         required_end_city_ids=required_end_city_ids,
         city_prestige=city_prestige,
         product_unlocks=product_unlocks,
-        active_events=active_events,
         resonance_pc_market_data=resonance_pc_market_data,
         resonance_pc_trade_planner=resonance_pc_trade_planner,
         reporter=_ACTIVE_PROGRESS_REPORTER.get(),
@@ -2263,27 +2405,30 @@ async def resonance_pc_preview_trade_plan_flow(
 )
 @_with_trade_progress
 async def resonance_pc_auto_cycle_trade_flow(
-    fatigue_budget: int = 100,
-    cargo_capacity: int = 650,
-    book_budget: int = 0,
-    auto_book: bool = False,
-    book_profit_threshold: float = 500000,
+    fatigue_budget: int = 700,
+    cargo_capacity: int = 750,
+    book_budget: Optional[int] = 0,
+    trade_mode: str = "profit",
+    book_policy: str = "profit",
+    negotiation_policy: str = "auto",
+    fixed_route_city_ids: Optional[List[str]] = None,
+    reposition_to_route: bool = False,
+    target_profit: Optional[int] = None,
+    book_profit_threshold: int = 500000,
     negotiation_max_attempts: int = 5,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
     raise_step_bps: Optional[Any] = 1000,
-    trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
-    active_events: Optional[List[Any]] = None,
     use_fatigue_medicine: bool = False,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
     arrival_timeout_seconds: float = 3600.0,
-    auto_cape_island_investment: bool = False,
+    auto_cape_island_investment: bool = True,
     auto_rubbish_recycling: bool = True,
     auto_sparkling_water: bool = False,
     auto_bento: bool = False,
@@ -2305,8 +2450,13 @@ async def resonance_pc_auto_cycle_trade_flow(
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
-    if type(auto_book) is not bool:
-        raise ValueError("auto_book must be a boolean")
+    request = normalize_planning_inputs(locals())
+    for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
+                        ("auto_cape_island_investment", auto_cape_island_investment),
+                        ("auto_rubbish_recycling", auto_rubbish_recycling)):
+        if type(value) is not bool:
+            raise ValueError(f"{name} must be a boolean")
+    integer("fatigue_medicine_max_uses", fatigue_medicine_max_uses)
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
     if type(auto_bento) is not bool:
@@ -2406,34 +2556,31 @@ async def resonance_pc_auto_cycle_trade_flow(
             data=payload,
         )
     )
-    with trade_solver_progress(solver_progress_callback):
-        plan = await asyncio.to_thread(
-            resonance_pc_trade_plan_optimal_route,
-            current_city=str(current.get("city_name") or ""),
-            current_city_key=str(current.get("city_key") or ""),
-            fatigue_budget=int(fatigue_budget),
-            cargo_capacity=int(cargo_capacity),
-            book_budget=int(book_budget),
-            auto_book=auto_book,
-            book_profit_threshold=book_profit_threshold,
-            negotiation_budget=0,
-            all_plan=1,
-            bargain_success_rates_bps=bargain_success_rates_bps,
-            bargain_step_bps=bargain_step_bps,
-            raise_success_rates_bps=raise_success_rates_bps,
-            raise_step_bps=raise_step_bps,
-            trade_level=int(trade_level),
-            available_city_ids=available_city_ids,
-            required_end_city_ids=required_end_city_ids,
-            city_prestige=city_prestige
-            or {"default": 20, "overrides": {}},
-            product_unlocks=product_unlocks
-            or {"mode": "all", "product_ids": []},
-            active_events=active_events or [],
-            snapshot_id=refresh.get("snapshot_id"),
-            resonance_pc_trade_planner=resonance_pc_trade_planner,
-        )
-    route = [dict(item) for item in (plan.get("route") or []) if isinstance(item, dict)]
+    mismatch = False
+    if request["trade_mode"] == "fixed":
+        cities = resonance_pc_market_data.get_all_travel_fatigue()["cities"]
+        actual_city_id = next((str(key) for key, value in cities.items()
+                               if value == current.get("city_name")), None)
+        if actual_city_id is None:
+            _raise_error("unsupported_city", "Current city could not be mapped to the travel graph", current)
+        current["city_id"] = actual_city_id
+        mismatch = start_mismatch(request, actual_city_id)
+    if mismatch:
+        plan = fixed_start_stop(request)
+    else:
+        with trade_solver_progress(solver_progress_callback):
+            plan = await asyncio.to_thread(
+                resonance_pc_trade_plan_optimal_route,
+                current_city=str(current.get("city_name") or ""),
+                current_city_key=str(current.get("city_key") or ""),
+                **request,
+                snapshot_id=refresh.get("snapshot_id"),
+                resonance_pc_trade_planner=resonance_pc_trade_planner,
+            )
+    plan = plan_view(plan, request, kind="run", auto_bento=auto_bento,
+                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
+    current.setdefault("city_id", plan.get("start_city_id"))
+    route = plan["route"]
     water_plan = {
         "planned": False,
         "reason": "disabled",
@@ -2451,6 +2598,9 @@ async def resonance_pc_auto_cycle_trade_flow(
             water_plan["reason"] = "no_remaining_free_uses"
         logger.info("Sparkling water selection=%s", water_plan)
     plan["sparkling_water_plan"] = water_plan
+    plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
+                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
+    plan["sparkling_water_plan"] = water_plan
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -2459,25 +2609,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             city_count=len(route) + 1 if route else 0,
             current_city=str(current.get("city_name") or ""),
             snapshot_id=str(refresh.get("snapshot_id") or ""),
-            data={
-                "route": route,
-                "summary": {
-                    "status": plan.get("status"),
-                    "expected_profit": plan.get("expected_profit"),
-                    "expected_fatigue_used": plan.get("expected_fatigue_used"),
-                    "remaining_expected_fatigue": plan.get("remaining_expected_fatigue"),
-                    "books_used": plan.get("books_used"),
-                    "auto_book": plan.get("auto_book"),
-                    "book_budget_ignored": plan.get("book_budget_ignored"),
-                    "book_profit_threshold": plan.get("book_profit_threshold"),
-                    "book_incremental_profit": plan.get("book_incremental_profit"),
-                    "book_incremental_profit_exact": plan.get("book_incremental_profit_exact"),
-                    "average_book_profit": plan.get("average_book_profit"),
-                    "average_book_profit_exact": plan.get("average_book_profit_exact"),
-                    "full_bargain_count": plan.get("full_bargain_count"),
-                    "full_raise_count": plan.get("full_raise_count"),
-                },
-            },
+            data=planning_event_data(plan),
         )
     execution: Dict[str, Any] = {
         "status": "not_started",
@@ -2500,7 +2632,20 @@ async def resonance_pc_auto_cycle_trade_flow(
         "rubbish_recycling_city_name": None,
     }
     final_sale: Optional[Dict[str, Any]] = None
-    if plan.get("status") == "ok" and route:
+    reposition_execution = None
+    if plan.get("status") == "ok" and route and plan["reposition"]["required"]:
+        reposition_execution = await _execute_freight_reposition(
+            plan["reposition"]["route"], page_state=page_state,
+            app=app, ocr=ocr, vision=vision, city_shop_data=resonance_pc_city_shop_data,
+            arrival_timeout_seconds=normalized_arrival_timeout_seconds,
+            use_fatigue_medicine=use_fatigue_medicine,
+            allowed_fatigue_medicines=allowed_fatigue_medicines,
+            fatigue_medicine_max_uses=fatigue_medicine_max_uses,
+        )
+        page_state = reposition_execution["page_state"]
+        if reposition_execution["success"] is not True:
+            execution.update(reposition_execution)
+    if plan.get("status") == "ok" and route and (reposition_execution is None or reposition_execution["success"]):
         execution = await _execute_route(
             route=route,
             start_page_state=page_state,
@@ -2525,7 +2670,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         )
         page_state = str(execution.get("page_state") or "city_main")
 
-        if str(execution.get("status") or "").lower() != "blocked":
+        if str(execution.get("status") or "").lower() == "completed":
             if page_state == "city_main":
                 await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
                 page_state = "city_panel"
@@ -2540,28 +2685,35 @@ async def resonance_pc_auto_cycle_trade_flow(
                     current_city=endpoint_city,
                     data={"raise_to_cap": bool(route[-1].get("raise_to_cap"))},
                 )
-            final_sale = await asyncio.to_thread(
-                _execute_city_trade_inside_current_city,
-                current_city=endpoint_city,
-                buy_products=[],
-                books_used=0,
-                sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
-                buy_bargain_to_cap=False,
-                negotiation_max_attempts=normalized_negotiation_max_attempts,
-                app=app,
-                ocr=ocr,
-                vision=vision,
-                city_shop_data=resonance_pc_city_shop_data,
-                progress_context={
-                    "leg_index": len(route),
-                    "leg_count": len(route),
-                    "city_index": len(route),
-                    "city_count": len(route) + 1,
-                    "current_city": endpoint_city,
-                    "from_city": endpoint_city,
-                    "to_city": endpoint_city,
-                },
-            )
+            try:
+                final_sale = await asyncio.to_thread(
+                    _execute_city_trade_inside_current_city,
+                    current_city=endpoint_city,
+                    buy_products=[],
+                    books_used=0,
+                    sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
+                    buy_bargain_to_cap=False,
+                    negotiation_max_attempts=normalized_negotiation_max_attempts,
+                    app=app,
+                    ocr=ocr,
+                    vision=vision,
+                    city_shop_data=resonance_pc_city_shop_data,
+                    progress_context={
+                        "leg_index": len(route),
+                        "leg_count": len(route),
+                        "city_index": len(route),
+                        "city_count": len(route) + 1,
+                        "current_city": endpoint_city,
+                        "from_city": endpoint_city,
+                        "to_city": endpoint_city,
+                    },
+                )
+            except Exception as exc:
+                if not hasattr(exc, "code"):
+                    raise
+                final_sale = {"success": False, "page_state": "unknown", "reason": str(exc.code),
+                              "error": {"code": str(exc.code), "message": str(exc),
+                                        "detail": dict(getattr(exc, "detail", {}) or {})}}
             page_state = str(final_sale.get("page_state") or "unknown")
             if reporter is not None:
                 await reporter.emit(
@@ -2573,7 +2725,7 @@ async def resonance_pc_auto_cycle_trade_flow(
                     current_city=endpoint_city,
                     data={"final_sale": final_sale},
                 )
-    elif page_state == "city_panel":
+    elif page_state == "city_panel" and reposition_execution is None:
         cleanup = await asyncio.to_thread(
             resonance_pc_go_city_main_direct,
             app=app,
@@ -2582,27 +2734,28 @@ async def resonance_pc_auto_cycle_trade_flow(
         execution["page_cleanup"] = cleanup
         page_state = str(cleanup.get("page_state") or "city_main")
 
+    execution["reposition_execution"] = reposition_execution
     negotiation_execution = _summarize_negotiation_execution(execution, final_sale)
     execution.update(negotiation_execution)
     execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts
     execution["arrival_timeout_seconds"] = normalized_arrival_timeout_seconds
     execution_status = str(execution.get("status") or "not_started").lower()
     if final_sale is not None and (final_sale.get("success") is not True or page_state != "city_main"):
-        status = "failed"
-        reason = "final_sale_not_confirmed"
+        status = "cancelled" if "cancel" in str(final_sale.get("reason")) else "failed"
+        reason = final_sale.get("reason") or "final_sale_not_confirmed"
         success = False
     elif execution_status == "blocked":
         status = "blocked"
         reason = execution.get("reason") or "travel_blocked"
         success = False
-    elif plan.get("status") == "ok" and route:
+    elif execution_status == "completed" and final_sale is not None and final_sale.get("success") is True:
         status = "completed"
         reason = None
         success = True
     else:
-        status = str(plan.get("status") or "no_plan")
-        reason = plan.get("reason")
-        success = True
+        status = "failed" if execution_status == "failed" else "cancelled" if execution_status == "cancelled" else "stopped"
+        reason = execution.get("reason") or plan.get("reason") or plan["planning_status"]
+        success = False
 
     bento_pending = bool(auto_bento and success and status == "completed" and final_sale is not None)
     result = dict(plan)
@@ -2627,6 +2780,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "fatigue_medicine_used": list(execution.get("fatigue_medicine_used") or []),
             "fatigue_medicine_use_count": int(execution.get("fatigue_medicine_use_count") or 0),
             "initial_city": {
+                "city_id": current.get("city_id"),
                 "city_name": current.get("city_name"),
                 "city_key": current.get("city_key"),
                 "ocr_city_text": current.get("ocr_city_text"),
@@ -2634,6 +2788,25 @@ async def resonance_pc_auto_cycle_trade_flow(
             "page_state": page_state,
         }
     )
+    confirmed_books = sum(
+        int(((item.get("city_trade") or {}).get("buy") or {}).get("book_result", {}).get("used") or 0)
+        for item in execution.get("leg_results") or []
+    )
+    for item in execution.get("leg_results") or []:
+        detail = (item.get("error") or {}).get("detail") or {}
+        partial = (detail.get("book_result") or {}).get("used", detail.get("used_before_failure", 0))
+        if type(partial) is int and partial >= 0:
+            confirmed_books += partial
+    result["resources"] = dict(reporter.resources) if reporter else {
+        "confirmed_books_used": confirmed_books,
+        "confirmed_negotiation_fatigue": negotiation_execution["negotiation_actual_fatigue_used"],
+        "actual_fatigue": None, "actual_profit": None,
+    }
+    result["resources"]["confirmed_books_used"] = max(
+        confirmed_books, result["resources"]["confirmed_books_used"],
+    )
+    if execution.get("error") or (final_sale or {}).get("error"):
+        result["error"] = execution.get("error") or final_sale["error"]
     if reporter is not None:
         if bento_pending:
             await reporter.emit("bento", "started", city_index=len(route),
@@ -2671,6 +2844,7 @@ async def resonance_pc_finish_auto_cycle_trade(
     result = dict(trade_result)
     pending = result.pop("bento_pending", False)
     progress_sequence = result.pop("bento_progress_sequence", 0)
+    checkpoint = result.pop("bento_progress_checkpoint", None)
     if type(pending) is not bool or type(progress_sequence) is not int or progress_sequence < 0:
         raise ValueError("Invalid freight bento handoff")
     if pending and (not auto_bento or result.get("success") is not True
@@ -2707,6 +2881,10 @@ async def resonance_pc_finish_auto_cycle_trade(
     else:
         child_result = {**child, "triggered": True}
     result["bento_consumption"] = child_result
+    resources = dict(result.get("resources") or {})
+    resources["bento_basic_recovered_fatigue"] = child_result.get("recovered_fatigue")
+    resources["bento_computed_fatigue"] = child_result.get("computed_fatigue")
+    result["resources"] = resources
     if child_result["success"] is not True or child_result["page_state"] != "city_main":
         result.update(success=False,
                       status="cancelled" if child_result["status"] == "cancelled" else "failed",
@@ -2719,10 +2897,16 @@ async def resonance_pc_finish_auto_cycle_trade(
     cid = str(context.data.get("cid") or "") if isinstance(context, ExecutionContext) else ""
     if event_bus is not None and cid:
         reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop(), progress_sequence)
+        reporter.fields.update(trade_mode=result.get("trade_mode", "profit"), request_kind="run")
+        reporter.resources.update(resources)
+        if isinstance(checkpoint, dict):
+            reporter._total_units = checkpoint["total_units"]
+            reporter._completed_units = {tuple(key) for key in checkpoint["completed_units"]}
+            reporter._phase_keys = {tuple(key) for key in checkpoint["phase_keys"]}
         await reporter.emit("bento", "completed" if result["success"] else "failed",
                             city_index=len(result.get("route") or []),
                             current_city=str((result.get("route") or [{}])[-1].get("to_city") or ""),
                             data={"result": child_result})
-        await reporter.emit("task", "completed" if result["success"] else "failed",
+        await reporter.emit("task", "completed" if result["success"] else "cancelled" if result["status"] == "cancelled" else "failed",
                             data={"status": result["status"], "reason": result.get("reason")})
     return result

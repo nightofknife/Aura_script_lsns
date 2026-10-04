@@ -47,7 +47,8 @@ def harness(monkeypatch):
 
     async def preview(**kwargs):
         calls["preview"].append(kwargs)
-        return {"status": "ok", "route": [{"to_city_id": "11"}]}
+        return {"success": True, "status": "planned", "planning_status": "ok",
+                "route": [{"to_city_id": "11"}]}
 
     async def passenger(**kwargs):
         calls["passenger"].append(kwargs)
@@ -196,13 +197,13 @@ def test_real_auto_trade_requires_persistence_before_ui(monkeypatch, recovery_sn
 
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("auto_book", [False, True])
+@pytest.mark.parametrize("book_budget", [0, 3, None])
 def test_combined_handoff_enters_real_auto_trade_signature(
-    harness, monkeypatch, recovery_snapshot, enabled, order, auto_book,
+    harness, monkeypatch, recovery_snapshot, enabled, order, book_budget,
 ):
     inputs, _, _ = harness
     inputs["trade_inputs"]["auto_sparkling_water"] = enabled
-    inputs["trade_inputs"]["auto_book"] = auto_book
+    inputs["trade_inputs"]["book_budget"] = book_budget
     inputs["trade_inputs"]["base_fatigue_reserve"] = 70
     original = deepcopy(recovery_snapshot)
     captured = {}
@@ -235,7 +236,7 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     def plan_route(**kwargs):
         planning_inputs.update(kwargs)
         return {"status": "ok", "route": deepcopy(route), "expected_fatigue_used": 40,
-                "auto_book": kwargs["auto_book"]}
+                "book_budget": kwargs["book_budget"]}
 
     monkeypatch.setattr(trade_flow, "resonance_pc_trade_plan_optimal_route", plan_route)
 
@@ -261,8 +262,11 @@ def test_combined_handoff_enters_real_auto_trade_signature(
         **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
     ))
     assert result["status"] == "completed", result
-    assert planning_inputs["auto_book"] is auto_book
-    assert result["trade"]["auto_book"] is auto_book
+    assert planning_inputs["book_budget"] == book_budget
+    assert result["trade"]["book_budget"] == book_budget
+    assert result["trade"]["book_budget_unlimited"] is (book_budget is None)
+    assert "auto_book" not in planning_inputs
+    assert "auto_book" not in result["trade"]
     assert recovery_snapshot == original
     assert captured["persistent_data"] is persistent_data
     assert result["trade"]["sparkling_water"]["triggered"] is enabled

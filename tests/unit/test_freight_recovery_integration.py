@@ -349,7 +349,8 @@ def test_no_route_or_blocked_never_refreshes_or_consumes(freight, boundary):
     else:
         freight.state["block_index"] = 1
     result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
-    assert result["status"] == ("blocked" if boundary == "blocked" else "no_plan")
+    assert result["status"] == ("blocked" if boundary == "blocked" else "stopped")
+    assert result["success"] is False
     assert result["bento_pending"] is False
     assert freight.runtime.calls == [] and freight.runtime.store.reads == []
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations

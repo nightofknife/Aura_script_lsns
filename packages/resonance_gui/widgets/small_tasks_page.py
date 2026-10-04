@@ -1,4 +1,4 @@
-"""Three-column home for tasks that do not belong to the ordered workflow."""
+"""Compact task navigation beside a full-width, non-workflow workspace."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -34,7 +35,7 @@ ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 TRADE_PREVIEW_TASK_ID = "trade_preview"
 CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
-    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "跑商试算"),)),
+    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "货运试算"),)),
     ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
     (
         "activity_play",
@@ -43,6 +44,17 @@ CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     ),
     ("developer_tools", "开发工具", ((DATA_COLLECTION_TASK_ID, "数据采集"),)),
 )
+SMALL_TASKS: tuple[tuple[str, str], ...] = tuple(
+    task for _category_id, _label, tasks in CATEGORY_TASKS for task in tasks
+)
+TASK_TOOLTIPS = {
+    USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
+    TRADE_PREVIEW_TASK_ID: "使用所选城市和货运参数计算交易方案，不执行游戏中的买卖。",
+    TEAM_RECOMMENDATION_TASK_ID: "根据最新角色与仓库装备数据匹配固定配队，不自动配置队伍。",
+    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "进入识海深潜、扫描布局或运行现有自动流程。",
+    ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
+    DATA_COLLECTION_TASK_ID: "采集识海深潜页面数据或探测拖动灵敏度。",
+}
 
 
 class _SmallTaskColumn(QFrame):
@@ -63,6 +75,13 @@ class _SmallTaskColumn(QFrame):
         self.body_layout.setContentsMargins(10, 10, 10, 10)
         self.body_layout.setSpacing(8)
         layout.addWidget(self.body, 1)
+
+
+class _TaskNavigationColumn(_SmallTaskColumn):
+    """A narrow navigation rail with a predictable preferred width."""
+
+    def sizeHint(self) -> QSize:
+        return QSize(170, super().sizeHint().height())
 
 
 class SmallTasksPage(QWidget):
@@ -98,26 +117,33 @@ class SmallTasksPage(QWidget):
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(12)
 
-        self.category_panel = _SmallTaskColumn("任务分类", self)
-        self.category_panel.setMinimumWidth(230)
-        self.category_panel.setMaximumWidth(330)
-        self.category_list = QListWidget(self.category_panel.body)
+        # Keep the legacy category selector API off-screen for older integrations.
+        # The visible list always contains every available task.
+        self.category_list = QListWidget(self)
         self.category_list.setObjectName("smallTaskCategoryList")
+        self.category_list.hide()
         for category_id, label, _tasks in CATEGORY_TASKS:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, category_id)
             item.setSizeHint(QSize(0, 48))
             self.category_list.addItem(item)
-        self.category_panel.body_layout.addWidget(self.category_list)
-
-        self.task_panel = _SmallTaskColumn("任务列表", self)
-        self.task_panel.setMinimumWidth(320)
+        self.task_panel = _TaskNavigationColumn("功能", self)
+        self.task_panel.setMinimumWidth(140)
+        self.task_panel.setMaximumWidth(210)
+        self.task_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         self.task_list = QListWidget(self.task_panel.body)
         self.task_list.setObjectName("smallTaskList")
+        self.task_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        for task_id, label in SMALL_TASKS:
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, task_id)
+            item.setToolTip(TASK_TOOLTIPS[task_id])
+            item.setSizeHint(QSize(0, 42))
+            self.task_list.addItem(item)
         self.task_panel.body_layout.addWidget(self.task_list)
 
         self.detail_panel = _SmallTaskColumn("任务详情", self)
-        self.detail_panel.setMinimumWidth(470)
+        self.detail_panel.setMinimumWidth(0)
         self.detail_stack = QStackedWidget(self.detail_panel.body)
         self.detail_stack.setObjectName("smallTaskDetailStack")
         self.detail_panel.body_layout.addWidget(self.detail_stack, 1)
@@ -189,13 +215,12 @@ class SmallTasksPage(QWidget):
         self.detail_stack.addWidget(self.trade_preview_panel)
         self._task_pages[TRADE_PREVIEW_TASK_ID] = self.trade_preview_panel
 
-        root.addWidget(self.category_panel, 22)
-        root.addWidget(self.task_panel, 30)
-        root.addWidget(self.detail_panel, 48)
+        root.addWidget(self.task_panel)
+        root.addWidget(self.detail_panel, 1)
 
         self.category_list.currentItemChanged.connect(self._category_changed)
         self.task_list.currentItemChanged.connect(self._task_changed)
-        self.category_list.setCurrentRow(0)
+        self.task_list.setCurrentRow(0)
 
     @property
     def current_task_id(self) -> str:
@@ -203,11 +228,14 @@ class SmallTasksPage(QWidget):
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
 
     def show_trade_preview(self) -> None:
-        for index in range(self.category_list.count()):
-            item = self.category_list.item(index)
-            if item.data(Qt.ItemDataRole.UserRole) == "trade_tools":
-                self.category_list.setCurrentRow(index)
-                break
+        self.show_task(TRADE_PREVIEW_TASK_ID)
+
+    def show_task(self, task_id: str) -> None:
+        """Select a registered task without rebuilding the navigation list."""
+        for index in range(self.task_list.count()):
+            if self.task_list.item(index).data(Qt.ItemDataRole.UserRole) == task_id:
+                self.task_list.setCurrentRow(index)
+                return
 
     def _build_player_action_band(self, parent_layout: QVBoxLayout) -> None:
         run_band = QFrame(self.player_task_page)
@@ -223,10 +251,12 @@ class SmallTasksPage(QWidget):
         self.cancel_button = QPushButton("取消", run_band)
         self.cancel_button.setObjectName("dangerButton")
         self.cancel_button.setEnabled(False)
+        self.cancel_button.setToolTip("请求取消当前正在运行的任务，不会关闭游戏。")
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
         run_layout.addWidget(self.cancel_button)
         self.run_button = QPushButton("立即运行", run_band)
         self.run_button.setObjectName("primaryButton")
+        self.run_button.setToolTip("按当前更新设置读取游戏中的用户数据并保存最新快照。")
         self.run_button.clicked.connect(self._request_player_data_run)
         run_layout.addWidget(self.run_button)
         parent_layout.addWidget(run_band)
@@ -236,17 +266,12 @@ class SmallTasksPage(QWidget):
         current: QListWidgetItem | None,
         _previous: QListWidgetItem | None,
     ) -> None:
-        self.task_list.clear()
         if current is None:
             return
         category_id = str(current.data(Qt.ItemDataRole.UserRole) or "")
-        for task_id, label in self._category_tasks.get(category_id, ()):
-            item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, task_id)
-            item.setSizeHint(QSize(0, 56))
-            self.task_list.addItem(item)
-        if self.task_list.count():
-            self.task_list.setCurrentRow(0)
+        tasks = self._category_tasks.get(category_id, ())
+        if tasks:
+            self.show_task(tasks[0][0])
 
     def _task_changed(
         self,
@@ -440,6 +465,7 @@ __all__ = [
     "CATEGORY_TASKS",
     "CONSCIOUSNESS_DEEP_DIVE_TASK_ID",
     "DATA_COLLECTION_TASK_ID",
+    "SMALL_TASKS",
     "SmallTasksPage",
     "TEAM_RECOMMENDATION_TASK_ID",
     "USER_DATA_TASK_ID",

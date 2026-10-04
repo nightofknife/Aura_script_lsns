@@ -11,6 +11,7 @@ from packages.aura_core.context.persistence.store_service import StateStoreServi
 from packages.aura_core.observability.logging.core_logger import current_cid
 
 from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
+from ._freight_contract import normalize_planning_inputs
 
 
 def _require_service(service: Optional[ResonancePcTradePlannerService]) -> ResonancePcTradePlannerService:
@@ -23,51 +24,38 @@ def _require_service(service: Optional[ResonancePcTradePlannerService]) -> Reson
     name="resonance_pc.trade_plan_optimal_route",
     public=True,
     read_only=True,
-    description="Plan the exact binary-to-cap maximum expected after-tax profit route for one frozen market snapshot.",
+    description="Plan one exact freight route using the selected trade objective and frozen market snapshot.",
 )
 @requires_services(resonance_pc_trade_planner="resonance_pc_trade_planner")
 def resonance_pc_trade_plan_optimal_route(
-    fatigue_budget: int = 100,
-    cargo_capacity: int = 650,
-    book_budget: int = 0,
+    fatigue_budget: int = 700,
+    cargo_capacity: int = 750,
+    book_budget: Optional[int] = 0,
+    trade_mode: str = "profit",
+    book_policy: str = "profit",
+    negotiation_policy: str = "auto",
+    fixed_route_city_ids: Optional[List[str]] = None,
+    reposition_to_route: bool = False,
+    target_profit: Optional[int] = None,
     book_profit_threshold: Any = 500000,
-    negotiation_budget: int = 0,
-    all_plan: int = 0,
     bargain_success_rates_bps: Optional[List[Any]] = [5000],
     bargain_step_bps: Optional[Any] = 1000,
     raise_success_rates_bps: Optional[List[Any]] = [5000],
     raise_step_bps: Optional[Any] = 1000,
-    trade_level: int = 20,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
-    active_events: Optional[List[Any]] = None,
     current_city_key: Optional[str] = None,
     current_city_id: Optional[str] = None,
     current_city: Optional[str] = None,
     snapshot_id: Optional[str] = None,
-    auto_book: bool = False,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
 ) -> Dict[str, Any]:
+    request = normalize_planning_inputs(locals())
     return _require_service(resonance_pc_trade_planner).plan_optimal_route(
-        fatigue_budget=fatigue_budget,
-        cargo_capacity=cargo_capacity,
-        book_budget=book_budget,
-        auto_book=auto_book,
-        book_profit_threshold=book_profit_threshold,
-        negotiation_budget=negotiation_budget,
-        all_plan=all_plan,
-        bargain_success_rates_bps=bargain_success_rates_bps,
-        bargain_step_bps=bargain_step_bps,
-        raise_success_rates_bps=raise_success_rates_bps,
-        raise_step_bps=raise_step_bps,
-        trade_level=trade_level,
-        available_city_ids=available_city_ids,
-        required_end_city_ids=required_end_city_ids,
-        city_prestige=city_prestige,
-        product_unlocks=product_unlocks,
-        active_events=active_events,
+        **request,
+        negotiation_budget=None,
         current_city_key=current_city_key,
         current_city_id=current_city_id,
         current_city=current_city,

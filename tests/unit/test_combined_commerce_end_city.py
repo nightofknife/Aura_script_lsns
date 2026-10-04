@@ -35,7 +35,7 @@ def test_passenger_first_preserves_freight_end_city(monkeypatch) -> None:
 
     async def fake_preview(**kwargs):
         captured["preview_end_city_ids"] = kwargs.get("required_end_city_ids")
-        return {"status": "ok", "route": [{"to_city_id": "3"}]}
+        return {"status": "planned", "route": [{"to_city_id": "3"}]}
 
     async def fake_passenger(_inputs, **_kwargs):
         return {

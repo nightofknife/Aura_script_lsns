@@ -32,7 +32,12 @@ from .rubbish_recycling_pc_actions import is_rubbish_recycling_arrival
 _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
     "auto_pickup",
-    "auto_book",
+    "trade_mode",
+    "book_policy",
+    "negotiation_policy",
+    "fixed_route_city_ids",
+    "reposition_to_route",
+    "target_profit",
     "cargo_capacity",
     "book_budget",
     "book_profit_threshold",
@@ -41,12 +46,10 @@ _TRADE_INPUT_KEYS = {
     "bargain_step_bps",
     "raise_success_rates_bps",
     "raise_step_bps",
-    "trade_level",
     "available_city_ids",
     "required_end_city_ids",
     "city_prestige",
     "product_unlocks",
-    "active_events",
     "auto_sparkling_water",
     "auto_bento",
     "bento_priority",
@@ -614,7 +617,7 @@ async def resonance_pc_auto_combined_commerce_flow(
                 detail=_exception_detail(exc),
             )
         result["preflight"]["trade_preview"] = preview
-        if str(preview.get("status") or "") != "ok" or not list(preview.get("route") or []):
+        if str(preview.get("status") or "") != "planned" or not list(preview.get("route") or []):
             return _blocked(
                 result,
                 "trade_preflight_no_plan",

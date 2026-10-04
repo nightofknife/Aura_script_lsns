@@ -216,7 +216,7 @@ class ResonanceMainWindow(QMainWindow):
         self.primary_nav_buttons: dict[int, QPushButton] = {}
         for page_index, text in (
             (self.WORKFLOW_PAGE_INDEX, "工作流程"),
-            (self.SMALL_TASKS_PAGE_INDEX, "小任务"),
+            (self.SMALL_TASKS_PAGE_INDEX, "独立功能"),
             (self.SETTINGS_PAGE_INDEX, "设置"),
         ):
             button = QPushButton(text, top_bar)
@@ -253,13 +253,21 @@ class ResonanceMainWindow(QMainWindow):
         for page in (
             self.workflow_page,
             self.commerce_page,
-            self.battle_page,
+            QWidget(self.page_stack),  # Stable legacy page index; editor lives in workflow.
             self.workbench_page,
             self.history_page,
             self.settings_page,
             self.small_tasks_page,
         ):
             self.page_stack.addWidget(page)
+        self.workflow_page.attach_battle_editor(self.battle_page)
+        self.battle_page.layout().itemAt(0).widget().hide()
+        self.battle_page.start_button.hide()
+        self.battle_page.cancel_button.hide()
+        self.freight_trial_button = QPushButton("打开货运试算", self.workflow_page.trade_editor_page)
+        self.freight_trial_button.setToolTip("进入独立货运试算页面；只切换页面，不修改试算参数，也不开始计算。")
+        self.freight_trial_button.clicked.connect(self._open_freight_trial)
+        self.workflow_page.trade_editor_header.addWidget(self.freight_trial_button)
         layout.addWidget(self.page_stack, 1)
         self.timeout_spin = QDoubleSpinBox(root)
         self.timeout_spin.setRange(0.0, 7200.0)
@@ -306,20 +314,15 @@ class ResonanceMainWindow(QMainWindow):
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
         self.settings_page.settingsSaved.connect(self._sync_input_bridge_setting)
-        self.workflow_page.apply_compact_inputs(
-            self._settings.load_trade_inputs(), self._settings.load_passenger_inputs()
-        )
-        self._bind_commerce_parameters()
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
         self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
-        self.trade_page.autoBookChanged.connect(self.workflow_page.set_auto_book)
-        self.workflow_page.autoBookChanged.connect(self.trade_page.set_auto_book)
         self.trade_page.set_end_city_constraint_available(
             self.workflow_page.trade_end_city_constraint_available()
         )
         self.workflow_page.set_battle_count(len(self._settings.load_battle_inputs().get("jobs") or []))
         self._sync_workflow_settings()
+        self._bind_lifecycle_parameters()
 
         self.trade_page.startRequested.connect(self._run_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
@@ -369,6 +372,9 @@ class ResonanceMainWindow(QMainWindow):
         self._switch_page(index)
 
     def _switch_page(self, index: int) -> None:
+        if index == self.BATTLE_PAGE_INDEX:
+            self.workflow_page._select_task("battle")
+            index = self.WORKFLOW_PAGE_INDEX
         self.page_stack.setCurrentIndex(index)
         if index == self.WORKFLOW_PAGE_INDEX and hasattr(self, "workflow_page"):
             self.workflow_page.set_battle_count(len(getattr(self.battle_page, "_jobs", [])))
@@ -674,24 +680,18 @@ class ResonanceMainWindow(QMainWindow):
     def _start_freight_recovery_workflow(
         self, trade: dict[str, Any], passenger: dict[str, Any] | None = None,
     ) -> None:
-        # One-off runs share the workflow's refresh validation and cancellation gate.
-        commerce_steps = ["trade"] if passenger is None else ["trade", "passenger"]
-        if passenger is None:
-            task = {
-                "step": "trade", "parent": "commerce", "label": "货运",
-                "dispatch": "trade", "inputs": deepcopy(trade),
-            }
-        else:
-            task = {
-                "step": "commerce", "label": "客货运组合",
-                "dispatch": "combined_commerce", "commerce_steps": commerce_steps,
-                "inputs": self._combined_commerce_inputs(
-                    order="trade_first", trade=trade, passenger=passenger,
-                ),
-            }
-        self._begin_workflow(
-            [self._recovery_refresh_step(trade), task], ["commerce"], commerce_steps, trade,
-        )
+        kinds = ["trade"] if passenger is None else ["trade", "passenger"]
+        prepare = self._recovery_refresh_step(trade)
+        prepare["parent"] = "trade"
+        pending = [prepare, {
+            "step": "trade", "label": "货运", "dispatch": "trade", "inputs": deepcopy(trade),
+        }]
+        if passenger is not None:
+            pending.append({
+                "step": "passenger", "label": "客运", "dispatch": "passenger",
+                "inputs": deepcopy(passenger),
+            })
+        self._begin_workflow(pending, kinds, [], trade)
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
@@ -703,6 +703,13 @@ class ResonanceMainWindow(QMainWindow):
         self.requestPreviewPcTrade.emit(
             normalize_trade_task_inputs(preview_inputs), float(self.timeout_spin.value())
         )
+
+    def _open_freight_trial(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            return
+        self.trade_preview_page.tabs.setCurrentIndex(0)
+        self.small_tasks_page.show_trade_preview()
+        self._switch_page(self.SMALL_TASKS_PAGE_INDEX)
 
     def _on_trade_progress(self, event: dict[str, Any]) -> None:
         page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
@@ -728,54 +735,6 @@ class ResonanceMainWindow(QMainWindow):
             "trade_inputs": normalize_trade_task_inputs(trade),
             "passenger_inputs": dict(passenger),
         }
-
-    def _bind_commerce_parameters(self) -> None:
-        """Keep every duplicated commerce field connected for the window lifetime."""
-        quick, trade, passenger = self.workflow_page, self.trade_page, self.passenger_page
-        for summary, editor in (
-            (quick.trade_fatigue, trade.fatigue_budget),
-            (quick.trade_cargo, trade.cargo_capacity),
-            (quick.trade_books, trade.book_budget),
-            (quick.passenger_trips, passenger.trip_count),
-        ):
-            summary.valueChanged.connect(editor.setValue)
-            editor.valueChanged.connect(summary.setValue)
-        for summary, editor in (
-            (quick.trade_sparkling_water, trade.auto_sparkling_water),
-            (quick.trade_auto_bento, trade.auto_bento),
-            (quick.trade_auto_pickup, trade.auto_pickup),
-            (quick.trade_investment, trade.auto_cape_island_investment),
-            (quick.trade_rubbish_recycling, trade.auto_rubbish_recycling),
-            (quick.passenger_trade, passenger.trade_during_trip),
-            (quick.passenger_reposition, passenger.auto_reposition),
-        ):
-            summary.toggled.connect(editor.setChecked)
-            editor.toggled.connect(summary.setChecked)
-        for combo in (quick.passenger_city_a, quick.passenger_city_b):
-            combo.currentIndexChanged.connect(lambda _index: self._sync_passenger_route(True))
-        for combo in (passenger.city_a, passenger.city_b):
-            combo.currentIndexChanged.connect(lambda _index: self._sync_passenger_route(False))
-
-    def _sync_passenger_route(self, from_summary: bool) -> None:
-        quick, passenger = self.workflow_page, self.passenger_page
-        summary_pair = (quick.passenger_city_a, quick.passenger_city_b)
-        editor_pair = (passenger.city_a, passenger.city_b)
-        source, target = (summary_pair, editor_pair) if from_summary else (editor_pair, summary_pair)
-        # The source has already applied its distinct-city rule. Copy both final
-        # endpoints atomically so the target cannot correct an intermediate pair.
-        previous = [combo.blockSignals(True) for combo in target]
-        try:
-            for origin, destination in zip(source, target):
-                index = destination.findData(origin.currentData())
-                if index >= 0:
-                    destination.setCurrentIndex(index)
-        finally:
-            for combo, blocked in zip(target, previous):
-                combo.blockSignals(blocked)
-        if from_summary:
-            passenger._refresh_expected_fatigue()
-        else:
-            quick._refresh_passenger_route_summary()
 
     def _open_trade_editor(self) -> None:
         self.workflow_page.show_trade_editor()
@@ -807,6 +766,32 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.close_force.setChecked(bool(close["force_after_timeout"]))
         self.trade_page.arrival_timeout_minutes.setValue(
             max(self.settings_page.trade_arrival_timeout_seconds() // 60, 1)
+        )
+
+    def _bind_lifecycle_parameters(self) -> None:
+        """Keep lifecycle fields consistent with the global settings editor."""
+        quick, settings = self.workflow_page, self.settings_page
+        for source, target, key in (
+            (quick.startup_window_timeout, settings.window_timeout, "game/window_timeout_sec"),
+            (quick.startup_rounds, settings.settle_rounds, "game/max_settle_rounds"),
+            (quick.close_timeout, settings.close_timeout, "game/graceful_timeout_sec"),
+        ):
+            source.valueChanged.connect(target.setValue)
+            target.valueChanged.connect(source.setValue)
+            source.valueChanged.connect(lambda value, setting=key: self._settings.set_value(setting, value))
+        quick.startup_launch.toggled.connect(settings.launch_if_needed.setChecked)
+        settings.launch_if_needed.toggled.connect(quick.startup_launch.setChecked)
+        quick.startup_launch.toggled.connect(
+            lambda checked: self._settings.set_value("game/launch_if_not_running", checked)
+        )
+        quick.close_force.toggled.connect(
+            lambda checked: settings.close_mode.setCurrentIndex(0 if checked else 1)
+        )
+        settings.close_mode.currentIndexChanged.connect(
+            lambda _index: quick.close_force.setChecked(bool(settings.close_mode.currentData()))
+        )
+        quick.close_force.toggled.connect(
+            lambda checked: self._settings.set_value("game/force_after_timeout", checked)
         )
 
     def _start_commerce_sequence(self, run_trade: bool, run_passenger: bool) -> None:
@@ -858,7 +843,6 @@ class ResonanceMainWindow(QMainWindow):
         self._commerce_stopping = False
         self._commerce_current_kind = ""
         self.trade_page.set_busy(True)
-        self.workflow_page.trade_auto_pickup.setEnabled(False)
         self.passenger_page.set_busy(True)
         self.run_button.setEnabled(False)
         self.enqueue_button.setEnabled(False)
@@ -872,61 +856,29 @@ class ResonanceMainWindow(QMainWindow):
         if not steps:
             QMessageBox.warning(self, "流程为空", "请至少启用一个任务。")
             return
-        commerce_steps = self.workflow_page.commerce_steps() if "commerce" in steps else []
-        if "commerce" in steps and not commerce_steps:
-            QMessageBox.warning(self, "跑商未配置", "请至少启用货运或客运。")
-            return
+        commerce_steps: list[str] = []
 
         snapshots: dict[str, dict[str, Any]] = {}
         try:
-            if "commerce" in steps:
-                if "trade" in commerce_steps:
-                    snapshots["trade"] = self.workflow_page.merge_trade_inputs(
-                        self.trade_page.collect_inputs()
-                    )
-                    self._settings.save_trade_inputs(snapshots["trade"])
-                if "passenger" in commerce_steps:
-                    snapshots["passenger"] = self.workflow_page.merge_passenger_inputs(
-                        self.passenger_page.collect_inputs()
-                    )
-                    self._settings.save_passenger_inputs(snapshots["passenger"])
+            if "trade" in steps:
+                snapshots["trade"] = self.trade_page.collect_task_inputs()
+                self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
+            if "passenger" in steps:
+                snapshots["passenger"] = self.passenger_page.collect_inputs()
+                self._settings.save_passenger_inputs(snapshots["passenger"])
             if "battle" in steps:
                 snapshots["battle"] = self.battle_page.collect_inputs()
                 self._settings.save_battle_inputs(snapshots["battle"])
 
             run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
-            if set(commerce_steps) == {"trade", "passenger"}:
-                total_fatigue = int(run_snapshots["trade"].get("fatigue_budget", 0))
-                passenger_fatigue = self.workflow_page.passenger_route_fatigue()
-                route_city_ids = [
-                    str(run_snapshots["passenger"]["passenger_city_a_id"]),
-                    str(run_snapshots["passenger"]["passenger_city_b_id"]),
-                ]
-                available_city_ids = {
-                    str(city_id)
-                    for city_id in (run_snapshots["trade"].get("available_city_ids") or [])
-                }
-                unavailable_end_ids = [
-                    city_id for city_id in route_city_ids if city_id not in available_city_ids
-                ]
-                if unavailable_end_ids:
-                    raise ValueError(
-                        "客运线路端点必须同时包含在货运的可用城市中："
-                        + "、".join(unavailable_end_ids)
-                    )
-                trade_fatigue = total_fatigue - passenger_fatigue
-                if trade_fatigue <= 0:
-                    raise ValueError(
-                        f"总疲劳 {total_fatigue} 不足以完成客运所需的 "
-                        f"{passenger_fatigue} 疲劳，货运无法启动。"
-                    )
         except ValueError as exc:
             QMessageBox.warning(self, "流程参数错误", str(exc))
             return
 
         trade = snapshots.get("trade", {})
-        refresh_required = bool(trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False))
-        pending: list[dict[str, Any]] = [self._recovery_refresh_step(trade)] if refresh_required else []
+        # Recovery is an internal freight preparation stage, not a selectable
+        # task. Refresh immediately before freight, in the user's exact order.
+        pending: list[dict[str, Any]] = []
         for step in steps:
             if step == "startup":
                 pending.append({
@@ -936,32 +888,17 @@ class ResonanceMainWindow(QMainWindow):
                     "label": "进入主界面",
                     "dispatch": "pc_task",
                 })
-            elif step == "commerce":
-                if set(commerce_steps) == {"trade", "passenger"}:
-                    pending.append({
-                        "step": "commerce",
-                        "inputs": self._combined_commerce_inputs(
-                            order=(
-                                "trade_first"
-                                if commerce_steps[0] == "trade"
-                                else "passenger_first"
-                            ),
-                            trade=run_snapshots["trade"],
-                            passenger=run_snapshots["passenger"],
-                        ),
-                        "label": "客货运组合",
-                        "dispatch": "combined_commerce",
-                        "commerce_steps": list(commerce_steps),
-                    })
-                else:
-                    for kind in commerce_steps:
-                        pending.append({
-                            "step": kind,
-                            "parent": "commerce",
-                            "inputs": dict(run_snapshots[kind]),
-                            "label": "货运" if kind == "trade" else "客运",
-                            "dispatch": kind,
-                        })
+            elif step in {"trade", "passenger"}:
+                if step == "trade" and (
+                    trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False)
+                ):
+                    prepare = self._recovery_refresh_step(trade)
+                    prepare["parent"] = "trade"
+                    pending.append(prepare)
+                pending.append({
+                    "step": step, "inputs": dict(run_snapshots[step]),
+                    "label": "货运" if step == "trade" else "客运", "dispatch": step,
+                })
             elif step == "battle":
                 pending.append({
                     "step": "battle", "inputs": dict(snapshots["battle"]),
@@ -983,12 +920,6 @@ class ResonanceMainWindow(QMainWindow):
         commerce_steps: list[str], trade_inputs: dict[str, Any] | None,
     ) -> None:
         display_steps = list(steps)
-        if pending and pending[0]["step"] == "refresh_recovery":
-            refresh_index = 0
-            if len(pending) > 1 and pending[1]["step"] == "startup":
-                pending[0], pending[1] = pending[1], pending[0]
-                refresh_index = 1
-            display_steps.insert(refresh_index, "refresh_recovery")
         self._workflow_pending = pending
         self._workflow_recovery_snapshot = {}
         self._workflow_active = True
@@ -1001,6 +932,8 @@ class ResonanceMainWindow(QMainWindow):
             commerce_steps,
             trade_inputs,
         )
+        if any(row["step"] == "refresh_recovery" for row in pending):
+            self.workflow_page.add_freight_preparation()
         self._switch_page(self.WORKFLOW_PAGE_INDEX)
         self._dispatch_next_workflow_task()
 
@@ -1021,7 +954,7 @@ class ResonanceMainWindow(QMainWindow):
         step = str(current["step"])
         parent = str(current.get("parent") or "")
         if parent and self.workflow_page.step_is_waiting(parent):
-            self.workflow_page.mark_step(parent, "running", "开始跑商")
+            self.workflow_page.mark_step(parent, "running", "准备货运")
         self.workflow_page.mark_step(step, "running", f"正在执行{current['label']}")
         timeout = float(self.timeout_spin.value())
         dispatch = str(current["dispatch"])
@@ -1219,6 +1152,9 @@ class ResonanceMainWindow(QMainWindow):
             self.workflow_page.mark_step(
                 str(self._workflow_current["step"]), "cancelled", "用户请求停止流程"
             )
+            parent = str(self._workflow_current.get("parent") or "")
+            if parent:
+                self.workflow_page.mark_step(parent, "cancelled", "用户请求停止流程")
         if self._busy:
             self.requestCancelCurrent.emit()
         else:
@@ -1303,7 +1239,6 @@ class ResonanceMainWindow(QMainWindow):
         self._commerce_pending.clear()
         self._commerce_inputs.clear()
         self.trade_page.set_busy(self._busy)
-        self.workflow_page.trade_auto_pickup.setEnabled(not self._busy)
         self.passenger_page.set_busy(self._busy)
         self.run_button.setEnabled(not self._busy)
         self.enqueue_button.setEnabled(True)
@@ -1893,7 +1828,6 @@ class ResonanceMainWindow(QMainWindow):
                 )
                 self._small_task_active_ref = ""
         self.trade_page.set_busy(busy or self._commerce_active)
-        self.workflow_page.trade_auto_pickup.setEnabled(not busy and not self._commerce_active)
         self.passenger_page.set_busy(busy or self._commerce_active)
         self.battle_page.set_busy(busy)
         self.small_tasks_page.set_runner_busy(busy)

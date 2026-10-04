@@ -230,6 +230,8 @@ class InputValidator:
         s = self.normalize_input_schema(schema or {})
         required = bool(s.get("required"))
         has_default = "default" in s
+        if value is None and s.get("nullable") is True:
+            return True, None, None
         if value is _MISSING or value is None:
             if value is None and not required and not has_default:
                 return True, None, None
@@ -243,6 +245,8 @@ class InputValidator:
         if t == "string":
             val = str(value)
         elif t == "number":
+            if s.get("strict_integer") is True and type(value) is not int:
+                return False, None, f"Input '{path}' must be an integer."
             try:
                 if isinstance(value, bool):
                     val = 1 if value else 0
@@ -315,7 +319,8 @@ class InputValidator:
                 ok, v, err = self.validate_input_value(subschema, value.get(key, _MISSING), f"{path}.{key}")
                 if not ok:
                     return False, None, err
-                if v is not None or "default" in subschema or subschema.get("required"):
+                if (v is not None or "default" in subschema or subschema.get("required")
+                        or (subschema.get("nullable") is True and key in value)):
                     validated[key] = v
             val = validated
         else:

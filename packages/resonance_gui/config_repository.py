@@ -63,19 +63,25 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
-    "auto_book": False,
+    "trade_mode": "profit",
+    "book_policy": "profit",
+    "negotiation_policy": "auto",
+    "books_enabled": False,
+    "books_unlimited": False,
+    "finite_book_budget": 0,
+    "fixed_route_city_ids": [],
+    "reposition_to_route": False,
+    "target_profit": None,
     "book_profit_threshold": 500000,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
     "bargain_step_bps": 1000,
     "raise_success_rates_bps": [5000],
     "raise_step_bps": 1000,
-    "trade_level": 20,
     "available_city_ids": DEFAULT_PC_TRADE_CITY_IDS,
     "required_end_city_ids": None,
     "city_prestige": {"default": 20, "overrides": {}},
     "product_unlocks": {"mode": "all", "product_ids": []},
-    "active_events": [],
     "auto_sparkling_water": False,
     "auto_bento": False,
     "bento_priority": ["work_meals", "love_bentos"],
@@ -95,18 +101,24 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "fatigue_budget",
     "cargo_capacity",
     "book_budget",
-    "auto_book",
+    "trade_mode",
+    "book_policy",
+    "negotiation_policy",
+    "books_enabled",
+    "books_unlimited",
+    "finite_book_budget",
+    "fixed_route_city_ids",
+    "reposition_to_route",
+    "target_profit",
     "book_profit_threshold",
     "bargain_success_rates_bps",
     "bargain_step_bps",
     "raise_success_rates_bps",
     "raise_step_bps",
-    "trade_level",
     "available_city_ids",
     "required_end_city_ids",
     "city_prestige",
     "product_unlocks",
-    "active_events",
 )
 
 DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
@@ -398,6 +410,13 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    for key, minimum, maximum in (("fatigue_budget", 0, None), ("cargo_capacity", 1, None),
+                                  ("negotiation_max_attempts", 1, 6),
+                                  ("fatigue_medicine_max_uses", 0, None),
+                                  ("arrival_timeout_seconds", 1, None)):
+        value = merged[key]
+        if type(value) is not int or value < minimum or (maximum is not None and value > maximum):
+            raise ValueError(f"{key} 必须为范围内的整数，不能使用布尔或小数。")
     raw_city_ids = merged.get("available_city_ids")
     normalized_city_ids = list(
         dict.fromkeys(
@@ -425,7 +444,18 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         )
     )
     merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
-    merged["auto_book"] = bool(merged["auto_book"])
+    budget = merged["book_budget"]
+    if budget is not None and (type(budget) is not int or budget < 0):
+        raise ValueError("进货书必须为非负整数或无限。")
+    # Old persisted Auto Book was an unbounded UI choice, never a new task alias.
+    legacy_unlimited = bool(values.get("auto_book", False)) and "books_unlimited" not in values
+    merged["books_enabled"] = bool(values.get("books_enabled", legacy_unlimited or budget is None or budget > 0))
+    merged["books_unlimited"] = bool(values.get("books_unlimited", legacy_unlimited or budget is None))
+    finite = values.get("finite_book_budget", budget if budget is not None else 0)
+    if type(finite) is not int or finite < 0:
+        raise ValueError("有限进货书数量必须为非负整数。")
+    merged["finite_book_budget"] = finite
+    merged["book_budget"] = (None if merged["books_unlimited"] else finite) if merged["books_enabled"] else 0
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
@@ -444,13 +474,6 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     if type(reserve) is not int or reserve < 0:
         raise ValueError("基础疲劳保留必须为非负整数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
-    merged["use_fatigue_medicine"] = False
-    merged["allowed_fatigue_medicines"] = []
-    merged["fatigue_medicine_max_uses"] = 0
-    try:
-        merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
-    except (TypeError, ValueError):
-        merged["arrival_timeout_seconds"] = 3600
     return merged
 
 
@@ -460,9 +483,8 @@ def _merge_trade_preview_inputs(values: dict[str, Any]) -> dict[str, Any]:
     }
     merged = _merge_trade_inputs(planning_values)
     start_city_id = str(merged.get("start_city_id") or "").strip()
-    available_city_ids = merged["available_city_ids"]
     merged["start_city_id"] = (
-        start_city_id if start_city_id in available_city_ids else ""
+        start_city_id if start_city_id in ALL_PC_TRADE_CITY_IDS else ""
     )
     return {key: merged[key] for key in TRADE_PREVIEW_INPUT_KEYS}
 

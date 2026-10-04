@@ -1,4 +1,4 @@
-"""Three-column workflow dashboard for the Resonance PC GUI."""
+"""Compact task rail, full parameter workspace and bottom execution dock."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QBrush, QColor, QDrag, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
     QComboBox,
     QFormLayout,
     QFrame,
@@ -32,6 +31,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSpinBox,
+    QSplitter,
     QStackedWidget,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from .toggle_button import ToggleButton as QCheckBox
 from ..passenger_catalog import load_passenger_route_catalog
 from ..logic import (
     PASSENGER_STAGE_LABELS,
@@ -57,7 +58,8 @@ from ..logic import (
 )
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
-    ("commerce", "跑商"),
+    ("trade", "货运"),
+    ("passenger", "客运"),
     ("battle", "自动战斗"),
     ("close", "关闭游戏"),
 )
@@ -270,13 +272,17 @@ class _CityTimelineRow(QWidget):
             "arrival",
             "investment",
             "rubbish_recycling",
+            "sparkling_water",
             "sell",
+            "books",
+            "negotiation",
             "buy",
             "travel",
             "final_sale",
             "bento",
         ]
         ordered = [by_key[key] for key in ordered_keys if key in by_key]
+        ordered.extend(phase for phase in phases if phase.key not in ordered_keys)
         return [(phase, divmod(index, 2)) for index, phase in enumerate(ordered)]
 
 
@@ -325,13 +331,14 @@ class _TaskRow(QFrame):
         self.task_id = task_id
         self.setObjectName("workflowTaskRow")
         self.setProperty("selected", False)
-        self.setMinimumHeight(52)
+        self.setMinimumHeight(82)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._drag_start = QPoint()
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
-        self.enabled_check = QCheckBox(self)
+        self.enabled_check = QCheckBox("执行", self)
+        self.enabled_check.setToolTip("启用后，运行流程时执行此任务；关闭后跳过，不删除参数。")
         self.number_label = QLabel("", self)
         self.number_label.setObjectName("taskNumber")
         self.number_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -340,16 +347,22 @@ class _TaskRow(QFrame):
         self.name_label.setObjectName("taskName")
         self.status_label = QLabel("○", self)
         self.status_label.setObjectName("taskStatus")
-        self.drag_handle = QLabel("⋮⋮", self)
+        self.drag_handle = QLabel("::", self)
         self.drag_handle.setObjectName("taskDragHandle")
         self.drag_handle.setToolTip("拖动调整顺序")
         self.drag_handle.setCursor(Qt.CursorShape.OpenHandCursor)
         self.drag_handle.installEventFilter(self)
-        layout.addWidget(self.enabled_check)
-        layout.addWidget(self.number_label)
-        layout.addWidget(self.name_label, 1)
-        layout.addWidget(self.status_label)
-        layout.addWidget(self.drag_handle)
+        title_row = QHBoxLayout()
+        title_row.setSpacing(4)
+        title_row.addWidget(self.number_label)
+        title_row.addWidget(self.name_label, 1)
+        title_row.addWidget(self.drag_handle)
+        action_row = QHBoxLayout()
+        action_row.addWidget(self.enabled_check)
+        action_row.addStretch(1)
+        action_row.addWidget(self.status_label)
+        layout.addLayout(title_row)
+        layout.addLayout(action_row)
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         self.selected.emit(self.task_id)
@@ -500,17 +513,23 @@ class WorkflowPage(QWidget):
         self.left_panel = self._build_task_panel()
         self.center_panel = self._build_config_panel()
         self.right_panel = self._build_run_panel()
-        root.addWidget(self.left_panel, 20)
-        root.addWidget(self.center_panel, 45)
-        root.addWidget(self.right_panel, 35)
+        self.workspace_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self.workspace_splitter.setChildrenCollapsible(False)
+        self.workspace_splitter.addWidget(self.center_panel)
+        self.workspace_splitter.addWidget(self.right_panel)
+        self.workspace_splitter.setStretchFactor(0, 3)
+        self.workspace_splitter.setStretchFactor(1, 1)
+        self.workspace_splitter.setSizes([550, 220])
+        self.right_panel.setMinimumHeight(170)
+        root.addWidget(self.left_panel)
+        root.addWidget(self.workspace_splitter, 1)
 
     def _build_task_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("workflowPanel")
-        panel.setMinimumWidth(230)
-        panel.setMaximumWidth(330)
+        panel.setFixedWidth(184)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(14, 16, 14, 12)
+        layout.setContentsMargins(8, 12, 8, 10)
         layout.setSpacing(10)
         title = QLabel("任务顺序", panel)
         title.setObjectName("workflowTitle")
@@ -557,12 +576,10 @@ class WorkflowPage(QWidget):
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.startup_config_page = self._build_startup_config()
-        self.commerce_config_page = self._build_commerce_config()
         self.battle_config_page = self._build_battle_config()
         self.close_config_page = self._build_close_config()
         self._task_config_pages = {
             "startup": self.startup_config_page,
-            "commerce": self.commerce_config_page,
             "battle": self.battle_config_page,
             "close": self.close_config_page,
         }
@@ -573,12 +590,15 @@ class WorkflowPage(QWidget):
             self.trade_editor_page,
             self.trade_editor_layout,
             self.trade_editor_header,
-        ) = self._build_embedded_editor_page("完整货运参数")
+        ) = self._build_embedded_editor_page("货运参数")
         (
             self.passenger_editor_page,
             self.passenger_editor_layout,
             self.passenger_editor_header,
-        ) = self._build_embedded_editor_page("完整客运参数")
+        ) = self._build_embedded_editor_page("客运参数")
+        self._task_config_pages.update(
+            trade=self.trade_editor_page, passenger=self.passenger_editor_page
+        )
         self.runtime_trade_plan_page = self._build_runtime_trade_plan_page()
         self.center_stack.addWidget(self.trade_editor_page)
         self.center_stack.addWidget(self.passenger_editor_page)
@@ -593,12 +613,8 @@ class WorkflowPage(QWidget):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
         header = QHBoxLayout()
-        back = QPushButton("← 返回跑商设置", page)
-        back.setObjectName("quietButton")
-        back.clicked.connect(self.show_commerce_summary)
         heading = QLabel(title, page)
         heading.setObjectName("workflowTitle")
-        header.addWidget(back)
         header.addWidget(heading)
         header.addStretch(1)
         layout.addLayout(header)
@@ -664,6 +680,10 @@ class WorkflowPage(QWidget):
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         layout.addWidget(self.runtime_plan_path)
+        self.runtime_plan_contract_note = QLabel(page)
+        self.runtime_plan_contract_note.setWordWrap(True)
+        self.runtime_plan_contract_note.setProperty("caption", True)
+        layout.addWidget(self.runtime_plan_contract_note)
 
         meta_row = QHBoxLayout()
         meta_row.setSpacing(8)
@@ -720,16 +740,21 @@ class WorkflowPage(QWidget):
             target_layout.addWidget(panel, 1)
 
     def show_trade_editor(self) -> None:
-        self.center_stack.setCurrentWidget(self.trade_editor_page)
+        self._select_task("trade")
 
     def show_passenger_editor(self) -> None:
-        self.center_stack.setCurrentWidget(self.passenger_editor_page)
+        self._select_task("passenger")
 
     def show_runtime_trade_plan(self) -> None:
         self.center_stack.setCurrentWidget(self.runtime_trade_plan_page)
 
     def show_commerce_summary(self) -> None:
-        self._select_task("commerce")
+        self._select_task("trade")
+
+    def attach_battle_editor(self, panel: QWidget) -> None:
+        """Reuse the real battle widget rather than maintain a second form."""
+        self._task_config_pages["battle"] = panel
+        self.center_stack.addWidget(panel)
 
     def _page_heading(self, title: str, description: str, parent: QWidget) -> QVBoxLayout:
         box = QVBoxLayout()
@@ -747,7 +772,8 @@ class WorkflowPage(QWidget):
         layout = QVBoxLayout(page)
         layout.addLayout(self._page_heading("进入主界面", "启动客户端并等待雷索纳斯主界面就绪。", page))
         form = QFormLayout()
-        self.startup_launch = QCheckBox("游戏未运行时自动启动", page)
+        self.startup_launch = QCheckBox("自动启动游戏", page)
+        self.startup_launch.setToolTip("游戏未运行时使用设置页保存的游戏程序路径启动；路径为空会报错，不自动检测。")
         self.startup_launch.setChecked(True)
         self.startup_rounds = QSpinBox(page)
         self.startup_rounds.setRange(1, 3600)
@@ -756,7 +782,9 @@ class WorkflowPage(QWidget):
         self.startup_window_timeout.setRange(1, 600)
         self.startup_window_timeout.setValue(90)
         self.startup_window_timeout.setSuffix(" 秒")
-        form.addRow("启动行为", self.startup_launch)
+        self.startup_window_timeout.setToolTip("启动后等待找到游戏窗口的最长时间，超时则停止流程。")
+        self.startup_rounds.setToolTip("等待并识别主界面的最大轮次，不是循环启动次数。")
+        form.addRow(self.startup_launch)
         form.addRow("窗口等待上限", self.startup_window_timeout)
         form.addRow("主界面识别轮次", self.startup_rounds)
         layout.addLayout(form)
@@ -766,162 +794,7 @@ class WorkflowPage(QWidget):
         layout.addStretch(1)
         return page
 
-    def _build_commerce_config(self) -> QWidget:
-        self.commerce_config_scroll = QScrollArea(self)
-        self.commerce_config_scroll.setWidgetResizable(True)
-        self.commerce_config_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.commerce_config_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        page = QWidget(self.commerce_config_scroll)
-        layout = QVBoxLayout(page)
-        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-        layout.addLayout(self._page_heading("跑商", "货运与客运分别保存参数，并按下列顺序执行。", page))
 
-        order_box = QFrame(page)
-        order_box.setObjectName("linenInset")
-        order_layout = QVBoxLayout(order_box)
-        order_title = QHBoxLayout()
-        order_title.addWidget(QLabel("跑商执行顺序", order_box))
-        order_title.addStretch(1)
-        swap = QPushButton("交换顺序", order_box)
-        swap.clicked.connect(self._swap_commerce_order)
-        order_title.addWidget(swap)
-        order_layout.addLayout(order_title)
-        self.commerce_rows_host = QWidget(order_box)
-        self.commerce_rows_layout = QVBoxLayout(self.commerce_rows_host)
-        self.commerce_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.commerce_rows_layout.setSpacing(6)
-        for kind, title in (("trade", "货运"), ("passenger", "客运")):
-            row = QFrame(self.commerce_rows_host)
-            row.setObjectName("commerceStepRow")
-            row.setMinimumHeight(42)
-            row_layout = QHBoxLayout(row)
-            row_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-            row_layout.setContentsMargins(8, 5, 8, 5)
-            check = QCheckBox("启用", row)
-            check.setChecked(True)
-            check.toggled.connect(self._commerce_selection_changed)
-            number = QLabel("", row)
-            number.setObjectName("commerceStepNumber")
-            name = QLabel(title, row)
-            name.setObjectName("taskName")
-            up = QPushButton("↑", row)
-            down = QPushButton("↓", row)
-            up.setFixedWidth(34)
-            down.setFixedWidth(34)
-            up.clicked.connect(lambda checked=False, value=kind: self._move_commerce(value, -1))
-            down.clicked.connect(lambda checked=False, value=kind: self._move_commerce(value, 1))
-            row_layout.addWidget(check)
-            row_layout.addWidget(number)
-            row_layout.addWidget(name, 1)
-            row_layout.addWidget(up)
-            row_layout.addWidget(down)
-            row.number_label = number
-            row.up_button = up
-            row.down_button = down
-            self._commerce_rows[kind] = row
-            self._commerce_checks[kind] = check
-            self.commerce_rows_layout.addWidget(row)
-        order_layout.addWidget(self.commerce_rows_host)
-        self._rebuild_commerce_rows()
-        layout.addWidget(order_box)
-
-        self.combined_budget_summary = QLabel(page)
-        self.combined_budget_summary.setWordWrap(True)
-        self.combined_budget_summary.setObjectName("linenInsetLabel")
-        self.combined_budget_summary.setProperty("caption", True)
-        layout.addWidget(self.combined_budget_summary)
-
-        self.commerce_tabs = QTabWidget(page)
-        self.commerce_tabs.addTab(self._build_trade_summary(), "货运设置")
-        self.commerce_tabs.addTab(self._build_passenger_summary(), "客运设置")
-        layout.addWidget(self.commerce_tabs, 1)
-        self.commerce_config_scroll.setWidget(page)
-        page.setAutoFillBackground(False)
-        self.commerce_config_scroll.viewport().setAutoFillBackground(False)
-        return self.commerce_config_scroll
-
-    def _build_trade_summary(self) -> QWidget:
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-        form = QFormLayout()
-        self.trade_fatigue = QSpinBox(page)
-        self.trade_fatigue.setRange(0, 100000)
-        self.trade_fatigue.valueChanged.connect(self._refresh_combined_summary)
-        self.trade_books = QSpinBox(page)
-        self.trade_books.setRange(0, 100000)
-        self.trade_auto_book = QCheckBox("", page)
-        self.trade_auto_book.setObjectName("workflowTradeAutoBookCheck")
-        self.trade_auto_book.setAccessibleName("Auto Book 模式")
-        self.trade_auto_book.setToolTip("按收益阈值自动决定书数，保留手动进货书数量")
-        self.trade_auto_book.toggled.connect(self._trade_auto_book_toggled)
-        self.trade_books.setToolTip("本次货运规划允许使用的进货书数量")
-        self.trade_cargo = QSpinBox(page)
-        self.trade_cargo.setRange(1, 100000)
-        self.trade_sparkling_water = QCheckBox("自动喝气泡水", page)
-        self.trade_auto_bento = QCheckBox("自动吃便当", page)
-        self.trade_auto_pickup = QCheckBox("自动拣货", page)
-        self.trade_investment = QCheckBox("自动进行蜃息岛投资", page)
-        self.trade_rubbish_recycling = QCheckBox("自动倒垃圾", page)
-        self.trade_fatigue_label = QLabel("货运疲劳预算", page)
-        form.addRow(self.trade_fatigue_label, self.trade_fatigue)
-        form.addRow("Auto Book 模式", self.trade_auto_book)
-        form.addRow("进货书数量", self.trade_books)
-        form.addRow("货舱容量", self.trade_cargo)
-        recovery_options = QHBoxLayout()
-        recovery_options.addWidget(self.trade_sparkling_water)
-        recovery_options.addWidget(self.trade_auto_bento)
-        recovery_options.addStretch(1)
-        form.addRow(recovery_options)
-        form.addRow(self.trade_auto_pickup)
-        form.addRow("蜃息岛投资", self.trade_investment)
-        form.addRow("垃圾回收", self.trade_rubbish_recycling)
-        layout.addLayout(form)
-        button = QPushButton("打开完整货运参数", page)
-        button.clicked.connect(self.openTradeRequested.emit)
-        layout.addWidget(button)
-        layout.addStretch(1)
-        return page
-
-    def _build_passenger_summary(self) -> QWidget:
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        form = QFormLayout()
-        self.passenger_city_a = QComboBox(page)
-        self.passenger_city_b = QComboBox(page)
-        for city in self._passenger_route_catalog.cities:
-            self.passenger_city_a.addItem(city.name, city.city_id)
-            self.passenger_city_b.addItem(city.name, city.city_id)
-        self.passenger_city_a.currentIndexChanged.connect(
-            lambda _index: self._passenger_route_changed(
-                self.passenger_city_a, self.passenger_city_b
-            )
-        )
-        self.passenger_city_b.currentIndexChanged.connect(
-            lambda _index: self._passenger_route_changed(
-                self.passenger_city_b, self.passenger_city_a
-            )
-        )
-        self.passenger_trips = QSpinBox(page)
-        self.passenger_trips.setRange(1, 198)
-        self.passenger_trips.valueChanged.connect(self._refresh_passenger_route_summary)
-        self.passenger_trade = QCheckBox("途中执行买卖货", page)
-        self.passenger_reposition = QCheckBox("自动前往较近端点", page)
-        form.addRow("线路城市 A", self.passenger_city_a)
-        form.addRow("线路城市 B", self.passenger_city_b)
-        form.addRow("客运次数", self.passenger_trips)
-        form.addRow("客运倒货", self.passenger_trade)
-        form.addRow("起点处理", self.passenger_reposition)
-        layout.addLayout(form)
-        self.passenger_route_summary = QLabel(page)
-        self.passenger_route_summary.setWordWrap(True)
-        self.passenger_route_summary.setProperty("caption", True)
-        layout.addWidget(self.passenger_route_summary)
-        button = QPushButton("打开完整客运参数", page)
-        button.clicked.connect(self.openPassengerRequested.emit)
-        layout.addWidget(button)
-        layout.addStretch(1)
-        return page
 
     def _build_battle_config(self) -> QWidget:
         page = QWidget(self)
@@ -947,9 +820,10 @@ class WorkflowPage(QWidget):
         self.close_timeout.setValue(10)
         self.close_timeout.setSuffix(" 秒")
         self.close_force = QCheckBox("超时后结束进程", page)
+        self.close_force.setToolTip("正常关闭未能在等待时间内退出时，结束已验证属于游戏的进程。")
         self.close_force.setChecked(True)
         form.addRow("等待退出时间", self.close_timeout)
-        form.addRow("关闭策略", self.close_force)
+        form.addRow(self.close_force)
         layout.addLayout(form)
         layout.addStretch(1)
         return page
@@ -970,6 +844,10 @@ class WorkflowPage(QWidget):
         self.run_button.clicked.connect(self._toggle_run)
         header.addWidget(self.run_button)
         layout.addLayout(header)
+        progress_metrics = QGridLayout()
+        progress_metrics.setHorizontalSpacing(24)
+        progress_metrics.setColumnStretch(0, 1)
+        progress_metrics.setColumnStretch(1, 1)
         task_progress_row = QHBoxLayout()
         task_progress_row.setContentsMargins(0, 0, 0, 0)
         task_progress_title = QLabel("任务进度", panel)
@@ -983,13 +861,13 @@ class WorkflowPage(QWidget):
         )
         self.progress_label = self.task_progress_label
         task_progress_row.addWidget(self.task_progress_label)
-        layout.addLayout(task_progress_row)
+        progress_metrics.addLayout(task_progress_row, 0, 0)
         self.task_progress_bar = QProgressBar(panel)
         self.task_progress_bar.setObjectName("workflowTaskProgressBar")
         self.task_progress_bar.setRange(0, 1)
         self.task_progress_bar.setValue(0)
         self.task_progress_bar.setFormat("")
-        layout.addWidget(self.task_progress_bar)
+        progress_metrics.addWidget(self.task_progress_bar, 1, 0)
         internal_progress_row = QHBoxLayout()
         internal_progress_row.setContentsMargins(0, 0, 0, 0)
         internal_progress_title = QLabel("任务内进度", panel)
@@ -1002,13 +880,19 @@ class WorkflowPage(QWidget):
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         )
         internal_progress_row.addWidget(self.internal_progress_label)
-        layout.addLayout(internal_progress_row)
+        progress_metrics.addLayout(internal_progress_row, 0, 1)
         self.internal_progress_bar = QProgressBar(panel)
         self.internal_progress_bar.setObjectName("workflowInternalProgressBar")
         self.internal_progress_bar.setRange(0, 100)
         self.internal_progress_bar.setValue(0)
         self.internal_progress_bar.setFormat("")
-        layout.addWidget(self.internal_progress_bar)
+        progress_metrics.addWidget(self.internal_progress_bar, 1, 1)
+        layout.addLayout(progress_metrics)
+        self.resource_progress_label = QLabel("", panel)
+        self.resource_progress_label.setProperty("caption", True)
+        self.resource_progress_label.setWordWrap(True)
+        self.resource_progress_label.hide()
+        layout.addWidget(self.resource_progress_label)
         self.run_tree = QTreeWidget(panel)
         self.run_tree.setObjectName("workflowRunTree")
         self.run_tree.setHeaderLabels(["任务与阶段", "状态"])
@@ -1057,10 +941,14 @@ class WorkflowPage(QWidget):
         if task_id not in self._task_rows:
             return
         self._selected_task = task_id
-        self.center_stack.setCurrentWidget(self.config_stack)
+        page = self._task_config_pages[task_id]
+        if self.config_stack.indexOf(page) >= 0:
+            self.center_stack.setCurrentWidget(self.config_stack)
+            self.config_stack.setCurrentWidget(page)
+        else:
+            self.center_stack.setCurrentWidget(page)
         for row_id, row in self._task_rows.items():
             row.set_selected(row_id == task_id)
-        self.config_stack.setCurrentWidget(self._task_config_pages[task_id])
         self._sync_move_buttons()
 
     def _move_current(self, delta: int) -> None:
@@ -1100,41 +988,6 @@ class WorkflowPage(QWidget):
         self._renumber_tasks()
         self._sync_move_buttons()
 
-    def _swap_commerce_order(self) -> None:
-        if self._busy:
-            return
-        self._commerce_order.reverse()
-        self._rebuild_commerce_rows()
-        self._save_state()
-        self._refresh_combined_summary()
-
-    def _move_commerce(self, kind: str, delta: int) -> None:
-        if self._busy:
-            return
-        source = self._commerce_order.index(kind)
-        target = source + delta
-        if not 0 <= target < len(self._commerce_order):
-            return
-        self._commerce_order[source], self._commerce_order[target] = (
-            self._commerce_order[target], self._commerce_order[source]
-        )
-        self._rebuild_commerce_rows()
-        self._save_state()
-        self._refresh_combined_summary()
-
-    def _commerce_selection_changed(self, _checked: bool = False) -> None:
-        self._save_state()
-        self._refresh_combined_summary()
-
-    def _rebuild_commerce_rows(self) -> None:
-        for kind in self._commerce_order:
-            self.commerce_rows_layout.removeWidget(self._commerce_rows[kind])
-        for index, kind in enumerate(self._commerce_order):
-            row = self._commerce_rows[kind]
-            self.commerce_rows_layout.addWidget(row)
-            row.number_label.setText(str(index + 1))
-            row.up_button.setEnabled(not self._busy and index > 0)
-            row.down_button.setEnabled(not self._busy and index < len(self._commerce_order) - 1)
 
     def _toggle_run(self) -> None:
         if self._busy:
@@ -1150,11 +1003,10 @@ class WorkflowPage(QWidget):
         return result
 
     def commerce_steps(self) -> list[str]:
-        return [kind for kind in self._commerce_order if self._commerce_checks[kind].isChecked()]
+        return [kind for kind in self.workflow_steps() if kind in {"trade", "passenger"}]
 
     def trade_end_city_constraint_available(self) -> bool:
-        enabled = self.commerce_steps()
-        return not (set(enabled) == {"trade", "passenger"} and enabled[0] == "trade")
+        return True
 
     def startup_inputs(self) -> dict[str, Any]:
         return {
@@ -1171,150 +1023,6 @@ class WorkflowPage(QWidget):
             "force_after_timeout": self.close_force.isChecked(),
         }
 
-    def apply_compact_inputs(self, trade: Mapping[str, Any], passenger: Mapping[str, Any]) -> None:
-        self.trade_fatigue.setValue(int(trade.get("fatigue_budget", 700)))
-        self.trade_books.setValue(int(trade.get("book_budget", 0)))
-        self.set_auto_book(bool(trade.get("auto_book", False)))
-        self.trade_cargo.setValue(int(trade.get("cargo_capacity", 750)))
-        self.trade_sparkling_water.setChecked(bool(trade.get("auto_sparkling_water", False)))
-        self.trade_auto_bento.setChecked(bool(trade.get("auto_bento", False)))
-        self.trade_auto_pickup.setChecked(bool(trade.get("auto_pickup", False)))
-        self.trade_investment.setChecked(bool(trade.get("auto_cape_island_investment", True)))
-        self.trade_rubbish_recycling.setChecked(
-            bool(trade.get("auto_rubbish_recycling", True))
-        )
-        self._set_combo_data(
-            self.passenger_city_a,
-            str(passenger.get("passenger_city_a_id") or "11"),
-        )
-        self._set_combo_data(
-            self.passenger_city_b,
-            str(passenger.get("passenger_city_b_id") or "15"),
-        )
-        self.passenger_trips.setValue(int(passenger.get("trip_count", 1)))
-        self.passenger_trade.setChecked(bool(passenger.get("trade_during_trip", True)))
-        self.passenger_reposition.setChecked(bool(passenger.get("reposition_to_route", True)))
-        self._refresh_passenger_route_summary()
-
-    def merge_trade_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
-        merged = dict(inputs)
-        merged.update(
-            fatigue_budget=self.trade_fatigue.value(),
-            book_budget=self.trade_books.value(),
-            auto_book=self.trade_auto_book.isChecked(),
-            cargo_capacity=self.trade_cargo.value(),
-            auto_sparkling_water=self.trade_sparkling_water.isChecked(),
-            auto_bento=self.trade_auto_bento.isChecked(),
-            auto_pickup=self.trade_auto_pickup.isChecked(),
-            use_fatigue_medicine=False,
-            allowed_fatigue_medicines=[],
-            fatigue_medicine_max_uses=0,
-            auto_cape_island_investment=self.trade_investment.isChecked(),
-            auto_rubbish_recycling=self.trade_rubbish_recycling.isChecked(),
-        )
-        return merged
-
-    def _trade_auto_book_toggled(self, checked: bool) -> None:
-        self._sync_auto_book_controls()
-        values = self._settings.load_trade_inputs()
-        values.update(auto_book=bool(checked), book_budget=self.trade_books.value())
-        self._settings.save_trade_inputs(values)
-        self.autoBookChanged.emit(bool(checked))
-
-    def set_auto_book(self, enabled: bool) -> None:
-        previous = self.trade_auto_book.blockSignals(True)
-        self.trade_auto_book.setChecked(bool(enabled))
-        self.trade_auto_book.blockSignals(previous)
-        self._sync_auto_book_controls()
-
-    def _sync_auto_book_controls(self) -> None:
-        self.trade_books.setEnabled(not self._busy and not self.trade_auto_book.isChecked())
-
-    def merge_passenger_inputs(self, inputs: Mapping[str, Any]) -> dict[str, Any]:
-        estimate = self._passenger_route_catalog.estimate(
-            str(self.passenger_city_a.currentData() or ""),
-            str(self.passenger_city_b.currentData() or ""),
-        )
-        merged = dict(inputs)
-        merged.update(
-            passenger_city_a_id=estimate.city_a.city_id,
-            passenger_city_b_id=estimate.city_b.city_id,
-            trip_count=self.passenger_trips.value(),
-            trade_during_trip=self.passenger_trade.isChecked(),
-            reposition_to_route=self.passenger_reposition.isChecked(),
-        )
-        return merged
-
-    def _passenger_route_changed(self, changed: QComboBox, other: QComboBox) -> None:
-        if changed.currentData() == other.currentData():
-            for index in range(other.count()):
-                if other.itemData(index) != changed.currentData():
-                    other.setCurrentIndex(index)
-                    break
-        self._refresh_passenger_route_summary()
-
-    def _refresh_passenger_route_summary(self, _value: int = 0) -> None:
-        try:
-            estimate = self._passenger_route_catalog.estimate(
-                str(self.passenger_city_a.currentData() or ""),
-                str(self.passenger_city_b.currentData() or ""),
-            )
-        except ValueError as exc:
-            self.passenger_route_summary.setText(str(exc))
-            return
-        trips = self.passenger_trips.value()
-        total = estimate.trip_fatigue * trips
-        self.passenger_route_summary.setText(
-            f"{estimate.city_a.name} ↔ {estimate.city_b.name} · "
-            f"{trips} 次 × {estimate.trip_fatigue} · 预计 {total} 疲劳"
-        )
-        self._refresh_combined_summary()
-
-    def passenger_route_fatigue(self) -> int:
-        estimate = self._passenger_route_catalog.estimate(
-            str(self.passenger_city_a.currentData() or ""),
-            str(self.passenger_city_b.currentData() or ""),
-        )
-        return int(estimate.trip_fatigue) * self.passenger_trips.value()
-
-    def _refresh_combined_summary(self, _value: int = 0) -> None:
-        if not hasattr(self, "combined_budget_summary"):
-            return
-        enabled = self.commerce_steps()
-        combined = set(enabled) == {"trade", "passenger"}
-        self.tradeEndCityAvailabilityChanged.emit(self.trade_end_city_constraint_available())
-        self.trade_fatigue_label.setText("总疲劳预算" if combined else "货运疲劳预算")
-        self.combined_budget_summary.setVisible(combined)
-        if not combined:
-            self.combined_budget_summary.clear()
-            return
-        try:
-            passenger_fatigue = self.passenger_route_fatigue()
-        except ValueError as exc:
-            self.combined_budget_summary.setText(str(exc))
-            return
-        total_fatigue = self.trade_fatigue.value()
-        if enabled[0] == "trade":
-            available = total_fatigue - passenger_fatigue
-            city_a = self.passenger_city_a.currentText()
-            city_b = self.passenger_city_b.currentText()
-            self.combined_budget_summary.setText(
-                f"组合流程 · 客运预留 {passenger_fatigue} 疲劳 · "
-                f"货运可用 {max(available, 0)} 疲劳。货运终点将限制为"
-                f"{city_a}或{city_b}，随后直接开始客运。"
-                + (" 当前没有可用于货运的疲劳。" if available <= 0 else "")
-            )
-        else:
-            self.combined_budget_summary.setText(
-                f"组合流程 · 客运基础消耗 {passenger_fatigue} 疲劳。客运先执行，"
-                "归位消耗也会计入；完成后再从总预算中扣除实际预计消耗，"
-                "剩余疲劳全部交给货运，货运可使用完整参数中指定的终点。"
-            )
-
-    @staticmethod
-    def _set_combo_data(combo: QComboBox, value: str) -> None:
-        index = combo.findData(str(value))
-        combo.setCurrentIndex(max(index, 0))
 
     def set_battle_count(self, count: int) -> None:
         self.battle_summary.setText(f"当前任务单包含 {count} 个作战任务。" if count else "尚未添加作战任务。")
@@ -1355,6 +1063,8 @@ class WorkflowPage(QWidget):
             bento_enabled=bool(dict(trade_inputs or {}).get("auto_bento", False)),
         )
         self._passenger_progress = PassengerProgressState()
+        self.resource_progress_label.clear()
+        self.resource_progress_label.hide()
         labels = dict(WORKFLOW_TASKS)
         labels["refresh_recovery"] = "刷新恢复资源"
         for index, step in enumerate(steps, 1):
@@ -1378,6 +1088,16 @@ class WorkflowPage(QWidget):
         self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
 
+    def add_freight_preparation(self) -> None:
+        parent = self._tree_items.get("trade")
+        if parent is None:
+            return
+        item = QTreeWidgetItem(["准备：刷新恢复资源", "等待"])
+        item.setData(0, Qt.ItemDataRole.UserRole, "refresh_recovery")
+        parent.addChild(item)
+        parent.setExpanded(True)
+        self._tree_items["refresh_recovery"] = item
+
     def mark_step(self, step: str, state: str, detail: str = "") -> None:
         item = self._tree_items.get(step)
         state_text = {
@@ -1389,7 +1109,7 @@ class WorkflowPage(QWidget):
             item.setToolTip(0, detail)
         parent = item.parent() if item is not None else None
         top_step = str(parent.data(0, Qt.ItemDataRole.UserRole)) if parent is not None else step
-        if top_step in self._task_status:
+        if top_step in self._task_status and step != "refresh_recovery":
             self._set_left_status(top_step, state)
         if detail:
             self.append_log(f"{state_text} · {detail}")
@@ -1401,9 +1121,10 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setValue(done)
         self.task_progress_bar.setFormat("")
         if state == "running":
+            if step not in {"trade", "refresh_recovery"}:
+                self.resource_progress_label.hide()
             self._set_internal_progress(detail or state_text, None)
         elif state == "success" and step in {
-            "refresh_recovery",
             "startup",
             "battle",
             "close",
@@ -1531,6 +1252,9 @@ class WorkflowPage(QWidget):
         """Stop at the last real progress position instead of inventing a terminal percentage."""
 
         self.internal_progress_label.setText(str(label or "任务已停止"))
+        if self.internal_progress_bar.maximum() == 0:
+            self.internal_progress_bar.setRange(0, 100)
+            self.internal_progress_bar.setValue(0)
         self.internal_progress_bar.setProperty("runState", state)
         self.internal_progress_bar.style().unpolish(self.internal_progress_bar)
         self.internal_progress_bar.style().polish(self.internal_progress_bar)
@@ -1550,9 +1274,24 @@ class WorkflowPage(QWidget):
             row_kind="phase",
         )
         parent.addChild(preparation)
+        if self._freight_progress.reposition.get("required") or self._freight_progress.active_phase == "reposition":
+            reposition = QTreeWidgetItem([
+                self._freight_progress.reposition_detail,
+                self._tree_state_text(self._freight_progress.reposition_state),
+            ])
+            self._style_progress_item(reposition, self._freight_progress.reposition_state, row_kind="phase")
+            parent.addChild(reposition)
+        resources = self._freight_progress.resources
+        resource_parts = []
+        if type(resources.get("confirmed_books_used")) is int:
+            resource_parts.append(f"已确认用书 {resources['confirmed_books_used']} 本")
+        if type(resources.get("confirmed_negotiation_fatigue")) is int:
+            resource_parts.append(f"协商已耗疲劳 {resources['confirmed_negotiation_fatigue']}（不含行车）")
+        self.resource_progress_label.setText(" · ".join(resource_parts))
+        self.resource_progress_label.setVisible(bool(resource_parts))
         active_item: QTreeWidgetItem | None = None
         for city in self._freight_progress.cities:
-            role = {"initial": "起点", "intermediate": "途经", "terminal": "终点"}[city.role]
+            role = {"initial": "起点", "intermediate": "途经", "terminal": "终点"}.get(city.role, city.role)
             city_item = QTreeWidgetItem(
                 [
                     f"城市 {city.index + 1}/{city.count} · {city.name}（{role}）",
@@ -1576,13 +1315,29 @@ class WorkflowPage(QWidget):
                 active_item = city_item
         parent.setExpanded(True)
         self.timeline_view.set_progress(self._freight_progress)
-        self.progress_stack.setCurrentWidget(self.timeline_view)
+        self.progress_stack.setCurrentWidget(
+            self.run_tree if not self._freight_progress.cities or self._freight_progress.active_phase == "reposition"
+            else self.timeline_view
+        )
         if active_item is not None:
             self.run_tree.scrollToItem(active_item)
 
     def _render_runtime_trade_plan(self) -> None:
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
+        mode = {"profit": "收益跑商", "quick": "快速跑商", "fixed": "固定线路", "target": "指定收益"}.get(str(summary.get("trade_mode")), "货运")
+        notes = [mode, "预计值来自规划，不代表实测收益或疲劳"]
+        reposition = summary.get("reposition")
+        if isinstance(reposition, Mapping) and reposition.get("required"):
+            notes.append(f"先定位到线路起点，预计疲劳 {self._display_plan_value(reposition.get('expected_fatigue'))}（已计入总疲劳）")
+        error = summary.get("error")
+        if isinstance(error, Mapping) and error.get("message"):
+            notes.append(str(error["message"]))
+        if summary.get("planning_status") == "target_unreachable":
+            notes.append(f"目标不可达，收益缺口 {self._display_plan_value(summary.get('target_gap'))}")
+        if summary.get("trade_mode") == "fixed":
+            notes.append(f"预计完整 {self._plan_int(summary.get('completed_circuits'))} 圈，尾圈 {self._plan_int(summary.get('partial_circuit_legs'))} 段；预算内最后到达城市清仓")
+        self.runtime_plan_contract_note.setText(" · ".join(notes))
         average = average_book_profit_text(summary)
         self.runtime_average_book_profit.setVisible(average is not None)
         self.runtime_average_book_profit.setText(
@@ -1719,6 +1474,7 @@ class WorkflowPage(QWidget):
         for label in self.runtime_plan_values.values():
             label.setText("--")
         self.runtime_plan_path.setText("路线 · 等待计算")
+        self.runtime_plan_contract_note.clear()
         self.runtime_plan_meta["remaining_fatigue"].setText("剩余疲劳  --")
         self.runtime_plan_meta["books"].setText("进货书  --")
         self.runtime_average_book_profit.hide()
@@ -1865,36 +1621,34 @@ class WorkflowPage(QWidget):
         label.style().polish(label)
 
     def _set_editing_enabled(self, enabled: bool) -> None:
-        self._sync_auto_book_controls()
         self.task_rows_host.setEnabled(enabled)
         self.center_panel.setEnabled(enabled)
         self._sync_move_buttons()
-        self._rebuild_commerce_rows()
 
     def _sync_move_buttons(self) -> None:
         return
 
     def _load_state(self) -> None:
         self._loading_state = True
-        default_order = "startup,commerce,battle,close"
+        default_order = ",".join(task for task, _title in WORKFLOW_TASKS)
         raw_order = str(self._settings.value("workflow/task_order", default_order) or "")
         order = [value for value in raw_order.split(",") if value]
         expected_tasks = set(dict(WORKFLOW_TASKS))
-        if len(order) != len(expected_tasks) or set(order) != expected_tasks:
-            raise ValueError(
-                "workflow/task_order 必须且只能包含："
-                + ",".join(task_id for task_id, _title in WORKFLOW_TASKS)
-            )
+        legacy_commerce_order = str(self._settings.value("workflow/commerce_order", "trade,passenger") or "")
+        commerce_order = list(dict.fromkeys(value for value in legacy_commerce_order.split(",") if value in {"trade", "passenger"}))
+        commerce_order += [value for value in ("trade", "passenger") if value not in commerce_order]
+        expanded = []
+        for task_id in order:
+            expanded.extend(commerce_order if task_id == "commerce" else [task_id])
+        order = list(dict.fromkeys(value for value in expanded if value in expected_tasks))
+        order += [value for value, _title in WORKFLOW_TASKS if value not in order]
         self._task_order = order
         enabled_raw = str(self._settings.value("workflow/enabled", default_order) or "")
         enabled_values = [value for value in enabled_raw.split(",") if value]
-        unsupported_enabled = set(enabled_values) - expected_tasks
-        if unsupported_enabled:
-            raise ValueError(
-                "workflow/enabled 包含未定义任务："
-                + ",".join(sorted(unsupported_enabled))
-            )
         enabled = set(enabled_values)
+        if "commerce" in enabled:
+            legacy_enabled = str(self._settings.value("workflow/commerce_enabled", "trade,passenger") or "")
+            enabled.update(value for value in legacy_enabled.split(",") if value in {"trade", "passenger"})
         for task_id, check in self._task_checks.items():
             check.setChecked(task_id in enabled)
         commerce_raw = str(self._settings.value("workflow/commerce_order", "trade,passenger") or "")
@@ -1908,7 +1662,6 @@ class WorkflowPage(QWidget):
         for kind, check in self._commerce_checks.items():
             check.setChecked(kind in commerce_enabled)
         self._rebuild_task_rows()
-        self._rebuild_commerce_rows()
         self._loading_state = False
 
     def _save_state(self, *_args: object) -> None:
@@ -1916,9 +1669,5 @@ class WorkflowPage(QWidget):
             return
         order = list(self._task_order)
         enabled = [task_id for task_id in order if self._task_checks[task_id].isChecked()]
-        commerce = list(self._commerce_order)
-        commerce_enabled = [kind for kind in commerce if self._commerce_checks[kind].isChecked()]
         self._settings.set_value("workflow/task_order", ",".join(order))
         self._settings.set_value("workflow/enabled", ",".join(enabled))
-        self._settings.set_value("workflow/commerce_order", ",".join(commerce))
-        self._settings.set_value("workflow/commerce_enabled", ",".join(commerce_enabled))

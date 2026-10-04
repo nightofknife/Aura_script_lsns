@@ -19,7 +19,7 @@ class _FakeMarketData:
         return {"costs": {"1": {"2": 1}, "2": {"1": 1}}}
 
 
-def test_public_action_forwards_auto_book_and_default_threshold() -> None:
+def test_public_action_forwards_unlimited_books_and_default_threshold() -> None:
     captured: dict[str, Any] = {}
 
     class _Planner:
@@ -28,88 +28,40 @@ def test_public_action_forwards_auto_book_and_default_threshold() -> None:
             return {"status": "ok"}
 
     result = planner_actions.resonance_pc_trade_plan_optimal_route(
-        book_budget=77,
-        auto_book=True,
+        book_budget=None,
         resonance_pc_trade_planner=_Planner(),
     )
 
     assert result == {"status": "ok"}
-    assert captured["auto_book"] is True
-    assert captured["book_budget"] == 77
+    assert "auto_book" not in captured
+    assert captured["book_budget"] is None
     assert captured["book_profit_threshold"] == 500000
 
 
-def test_auto_book_cache_ignores_book_budget(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[dict[str, Any]] = []
-
-    class _Solver:
-        def __init__(self, **_kwargs: Any) -> None:
+def test_book_budget_cache_distinguishes_finite_from_unlimited(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = []
+    class Solver:
+        def __init__(self, **kwargs):
             pass
-
-        def solve(self, **kwargs: Any) -> dict[str, Any]:
-            calls.append(dict(kwargs))
-            return {
-                "status": "ok",
-                "auto_book": kwargs["auto_book"],
-                "books_budget": None if kwargs["auto_book"] else kwargs["book_budget"],
-            }
-
-    monkeypatch.setattr(planner_module, "ResonancePcExactTradeSolver", _Solver)
+        def solve(self, **kwargs):
+            calls.append(kwargs)
+            return {"status": "ok", "book_budget": kwargs["book_budget"]}
+    monkeypatch.setattr(planner_module, "ResonancePcExactTradeSolver", Solver)
     service = planner_module.ResonancePcTradePlannerService(_FakeMarketData())
-    monkeypatch.setattr(service, "_validate_fatigue_payload", lambda _payload: None)
-    monkeypatch.setattr(service, "_resolve_current_city_id", lambda **_kwargs: "1")
-    monkeypatch.setattr(
-        service,
-        "_load_trade_constraints_payload",
-        lambda: {
-            "default_available_city_ids": ["1", "2"],
-            "key_to_city_id": {},
-        },
-    )
-    monkeypatch.setattr(
-        service,
-        "_load_buy_lot_payload",
-        lambda: {"city_product_buy_lot": {}},
-    )
+    monkeypatch.setattr(service, "_validate_fatigue_payload", lambda payload: None)
+    monkeypatch.setattr(service, "_resolve_current_city_id", lambda **kw: "1")
+    monkeypatch.setattr(service, "_load_trade_constraints_payload", lambda: {
+        "default_available_city_ids": ["1", "2"], "key_to_city_id": {}})
+    monkeypatch.setattr(service, "_load_buy_lot_payload", lambda: {"city_product_buy_lot": {}})
     monkeypatch.setattr(service, "_load_product_unlocks_payload", lambda: {"product_ids": []})
     monkeypatch.setattr(service, "_load_trade_rules_payload", lambda: {})
-
-    auto_nonzero = service.plan_optimal_route(
-        current_city_id="1",
-        available_city_ids=["1", "2"],
-        book_budget=77,
-        auto_book=True,
-    )
-    auto_zero = service.plan_optimal_route(
-        current_city_id="1",
-        available_city_ids=["1", "2"],
-        book_budget=0,
-        auto_book=True,
-    )
-    service.plan_optimal_route(
-        current_city_id="1",
-        available_city_ids=["1", "2"],
-        book_budget=0,
-        auto_book=False,
-    )
-    service.plan_optimal_route(
-        current_city_id="1",
-        available_city_ids=["1", "2"],
-        book_budget=77,
-        auto_book=False,
-    )
-
-    assert auto_zero == auto_nonzero
+    for budget in (None, None, 0, 77):
+        result = service.plan_optimal_route(current_city_id="1", book_budget=budget)
+        assert result["book_budget"] == budget
     assert len(calls) == 3
-    assert calls[0]["auto_book"] is True
-    assert calls[0]["book_budget"] == 0
-    assert calls[1]["auto_book"] is False
-    assert calls[1]["book_budget"] == 0
-    assert calls[2]["auto_book"] is False
-    assert calls[2]["book_budget"] == 77
 
 
-def test_preview_flow_forwards_auto_book_and_reports_book_profit(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_preview_flow_forwards_unlimited_books_and_reports_book_profit(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
     events: list[tuple[str, str, dict[str, Any]]] = []
 
@@ -148,8 +100,7 @@ def test_preview_flow_forwards_auto_book_and_reports_book_profit(monkeypatch: py
     result = asyncio.run(
         trade_flow._preview_trade_plan_from_start_city(
             start_city_id="1",
-            book_budget=77,
-            auto_book=True,
+            book_budget=None,
             resonance_pc_market_data=object(),
             resonance_pc_trade_planner=object(),
             reporter=_Reporter(),
@@ -157,15 +108,15 @@ def test_preview_flow_forwards_auto_book_and_reports_book_profit(monkeypatch: py
     )
 
     assert result["average_book_profit_exact"] == "600000"
-    assert captured["auto_book"] is True
-    assert captured["book_budget"] == 77
+    assert "auto_book" not in captured
+    assert captured["book_budget"] is None
     assert captured["book_profit_threshold"] == 500000
     completed = next(fields for stage, state, fields in events if (stage, state) == ("planning", "completed"))
     assert completed["data"]["summary"]["book_incremental_profit"] == 1200000
     assert completed["data"]["summary"]["average_book_profit_exact"] == "600000"
 
 
-def test_execute_flow_forwards_auto_book(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_execute_flow_forwards_unlimited_books(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
     monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **_kwargs: None)
@@ -203,8 +154,7 @@ def test_execute_flow_forwards_auto_book(monkeypatch: pytest.MonkeyPatch) -> Non
     dependency = object()
     result = asyncio.run(
         trade_flow.resonance_pc_auto_cycle_trade_flow(
-            book_budget=77,
-            auto_book=True,
+            book_budget=None,
             app=dependency,
             ocr=dependency,
             vision=dependency,
@@ -218,14 +168,15 @@ def test_execute_flow_forwards_auto_book(monkeypatch: pytest.MonkeyPatch) -> Non
         )
     )
 
-    assert result["status"] == "no_plan"
-    assert captured["auto_book"] is True
-    assert captured["book_budget"] == 77
+    assert result["status"] == "stopped"
+    assert result["planning_status"] == "no_plan"
+    assert "auto_book" not in captured
+    assert captured["book_budget"] is None
     assert captured["book_profit_threshold"] == 500000
 
 
 @pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-def test_combined_commerce_forwards_auto_book_in_both_orders(
+def test_combined_commerce_forwards_unlimited_books_in_both_orders(
     monkeypatch: pytest.MonkeyPatch,
     order: str,
 ) -> None:
@@ -246,7 +197,7 @@ def test_combined_commerce_forwards_auto_book_in_both_orders(
 
     async def fake_preview(**kwargs: Any) -> dict[str, Any]:
         preview_calls.append(dict(kwargs))
-        return {"status": "ok", "route": [{"to_city_id": "3"}]}
+        return {"success": True, "status": "planned", "planning_status": "ok", "route": [{"to_city_id": "3"}]}
 
     async def fake_trade(inputs: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:
         trade_calls.append(dict(inputs))
@@ -286,8 +237,7 @@ def test_combined_commerce_forwards_auto_book_in_both_orders(
             trade_inputs={
                 "available_city_ids": ["3", "11", "15"],
                 "required_end_city_ids": ["3"],
-                "book_budget": 77,
-                "auto_book": True,
+                "book_budget": None,
                 "auto_cape_island_investment": False,
                 "auto_rubbish_recycling": False,
             },
@@ -310,10 +260,10 @@ def test_combined_commerce_forwards_auto_book_in_both_orders(
     )
 
     assert result["status"] == "completed"
-    assert trade_calls[0]["auto_book"] is True
-    assert trade_calls[0]["book_budget"] == 77
+    assert "auto_book" not in trade_calls[0]
+    assert trade_calls[0]["book_budget"] is None
     if order == "passenger_first":
-        assert preview_calls[0]["auto_book"] is True
-        assert preview_calls[0]["book_budget"] == 77
+        assert "auto_book" not in preview_calls[0]
+        assert preview_calls[0]["book_budget"] is None
     else:
         assert preview_calls == []
