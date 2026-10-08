@@ -1,0 +1,1223 @@
+{
+  "source_path": ".pytest_tmp\\deep_dive_goal_20261002\\target_cells_exploration13\\live01\\round_0001\\scan\\layout.json",
+  "derivation": "accepted_anchor body_basis follows production packet.C @ packet.pose.rotation.T @ glyphR; metadata.pose is actual saved fused_pose. No cell atlas labels reconstructed.",
+  "sources": [
+    {
+      "frame_id": 10,
+      "elapsed_sec": 9.203,
+      "feedback": {
+        "session_id": 277873754233150979022513805288080631163,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "semantic_metadata": {
+          "frame_id": 10,
+          "generation": 569,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 24976.703,
+          "pose": {
+            "rvec": [
+              [
+                0.8069089848420481
+              ],
+              [
+                0.4387794796112705
+              ],
+              [
+                0.19854828096357954
+              ]
+            ],
+            "tvec": [
+              [
+                -0.017126388189594343
+              ],
+              [
+                0.4666272467923819
+              ],
+              [
+                42.82645723969956
+              ]
+            ],
+            "rotation": [
+              [
+                0.8923125674351502,
+                -0.006212321206725213,
+                0.4513753305869904
+              ],
+              [
+                0.3349682941102896,
+                0.6794090355491816,
+                -0.6528396467395138
+              ],
+              [
+                -0.30261282844276927,
+                0.7337334457957844,
+                0.6083261514866115
+              ]
+            ],
+            "quality": 0.97,
+            "map_revision": 0,
+            "correction_epoch": 0,
+            "pivot_reference": [
+              [
+                -0.013542251448329155
+              ],
+              [
+                0.4291626757881443
+              ],
+              [
+                41.970870860756534
+              ]
+            ]
+          }
+        },
+        "target_coverage": {
+          "model_executed": true,
+          "coverage_valid": true,
+          "source_frame_id": 10,
+          "source_frame_time": 24976.703,
+          "source_map_revision": 0
+        },
+        "refine_diagnostic": {
+          "candidates": 10,
+          "confirmed": 4,
+          "reason": "seven_centres",
+          "renewed": true,
+          "candidate_faces": {
+            "U": 7,
+            "F": 3
+          },
+          "confirmed_faces": {
+            "U": 2,
+            "F": 2
+          },
+          "candidate_cell_indices": [
+            0,
+            2,
+            3,
+            5,
+            6,
+            7,
+            8,
+            18,
+            19,
+            24
+          ],
+          "confirmed_cell_indices": [
+            7,
+            8,
+            18,
+            19
+          ],
+          "localized_known_cell_indices": [],
+          "source_frame_id": 10,
+          "source_frame_time": 24976.703,
+          "source_map_revision": 0,
+          "accepted_faces": {
+            "U": 7,
+            "F": 3
+          },
+          "median_after": 2.694499652876754,
+          "max_after": 7.699364721010522
+        },
+        "glyph_anchor_frame_id": 10,
+        "glyph_anchor_at": 24976.703,
+        "glyph_anchor_age_sec": 0.6090000000003783,
+        "fusion_paused": false,
+        "accepted_anchor_observation": {
+          "frame_id": 10,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 24976.703,
+          "rotation": [
+            [
+              0.8923125674351502,
+              -0.006212321206725213,
+              0.4513753305869904
+            ],
+            [
+              0.3349682941102896,
+              0.6794090355491816,
+              -0.6528396467395138
+            ],
+            [
+              -0.30261282844276927,
+              0.7337334457957844,
+              0.6083261514866115
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9999968683361257,
+              0.0006198815112871777,
+              -0.002424678298914079
+            ],
+            [
+              -0.0006241401247756077,
+              0.9999982634548629,
+              -0.0017560001034097735
+            ],
+            [
+              0.0024235855763529712,
+              0.0017575079432238139,
+              0.9999955186893507
+            ]
+          ],
+          "accepted_faces": {
+            "U": 7,
+            "F": 3
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "player",
+            "box": [
+              628,
+              190,
+              25,
+              25
+            ],
+            "point": [
+              638.5,
+              201.5
+            ],
+            "anchor_type": "head",
+            "confirmable": true,
+            "confidence": 0.797,
+            "source": "deep_dive_local_pink_head",
+            "box_evidence": "existing_model_box_with_confirmed_head_center",
+            "object_point": [
+              0.0,
+              -2.89268665,
+              0.0
+            ],
+            "cell_index": 4,
+            "source_depth": 40.703996296387594,
+            "association_evidence": {
+              "source_frame_id": 10,
+              "source_frame_time": 24976.703,
+              "source_map_revision": 0,
+              "error": 0.02211566422041135,
+              "competitor_index": 50,
+              "competitor_error": 0.39757774983409194,
+              "margin": 0.3754620856136806,
+              "rvec": [
+                0.8069089848420481,
+                0.4387794796112705,
+                0.19854828096357954
+              ],
+              "rotation": [
+                [
+                  0.8923125674351502,
+                  -0.006212321206725213,
+                  0.4513753305869904
+                ],
+                [
+                  0.3349682941102896,
+                  0.6794090355491816,
+                  -0.6528396467395138
+                ],
+                [
+                  -0.30261282844276927,
+                  0.7337334457957844,
+                  0.6083261514866115
+                ]
+              ],
+              "tvec": [
+                -0.017126388189594343,
+                0.4666272467923819,
+                42.82645723969956
+              ],
+              "target_face_glyph_count": 7,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 4,
+                "competitor_index": 50,
+                "nominal_error": 0.02211566422041135,
+                "winner_error_upper": 0.03136983486034736,
+                "competitor_error_lower": 0.3868993901350128,
+                "margin_lower": 0.35552955527466545,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          },
+          {
+            "kind": "player",
+            "box": [
+              819,
+              362,
+              23,
+              24
+            ],
+            "point": [
+              830.9911499023438,
+              373.34864807128906
+            ],
+            "anchor_type": "head",
+            "confirmable": false,
+            "confidence": 0.08875640481710434,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 97,
+      "elapsed_sec": 16.828,
+      "feedback": {
+        "session_id": 277873754233150979022513805288080631163,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.999903142640847,
+            0.013869382655961321,
+            0.0011599834914078758
+          ],
+          [
+            -0.013801846769800286,
+            0.9988586251718095,
+            -0.04572697175218686
+          ],
+          [
+            -0.0017928643843788256,
+            0.04570653284405723,
+            0.9989533014574175
+          ]
+        ],
+        "semantic_metadata": {
+          "frame_id": 97,
+          "generation": 912,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 24984.328,
+          "pose": {
+            "rvec": [
+              [
+                0.8039296138145308
+              ],
+              [
+                -0.04162245773424858
+              ],
+              [
+                0.11188455044743188
+              ]
+            ],
+            "tvec": [
+              [
+                0.04061769339934001
+              ],
+              [
+                0.43888745681017854
+              ],
+              [
+                43.39205635603448
+              ]
+            ],
+            "rotation": [
+              [
+                0.993258393841479,
+                -0.11579725304902962,
+                0.005362765121142428
+              ],
+              [
+                0.08413757229589071,
+                0.6883276996923118,
+                -0.720503883934323
+              ],
+              [
+                0.07974103079092534,
+                0.716097740551239,
+                0.6934301651830637
+              ]
+            ],
+            "quality": 0.9484126984126984,
+            "map_revision": 0,
+            "correction_epoch": 5,
+            "pivot_reference": [
+              [
+                -0.013542251448329155
+              ],
+              [
+                0.4291626757881443
+              ],
+              [
+                41.970870860756534
+              ]
+            ]
+          }
+        },
+        "target_coverage": {
+          "model_executed": true,
+          "coverage_valid": true,
+          "source_frame_id": 97,
+          "source_frame_time": 24984.328,
+          "source_map_revision": 0
+        },
+        "refine_diagnostic": {
+          "candidates": 9,
+          "confirmed": 8,
+          "reason": "seven_centres",
+          "renewed": true,
+          "candidate_faces": {
+            "U": 7,
+            "F": 2
+          },
+          "confirmed_faces": {
+            "U": 6,
+            "F": 2
+          },
+          "candidate_cell_indices": [
+            0,
+            2,
+            3,
+            5,
+            6,
+            7,
+            8,
+            18,
+            20
+          ],
+          "confirmed_cell_indices": [
+            2,
+            3,
+            5,
+            6,
+            7,
+            8,
+            18,
+            20
+          ],
+          "localized_known_cell_indices": [],
+          "source_frame_id": 97,
+          "source_frame_time": 24984.328,
+          "source_map_revision": 0,
+          "joint_confirmed_inliers": 8,
+          "joint_rejected": {
+            "angle_deg": 1.021379864123823,
+            "median_before": 3.0311710614882754,
+            "median_after": 2.7002399787913176,
+            "max_after": 4.74612852523238,
+            "translation_pixels": [
+              -2.5975868043496497,
+              2.745541260202667
+            ]
+          },
+          "accepted_faces": {
+            "U": 7,
+            "F": 2
+          },
+          "median_after": 3.0620383516242504,
+          "max_after": 4.443227833962523
+        },
+        "glyph_anchor_frame_id": 97,
+        "glyph_anchor_at": 24984.328,
+        "glyph_anchor_age_sec": 0.8429999999971187,
+        "fusion_paused": false,
+        "accepted_anchor_observation": {
+          "frame_id": 97,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 24984.328,
+          "rotation": [
+            [
+              0.993258393841479,
+              -0.11579725304902962,
+              0.005362765121142428
+            ],
+            [
+              0.08413757229589071,
+              0.6883276996923118,
+              -0.720503883934323
+            ],
+            [
+              0.07974103079092534,
+              0.716097740551239,
+              0.6934301651830637
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9998735913870002,
+              0.015705636111515153,
+              -0.0024767400337319624
+            ],
+            [
+              -0.015805955758938672,
+              0.9987360074396736,
+              -0.047713302191382825
+            ],
+            [
+              0.0017242416908591052,
+              0.0477464180624309,
+              0.9988580011957648
+            ]
+          ],
+          "accepted_faces": {
+            "U": 7,
+            "F": 2
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "player",
+            "box": [
+              670,
+              181,
+              27,
+              26
+            ],
+            "point": [
+              682.5,
+              190.5
+            ],
+            "anchor_type": "head",
+            "confirmable": true,
+            "confidence": 0.8,
+            "source": "deep_dive_local_pink_head",
+            "box_evidence": "existing_model_box_with_confirmed_head_center",
+            "object_point": [
+              0.0,
+              -2.979353316666667,
+              0.0
+            ],
+            "cell_index": 4,
+            "source_depth": 41.25854817766564,
+            "association_evidence": {
+              "source_frame_id": 97,
+              "source_frame_time": 24984.328,
+              "source_map_revision": 0,
+              "error": 0.030104681629030718,
+              "competitor_index": 1,
+              "competitor_error": 0.4993297899023447,
+              "margin": 0.469225108273314,
+              "rvec": [
+                0.8039296138145308,
+                -0.04162245773424858,
+                0.11188455044743188
+              ],
+              "rotation": [
+                [
+                  0.993258393841479,
+                  -0.11579725304902962,
+                  0.005362765121142428
+                ],
+                [
+                  0.08413757229589071,
+                  0.6883276996923118,
+                  -0.720503883934323
+                ],
+                [
+                  0.07974103079092534,
+                  0.716097740551239,
+                  0.6934301651830637
+                ]
+              ],
+              "tvec": [
+                0.04061769339934001,
+                0.43888745681017854,
+                43.39205635603448
+              ],
+              "target_face_glyph_count": 7,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 4,
+                "competitor_index": 1,
+                "nominal_error": 0.030104681629030718,
+                "winner_error_upper": 0.03962416397741361,
+                "competitor_error_lower": 0.48957210279385766,
+                "margin_lower": 0.449947938816444,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 557,
+      "elapsed_sec": 57.312,
+      "feedback": {
+        "session_id": 277873754233150979022513805288080631163,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.9988734785224206,
+            0.04687245660937595,
+            -0.007399102372938256
+          ],
+          [
+            -0.04683922780010725,
+            0.9988918393343013,
+            0.004602178878579919
+          ],
+          [
+            0.007606618408522687,
+            -0.004250426183667446,
+            0.9999620358961868
+          ]
+        ],
+        "semantic_metadata": {
+          "frame_id": 557,
+          "generation": 2727,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 25024.812,
+          "pose": {
+            "rvec": [
+              [
+                1.4291058977000386
+              ],
+              [
+                -1.5774070286955857
+              ],
+              [
+                0.12072665049908905
+              ]
+            ],
+            "tvec": [
+              [
+                -0.03408855451499632
+              ],
+              [
+                0.501053427022714
+              ],
+              [
+                41.489865572598816
+              ]
+            ],
+            "rotation": [
+              [
+                0.15631917697917397,
+                -0.8078543278237742,
+                -0.5682743174954779
+              ],
+              [
+                -0.7119662381481489,
+                0.3066201100672087,
+                -0.6317342667922532
+              ],
+              [
+                0.6845935952415321,
+                0.5033443087179692,
+                -0.5272344035014244
+              ]
+            ],
+            "quality": 0.97,
+            "map_revision": 0,
+            "correction_epoch": 32,
+            "pivot_reference": [
+              [
+                -0.013542251448329155
+              ],
+              [
+                0.4291626757881443
+              ],
+              [
+                41.970870860756534
+              ]
+            ]
+          }
+        },
+        "target_coverage": {
+          "model_executed": true,
+          "coverage_valid": true,
+          "source_frame_id": 557,
+          "source_frame_time": 25024.812,
+          "source_map_revision": 0
+        },
+        "refine_diagnostic": {
+          "candidates": 16,
+          "confirmed": 9,
+          "reason": "seven_centres",
+          "renewed": true,
+          "candidate_faces": {
+            "U": 7,
+            "L": 2,
+            "B": 7
+          },
+          "confirmed_faces": {
+            "U": 7,
+            "L": 2
+          },
+          "candidate_cell_indices": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6,
+            7,
+            39,
+            42,
+            45,
+            46,
+            47,
+            48,
+            49,
+            51,
+            53
+          ],
+          "confirmed_cell_indices": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6,
+            7,
+            39,
+            42
+          ],
+          "localized_known_cell_indices": [],
+          "source_frame_id": 557,
+          "source_frame_time": 25024.812,
+          "source_map_revision": 0,
+          "joint_confirmed_inliers": 9,
+          "joint_rejected": {
+            "angle_deg": 0.9806429888941716,
+            "median_before": 4.008788805483163,
+            "median_after": 3.2024476932787675,
+            "max_after": 5.695887013535911,
+            "translation_pixels": [
+              1.9220167030766513,
+              -2.766455780843323
+            ]
+          },
+          "accepted_faces": {
+            "U": 7,
+            "L": 2,
+            "B": 7
+          },
+          "median_after": 3.9294862140681484,
+          "max_after": 7.2033699503875495
+        },
+        "glyph_anchor_frame_id": 557,
+        "glyph_anchor_at": 25024.812,
+        "glyph_anchor_age_sec": 0.8129999999982829,
+        "fusion_paused": false,
+        "accepted_anchor_observation": {
+          "frame_id": 557,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 25024.812,
+          "rotation": [
+            [
+              0.15631917697917397,
+              -0.8078543278237742,
+              -0.5682743174954779
+            ],
+            [
+              -0.7119662381481489,
+              0.3066201100672087,
+              -0.6317342667922532
+            ],
+            [
+              0.6845935952415321,
+              0.5033443087179692,
+              -0.5272344035014244
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9988030011021976,
+              0.04855473259989202,
+              -0.005916327526386624
+            ],
+            [
+              -0.048520940186218595,
+              0.998805744507856,
+              0.005727399196521092
+            ],
+            [
+              0.0061873542562255945,
+              -0.005433477731966094,
+              0.9999660964087963
+            ]
+          ],
+          "accepted_faces": {
+            "U": 7,
+            "L": 2,
+            "B": 7
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "player",
+            "box": [
+              870,
+              309,
+              27,
+              26
+            ],
+            "point": [
+              883.5,
+              319.5
+            ],
+            "anchor_type": "head",
+            "confirmable": true,
+            "confidence": 0.807,
+            "source": "deep_dive_local_pink_head",
+            "box_evidence": "existing_model_box_with_confirmed_head_center",
+            "object_point": [
+              0.0,
+              -2.849353316666667,
+              0.0
+            ],
+            "cell_index": 4,
+            "source_depth": 40.05565979712798,
+            "association_evidence": {
+              "source_frame_id": 557,
+              "source_frame_time": 25024.812,
+              "source_map_revision": 0,
+              "error": 0.018205065470336734,
+              "competitor_index": 8,
+              "competitor_error": 0.6571996732926877,
+              "margin": 0.638994607822351,
+              "rvec": [
+                1.4291058977000386,
+                -1.5774070286955857,
+                0.12072665049908905
+              ],
+              "rotation": [
+                [
+                  0.15631917697917397,
+                  -0.8078543278237742,
+                  -0.5682743174954779
+                ],
+                [
+                  -0.7119662381481489,
+                  0.3066201100672087,
+                  -0.6317342667922532
+                ],
+                [
+                  0.6845935952415321,
+                  0.5033443087179692,
+                  -0.5272344035014244
+                ]
+              ],
+              "tvec": [
+                -0.03408855451499632,
+                0.501053427022714,
+                41.489865572598816
+              ],
+              "target_face_glyph_count": 7,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 4,
+                "competitor_index": 8,
+                "nominal_error": 0.018205065470336734,
+                "winner_error_upper": 0.02945735559700155,
+                "competitor_error_lower": 0.645436385570039,
+                "margin_lower": 0.6159790299730374,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          },
+          {
+            "kind": "inspiration",
+            "box": [
+              429,
+              278,
+              50,
+              64
+            ],
+            "point": [
+              454.1205596923828,
+              310.3531494140625
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.8127670884132385,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              -1.0,
+              0.0,
+              2.63268665
+            ],
+            "cell_index": 50,
+            "source_depth": 39.41722900183837,
+            "association_evidence": {
+              "source_frame_id": 557,
+              "source_frame_time": 25024.812,
+              "source_map_revision": 0,
+              "error": 0.016147724666029,
+              "competitor_index": 52,
+              "competitor_error": 0.7912124324962341,
+              "margin": 0.7750647078302051,
+              "rvec": [
+                1.4291058977000386,
+                -1.5774070286955857,
+                0.12072665049908905
+              ],
+              "rotation": [
+                [
+                  0.15631917697917397,
+                  -0.8078543278237742,
+                  -0.5682743174954779
+                ],
+                [
+                  -0.7119662381481489,
+                  0.3066201100672087,
+                  -0.6317342667922532
+                ],
+                [
+                  0.6845935952415321,
+                  0.5033443087179692,
+                  -0.5272344035014244
+                ]
+              ],
+              "tvec": [
+                -0.03408855451499632,
+                0.501053427022714,
+                41.489865572598816
+              ],
+              "target_face_glyph_count": 7,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 50,
+                "competitor_index": 52,
+                "nominal_error": 0.016147724666029,
+                "winner_error_upper": 0.02678261621591041,
+                "competitor_error_lower": 0.7800952644083448,
+                "margin_lower": 0.7533126481924344,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 845,
+      "elapsed_sec": 82.656,
+      "feedback": {
+        "session_id": 277873754233150979022513805288080631163,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.9972393435997272,
+            0.07361819576558556,
+            -0.00969808378028434
+          ],
+          [
+            -0.07316465484949954,
+            0.9964815156638016,
+            0.0408842539510233
+          ],
+          [
+            0.01267378623550976,
+            -0.04006182962119734,
+            0.999116822473659
+          ]
+        ],
+        "semantic_metadata": {
+          "frame_id": 845,
+          "generation": 3863,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 25050.156,
+          "pose": {
+            "rvec": [
+              [
+                1.6464785256879588
+              ],
+              [
+                -2.5181189449116133
+              ],
+              [
+                0.39779658333113016
+              ]
+            ],
+            "tvec": [
+              [
+                0.002236722938949062
+              ],
+              [
+                0.5141828548259794
+              ],
+              [
+                41.56291634345394
+              ]
+            ],
+            "rotation": [
+              [
+                -0.40729973065838454,
+                -0.9117328553863812,
+                0.05338660707146681
+              ],
+              [
+                -0.8837916590803395,
+                0.37873081625131966,
+                -0.2747276326866836
+              ],
+              [
+                0.2302590557299059,
+                -0.15907912883406367,
+                -0.9600388523511783
+              ]
+            ],
+            "quality": 0.97,
+            "map_revision": 0,
+            "correction_epoch": 47,
+            "pivot_reference": [
+              [
+                -0.013542251448329155
+              ],
+              [
+                0.4291626757881443
+              ],
+              [
+                41.970870860756534
+              ]
+            ]
+          }
+        },
+        "target_coverage": {
+          "model_executed": true,
+          "coverage_valid": true,
+          "source_frame_id": 845,
+          "source_frame_time": 25050.156,
+          "source_map_revision": 0
+        },
+        "refine_diagnostic": {
+          "candidates": 7,
+          "confirmed": 7,
+          "reason": "seven_centres",
+          "renewed": true,
+          "candidate_faces": {
+            "B": 7
+          },
+          "confirmed_faces": {
+            "B": 7
+          },
+          "candidate_cell_indices": [
+            45,
+            46,
+            47,
+            48,
+            49,
+            51,
+            52
+          ],
+          "confirmed_cell_indices": [
+            45,
+            46,
+            47,
+            48,
+            49,
+            51,
+            52
+          ],
+          "localized_known_cell_indices": [],
+          "source_frame_id": 845,
+          "source_frame_time": 25050.156,
+          "source_map_revision": 0,
+          "accepted_faces": {
+            "B": 7
+          },
+          "median_after": 1.6322238116289967,
+          "max_after": 4.820406571695063
+        },
+        "glyph_anchor_frame_id": 845,
+        "glyph_anchor_at": 25050.156,
+        "glyph_anchor_age_sec": 0.5310000000026776,
+        "fusion_paused": false,
+        "accepted_anchor_observation": {
+          "frame_id": 845,
+          "session_id": 277873754233150979022513805288080631163,
+          "map_revision": 0,
+          "frame_time": 25050.156,
+          "rotation": [
+            [
+              -0.40729973065838454,
+              -0.9117328553863812,
+              0.05338660707146681
+            ],
+            [
+              -0.8837916590803395,
+              0.37873081625131966,
+              -0.2747276326866836
+            ],
+            [
+              0.2302590557299059,
+              -0.15907912883406367,
+              -0.9600388523511783
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9971713137957354,
+              0.07460701589751631,
+              -0.009119436482537003
+            ],
+            [
+              -0.07416971304595225,
+              0.9963861710265277,
+              0.04139386251343431
+            ],
+            [
+              0.012174752957355133,
+              -0.04060038627855099,
+              0.999101288170755
+            ]
+          ],
+          "accepted_faces": {
+            "B": 7
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "singularity",
+            "box": [
+              281,
+              460,
+              142,
+              135
+            ],
+            "point": [
+              351.7148895263672,
+              527.7234649658203
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.9501048922538757,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null
+          },
+          {
+            "kind": "inspiration",
+            "box": [
+              665,
+              410,
+              73,
+              54
+            ],
+            "point": [
+              701.364013671875,
+              437.60618591308594
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.8805075883865356,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              -1.0,
+              0.0,
+              2.55268665
+            ],
+            "cell_index": 50,
+            "source_depth": 38.881978925845864,
+            "association_evidence": {
+              "source_frame_id": 845,
+              "source_frame_time": 25050.156,
+              "source_map_revision": 0,
+              "error": 0.007947111880764591,
+              "competitor_index": 19,
+              "competitor_error": 0.18422678387247723,
+              "margin": 0.17627967199171266,
+              "rvec": [
+                1.6464785256879588,
+                -2.5181189449116133,
+                0.39779658333113016
+              ],
+              "rotation": [
+                [
+                  -0.40729973065838454,
+                  -0.9117328553863812,
+                  0.05338660707146681
+                ],
+                [
+                  -0.8837916590803395,
+                  0.37873081625131966,
+                  -0.2747276326866836
+                ],
+                [
+                  0.2302590557299059,
+                  -0.15907912883406367,
+                  -0.9600388523511783
+                ]
+              ],
+              "tvec": [
+                0.002236722938949062,
+                0.5141828548259794,
+                41.56291634345394
+              ],
+              "target_face_glyph_count": 7,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 50,
+                "competitor_index": 19,
+                "nominal_error": 0.007947111880764591,
+                "winner_error_upper": 0.015527427919916749,
+                "competitor_error_lower": 0.17571077035826554,
+                "margin_lower": 0.1601833424383488,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          },
+          {
+            "kind": "player",
+            "box": [
+              886,
+              286,
+              27,
+              27
+            ],
+            "point": [
+              897.5,
+              299.5
+            ],
+            "anchor_type": "head",
+            "confirmable": true,
+            "confidence": 0.802,
+            "source": "deep_dive_local_pink_head",
+            "box_evidence": "existing_model_box_with_confirmed_head_center"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -43,6 +43,8 @@ from .logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,
     PC_ETERNAL_SCUFFLE_TASK_REF,
     PC_GAME_NAME,
@@ -51,6 +53,8 @@ from .logic import (
     PC_TEAM_RECOMMENDATION_TASK_REF,
     extract_final_result,
     extract_deep_dive_scan_result,
+    extract_deep_dive_plan_result,
+    extract_deep_dive_planned_run_result,
     extract_run_id,
     extract_status,
     parse_inputs_json,
@@ -357,6 +361,12 @@ class ResonanceMainWindow(QMainWindow):
         self.small_tasks_page.runConsciousnessDeepDiveScanRequested.connect(
             self._run_deep_dive_scan
         )
+        self.small_tasks_page.runConsciousnessDeepDivePlanRequested.connect(
+            self._run_deep_dive_plan
+        )
+        self.small_tasks_page.runConsciousnessDeepDivePlannedRunRequested.connect(
+            self._run_deep_dive_planned_run
+        )
         self.small_tasks_page.runConsciousnessDeepDiveSingleRunRequested.connect(
             self._run_small_task_consciousness_deep_dive_single_run
         )
@@ -633,6 +643,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
         self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
         self._bridge.deepDiveLoopProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_loop_progress)
+        self._bridge.deepDivePlannedRunProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_planned_run_progress)
         self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
         self._bridge.passengerProgress.connect(self._on_workflow_passenger_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
@@ -1114,6 +1125,34 @@ class ResonanceMainWindow(QMainWindow):
         # A sustained loop must not inherit the GUI's short per-task timeout.
         self.requestRunPcTask.emit(PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,dict(inputs),'识海深潜循环',0.)
 
+    def _run_deep_dive_planned_run(self, inputs: dict[str, Any]) -> None:
+        if self._busy or self._workflow_active or self._commerce_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再试。")
+            return
+        self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF
+        self.small_tasks_page.begin_consciousness_deep_dive_planned_run()
+        # In-level execution owns its scan/planning budgets and the round safety limit.
+        self.requestRunPcTask.emit(
+            PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
+            dict(inputs),
+            "识海深潜关卡内自动运行",
+            0.0,
+        )
+
+    def _run_deep_dive_plan(self, inputs: dict[str, Any]) -> None:
+        if self._busy or self._workflow_active or self._commerce_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再试。")
+            return
+        self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF
+        self.small_tasks_page.begin_consciousness_deep_dive_plan()
+        # The offline planner owns its search budget and shares the runner's cancellation.
+        self.requestRunPcTask.emit(
+            PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+            dict(inputs),
+            "识海深潜移动规划",
+            0.0,
+        )
+
     def _run_small_task_consciousness_deep_dive_single_run(
         self, inputs: dict[str, Any]
     ) -> None:
@@ -1181,6 +1220,12 @@ class ResonanceMainWindow(QMainWindow):
         )
 
     def _show_small_task_error(self, task_ref: str, message: str) -> None:
+        if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF:
+            self.small_tasks_page.show_consciousness_deep_dive_planned_run_error(message)
+            return
+        if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF:
+            self.small_tasks_page.show_consciousness_deep_dive_plan_error(message)
+            return
         if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF:
             self.small_tasks_page.show_consciousness_deep_dive_scan_error(message)
             return
@@ -1485,6 +1530,11 @@ class ResonanceMainWindow(QMainWindow):
             self.run_detail.show_text(pretty_json(payload))
 
     def _on_run_updated(self, payload: dict[str, Any]) -> None:
+        if (self._active_game_name == PC_GAME_NAME and
+                self._small_task_active_ref == PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF):
+            planned_run = extract_deep_dive_planned_run_result(payload)
+            if planned_run:
+                self.small_tasks_page.consciousness_deep_dive_panel.apply_planned_run_progress(planned_run)
         if self._active_game_name == PC_GAME_NAME and self._active_kind == "trade_preview":
             self.trade_preview_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
@@ -1669,6 +1719,36 @@ class ResonanceMainWindow(QMainWindow):
                     self.small_tasks_page.apply_consciousness_deep_dive_scan_result(scan_result)
                 else:
                     self.small_tasks_page.show_consciousness_deep_dive_scan_error("任务未返回布局扫描结果。")
+                self._small_task_active_ref = ""
+            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF and small_task_owns_result:
+                planned_run_result = extract_deep_dive_planned_run_result(payload)
+                runner_status = extract_status(payload)
+                if runner_status != "success":
+                    planned_run_result.update(
+                        success=False,
+                        status="cancelled" if runner_status == "cancelled" else "blocked",
+                        reason=planned_run_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                    )
+                if planned_run_result:
+                    self.small_tasks_page.apply_consciousness_deep_dive_planned_run_result(planned_run_result)
+                else:
+                    self.small_tasks_page.show_consciousness_deep_dive_planned_run_error("任务未返回关卡内自动运行结果。")
+                self._small_task_active_ref = ""
+            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF and small_task_owns_result:
+                plan_result = extract_deep_dive_plan_result(payload)
+                runner_status = extract_status(payload)
+                if runner_status != "success":
+                    plan_result.update(
+                        success=False,
+                        status=("cancelled" if runner_status == "cancelled" else
+                                plan_result.get("status") if plan_result.get("status") in
+                                {"blocked", "search_budget_exhausted", "cancelled"} else "blocked"),
+                        reason=plan_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                    )
+                if plan_result:
+                    self.small_tasks_page.apply_consciousness_deep_dive_plan_result(plan_result)
+                else:
+                    self.small_tasks_page.show_consciousness_deep_dive_plan_error("任务未返回移动规划结果。")
                 self._small_task_active_ref = ""
             if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF:
                 loop_result=player_data_result.get('deep_dive_loop')

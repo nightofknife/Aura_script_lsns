@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import math
 import itertools
+import time
 from collections import Counter
 from copy import deepcopy
+from functools import lru_cache
 
 import cv2
 import numpy as np
@@ -38,6 +40,70 @@ def _angle(a, b):
     return float(np.degrees(np.linalg.norm(cv2.Rodrigues(a @ b.T)[0])))
 
 
+def _independent_positive_witness(observations, kind, map_revision, required=2):
+    """Return actual pairwise-separated source votes, never group-centre poses.
+
+    Groups select where to keep a best image. That image may move towards a
+    neighbouring group, so the groups alone do not prove independent views.
+    Keep the raw evidence untouched and find a witness using its saved poses.
+    """
+    candidates = []
+    for item in observations:
+        proof = item.get('association_evidence') or {}
+        if not isinstance(proof, dict):
+            continue
+        try:
+            frame, group = item.get('frame_id'), item.get('group')
+            confidence = item.get('confidence')
+            if (item.get('occupant') != kind or type(frame) is not int or frame < 0
+                    or type(group) is not int or group < 0
+                    or isinstance(confidence, bool) or not isinstance(confidence, (int, float))
+                    or not math.isfinite(confidence) or not .70 <= confidence <= 1.
+                    or type(proof.get('source_frame_id')) is not int
+                    or proof.get('source_frame_id') != frame
+                    or type(proof.get('source_map_revision')) is not int
+                    or proof['source_map_revision'] != map_revision):
+                continue
+            rotation = np.asarray(proof.get('rotation'), float)
+            if (rotation.shape != (3, 3) or not np.isfinite(rotation).all()
+                    or not np.allclose(rotation @ rotation.T, np.eye(3), atol=1e-5, rtol=0.)
+                    or abs(float(np.linalg.det(rotation))-1.) > 1e-5):
+                continue
+            candidates.append((item, rotation))
+        except (TypeError, ValueError):
+            continue
+    candidates.sort(key=lambda x: (-x[0]['confidence'], x[0]['frame_id'], x[0]['group']))
+    if len(candidates) < required:
+        return []
+    # A clique witnesses pairwise separation. Searching all possible first
+    # votes avoids the 0-degree best vote hiding a valid -6/+6-degree pair.
+    adjacent = [0] * len(candidates)
+    for i, (first, rotation) in enumerate(candidates):
+        for j in range(i+1, len(candidates)):
+            second, other = candidates[j]
+            if (first['frame_id'] != second['frame_id'] and first['group'] != second['group']
+                    and _angle(rotation, other) >= 8.):
+                if required == 2:
+                    return [first, second]
+                adjacent[i] |= 1 << j
+                adjacent[j] |= 1 << i
+
+    def find(chosen, remaining):
+        if len(chosen) == required:
+            return chosen
+        while remaining.bit_count() >= required-len(chosen):
+            bit = remaining & -remaining
+            index = bit.bit_length()-1
+            remaining ^= bit
+            witness = find(chosen+[index], remaining & adjacent[index])
+            if witness is not None:
+                return witness
+        return None
+
+    witness = find([], (1 << len(candidates))-1)
+    return [candidates[i][0] for i in witness] if witness is not None else []
+
+
 def _ui_mask():
     mask = np.zeros((720, 1280), np.uint8)
     mask[82:619, 295:951] = 255
@@ -46,8 +112,15 @@ def _ui_mask():
 
 
 def _point(cell):
-    n, u, v = (np.asarray(a, float) for a in BASES[cell["face"]])
-    return n * DISTANCE + u * (cell["col"] - 1) + v * (cell["row"] - 1)
+    return _grid_point(cell['face'],cell['row'],cell['col'])
+
+
+@lru_cache(maxsize=54)
+def _grid_point(face,row,col):
+    n,u,v=(np.asarray(a,float) for a in BASES[face])
+    point=n*DISTANCE+u*(col-1)+v*(row-1)
+    point.flags.writeable=False
+    return point
 
 
 def _quad(cell):
@@ -55,6 +128,23 @@ def _quad(cell):
     centre = _point(cell)
     return np.array([centre + u*x*HALF_TILE + v*y*HALF_TILE
                      for x,y in ((-1,-1),(1,-1),(1,1),(-1,1))])
+
+
+def _anchor_heights(target):
+    if target['kind'] == 'player':
+        return {'head': (.20, .85), 'body': (.06, .55),
+                'contact': (0., .12)}.get(target.get('anchor_type', 'head'), (.20, .85))
+    return {'inspiration': (.05, .65), 'singularity': (.20, 1.)}[target['kind']]
+
+
+def _multi_face_grid_support(objects,points,minimum=6):
+    if len(objects)<minimum:
+        return False
+    faces=Counter((int(np.argmax(np.abs(point))),int(np.sign(point[np.argmax(np.abs(point))])))
+                  for point in objects)
+    return bool(sum(count>=2 for count in faces.values())>=2 and
+                np.min(np.ptp(points,axis=0))>=80 and
+                cv2.contourArea(cv2.convexHull(np.float32(points)))>=7000)
 
 
 def _neighbors(cell):
@@ -79,8 +169,65 @@ def _crop(image, quad, size=96):
     return cv2.warpPerspective(image, matrix, (size,size))
 
 
+def _icon_mask(rgb,name):
+    hsv=cv2.cvtColor(rgb,cv2.COLOR_RGB2HSV);h,s,v=cv2.split(hsv)
+    return {
+        'white_diamond':(s<62)&(v>170),
+        'blue_scales':(h>=100)&(h<=125)&(s>100)&(v>135),
+        'green_burst':(h>=40)&(h<=91)&(s>130)&(v>135),
+        'purple_ring':(h>=126)&(h<=148)&(s>120)&(v>130),
+        'yellow_hex':(h>=21)&(h<=39)&(s>110)&(v>160),
+        'red_single_eye':((h<=6)|(h>=168))&(s>140)&(v>140),
+        # Eye-shape classification already distinguishes single/triple eyes.
+        # Active glyphs can be red/pink; use the classifier's actual warm
+        # support, then retain its class-equality gate in known localization.
+        'orange_triple_eye':((h<=23)|(h>=162))&(s>100)&(v>130)}[name]
+
+
+def _localized_known_glyph(image,item,expected):
+    """Locate a measured known glyph near a drifting quad, for pose fitting only.
+
+    The expanded patch may contain neighbouring tiles. Separate connected
+    foreground components, require the original shape classifier to agree with
+    the established atlas, and retain the existing 28px correspondence bound.
+    This never contributes a node label or an empty/occupied cell vote.
+    """
+    q=item['quad'];expanded=q.mean(axis=0)+(q-q.mean(axis=0))*1.6
+    patch=_crop(image,expanded)
+    mask=_icon_mask(patch,expected).astype(np.uint8)
+    count,labels,_,_=cv2.connectedComponentsWithStats(cv2.dilate(mask,np.ones((3,3),np.uint8)),8)
+    inverse=cv2.getPerspectiveTransform(np.float32(((0,0),(95,0),(95,95),(0,95))),np.float32(expanded))
+    candidates=[]
+    for index in range(1,count):
+        component=(labels==index)&(mask>0)
+        yy,xx=np.where(component)
+        if len(xx)<45:continue
+        x1,x2,y1,y2=xx.min(),xx.max(),yy.min(),yy.max()
+        width,height=x2-x1+1,y2-y1+1
+        if min(width,height)<10 or max(width,height)>65 or len(xx)/(width*height)>.70:continue
+        glyph=patch[y1:y2+1,x1:x2+1].copy()
+        glyph[~component[y1:y2+1,x1:x2+1]]=0
+        scale=58./max(width,height)
+        nw,nh=max(1,round(width*scale)),max(1,round(height*scale))
+        nx,ny=(96-nw)//2,(96-nh)//2
+        normalized=np.zeros((96,96,3),np.uint8)
+        normalized[ny:ny+nh,nx:nx+nw]=cv2.resize(glyph,(nw,nh),interpolation=cv2.INTER_AREA)
+        evidence=classify_icon(normalized)
+        if evidence.get('icon_id')!=expected or evidence.get('confidence',0)<.70:continue
+        centre=np.array([[(np.percentile(xx,3)+np.percentile(xx,97))/2,
+                          (np.percentile(yy,3)+np.percentile(yy,97))/2]],np.float32)
+        point=cv2.perspectiveTransform(centre.reshape(1,1,2),inverse).reshape(2)
+        distance=float(np.linalg.norm(point-item['centre']))
+        if distance<=28:candidates.append((distance,point))
+    return min(candidates,key=lambda value:value[0])[1] if candidates else None
+
+
 class LayoutScanner:
-    def __init__(self):
+    def __init__(self,target_detector=None,*,target_negative_evidence=False):
+        if target_detector is not None and not callable(target_detector):
+            raise TypeError('target_detector must be callable')
+        self._target_detector=target_detector
+        self.target_negative_evidence=bool(target_negative_evidence)
         self.cells = [dict(face=f,row=r,col=c) for f in FACES for r in range(3) for c in range(3)]
         self.rvec, self.tvec = SEED_R.copy(), SEED_T.copy()
         self.rotation = cv2.Rodrigues(self.rvec)[0]
@@ -111,7 +258,26 @@ class LayoutScanner:
         self.icon_anchors={}
         self.identity_corrections=0
         self.correction_epoch=0
+        self.glyph_anchor_at=None
+        self.glyph_anchor_reason='not_initialized'
+        self.glyph_anchor_rotation=None
+        self.glyph_anchor_frame_id=None
+        self.glyph_anchor_map_revision=None
+        self.glyph_anchor_faces={}
+        self._anchor_source={}
+        self._frame_readings={}
+        self._frame_associations={}
+        self._postfit_visibility=None
+        self._entity_anchor_proof=None
+        self._target_coverage={}
+        self.entity_association_diagnostic={}
+        self.last_fused_result=None
         centres=np.array([_point(c) for c in self.cells])
+        self._surface_points=centres
+        self._surface_normals=np.array([BASES[c['face']][0] for c in self.cells],float)
+        self._surface_geometry=np.array([np.vstack((_quad(c),_point(c))) for c in self.cells])
+        for array in (self._surface_points,self._surface_normals,self._surface_geometry):
+            array.flags.writeable=False
         self.symmetries=[]
         for axes in itertools.permutations(range(3)):
             for signs in itertools.product((-1,1),repeat=3):
@@ -125,13 +291,13 @@ class LayoutScanner:
         """Detect 90-degree identity slips using the whole observed icon pattern."""
         if len(self.icon_anchors)<8:return True
         readings=[]
-        for item in self.visible():
+        for item in self._postfit_visible(image):
             centre=item['centre'];q=item['quad']
             if item['cosine']<.4 or item['area']<900:continue
             if np.any(q[:,0]<305) or np.any(q[:,0]>940) or np.any(q[:,1]<90) or np.any(q[:,1]>610):continue
             if 590<centre[0]<700 and 480<centre[1]<592:continue
             if any(np.linalg.norm(centre-np.array(t['point']))<60 for t in targets):continue
-            icon=classify_icon(_crop(image,q))
+            _,icon=self._read_icon(image,q)
             if icon.get('icon_id') and icon.get('confidence',0)>=.65:
                 readings.append((item['index'],icon['icon_id']))
         if len(readings)<6:return True
@@ -164,22 +330,133 @@ class LayoutScanner:
         rv = self.rvec if rotation is None else cv2.Rodrigues(rotation)[0]
         return cv2.projectPoints(np.asarray(points,float), rv, self.tvec, K, None)[0].reshape(-1,2)
 
+    def _begin_frame(self):
+        # These caches belong to one owner and one image only. A pose correction
+        # changes quad bytes, so its rectified pixels are recomputed.
+        self._frame_readings={}
+        self._frame_associations={}
+        self._postfit_visibility=None
+        self._entity_anchor_proof=None
+        self._target_coverage={}
+        self.entity_association_diagnostic={}
+
+    def _target_observation(self,observation):
+        """Only an explicit successful current-image model packet proves coverage."""
+        packet=observation if isinstance(observation,dict) else {}
+        targets=packet.get('targets',[]) if isinstance(observation,dict) else observation
+        if not isinstance(targets,list):
+            raise TypeError('target detector must return a target list or packet')
+        self._target_coverage=dict(model_executed=packet.get('model_executed') is True,
+            coverage_valid=packet.get('coverage_valid') is True,**self._anchor_source)
+        return targets
+
+    def _detect_targets(self,image):
+        detector=detect_targets if self._target_detector is None else self._target_detector
+        return self._target_observation(detector(image))
+
+    def _entity_proof_token(self):
+        return (self._anchor_source.get('source_frame_id'),
+                self._anchor_source.get('source_frame_time'),
+                self._anchor_source.get('source_map_revision'),int(self.identity_corrections),
+                self.rvec.tobytes(),self.rotation.tobytes(),self.tvec.tobytes())
+
+    def _same_frame_entity_pose(self):
+        diagnostic=getattr(self,'refine_diagnostic',{})
+        return bool(self._entity_anchor_proof is not None
+            and self._entity_anchor_proof==self._entity_proof_token()
+            and diagnostic.get('renewed')
+            and all(diagnostic.get(key)==self._anchor_source.get(key)
+                    for key in ('source_frame_id','source_frame_time','source_map_revision')))
+
+    def _read_icon(self,image,quad):
+        key=(id(image),id(classify_icon),image.shape,image.dtype.str,np.asarray(quad).tobytes())
+        if key not in self._frame_readings:
+            crop=_crop(image,quad)
+            # Retain source/function objects, so recycled IDs cannot alias a
+            # different image or a test-replaced classifier in the same frame.
+            self._frame_readings[key]=(image,classify_icon,(crop,classify_icon(crop)))
+        return self._frame_readings[key][2]
+
+    def _associated_targets(self,targets,visible):
+        target_values=tuple((target['kind'],tuple(target['point']),tuple(target['box']),
+            target.get('confidence',0),target.get('confirmable',True),target.get('anchor_type'))
+            for target in targets)
+        method=self._associate_targets
+        key=(getattr(method,'__func__',method),self._entity_proof_token(),
+             self._same_frame_entity_pose(),target_values,
+             tuple((item['index'],item.get('area')) for item in visible))
+        if key not in self._frame_associations:
+            self._frame_associations[key]=self._associate_targets(targets,visible)
+        return self._frame_associations[key]
+
+    def _postfit_visible(self,image,*,retain=False):
+        """Reuse only this semantic source's exact post-fit geometry.
+
+        Consumers receive private rows, so annotators or replaced readers cannot
+        mutate another reader's quads. Ordinary callers never populate the cache.
+        """
+        method=self.visible
+        dependency=getattr(method,'__func__',method)
+        token=self._entity_proof_token()
+        cached=self._postfit_visibility
+        if (not retain and cached is not None and cached[0] is image
+                and cached[1]==token and cached[2] is dependency):
+            return deepcopy(cached[3])
+        self._postfit_visibility=None
+        rows=method()
+        if retain:
+            self._postfit_visibility=(image,token,dependency,deepcopy(rows))
+        return rows
+
+    def _record_glyph_anchor(self,reason,faces,cell_indices=None):
+        """Record the image that proved alignment, never its processing finish."""
+        self.glyph_anchor_at=float(self._anchor_source.get('source_frame_time',time.monotonic()))
+        self.glyph_anchor_reason=reason
+        self.glyph_anchor_rotation=self.rotation.copy()
+        self.glyph_anchor_frame_id=self._anchor_source.get('source_frame_id')
+        self.glyph_anchor_map_revision=self._anchor_source.get('source_map_revision',self.identity_corrections)
+        self.glyph_anchor_faces=dict(Counter(faces))
+        if hasattr(self,'refine_diagnostic'):
+            self.refine_diagnostic['renewed']=True
+            self.refine_diagnostic['accepted_faces']=dict(self.glyph_anchor_faces)
+            if cell_indices is not None:
+                indices=[int(i) for i in cell_indices]
+                confirmed=set(self.refine_diagnostic.get('confirmed_cell_indices',()))
+                self.refine_diagnostic['accepted_cell_indices']=indices
+                self.refine_diagnostic['accepted_confirmed_cell_indices']=[i for i in indices if i in confirmed]
+            if reason!='reset_bootstrap' and self._anchor_source.get('source_frame_id') is not None:
+                self._entity_anchor_proof=self._entity_proof_token()
+
+    def _anchor_observation(self):
+        return dict(glyph_anchor_at=self.glyph_anchor_at,
+                    glyph_anchor_rotation=(self.glyph_anchor_rotation.tolist()
+                                           if self.glyph_anchor_rotation is not None else None),
+                    glyph_anchor_frame_id=self.glyph_anchor_frame_id,
+                    glyph_anchor_map_revision=self.glyph_anchor_map_revision,
+                    glyph_anchor_faces=dict(self.glyph_anchor_faces),
+                    glyph_anchor_reason=self.glyph_anchor_reason)
+
     def visible(self, rotation=None):
         rot = self.rotation if rotation is None else rotation
         camera = -(rot.T @ self.tvec).ravel()
+        points=self._surface_points
+        normals=self._surface_normals
+        to_camera=camera-points
+        cosines=np.einsum('ij,ij->i',normals,to_camera)/np.linalg.norm(to_camera,axis=1)
+        # Project the same vertices in one OpenCV call instead of one call per
+        # cell. The individual contour-area gates retain their original values.
+        projected=self.project(self._surface_geometry.reshape(-1,3),rotation).reshape(-1,5,2)
         rows = []
         for index, cell in enumerate(self.cells):
-            n = np.array(BASES[cell['face']][0],float)
-            to_camera = camera-_point(cell)
-            cosine = float(n @ to_camera / np.linalg.norm(to_camera))
+            cosine = float(cosines[index])
             if cosine < .12:
                 continue
-            q = self.project(_quad(cell), rotation)
+            q = projected[index,:4]
             area = abs(cv2.contourArea(np.float32(q)))
             if area < 230 or not np.isfinite(q).all():
                 continue
             rows.append(dict(index=index,quad=q,cosine=cosine,area=area,
-                             centre=self.project([_point(cell)],rotation)[0]))
+                             centre=projected[index,4]))
         return rows
 
     def _bootstrap(self, image):
@@ -225,6 +502,7 @@ class LayoutScanner:
         self.quality=min(.92,len(ids)/max(1,len(obj)))
         self.pivot_reference=tv.copy()
         self.ready=True
+        self._record_glyph_anchor('reset_bootstrap',[faces[i] for i in ids])
         return True
 
     def _surface_mask(self, targets):
@@ -396,27 +674,46 @@ class LayoutScanner:
         return self._fit_pose(self.objects[good],nextp[good])
 
     def _refine_centres(self,image,targets):
+        # A correctly classified patch can still include coloured tile seams.
+        # Retry measured known-glyph components only after the ordinary fit
+        # rejects, using this same RGB and all the original fitting gates.
+        before=(self.rvec.copy(),self.tvec.copy(),self.rotation.copy())
+        self._refine_centres_once(image,targets)
+        initial=self.refine_diagnostic
+        if (initial.get('reason')!='seven_inliers_missing' or initial.get('renewed') or
+                not all(np.array_equal(a,b) for a,b in
+                        zip(before,(self.rvec,self.tvec,self.rotation)))):
+            return
+        self._refine_centres_once(image,targets,localized_matching=True)
+        self.refine_diagnostic['matching_localization_retry']=dict(
+            attempts=1,initial_reason=initial['reason'],
+            initial_candidates=initial['candidates'],initial_confirmed=initial['confirmed'])
+
+    def _refine_centres_once(self,image,targets,*,localized_matching=False):
         """Anchor accumulated flow to the actual glyph grid, not tile sidewalls."""
-        obj,pixels,confirmed=[],[],[]
-        self.refine_diagnostic=dict(candidates=0,confirmed=0,reason="insufficient_centres")
+        obj,pixels,confirmed,cell_ids=[],[],[],[]
+        self.refine_diagnostic=dict(candidates=0,confirmed=0,reason="insufficient_centres",
+            renewed=False,candidate_faces={},confirmed_faces={},
+            candidate_cell_indices=[],confirmed_cell_indices=[],localized_known_cell_indices=[],**self._anchor_source)
         for item in self.visible():
             if item['cosine']<.30 or item['area']<900:continue
             q=item['quad'];centre=item['centre']
             if 585<centre[0]<700 and 470<centre[1]<595:continue
             if any(np.linalg.norm(centre-np.array(t['point']))<65 for t in targets):continue
-            crop=_crop(image,q)
-            classification=classify_icon(crop)
+            crop,classification=self._read_icon(image,q)
+            known=self.icon_anchors.get(item['index'])
+            matching=(known and classification.get('icon_id')==known and
+                      classification.get('confidence',0)>=.70)
+            if known and (classification.get('icon_id')!=known or
+                          (localized_matching and matching)):
+                localized=_localized_known_glyph(image,item,known)
+                if localized is not None:
+                    obj.append(_point(self.cells[item['index']]));pixels.append(localized)
+                    cell_ids.append(item['index']);confirmed.append(True)
+                    self.refine_diagnostic['localized_known_cell_indices'].append(item['index'])
+                    continue
             if not classification.get('icon_id'):continue
-            hsv=cv2.cvtColor(crop,cv2.COLOR_RGB2HSV);h,s,v=cv2.split(hsv)
-            masks={
-                'white_diamond':(s<62)&(v>170),
-                'blue_scales':(h>=100)&(h<=125)&(s>100)&(v>135),
-                'green_burst':(h>=40)&(h<=91)&(s>130)&(v>135),
-                'purple_ring':(h>=126)&(h<=148)&(s>120)&(v>130),
-                'yellow_hex':(h>=21)&(h<=39)&(s>110)&(v>160),
-                'red_single_eye':((h<=6)|(h>=168))&(s>140)&(v>140),
-                'orange_triple_eye':(h>=7)&(h<=20)&(s>110)&(v>150)}
-            mask=masks[classification['icon_id']].astype(np.uint8)
+            mask=_icon_mask(crop,classification['icon_id']).astype(np.uint8)
             mask[:10]=0;mask[86:]=0;mask[:,:10]=0;mask[:,86:]=0
             y,x=np.where(mask)
             if len(x)<50:continue
@@ -427,8 +724,56 @@ class LayoutScanner:
             p=cv2.perspectiveTransform(p.reshape(1,1,2),inverse).reshape(2)
             if np.linalg.norm(p-centre)>28:continue
             obj.append(_point(self.cells[item['index']]));pixels.append(p)
+            cell_ids.append(item['index'])
             confirmed.append(self.icon_anchors.get(item['index'])==classification['icon_id'] and classification.get('confidence',0)>=.70)
-        self.refine_diagnostic.update(candidates=len(obj),confirmed=sum(confirmed))
+        self.refine_diagnostic.update(candidates=len(obj),confirmed=sum(confirmed),
+            candidate_faces=dict(Counter(self.cells[i]['face'] for i in cell_ids)),
+            confirmed_faces=dict(Counter(self.cells[i]['face'] for i,c in zip(cell_ids,confirmed) if c)),
+            candidate_cell_indices=list(cell_ids),
+            confirmed_cell_indices=[i for i,c in zip(cell_ids,confirmed) if c])
+        confirmed_ids=np.flatnonzero(confirmed)
+        if len(confirmed_ids)>=6:
+            support_ids=confirmed_ids.copy()
+            objects=np.asarray(obj)[confirmed_ids];points=np.asarray(pixels)[confirmed_ids]
+            broad=_multi_face_grid_support(objects,points)
+            if broad and hasattr(self,'pivot_reference'):
+                before=np.linalg.norm(self.project(objects)-points,axis=1)
+                rv,tv,error=self._bounded_pose_fit(objects,points)
+                inliers=error<=6.
+                if not np.all(inliers) and _multi_face_grid_support(objects[inliers],points[inliers]):
+                    support_ids=support_ids[inliers]
+                    objects,points=objects[inliers],points[inliers]
+                    before=np.linalg.norm(self.project(objects)-points,axis=1)
+                    rv,tv,error=self._bounded_pose_fit(objects,points)
+                self.refine_diagnostic['joint_confirmed_inliers']=len(objects)
+                rotation=cv2.Rodrigues(rv)[0]
+                angle=_angle(rotation,self.rotation)
+                pixel_delta=(tv[:2,0]-self.tvec[:2,0])*np.diag(K)[:2]/float(self.tvec[2,0])
+                depth_delta=abs(float(tv[2,0]-self.tvec[2,0]))/float(self.pivot_reference[2,0])
+                supported=(np.max(error)<=6 and np.median(error)<=3 and angle<=4 and
+                           np.linalg.norm(pixel_delta)<=12 and depth_delta<=.035)
+                improvement=np.median(error)<=max(.5,np.median(before)*.85)
+                if supported and improvement:
+                    self.rvec,self.tvec,self.rotation=rv,tv,rotation
+                    self._record_glyph_anchor('known_multi_face_joint_fit',
+                        [self.cells[cell_ids[i]]['face'] for i in support_ids],
+                        [cell_ids[i] for i in support_ids])
+                    self.refine_diagnostic.update(reason=self.glyph_anchor_reason,angle_deg=angle,
+                        median_before=float(np.median(before)),median_after=float(np.median(error)),
+                        max_after=float(np.max(error)),translation_pixels=pixel_delta.tolist(),
+                        depth_delta_fraction=depth_delta)
+                    self.points=np.empty((0,2),np.float32);self.objects=np.empty((0,3))
+                    return
+                if np.max(before)<=4 and np.median(before)<=3:
+                    self._record_glyph_anchor('known_multi_face_grid_verified',
+                        [self.cells[cell_ids[i]]['face'] for i in support_ids],
+                        [cell_ids[i] for i in support_ids])
+                    self.refine_diagnostic.update(reason=self.glyph_anchor_reason,
+                        median_before=float(np.median(before)),median_after=float(np.median(before)))
+                    return
+                self.refine_diagnostic['joint_rejected']=dict(angle_deg=angle,
+                    median_before=float(np.median(before)),median_after=float(np.median(error)),
+                    max_after=float(np.max(error)),translation_pixels=pixel_delta.tolist())
         if len(obj)<7:
             if sum(confirmed)<4:return
             ids=np.flatnonzero(confirmed)
@@ -456,6 +801,9 @@ class LayoutScanner:
                     np.median(error)>np.median(before)*.85):
                 self.refine_diagnostic['reason']='confirmed_residual_gate';return
             self.rvec,self.rotation=rv,rotation
+            self._record_glyph_anchor('known_four_glyph_consensus',
+                [self.cells[cell_ids[i]]['face'] for i in ids[inside]],
+                [cell_ids[i] for i in ids[inside]])
             self.refine_diagnostic['reason']='confirmed_consensus'
             self.refine_diagnostic.update(angle_deg=angle,median_before=float(np.median(before)),median_after=float(np.median(error)))
             if angle>1.:
@@ -470,6 +818,23 @@ class LayoutScanner:
             self.refine_diagnostic['reason']='correction_too_large';return
         self.refine_diagnostic['reason']='seven_centres'
         self.rvec,self.rotation=rv,rotation
+        # Even a tiny fitted correction can provide independent grid evidence.
+        # New labels need multi-face support; known atlas labels can also prove
+        # a broad single-face grid with seven independently matching glyphs.
+        face_counts=Counter(tuple(np.sign(point[np.argmax(np.abs(point))])*np.eye(3)[np.argmax(np.abs(point))])
+                            for point in obj)
+        points=np.asarray(pixels)
+        independent=(sum(count>=2 for count in face_counts.values())>=2 or sum(confirmed)>=7)
+        inlier_errors=errors[errors<9.]
+        if (independent and np.min(np.ptp(points,axis=0))>=80 and
+                cv2.contourArea(cv2.convexHull(np.float32(points)))>=7000 and
+                len(inlier_errors)>=7 and np.median(inlier_errors)<=5 and
+                _angle(rotation,old_rotation)<=4):
+            self._record_glyph_anchor('independent_seven_glyph_grid',
+                [self.cells[i]['face'] for i,err in zip(cell_ids,errors) if err<9.],
+                [i for i,err in zip(cell_ids,errors) if err<9.])
+        self.refine_diagnostic.update(median_after=float(np.median(errors)),
+                                     max_after=float(np.max(errors)))
         # Start fresh feature rays after a model correction, never reuse old
         # inaccurate geometry observations as if they came from the corrected pose.
         if _angle(rotation,old_rotation)>1.0:
@@ -519,34 +884,136 @@ class LayoutScanner:
 
     def _associate_targets(self,targets,visible):
         assigned={}; uncertain=set()
+        if not visible:return self._guard_entity_associations(assigned,uncertain)
+        indices=np.array([item['index'] for item in visible])
+        points=self._surface_points[indices]
+        normals=self._surface_normals[indices]
+        scales=np.maximum(20.,np.sqrt([item['area'] for item in visible]))
+        corridors={}
         for target in targets:
-            ranks=[]
             p=np.asarray(target['point'],float)
-            for item in visible:
-                index=item['index'];cell=self.cells[index]
-                normal=np.asarray(BASES[cell['face']][0],float)
-                # A finite normal corridor, not a nearest 2D tile-centre rule.
-                heights={'player':(.20,.85),'inspiration':(.05,.65),'singularity':(.20,1.0)}[target['kind']]
-                corridor=self.project([_point(cell)+normal*h for h in np.linspace(*heights,16)])
-                scale=max(20.,math.sqrt(item['area']))
-                error=float(np.min(np.linalg.norm(corridor-p,axis=1)))/scale
-                ranks.append((error,index))
+            heights=_anchor_heights(target)
+            if heights not in corridors:
+                samples=points[:,None,:]+normals[:,None,:]*np.linspace(*heights,16)[None,:,None]
+                corridors[heights]=self.project(samples.reshape(-1,3)).reshape(-1,16,2)
+            errors=np.linalg.norm(corridors[heights]-p,axis=2).min(axis=1)/scales
+            ranks=[(float(error),int(index)) for error,index in zip(errors,indices)]
             ranks.sort()
             if not ranks:continue
             close=[i for error,i in ranks if error<.5]
             uncertain.update(close)
             margin=ranks[1][0]-ranks[0][0] if len(ranks)>1 else 1.
-            if ranks[0][0]<.30 and margin>.12 and target.get('confidence',0)>=.6:
+            if (ranks[0][0]<.30 and margin>.12 and target.get('confidence',0)>=.6
+                    and target.get('confirmable', True)):
                 index=ranks[0][1]
                 entry=dict(target,association_confidence=max(.55,1-ranks[0][0]),cell_index=index)
                 if index in assigned and assigned[index]['kind']!=entry['kind']:
                     assigned[index]={'kind':'unknown','confidence':0.,'association_confidence':0.}
                 else:assigned[index]=entry
-        return assigned,uncertain
+        return self._guard_entity_associations(assigned,uncertain)
+
+    def _guard_entity_associations(self,assigned,uncertain):
+        """Current glyph proof authorizes positives; every surface may veto them."""
+        uncertain=set(uncertain)
+        renewed=self._same_frame_entity_pose()
+        diagnostic=dict(**self._anchor_source,renewed=renewed,decisions=[])
+        self.entity_association_diagnostic=diagnostic
+        if not renewed:
+            for index,entry in assigned.items():
+                uncertain.add(index)
+                diagnostic['decisions'].append(dict(index=index,kind=entry.get('kind'),
+                    reason='same_frame_glyph_pose_not_renewed'))
+            return {},uncertain
+        if not assigned:return assigned,uncertain
+        xyz=self._surface_geometry[:,:4,:].reshape(-1,3)
+        camera_xyz=xyz@self.rotation.T+self.tvec.ravel()
+        projected=self.project(xyz).reshape(-1,4,2)
+        valid=np.isfinite(projected).all(axis=(1,2))&(camera_xyz[:,2].reshape(-1,4)>0).all(axis=1)
+        scales=np.array([max(20.,np.sqrt(abs(cv2.contourArea(np.float32(quad)))))
+                         if ok else np.inf for quad,ok in zip(projected,valid)])
+        corridors={};kept={}
+        for index,entry in assigned.items():
+            if entry['kind']=='unknown':
+                kept[index]=entry;continue
+            heights=_anchor_heights(entry)
+            if heights not in corridors:
+                samples=self._surface_points[:,None,:]+self._surface_normals[:,None,:]*np.linspace(*heights,16)[None,:,None]
+                camera_samples=samples@self.rotation.T+self.tvec.ravel()
+                path=self.project(samples.reshape(-1,3)).reshape(-1,16,2)
+                corridor_valid=valid&np.isfinite(path).all(axis=(1,2))&(camera_samples[:,:,2]>0).all(axis=1)
+                corridors[heights]=(path,corridor_valid)
+            path,corridor_valid=corridors[heights]
+            errors=np.linalg.norm(path-np.asarray(entry['point']),axis=2).min(axis=1)/scales
+            errors[~corridor_valid]=np.inf
+            competitor=int(np.argmin(np.where(np.arange(len(errors))!=index,errors,np.inf)))
+            margin=float(errors[competitor]-errors[index])
+            evidence=dict(**self._anchor_source,error=float(errors[index]),
+                competitor_index=competitor,competitor_error=float(errors[competitor]),margin=margin,
+                rvec=self.rvec.ravel().tolist(),rotation=self.rotation.tolist(),tvec=self.tvec.ravel().tolist())
+            if not(errors[index]<.30 and margin>.12):
+                uncertain.add(index)
+                uncertain.update(i for i,error in enumerate(errors) if error<.5)
+                diagnostic['decisions'].append(dict(index=index,kind=entry['kind'],
+                    reason='all54_normal_corridor_competitor',**evidence))
+            else:
+                # A fit on a different face can track the cube while leaving
+                # this oblique face's sprite corridor poorly constrained. Do
+                # not turn that extrapolation into an occupancy vote.
+                face=self.cells[index]['face']
+                local_count=self.glyph_anchor_faces.get(face,0)
+                accepted_count=self.refine_diagnostic.get('accepted_faces',{}).get(face,0)
+                if (type(local_count) is not int or type(accepted_count) is not int
+                        or min(local_count,accepted_count)<2):
+                    uncertain.add(index)
+                    uncertain.update(i for i,error in enumerate(errors) if error<.5)
+                    diagnostic['decisions'].append(dict(index=index,kind=entry['kind'],
+                        reason='target_face_glyph_support_required',face=face,
+                        local_glyphs=local_count,**evidence))
+                    continue
+                from ._deep_dive_target_anchor_uncertainty import certify_target_anchor
+                stable=certify_target_anchor(entry['point'],path,scales,index,valid=corridor_valid)
+                if not stable['ready']:
+                    uncertain.add(index)
+                    uncertain.update(i for i,error in enumerate(errors) if error<.5)
+                    diagnostic['decisions'].append(dict(index=index,kind=entry['kind'],
+                        reason='target_anchor_pixel_uncertain',anchor_uncertainty=stable,**evidence))
+                    continue
+                evidence['target_face_glyph_count']=local_count
+                evidence['anchor_uncertainty']=stable
+                # A diffuse Boss box can move its centre while the actual core
+                # stays fixed. At a height endpoint, the fitted corridor cannot
+                # bracket that centre; do not treat its pixels as an exact core
+                # anchor if a plausible central region also supports a rival.
+                # Interior heights retain the original point-based decision.
+                point=np.asarray(entry['point'],float)
+                x,y,width,height=entry['box']
+                sample=int(np.argmin(np.linalg.norm(path[index]-point,axis=1)))
+                box_centre=np.array((x+width/2,y+height/2))
+                if (entry['kind']=='singularity' and sample in (0,15)
+                        and np.linalg.norm(point-box_centre)<=1.0):
+                    radius=.20*max(0.,min(width,height))
+                    pixel_errors=np.linalg.norm(path-point,axis=2).min(axis=1)
+                    robust=np.maximum(0.,pixel_errors-radius)/scales
+                    robust[~corridor_valid]=np.inf
+                    rival=int(np.argmin(np.where(np.arange(len(robust))!=index,robust,np.inf)))
+                    robust_margin=float(robust[rival]-robust[index])
+                    reliability=dict(height_sample=sample,
+                        fitted_height=float(np.linspace(*heights,16)[sample]),
+                        centre_uncertainty_px=float(radius),competitor_index=rival,
+                        competitor_error=float(robust[rival]),margin=robust_margin)
+                    evidence['anchor_center_reliability']=reliability
+                    if robust_margin<=.12:
+                        uncertain.add(index)
+                        uncertain.update(i for i,error in enumerate(robust) if error<.5)
+                        diagnostic['decisions'].append(dict(index=index,kind=entry['kind'],
+                            reason='bbox_center_height_boundary_ambiguous',**evidence))
+                        continue
+                kept[index]=dict(entry,association_evidence=evidence)
+        return kept,uncertain
 
     def _observe_cells(self,image,frame_id,targets):
-        visible=self.visible();self.last_projected=visible
-        assigned,uncertain=self._associate_targets(targets,visible)
+        visible=self._postfit_visible(image);self.last_projected=visible
+        assigned,uncertain=self._associated_targets(targets,visible)
         for item in visible:
             i=item['index'];q=item['quad'];centre=item['centre']
             if np.any(q[:,0]<300) or np.any(q[:,0]>950) or np.any(q[:,1]<84) or np.any(q[:,1]>615):continue
@@ -560,31 +1027,52 @@ class LayoutScanner:
             if target and target['kind']!='unknown':
                 observation.update(occupant=target['kind'],icon_id=None,
                     confidence=round(min(target['confidence'],target['association_confidence'],self.quality),3),
-                    target_box=target['box'],target_point=target['point'])
+                    target_box=deepcopy(target['box']),target_point=deepcopy(target['point']),
+                    target_source=target.get('source'),target_box_evidence=target.get('box_evidence'),
+                    association_evidence=deepcopy(target['association_evidence']))
+                observation['anchor_type'] = target.get('anchor_type')
             elif i in uncertain:
                 continue
             else:
                 # Even a sprite assigned elsewhere can obscure this tile. Also
                 # require the prospective normal corridor to be on-screen and
                 # outside the HUD before accepting negative target evidence.
-                blocked=False
+                blocked=False;any_target_overlap=False
                 for target in targets:
                     x,y,w,h=target['box']
                     rectangle=np.float32(((x-8,y-8),(x+w+8,y-8),(x+w+8,y+h+8),(x-8,y+h+8)))
                     overlap,_=cv2.intersectConvexConvex(np.float32(q),rectangle)
+                    any_target_overlap=any_target_overlap or overlap>0
                     if overlap>item['area']*.08:blocked=True;break
                 normal=np.array(BASES[self.cells[i]['face']][0],float)
                 corridor=self.project([_point(self.cells[i])+normal*h for h in (0.,.85)])
                 if any(not(305<p[0]<940 and 95<p[1]<600) or
                        (590<p[0]<698 and 480<p[1]<590) for p in corridor):blocked=True
                 if blocked:continue
-                crop=_crop(image,q)
-                icon=classify_icon(crop)
-                if not icon.get('icon_id') or icon.get('confidence',0)<.6:continue
+                _,icon=self._read_icon(image,q)
                 # Negative target evidence is accumulated from well-facing views.
                 if item['cosine']<.48:continue
-                observation.update(occupant='none',icon_id=icon['icon_id'],
-                    confidence=round(min(icon['confidence'],self.quality),3))
+                if icon.get('icon_id') and icon.get('confidence',0)>=.6:
+                    observation.update(occupant='none',icon_id=icon['icon_id'],
+                        confidence=round(min(icon['confidence'],self.quality),3))
+                else:
+                    coverage=self._target_coverage
+                    if not(self.target_negative_evidence and self._same_frame_entity_pose()
+                           and coverage.get('model_executed') and coverage.get('coverage_valid')
+                           and not any_target_overlap):continue
+                    # Cover the largest supported entity height (Boss reaches
+                    # 1.0), including the intermediate pixels of its corridor.
+                    samples=_point(self.cells[i])+normal*np.linspace(0.,1.,16)[:,None]
+                    path=self.project(samples)
+                    camera_samples=samples@self.rotation.T+self.tvec.ravel()
+                    if (not np.isfinite(path).all() or not(camera_samples[:,2]>0).all()
+                            or any(not(305<p[0]<940 and 95<p[1]<600) or
+                                (590<p[0]<698 and 480<p[1]<590) for p in path)):continue
+                    observation.update(occupant='none',icon_id=None,
+                        confidence=round(min(.8,self.quality),3),
+                        occupancy_negative_evidence=dict(**coverage,
+                            rvec=self.rvec.ravel().tolist(),rotation=self.rotation.tolist(),
+                            tvec=self.tvec.ravel().tolist(),corridor=path.tolist()))
             group_entries=self.evidence[i]
             existing=next((j for j,x in enumerate(group_entries) if x['group']==self.group),None)
             if existing is None:group_entries.append(observation)
@@ -601,18 +1089,24 @@ class LayoutScanner:
 
     def fork_semantic(self):
         """Copy atlas state without sharing the uncopyable OpenCV ORB instance."""
-        other=LayoutScanner()
+        other=LayoutScanner(target_detector=self._target_detector,
+                            target_negative_evidence=self.target_negative_evidence)
         for name in ('evidence','view_rotations','group','group_rotation','icon_anchors',
                      'identity_corrections','correction_epoch','best_known','stagnant_frames','rvec','tvec',
-                     'rotation','quality','ready','last_targets','last_projected'):
+                     'rotation','quality','ready','last_targets','last_projected',
+                     'glyph_anchor_at','glyph_anchor_reason','glyph_anchor_rotation',
+                     'glyph_anchor_frame_id','glyph_anchor_map_revision','glyph_anchor_faces'):
             setattr(other,name,deepcopy(getattr(self,name)))
+        if hasattr(self,'pivot_reference'):
+            other.pivot_reference=self.pivot_reference.copy()
         return other
 
     def pose_snapshot(self):
         """Copy geometry for another scanner; never share mutable pose arrays."""
         return dict(rvec=self.rvec.copy(),tvec=self.tvec.copy(),
                     rotation=self.rotation.copy(),quality=float(self.quality),
-                    map_revision=int(self.identity_corrections),correction_epoch=int(self.correction_epoch))
+                    map_revision=int(self.identity_corrections),correction_epoch=int(self.correction_epoch),
+                    pivot_reference=getattr(self,'pivot_reference',self.tvec).copy())
 
     def track_frame(self,image_rgb,frame_id=0,mask_targets=None,pose_correction=None):
         """Geometry-only hot path. Does not detect targets, classify or fuse cells.
@@ -640,13 +1134,32 @@ class LayoutScanner:
         correction_applied=False
         if pose_correction is not None and pose_correction.get('source_epoch')==self.correction_epoch:
             body=np.asarray(pose_correction.get('body_rotation'),float)
+            translation=np.asarray(pose_correction.get('translation_delta',[0.,0.,0.]),float)
+            valid_translation=translation.size==3 and np.isfinite(translation).all()
+            candidate_tv=self.tvec+translation.reshape(3,1) if valid_translation else self.tvec
+            anchor=getattr(self,'pivot_reference',self.tvec)
+            bounds=12.*float(anchor[2,0])/np.diag(K)[:2]
+            step_pixels=translation.ravel()[:2]*np.diag(K)[:2]/float(self.tvec[2,0]) if valid_translation else np.array([np.inf,np.inf])
+            valid_translation=bool(valid_translation and np.linalg.norm(step_pixels)<=12.+1e-6 and
+                abs(float(translation.ravel()[2]))<=float(anchor[2,0])*.035+1e-6 and
+                np.all(np.abs(candidate_tv[:2,0]-anchor[:2,0])<=bounds+1e-6) and
+                float(anchor[2,0])*.965-1e-6<=float(candidate_tv[2,0])<=float(anchor[2,0])*1.035+1e-6)
             if (body.shape==(3,3) and np.isfinite(body).all() and
                     np.allclose(body.T@body,np.eye(3),atol=1e-5) and
-                    abs(float(np.linalg.det(body))-1.)<1e-5 and _angle(body,np.eye(3))<=8.):
+                    abs(float(np.linalg.det(body))-1.)<1e-5 and _angle(body,np.eye(3))<=8. and valid_translation):
                 # The semantic frame may be old. A right/body correction carries
                 # its model alignment through subsequent camera-space motion.
                 self.rotation=self.rotation@body
                 self.rvec=cv2.Rodrigues(self.rotation)[0]
+                self.tvec=candidate_tv
+                if pose_correction.get('glyph_anchor_at') is not None:
+                    self.glyph_anchor_at=float(pose_correction['glyph_anchor_at'])
+                    self.glyph_anchor_reason=pose_correction.get('glyph_anchor_reason','semantic_grid_correction')
+                    rotation=pose_correction.get('glyph_anchor_rotation')
+                    self.glyph_anchor_rotation=np.asarray(rotation,float).copy() if rotation is not None else None
+                    self.glyph_anchor_frame_id=pose_correction.get('glyph_anchor_frame_id')
+                    self.glyph_anchor_map_revision=pose_correction.get('glyph_anchor_map_revision')
+                    self.glyph_anchor_faces=dict(pose_correction.get('glyph_anchor_faces',{}))
                 self.correction_epoch+=1
                 self.points=np.empty((0,2),np.float32);self.objects=np.empty((0,3))
                 self.keyframes=[];self._stream_keyframe_rotation=None
@@ -664,39 +1177,80 @@ class LayoutScanner:
             correction_applied=correction_applied)
         return self.last_observation
 
-    def semantic_view(self,image_rgb,frame_id,pose_snapshot,targets=None):
+    def semantic_view(self,image_rgb,frame_id,pose_snapshot,targets=None,*,source_frame_time=None):
         """Fuse one image using its frozen pose on a separate semantic scanner.
 
         Small glyph-grid corrections are fitted on this same frozen image and
         returned as epoch-tagged body rotations. Identity changes are rejected.
         """
+        semantic_started=time.perf_counter()
+        semantic_cost={}
+        def measured_observation(observation):
+            semantic_cost['total']=time.perf_counter()-semantic_started
+            observation['semantic_cost_sec']=semantic_cost
+            self._postfit_visibility=None
+            return observation
         if not isinstance(image_rgb,np.ndarray) or image_rgb.shape!=(720,1280,3) or image_rgb.dtype!=np.uint8:
-            return dict(tracking_ok=False,quality=0.,reason='invalid_frame')
+            return measured_observation(dict(tracking_ok=False,quality=0.,reason='invalid_frame'))
+        self._begin_frame()
+        self.last_fused_result=None
+        self._anchor_source=dict(source_frame_id=int(frame_id),
+            source_frame_time=float(time.monotonic() if source_frame_time is None else source_frame_time),
+            source_map_revision=int(pose_snapshot.get('map_revision',self.identity_corrections)))
         self.rvec=np.asarray(pose_snapshot['rvec'],float).reshape(3,1).copy()
         self.tvec=np.asarray(pose_snapshot['tvec'],float).reshape(3,1).copy()
         self.rotation=np.asarray(pose_snapshot['rotation'],float).reshape(3,3).copy()
         self.quality=float(pose_snapshot['quality']);self.ready=True
         self.correction_epoch=int(pose_snapshot.get('correction_epoch',0))
+        if 'pivot_reference' in pose_snapshot:
+            self.pivot_reference=np.asarray(pose_snapshot['pivot_reference'],float).reshape(3,1).copy()
         source_rotation=self.rotation.copy()
-        self.last_targets=detect_targets(image_rgb) if targets is None else targets
+        source_translation=self.tvec.copy()
+        stage_started=time.perf_counter()
+        self.last_targets=self._detect_targets(image_rgb) if targets is None else self._target_observation(targets)
+        semantic_cost['detect']=time.perf_counter()-stage_started
+        stage_started=time.perf_counter()
         self._refine_centres(image_rgb,self.last_targets)
+        semantic_cost['refine']=time.perf_counter()-stage_started
         body=source_rotation.T@self.rotation
         correction_angle=_angle(self.rotation,source_rotation)
+        translation_delta=self.tvec-source_translation
         correction=(dict(body_rotation=body.tolist(),source_epoch=self.correction_epoch,
-                         source_frame_id=int(frame_id),angle_deg=correction_angle)
-                    if .1<correction_angle<=8. else None)
-        self.last_projected=self.visible();self.frames_seen+=1
-        if not self._atlas_alignment(image_rgb,self.last_targets,allow_correction=False):
+                          source_frame_id=int(frame_id),angle_deg=correction_angle,
+                          translation_delta=translation_delta.ravel().tolist(),
+                          **self._anchor_observation())
+                    if correction_angle<=8. and (.1<correction_angle or np.linalg.norm(translation_delta)>1e-4) else None)
+        self.last_projected=self._postfit_visible(image_rgb,retain=True);self.frames_seen+=1
+        stage_started=time.perf_counter()
+        aligned=self._atlas_alignment(image_rgb,self.last_targets,allow_correction=False)
+        semantic_cost['atlas_alignment']=time.perf_counter()-stage_started
+        if not aligned:
+            self._entity_anchor_proof=None
             self.tracking_failures+=1
             self.last_observation=dict(tracking_ok=False,quality=self.quality,reason=self.last_error,frame_id=int(frame_id))
-            return self.last_observation
+            return measured_observation(self.last_observation)
         distances=[_angle(self.rotation,r) for r in self.view_rotations]
         new_group=not distances or min(distances)>=8.
         if new_group:self.view_rotations.append(self.rotation.copy())
         self.group=len(self.view_rotations) if new_group else int(np.argmin(distances))+1
         self.group_rotation=self.view_rotations[self.group-1]
-        self._observe_cells(image_rgb,frame_id,self.last_targets)
+        anchor_age=time.monotonic()-(self.glyph_anchor_at or 0.)
+        if anchor_age>6.:
+            self.last_observation=dict(tracking_ok=False,quality=self.quality,
+                reason='glyph_anchor_support_lost:'+str(self.refine_diagnostic.get('reason')),
+                frame_id=int(frame_id),glyph_anchor_age_sec=anchor_age,
+                refine_diagnostic=deepcopy(self.refine_diagnostic),**self._anchor_observation())
+            return measured_observation(self.last_observation)
+        fusion_paused=anchor_age>2.
+        if not fusion_paused:
+            stage_started=time.perf_counter()
+            self._observe_cells(image_rgb,frame_id,self.last_targets)
+            semantic_cost['associate_observe']=time.perf_counter()-stage_started
+        stage_started=time.perf_counter()
         result=self.result()
+        semantic_cost['result']=time.perf_counter()-stage_started
+        self.last_fused_result=result
+        stage_started=time.perf_counter()
         for i,cell in enumerate(result['cells']):
             if cell['occupant']=='none' and cell['node_status']=='known' and cell['confidence']>=.70:
                 self.icon_anchors.setdefault(i,cell['icon_id'])
@@ -704,24 +1258,32 @@ class LayoutScanner:
         self.last_observation=dict(tracking_ok=True,quality=self.quality,frame_id=int(frame_id),
             known_cells=result['known_cells'],faces_observed=result['faces_observed'],view_group=self.group,
             mask_observation=self.target_mask_observation(),pose_correction=correction,
-            pose=self.pose_snapshot())
-        return self.last_observation
+            pose=self.pose_snapshot(),fusion_paused=fusion_paused,glyph_anchor_age_sec=anchor_age,
+            refine_diagnostic=deepcopy(self.refine_diagnostic),**self._anchor_observation())
+        self.last_observation['entity_association_diagnostic']=deepcopy(self.entity_association_diagnostic)
+        self.last_observation['target_coverage']=deepcopy(self._target_coverage)
+        semantic_cost['observation']=time.perf_counter()-stage_started
+        return measured_observation(self.last_observation)
 
     def target_mask_observation(self):
         """Describe masks in cube coordinates where association is trustworthy."""
-        assigned,_=self._associate_targets(self.last_targets,self.last_projected)
+        assigned,_=self._associated_targets(self.last_targets,self.last_projected)
         output=[]
         for target in self.last_targets:
-            entry=dict(kind=target['kind'],box=list(target['box']),point=list(target['point']))
+            entry=dict(kind=target['kind'],box=list(target['box']),point=list(target['point']),
+                       anchor_type=target.get('anchor_type'),confirmable=target.get('confirmable',True),
+                       confidence=float(target.get('confidence',0)),source=target.get('source'),
+                       box_evidence=target.get('box_evidence'))
             match=next((t for t in assigned.values() if t.get('kind')==target['kind']
                         and t.get('point')==target['point']),None)
             if match is not None:
                 cell=self.cells[match['cell_index']];normal=np.asarray(BASES[cell['face']][0],float)
-                heights={'player':(.20,.85),'inspiration':(.05,.65),'singularity':(.20,1.)}[target['kind']]
+                heights=_anchor_heights(target)
                 xyz=np.array([_point(cell)+normal*h for h in np.linspace(*heights,16)])
                 index=int(np.argmin(np.linalg.norm(self.project(xyz)-np.asarray(target['point']),axis=1)))
                 entry.update(object_point=xyz[index].tolist(),cell_index=match['cell_index'],
-                             source_depth=float((self.rotation@xyz[index].reshape(3,1)+self.tvec)[2,0]))
+                             source_depth=float((self.rotation@xyz[index].reshape(3,1)+self.tvec)[2,0]),
+                             association_evidence=deepcopy(match.get('association_evidence')))
             output.append(entry)
         return output
 
@@ -753,10 +1315,13 @@ class LayoutScanner:
     def observe(self,image_rgb,frame_id=0,*,semantic=True):
         if not isinstance(image_rgb,np.ndarray) or image_rgb.shape!=(720,1280,3) or image_rgb.dtype!=np.uint8:
             return dict(tracking_ok=False,quality=0.,reason='invalid_frame',pose_delta_deg=0.)
+        self._begin_frame()
+        self._anchor_source=dict(source_frame_id=int(frame_id),source_frame_time=time.monotonic(),
+            source_map_revision=int(self.identity_corrections))
         gray=cv2.cvtColor(image_rgb,cv2.COLOR_RGB2GRAY)
         self.motion_px=0.
         before=self.rotation.copy()
-        targets=detect_targets(image_rgb)  # also mask animated targets during geometry-only tracking
+        targets=self._detect_targets(image_rgb)  # also mask animated targets during geometry-only tracking
         initial=not self.ready
         ok=self._bootstrap(image_rgb) if initial else self._track(gray)
         if not ok and self.ready:
@@ -774,6 +1339,7 @@ class LayoutScanner:
         if semantic and self.frames_seen%5==0:self._refine_centres(image_rgb,targets)
         delta=_angle(self.rotation,before)
         if semantic and not self._atlas_alignment(image_rgb,targets):
+            self._entity_anchor_proof=None
             self.tracking_failures+=1
             return dict(tracking_ok=False,quality=0.,pose_delta_deg=0.,reason=self.last_error)
         self._learn_response()
@@ -828,26 +1394,34 @@ class LayoutScanner:
                 conflict=len(votes)>1 and fraction<.72
                 row['occupant_evidence_counts']=dict(votes)
                 row['occupant_evidence_scores']={k:round(v,2) for k,v in scores.items()}
-                if count>=required and not conflict:
+                positive_pair = (_independent_positive_witness(agreeing, kind, self.identity_corrections)
+                                 if kind!='none' and count>=required and not conflict else [])
+                if count>=required and not conflict and (kind=='none' or positive_pair):
                     row.update(occupant=kind,occupant_status='confirmed',
                                confidence=round(sum(o['confidence'] for o in agreeing)/len(agreeing),3))
                     if kind!='none':row['node_status']='not_required_target'
                     else:
-                        icons=Counter(o['icon_id'] for o in agreeing)
-                        icon,n=icons.most_common(1)[0]
-                        if n>=3 and n/len(agreeing)>=.70:
-                            row.update(icon_id=icon,node_status='known')
-                        elif len(icons)>1:row['node_status']='conflict'
+                        icons=Counter(o['icon_id'] for o in agreeing if o.get('icon_id'))
+                        if icons:
+                            icon,n=icons.most_common(1)[0]
+                            if n>=3 and n/sum(icons.values())>=.70:
+                                row.update(icon_id=icon,node_status='known')
+                            elif len(icons)>1:row['node_status']='conflict'
                 elif conflict:row.update(occupant_status='conflict',node_status='conflict')
-                row['evidence']=[dict(x,frame_path=f"frames/{x['frame_id']:04d}.png") for x in
-                                 sorted(pool,key=lambda x:x['confidence'],reverse=True)[:6]]
+                pair_ids = {id(x) for x in positive_pair}
+                exported = positive_pair + [x for x in sorted(pool,key=lambda x:x['confidence'],reverse=True)
+                                            if id(x) not in pair_ids]
+                row['evidence']=[dict(x,frame_path=f"frames/{x['frame_id']:04d}.png") for x in exported[:6]]
             cells.append(row)
         # A strongly established unique player/singularity can rule out a weak
         # alternative ONLY when that alternative also has multiple clear empty
         # views. Preserve the contradictory evidence and explain the constraint.
         for kind in ('player','singularity'):
             established=[c for c in cells if c['occupant']==kind and c['occupant_status']=='confirmed'
-                         and c.get('occupant_evidence_counts',{}).get(kind,0)>=6]
+                         and c.get('occupant_evidence_counts',{}).get(kind,0)>=6
+                         and _independent_positive_witness(
+                             self.evidence[FACES.index(c['face'])*9+c['row']*3+c['col']],
+                             kind, self.identity_corrections, required=6)]
             if len(established)!=1:continue
             anchor=established[0]
             strength=anchor['occupant_evidence_scores'].get(kind,0.)
@@ -859,7 +1433,8 @@ class LayoutScanner:
                 if not(0<counts.get(kind,0)<=2 and counts.get('none',0)>=5):continue
                 if any(k not in ('none',kind) for k in counts) or strength<4*scores.get(kind,0):continue
                 negatives=[o for o in self.evidence[i] if o['occupant']=='none']
-                icons=Counter(o['icon_id'] for o in negatives)
+                icons=Counter(o['icon_id'] for o in negatives if o.get('icon_id'))
+                if not icons:continue
                 icon,number=icons.most_common(1)[0]
                 if number/len(negatives)<.8:continue
                 cell.update(occupant='none',occupant_status='confirmed',icon_id=icon,node_status='known',
@@ -887,12 +1462,17 @@ class LayoutScanner:
             diagnostics=dict(frames_seen=self.frames_seen,tracking_failures=self.tracking_failures,
                 last_error=self.last_error,view_groups=len(self.view_rotations),geometry='recording_20260927_reset_seed_v1',
                 identity_corrections=self.identity_corrections,
+                glyph_anchor_age_sec=time.monotonic()-(self.glyph_anchor_at or 0.),
+                glyph_anchor_reason=self.glyph_anchor_reason,
                 geometry_note='Experimental 1280x720 reset-view calibration; human comparison required',
                 response_axes={str(k):v.tolist() for k,v in self.response_axes.items()}),
-            pose=dict(rvec=self.rvec.ravel().tolist(),tvec=self.tvec.ravel().tolist(),camera_matrix=K.tolist()))
+            pose=dict(rvec=self.rvec.ravel().tolist(),tvec=self.tvec.ravel().tolist(),camera_matrix=K.tolist()),
+            target_clues=deepcopy(self.last_targets),
+            target_candidate_associations=self.target_mask_observation())
 
-    def annotate(self,image_rgb):
-        image=image_rgb.copy();result=self.result()
+    def annotate(self,image_rgb,*,fused_result=None):
+        """Draw an explicit same-source result, or fuse afresh by default."""
+        image=image_rgb.copy();result=self.result() if fused_result is None else fused_result
         for item in self.last_projected:
             cell=result['cells'][item['index']]
             color=(60,230,140) if cell['occupant_status']=='confirmed' else (255,190,50)
@@ -909,4 +1489,3 @@ class LayoutScanner:
 
 
 __all__=['LayoutScanner']
-

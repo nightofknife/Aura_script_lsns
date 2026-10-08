@@ -1,0 +1,43 @@
+{
+  "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0217.png",
+  "source_sha256": "530b241e2e05367801ec83ab2f7ad428b48fc12ea820852d677aa71ff12746c0",
+  "frame_id": 217,
+  "cell": "L02",
+  "view_group": 15,
+  "quad": [
+    [
+      506.46089897858894,
+      340.2246189007519
+    ],
+    [
+      544.0142909754691,
+      402.75191350285905
+    ],
+    [
+      512.2042972733095,
+      473.7651222249589
+    ],
+    [
+      475.5372051020867,
+      411.0152877663906
+    ]
+  ],
+  "cosine": 0.5130931060432077,
+  "area": 4595.962591757067,
+  "crop_shape": [
+    96,
+    96,
+    3
+  ],
+  "crop_sha256": "77d2e430a6e04ad2461a48c102fde4c9ac1b4db5cf9e836027d093bcff13e84d",
+  "manual_truth": "purple_ring",
+  "manual_review": "Complete centered hollow purple ring confirmed in the actual source pixels and rectified crop; no target-box overlap, HUD, bounds or corridor rejection.",
+  "central_purple_pixel_count": 1655,
+  "original_failure": "absolute_colour_count_upper_limit_1650",
+  "original_classifier": {
+    "icon_id": null,
+    "confidence": 0.0
+  },
+  "nonclassification_reasons": [],
+  "purpose": "Regression fixture only; this held-out repeat frame must not become a learned/reference template."
+}

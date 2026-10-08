@@ -1,0 +1,29 @@
+{
+  "source_provenance": {
+    "index": 3,
+    "frame": 391,
+    "run": "run2",
+    "xy": [
+      470,
+      340
+    ],
+    "box": [
+      470,
+      340,
+      24,
+      24
+    ],
+    "purple_pixels": 375,
+    "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0391.png",
+    "manual_label": "Partial purple glyph border and wall, no complete ring"
+  },
+  "manual_truth": "unknown_no_complete_ring",
+  "manual_review": "Partial purple glyph border and wall, no complete ring",
+  "fixture_sha256": "4d4a63197e26c346717601e9ab2d7a045316bac5306c5f491870596c87fcc7b1",
+  "purpose": "Fixed visual regression only, not a reference/training template",
+  "structural_evidence": {
+    "accepted": false,
+    "reason": "no_complete_central_curved_hole",
+    "considered": []
+  }
+}

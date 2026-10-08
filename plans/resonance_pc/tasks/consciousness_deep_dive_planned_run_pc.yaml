@@ -1,0 +1,38 @@
+consciousness_deep_dive_planned_run_pc:
+  meta:
+    title: 识海深潜关卡内自动运行（3×3）
+    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+    entry_point: true
+    inputs:
+      - {name: strategy, type: string, default: chase}
+      - {name: safety_round_limit, type: number, default: 100, min: 1, max: 100}
+      - {name: scan_time_budget_sec, type: number, default: 300, min: 5, max: 900}
+      - {name: scan_route, type: enum, default: cells, enum: [cells, faces, mixed, vertices, target_cells, target_faces, target_framed, four_views]}
+      - {name: planning_time_budget_sec, type: number, default: 30, min: 0.1, max: 300}
+  steps:
+    initialize:
+      action: resonance_pc.deep_dive_planned_run_initialize
+      timeout: -1
+      params:
+        strategy: "{{ inputs.strategy }}"
+        safety_round_limit: "{{ inputs.safety_round_limit }}"
+        scan_time_budget_sec: "{{ inputs.scan_time_budget_sec }}"
+        scan_route: "{{ inputs.scan_route }}"
+        planning_time_budget_sec: "{{ inputs.planning_time_budget_sec }}"
+    advance:
+      action: resonance_pc.deep_dive_planned_run_advance
+      timeout: -1
+      depends_on: initialize
+      loop:
+        while: "{{ state[nodes.initialize.output.session_key].status == 'running' }}"
+        max_iterations: "{{ inputs.safety_round_limit * 2400 + 2000 }}"
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+    finish:
+      action: resonance_pc.deep_dive_planned_run_finish
+      timeout: -1
+      depends_on: advance
+      params:
+        session_key: "{{ nodes.initialize.output.session_key }}"
+  returns:
+    deep_dive_planned_run: "{{ nodes.finish.output }}"

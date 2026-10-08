@@ -1,0 +1,15 @@
+{
+  "file": "deep_dive_entities.onnx",
+  "size_bytes": 10566854,
+  "sha256": "bff7444233525475ef25173845a6c197c1eec993f2544d204a44846260718123",
+  "classes": ["player_head", "singularity", "inspiration"],
+  "architecture": "YOLO11n",
+  "format": "ONNX",
+  "opset": 17,
+  "input": {"name": "images", "shape": [1, 3, 640, 640], "dtype": "float32", "color": "RGB", "scale": "0..1"},
+  "output": {"shape": [1, 7, 8400], "embedded_nms": false},
+  "source_image": {"shape": [720, 1280, 3], "roi_xyxy": [250, 40, 1000, 650]},
+  "packaged_on": "2026-10-01",
+  "provenance": "Byte-identical copy of the manually audited entity pilot's validated entities_best.onnx; packaged without retraining or conversion.",
+  "validation_scope": "CPU and DirectML coordinate parity verified on saved frames; this artifact does not establish 99% end-to-end recognition accuracy."
+}

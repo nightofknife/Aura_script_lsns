@@ -1,0 +1,21 @@
+consciousness_deep_dive_plan_pc:
+  meta:
+    title: 识海深潜移动规划（离线）
+    description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
+    entry_point: true
+    inputs:
+      - {name: layout_path, type: string, default: ""}
+      - {name: strategy, type: string, default: chase}
+      - {name: turn_budget, type: number, default: 6, min: 1, max: 30}
+      - {name: time_budget_sec, type: number, default: 30, min: 0.1}
+  steps:
+    plan:
+      action: resonance_pc.plan_consciousness_deep_dive_layout
+      timeout: -1
+      params:
+        layout_path: "{{ inputs.layout_path }}"
+        strategy: "{{ inputs.strategy }}"
+        turn_budget: "{{ inputs.turn_budget }}"
+        time_budget_sec: "{{ inputs.time_budget_sec }}"
+  returns:
+    deep_dive_plan: "{{ nodes.plan.output }}"

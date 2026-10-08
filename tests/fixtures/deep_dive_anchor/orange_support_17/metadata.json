@@ -1,0 +1,511 @@
+[
+  {
+    "frame_id": 833,
+    "source_path": ".pytest_tmp/deep_dive_goal_20261002/target_cells_exploration17/live01/round_0001/scan/frames/0833.png",
+    "source_sha256": "5775598c5e56a1be14acf3689b8e7d6df745f99d2bbc387ebfd293e4a3932250",
+    "quad": [
+      [
+        552.155982216819,
+        543.7584209813699
+      ],
+      [
+        625.2484124520092,
+        590.7848477592908
+      ],
+      [
+        592.0768462555011,
+        662.3349959365905
+      ],
+      [
+        519.8120755855903,
+        615.3232233524864
+      ]
+    ],
+    "class_evidence": {
+      "icon_id": "orange_triple_eye",
+      "confidence": 0.849
+    },
+    "source_frame_time": 31722.0,
+    "source_map_revision": 0,
+    "pose": {
+      "rvec": [
+        [
+          -1.1500277493011417
+        ],
+        [
+          -0.06933031556838046
+        ],
+        [
+          0.6489940591261705
+        ]
+      ],
+      "tvec": [
+        [
+          -0.07930792282642522
+        ],
+        [
+          0.4316317804685685
+        ],
+        [
+          43.34400723640323
+        ]
+      ],
+      "rotation": [
+        [
+          0.816283411317619,
+          -0.4413381011127932,
+          -0.37269568405580544
+        ],
+        [
+          0.5101083007065066,
+          0.2479879759633855,
+          0.8235845344152012
+        ],
+        [
+          -0.27105518618538016,
+          -0.8623935553352294,
+          0.42755869978082733
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 51,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "targets": [
+      {
+        "kind": "singularity",
+        "box": [
+          413,
+          421,
+          158,
+          154
+        ],
+        "point": [
+          491.87896728515625,
+          498.3043212890625
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.850029468536377,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      {
+        "kind": "inspiration",
+        "box": [
+          738,
+          234,
+          67,
+          66
+        ],
+        "point": [
+          771.6398010253906,
+          266.43199157714844
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.7273246049880981,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      {
+        "kind": "player",
+        "box": [
+          688,
+          402,
+          37,
+          35
+        ],
+        "point": [
+          707.1077575683594,
+          419.7801208496094
+        ],
+        "anchor_type": "head",
+        "confirmable": false,
+        "confidence": 0.06153890863060951,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      }
+    ],
+    "fixture_roi": [
+      350,
+      100,
+      950,
+      670
+    ],
+    "known": {
+      "18": "green_burst",
+      "19": "orange_triple_eye",
+      "20": "yellow_hex",
+      "21": "orange_triple_eye",
+      "22": "orange_triple_eye",
+      "24": "purple_ring",
+      "25": "blue_scales",
+      "29": "purple_ring"
+    },
+    "known29_previous_confirmed_frame": 814,
+    "original_diagnostic": {
+      "candidates": 8,
+      "confirmed": 7,
+      "reason": "seven_centres",
+      "renewed": true,
+      "candidate_faces": {
+        "F": 7,
+        "D": 1
+      },
+      "confirmed_faces": {
+        "F": 7
+      },
+      "candidate_cell_indices": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        24,
+        25,
+        30
+      ],
+      "confirmed_cell_indices": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        24,
+        25
+      ],
+      "localized_known_cell_indices": [
+        18
+      ],
+      "source_frame_id": 833,
+      "source_frame_time": 31722.0,
+      "source_map_revision": 0,
+      "accepted_faces": {
+        "F": 7,
+        "D": 1
+      },
+      "median_after": 2.8959255330451756,
+      "max_after": 4.854695153542987
+    }
+  },
+  {
+    "frame_id": 846,
+    "source_path": ".pytest_tmp/deep_dive_goal_20261002/target_cells_exploration17/live01/round_0001/scan/frames/0846.png",
+    "source_sha256": "224cc76f0ab676332c9a1c811e7dc67dbe8a756b30f9e8341ce978ef89f882db",
+    "quad": [
+      [
+        554.1194317799657,
+        502.4196633903018
+      ],
+      [
+        628.041962507187,
+        544.489235078881
+      ],
+      [
+        594.7870376727607,
+        623.3503049696981
+      ],
+      [
+        521.532794096461,
+        580.957056133986
+      ]
+    ],
+    "class_evidence": {
+      "icon_id": "orange_triple_eye",
+      "confidence": 0.843
+    },
+    "source_frame_time": 31723.0,
+    "source_map_revision": 0,
+    "pose": {
+      "rvec": [
+        [
+          -1.315137705287287
+        ],
+        [
+          -0.01632998506289203
+        ],
+        [
+          0.6545262507419964
+        ]
+      ],
+      "tvec": [
+        [
+          -0.07755437041882766
+        ],
+        [
+          0.3627598784469078
+        ],
+        [
+          43.34400636251958
+        ]
+      ],
+      "rotation": [
+        [
+          0.8215447187782833,
+          -0.43428602590356125,
+          -0.36940482231882454
+        ],
+        [
+          0.45216703517480705,
+          0.10163090053483767,
+          0.8861242194848883
+        ],
+        [
+          -0.3472884209828133,
+          -0.8950233559865178,
+          0.27986415434973966
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 52,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "targets": [
+      {
+        "kind": "inspiration",
+        "box": [
+          741,
+          186,
+          69,
+          62
+        ],
+        "point": [
+          775.3275146484375,
+          217.32952117919922
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8698052763938904,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      {
+        "kind": "singularity",
+        "box": [
+          404,
+          372,
+          161,
+          159
+        ],
+        "point": [
+          484.3955993652344,
+          451.4745635986328
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.827481746673584,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      }
+    ],
+    "fixture_roi": [
+      350,
+      100,
+      950,
+      670
+    ],
+    "known": {
+      "29": "purple_ring"
+    },
+    "known29_previous_confirmed_frame": 814,
+    "original_diagnostic": {
+      "candidates": 1,
+      "confirmed": 1,
+      "reason": "insufficient_centres",
+      "renewed": false,
+      "candidate_faces": {
+        "D": 1
+      },
+      "confirmed_faces": {
+        "D": 1
+      },
+      "candidate_cell_indices": [
+        29
+      ],
+      "confirmed_cell_indices": [
+        29
+      ],
+      "localized_known_cell_indices": [],
+      "source_frame_id": 846,
+      "source_frame_time": 31723.0,
+      "source_map_revision": 0
+    }
+  },
+  {
+    "frame_id": 859,
+    "source_path": ".pytest_tmp/deep_dive_goal_20261002/target_cells_exploration17/live01/round_0001/scan/frames/0859.png",
+    "source_sha256": "690198f8a5871af86266e4fe79d1f95e3b582bcb36129e4a20b828f7b3fcd8e9",
+    "quad": [
+      [
+        551.1985024172708,
+        503.259328088801
+      ],
+      [
+        625.6096699639883,
+        546.693758212172
+      ],
+      [
+        591.6713437570655,
+        626.5815313255171
+      ],
+      [
+        517.968708257765,
+        582.8071435370399
+      ]
+    ],
+    "class_evidence": {
+      "icon_id": "orange_triple_eye",
+      "confidence": 0.85
+    },
+    "source_frame_time": 31724.375,
+    "source_map_revision": 0,
+    "pose": {
+      "rvec": [
+        [
+          -1.3076558444291002
+        ],
+        [
+          -0.009039346758795721
+        ],
+        [
+          0.6698398527340519
+        ]
+      ],
+      "tvec": [
+        [
+          -0.05248585135502079
+        ],
+        [
+          0.346356076572149
+        ],
+        [
+          42.62956864089158
+        ]
+      ],
+      "rotation": [
+        [
+          0.8131864750935678,
+          -0.4486336632166048,
+          -0.37075004107046033
+        ],
+        [
+          0.4584748566754583,
+          0.10139393343390679,
+          0.8829043413978765
+        ],
+        [
+          -0.3585088039662568,
+          -0.887945441168347,
+          0.2881394297680092
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 53,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "targets": [
+      {
+        "kind": "singularity",
+        "box": [
+          402,
+          369,
+          160,
+          156
+        ],
+        "point": [
+          481.89532470703125,
+          447.0313720703125
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8442277908325195,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      {
+        "kind": "inspiration",
+        "box": [
+          744,
+          183,
+          65,
+          57
+        ],
+        "point": [
+          776.4974365234375,
+          211.91192626953125
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8125050067901611,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      }
+    ],
+    "fixture_roi": [
+      350,
+      100,
+      950,
+      670
+    ],
+    "known": {
+      "29": "purple_ring"
+    },
+    "known29_previous_confirmed_frame": 814,
+    "original_diagnostic": {
+      "candidates": 1,
+      "confirmed": 1,
+      "reason": "insufficient_centres",
+      "renewed": false,
+      "candidate_faces": {
+        "D": 1
+      },
+      "confirmed_faces": {
+        "D": 1
+      },
+      "candidate_cell_indices": [
+        29
+      ],
+      "confirmed_cell_indices": [
+        29
+      ],
+      "localized_known_cell_indices": [],
+      "source_frame_id": 859,
+      "source_frame_time": 31724.375,
+      "source_map_revision": 0
+    }
+  }
+]

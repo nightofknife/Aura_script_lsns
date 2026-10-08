@@ -51,7 +51,7 @@ TASK_TOOLTIPS = {
     USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
     TRADE_PREVIEW_TASK_ID: "使用所选城市和货运参数计算交易方案，不执行游戏中的买卖。",
     TEAM_RECOMMENDATION_TASK_ID: "根据最新角色与仓库装备数据匹配固定配队，不自动配置队伍。",
-    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "进入识海深潜、扫描布局或运行现有自动流程。",
+    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "进入识海深潜，扫描布局、离线规划或运行现有自动流程。",
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     DATA_COLLECTION_TASK_ID: "采集识海深潜页面数据或探测拖动灵敏度。",
 }
@@ -93,6 +93,8 @@ class SmallTasksPage(QWidget):
     runConsciousnessDeepDiveRequested = Signal()
     runConsciousnessDeepDiveSingleRunRequested = Signal(object)
     runConsciousnessDeepDiveScanRequested = Signal()
+    runConsciousnessDeepDivePlanRequested = Signal(object)
+    runConsciousnessDeepDivePlannedRunRequested = Signal(object)
     runConsciousnessDeepDiveLoopRequested = Signal(object)
     runEternalScuffleRequested = Signal(object)
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
@@ -180,6 +182,12 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.runLoopRequested.connect(self.runConsciousnessDeepDiveLoopRequested.emit)
         self.consciousness_deep_dive_panel.runScanRequested.connect(
             self.runConsciousnessDeepDiveScanRequested.emit
+        )
+        self.consciousness_deep_dive_panel.runPlanRequested.connect(
+            self.runConsciousnessDeepDivePlanRequested.emit
+        )
+        self.consciousness_deep_dive_panel.runPlannedRunRequested.connect(
+            self.runConsciousnessDeepDivePlannedRunRequested.emit
         )
         self.consciousness_deep_dive_panel.runSingleRunRequested.connect(
             self.runConsciousnessDeepDiveSingleRunRequested.emit
@@ -364,6 +372,36 @@ class SmallTasksPage(QWidget):
     def begin_consciousness_deep_dive_scan(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
         self.consciousness_deep_dive_panel.begin_scan()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_plan(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_plan()
+        self._sync_controls()
+
+    def begin_consciousness_deep_dive_planned_run(self) -> None:
+        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
+        self.consciousness_deep_dive_panel.begin_planned_run()
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_planned_run_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_planned_run_result(payload)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_planned_run_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_planned_run_error(message)
+        self._sync_controls()
+
+    def apply_consciousness_deep_dive_plan_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.apply_plan_result(payload)
+        self._sync_controls()
+
+    def show_consciousness_deep_dive_plan_error(self, message: str) -> None:
+        self._active_task_id = ""
+        self.consciousness_deep_dive_panel.show_plan_error(message)
         self._sync_controls()
 
     def apply_consciousness_deep_dive_scan_result(self, payload: Mapping[str, Any]) -> None:

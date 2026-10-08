@@ -1,0 +1,1687 @@
+{
+  "source": {
+    "frame_id": 823,
+    "path": "frames/0823.png",
+    "overlay_path": "frames/0823_overlay.png",
+    "during_drag": true,
+    "semantic_fused": true,
+    "scene": "board",
+    "generation": 3845,
+    "session_id": 127695046988964504194067568147804394856,
+    "frame_time": 31721.031,
+    "capture_backend": "wgc",
+    "elapsed_sec": 71.063,
+    "observation": {
+      "tracking_ok": true,
+      "quality": 0.97,
+      "frame_id": 823,
+      "known_cells": 18,
+      "faces_observed": 5,
+      "view_group": 19,
+      "mask_observation": [
+        {
+          "kind": "singularity",
+          "box": [
+            442,
+            440,
+            166,
+            147
+          ],
+          "point": [
+            525.2496337890625,
+            513.8360900878906
+          ],
+          "anchor_type": null,
+          "confirmable": true,
+          "confidence": 0.7836777567863464,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null,
+          "object_point": [
+            0.0,
+            3.1960199833333336,
+            0.0
+          ],
+          "cell_index": 31,
+          "source_depth": 40.55724597356134,
+          "association_evidence": {
+            "source_frame_id": 823,
+            "source_frame_time": 31721.031,
+            "source_map_revision": 0,
+            "error": 0.095709240770572,
+            "competitor_index": 47,
+            "competitor_error": 0.6261591059960452,
+            "margin": 0.5304498652254732,
+            "rvec": [
+              -1.1569845307914566,
+              -0.13626014922056676,
+              0.5281837351066818
+            ],
+            "rotation": [
+              [
+                0.8704376083001022,
+                -0.32683872802192965,
+                -0.3681233705183701
+              ],
+              [
+                0.46413314396029487,
+                0.2956390702137291,
+                0.8349718347589301
+              ],
+              [
+                -0.16406948142275057,
+                -0.8976491441694627,
+                0.40903205160170625
+              ]
+            ],
+            "tvec": [
+              -0.0752458275974946,
+              0.4365075819614312,
+              43.42615057634901
+            ],
+            "target_face_glyph_count": 2,
+            "anchor_uncertainty": {
+              "ready": true,
+              "reason": "all54_disk_certified",
+              "winner_index": 31,
+              "competitor_index": 47,
+              "nominal_error": 0.095709240770572,
+              "winner_error_upper": 0.10408484267362818,
+              "competitor_error_lower": 0.613276170931291,
+              "margin_lower": 0.5091913282576629,
+              "pixel_radius": 0.7071067811865476,
+              "valid_corridors": 54,
+              "proof": "fixed_geometry_lipschitz_disk",
+              "radius_assumption": "pixel_quantization_square"
+            }
+          }
+        },
+        {
+          "kind": "inspiration",
+          "box": [
+            757,
+            222,
+            54,
+            49
+          ],
+          "point": [
+            784.2554016113281,
+            246.9726333618164
+          ],
+          "anchor_type": null,
+          "confirmable": false,
+          "confidence": 0.4919016361236572,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        },
+        {
+          "kind": "player",
+          "box": [
+            689,
+            493,
+            34,
+            30
+          ],
+          "point": [
+            705.7812805175781,
+            507.8366394042969
+          ],
+          "anchor_type": "head",
+          "confirmable": false,
+          "confidence": 0.08682914823293686,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        },
+        {
+          "kind": "inspiration",
+          "box": [
+            827,
+            479,
+            44,
+            52
+          ],
+          "point": [
+            849.0159606933594,
+            504.9773712158203
+          ],
+          "anchor_type": null,
+          "confirmable": false,
+          "confidence": 0.06295783072710037,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        }
+      ],
+      "pose_correction": {
+        "body_rotation": [
+          [
+            0.9999138727950508,
+            -0.010357667241832352,
+            -0.008060131593894147
+          ],
+          [
+            0.010187330955547821,
+            0.9997297763812872,
+            -0.02089479611347524
+          ],
+          [
+            0.008274374901196705,
+            0.020810885274995656,
+            0.9997491894340629
+          ]
+        ],
+        "source_epoch": 50,
+        "source_frame_id": 823,
+        "angle_deg": 1.4118406859806216,
+        "translation_delta": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glyph_anchor_at": 31721.031,
+        "glyph_anchor_rotation": [
+          [
+            0.8704376083001022,
+            -0.32683872802192965,
+            -0.3681233705183701
+          ],
+          [
+            0.46413314396029487,
+            0.2956390702137291,
+            0.8349718347589301
+          ],
+          [
+            -0.16406948142275057,
+            -0.8976491441694627,
+            0.40903205160170625
+          ]
+        ],
+        "glyph_anchor_frame_id": 823,
+        "glyph_anchor_map_revision": 0,
+        "glyph_anchor_faces": {
+          "F": 6,
+          "D": 2
+        },
+        "glyph_anchor_reason": "independent_seven_glyph_grid"
+      },
+      "pose": {
+        "rvec": [
+          [
+            -1.1569845307914566
+          ],
+          [
+            -0.13626014922056676
+          ],
+          [
+            0.5281837351066818
+          ]
+        ],
+        "tvec": [
+          [
+            -0.0752458275974946
+          ],
+          [
+            0.4365075819614312
+          ],
+          [
+            43.42615057634901
+          ]
+        ],
+        "rotation": [
+          [
+            0.8704376083001022,
+            -0.32683872802192965,
+            -0.3681233705183701
+          ],
+          [
+            0.46413314396029487,
+            0.2956390702137291,
+            0.8349718347589301
+          ],
+          [
+            -0.16406948142275057,
+            -0.8976491441694627,
+            0.40903205160170625
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 50,
+        "pivot_reference": [
+          [
+            -0.03502029218063488
+          ],
+          [
+            0.45137187009249014
+          ],
+          [
+            41.957633407100495
+          ]
+        ]
+      },
+      "fusion_paused": false,
+      "glyph_anchor_age_sec": 0.5780000000013388,
+      "refine_diagnostic": {
+        "candidates": 8,
+        "confirmed": 7,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "F": 6,
+          "D": 2
+        },
+        "confirmed_faces": {
+          "F": 6,
+          "D": 1
+        },
+        "candidate_cell_indices": [
+          18,
+          19,
+          21,
+          22,
+          24,
+          25,
+          29,
+          30
+        ],
+        "confirmed_cell_indices": [
+          18,
+          19,
+          21,
+          22,
+          24,
+          25,
+          29
+        ],
+        "localized_known_cell_indices": [
+          18,
+          19
+        ],
+        "source_frame_id": 823,
+        "source_frame_time": 31721.031,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "F": 6,
+          "D": 2
+        },
+        "median_after": 2.2689408708137533,
+        "max_after": 4.163389129281464
+      },
+      "glyph_anchor_at": 31721.031,
+      "glyph_anchor_rotation": [
+        [
+          0.8704376083001022,
+          -0.32683872802192965,
+          -0.3681233705183701
+        ],
+        [
+          0.46413314396029487,
+          0.2956390702137291,
+          0.8349718347589301
+        ],
+        [
+          -0.16406948142275057,
+          -0.8976491441694627,
+          0.40903205160170625
+        ]
+      ],
+      "glyph_anchor_frame_id": 823,
+      "glyph_anchor_map_revision": 0,
+      "glyph_anchor_faces": {
+        "F": 6,
+        "D": 2
+      },
+      "glyph_anchor_reason": "independent_seven_glyph_grid",
+      "entity_association_diagnostic": {
+        "source_frame_id": 823,
+        "source_frame_time": 31721.031,
+        "source_map_revision": 0,
+        "renewed": true,
+        "decisions": []
+      },
+      "target_coverage": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 823,
+        "source_frame_time": 31721.031,
+        "source_map_revision": 0
+      },
+      "semantic_cost_sec": {
+        "detect": 0.05440749999979744,
+        "refine": 0.08857780000107596,
+        "atlas_alignment": 0.005794199998490512,
+        "associate_observe": 0.017692099998384947,
+        "result": 0.03295040000011795,
+        "observation": 0.0006475000009231735,
+        "total": 0.21049919999859412
+      },
+      "semantic_hud_guard": {
+        "ready": true,
+        "reason": "semantic_explanation_hud_proven",
+        "source": {
+          "frame_id": 823,
+          "frame_time": 31721.031,
+          "session_id": 127695046988964504194067568147804394856,
+          "generation": 3845,
+          "map_revision": 0,
+          "capture_backend": "wgc"
+        }
+      },
+      "current_target_explanation": {
+        "status": "skipped",
+        "reason": "no_strong_unassociated_current_candidate"
+      },
+      "semantic_source_refresh": {
+        "status": "refreshed",
+        "inline_scene_sec": 0.1348121999981231,
+        "old_source": {
+          "frame_id": 821,
+          "generation": 3835,
+          "session_id": 127695046988964504194067568147804394856,
+          "frame_time": 31720.843,
+          "map_revision": 0
+        },
+        "selected_source": {
+          "frame_id": 823,
+          "generation": 3845,
+          "session_id": 127695046988964504194067568147804394856,
+          "frame_time": 31721.031,
+          "map_revision": 0
+        },
+        "selected_rgb_sha256": "5b6f6704120937a5cfd9a14fd8d9715cd3cbb89b1e99499ffab4a5d051bf9d9d"
+      },
+      "semantic_stream_cost_sec": {
+        "hud_prepare": 0.04314629999862518,
+        "semantic_view": 0.2107466999987082,
+        "freeze_copy": 0.00753900000199792,
+        "target_explanation": 1.5099998563528061e-05,
+        "feedback_projection": 0.0008502000018779654,
+        "inline_scene": 0.1348121999981231
+      }
+    },
+    "pose": {
+      "rvec": [
+        [
+          -1.1780868864194012
+        ],
+        [
+          -0.14089328861679887
+        ],
+        [
+          0.5139514267889556
+        ]
+      ],
+      "tvec": [
+        [
+          -0.0752458275974946
+        ],
+        [
+          0.4365075819614312
+        ],
+        [
+          43.42615057634901
+        ]
+      ],
+      "rotation": [
+        [
+          0.8767150495375773,
+          -0.31019110971461283,
+          -0.3676305174605894
+        ],
+        [
+          0.4543010554915705,
+          0.2828408932515233,
+          0.8447553374107354
+        ],
+        [
+          -0.15805465160370546,
+          -0.9076246495984436,
+          0.388891016285712
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 50,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "fused_pose": {
+      "rvec": [
+        [
+          -1.1569845307914566
+        ],
+        [
+          -0.13626014922056676
+        ],
+        [
+          0.5281837351066818
+        ]
+      ],
+      "tvec": [
+        [
+          -0.0752458275974946
+        ],
+        [
+          0.4365075819614312
+        ],
+        [
+          43.42615057634901
+        ]
+      ],
+      "rotation": [
+        [
+          0.8704376083001022,
+          -0.32683872802192965,
+          -0.3681233705183701
+        ],
+        [
+          0.46413314396029487,
+          0.2956390702137291,
+          0.8349718347589301
+        ],
+        [
+          -0.16406948142275057,
+          -0.8976491441694627,
+          0.40903205160170625
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 50,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "geometry_body_basis": [
+      [
+        0.999447271140034,
+        -0.010142593436365518,
+        -0.03165880618600767
+      ],
+      [
+        0.010779250418805933,
+        0.9997417809090429,
+        0.020004481128595902
+      ],
+      [
+        0.03144773395886063,
+        -0.0203346822743864,
+        0.9992985243287683
+      ]
+    ]
+  },
+  "current": {
+    "frame_id": 827,
+    "path": "frames/0827.png",
+    "overlay_path": "frames/0827_overlay.png",
+    "during_drag": true,
+    "semantic_fused": true,
+    "scene": "board",
+    "generation": 3872,
+    "session_id": 127695046988964504194067568147804394856,
+    "frame_time": 31721.546,
+    "capture_backend": "wgc",
+    "elapsed_sec": 71.578,
+    "observation": {
+      "tracking_ok": true,
+      "quality": 0.97,
+      "frame_id": 827,
+      "known_cells": 18,
+      "faces_observed": 5,
+      "view_group": 20,
+      "mask_observation": [
+        {
+          "kind": "singularity",
+          "box": [
+            407,
+            431,
+            162,
+            154
+          ],
+          "point": [
+            488.16705322265625,
+            507.7565612792969
+          ],
+          "anchor_type": null,
+          "confirmable": true,
+          "confidence": 0.8646389842033386,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        },
+        {
+          "kind": "inspiration",
+          "box": [
+            754,
+            222,
+            49,
+            70
+          ],
+          "point": [
+            778.4407653808594,
+            256.6883544921875
+          ],
+          "anchor_type": null,
+          "confirmable": false,
+          "confidence": 0.48710501194000244,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        },
+        {
+          "kind": "player",
+          "box": [
+            689,
+            405,
+            37,
+            33
+          ],
+          "point": [
+            707.4166870117188,
+            421.98081970214844
+          ],
+          "anchor_type": "head",
+          "confirmable": false,
+          "confidence": 0.08205816149711609,
+          "source": "deep_dive_entity_onnx",
+          "box_evidence": null
+        }
+      ],
+      "pose_correction": {
+        "body_rotation": [
+          [
+            0.999992462625493,
+            -0.003367737625726077,
+            -0.0019321064892046452
+          ],
+          [
+            0.0033875864579761823,
+            0.9999405587836594,
+            0.010363549460117367
+          ],
+          [
+            0.0018970899269918741,
+            -0.010370016523942083,
+            0.9999444303595584
+          ]
+        ],
+        "source_epoch": 51,
+        "source_frame_id": 827,
+        "angle_deg": 0.6342761388976361,
+        "translation_delta": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glyph_anchor_at": 31721.546,
+        "glyph_anchor_rotation": [
+          [
+            0.8171864907044465,
+            -0.4419459181858718,
+            -0.369986546794607
+          ],
+          [
+            0.5151733427576679,
+            0.27220589638850745,
+            0.8127117427988961
+          ],
+          [
+            -0.25846211776978384,
+            -0.8547442631396689,
+            0.4501217372087051
+          ]
+        ],
+        "glyph_anchor_frame_id": 827,
+        "glyph_anchor_map_revision": 0,
+        "glyph_anchor_faces": {
+          "F": 7,
+          "D": 1
+        },
+        "glyph_anchor_reason": "independent_seven_glyph_grid"
+      },
+      "pose": {
+        "rvec": [
+          [
+            -1.1235433431476143
+          ],
+          [
+            -0.07514592851800565
+          ],
+          [
+            0.64491355118313
+          ]
+        ],
+        "tvec": [
+          [
+            -0.052611282257339034
+          ],
+          [
+            0.37611517634110153
+          ],
+          [
+            43.035414757642144
+          ]
+        ],
+        "rotation": [
+          [
+            0.8171864907044465,
+            -0.4419459181858718,
+            -0.369986546794607
+          ],
+          [
+            0.5151733427576679,
+            0.27220589638850745,
+            0.8127117427988961
+          ],
+          [
+            -0.25846211776978384,
+            -0.8547442631396689,
+            0.4501217372087051
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 51,
+        "pivot_reference": [
+          [
+            -0.03502029218063488
+          ],
+          [
+            0.45137187009249014
+          ],
+          [
+            41.957633407100495
+          ]
+        ]
+      },
+      "fusion_paused": false,
+      "glyph_anchor_age_sec": 0.5320000000028813,
+      "refine_diagnostic": {
+        "candidates": 8,
+        "confirmed": 7,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "F": 7,
+          "D": 1
+        },
+        "confirmed_faces": {
+          "F": 7
+        },
+        "candidate_cell_indices": [
+          18,
+          19,
+          20,
+          21,
+          22,
+          24,
+          25,
+          30
+        ],
+        "confirmed_cell_indices": [
+          18,
+          19,
+          20,
+          21,
+          22,
+          24,
+          25
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 827,
+        "source_frame_time": 31721.546,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "F": 7,
+          "D": 1
+        },
+        "median_after": 3.4828623281774673,
+        "max_after": 7.476303957358641
+      },
+      "glyph_anchor_at": 31721.546,
+      "glyph_anchor_rotation": [
+        [
+          0.8171864907044465,
+          -0.4419459181858718,
+          -0.369986546794607
+        ],
+        [
+          0.5151733427576679,
+          0.27220589638850745,
+          0.8127117427988961
+        ],
+        [
+          -0.25846211776978384,
+          -0.8547442631396689,
+          0.4501217372087051
+        ]
+      ],
+      "glyph_anchor_frame_id": 827,
+      "glyph_anchor_map_revision": 0,
+      "glyph_anchor_faces": {
+        "F": 7,
+        "D": 1
+      },
+      "glyph_anchor_reason": "independent_seven_glyph_grid",
+      "entity_association_diagnostic": {
+        "source_frame_id": 827,
+        "source_frame_time": 31721.546,
+        "source_map_revision": 0,
+        "renewed": true,
+        "decisions": [
+          {
+            "index": 31,
+            "kind": "singularity",
+            "reason": "target_face_glyph_support_required",
+            "face": "D",
+            "local_glyphs": 1,
+            "source_frame_id": 827,
+            "source_frame_time": 31721.546,
+            "source_map_revision": 0,
+            "error": 0.17855649294873288,
+            "competitor_index": 47,
+            "competitor_error": 0.41171098085701496,
+            "margin": 0.23315448790828208,
+            "rvec": [
+              -1.1235433431476143,
+              -0.07514592851800565,
+              0.64491355118313
+            ],
+            "rotation": [
+              [
+                0.8171864907044465,
+                -0.4419459181858718,
+                -0.369986546794607
+              ],
+              [
+                0.5151733427576679,
+                0.27220589638850745,
+                0.8127117427988961
+              ],
+              [
+                -0.25846211776978384,
+                -0.8547442631396689,
+                0.4501217372087051
+              ]
+            ],
+            "tvec": [
+              -0.052611282257339034,
+              0.37611517634110153,
+              43.035414757642144
+            ]
+          }
+        ]
+      },
+      "target_coverage": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 827,
+        "source_frame_time": 31721.546,
+        "source_map_revision": 0
+      },
+      "semantic_cost_sec": {
+        "detect": 0.06868150000082096,
+        "refine": 0.07330659999934142,
+        "atlas_alignment": 0.08037719999992987,
+        "associate_observe": 0.008065100002568215,
+        "result": 0.009788899998966372,
+        "observation": 0.00011040000026696362,
+        "total": 0.2429773000003479
+      },
+      "semantic_hud_guard": {
+        "ready": true,
+        "reason": "semantic_explanation_hud_proven",
+        "source": {
+          "frame_id": 827,
+          "frame_time": 31721.546,
+          "session_id": 127695046988964504194067568147804394856,
+          "generation": 3872,
+          "map_revision": 0,
+          "capture_backend": "wgc"
+        }
+      },
+      "current_target_explanation": {
+        "status": "rejected",
+        "explanation": {
+          "explanation_only": true,
+          "positive_vote": false,
+          "input_authorized": false,
+          "matches": [],
+          "rejections": [
+            {
+              "target_index": 0,
+              "kind": "singularity",
+              "reason": "best_cell_not_established_same_kind"
+            },
+            {
+              "target_index": 1,
+              "kind": "inspiration",
+              "reason": "weak_or_non_model_candidate"
+            },
+            {
+              "target_index": 2,
+              "kind": "player",
+              "reason": "weak_or_non_model_candidate"
+            }
+          ],
+          "status": "unexplained",
+          "reason": null,
+          "audit": {
+            "schema": "established_target_explanation.v1",
+            "source": {
+              "frame_id": 827,
+              "frame_time": 31721.546,
+              "session_id": 127695046988964504194067568147804394856,
+              "generation": 3872,
+              "map_revision": 0,
+              "capture_backend": "wgc"
+            },
+            "pose": {
+              "rvec": [
+                [
+                  -1.1235433431476143
+                ],
+                [
+                  -0.07514592851800565
+                ],
+                [
+                  0.64491355118313
+                ]
+              ],
+              "tvec": [
+                [
+                  -0.052611282257339034
+                ],
+                [
+                  0.37611517634110153
+                ],
+                [
+                  43.035414757642144
+                ]
+              ],
+              "rotation": [
+                [
+                  0.8171864907044465,
+                  -0.4419459181858718,
+                  -0.369986546794607
+                ],
+                [
+                  0.5151733427576679,
+                  0.27220589638850745,
+                  0.8127117427988961
+                ],
+                [
+                  -0.25846211776978384,
+                  -0.8547442631396689,
+                  0.4501217372087051
+                ]
+              ],
+              "quality": 0.97,
+              "map_revision": 0,
+              "correction_epoch": 51,
+              "pivot_reference": [
+                [
+                  -0.03502029218063488
+                ],
+                [
+                  0.45137187009249014
+                ],
+                [
+                  41.957633407100495
+                ]
+              ]
+            },
+            "anchor_proof": {
+              "source_frame_id": 827,
+              "source_frame_time": 31721.546,
+              "source_map_revision": 0,
+              "renewed": true,
+              "decisions": [
+                {
+                  "index": 31,
+                  "kind": "singularity",
+                  "reason": "target_face_glyph_support_required",
+                  "face": "D",
+                  "local_glyphs": 1,
+                  "source_frame_id": 827,
+                  "source_frame_time": 31721.546,
+                  "source_map_revision": 0,
+                  "error": 0.17855649294873288,
+                  "competitor_index": 47,
+                  "competitor_error": 0.41171098085701496,
+                  "margin": 0.23315448790828208,
+                  "rvec": [
+                    -1.1235433431476143,
+                    -0.07514592851800565,
+                    0.64491355118313
+                  ],
+                  "rotation": [
+                    [
+                      0.8171864907044465,
+                      -0.4419459181858718,
+                      -0.369986546794607
+                    ],
+                    [
+                      0.5151733427576679,
+                      0.27220589638850745,
+                      0.8127117427988961
+                    ],
+                    [
+                      -0.25846211776978384,
+                      -0.8547442631396689,
+                      0.4501217372087051
+                    ]
+                  ],
+                  "tvec": [
+                    -0.052611282257339034,
+                    0.37611517634110153,
+                    43.035414757642144
+                  ]
+                }
+              ],
+              "source_session_id": 127695046988964504194067568147804394856,
+              "source_generation": 3872
+            },
+            "model_coverage": {
+              "model_executed": true,
+              "coverage_valid": true,
+              "source_frame_id": 827,
+              "source_frame_time": 31721.546,
+              "source_map_revision": 0,
+              "source_session_id": 127695046988964504194067568147804394856,
+              "source_generation": 3872
+            },
+            "hud_proof": {
+              "valid": true,
+              "unchanged": true,
+              "scene": "board",
+              "source_frame_id": 827,
+              "source_frame_time": 31721.546,
+              "source_session_id": 127695046988964504194067568147804394856,
+              "source_generation": 3872,
+              "source_map_revision": 0,
+              "hud_guard": {
+                "schema": "resonance_pc.deep_dive_hud_invariant.v1",
+                "ready": true,
+                "unchanged": true,
+                "input_authorized": false,
+                "reason": "hud_invariant_unchanged",
+                "hud": {
+                  "plane_index": 1,
+                  "rounds_remaining": 6,
+                  "moves_used": 0,
+                  "moves_total": 1,
+                  "rotations_used": 1,
+                  "rotations_total": 1,
+                  "collected_count": 0,
+                  "inspiration_total": 2
+                },
+                "field_sources": {
+                  "plane_index": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      580,
+                      0,
+                      705,
+                      80
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  },
+                  "rounds_remaining": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      1190,
+                      128,
+                      1231,
+                      160
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  },
+                  "moves_used": {
+                    "source": "current_native_roi_read",
+                    "region": [
+                      1165,
+                      386,
+                      1250,
+                      432
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": null,
+                    "native_source": "native_font_pair_templates"
+                  },
+                  "moves_total": {
+                    "source": "current_native_roi_read",
+                    "region": [
+                      1165,
+                      386,
+                      1250,
+                      432
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": null,
+                    "native_source": "native_font_pair_templates"
+                  },
+                  "rotations_used": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      1165,
+                      457,
+                      1250,
+                      505
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  },
+                  "rotations_total": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      1165,
+                      457,
+                      1250,
+                      505
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  },
+                  "collected_count": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      1215,
+                      257,
+                      1271,
+                      287
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  },
+                  "inspiration_total": {
+                    "source": "exact_current_roi",
+                    "region": [
+                      1215,
+                      257,
+                      1271,
+                      287
+                    ],
+                    "current_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3872,
+                      "frame_time": 31721.546,
+                      "capture_backend": "wgc"
+                    },
+                    "baseline_pixel_source": {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 3845,
+                      "frame_time": 31721.031,
+                      "capture_backend": "wgc"
+                    },
+                    "native_source": null
+                  }
+                },
+                "proof": {
+                  "current_source": {
+                    "session_id": 127695046988964504194067568147804394856,
+                    "generation": 3872,
+                    "frame_time": 31721.546,
+                    "capture_backend": "wgc"
+                  },
+                  "source_rgb_digest": "109126ee1fb92f0c5c7a509da85171ff2fc88ba56cee4bd1f525ed855f47c266",
+                  "map_revision": 0,
+                  "roi_equal": {
+                    "plane": true,
+                    "rounds": true,
+                    "moves": false,
+                    "rotations": true,
+                    "inspirations": true
+                  },
+                  "all_fields": [
+                    "plane_index",
+                    "rounds_remaining",
+                    "moves_used",
+                    "moves_total",
+                    "rotations_used",
+                    "rotations_total",
+                    "collected_count",
+                    "inspiration_total"
+                  ],
+                  "spatial_tolerance": 0,
+                  "roi_digests": {
+                    "plane": "7f57a13f088f386318b41397c3138c6ba3d594323e725e055aebe98e6fbeaa5c",
+                    "rounds": "7967f0d160eb717e8004a4f10c3f3b8c7e6ff6b8845647e84c4fa31c15f7cb56",
+                    "moves": "ee38d360077215845fb631ef720b30af71c7447b32fbb7092a0de79edad6a226",
+                    "rotations": "ebdb583a9ed23e7c8d712054fe2db72f17dceb973f9d3f50032300a6bd61a9f4",
+                    "inspirations": "df42595ac348df2ee7a13a026f9eefe9cbcbe6c9f78400b00272fc1c5287e693"
+                  },
+                  "baseline_sources": [
+                    {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 515,
+                      "frame_time": 31657.046,
+                      "capture_backend": "wgc"
+                    },
+                    {
+                      "session_id": 127695046988964504194067568147804394856,
+                      "generation": 534,
+                      "frame_time": 31657.421,
+                      "capture_backend": "wgc"
+                    }
+                  ],
+                  "native_regions_decoded": [
+                    "moves"
+                  ],
+                  "native_region_evidence": {
+                    "moves": {
+                      "status": "recognized",
+                      "region": [
+                        1165,
+                        386,
+                        1250,
+                        432
+                      ],
+                      "source": "native_font_templates",
+                      "foreground": "light",
+                      "cyan_background_fraction": 0.0,
+                      "fonts": [
+                        "HarmonyOS_Sans_Medium"
+                      ],
+                      "font_size": 22,
+                      "confidence": 0.9182,
+                      "glyphs": [
+                        {
+                          "box": [
+                            1194,
+                            399,
+                            11,
+                            17
+                          ],
+                          "match": {
+                            "character": "0",
+                            "confidence": 0.9182,
+                            "margin": 0.1526,
+                            "alternatives": [
+                              [
+                                "0",
+                                0.9181817785486023
+                              ],
+                              [
+                                "8",
+                                0.7656249889423926
+                              ],
+                              [
+                                "5",
+                                0.6805921169364876
+                              ]
+                            ],
+                            "font": "harmony",
+                            "template": "harmony_22_0_phase1.png"
+                          }
+                        },
+                        {
+                          "box": [
+                            1207,
+                            400,
+                            7,
+                            16
+                          ],
+                          "match": {
+                            "character": "/",
+                            "confidence": 0.9486,
+                            "margin": 0.4058,
+                            "alternatives": [
+                              [
+                                "/",
+                                0.9485714285714285
+                              ],
+                              [
+                                "7",
+                                0.5427230346773275
+                              ],
+                              [
+                                "2",
+                                0.4367459648287435
+                              ]
+                            ],
+                            "font": "harmony_n32",
+                            "template": "harmony_n32_22_slash_phase1.png"
+                          }
+                        },
+                        {
+                          "box": [
+                            1217,
+                            400,
+                            7,
+                            16
+                          ],
+                          "match": {
+                            "character": "1",
+                            "confidence": 0.9567,
+                            "margin": 0.368,
+                            "alternatives": [
+                              [
+                                "1",
+                                0.9566567816351955
+                              ],
+                              [
+                                "3",
+                                0.588702021932272
+                              ],
+                              [
+                                "4",
+                                0.5198551732980915
+                              ]
+                            ],
+                            "font": "harmony",
+                            "template": "harmony_22_1_phase0.png"
+                          }
+                        }
+                      ],
+                      "text": "0/1"
+                    }
+                  },
+                  "source_age_sec": 0.2970000000022992
+                }
+              },
+              "source_rgb_digest": "109126ee1fb92f0c5c7a509da85171ff2fc88ba56cee4bd1f525ed855f47c266"
+            },
+            "hud_unchanged": true,
+            "evaluated_at": 31722.109,
+            "max_age_sec": 0.8,
+            "front_assigned": {}
+          }
+        },
+        "reason": "semantic_explanation_no_safe_match"
+      },
+      "semantic_source_refresh": {
+        "status": "refreshed",
+        "inline_scene_sec": 0.11073340000075405,
+        "old_source": {
+          "frame_id": 825,
+          "generation": 3859,
+          "session_id": 127695046988964504194067568147804394856,
+          "frame_time": 31721.312,
+          "map_revision": 0
+        },
+        "selected_source": {
+          "frame_id": 827,
+          "generation": 3872,
+          "session_id": 127695046988964504194067568147804394856,
+          "frame_time": 31721.546,
+          "map_revision": 0
+        },
+        "selected_rgb_sha256": "109126ee1fb92f0c5c7a509da85171ff2fc88ba56cee4bd1f525ed855f47c266"
+      },
+      "semantic_stream_cost_sec": {
+        "hud_prepare": 0.05161239999870304,
+        "semantic_view": 0.24331309999979567,
+        "freeze_copy": 0.0058809000001929235,
+        "target_explanation": 0.01493770000161021,
+        "feedback_projection": 0.001397999996697763,
+        "inline_scene": 0.11073340000075405
+      }
+    },
+    "pose": {
+      "rvec": [
+        [
+          -1.1138177077232525
+        ],
+        [
+          -0.0719753945129227
+        ],
+        [
+          0.6405632754947194
+        ]
+      ],
+      "tvec": [
+        [
+          -0.052611282257339034
+        ],
+        [
+          0.37611517634110153
+        ],
+        [
+          43.035414757642144
+        ]
+      ],
+      "rotation": [
+        [
+          0.8193835425690152,
+          -0.4429857323706707,
+          -0.363832724040968
+        ],
+        [
+          0.5126824960319212,
+          0.2823574887216819,
+          0.8108211312153034
+        ],
+        [
+          -0.2564512983580505,
+          -0.8509041599844284,
+          0.45847011035798657
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 51,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "fused_pose": {
+      "rvec": [
+        [
+          -1.1235433431476143
+        ],
+        [
+          -0.07514592851800565
+        ],
+        [
+          0.64491355118313
+        ]
+      ],
+      "tvec": [
+        [
+          -0.052611282257339034
+        ],
+        [
+          0.37611517634110153
+        ],
+        [
+          43.035414757642144
+        ]
+      ],
+      "rotation": [
+        [
+          0.8171864907044465,
+          -0.4419459181858718,
+          -0.369986546794607
+        ],
+        [
+          0.5151733427576679,
+          0.27220589638850745,
+          0.8127117427988961
+        ],
+        [
+          -0.25846211776978384,
+          -0.8547442631396689,
+          0.4501217372087051
+        ]
+      ],
+      "quality": 0.97,
+      "map_revision": 0,
+      "correction_epoch": 51,
+      "pivot_reference": [
+        [
+          -0.03502029218063488
+        ],
+        [
+          0.45137187009249014
+        ],
+        [
+          41.957633407100495
+        ]
+      ]
+    },
+    "geometry_body_basis": [
+      [
+        0.9993207542977564,
+        -0.01286016394293431,
+        -0.03453471026551553
+      ],
+      [
+        0.013315985836953583,
+        0.9998268072649159,
+        0.01300153820265967
+      ],
+      [
+        0.03436152719179273,
+        -0.01345257067649139,
+        0.9993189249640192
+      ]
+    ]
+  },
+  "target_cell": {
+    "face": "D",
+    "row": 1,
+    "col": 1,
+    "occupant": "unknown",
+    "occupant_status": "unknown",
+    "icon_id": null,
+    "node_kind": null,
+    "node_status": "unknown",
+    "confidence": 0.0,
+    "evidence": [
+      {
+        "frame_id": 823,
+        "group": 19,
+        "quality": 0.97,
+        "quad": [
+          [
+            530.7,
+            418.5
+          ],
+          [
+            609.0,
+            460.7
+          ],
+          [
+            576.2,
+            534.6
+          ],
+          [
+            498.7,
+            492.6
+          ]
+        ],
+        "cosine": 0.883,
+        "occupant": "singularity",
+        "icon_id": null,
+        "confidence": 0.784,
+        "target_box": [
+          442,
+          440,
+          166,
+          147
+        ],
+        "target_point": [
+          525.2496337890625,
+          513.8360900878906
+        ],
+        "target_source": "deep_dive_entity_onnx",
+        "target_box_evidence": null,
+        "association_evidence": {
+          "source_frame_id": 823,
+          "source_frame_time": 31721.031,
+          "source_map_revision": 0,
+          "error": 0.095709240770572,
+          "competitor_index": 47,
+          "competitor_error": 0.6261591059960452,
+          "margin": 0.5304498652254732,
+          "rvec": [
+            -1.1569845307914566,
+            -0.13626014922056676,
+            0.5281837351066818
+          ],
+          "rotation": [
+            [
+              0.8704376083001022,
+              -0.32683872802192965,
+              -0.3681233705183701
+            ],
+            [
+              0.46413314396029487,
+              0.2956390702137291,
+              0.8349718347589301
+            ],
+            [
+              -0.16406948142275057,
+              -0.8976491441694627,
+              0.40903205160170625
+            ]
+          ],
+          "tvec": [
+            -0.0752458275974946,
+            0.4365075819614312,
+            43.42615057634901
+          ],
+          "target_face_glyph_count": 2,
+          "anchor_uncertainty": {
+            "ready": true,
+            "reason": "all54_disk_certified",
+            "winner_index": 31,
+            "competitor_index": 47,
+            "nominal_error": 0.095709240770572,
+            "winner_error_upper": 0.10408484267362818,
+            "competitor_error_lower": 0.613276170931291,
+            "margin_lower": 0.5091913282576629,
+            "pixel_radius": 0.7071067811865476,
+            "valid_corridors": 54,
+            "proof": "fixed_geometry_lipschitz_disk",
+            "radius_assumption": "pixel_quantization_square"
+          }
+        },
+        "anchor_type": null,
+        "frame_path": "frames/0823.png",
+        "overlay_path": "frames/0823_overlay.png",
+        "crop_path": "cells/D_1_1.png"
+      }
+    ],
+    "geometric_neighbors": {
+      "up": {
+        "face": "D",
+        "row": 0,
+        "col": 1
+      },
+      "down": {
+        "face": "D",
+        "row": 2,
+        "col": 1
+      },
+      "left": {
+        "face": "D",
+        "row": 1,
+        "col": 0
+      },
+      "right": {
+        "face": "D",
+        "row": 1,
+        "col": 2
+      }
+    },
+    "occupant_evidence_counts": {
+      "singularity": 1
+    },
+    "occupant_evidence_scores": {
+      "singularity": 3.14
+    }
+  },
+  "calibrations": [
+    {
+      "axis": 0,
+      "pixels": 150.0,
+      "angle_deg": 18.373992623508627,
+      "rotation_vector": [
+        -0.020699615028205658,
+        -0.2796833554075656,
+        -0.15552712203900768
+      ]
+    },
+    {
+      "axis": 1,
+      "pixels": 150.0,
+      "angle_deg": 16.16770007114698,
+      "rotation_vector": [
+        0.28209462667328766,
+        0.0028389839730892374,
+        -0.0063156712887859874
+      ]
+    }
+  ],
+  "boundary": "Actual saved source823 single positive and source827 capture; accepted source body basis is derived in test using production C @ rawR.T @ glyphR formula, not claimed as an original saved packet field. Other atlas rows use only source823 confirmed glyph indices."
+}

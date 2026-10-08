@@ -1,0 +1,36 @@
+{
+  "source_frame_id": 543,
+  "source_frame_time": 56306.093,
+  "provenance": "Manual source-pixel review of live_scan_03 same-source semantic frame; geometric board truth not used to classify the body crop.",
+  "crop_origin": [
+    380,
+    170
+  ],
+  "true_head": [
+    436.4372253417969,
+    220.70343780517578
+  ],
+  "false_body_circle": [
+    465.5,
+    248.5
+  ],
+  "model_head": {
+    "kind": "player",
+    "point": [
+      436.4372253417969,
+      220.70343780517578
+    ],
+    "box": [
+      423,
+      208,
+      27,
+      26
+    ],
+    "anchor_type": "head",
+    "confidence": 0.9463251233100891,
+    "confirmable": true,
+    "source": "deep_dive_entity_onnx",
+    "source_frame_id": 543,
+    "source_frame_time": 56306.093
+  }
+}
