@@ -40,10 +40,10 @@ def catalog(*items):
                             {item.name: item.product_id for item in items})
 
 
-def frame(*rows):
+def frame(*rows, icon_left=10):
     result = np.full((545, 130, 3), 15, np.uint8)
     for image, top in rows:
-        result[top+24:top+80, 18:98] = image
+        result[top+24:top+80, icon_left+8:icon_left+88] = image
     return result
 
 
@@ -59,7 +59,8 @@ class App:
 
     def click(self, **point):
         self.inputs.append(("click", point))
-        if self.on_click:
+        # Only the row's blue blank band responds, never its product icon.
+        if self.on_click and 630 <= point["x"] <= 700:
             self.on_click(self, point)
 
     def move_to(self, **point):
@@ -92,14 +93,39 @@ def run(app, products, requested=None, vision=None, **options):
         check_cancelled=lambda: None, **options)
 
 
-def test_confirmed_click_uses_only_icon_column_and_same_row():
+def test_confirmed_click_targets_blue_row_but_recognizes_only_icon_column():
     item, vision = product(), CpuVision()
     app = App([frame((item.available, 20))],
               lambda app, point: app.pages.__setitem__(0, frame((item.selected, 20))))
     result = run(app, catalog(item), vision=vision)
     assert result["selected_product_ids"] == ["one"] and not result["missing_products"]
-    assert app.clicks == [{"x": 558, "y": 212}] and not app.drags
+    assert app.clicks == [{"x": 656, "y": 208}] and not app.drags
     assert vision.shapes == [("batch", (545, 130, 3)), ("single", (60, 84, 3))]
+    click = next(entry for entry in result["scan_trace"] if entry["phase"] == "product_clicked")
+    assert click["click_target"] == "row_blank" and click["template_rect"] == [18, 44, 80, 56]
+
+
+def test_fake_interface_ignores_the_old_icon_center_click():
+    item = product()
+    original = frame((item.available, 20))
+    app = App([original.copy()],
+              lambda app, point: app.pages.__setitem__(0, frame((item.selected, 20))))
+    app.click(x=558, y=212)
+    assert np.array_equal(app.pages[0], original)
+    app.click(x=656, y=208)
+    assert not np.array_equal(app.pages[0], original)
+
+
+@pytest.mark.parametrize("left,top", [(5, 20), (10, 150), (20, 380)])
+def test_click_position_tracks_icon_origin_not_the_cropped_template_center(left, top):
+    item = product()
+    expected = {"x": 500+left+96+50, "y": 140+top+48}
+    def clicked(app, point):
+        if point == expected:
+            app.pages[0] = frame((item.selected, top), icon_left=left)
+    app = App([frame((item.available, top), icon_left=left)], clicked)
+    result = run(app, catalog(item))
+    assert result["selected_product_ids"] == ["one"] and app.clicks == [expected]
 
 
 def test_lost_click_retries_once_only_while_available():
@@ -109,7 +135,7 @@ def test_lost_click_retries_once_only_while_available():
             app.pages[0] = frame((item.selected, 20))
     app = App([frame((item.available, 20))], clicked)
     assert run(app, catalog(item))["selected_product_ids"] == ["one"]
-    assert len(app.clicks) == 2
+    assert app.clicks == [{"x": 656, "y": 208}]*2
 
 
 def test_failed_two_clicks_is_missing_not_fatal_or_retried_after_scrolling():
@@ -117,6 +143,7 @@ def test_failed_two_clicks_is_missing_not_fatal_or_retried_after_scrolling():
     app = App([frame((item.available, 20))])
     result = run(app, catalog(item, other))
     assert not result["selected_products"] and len(app.clicks) == 2
+    assert app.clicks == [{"x": 656, "y": 208}]*2
     assert result["missing_products"] == ["one", "absent"]
     assert result["warnings"][0]["reason"] == "selection_not_confirmed"
 
@@ -143,7 +170,7 @@ def test_new_frame_coordinates_are_used_after_each_confirmed_click():
     app = App([frame((one.available, 20), (two.available, 150))], clicked)
     result = run(app, catalog(one, two), ["one", "two", "one"])
     assert result["selected_product_ids"] == ["one", "two"]
-    assert [point["y"] for point in app.clicks] == [212, 442]
+    assert app.clicks == [{"x": 656, "y": 208}, {"x": 656, "y": 438}]
     assert not app.drags
 
 

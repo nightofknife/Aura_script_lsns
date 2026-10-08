@@ -17,6 +17,7 @@ MATCH_THRESHOLD = .92
 ICON_COLUMN = (500, 140, 130, 545)
 CROP = (8, 24, 80, 56)
 ICON_SIZE = (96, 96)
+ROW_CLICK_GAP = 50
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -200,12 +201,16 @@ class _Selection:
         return False, frame
 
     def select(self, item, rect):
+        # The icon is a recognition anchor; selection belongs to the blue row.
+        icon_left = ICON_COLUMN[0] + rect[0] - CROP[0]
+        icon_top = ICON_COLUMN[1] + rect[1] - CROP[1]
+        x = icon_left + ICON_SIZE[0] + ROW_CLICK_GAP
+        y = icon_top + ICON_SIZE[1]//2
         for attempt in (1, 2):
             self.check_cancelled()
-            x = ICON_COLUMN[0] + rect[0] + rect[2]//2
-            y = ICON_COLUMN[1] + rect[1] + rect[3]//2
             self.app.click(x=x, y=y)
-            self.event("product_clicked", product_id=item.product_id, attempt=attempt, x=x, y=y)
+            self.event("product_clicked", product_id=item.product_id, attempt=attempt,
+                       click_target="row_blank", template_rect=list(rect), x=x, y=y)
             confirmed, frame = self.confirm(item, rect)
             if confirmed:
                 self.event("selection_confirmed", product_id=item.product_id, attempt=attempt)
