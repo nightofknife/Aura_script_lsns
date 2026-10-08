@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -30,6 +31,8 @@ from packages.aura_game.executable_locator import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from ..hotkeys import validate_hotkeys
+from .hotkey_edit import HotkeyEdit
 from .toggle_button import ToggleButton as QCheckBox
 
 
@@ -40,10 +43,12 @@ GAME_EXECUTABLE_NAME = "雷索纳斯.exe"
 class SettingsHubPage(QWidget):
     backRequested = Signal()
     settingsSaved = Signal()
+    hotkeyRecordingChanged = Signal(bool)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._settings = settings
+        self._hotkey_binder: Callable[[str, str], Callable[[], None]] | None = None
         self._build_ui()
         self.load_values()
 
@@ -71,7 +76,7 @@ class SettingsHubPage(QWidget):
         body.addWidget(self.categories)
         self.stack = QStackedWidget(self)
         self.stack.addWidget(self._build_game_page())
-        self.stack.addWidget(self._placeholder("执行设置", "流程失败即停止；运行时锁定参数快照。"))
+        self.stack.addWidget(self._build_execution_page())
         self.stack.addWidget(self._placeholder("日志与历史", "日志与运行历史沿用现有本机存储。"))
         self.stack.addWidget(self._placeholder("更新", "启动检查更新与便携更新逻辑保持不变。"))
         self.stack.addWidget(self._placeholder("关于", "AURA 雷索纳斯控制台\n开发中"))
@@ -96,6 +101,52 @@ class SettingsHubPage(QWidget):
         self.save_result.setWordWrap(True)
         root.addWidget(self.save_result)
         self.categories.setCurrentRow(0)
+
+    def _build_execution_page(self) -> QWidget:
+        page = QFrame(self)
+        page.setObjectName("workflowPanel")
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(22, 20, 22, 20)
+        layout.setSpacing(12)
+        title = QLabel("设置 · 执行设置", page)
+        title.setObjectName("workflowTitle")
+        layout.addWidget(title)
+        layout.addWidget(self._section("全局快捷键", page))
+        explanation = QLabel("点击显示框开始录制，按下快捷键后，再次点击同一显示框结束。保存后生效。", page)
+        explanation.setWordWrap(True)
+        explanation.setProperty("caption", True)
+        layout.addWidget(explanation)
+        self.start_hotkey = HotkeyEdit(page)
+        self.stop_hotkey = HotkeyEdit(page)
+        form = QFormLayout()
+        form.setVerticalSpacing(12)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        form.addRow("启动任务", self.start_hotkey)
+        form.addRow("停止任务", self.stop_hotkey)
+        layout.addLayout(form)
+        for editor in (self.start_hotkey, self.stop_hotkey):
+            editor.recordingChanged.connect(self._on_hotkey_recording_changed)
+        scope = QLabel("启动：运行工作流程中已勾选的任务。\n停止：停止当前任务，取消后续流程。\n游戏在前台或界面最小化时也有效；录制期间暂不可用。", page)
+        scope.setWordWrap(True)
+        layout.addWidget(scope)
+        self.hotkey_status = QLabel("未设置快捷键", page)
+        self.hotkey_status.setWordWrap(True)
+        self.hotkey_status.setProperty("caption", True)
+        layout.addWidget(self.hotkey_status)
+        layout.addStretch(1)
+        return page
+
+    def _on_hotkey_recording_changed(self, _recording: bool) -> None:
+        self.hotkeyRecordingChanged.emit(self.start_hotkey.recording or self.stop_hotkey.recording)
+
+    def set_hotkey_binder(self, callback: Callable[[str, str], Callable[[], None]]) -> None:
+        self._hotkey_binder = callback
+
+    def show_hotkey_status(self, text: str, *, error: bool = False) -> None:
+        self.hotkey_status.setText(text)
+        self.hotkey_status.setProperty("status", "error" if error else "")
+        self.hotkey_status.style().unpolish(self.hotkey_status)
+        self.hotkey_status.style().polish(self.hotkey_status)
 
     def _build_game_page(self) -> QWidget:
         page = QFrame(self)
@@ -286,6 +337,17 @@ class SettingsHubPage(QWidget):
         self.detect_result.style().polish(self.detect_result)
 
     def load_values(self) -> None:
+        hotkeys = self._settings.load_hotkeys()
+        invalid_hotkey = ""
+        for key, editor in (("start", self.start_hotkey), ("stop", self.stop_hotkey)):
+            editor.cancel_recording()
+            try:
+                editor.set_shortcut(hotkeys[key])
+            except ValueError as exc:
+                editor.set_shortcut("")
+                invalid_hotkey = str(exc)
+        if invalid_hotkey:
+            self.show_hotkey_status(f"保存的快捷键无效，请重新设置：{invalid_hotkey}", error=True)
         self.executable_path.setText(str(self._settings.value("game/executable_path", "") or ""))
         self.launch_if_needed.setChecked(self._bool_value("game/launch_if_not_running", True))
         self.use_input_bridge.setChecked(self._bool_value("game/use_input_bridge", False))
@@ -301,6 +363,14 @@ class SettingsHubPage(QWidget):
         )
 
     def save_values(self) -> None:
+        if self.start_hotkey.recording or self.stop_hotkey.recording:
+            self.save_result.setText("请再次点击快捷键显示框结束录制，再保存设置。")
+            return
+        try:
+            start, stop = validate_hotkeys(self.start_hotkey.shortcut(), self.stop_hotkey.shortcut())
+        except ValueError as exc:
+            self.save_result.setText(f"快捷键无效：{exc}")
+            return
         path = self.executable_path.text().strip()
         if path and not self._save_game_path(path):
             self.save_result.setText("设置未全部保存，请检查游戏路径及保存提示。")
@@ -322,6 +392,23 @@ class SettingsHubPage(QWidget):
         except OSError as exc:
             self.save_result.setText(f"设置保存失败：{exc}")
             return
+        undo_hotkeys: Callable[[], None] | None = None
+        try:
+            if self._hotkey_binder is not None:
+                undo_hotkeys = self._hotkey_binder(start, stop)
+            self._settings.save_hotkeys(start, stop)
+        except (ValueError, OSError) as exc:
+            rollback = ""
+            if undo_hotkeys is not None:
+                try:
+                    undo_hotkeys()
+                except ValueError as restore_error:
+                    rollback = f"；原快捷键恢复失败：{restore_error}"
+            self.show_hotkey_status(f"快捷键未保存：{exc}{rollback}", error=True)
+            self.save_result.setText(f"快捷键保存失败：{exc}{rollback}")
+            return
+        self.start_hotkey.set_shortcut(start)
+        self.stop_hotkey.set_shortcut(stop)
         self.save_result.setText("设置已保存")
         self.settingsSaved.emit()
 
