@@ -6,6 +6,7 @@ import html
 import json
 import math
 import os
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -85,7 +86,13 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "layout.json"
     report_path = output_dir / "report.html"
-    json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    stage_started = time.perf_counter()
+    serialized = json.dumps(result, ensure_ascii=False, separators=(',', ':'), default=str)
+    timings = {'json_encode_sec': time.perf_counter()-stage_started}
+    stage_started = time.perf_counter()
+    json_path.write_text(serialized, encoding="utf-8")
+    timings['json_write_sec'] = time.perf_counter()-stage_started
+    stage_started = time.perf_counter()
 
     cells = {}
     duplicates = set()
@@ -195,5 +202,9 @@ details{padding:12px;border-bottom:1px solid #384455;scroll-margin-top:15px}deta
     document += '<p class="muted">当前为实验识别器，置信度是启发式证据分数，并非校准后的正确率。请结合原截图与叠加图人工判断。</p>'
     document += f'<div class="scroll"><div class="net">{"".join(face_html)}</div></div><h2>逐格证据</h2>{"".join(details)}'
     document += f'<h2>扫描画面</h2><div class="frames">{"".join(frame_html) or "无画面"}</div><h2>诊断信息</h2><pre>{_escape(diagnostics)}</pre></main></html>'
+    timings['html_build_sec'] = time.perf_counter()-stage_started
+    stage_started = time.perf_counter()
     report_path.write_text(document, encoding="utf-8")
-    return {"report_path": str(report_path), "json_path": str(json_path)}
+    timings['html_write_sec'] = time.perf_counter()-stage_started
+    return {"report_path": str(report_path), "json_path": str(json_path),
+            "report_export_timing": timings}

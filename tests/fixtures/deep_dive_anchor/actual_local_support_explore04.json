@@ -1,0 +1,1559 @@
+{
+  "scope": "Saved-source projection/provenance regression only; no model inference, fresh image, live glyph fitting or acceptance claim.",
+  "cases": [
+    {
+      "frame_id": 348,
+      "kind": "inspiration",
+      "nominal_index": 25,
+      "expected_accept": false,
+      "pose": {
+        "rvec": [
+          [
+            0.2659724758902397
+          ],
+          [
+            -1.142228599942758
+          ],
+          [
+            0.08400909844113898
+          ]
+        ],
+        "tvec": [
+          [
+            -0.028210679282624725
+          ],
+          [
+            0.3554607274763843
+          ],
+          [
+            42.36208567904414
+          ]
+        ],
+        "rotation": [
+          [
+            0.4162918216295921,
+            -0.20113452732310116,
+            -0.8867051489434514
+          ],
+          [
+            -0.06924045998488317,
+            0.965380549386611,
+            -0.2514878795629853
+          ],
+          [
+            0.9065907996143561,
+            0.16608821988484757,
+            0.38795338027923515
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 24,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          858,
+          538,
+          57,
+          57
+        ],
+        "point": [
+          886.0746154785156,
+          566.3212890625
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.7967399954795837,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 348,
+        "source_frame_time": 14228.203,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 13,
+        "confirmed": 12,
+        "reason": "known_multi_face_joint_fit",
+        "renewed": true,
+        "candidate_faces": {
+          "F": 5,
+          "L": 8
+        },
+        "confirmed_faces": {
+          "F": 4,
+          "L": 8
+        },
+        "candidate_cell_indices": [
+          18,
+          19,
+          21,
+          22,
+          24,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "confirmed_cell_indices": [
+          18,
+          19,
+          21,
+          22,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 348,
+        "source_frame_time": 14228.203,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 12,
+        "accepted_faces": {
+          "F": 4,
+          "L": 8
+        },
+        "angle_deg": 2.7570916044926492,
+        "median_before": 2.4027846858603996,
+        "median_after": 1.563945372095507,
+        "max_after": 5.466767537535565,
+        "translation_pixels": [
+          -0.5414164907100792,
+          -10.279252848087827
+        ],
+        "depth_delta_fraction": 0.007590227573162908
+      },
+      "raw_png_sha256": "a5b515eecb0cefe1d8fea55b2c4905573098f49eaa13de8643b2cf9b0d8cc079",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0348.png"
+    },
+    {
+      "frame_id": 364,
+      "kind": "inspiration",
+      "nominal_index": 25,
+      "expected_accept": false,
+      "pose": {
+        "rvec": [
+          [
+            0.22123035662332804
+          ],
+          [
+            -1.3002463478790511
+          ],
+          [
+            0.004153125783232641
+          ]
+        ],
+        "tvec": [
+          [
+            0.02720461762426283
+          ],
+          [
+            0.33778525556690575
+          ],
+          [
+            41.80238676865681
+          ]
+        ],
+        "rotation": [
+          [
+            0.27032623224614877,
+            -0.1271985400433355,
+            -0.9543292196985509
+          ],
+          [
+            -0.12109954780689548,
+            0.9788692221935139,
+            -0.16477240473826352
+          ],
+          [
+            0.9551223103250004,
+            0.1601111403154342,
+            0.2492103430163457
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 25,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          876,
+          510,
+          52,
+          57
+        ],
+        "point": [
+          902.3157348632812,
+          539.0873260498047
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8332562446594238,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 364,
+        "source_frame_time": 14229.218,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 8,
+        "confirmed": 8,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "L": 8
+        },
+        "confirmed_faces": {
+          "L": 8
+        },
+        "candidate_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "confirmed_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 364,
+        "source_frame_time": 14229.218,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "L": 8
+        },
+        "median_after": 1.8061405016011287,
+        "max_after": 3.290628173383489
+      },
+      "raw_png_sha256": "63e459f467853f7cb63dacbb661486bbea95571ff8b7019ce87a8d72bdd209fd",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0364.png"
+    },
+    {
+      "frame_id": 368,
+      "kind": "inspiration",
+      "nominal_index": 25,
+      "expected_accept": false,
+      "pose": {
+        "rvec": [
+          [
+            0.19998091849305064
+          ],
+          [
+            -1.3622523359418157
+          ],
+          [
+            -0.023862791282302467
+          ]
+        ],
+        "tvec": [
+          [
+            0.01927241966371342
+          ],
+          [
+            0.31662558246990646
+          ],
+          [
+            41.7038701072335
+          ]
+        ],
+        "rotation": [
+          [
+            0.20955642984438014,
+            -0.09899823353715191,
+            -0.9727720454800297
+          ],
+          [
+            -0.13300744831027714,
+            0.982728115279264,
+            -0.12866417579751863
+          ],
+          [
+            0.9687079649744119,
+            0.15634833288586533,
+            0.1927694929156175
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 25,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          882,
+          500,
+          48,
+          60
+        ],
+        "point": [
+          906.2560119628906,
+          530.5260162353516
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.721521258354187,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 368,
+        "source_frame_time": 14229.406,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 8,
+        "confirmed": 8,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "L": 8
+        },
+        "confirmed_faces": {
+          "L": 8
+        },
+        "candidate_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "confirmed_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 368,
+        "source_frame_time": 14229.406,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "L": 7
+        },
+        "median_after": 1.9136291745962017,
+        "max_after": 9.697563968596405
+      },
+      "raw_png_sha256": "8f64cc6ad4480abb82398d11dadf65d2d6550a4a4766acdc37bfebd7fa085663",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0368.png"
+    },
+    {
+      "frame_id": 9,
+      "kind": "player",
+      "nominal_index": 4,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            0.839195034355584
+          ],
+          [
+            0.45138897376575376
+          ],
+          [
+            0.20575846136314513
+          ]
+        ],
+        "tvec": [
+          [
+            -0.004379571190023394
+          ],
+          [
+            0.4036487153346936
+          ],
+          [
+            42.109759883184395
+          ]
+        ],
+        "rotation": [
+          [
+            0.8863966836774892,
+            0.00018677448061907298,
+            0.46292643506376074
+          ],
+          [
+            0.34955173061569955,
+            0.6553496094475961,
+            -0.6695748479598473
+          ],
+          [
+            -0.3035037179164668,
+            0.7553256612297616,
+            0.5808344331207518
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 0,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "player",
+        "box": [
+          628,
+          190,
+          26,
+          25
+        ],
+        "point": [
+          641.5,
+          200.5
+        ],
+        "anchor_type": "head",
+        "confirmable": true,
+        "confidence": 0.789,
+        "source": "deep_dive_local_pink_head",
+        "box_evidence": "existing_model_box_with_confirmed_head_center"
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 9,
+        "source_frame_time": 14205.25,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 9,
+        "confirmed": 6,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "U": 6,
+          "F": 3
+        },
+        "confirmed_faces": {
+          "U": 4,
+          "F": 2
+        },
+        "candidate_cell_indices": [
+          2,
+          3,
+          5,
+          6,
+          7,
+          8,
+          18,
+          19,
+          24
+        ],
+        "confirmed_cell_indices": [
+          5,
+          6,
+          7,
+          8,
+          18,
+          19
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 9,
+        "source_frame_time": 14205.25,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 6,
+        "joint_rejected": {
+          "angle_deg": 2.4499006147521274,
+          "median_before": 4.893466178323704,
+          "median_after": 3.3720675551640866,
+          "max_after": 6.497490562470911,
+          "translation_pixels": [
+            10.943702077518255,
+            -3.728646442701282
+          ]
+        },
+        "accepted_faces": {
+          "U": 6,
+          "F": 3
+        },
+        "median_after": 4.102232337153,
+        "max_after": 7.467167353228639
+      },
+      "raw_png_sha256": "1a09e2936978906f51dfb8a96b9c13c3c5bccdacc2c7a26c3a0b126559ec2308",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0009.png"
+    },
+    {
+      "frame_id": 40,
+      "kind": "player",
+      "nominal_index": 4,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            0.8226277472190902
+          ],
+          [
+            0.25827372661124776
+          ],
+          [
+            0.17478212339474372
+          ]
+        ],
+        "tvec": [
+          [
+            -0.011156530306900461
+          ],
+          [
+            0.41793932857816235
+          ],
+          [
+            41.529997924844885
+          ]
+        ],
+        "rotation": [
+          [
+            0.9544294659055823,
+            -0.05353844377435851,
+            0.29359500957850904
+          ],
+          [
+            0.252646916092677,
+            0.6685954613667634,
+            -0.6993923396982732
+          ],
+          [
+            -0.1588519134289695,
+            0.7416965309868887,
+            0.6516535318111693
+          ]
+        ],
+        "quality": 0.9628378378378378,
+        "map_revision": 0,
+        "correction_epoch": 2,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "player",
+        "box": [
+          644,
+          185,
+          25,
+          25
+        ],
+        "point": [
+          656.5,
+          197.5
+        ],
+        "anchor_type": "head",
+        "confirmable": true,
+        "confidence": 0.796,
+        "source": "deep_dive_local_pink_head",
+        "box_evidence": "existing_model_box_with_confirmed_head_center"
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 40,
+        "source_frame_time": 14207.453,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 8,
+        "confirmed": 6,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "U": 6,
+          "F": 2
+        },
+        "confirmed_faces": {
+          "U": 4,
+          "F": 2
+        },
+        "candidate_cell_indices": [
+          2,
+          3,
+          5,
+          6,
+          7,
+          8,
+          18,
+          19
+        ],
+        "confirmed_cell_indices": [
+          5,
+          6,
+          7,
+          8,
+          18,
+          19
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 40,
+        "source_frame_time": 14207.453,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 6,
+        "joint_rejected": {
+          "angle_deg": 2.3161629219332815,
+          "median_before": 5.5690466323495205,
+          "median_after": 2.4657824067494163,
+          "max_after": 9.125234856323452,
+          "translation_pixels": [
+            3.797130187440581,
+            -10.539726277791182
+          ]
+        },
+        "accepted_faces": {
+          "U": 6,
+          "F": 2
+        },
+        "median_after": 4.394352600354868,
+        "max_after": 8.80073241992581
+      },
+      "raw_png_sha256": "1ca96415bfc5ee94e8d88f5cce96250dc326b6be9b7a6d9b93700f85c6713888",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0040.png"
+    },
+    {
+      "frame_id": 113,
+      "kind": "inspiration",
+      "nominal_index": 26,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            0.7823427081413996
+          ],
+          [
+            -0.7413603280820245
+          ],
+          [
+            0.07628623190328132
+          ]
+        ],
+        "tvec": [
+          [
+            -0.05859391272644915
+          ],
+          [
+            0.4338674566796514
+          ],
+          [
+            41.25354003343007
+          ]
+        ],
+        "rotation": [
+          [
+            0.7482722400934263,
+            -0.3251450566866352,
+            -0.5782467871227741
+          ],
+          [
+            -0.20057489594932543,
+            0.7199716433797911,
+            -0.6643873447349222
+          ],
+          [
+            0.6323435504695871,
+            0.6131243958947057,
+            0.4735188584821823
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 8,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          810,
+          606,
+          60,
+          44
+        ],
+        "point": [
+          840.6189880371094,
+          628.0526428222656
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.7557699680328369,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 113,
+        "source_frame_time": 14212.828,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 17,
+        "confirmed": 6,
+        "reason": "known_multi_face_joint_fit",
+        "renewed": true,
+        "candidate_faces": {
+          "U": 6,
+          "F": 3,
+          "L": 8
+        },
+        "confirmed_faces": {
+          "U": 4,
+          "F": 2
+        },
+        "candidate_cell_indices": [
+          0,
+          1,
+          3,
+          6,
+          7,
+          8,
+          18,
+          20,
+          23,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "confirmed_cell_indices": [
+          3,
+          6,
+          7,
+          8,
+          18,
+          20
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 113,
+        "source_frame_time": 14212.828,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 6,
+        "accepted_faces": {
+          "U": 4,
+          "F": 2
+        },
+        "angle_deg": 1.3684772622556653,
+        "median_before": 3.6528510965087735,
+        "median_after": 2.316575912117095,
+        "max_after": 5.763607960755178,
+        "translation_pixels": [
+          -4.808906968042632,
+          1.3995103389159307
+        ],
+        "depth_delta_fraction": 0.01341911053283856
+      },
+      "raw_png_sha256": "306d61a44c6d3c01d28074d2ab68461efc8a512d44616036acbf714fc77176f7",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0113.png"
+    },
+    {
+      "frame_id": 177,
+      "kind": "inspiration",
+      "nominal_index": 26,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            0.6434649292718604
+          ],
+          [
+            -0.8318757661913596
+          ],
+          [
+            0.09995407519425857
+          ]
+        ],
+        "tvec": [
+          [
+            0.019960230962312496
+          ],
+          [
+            0.47006759605161497
+          ],
+          [
+            42.8805913360929
+          ]
+        ],
+        "rotation": [
+          [
+            0.680450390627227,
+            -0.3260294074890986,
+            -0.6562713549649728
+          ],
+          [
+            -0.1612852936141432,
+            0.8069806399818251,
+            -0.5681278911990888
+          ],
+          [
+            0.7148246777770433,
+            0.4924297636687199,
+            0.4965265429905182
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 13,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          823,
+          592,
+          59,
+          54
+        ],
+        "point": [
+          852.5706481933594,
+          618.6475830078125
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.7794564962387085,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 177,
+        "source_frame_time": 14217.218,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 17,
+        "confirmed": 9,
+        "reason": "known_multi_face_joint_fit",
+        "renewed": true,
+        "candidate_faces": {
+          "U": 6,
+          "F": 4,
+          "L": 7
+        },
+        "confirmed_faces": {
+          "U": 6,
+          "F": 3
+        },
+        "candidate_cell_indices": [
+          0,
+          1,
+          3,
+          6,
+          7,
+          8,
+          18,
+          19,
+          20,
+          23,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43
+        ],
+        "confirmed_cell_indices": [
+          0,
+          1,
+          3,
+          6,
+          7,
+          8,
+          18,
+          19,
+          20
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 177,
+        "source_frame_time": 14217.218,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 7,
+        "accepted_faces": {
+          "U": 5,
+          "F": 2
+        },
+        "angle_deg": 0.4757349826524172,
+        "median_before": 2.6476004096284704,
+        "median_after": 1.9688921410283602,
+        "max_after": 3.0389992468904645,
+        "translation_pixels": [
+          1.9485284779448186,
+          -0.07798751430947279
+        ],
+        "depth_delta_fraction": 0.00022619904260066449
+      },
+      "raw_png_sha256": "13bf7f4656e8f2cd7da0b45edc56891aca1249c44b9c2aa4d4e32b619e8a76f4",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0177.png"
+    },
+    {
+      "frame_id": 430,
+      "kind": "inspiration",
+      "nominal_index": 50,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            -0.2258270209156965
+          ],
+          [
+            -2.255773883692808
+          ],
+          [
+            -0.46709453340453755
+          ]
+        ],
+        "tvec": [
+          [
+            0.06717240099157475
+          ],
+          [
+            0.4652666229862752
+          ],
+          [
+            42.7912654560217
+          ]
+        ],
+        "rotation": [
+          [
+            -0.6611783507219448,
+            0.30795755248283174,
+            -0.6841091538675629
+          ],
+          [
+            0.010971259047325904,
+            0.9157388761628636,
+            0.4016241304489697
+          ],
+          [
+            0.7501485319665201,
+            0.25803964143665703,
+            -0.6088454019171994
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 30,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          500,
+          485,
+          54,
+          66
+        ],
+        "point": [
+          526.9698333740234,
+          517.7398986816406
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8732211589813232,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 430,
+        "source_frame_time": 14234.39,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 13,
+        "confirmed": 9,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "L": 9,
+          "B": 4
+        },
+        "confirmed_faces": {
+          "L": 9
+        },
+        "candidate_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48
+        ],
+        "confirmed_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 430,
+        "source_frame_time": 14234.39,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "L": 9,
+          "B": 4
+        },
+        "median_after": 1.265623474632347,
+        "max_after": 5.946239279936518
+      },
+      "raw_png_sha256": "4d170c0a713030e4e1d738315beb4f398d5f96325d301abe6c2b8f1c9af34912",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0430.png"
+    },
+    {
+      "frame_id": 450,
+      "kind": "inspiration",
+      "nominal_index": 50,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            -0.29095447787748635
+          ],
+          [
+            -2.3998834472057493
+          ],
+          [
+            -0.5693808401239099
+          ]
+        ],
+        "tvec": [
+          [
+            0.0672658334699152
+          ],
+          [
+            0.4587560336569311
+          ],
+          [
+            42.45373552304554
+          ]
+        ],
+        "rotation": [
+          [
+            -0.7666409003078649,
+            0.3429644722515919,
+            -0.5428048459145638
+          ],
+          [
+            0.06257237001836122,
+            0.8812733767695395,
+            0.46844629778395985
+          ],
+          [
+            0.6390198967836851,
+            0.3251655058126556,
+            -0.6970803148448307
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 31,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "inspiration",
+        "box": [
+          547,
+          505,
+          49,
+          60
+        ],
+        "point": [
+          571.357177734375,
+          535.0729064941406
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8043699860572815,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 450,
+        "source_frame_time": 14235.843,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 13,
+        "confirmed": 9,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "L": 9,
+          "B": 4
+        },
+        "confirmed_faces": {
+          "L": 9
+        },
+        "candidate_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48
+        ],
+        "confirmed_cell_indices": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 450,
+        "source_frame_time": 14235.843,
+        "source_map_revision": 0,
+        "accepted_faces": {
+          "L": 9,
+          "B": 4
+        },
+        "median_after": 2.223341490111181,
+        "max_after": 7.18778366005243
+      },
+      "raw_png_sha256": "5e798e02eaf7fb7b7fd09bb58a0580e799180b49a83a2a6c85f1da08a0975e75",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0450.png"
+    },
+    {
+      "frame_id": 622,
+      "kind": "singularity",
+      "nominal_index": 31,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            -1.2131552781458732
+          ],
+          [
+            -2.530190487116197
+          ],
+          [
+            1.0131938247921994
+          ]
+        ],
+        "tvec": [
+          [
+            0.010118580932367187
+          ],
+          [
+            0.4553399058402025
+          ],
+          [
+            42.51342361432475
+          ]
+        ],
+        "rotation": [
+          [
+            -0.6588442582415992,
+            0.6319242628546089,
+            -0.408161695162268
+          ],
+          [
+            0.738984146830759,
+            0.44210211078727446,
+            -0.5083779640879925
+          ],
+          [
+            -0.14080722323408074,
+            -0.6365669247244127,
+            -0.7582584494959562
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 44,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "singularity",
+        "box": [
+          783,
+          485,
+          137,
+          128
+        ],
+        "point": [
+          851.6809997558594,
+          548.8347320556641
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8166279196739197,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 622,
+        "source_frame_time": 14248.14,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 10,
+        "confirmed": 9,
+        "reason": "known_multi_face_joint_fit",
+        "renewed": true,
+        "candidate_faces": {
+          "D": 3,
+          "B": 7
+        },
+        "confirmed_faces": {
+          "D": 2,
+          "B": 7
+        },
+        "candidate_cell_indices": [
+          30,
+          33,
+          34,
+          45,
+          46,
+          48,
+          49,
+          51,
+          52,
+          53
+        ],
+        "confirmed_cell_indices": [
+          30,
+          33,
+          45,
+          46,
+          48,
+          49,
+          51,
+          52,
+          53
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 622,
+        "source_frame_time": 14248.14,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 9,
+        "accepted_faces": {
+          "D": 2,
+          "B": 7
+        },
+        "angle_deg": 0.9417844086371702,
+        "median_before": 3.0411858330750023,
+        "median_after": 0.7112077630586886,
+        "max_after": 2.9783116066748976,
+        "translation_pixels": [
+          -0.4339735101642226,
+          -1.583075030854441
+        ],
+        "depth_delta_fraction": 0.0006735981358722896
+      },
+      "raw_png_sha256": "2b4c5f0a9100b4aa2c7390c8c7a6869c0e66b15db396e6581c81e3e5987530d1",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0622.png"
+    },
+    {
+      "frame_id": 642,
+      "kind": "singularity",
+      "nominal_index": 31,
+      "expected_accept": true,
+      "pose": {
+        "rvec": [
+          [
+            -1.2690722035169377
+          ],
+          [
+            -2.4704461899597723
+          ],
+          [
+            1.331511980425276
+          ]
+        ],
+        "tvec": [
+          [
+            0.013850028339382849
+          ],
+          [
+            0.46184982148441156
+          ],
+          [
+            41.3662586672014
+          ]
+        ],
+        "rotation": [
+          [
+            -0.6588852753358265,
+            0.6337469749390722,
+            -0.40525913401329666
+          ],
+          [
+            0.6869427463062839,
+            0.28735835511835894,
+            -0.6674839616356724
+          ],
+          [
+            -0.3065613433602034,
+            -0.7181851763293686,
+            -0.624684076360156
+          ]
+        ],
+        "quality": 0.97,
+        "map_revision": 0,
+        "correction_epoch": 45,
+        "pivot_reference": [
+          [
+            -0.0162110523436573
+          ],
+          [
+            0.43512260916837736
+          ],
+          [
+            42.662772470025345
+          ]
+        ]
+      },
+      "target": {
+        "kind": "singularity",
+        "box": [
+          780,
+          439,
+          167,
+          149
+        ],
+        "point": [
+          863.095947265625,
+          513.127197265625
+        ],
+        "anchor_type": null,
+        "confirmable": true,
+        "confidence": 0.8198375701904297,
+        "source": "deep_dive_entity_onnx",
+        "box_evidence": null
+      },
+      "source": {
+        "model_executed": true,
+        "coverage_valid": true,
+        "source_frame_id": 642,
+        "source_frame_time": 14249.734,
+        "source_map_revision": 0
+      },
+      "refine_diagnostic": {
+        "candidates": 11,
+        "confirmed": 10,
+        "reason": "seven_centres",
+        "renewed": true,
+        "candidate_faces": {
+          "D": 4,
+          "B": 7
+        },
+        "confirmed_faces": {
+          "D": 3,
+          "B": 7
+        },
+        "candidate_cell_indices": [
+          30,
+          32,
+          33,
+          34,
+          45,
+          46,
+          48,
+          49,
+          51,
+          52,
+          53
+        ],
+        "confirmed_cell_indices": [
+          30,
+          33,
+          34,
+          45,
+          46,
+          48,
+          49,
+          51,
+          52,
+          53
+        ],
+        "localized_known_cell_indices": [],
+        "source_frame_id": 642,
+        "source_frame_time": 14249.734,
+        "source_map_revision": 0,
+        "joint_confirmed_inliers": 10,
+        "joint_rejected": {
+          "angle_deg": 1.0599344126509098,
+          "median_before": 4.165098051173308,
+          "median_after": 2.7074819921213726,
+          "max_after": 8.441567468477611,
+          "translation_pixels": [
+            1.6644346347289825,
+            -3.9338316472411767
+          ]
+        },
+        "accepted_faces": {
+          "D": 4,
+          "B": 7
+        },
+        "median_after": 3.2263444725556676,
+        "max_after": 7.480989973644015
+      },
+      "raw_png_sha256": "eb22c258a9154621d9816f3ff2bb54d5363090819a52bf76e44be51695bdc6e7",
+      "source_path": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration04/live01/round_0001/scan/frames/0642.png"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "scope": "Saved real positive poses; regression only, not acceptance truth.",
+  "source_layout": ".pytest_tmp/deep_dive_goal_20261002/worker_exploration02/live01/round_0001/scan/layout.json",
+  "source_layout_sha256": "f9c1c9632f86e51f7faf8eb401e99e1e70adee4ee7f8b17d31b08560c5f27aad",
+  "map_revision": 0,
+  "cell": {
+    "face": "F",
+    "row": 2,
+    "col": 2
+  },
+  "evidence": [
+    {
+      "frame_id": 404,
+      "group": 18,
+      "confidence": 0.872,
+      "occupant": "inspiration",
+      "cosine": 0.319,
+      "target_source": "deep_dive_entity_onnx",
+      "target_box_evidence": null,
+      "association_evidence": {
+        "source_frame_id": 404,
+        "source_frame_time": 11632.609,
+        "source_map_revision": 0,
+        "error": 0.030729247916820863,
+        "competitor_index": 25,
+        "competitor_error": 0.3458897573357543,
+        "margin": 0.3151605094189334,
+        "rvec": [
+          0.22155897923494963,
+          -1.1610187104074425,
+          0.06374436320852253
+        ],
+        "rotation": [
+          [
+            0.3993216931464011,
+            -0.1641513799522186,
+            -0.9019958480184231
+          ],
+          [
+            -0.06441634187680131,
+            0.9763857751345015,
+            -0.20620706344403011
+          ],
+          [
+            0.914545089255802,
+            0.14044622663062745,
+            0.37931798948021944
+          ]
+        ],
+        "tvec": [
+          0.018719368617977756,
+          0.4671993809070101,
+          41.85292233412912
+        ]
+      }
+    },
+    {
+      "frame_id": 392,
+      "group": 17,
+      "confidence": 0.799,
+      "occupant": "inspiration",
+      "cosine": 0.416,
+      "target_source": "deep_dive_entity_onnx",
+      "target_box_evidence": null,
+      "association_evidence": {
+        "source_frame_id": 392,
+        "source_frame_time": 11631.812,
+        "source_map_revision": 0,
+        "error": 0.02995169166113738,
+        "competitor_index": 25,
+        "competitor_error": 0.3312556005378957,
+        "margin": 0.30130390887675834,
+        "rvec": [
+          0.24861653475609474,
+          -1.0485596799568013,
+          0.122039306316589
+        ],
+        "rotation": [
+          [
+            0.49533033881429134,
+            -0.21754346334246247,
+            -0.841024789769651
+          ],
+          [
+            -0.018575330607570717,
+            0.9652628544369409,
+            -0.26061960581864924
+          ],
+          [
+            0.868506080890018,
+            0.14471511117093253,
+            0.4740830349799978
+          ]
+        ],
+        "tvec": [
+          0.004276933615665236,
+          0.4631229465434165,
+          42.09578765451494
+        ]
+      }
+    }
+  ]
+}

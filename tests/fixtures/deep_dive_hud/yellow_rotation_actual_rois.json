@@ -1,0 +1,93 @@
+{
+  "regions": {
+    "plane": [
+      580,
+      0,
+      705,
+      80
+    ],
+    "round": [
+      1190,
+      128,
+      1231,
+      160
+    ],
+    "moves": [
+      1165,
+      386,
+      1250,
+      432
+    ],
+    "rotations": [
+      1165,
+      457,
+      1250,
+      505
+    ],
+    "inspirations": [
+      1215,
+      257,
+      1271,
+      287
+    ]
+  },
+  "frames": [
+    {
+      "source": ".pytest_tmp\\deep_dive_goal_20261002\\worker_exploration\\live01\\round_0001\\hud_pre_1.png",
+      "source_sha256": "6ca03079e3096f2108e5cd3d83623c2bb94dd161b3d8c732827bb3c8e94fde39",
+      "observation": {
+        "valid": true,
+        "scene": "board",
+        "plane_evidence": {
+          "plane_index": 1,
+          "status": "recognized",
+          "scores": {
+            "1": 0.9202,
+            "3": 0.2887,
+            "2": 0.2774
+          }
+        }
+      },
+      "ocr_rotation_text": "1/1",
+      "expected": {
+        "plane_index": 1,
+        "rounds_remaining": 6,
+        "moves_used": 0,
+        "moves_total": 1,
+        "rotations_used": 1,
+        "rotations_total": 1,
+        "collected_count": 0,
+        "inspiration_total": 2
+      }
+    },
+    {
+      "source": ".pytest_tmp\\deep_dive_goal_20261002\\worker_exploration\\live01\\round_0001\\hud_pre_2.png",
+      "source_sha256": "89f7be614f8f1fc686f7151c81d243f6de47cd47e050716c2c9b196622e88c0b",
+      "observation": {
+        "valid": true,
+        "scene": "board",
+        "plane_evidence": {
+          "plane_index": 1,
+          "status": "recognized",
+          "scores": {
+            "1": 0.9202,
+            "3": 0.2887,
+            "2": 0.2774
+          }
+        }
+      },
+      "ocr_rotation_text": "1/1",
+      "expected": {
+        "plane_index": 1,
+        "rounds_remaining": 6,
+        "moves_used": 0,
+        "moves_total": 1,
+        "rotations_used": 1,
+        "rotations_total": 1,
+        "collected_count": 0,
+        "inspiration_total": 2
+      }
+    }
+  ],
+  "scope": "exact actual RGB of HUD ROIs; pixels outside ROI not fixture truth"
+}

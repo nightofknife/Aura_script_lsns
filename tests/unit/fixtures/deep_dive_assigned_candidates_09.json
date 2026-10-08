@@ -1,0 +1,699 @@
+{
+  "source_path": ".pytest_tmp\\deep_dive_goal_20261002\\acceptance_candidate09\\state01\\round_0002\\scan\\layout.json",
+  "body_basis_derivation": "packet.C @ packet.pose.rotation.T @ glyph_rotation; same production stream formula",
+  "sources": [
+    {
+      "frame_id": 125,
+      "elapsed_sec": 14.859,
+      "source_capture_generation": 4180,
+      "feedback": {
+        "session_id": 217683709303391116593335374985755495169,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.9990678320550971,
+            0.026329988351434915,
+            0.03420816665859234
+          ],
+          [
+            -0.02603870014261223,
+            0.9996210218322272,
+            -0.008933017741921375
+          ],
+          [
+            -0.034430408763357255,
+            0.00803395447507946,
+            0.9993748058300653
+          ]
+        ],
+        "glyph_anchor_at": 21605.437,
+        "glyph_anchor_frame_id": 125,
+        "glyph_anchor_age_sec": 0.7969999999986612,
+        "fusion_paused": false,
+        "refine_diagnostic": {
+          "source_frame_id": 125,
+          "source_frame_time": 21605.437,
+          "source_map_revision": 0,
+          "renewed": true,
+          "accepted_faces": {
+            "U": 5,
+            "F": 2
+          },
+          "confirmed_cell_indices": [
+            3,
+            5,
+            6,
+            7,
+            8,
+            18,
+            20
+          ]
+        },
+        "accepted_anchor_observation": {
+          "frame_id": 125,
+          "frame_time": 21605.437,
+          "session_id": 217683709303391116593335374985755495169,
+          "map_revision": 0,
+          "rotation": [
+            [
+              0.7914920615855026,
+              -0.29662913384024747,
+              -0.5343701651517565
+            ],
+            [
+              -0.16327765485594867,
+              0.7399241288296847,
+              -0.6525738969652202
+            ],
+            [
+              0.5889658087460363,
+              0.6037577664368523,
+              0.5372111648088772
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9997799973962224,
+              0.006837075591977256,
+              0.019829553796272516
+            ],
+            [
+              -0.006443038110796179,
+              0.9997818611850678,
+              -0.019867493682517685
+            ],
+            [
+              -0.01996106375703747,
+              0.01973536021134761,
+              0.9996059581110027
+            ]
+          ],
+          "accepted_faces": {
+            "U": 5,
+            "F": 2
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "inspiration",
+            "box": [
+              813,
+              605,
+              57,
+              45
+            ],
+            "point": [
+              841.6064453125,
+              627.4190063476562
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.6585990190505981,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              1.0,
+              1.0,
+              -2.51268665
+            ],
+            "cell_index": 26,
+            "source_depth": 41.83509308445942,
+            "association_evidence": {
+              "source_frame_id": 125,
+              "source_frame_time": 21605.437,
+              "source_map_revision": 0,
+              "error": 0.1825284647584161,
+              "competitor_index": 22,
+              "competitor_error": 0.5140161710006098,
+              "margin": 0.3314877062421937,
+              "rvec": [
+                0.7484165809188759,
+                -0.6691889516906169,
+                0.07943957863136639
+              ],
+              "rotation": [
+                [
+                  0.7914920615855026,
+                  -0.29662913384024747,
+                  -0.5343701651517565
+                ],
+                [
+                  -0.16327765485594867,
+                  0.7399241288296847,
+                  -0.6525738969652202
+                ],
+                [
+                  0.5889658087460363,
+                  0.6037577664368523,
+                  0.5372111648088772
+                ]
+              ],
+              "tvec": [
+                0.03114663236546127,
+                0.441590065499519,
+                41.99221283132275
+              ],
+              "target_face_glyph_count": 2,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 26,
+                "competitor_index": 22,
+                "nominal_error": 0.1825284647584161,
+                "winner_error_upper": 0.19410323483058733,
+                "competitor_error_lower": 0.5029315888876484,
+                "margin_lower": 0.3088283540570611,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 157,
+      "elapsed_sec": 17.031,
+      "source_capture_generation": 4295,
+      "feedback": {
+        "session_id": 217683709303391116593335374985755495169,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.9997799973962226,
+            0.006837075591977307,
+            0.019829553796272572
+          ],
+          [
+            -0.006443038110796204,
+            0.9997818611850678,
+            -0.019867493682517712
+          ],
+          [
+            -0.019961063757037423,
+            0.019735360211347627,
+            0.9996059581110028
+          ]
+        ],
+        "glyph_anchor_at": 21607.609,
+        "glyph_anchor_frame_id": 157,
+        "glyph_anchor_age_sec": 0.8280000000013388,
+        "fusion_paused": false,
+        "refine_diagnostic": {
+          "source_frame_id": 157,
+          "source_frame_time": 21607.609,
+          "source_map_revision": 0,
+          "renewed": true,
+          "accepted_faces": {
+            "U": 5,
+            "F": 2
+          },
+          "confirmed_cell_indices": [
+            0,
+            3,
+            6,
+            7,
+            8,
+            18,
+            20
+          ]
+        },
+        "accepted_anchor_observation": {
+          "frame_id": 157,
+          "frame_time": 21607.609,
+          "session_id": 217683709303391116593335374985755495169,
+          "map_revision": 0,
+          "rotation": [
+            [
+              0.6311151031048229,
+              -0.31941813520942675,
+              -0.7068704135358342
+            ],
+            [
+              -0.25397049996796606,
+              0.7759625015326754,
+              -0.5773917053103328
+            ],
+            [
+              0.73293431614232,
+              0.5439248579670588,
+              0.4085988706622972
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9999509640749754,
+              0.009899794963787283,
+              0.0002520023859194216
+            ],
+            [
+              -0.009895515566060682,
+              0.9998607545076031,
+              -0.013436903183714023
+            ],
+            [
+              -0.0003849898821902941,
+              0.013433750599204508,
+              0.999909688985775
+            ]
+          ],
+          "accepted_faces": {
+            "U": 5,
+            "F": 2
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "inspiration",
+            "box": [
+              828,
+              580,
+              62,
+              60
+            ],
+            "point": [
+              858.9429626464844,
+              609.58203125
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.8868088722229004,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              1.0,
+              1.0,
+              -2.63268665
+            ],
+            "cell_index": 26,
+            "source_depth": 43.06224953896707,
+            "association_evidence": {
+              "source_frame_id": 157,
+              "source_frame_time": 21607.609,
+              "source_map_revision": 0,
+              "error": 0.025192971033221483,
+              "competitor_index": 22,
+              "competitor_error": 0.4806723120631871,
+              "margin": 0.4554793410299656,
+              "rvec": [
+                0.70659083402882,
+                -0.9072842211555324,
+                0.041241430551345305
+              ],
+              "rotation": [
+                [
+                  0.6311151031048229,
+                  -0.31941813520942675,
+                  -0.7068704135358342
+                ],
+                [
+                  -0.25397049996796606,
+                  0.7759625015326754,
+                  -0.5773917053103328
+                ],
+                [
+                  0.73293431614232,
+                  0.5439248579670588,
+                  0.4085988706622972
+                ]
+              ],
+              "tvec": [
+                0.0040520788621501895,
+                0.4569901018187772,
+                42.8611031568554
+              ],
+              "target_face_glyph_count": 2,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 26,
+                "competitor_index": 22,
+                "nominal_error": 0.025192971033221483,
+                "winner_error_upper": 0.039168948285521935,
+                "competitor_error_lower": 0.4673114712189569,
+                "margin_lower": 0.42814252293343497,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 167,
+      "elapsed_sec": 17.812,
+      "source_capture_generation": 4337,
+      "feedback": {
+        "session_id": 217683709303391116593335374985755495169,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.999703169182479,
+            0.022968460704096,
+            0.00812547471794079
+          ],
+          [
+            -0.022764560264366365,
+            0.9994441647575757,
+            -0.02435439032292882
+          ],
+          [
+            -0.00868034114983558,
+            0.02416218833044595,
+            0.9996703658369624
+          ]
+        ],
+        "glyph_anchor_at": 21608.39,
+        "glyph_anchor_frame_id": 167,
+        "glyph_anchor_age_sec": 0.8440000000009604,
+        "fusion_paused": false,
+        "refine_diagnostic": {
+          "source_frame_id": 167,
+          "source_frame_time": 21608.39,
+          "source_map_revision": 0,
+          "renewed": true,
+          "accepted_faces": {
+            "U": 5,
+            "F": 2,
+            "L": 8
+          },
+          "confirmed_cell_indices": [
+            0,
+            3,
+            6,
+            7,
+            8,
+            18,
+            20
+          ]
+        },
+        "accepted_anchor_observation": {
+          "frame_id": 167,
+          "frame_time": 21608.39,
+          "session_id": 217683709303391116593335374985755495169,
+          "map_revision": 0,
+          "rotation": [
+            [
+              0.5992736761785873,
+              -0.31235810024305855,
+              -0.7370912279032693
+            ],
+            [
+              -0.28196291507984217,
+              0.7793795514597393,
+              -0.559521607523868
+            ],
+            [
+              0.749244936959256,
+              0.5431389619415672,
+              0.378988248448362
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9993424178754908,
+              0.035204637341176834,
+              0.008681321583933683
+            ],
+            [
+              -0.0350276045415411,
+              0.999190888683199,
+              -0.019764485638646884
+            ],
+            [
+              -0.009370098977538939,
+              0.019447402966851015,
+              0.9997669727306439
+            ]
+          ],
+          "accepted_faces": {
+            "U": 5,
+            "F": 2,
+            "L": 8
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "inspiration",
+            "box": [
+              837,
+              569,
+              47,
+              67
+            ],
+            "point": [
+              860.7749633789062,
+              602.4446105957031
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.9265084266662598,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              1.0,
+              1.0,
+              -2.59268665
+            ],
+            "cell_index": 26,
+            "source_depth": 42.91944051819413,
+            "association_evidence": {
+              "source_frame_id": 167,
+              "source_frame_time": 21608.39,
+              "source_map_revision": 0,
+              "error": 0.08578924503070319,
+              "competitor_index": 22,
+              "competitor_error": 0.5188398568308775,
+              "margin": 0.43305061180017435,
+              "rvec": [
+                0.7043164442729294,
+                -0.9493864491207343,
+                0.01941470415284029
+              ],
+              "rotation": [
+                [
+                  0.5992736761785873,
+                  -0.31235810024305855,
+                  -0.7370912279032693
+                ],
+                [
+                  -0.28196291507984217,
+                  0.7793795514597393,
+                  -0.559521607523868
+                ],
+                [
+                  0.749244936959256,
+                  0.5431389619415672,
+                  0.378988248448362
+                ]
+              ],
+              "tvec": [
+                0.03026520402835163,
+                0.4384194635211127,
+                42.609654391552255
+              ],
+              "target_face_glyph_count": 2,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 26,
+                "competitor_index": 22,
+                "nominal_error": 0.08578924503070319,
+                "winner_error_upper": 0.10036568549358904,
+                "competitor_error_lower": 0.504915228998501,
+                "margin_lower": 0.404549543504912,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "frame_id": 394,
+      "elapsed_sec": 33.14,
+      "source_capture_generation": 5147,
+      "feedback": {
+        "session_id": 217683709303391116593335374985755495169,
+        "map_revision": 0,
+        "semantic_map_revision": 0,
+        "geometry_body_basis": [
+          [
+            0.9997694664300532,
+            0.01801226091084933,
+            0.01168642165277068
+          ],
+          [
+            -0.017892228746591722,
+            0.9997869116835624,
+            -0.010295599872009021
+          ],
+          [
+            -0.011869378443984006,
+            0.010084130261175227,
+            0.999878706730086
+          ]
+        ],
+        "glyph_anchor_at": 21623.718,
+        "glyph_anchor_frame_id": 394,
+        "glyph_anchor_age_sec": 0.5629999999982829,
+        "fusion_paused": false,
+        "refine_diagnostic": {
+          "source_frame_id": 394,
+          "source_frame_time": 21623.718,
+          "source_map_revision": 0,
+          "renewed": true,
+          "accepted_faces": {
+            "F": 2,
+            "L": 8
+          },
+          "confirmed_cell_indices": [
+            18,
+            19,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        "accepted_anchor_observation": {
+          "frame_id": 394,
+          "frame_time": 21623.718,
+          "session_id": 217683709303391116593335374985755495169,
+          "map_revision": 0,
+          "rotation": [
+            [
+              0.36997620004262727,
+              -0.3176598873788392,
+              -0.8730462801893614
+            ],
+            [
+              0.029304783586303007,
+              0.9432509162389313,
+              -0.3307853362429721
+            ],
+            [
+              0.9285789363651201,
+              0.0967982694312215,
+              0.35828934393049267
+            ]
+          ],
+          "body_basis": [
+            [
+              0.9997660789991553,
+              0.020193739112685485,
+              0.007745978524618304
+            ],
+            [
+              -0.020172626398918675,
+              0.9997926074085886,
+              -0.002794157351504723
+            ],
+            [
+              -0.007800796550655251,
+              0.002637247008549422,
+              0.9999660956759441
+            ]
+          ],
+          "accepted_faces": {
+            "F": 2,
+            "L": 8
+          }
+        },
+        "target_candidate_associations": [
+          {
+            "kind": "inspiration",
+            "box": [
+              844,
+              560,
+              54,
+              64
+            ],
+            "point": [
+              870.7926330566406,
+              591.7449951171875
+            ],
+            "anchor_type": null,
+            "confirmable": true,
+            "confidence": 0.8749635815620422,
+            "source": "deep_dive_entity_onnx",
+            "box_evidence": null,
+            "object_point": [
+              1.0,
+              1.0,
+              -2.51268665
+            ],
+            "cell_index": 26,
+            "source_depth": 42.31967735559701,
+            "association_evidence": {
+              "source_frame_id": 394,
+              "source_frame_time": 21623.718,
+              "source_map_revision": 0,
+              "error": 0.04593111579548025,
+              "competitor_index": 25,
+              "competitor_error": 0.3349341575293993,
+              "margin": 0.28900304173391905,
+              "rvec": [
+                0.27880398477176216,
+                -1.1747416944311395,
+                0.22623676763185904
+              ],
+              "rotation": [
+                [
+                  0.36997620004262727,
+                  -0.3176598873788392,
+                  -0.8730462801893614
+                ],
+                [
+                  0.029304783586303007,
+                  0.9432509162389313,
+                  -0.3307853362429721
+                ],
+                [
+                  0.9285789363651201,
+                  0.0967982694312215,
+                  0.35828934393049267
+                ]
+              ],
+              "tvec": [
+                0.006337578202389282,
+                0.4861621577560198,
+                42.19456900113207
+              ],
+              "target_face_glyph_count": 2,
+              "anchor_uncertainty": {
+                "ready": true,
+                "reason": "all54_disk_certified",
+                "winner_index": 26,
+                "competitor_index": 25,
+                "nominal_error": 0.04593111579548025,
+                "winner_error_upper": 0.06070077882548307,
+                "competitor_error_lower": 0.3206471384582391,
+                "margin_lower": 0.25994635963275603,
+                "pixel_radius": 0.7071067811865476,
+                "valid_corridors": 54,
+                "proof": "fixed_geometry_lipschitz_disk",
+                "radius_assumption": "pixel_quantization_square"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

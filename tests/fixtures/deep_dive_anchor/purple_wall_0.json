@@ -1,0 +1,29 @@
+{
+  "source_provenance": {
+    "index": 0,
+    "frame": 217,
+    "run": "run2",
+    "xy": [
+      510,
+      440
+    ],
+    "box": [
+      510,
+      440,
+      24,
+      24
+    ],
+    "purple_pixels": 372,
+    "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0217.png",
+    "manual_label": "Filled glowing purple wall"
+  },
+  "manual_truth": "unknown_no_complete_ring",
+  "manual_review": "Filled glowing purple wall",
+  "fixture_sha256": "ca7f159a3d5cd92efa37143a3b3fa8d774ae73601097223bfcc9c684896bbc61",
+  "purpose": "Fixed visual regression only, not a reference/training template",
+  "structural_evidence": {
+    "accepted": false,
+    "reason": "no_complete_central_curved_hole",
+    "considered": []
+  }
+}

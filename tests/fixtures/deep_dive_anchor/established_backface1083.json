@@ -1,0 +1,1465 @@
+{
+  "evidence_scope": "Real source frame and historical front observations; same-board regression, not independent accuracy validation",
+  "cells": [
+    {
+      "face": "U",
+      "row": 0,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.82,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 0,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 0,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 1,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.821,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 1,
+      "col": 1,
+      "occupant": "player",
+      "occupant_status": "confirmed",
+      "confidence": 0.807,
+      "evidence": [
+        {
+          "frame_id": 29,
+          "occupant": "player",
+          "confidence": 0.813,
+          "cosine": 0.719,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 29,
+            "source_frame_time": 5598.562,
+            "source_map_revision": 0,
+            "error": 0.03800066748180614,
+            "margin": 0.234292197044359,
+            "rotation": [
+              [
+                0.8975866247305457,
+                -0.003488203060976608,
+                0.44082432276841493
+              ],
+              [
+                0.32709032905282254,
+                0.6756776312211713,
+                -0.6606600149149812
+              ],
+              [
+                -0.2955506179065484,
+                0.7371889656707785,
+                0.6076201619007595
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 389,
+          "occupant": "player",
+          "confidence": 0.813,
+          "cosine": 0.427,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 389,
+            "source_frame_time": 5620.515,
+            "source_map_revision": 0,
+            "error": 0.03329394769675114,
+            "margin": 0.32881550946159216,
+            "rotation": [
+              [
+                0.045138351686544176,
+                -0.5659404289505259,
+                -0.8232095481020107
+              ],
+              [
+                -0.5355661882470588,
+                0.6819091410247595,
+                -0.49816541569381384
+              ],
+              [
+                0.8432860648756968,
+                0.46336956553723857,
+                -0.2723183036820937
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 432,
+          "occupant": "player",
+          "confidence": 0.813,
+          "cosine": 0.305,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 432,
+            "source_frame_time": 5623.109,
+            "source_map_revision": 0,
+            "error": 0.042016282054379385,
+            "margin": 0.8383847426002417,
+            "rotation": [
+              [
+                -0.18618061312213113,
+                -0.5564716859874235,
+                -0.8097382552354689
+              ],
+              [
+                -0.5192115522997169,
+                0.7553958287812463,
+                -0.39974555134286577
+              ],
+              [
+                0.8341199813312145,
+                0.3460005846154132,
+                -0.42956658644476375
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 296,
+          "occupant": "player",
+          "confidence": 0.812,
+          "cosine": 0.699,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 296,
+            "source_frame_time": 5615.187,
+            "source_map_revision": 0,
+            "error": 0.010320272917499214,
+            "margin": 0.4516681312460044,
+            "rotation": [
+              [
+                0.6101990393951925,
+                -0.42578964913468886,
+                -0.668102018415558
+              ],
+              [
+                -0.4131261031262732,
+                0.548554181216819,
+                -0.7269216829791536
+              ],
+              [
+                0.6760058840253419,
+                0.7195772960282334,
+                0.15882241593620217
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 116,
+          "occupant": "player",
+          "confidence": 0.811,
+          "cosine": 0.625,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 116,
+            "source_frame_time": 5604.015,
+            "source_map_revision": 0,
+            "error": 0.014567315198944837,
+            "margin": 0.32107003899956793,
+            "rotation": [
+              [
+                0.9493309693372405,
+                -0.2287804112239274,
+                -0.2154767599938009
+              ],
+              [
+                0.018597887685600972,
+                0.7253181576053842,
+                -0.6881625453492546
+              ],
+              [
+                0.31372731667938825,
+                0.6492866036567686,
+                0.692821822030029
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 352,
+          "occupant": "player",
+          "confidence": 0.811,
+          "cosine": 0.56,
+          "target_source": "deep_dive_local_pink_head",
+          "target_box_evidence": "existing_model_box_with_confirmed_head_center",
+          "association_evidence": {
+            "source_frame_id": 352,
+            "source_frame_time": 5618.328,
+            "source_map_revision": 0,
+            "error": 0.02545022534236566,
+            "margin": 0.3378615363416282,
+            "rotation": [
+              [
+                0.3093129700358652,
+                -0.5263374387029693,
+                -0.7920191835979669
+              ],
+              [
+                -0.5090989478337424,
+                0.61180807375043,
+                -0.6053999853058842
+              ],
+              [
+                0.8032084087471747,
+                0.5904742005484969,
+                -0.07871766386552144
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "face": "U",
+      "row": 1,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.817,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 2,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 2,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "U",
+      "row": 2,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.818,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 0,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 0,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 0,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 1,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 1,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 1,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 2,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 2,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "R",
+      "row": 2,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 0,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 0,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.833,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 0,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.82,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 1,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.841,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 1,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.836,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 1,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 2,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 2,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "F",
+      "row": 2,
+      "col": 2,
+      "occupant": "inspiration",
+      "occupant_status": "confirmed",
+      "confidence": 0.903,
+      "evidence": [
+        {
+          "frame_id": 1014,
+          "occupant": "inspiration",
+          "confidence": 0.908,
+          "cosine": 0.88,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 1014,
+            "source_frame_time": 5660.234,
+            "source_map_revision": 0,
+            "error": 0.023910750623072102,
+            "margin": 1.0326854335799678,
+            "rotation": [
+              [
+                -0.1080209854541904,
+                -0.9222607079140261,
+                0.37116930549201504
+              ],
+              [
+                0.9602590251791061,
+                -0.1934456638113612,
+                -0.20119985018546743
+              ],
+              [
+                0.2573598089515499,
+                0.3346848693778986,
+                0.9065053595792583
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 983,
+          "occupant": "inspiration",
+          "confidence": 0.898,
+          "cosine": 0.841,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 983,
+            "source_frame_time": 5658.203,
+            "source_map_revision": 0,
+            "error": 0.025084219913742503,
+            "margin": 0.9533668406654917,
+            "rotation": [
+              [
+                -0.10356611933392246,
+                -0.924127292288693,
+                0.36778092198111706
+              ],
+              [
+                0.9203404095260126,
+                -0.22925440478843284,
+                -0.3168847558318211
+              ],
+              [
+                0.3771572477357465,
+                0.3056651199143765,
+                0.874254679683287
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "face": "D",
+      "row": 0,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.828,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 0,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.819,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 0,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 1,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 1,
+      "col": 1,
+      "occupant": "singularity",
+      "occupant_status": "confirmed",
+      "confidence": 0.84,
+      "evidence": [
+        {
+          "frame_id": 766,
+          "occupant": "singularity",
+          "confidence": 0.904,
+          "cosine": 0.48,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 766,
+            "source_frame_time": 5644.562,
+            "source_map_revision": 0,
+            "error": 0.06938369535158956,
+            "margin": 0.2494278622087006,
+            "rotation": [
+              [
+                -0.3351970441987268,
+                -0.8517557927684565,
+                -0.40268475392770375
+              ],
+              [
+                0.7202465358410091,
+                0.043869498539739205,
+                -0.692329686426126
+              ],
+              [
+                0.6073613991434285,
+                -0.5220991635534865,
+                0.5987692328829922
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 735,
+          "occupant": "singularity",
+          "confidence": 0.88,
+          "cosine": 0.626,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 735,
+            "source_frame_time": 5642.609,
+            "source_map_revision": 0,
+            "error": 0.04475963237152158,
+            "margin": 0.623906205253881,
+            "rotation": [
+              [
+                -0.3647154713499246,
+                -0.7418243676969483,
+                -0.5627425987509966
+              ],
+              [
+                0.7572883660230973,
+                0.11531927106816653,
+                -0.6428186341468132
+              ],
+              [
+                0.5417535931067461,
+                -0.6606043242451036,
+                0.5197162409859835
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 741,
+          "occupant": "singularity",
+          "confidence": 0.843,
+          "cosine": 0.599,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 741,
+            "source_frame_time": 5643.0,
+            "source_map_revision": 0,
+            "error": 0.06441844650706456,
+            "margin": 0.5680235459869898,
+            "rotation": [
+              [
+                -0.35619706598921086,
+                -0.7649185798854695,
+                -0.5366779446993086
+              ],
+              [
+                0.7492879957334103,
+                0.10934448369182209,
+                -0.653154869334967
+              ],
+              [
+                0.5582930678689164,
+                -0.6347781896317527,
+                0.534196125348498
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 704,
+          "occupant": "singularity",
+          "confidence": 0.842,
+          "cosine": 0.764,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 704,
+            "source_frame_time": 5640.421,
+            "source_map_revision": 0,
+            "error": 0.05515496213152866,
+            "margin": 0.789074360311207,
+            "rotation": [
+              [
+                -0.3817381902911086,
+                -0.5855385917723018,
+                -0.7151367083422434
+              ],
+              [
+                0.794925601097937,
+                0.18676220938111937,
+                -0.5772461917294613
+              ],
+              [
+                0.4715604338707319,
+                -0.7888373943293967,
+                0.3941653492067187
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 672,
+          "occupant": "singularity",
+          "confidence": 0.818,
+          "cosine": 0.767,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 672,
+            "source_frame_time": 5638.171,
+            "source_map_revision": 0,
+            "error": 0.02064045859200355,
+            "margin": 0.3379000385155115,
+            "rotation": [
+              [
+                -0.38761782474948664,
+                -0.5338788254802695,
+                -0.7514824160552822
+              ],
+              [
+                0.7477324675788086,
+                0.2946758088900237,
+                -0.5950313643695737
+              ],
+              [
+                0.5391183347512698,
+                -0.7925525644137543,
+                0.2849769355161916
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 651,
+          "occupant": "singularity",
+          "confidence": 0.801,
+          "cosine": 0.695,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 651,
+            "source_frame_time": 5636.593,
+            "source_map_revision": 0,
+            "error": 0.03320299183443334,
+            "margin": 0.40742296621411256,
+            "rotation": [
+              [
+                -0.4036314919995905,
+                -0.5267409688964501,
+                -0.7480812591906134
+              ],
+              [
+                0.626280736094517,
+                0.4369914753555209,
+                -0.6456089296652545
+              ],
+              [
+                0.666973806279598,
+                -0.7290969771934559,
+                0.15350420054275676
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "face": "D",
+      "row": 1,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 2,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 2,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "D",
+      "row": 2,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 0,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 0,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 0,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.844,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 1,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 1,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.824,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 1,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.846,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 2,
+      "col": 0,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 2,
+      "col": 1,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.83,
+      "evidence": []
+    },
+    {
+      "face": "L",
+      "row": 2,
+      "col": 2,
+      "occupant": "none",
+      "occupant_status": "confirmed",
+      "confidence": 0.831,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 0,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 0,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 0,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 1,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 1,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 1,
+      "col": 2,
+      "occupant": "inspiration",
+      "occupant_status": "confirmed",
+      "confidence": 0.868,
+      "evidence": [
+        {
+          "frame_id": 432,
+          "occupant": "inspiration",
+          "confidence": 0.926,
+          "cosine": 0.396,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 432,
+            "source_frame_time": 5623.109,
+            "source_map_revision": 0,
+            "error": 0.018086250854206124,
+            "margin": 0.5637657973344641,
+            "rotation": [
+              [
+                -0.18618061312213113,
+                -0.5564716859874235,
+                -0.8097382552354689
+              ],
+              [
+                -0.5192115522997169,
+                0.7553958287812463,
+                -0.39974555134286577
+              ],
+              [
+                0.8341199813312145,
+                0.3460005846154132,
+                -0.42956658644476375
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 463,
+          "occupant": "inspiration",
+          "confidence": 0.907,
+          "cosine": 0.523,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 463,
+            "source_frame_time": 5624.921,
+            "source_map_revision": 0,
+            "error": 0.029878553266342592,
+            "margin": 0.37054527213178573,
+            "rotation": [
+              [
+                -0.36089715732811356,
+                -0.5246296885814723,
+                -0.7710492407696113
+              ],
+              [
+                -0.4851123603290131,
+                0.8117175822626325,
+                -0.3252392419461701
+              ],
+              [
+                0.796504387739641,
+                0.25666759924971644,
+                -0.5474509145182667
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 496,
+          "occupant": "inspiration",
+          "confidence": 0.896,
+          "cosine": 0.48,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 496,
+            "source_frame_time": 5627.14,
+            "source_map_revision": 0,
+            "error": 0.025357864576620457,
+            "margin": 0.48668947922777306,
+            "rotation": [
+              [
+                -0.3654494682220551,
+                -0.5290161341364407,
+                -0.7658907337209088
+              ],
+              [
+                -0.38109736502533686,
+                0.8357160502262,
+                -0.395402935959084
+              ],
+              [
+                0.8492417114973579,
+                0.14737914783867384,
+                -0.5070186409150892
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 408,
+          "occupant": "inspiration",
+          "confidence": 0.872,
+          "cosine": 0.324,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 408,
+            "source_frame_time": 5621.687,
+            "source_map_revision": 0,
+            "error": 0.07718340964140964,
+            "margin": 0.8507951165383169,
+            "rotation": [
+              [
+                -0.08455178984924977,
+                -0.5735770629612861,
+                -0.8147762562065691
+              ],
+              [
+                -0.5235096842124841,
+                0.7213241115760898,
+                -0.45346348981446044
+              ],
+              [
+                0.8478140157894497,
+                0.3882021108954315,
+                -0.3612623917975655
+              ]
+            ]
+          }
+        },
+        {
+          "frame_id": 545,
+          "occupant": "inspiration",
+          "confidence": 0.738,
+          "cosine": 0.317,
+          "target_source": "deep_dive_entity_onnx",
+          "target_box_evidence": null,
+          "association_evidence": {
+            "source_frame_id": 545,
+            "source_frame_time": 5630.031,
+            "source_map_revision": 0,
+            "error": 0.043813336042148675,
+            "margin": 0.20649082439509817,
+            "rotation": [
+              [
+                -0.3629214465428394,
+                -0.5339301074655445,
+                -0.7636796867673546
+              ],
+              [
+                -0.09199647061915173,
+                0.8360840873311854,
+                -0.5408327359777678
+              ],
+              [
+                0.9272673147657434,
+                -0.12602396301263713,
+                -0.35255253184981805
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "face": "B",
+      "row": 2,
+      "col": 0,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 2,
+      "col": 1,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    },
+    {
+      "face": "B",
+      "row": 2,
+      "col": 2,
+      "occupant": "unknown",
+      "occupant_status": "unknown",
+      "confidence": 0.0,
+      "evidence": []
+    }
+  ],
+  "targets": [
+    {
+      "kind": "player",
+      "box": [
+        903,
+        473,
+        26,
+        27
+      ],
+      "point": [
+        916.5,
+        485.5
+      ],
+      "anchor_type": "head",
+      "confirmable": true,
+      "confidence": 0.813,
+      "source": "deep_dive_local_pink_head",
+      "box_evidence": "existing_model_box_with_confirmed_head_center",
+      "object_point": [
+        0.0,
+        -2.849353316666667,
+        0.0
+      ],
+      "cell_index": 4,
+      "source_depth": 41.17407682130802,
+      "association_evidence": {
+        "source_frame_id": 1083,
+        "source_frame_time": 5665.187,
+        "source_map_revision": 0,
+        "error": 0.088069364169961,
+        "competitor_index": 7,
+        "competitor_error": 0.9379538762466492,
+        "margin": 0.8498845120766881,
+        "rvec": [
+          0.6097553055284203,
+          -0.03317461178153356,
+          1.7128655962031947
+        ],
+        "rotation": [
+          [
+            -0.10514549613737942,
+            -0.9208055251066471,
+            0.37558169494145466
+          ],
+          [
+            0.9055719640345816,
+            -0.24472888455232553,
+            -0.34647826918917235
+          ],
+          [
+            0.41095479386007217,
+            0.3036856236288542,
+            0.8595878078501225
+          ]
+        ],
+        "tvec": [
+          0.027789538654567805,
+          0.4647671742503803,
+          42.03938446021888
+        ]
+      }
+    },
+    {
+      "kind": "singularity",
+      "box": [
+        286,
+        270,
+        95,
+        115
+      ],
+      "point": [
+        333.4223327636719,
+        327.1725158691406
+      ],
+      "anchor_type": null,
+      "confirmable": true,
+      "confidence": 0.9387132525444031,
+      "source": "deep_dive_entity_onnx",
+      "box_evidence": null
+    },
+    {
+      "kind": "inspiration",
+      "box": [
+        402,
+        539,
+        53,
+        65
+      ],
+      "point": [
+        428.4716339111328,
+        571.5945129394531
+      ],
+      "anchor_type": null,
+      "confirmable": true,
+      "confidence": 0.8292876482009888,
+      "source": "deep_dive_entity_onnx",
+      "box_evidence": null,
+      "object_point": [
+        1.0,
+        1.0,
+        -2.55268665
+      ],
+      "cell_index": 26,
+      "source_depth": 40.559766556106034,
+      "association_evidence": {
+        "source_frame_id": 1083,
+        "source_frame_time": 5665.187,
+        "source_map_revision": 0,
+        "error": 0.048019609679168324,
+        "competitor_index": 25,
+        "competitor_error": 0.9143369988379033,
+        "margin": 0.866317389158735,
+        "rvec": [
+          0.6097553055284203,
+          -0.03317461178153356,
+          1.7128655962031947
+        ],
+        "rotation": [
+          [
+            -0.10514549613737942,
+            -0.9208055251066471,
+            0.37558169494145466
+          ],
+          [
+            0.9055719640345816,
+            -0.24472888455232553,
+            -0.34647826918917235
+          ],
+          [
+            0.41095479386007217,
+            0.3036856236288542,
+            0.8595878078501225
+          ]
+        ],
+        "tvec": [
+          0.027789538654567805,
+          0.4647671742503803,
+          42.03938446021888
+        ]
+      }
+    },
+    {
+      "kind": "player",
+      "box": [
+        359,
+        437,
+        35,
+        30
+      ],
+      "point": [
+        376.3437194824219,
+        451.64268493652344
+      ],
+      "anchor_type": "head",
+      "confirmable": false,
+      "confidence": 0.06523117423057556,
+      "source": "deep_dive_entity_onnx",
+      "box_evidence": null
+    }
+  ],
+  "pose": {
+    "rvec": [
+      [
+        0.6097553055284203
+      ],
+      [
+        -0.03317461178153356
+      ],
+      [
+        1.7128655962031947
+      ]
+    ],
+    "tvec": [
+      [
+        0.027789538654567805
+      ],
+      [
+        0.4647671742503803
+      ],
+      [
+        42.03938446021888
+      ]
+    ],
+    "rotation": [
+      [
+        -0.10514549613737942,
+        -0.9208055251066471,
+        0.37558169494145466
+      ],
+      [
+        0.9055719640345816,
+        -0.24472888455232553,
+        -0.34647826918917235
+      ],
+      [
+        0.41095479386007217,
+        0.3036856236288542,
+        0.8595878078501225
+      ]
+    ],
+    "quality": 0.97,
+    "map_revision": 0,
+    "correction_epoch": 55,
+    "pivot_reference": [
+      [
+        -0.020945167474054102
+      ],
+      [
+        0.4394881604058364
+      ],
+      [
+        42.59835825077013
+      ]
+    ]
+  },
+  "source": {
+    "frame_id": 1083,
+    "frame_time": 5665.187,
+    "generation": 4160,
+    "session_id": 205300521429767784098712176179570744101,
+    "map_revision": 0,
+    "capture_backend": "wgc"
+  },
+  "anchor_proof": {
+    "source_frame_id": 1083,
+    "source_frame_time": 5665.187,
+    "source_map_revision": 0,
+    "renewed": true,
+    "decisions": []
+  },
+  "model_coverage": {
+    "model_executed": true,
+    "coverage_valid": true,
+    "source_frame_id": 1083,
+    "source_frame_time": 5665.187,
+    "source_map_revision": 0
+  },
+  "front_assigned": {
+    "4": {
+      "kind": "player",
+      "box": [
+        903,
+        473,
+        26,
+        27
+      ],
+      "point": [
+        916.5,
+        485.5
+      ],
+      "anchor_type": "head",
+      "confirmable": true,
+      "confidence": 0.813,
+      "source": "deep_dive_local_pink_head",
+      "box_evidence": "existing_model_box_with_confirmed_head_center",
+      "object_point": [
+        0.0,
+        -2.849353316666667,
+        0.0
+      ],
+      "cell_index": 4,
+      "source_depth": 41.17407682130802,
+      "association_evidence": {
+        "source_frame_id": 1083,
+        "source_frame_time": 5665.187,
+        "source_map_revision": 0,
+        "error": 0.088069364169961,
+        "competitor_index": 7,
+        "competitor_error": 0.9379538762466492,
+        "margin": 0.8498845120766881,
+        "rvec": [
+          0.6097553055284203,
+          -0.03317461178153356,
+          1.7128655962031947
+        ],
+        "rotation": [
+          [
+            -0.10514549613737942,
+            -0.9208055251066471,
+            0.37558169494145466
+          ],
+          [
+            0.9055719640345816,
+            -0.24472888455232553,
+            -0.34647826918917235
+          ],
+          [
+            0.41095479386007217,
+            0.3036856236288542,
+            0.8595878078501225
+          ]
+        ],
+        "tvec": [
+          0.027789538654567805,
+          0.4647671742503803,
+          42.03938446021888
+        ]
+      }
+    },
+    "26": {
+      "kind": "inspiration",
+      "box": [
+        402,
+        539,
+        53,
+        65
+      ],
+      "point": [
+        428.4716339111328,
+        571.5945129394531
+      ],
+      "anchor_type": null,
+      "confirmable": true,
+      "confidence": 0.8292876482009888,
+      "source": "deep_dive_entity_onnx",
+      "box_evidence": null,
+      "object_point": [
+        1.0,
+        1.0,
+        -2.55268665
+      ],
+      "cell_index": 26,
+      "source_depth": 40.559766556106034,
+      "association_evidence": {
+        "source_frame_id": 1083,
+        "source_frame_time": 5665.187,
+        "source_map_revision": 0,
+        "error": 0.048019609679168324,
+        "competitor_index": 25,
+        "competitor_error": 0.9143369988379033,
+        "margin": 0.866317389158735,
+        "rvec": [
+          0.6097553055284203,
+          -0.03317461178153356,
+          1.7128655962031947
+        ],
+        "rotation": [
+          [
+            -0.10514549613737942,
+            -0.9208055251066471,
+            0.37558169494145466
+          ],
+          [
+            0.9055719640345816,
+            -0.24472888455232553,
+            -0.34647826918917235
+          ],
+          [
+            0.41095479386007217,
+            0.3036856236288542,
+            0.8595878078501225
+          ]
+        ],
+        "tvec": [
+          0.027789538654567805,
+          0.4647671742503803,
+          42.03938446021888
+        ]
+      }
+    }
+  },
+  "now": 5665.287
+}

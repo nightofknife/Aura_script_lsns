@@ -1,0 +1,1888 @@
+{
+  "schema": "resonance_pc.deep_dive_hud_glyphs.v1",
+  "font": "HarmonyOS_Sans_Medium",
+  "font_path_id": -3758921232364580136,
+  "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+  "source_bundle": "ui/font.asset",
+  "screen_size": [
+    1280,
+    720
+  ],
+  "canvas_scale": 0.6666666666666666,
+  "quota_native_font_size": 33,
+  "entries": [
+    {
+      "file": "harmony_18_0_phase0.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_0_phase1.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_0_phase2.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_0_phase3.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_1_phase0.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_1_phase1.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_1_phase2.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_1_phase3.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_2_phase0.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_2_phase1.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_2_phase2.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_2_phase3.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_3_phase0.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_3_phase1.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_3_phase2.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_3_phase3.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_4_phase0.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_4_phase1.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_4_phase2.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_4_phase3.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_5_phase0.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_5_phase1.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_5_phase2.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_5_phase3.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_6_phase0.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_6_phase1.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_6_phase2.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_6_phase3.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_7_phase0.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_7_phase1.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_7_phase2.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_7_phase3.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_8_phase0.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_8_phase1.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_8_phase2.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_8_phase3.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_9_phase0.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_9_phase1.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_9_phase2.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_9_phase3.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_slash_phase0.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_slash_phase1.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_slash_phase2.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_slash_phase3.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_open_phase0.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_open_phase1.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_open_phase2.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_open_phase3.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_18_close_phase0.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_18_close_phase1.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_18_close_phase2.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_18_close_phase3.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 27.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_0_phase0.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_0_phase1.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_0_phase2.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_0_phase3.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_1_phase0.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_1_phase1.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_1_phase2.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_1_phase3.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_2_phase0.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_2_phase1.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_2_phase2.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_2_phase3.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_3_phase0.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_3_phase1.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_3_phase2.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_3_phase3.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_4_phase0.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_4_phase1.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_4_phase2.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_4_phase3.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_5_phase0.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_5_phase1.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_5_phase2.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_5_phase3.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_6_phase0.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_6_phase1.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_6_phase2.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_6_phase3.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_7_phase0.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_7_phase1.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_7_phase2.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_7_phase3.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_8_phase0.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_8_phase1.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_8_phase2.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_8_phase3.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_9_phase0.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_9_phase1.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_9_phase2.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_9_phase3.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_slash_phase0.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_slash_phase1.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_slash_phase2.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_slash_phase3.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_open_phase0.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_open_phase1.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_open_phase2.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_open_phase3.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_22_close_phase0.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_22_close_phase1.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_22_close_phase2.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_22_close_phase3.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 33.0,
+      "font": "harmony",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_0_phase0.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_0_phase1.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_0_phase2.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_0_phase3.png",
+      "character": "0",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_1_phase0.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_1_phase1.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_1_phase2.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_1_phase3.png",
+      "character": "1",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_2_phase0.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_2_phase1.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_2_phase2.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_2_phase3.png",
+      "character": "2",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_3_phase0.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_3_phase1.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_3_phase2.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_3_phase3.png",
+      "character": "3",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_4_phase0.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_4_phase1.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_4_phase2.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_4_phase3.png",
+      "character": "4",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_5_phase0.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_5_phase1.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_5_phase2.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_5_phase3.png",
+      "character": "5",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_6_phase0.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_6_phase1.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_6_phase2.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_6_phase3.png",
+      "character": "6",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_7_phase0.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_7_phase1.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_7_phase2.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_7_phase3.png",
+      "character": "7",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_8_phase0.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_8_phase1.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_8_phase2.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_8_phase3.png",
+      "character": "8",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_9_phase0.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_9_phase1.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_9_phase2.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_9_phase3.png",
+      "character": "9",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_slash_phase0.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_slash_phase1.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_slash_phase2.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_slash_phase3.png",
+      "character": "/",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_open_phase0.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_open_phase1.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_open_phase2.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_open_phase3.png",
+      "character": "(",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "harmony_n32_22_close_phase0.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.0
+    },
+    {
+      "file": "harmony_n32_22_close_phase1.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.25
+    },
+    {
+      "file": "harmony_n32_22_close_phase2.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.5
+    },
+    {
+      "file": "harmony_n32_22_close_phase3.png",
+      "character": ")",
+      "screen_font_size": 22,
+      "native_font_size": 32.0,
+      "font": "harmony_n32",
+      "font_sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_0_phase0.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_0_phase1.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_0_phase2.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_0_phase3.png",
+      "character": "0",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_1_phase0.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_1_phase1.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_1_phase2.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_1_phase3.png",
+      "character": "1",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_2_phase0.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_2_phase1.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_2_phase2.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_2_phase3.png",
+      "character": "2",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_3_phase0.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_3_phase1.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_3_phase2.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_3_phase3.png",
+      "character": "3",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_4_phase0.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_4_phase1.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_4_phase2.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_4_phase3.png",
+      "character": "4",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_5_phase0.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_5_phase1.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_5_phase2.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_5_phase3.png",
+      "character": "5",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_6_phase0.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_6_phase1.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_6_phase2.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_6_phase3.png",
+      "character": "6",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_7_phase0.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_7_phase1.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_7_phase2.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_7_phase3.png",
+      "character": "7",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_8_phase0.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_8_phase1.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_8_phase2.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_8_phase3.png",
+      "character": "8",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_9_phase0.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_9_phase1.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_9_phase2.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_9_phase3.png",
+      "character": "9",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_slash_phase0.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_slash_phase1.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_slash_phase2.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_slash_phase3.png",
+      "character": "/",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_open_phase0.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_open_phase1.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_open_phase2.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_open_phase3.png",
+      "character": "(",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    },
+    {
+      "file": "sourcehan_18_close_phase0.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.0
+    },
+    {
+      "file": "sourcehan_18_close_phase1.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.25
+    },
+    {
+      "file": "sourcehan_18_close_phase2.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.5
+    },
+    {
+      "file": "sourcehan_18_close_phase3.png",
+      "character": ")",
+      "screen_font_size": 18,
+      "native_font_size": 26.0,
+      "font": "sourcehan",
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "phase_x": 0.75
+    }
+  ],
+  "note": "Native font alpha glyphs; no screenshot values are encoded. Unknown/ambiguous glyphs must be rejected."
+}

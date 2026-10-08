@@ -1,0 +1,871 @@
+{
+  "schema": "resonance_pc.deep_dive_planned_run_assets.v1",
+  "screen_size": [
+    1280,
+    720
+  ],
+  "native_canvas": [
+    1920,
+    1080
+  ],
+  "templates": {
+    "rest_title": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/restarea.asset",
+      "sprite": "img_title",
+      "path_id": 6678799589364423745,
+      "native_size": [
+        332,
+        116
+      ],
+      "screen_crop": [
+        0,
+        0,
+        221,
+        77
+      ],
+      "size": [
+        221,
+        77
+      ]
+    },
+    "rest_next": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/restarea.asset",
+      "sprite": "btn_next",
+      "path_id": 6817966510910508743,
+      "native_size": [
+        519,
+        231
+      ],
+      "screen_crop": [
+        0,
+        0,
+        346,
+        154
+      ],
+      "size": [
+        346,
+        154
+      ]
+    },
+    "settlement_victory": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/settlement/image.asset",
+      "sprite": "Tittle_Complete",
+      "path_id": -4979960907396755635,
+      "native_size": [
+        1676,
+        221
+      ],
+      "screen_crop": [
+        0,
+        0,
+        1117,
+        147
+      ],
+      "size": [
+        330,
+        147
+      ],
+      "semantic_crop": [
+        393,
+        0,
+        723,
+        147
+      ]
+    },
+    "settlement_failure": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/settlement/image.asset",
+      "sprite": "Tittle_Fail",
+      "path_id": -1001384092934465399,
+      "native_size": [
+        1676,
+        221
+      ],
+      "screen_crop": [
+        0,
+        0,
+        1117,
+        147
+      ],
+      "size": [
+        330,
+        147
+      ],
+      "semantic_crop": [
+        393,
+        0,
+        723,
+        147
+      ]
+    },
+    "settlement_layout": {
+      "kind": "existing_screenshot_template",
+      "source": "templates/deep_dive_cleanup/continue.png",
+      "evidence": "Shared summary continue prompt, used only for classification; never clicked."
+    },
+    "plane_1": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/main/image.asset",
+      "sprite": "Icon_Plane1",
+      "path_id": -5681931287189977160,
+      "native_size": [
+        100,
+        120
+      ],
+      "screen_crop": [
+        11,
+        7,
+        57,
+        72
+      ],
+      "size": [
+        46,
+        65
+      ]
+    },
+    "plane_2": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/main/image.asset",
+      "sprite": "Icon_Plane2",
+      "path_id": -1001589675624749847,
+      "native_size": [
+        100,
+        120
+      ],
+      "screen_crop": [
+        7,
+        7,
+        60,
+        73
+      ],
+      "size": [
+        53,
+        66
+      ]
+    },
+    "plane_3": {
+      "kind": "native_sprite",
+      "bundle": "ui/cuberogue/main/image.asset",
+      "sprite": "Icon_Plane3",
+      "path_id": 3171113995606445307,
+      "native_size": [
+        100,
+        120
+      ],
+      "screen_crop": [
+        7,
+        7,
+        61,
+        73
+      ],
+      "size": [
+        54,
+        66
+      ]
+    },
+    "boss_entry_title": {
+      "kind": "embedded_font_render",
+      "text": "位面奇点战斗",
+      "font_name": "SourceHanSerifCN-Heavy",
+      "font_path_id": -4548631661189831125,
+      "font_sha256": "78101f93fb76951da79728a7ece95a974fb8f95f2024fa50792bc79627951a07",
+      "native_font_size": 40,
+      "size": [
+        168,
+        36
+      ]
+    },
+    "insufficient_roles": {
+      "kind": "embedded_font_render",
+      "text": "当前小队可战斗乘员已不足5人",
+      "font_name": "SourceHanSansCN-Bold",
+      "font_path_id": -2237384480076949585,
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "native_font_size": 36,
+      "size": [
+        334,
+        31
+      ]
+    },
+    "insufficient_roles_followup": {
+      "kind": "embedded_font_render",
+      "text": "请完成复苏或招募后继续下潜",
+      "font_name": "SourceHanSansCN-Bold",
+      "font_path_id": -2237384480076949585,
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "native_font_size": 36,
+      "size": [
+        320,
+        32
+      ]
+    },
+    "enemy_turn_title": {
+      "kind": "embedded_font_render",
+      "text": "位面奇点行动中",
+      "font_name": "SourceHanSansCN-Medium",
+      "font_path_id": 6136794397608061395,
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "native_font_size": 28,
+      "source_component": "CubeRogueMain/Group_MoveTips/Group_BossMove/Txt_",
+      "size": [
+        139,
+        26
+      ]
+    },
+    "board_actions_heading": {
+      "kind": "existing_screenshot_template",
+      "source": "templates/deep_dive_events/board_actions_heading.png"
+    },
+    "icon_store": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_store",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_fight_boss": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_fight_boss",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_empty": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_empty",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_fight_difficult": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_fight_difficult",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_fight_normal": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_fight_normal",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_adventure": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_adventure",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_reward": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_reward",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    },
+    "icon_rest": {
+      "kind": "native_cube_icon_source",
+      "bundle": "ui/cuberogue/typeicon/cubeicon.asset",
+      "sprite": "icon_rest",
+      "purpose": "Inspectible provenance for the node mapping; not used as screen-space recognition templates."
+    }
+  },
+  "sources": {
+    "ui/cuberogue/restarea.asset": "7d8d765fee7d11996633d886800f4240b5ce7edf3e7a9a858a91c0ce3d613b10",
+    "ui/cuberogue/settlement/image.asset": "8de1ac727289d6495b439b031fc444fc91e75677a550300bfcee13a42fe67b3e",
+    "ui/cuberogue/main/image.asset": "6162579dfcbf67ab81cd2e9d064fddeef2ce24472b50a19dd3ebd5cf43c1b222",
+    "ui/font.asset": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "ui/cuberogue/main/cuberoguemain.asset": "a4c3d18cc477dcb346dc624c036412cd58341949baf3f5bb6cef5e3fe40dd28f",
+    "ui/cuberogue/typeicon/cubeicon.asset": "d2af1f8967a4194bfc109099ff20f3fb8d8ffbe764926cffb111b2b33fd0f87c",
+    "TagFactory.bin": "9a3129d11f13f2fd40628e56998a00598dc57fc32ae627f9c87ea51437a8904f",
+    "RubikCube.lua": "f01216a06fad25974a11d43e1aee67ea8c1abb795534fe5201f049348ce2a6ec"
+  },
+  "notes": [
+    "Native sprites resized at 2/3 canvas scale.",
+    "Text templates use embedded client fonts and supersampling; Unity rasterization can differ.",
+    "Generated from local resources; no game interaction or screenshot validation was performed.",
+    "Settlement titles are centrally cropped to exclude repeated decorative horizontal bars."
+  ],
+  "prefab_nodes": {
+    "/CubeRogueMain/Group_RestArea/Group_Next/Btn_": {
+      "screen_bounds": [
+        830,
+        144,
+        1244,
+        281
+      ]
+    },
+    "/CubeRogueMain/Group_Plane/Txt_Name": {
+      "screen_bounds": [
+        525,
+        72,
+        758,
+        92
+      ],
+      "text": "情感宣泄位面",
+      "font": {
+        "m_Font": {
+          "m_FileID": 1,
+          "m_PathID": 6136794397608061395
+        },
+        "m_FontSize": 27,
+        "m_FontStyle": 0,
+        "m_BestFit": 1,
+        "m_MinSize": 2,
+        "m_MaxSize": 27,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 0,
+        "m_VerticalOverflow": 0,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Move/Group_Not/Txt_Num": {
+      "screen_bounds": [
+        1182,
+        398,
+        1228,
+        418
+      ],
+      "text": "0/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 5,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_EventDetails/Txt_Name": {
+      "screen_bounds": [
+        1040,
+        296,
+        1147,
+        316
+      ],
+      "text": "莫测旋涡",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -4548631661189831125
+        },
+        "m_FontSize": 40,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 2,
+        "m_MaxSize": 70,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_Plane/Img_Num": {
+      "screen_bounds": [
+        606,
+        -7,
+        672,
+        73
+      ]
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Move/Group_Select/Txt_Num": {
+      "screen_bounds": [
+        1188,
+        397,
+        1234,
+        417
+      ],
+      "text": "1/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_Action/Txt_Num": {
+      "screen_bounds": [
+        1157,
+        128,
+        1263,
+        168
+      ],
+      "text": "3",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -6409983837326833580
+        },
+        "m_FontSize": 60,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 0,
+        "m_MaxSize": 150,
+        "m_Alignment": 7,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Spin/Group_Not/Txt_Num": {
+      "screen_bounds": [
+        1182,
+        469,
+        1227,
+        489
+      ],
+      "text": "0/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 5,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_RestArea/Group_Top/Img_Bg": {
+      "screen_bounds": [
+        532,
+        0,
+        753,
+        77
+      ]
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Move/Group_Complete/Txt_Num": {
+      "screen_bounds": [
+        1182,
+        398,
+        1228,
+        418
+      ],
+      "text": "1/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 5,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_RestArea/Group_Next/Img_Next": {
+      "screen_bounds": [
+        823,
+        130,
+        1169,
+        284
+      ]
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Spin/Group_Select/Txt_Num": {
+      "screen_bounds": [
+        1187,
+        470,
+        1233,
+        490
+      ],
+      "text": "1/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    },
+    "/CubeRogueMain/Group_ActionInformation/Group_Spin/Group_Complete/Txt_Num": {
+      "screen_bounds": [
+        1182,
+        469,
+        1227,
+        489
+      ],
+      "text": "1/1",
+      "font": {
+        "m_Font": {
+          "m_FileID": 7,
+          "m_PathID": -3758921232364580136
+        },
+        "m_FontSize": 33,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 5,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      }
+    }
+  },
+  "node_event_types": {
+    "white_diamond": "empty",
+    "yellow_hex": "item",
+    "blue_scales": "shop",
+    "green_burst": "healing",
+    "purple_ring": "vortex",
+    "red_single_eye": "battle"
+  },
+  "node_mapping_evidence": {
+    "client_function": "RubikCube.ShowCubeIcon",
+    "lua_source_lines": [
+      367,
+      414
+    ],
+    "data_flow": "ActivityListFactory.typeId -> TagFactory.icon -> grid/Icon MeshRenderer material _MainTex Texture2D",
+    "tag_records": {
+      "12601540": {
+        "event_type": "battle",
+        "icon": "icon_fight_normal"
+      },
+      "12601541": {
+        "event_type": "boss_battle",
+        "icon": "icon_fight_boss"
+      },
+      "12601542": {
+        "event_type": "elite_battle",
+        "icon": "icon_fight_difficult"
+      },
+      "12601614": {
+        "event_type": "shop",
+        "icon": "icon_store"
+      },
+      "12601615": {
+        "event_type": "healing",
+        "icon": "icon_rest"
+      },
+      "12601616": {
+        "event_type": "vortex",
+        "icon": "icon_adventure"
+      },
+      "12601617": {
+        "event_type": "item",
+        "icon": "icon_reward"
+      }
+    },
+    "unknown_scan_families": {
+      "orange_triple_eye": "Scan family contains multi-eye artwork; the native boss texture has three eyes and elite texture two. No unique elite-only mapping is asserted."
+    },
+    "empty": "No netData -> icon_empty Texture2D; not an inferred node type."
+  },
+  "rounds_templates": {
+    "kind": "embedded_font_render",
+    "font_name": "BebasNeue Regular",
+    "font_path_id": -6409983837326833580,
+    "font_sha256": "f8ce2718a0bf5e1cf338a24431aa2f0631fecbf5d76654b99bab69b29d3b9e1e",
+    "bundle": "ui/font.asset",
+    "source_component": "CubeRogueMain/Group_Action/Txt_Num",
+    "native_font_size": 60,
+    "screen_bounds": [
+      1157,
+      128,
+      1263,
+      168
+    ],
+    "rasterization": "Pillow FreeType 4x, LANCZOS downsample to 2/3 canvas scale",
+    "range": [
+      0,
+      30
+    ],
+    "templates": {
+      "0": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "1992182a9562aae9246720ccf06655df81b16e880f9eaa42e64c521666f6065e"
+      },
+      "1": {
+        "size": [
+          18,
+          32
+        ],
+        "sha256": "a6c6dfce7f9a25c2124b9ed1a6bc540290eb88608656b6ed2bfa3ad009d6989f"
+      },
+      "2": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "a4e83adaa602dc31d8a2d0afe709263c0d2444a292f9f9a58e06b7afa5c0abc6"
+      },
+      "3": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "992165ac2c39d61b9e5e891f0902f5cf8341aa848c8262ddbd0d3ef16b33cf37"
+      },
+      "4": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "eb676b4610f76f3a01ce1622c7c87f5f52a3e7bc6493be69d18d226f37c649e6"
+      },
+      "5": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "7a184b55186e1952f2c8be8c772b78426934fd340cc2a7ce44bec2ef787a3224"
+      },
+      "6": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "c3a89f47a54827b034fd4d7b35bb1b34d2ff06b0658f2e273fb17eee370bc2e2"
+      },
+      "7": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "ba93957ea6fcfb34ea7e0bdc1d0314a10552532d42581a30aa20e1682fe87972"
+      },
+      "8": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "1206d0d7e9d1d5807b0ec4315b039182e4b3bb6dd19ccbb1847315168a2130d4"
+      },
+      "9": {
+        "size": [
+          20,
+          32
+        ],
+        "sha256": "3bee42ea8396efedea9c76e47f399a7bd06501b3edfd0587828dde202ec9400a"
+      },
+      "10": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "6046c2f7c7433b4cf91d1d237f1181f5ccbb204203ae93d946d50a48efff929f"
+      },
+      "11": {
+        "size": [
+          31,
+          32
+        ],
+        "sha256": "62d4d149a597032d4e1cf1ff39d45eca5c7cc0943eee5ffeadec57b48d33a01d"
+      },
+      "12": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "fbcbd93fda5e02bc35cad008dffdace9049733b3e26483914732ac903c44897e"
+      },
+      "13": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "8c98162202dfc0909f28be62216ffb95f84cc7d63c52e164ff511fea876b5c27"
+      },
+      "14": {
+        "size": [
+          34,
+          32
+        ],
+        "sha256": "97ba26fe422aec1003d04d5be4f28ad3aab7ee17745eb8854a35d8f550ff55f0"
+      },
+      "15": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "0dd9104d4aac49c4bc1a6ba9eb8001fc971773d8aca6c06b513a1f7a1a6c191c"
+      },
+      "16": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "317b501ffeabc26145c00d70ffd9d575868844e471ad82ce64580bb189763b2b"
+      },
+      "17": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "354922a52dad35c8c11b71e538f179f3593322cfc8b685d6a855cf5fc6c426bc"
+      },
+      "18": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "ef3b80249a13da65e9b7b2f6bc10f6d2f0f808d283578cefe920f614f88d9c57"
+      },
+      "19": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "a112f35b701372bc2841125279d12a7ac1eb29c8f3faf51efa10e9f5f6fed06c"
+      },
+      "20": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "63a6f7ad028c14d91179054eded56793102d1a6745a5588bd06540f4eb22a363"
+      },
+      "21": {
+        "size": [
+          33,
+          32
+        ],
+        "sha256": "140ea638c3a3e3aa6d9bb30250caa2e260af19b31f6d4167d4e37fcd666d8cea"
+      },
+      "22": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "4b392a82fcd8e9248e64d4e92128c3ac0ec7463842557350de93b0b9c3678eaf"
+      },
+      "23": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "5a668e5afa67937d126526c84d997d808cf86a7cd09cfb29c3f81a6a1bc2aaa3"
+      },
+      "24": {
+        "size": [
+          36,
+          32
+        ],
+        "sha256": "dab8943b9a735796a196d0890952a78a44f0faceac182f6224d1e3a2e9dc0735"
+      },
+      "25": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "8eca2f190b88ecb81f632fa0d7795665bd4f2ef95e5e2411acba6203365a6879"
+      },
+      "26": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "77aae04a404ceb386f2d3252c787a73119e4a0e732f7ef38bfca96c8b1a1f1d1"
+      },
+      "27": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "a5a674a4b8a070058d930ab8c9a705f3b6b8d808709933e98198c55cbbfdf5d5"
+      },
+      "28": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "f5101d65ca46c18dbef498f987ecef94c5c6d64b5b852bde35a1d34e10527769"
+      },
+      "29": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "761b6101a79d9d8eff092d081d392063785c8900fcbf6b25e10a6c1edfa35524"
+      },
+      "30": {
+        "size": [
+          35,
+          32
+        ],
+        "sha256": "6e161b596cddfacbda158a2ff844067ad4bd913a7b2a183bacfc8657964dba13"
+      }
+    },
+    "bundle_sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "glyph_match_gate": {
+      "method": "whole cyan numeral, native width-height gate, normalized correlation",
+      "minimum_score": 0.72,
+      "minimum_margin": 0.1,
+      "roi": [
+        1190,
+        128,
+        1231,
+        160
+      ],
+      "ocr_fallback": false
+    }
+  },
+  "rest_unknown_modal_probe": {
+    "kind": "conservative_geometry_freeze",
+    "prefab": "ui/common/tips.asset",
+    "font_source": "Tips/Txt_Tips native 36pt SourceHanSansCN-Bold",
+    "background_sprite": "common_bottom_tips",
+    "background_sprite_path_id": -2791133981709322548,
+    "background_bundle": "ui/common.asset",
+    "native_background_size": [
+      1920,
+      100
+    ],
+    "behavior": "White text centered on a dark band can freeze a rest-area action; this does not positively classify a message. Live unknown-modal calibration has not been performed."
+  }
+}

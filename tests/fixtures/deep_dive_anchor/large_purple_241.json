@@ -1,0 +1,47 @@
+{
+  "source_provenance": {
+    "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0241.png",
+    "quad": [
+      [
+        594.5584223560535,
+        366.14063675456384
+      ],
+      [
+        661.4793759485358,
+        419.98066885019045
+      ],
+      [
+        625.4558369858951,
+        494.36292584947466
+      ],
+      [
+        559.4995983346814,
+        440.40271438229695
+      ]
+    ],
+    "label": "Manual full source/crop review: complete purple ring",
+    "development_diagnosis_not_accuracy": true
+  },
+  "manual_truth": "purple_ring",
+  "manual_review": "Manual full source/crop review: complete purple ring",
+  "fixture_sha256": "45335363777958085ffff59fbe45f854ff5941c743812997676efc236da8795a",
+  "purpose": "Fixed visual regression only, not a reference/training template",
+  "structural_evidence": {
+    "accepted": true,
+    "reason": "complete_central_curved_hole",
+    "hole_area": 667.5,
+    "parent_area": 2978.0,
+    "hole_fraction": 0.22414372061786433,
+    "centre": [
+      46.078792572021484,
+      50.4742431640625
+    ],
+    "ellipse_axes": [
+      28.812658309936523,
+      29.74638557434082
+    ],
+    "convexity": 0.9583632447954056,
+    "ellipse_residual90": 0.07416882654148602,
+    "polygon_vertices": 8
+  }
+}

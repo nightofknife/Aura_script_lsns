@@ -10,6 +10,13 @@ ROOT_FILES = {"manifest.yaml", "config.yaml", "requirements.txt"}
 ROOT_SUFFIXES = {".py"}
 CONTENT_DIRS = {"src", "tasks", "templates", "assets"}
 DATA_DIRS = {"meta", "input_profiles"}
+# Runtime assets outside the general metadata directories. Keep this explicit:
+# training checkpoints, model experiments and cache files are not release data.
+DATA_FILES = {
+    "data/four_views_geometry.json",
+    "data/models/deep_dive_entities.onnx",
+    "data/models/deep_dive_entities.json",
+}
 EXCLUDED_DIRS = {
     "__pycache__",
     ".pytest_cache",
@@ -37,6 +44,8 @@ def _is_allowed_package_file(relative: Path) -> bool:
     if len(parts) == 1:
         return name in ROOT_FILES or relative.suffix.lower() in ROOT_SUFFIXES
     if lowered[0] in CONTENT_DIRS:
+        return True
+    if "/".join(lowered) in DATA_FILES:
         return True
     return len(parts) >= 3 and lowered[0] == "data" and lowered[1] in DATA_DIRS
 

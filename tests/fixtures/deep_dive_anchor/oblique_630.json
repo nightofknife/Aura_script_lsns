@@ -1,0 +1,92 @@
+{
+  "source": "real game live_rules_02 frame630; same starting board; known labels have >=3 prior-frame records; shape/geometry regression only",
+  "pose": {
+    "rvec": [
+      [
+        -1.0747778579099483
+      ],
+      [
+        -0.9653207598592529
+      ],
+      [
+        0.615344435813263
+      ]
+    ],
+    "tvec": [
+      [
+        -0.11570306761141831
+      ],
+      [
+        0.3637685732772681
+      ],
+      [
+        41.31795609620851
+      ]
+    ],
+    "rotation": [
+      [
+        0.4687958751435026,
+        0.028669269023236132,
+        -0.8828411524516235
+      ],
+      [
+        0.8124297068829525,
+        0.3782806068168337,
+        0.44369105679556786
+      ],
+      [
+        0.346681985142749,
+        -0.9252469159743042,
+        0.15404462229341656
+      ]
+    ],
+    "quality": 0.9591836734693877,
+    "map_revision": 0,
+    "correction_epoch": 41,
+    "pivot_reference": [
+      [
+        0.0013867621354977954
+      ],
+      [
+        0.4808584030241842
+      ],
+      [
+        42.15613593206849
+      ]
+    ]
+  },
+  "known_icons": {
+    "2": "yellow_hex",
+    "5": "blue_scales",
+    "6": "green_burst",
+    "8": "blue_scales",
+    "18": "red_single_eye",
+    "19": "orange_triple_eye",
+    "20": "blue_scales",
+    "21": "red_single_eye",
+    "22": "orange_triple_eye",
+    "23": "red_single_eye",
+    "24": "purple_ring",
+    "25": "blue_scales",
+    "26": "red_single_eye",
+    "27": "green_burst",
+    "30": "orange_triple_eye",
+    "33": "purple_ring",
+    "36": "blue_scales",
+    "37": "green_burst",
+    "38": "purple_ring",
+    "39": "green_burst",
+    "40": "yellow_hex",
+    "41": "green_burst",
+    "42": "orange_triple_eye",
+    "43": "orange_triple_eye",
+    "44": "orange_triple_eye",
+    "45": "orange_triple_eye",
+    "46": "purple_ring",
+    "47": "green_burst",
+    "48": "purple_ring",
+    "49": "yellow_hex",
+    "50": "green_burst",
+    "52": "orange_triple_eye"
+  }
+}

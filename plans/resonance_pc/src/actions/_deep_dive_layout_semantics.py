@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+import math
 
 import cv2
 import numpy as np
@@ -34,6 +35,40 @@ def _candidate(kind: str, contour: np.ndarray, confidence: float) -> dict:
     if moments["m00"]:
         point = [moments["m10"] / moments["m00"], moments["m01"] / moments["m00"]]
     return {"kind": kind, "point": point, "box": [x, y, w, h], "confidence": float(confidence)}
+
+
+def _ring_shape_evidence(contour: np.ndarray, hole: np.ndarray) -> dict:
+    """Compare a thin curved ring with the competing broken cube glyph.
+
+    Perspective turns the ring into a conic. A hexagonal node can acquire one
+    large hollow cavity under red effects, but its inner straight edges and
+    thick outline do not establish the floating ring/star sprite.
+    """
+    area = max(cv2.contourArea(contour), 1.)
+    fraction = cv2.contourArea(hole) / area
+    polygon = cv2.approxPolyDP(hole, .025 * cv2.arcLength(hole, True), True)
+    residual = float('inf')
+    if len(hole) >= 5:
+        (cx, cy), axes, angle = cv2.fitEllipse(hole)
+        if min(axes) > 2:
+            radians = np.deg2rad(angle)
+            transform = np.array([[np.cos(radians), np.sin(radians)],
+                                  [-np.sin(radians), np.cos(radians)]])
+            local = (hole.reshape(-1, 2) - [cx, cy]) @ transform.T
+            radii = np.linalg.norm(local / (np.asarray(axes) / 2), axis=1)
+            residual = float(np.quantile(np.abs(radii - 1), .9))
+    convexity = area / max(cv2.contourArea(cv2.convexHull(contour)), 1.)
+    # A projecting connected star gives a concave outer silhouette. For a
+    # disconnected/overlapping star require the thin, curved ring itself.
+    curved = len(polygon) >= 7 and residual <= .24
+    thin_ring = curved and fraction >= .55
+    ring_and_star = curved and residual <= .22 and convexity <= .65
+    competing_hex = len(polygon) <= 6 or (residual > .30 and fraction < .58)
+    return dict(confirmable=bool((thin_ring or ring_and_star) and not competing_hex),
+                evidence_type='ring_and_star' if ring_and_star else 'thin_curved_ring',
+                competing_glyph='yellow_hex' if competing_hex else None,
+                hole_fraction=round(fraction, 3),
+                curve_residual=round(residual, 3) if np.isfinite(residual) else None)
 
 
 def detect_targets(image_rgb: np.ndarray) -> list[dict]:
@@ -91,12 +126,42 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
                 continue
             heads.append((float(radius), {"kind": "player", "point": [float(cx), float(cy)],
                 "box": [int(cx - radius), int(cy - radius), int(radius * 2 + 1), int(radius * 2 + 1)],
+                "anchor_type": "head", "confirmable": True,
                 "confidence": float(round(min(.85, .62 + .12 * pink_fraction + .08 * sectors / 12), 3))}))
         # The broad base of the same pawn can also fit a circle. Within one
         # pawn-length retain the smaller sphere; do not infer a global winner.
         for radius, head in sorted(heads, key=lambda item: item[0]):
             if not any(other["kind"] == "player" and np.linalg.norm(np.array(head["point"]) - other["point"]) < 50 for other in candidates):
                 candidates.append(head)
+
+    # Side views may hide the sphere while leaving the pawn's narrow waist and
+    # flared foot. These are occlusion/contact clues only: pink or a white rim
+    # never establishes a player cell without the existing head evidence.
+    body_mask = ((hue >= 132) & (hue <= 177) & (saturation > 45) &
+                 (value > 100) & allowed)
+    for contour in _contours(body_mask)[0]:
+        x, y, w, h = cv2.boundingRect(contour)
+        area = cv2.contourArea(contour)
+        if not (10 <= w <= 38 and 28 <= h <= 80 and h >= w * 1.4 and 80 <= area <= 1300):
+            continue
+        patch = body_mask[y:y+h, x:x+w]
+        widths = patch.sum(axis=1)
+        middle = float(np.median(widths[h//3:2*h//3]))
+        bottom = float(np.median(widths[3*h//4:]))
+        if middle < 3 or bottom < middle * 1.3:
+            continue
+        boundary = cv2.dilate(patch.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+        pale = (saturation[y:y+h, x:x+w] < 110) & (value[y:y+h, x:x+w] > 175)
+        if np.count_nonzero(boundary & ~patch & pale) < 15:
+            continue
+        centre = [x+w/2, y+h/2]
+        if any(item['kind'] == 'player' and np.linalg.norm(np.asarray(item['point'])-centre) < 65
+               for item in candidates):
+            continue
+        candidates.append(dict(kind='player', point=centre, box=[x, y, w, h],
+                               confidence=.38, anchor_type='body', confirmable=False))
+        candidates.append(dict(kind='player', point=[x+w/2, y+h-1], box=[x, y, w, h],
+                               confidence=.32, anchor_type='contact', confirmable=False))
 
     # Inspiration has a thin yellow ring with a projecting star. Hexagonal
     # node icons have several internal cells; require one dominant open hole.
@@ -127,7 +192,8 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
                 pixels = filled.astype(bool)
                 bright_fraction = float(np.mean((value[pixels] > 160) & (saturation[pixels] > 100))) if pixels.any() else 0.0
                 if w <= 38 and h <= 38 and area < 600 and area / max(hull_area, 1) < .76 and len(polygon) >= 6 and bright_fraction > .55:
-                    candidates.append(_candidate("inspiration", contour, .40))
+                    candidates.append(dict(_candidate("inspiration", contour, .40),
+                                           confirmable=False, evidence_type='star_fragment'))
                 continue
             if cv2.contourArea(holes[0]) / max(area, 1) < .42:
                 continue
@@ -138,9 +204,11 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
                 continue
             if len(holes) > 1 and cv2.contourArea(holes[1]) > .16 * cv2.contourArea(holes[0]):
                 continue
-            # A dominant hollow interior survives perspective projection.
-            # The star may be disconnected, so convex outer rings are valid.
-            candidates.append(_candidate("inspiration", contour, .67))
+            evidence = _ring_shape_evidence(contour, holes[0])
+            strength = .67 if evidence['confirmable'] else .45
+            # Weak cavities remain occlusion clues only. Repeated similar
+            # frames cannot promote a broken hex to a confirmed occupant.
+            candidates.append(dict(_candidate("inspiration", contour, strength), **evidence))
 
     # The singularity's diffuse red halo covers a two-dimensional region;
     # tile seams and white block reflections are narrow. Smooth the red field
@@ -199,7 +267,9 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
     # count (a frame may show none, one or multiple inspiration targets).
     merged = []
     for candidate in sorted(filtered, key=lambda item: item["confidence"], reverse=True):
-        if any(candidate["kind"] == other["kind"] and np.linalg.norm(np.array(candidate["point"]) - other["point"]) < 30 for other in merged):
+        if any(candidate["kind"] == other["kind"] and
+               candidate.get('anchor_type') == other.get('anchor_type') and
+               np.linalg.norm(np.array(candidate["point"]) - other["point"]) < 30 for other in merged):
             continue
         merged.append(candidate)
     sx, sy = original_w / 1280, original_h / 720
@@ -211,7 +281,7 @@ def detect_targets(image_rgb: np.ndarray) -> list[dict]:
     return merged
 
 
-def _warm_glyph(rgb: np.ndarray) -> np.ndarray | None:
+def _warm_glyph(rgb: np.ndarray, *, whole=False) -> np.ndarray | None:
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
     h, s, v = cv2.split(hsv)
     mask = (((h <= 23) | (h >= 162)) & (s > 90) & (v > 100)).astype(np.uint8)
@@ -222,6 +292,21 @@ def _warm_glyph(rgb: np.ndarray) -> np.ndarray | None:
     # Keep the central connected glyph; neighboring tile seams must not
     # become part of the shape used to distinguish the two eye symbols.
     count, labels, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    if whole:
+        choices = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= 12
+                   and np.linalg.norm(centres[i] - [47.5, 47.5]) < 22]
+        if not choices or not any(stats[i, cv2.CC_STAT_AREA] >= 55 for i in choices):
+            return None
+        union = np.isin(labels, choices)
+        yy, xx = np.nonzero(union)
+        if np.linalg.norm([xx.mean() - 47.5, yy.mean() - 47.5]) >= 18:
+            return None
+        x, y = int(xx.min()), int(yy.min())
+        w, height = int(xx.max() - x + 1), int(yy.max() - y + 1)
+        if min(w, height) < 19 or len(xx) / (w * height) > .8:
+            return None
+        return cv2.resize(union[y:y + height, x:x + w].astype(np.float32),
+                          (64, 64), interpolation=cv2.INTER_AREA)
     choices = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= 55
                and np.linalg.norm(centres[i] - [47.5, 47.5]) < 18]
     if not choices:
@@ -234,8 +319,8 @@ def _warm_glyph(rgb: np.ndarray) -> np.ndarray | None:
     return cv2.resize(glyph, (64, 64), interpolation=cv2.INTER_AREA)
 
 
-@lru_cache(maxsize=1)
-def _eye_templates() -> dict[str, list[np.ndarray]]:
+@lru_cache(maxsize=2)
+def _eye_templates(whole=False) -> dict[str, list[np.ndarray]]:
     # User recording 2026-09-27 16-39-22, frame at 0.100 s: red U21;
     # orange F10/R02/R11, rectified from the fitted initial cube geometry.
     root = Path(__file__).resolve().parents[2] / "templates" / "deep_dive_layout"
@@ -246,29 +331,127 @@ def _eye_templates() -> dict[str, list[np.ndarray]]:
             raw = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
             if raw is None:
                 continue
-            glyph = _warm_glyph(cv2.cvtColor(raw, cv2.COLOR_BGR2RGB))
+            glyph = _warm_glyph(cv2.cvtColor(raw, cv2.COLOR_BGR2RGB), whole=whole)
             if glyph is not None:
                 variants.extend(np.ascontiguousarray(np.rot90(glyph, k)) for k in range(4))
         result[name] = variants
     return result
 
 
+@lru_cache(maxsize=2)
+def _eye_template_matrix(whole=False):
+    names, rows = [], []
+    for name, variants in _eye_templates(whole).items():
+        for variant in variants:
+            names.append(name)
+            rows.append(variant.ravel())
+    matrix = np.ascontiguousarray(rows, dtype=np.float32).reshape(-1, 4096)
+    norms = np.sqrt(np.sum(matrix * matrix, axis=1))
+    return np.asarray(names), matrix, norms
+
+
+def _eye_correlation_scores(glyph, whole=False):
+    """Batch the same 9x9 translated, normalized template dot products."""
+    names, templates, template_norms = _eye_template_matrix(whole)
+    if not len(names):
+        return [(0., name) for name in _eye_templates(whole)]
+    windows = np.ascontiguousarray(np.lib.stride_tricks.sliding_window_view(
+        np.pad(glyph, 4), (64, 64)).reshape(-1, 4096))
+    window_norms = np.sqrt(np.sum(windows * windows, axis=1))
+    denominator = np.maximum(template_norms[:, None] * window_norms[None, :], 1e-20)
+    correlations = np.matmul(templates, windows.T) / denominator
+    def maxima(values):
+        return [(float(values[names == name].max()) if np.any(names == name) else 0., name)
+                for name in _eye_templates(whole)]
+    finite = bool(np.isfinite(correlations).all())
+    scores = maxima(correlations) if finite else []
+    guarded = not finite
+    if finite and len(scores) >= 2:
+        best, second = sorted((score for score, _ in scores), reverse=True)[:2]
+        confidence = .58 + .29 * best
+        # Sampled float32 kernels differ slightly. Keep the original numerator
+        # around decision and 3dp rounding boundaries rather than changing gates.
+        rounding_boundary = (math.floor(confidence * 1000.) + .5) / 1000.
+        guarded = (abs(best - .78) <= 2e-5 or
+                   abs(best - second - .055) <= 4e-5 or
+                   (confidence < .87 and
+                    abs(confidence - rounding_boundary) <= .29 * 2e-5))
+    if guarded:
+        correlations = cv2.gemm(templates, windows, 1., None, 0., flags=cv2.GEMM_2_T) / denominator
+        scores = maxima(correlations)
+    return scores
+
+
 def _classify_eye_shape(rgb: np.ndarray) -> dict:
-    glyph = _warm_glyph(rgb)
-    if glyph is None:
-        return {"icon_id": None, "confidence": 0.0}
     # Correlate foreground glyphs, allowing small rectification translations.
     # A score and a margin are both required: color does not break ties.
-    padded = np.pad(glyph, 4)
-    scores = []
-    for name, variants in _eye_templates().items():
-        best = max((float(cv2.minMaxLoc(cv2.matchTemplate(padded, variant, cv2.TM_CCORR_NORMED))[1])
-                    for variant in variants), default=0.0)
-        scores.append((best, name))
-    scores.sort(reverse=True)
-    if scores[0][0] < .78 or scores[0][0] - scores[1][0] < .055:
-        return {"icon_id": None, "confidence": 0.0}
-    return {"icon_id": scores[0][1], "confidence": round(min(.87, .58 + .29 * scores[0][0]), 3)}
+    # Anti-aliasing can attach or detach the eye rings from the main wing.
+    # Preserve existing positives; only rejected shapes get a second domain,
+    # normalized identically for the current patch and original references.
+    for whole in (False, True):
+        glyph = _warm_glyph(rgb, whole=whole)
+        if glyph is None:
+            continue
+        scores = _eye_correlation_scores(glyph, whole=whole)
+        scores.sort(reverse=True)
+        if scores[0][0] >= .78 and scores[0][0] - scores[1][0] >= .055:
+            return {"icon_id": scores[0][1], "confidence": round(min(.87, .58 + .29 * scores[0][0]), 3)}
+    return {"icon_id": None, "confidence": 0.0}
+
+
+def _hex_outline(mask):
+    """Resolve overlapping warm/yellow hue evidence with a current hex outline."""
+    binary=mask.astype(np.uint8).copy()
+    binary[:10]=0;binary[86:]=0;binary[:,:10]=0;binary[:,86:]=0
+    contours,hierarchy=cv2.findContours(binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    if hierarchy is None:return False
+    for index,contour in enumerate(contours):
+        if hierarchy[0,index,3]>=0:continue
+        area=cv2.contourArea(contour)
+        if area<500:continue
+        polygon=cv2.approxPolyDP(contour,.03*cv2.arcLength(contour,True),True)
+        if len(polygon)!=6 or not cv2.isContourConvex(polygon):continue
+        if area/max(cv2.contourArea(cv2.convexHull(contour)),1.)<.90:continue
+        x,y,w,h=cv2.boundingRect(contour)
+        if abs(x+w/2-47.5)>13 or abs(y+h/2-47.5)>13:continue
+        holes=sum(cv2.contourArea(child) for j,child in enumerate(contours)
+                  if hierarchy[0,j,3]==index)
+        if .25<holes/area<.85:return True
+    return False
+
+
+def _purple_outline(mask):
+    """A complete curved cavity can justify an unusually large purple glyph."""
+    binary = mask.astype(np.uint8).copy()
+    binary[:12] = 0; binary[84:] = 0; binary[:, :12] = 0; binary[:, 84:] = 0
+    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+    contours, hierarchy = cv2.findContours(closed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if hierarchy is None:
+        return False
+    for index, hole in enumerate(contours):
+        parent = hierarchy[0, index, 3]
+        if parent < 0 or hierarchy[0, parent, 3] >= 0 or len(hole) < 5:
+            continue
+        area = cv2.contourArea(hole)
+        outer = cv2.contourArea(contours[parent])
+        if not 350 <= area <= 1100 or outer < 1500 or not .16 <= area / outer <= .45:
+            continue
+        (cx, cy), axes, angle = cv2.fitEllipse(hole)
+        if (max(abs(cx - 47.5), abs(cy - 47.5)) > 13 or min(axes) < 24
+                or max(axes) > 45 or max(axes) / min(axes) > 1.4):
+            continue
+        if area / max(cv2.contourArea(cv2.convexHull(hole)), 1.) < .90:
+            continue
+        radians = np.deg2rad(angle)
+        transform = np.array([[np.cos(radians), np.sin(radians)],
+                              [-np.sin(radians), np.cos(radians)]])
+        radii = np.linalg.norm(((hole.reshape(-1, 2) - [cx, cy]) @ transform.T)
+                               / (np.asarray(axes) / 2), axis=1)
+        if (np.quantile(np.abs(radii - 1), .9) <= .15 and
+                len(cv2.approxPolyDP(hole, .025 * cv2.arcLength(hole, True), True)) >= 7):
+            return True
+    return False
 
 
 def classify_icon(rectified_rgb_96x96: np.ndarray) -> dict:
@@ -291,8 +474,16 @@ def classify_icon(rectified_rgb_96x96: np.ndarray) -> dict:
         "warm_eye": ((h <= 23) | (h >= 162)) & (s > 100) & (v > 130),
     }
     ranked = sorted(((int(np.count_nonzero(mask & center)), name) for name, mask in masks.items()), reverse=True)
+    # Hue 21..23 belongs to both historical masks. A clear six-sided hollow
+    # glyph can disambiguate those same pixels; they are not two independent
+    # competing colour observations. All other rejection gates stay unchanged.
+    if ({ranked[0][1],ranked[1][1]}=={'yellow_hex','warm_eye'}
+            and ranked[0][0]<ranked[1][0]*1.7 and _hex_outline(masks['yellow_hex'])):
+        masks['warm_eye'] &= ~masks['yellow_hex']
+        ranked=sorted(((int(np.count_nonzero(mask & center)),name) for name,mask in masks.items()),reverse=True)
     count, name = ranked[0]
-    if count < 65 or count < ranked[1][0] * 1.7 or count > 1650:
+    if (count < 65 or count < ranked[1][0] * 1.7 or
+            (count > 1650 and not (name == 'purple_ring' and _purple_outline(masks[name])))):
         return {"icon_id": None, "confidence": 0.0}
     mask = masks[name] & center
     yy, xx = np.nonzero(mask)

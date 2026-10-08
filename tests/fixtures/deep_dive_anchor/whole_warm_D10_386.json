@@ -1,0 +1,46 @@
+{
+  "source": ".pytest_tmp\\deep_dive_perf_20261001\\live_hybrid_repeat\\run2\\scan\\frames\\0386.png",
+  "source_sha256": "4d35ea8bd70f188aace2a3ee5cb73852e9dc1c0098c6dcf114f0915f5cf12206",
+  "frame_id": 386,
+  "cell": "D10",
+  "view_group": 32,
+  "quad": [
+    [
+      547.0504119596424,
+      497.25028287053027
+    ],
+    [
+      501.90242199792755,
+      520.191709714814
+    ],
+    [
+      463.7284321631753,
+      436.01887231868335
+    ],
+    [
+      508.1488834805676,
+      411.60168398120555
+    ]
+  ],
+  "cosine": 0.5410985427082337,
+  "crop_shape": [
+    96,
+    96,
+    3
+  ],
+  "crop_sha256": "d74c15e3bebfb2f44d104c7936de056da52928f90641678222a26f0e493d2a60",
+  "manual_truth": "orange_triple_eye",
+  "manual_review": "Actual source and crop show a complete orange triple-eye glyph. No HUD, sprite-box, bounds, corridor or uncertain association rejection.",
+  "original_failure": "eye_score_below_.78",
+  "original_eye_scores": [
+    [
+      0.7597865462303162,
+      "orange_triple_eye"
+    ],
+    [
+      0.6176738739013672,
+      "red_single_eye"
+    ]
+  ],
+  "purpose": "Regression source only. Never add this repeat development frame to native templates or learned training data."
+}

@@ -1,0 +1,3 @@
+# Install ONLY in a separate environment. Never replace the application's ORT.
+# The worker imports numpy/OpenCV from the application environment first.
+onnxruntime-directml==1.24.4
