@@ -200,19 +200,27 @@ def test_repeated_city_indices_and_terminal_phases_are_explicit():
     assert "buy" not in [row["key"] for row in visits[-1]["phases"]]
 
 
-def test_incomplete_selection_stops_before_negotiation_or_purchase(monkeypatch):
-    monkeypatch.setattr(trade, "execute_bargain_to_cap", lambda **kw: {})
-    monkeypatch.setattr(trade, "_capture_text_items", lambda *args: [])
-    with pytest.raises(trade.CityTradeFlowError) as error:
-        trade.resonance_pc_buy_goods_on_buy_page(["missing"], max_scan_rounds=1,
-                                               app=object(), ocr=object(), vision=object())
-    assert error.value.code == "buy_selection_incomplete"
+def test_incomplete_selection_skips_purchase_and_confirms_shop_return(monkeypatch):
+    monkeypatch.setattr(trade, "load_product_templates", lambda: object())
+    monkeypatch.setattr(trade, "select_buy_products", lambda **kw: {
+        "selected_products": [], "selected_product_ids": [], "missing_products": ["missing"],
+        "warnings": [{"code": "trade_product_not_selected"}], "scan_trace": [],
+        "stop_reason": "list_end"})
+    monkeypatch.setattr(trade, "execute_bargain_to_cap", lambda **kw: pytest.fail("must not bargain"))
+    monkeypatch.setattr(trade, "_wait_for_text_hit", lambda *args, **kw: pytest.fail("must not buy"))
+    monkeypatch.setattr(trade, "resonance_pc_tap_back_once", lambda **kw: {"page_state": "previous"})
+    monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", lambda *args: {"ready": True})
+    result = trade.resonance_pc_buy_goods_on_buy_page(["missing"], bargain_to_cap=True,
+                        max_scan_rounds=1, app=object(), ocr=object(), vision=object())
+    assert result["buy_result"] == "skipped" and result["success"] is True
+    assert result["page_state"] == "shop_page" and result["missing_products"] == ["missing"]
 
 
 def test_unconfirmed_books_stop_before_selecting_products(monkeypatch):
+    monkeypatch.setattr(trade, "load_product_templates", lambda: object())
     monkeypatch.setattr(trade, "execute_bargain_to_cap", lambda **kw: {})
     monkeypatch.setattr(trade, "resonance_pc_use_purchase_books", lambda **kw: {"ok": True, "used": 1})
-    monkeypatch.setattr(trade, "_capture_text_items", lambda *args: pytest.fail("must not scan"))
+    monkeypatch.setattr(trade, "select_buy_products", lambda **kw: pytest.fail("must not scan"))
     with pytest.raises(trade.CityTradeFlowError) as error:
         trade.resonance_pc_buy_goods_on_buy_page(["product"], books_used=2,
                                                app=object(), ocr=object(), vision=object())
@@ -240,7 +248,7 @@ def test_real_service_is_wired_to_preview_and_execution(service, harness, monkey
     assert preview["book_budget"] is None and actual["resources"]["actual_profit"] is None
 
 
-@pytest.mark.parametrize("code,status", [("buy_selection_incomplete", "failed"), ("trade_cancelled", "cancelled")])
+@pytest.mark.parametrize("code,status", [("buy_transaction_not_confirmed", "failed"), ("trade_cancelled", "cancelled")])
 def test_structured_trade_failure_retains_completed_legs_and_never_clears_endpoint(harness, monkeypatch, code, status):
     operations, _ = harness
     original = trade._execute_trade_leg

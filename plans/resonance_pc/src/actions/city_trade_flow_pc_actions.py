@@ -46,6 +46,9 @@ from ._freight_recovery_policy import (
     plan_water_use, validate_bento_priority,
 )
 from ._player_data_persistence import load_pc_user_info
+from ._trade_buy_selection import (
+    TradeBuySelectionError, load_product_templates, select_buy_products,
+)
 from ._freight_contract import (
     fixed_start_stop, integer, normalize_planning_inputs, plan_view, planning_event_data, start_mismatch,
 )
@@ -83,10 +86,6 @@ class CityTradeFlowError(RuntimeError):
 
 _TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 _TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
-
-# Exact OCR aliases, scoped to purchasing; canonical product names stay intact.
-_BUY_PRODUCT_OCR_ALIASES = {"游乐城纪念徽章": ("游乐城纪念微章",)}
-
 
 class _TradeProgressReporter:
     def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop,
@@ -234,7 +233,6 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
 _VISIT_BUTTON_REGION = [1000, 450, 250, 70]
 _CITY_NAME_REGION = [170, 520, 400, 50]
 _SHOP_MENU_REGION = [720, 280, 280, 420]
-_BUY_PRODUCTS_REGION = [620, 130, 210, 520]
 _BUY_BUTTON_REGION = [1000, 630, 140, 50]
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
@@ -936,12 +934,13 @@ def resonance_pc_buy_goods_on_buy_page(
         "started",
         data={"products": requested_products, "books_used": int(books_used or 0)},
     )
-    negotiation = execute_bargain_to_cap(
-        requested_to_cap=False,
-        app=app,
-        vision=vision,
-        max_attempts=negotiation_max_attempts,
-    )
+    _check_trade_cancelled()
+    try:
+        catalog = load_product_templates()
+    except TradeBuySelectionError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
+    _check_trade_cancelled()
+    negotiation = {"skipped": True, "requested_to_cap": False}
     book_result: Dict[str, Any] = {"ok": True, "used": 0, "skipped": True}
     if int(books_used or 0) > 0:
         _report_worker("books", "started", data={"requested": books_used})
@@ -955,87 +954,59 @@ def resonance_pc_buy_goods_on_buy_page(
         if reporter and type(book_result.get("used")) is int and book_result["used"] >= 0:
             reporter.resources["confirmed_books_used"] += book_result["used"]
         if book_result.get("ok") is not True or book_result.get("used") != books_used:
-            _raise_error("purchase_books_not_confirmed", "Requested purchase books were not confirmed", book_result)
+            _raise_error("purchase_books_not_confirmed", "Requested purchase books were not confirmed",
+                         {**book_result, "book_result": book_result})
         _report_worker("books", "completed", data={"result": book_result})
 
-    pending = list(requested_products)
-    selected: List[str] = []
-    scan_trace: List[Dict[str, Any]] = []
-    rounds = max(int(max_scan_rounds), 1)
-    for round_index in range(rounds):
-        logger.info(
-            "[TradeBuy] phase=scan_started round=%s/%s pending=%s context=%s",
-            round_index + 1, rounds, list(pending), dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-        items = _capture_text_items(app, ocr, _BUY_PRODUCTS_REGION)
-        visible = [str(item.get("text") or "") for item in items]
-        round_hits: List[str] = []
-        for product in list(pending):
-            product_norm = _normalize_text(product)
-            hit = None
-            for item in items:
-                item_norm = str(item.get("norm_text") or "")
-                alias_match = item_norm in _BUY_PRODUCT_OCR_ALIASES.get(product, ())
-                if product_norm and item_norm and (alias_match or product_norm in item_norm or item_norm in product_norm):
-                    hit = item
-                    break
-            if hit is not None:
-                click = _click_hit(app, hit)
-                logger.info(
-                    "[TradeBuy] phase=product_match round=%s product=%s ocr=%s click=%s context=%s",
-                    round_index + 1, product, hit, click, dict(_WORKER_PROGRESS_CONTEXT.get()),
-                )
-                if click.get("clicked"):
-                    selected.append(product)
-                    round_hits.append(product)
-                    pending.remove(product)
-                    time.sleep(0.15)
-        scan_trace.append({"round": round_index + 1, "visible_texts": visible, "round_hits": round_hits})
-        logger.info(
-            "[TradeBuy] phase=scan_completed round=%s visible_texts=%s round_hits=%s pending=%s context=%s",
-            round_index + 1, visible, round_hits, list(pending), dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-        if not pending:
-            break
-        if round_index < rounds - 1:
-            logger.info(
-                "[TradeBuy] phase=scroll_started round=%s start=%s end=%s duration=0.5 context=%s",
-                round_index + 1, _BUY_SCROLL_START, _BUY_SCROLL_END, dict(_WORKER_PROGRESS_CONTEXT.get()),
-            )
-            _drag_buy_list(app)
-            logger.info(
-                "[TradeBuy] phase=scroll_completed round=%s context=%s",
-                round_index + 1, dict(_WORKER_PROGRESS_CONTEXT.get()),
-            )
+    def selection_trace(entry):
+        logger.info("[TradeBuy] %s context=%s", entry, dict(_WORKER_PROGRESS_CONTEXT.get()))
 
-    logger.info(
-        "[TradeBuy] phase=selection_completed selected=%s missing=%s scan_rounds=%s context=%s",
-        selected,
-        pending,
-        len(scan_trace),
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
-    )
-
-    if pending:
-        _raise_error("buy_selection_incomplete", "Not all planned products were selected",
-                     {"selected_products": selected, "missing_products": pending, "book_result": book_result})
-
-    if bool(bargain_to_cap) and not selected:
-        _raise_error(
-            "negotiation_without_selected_goods",
-            "Bargaining was requested, but no goods were selected for purchase.",
-            {"requested_products": requested_products, "missing_products": pending},
+    try:
+        selection = select_buy_products(
+            product_list=requested_products, app=app, vision=vision,
+            max_scan_rounds=max_scan_rounds, check_cancelled=_check_trade_cancelled,
+            trace_callback=selection_trace, catalog=catalog,
         )
+    except (TradeBuySelectionError, CityTradeFlowError) as exc:
+        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result})
+    selected = list(selection["selected_products"])
+    pending = list(selection["missing_products"])
+    warnings = list(selection["warnings"])
+    scan_trace = list(selection["scan_trace"])
+    buy_result = "partial" if pending else "complete"
+    logger.info("[TradeBuy] phase=selection_completed selected=%s missing=%s stop_reason=%s context=%s",
+                selected, pending, selection["stop_reason"], dict(_WORKER_PROGRESS_CONTEXT.get()))
+
+    if not selected:
+        try:
+            _check_trade_cancelled()
+            back = resonance_pc_tap_back_once(app=app, vision=vision)
+            shop = _wait_for_shop_menu_ready(app, vision)
+        except CityTradeFlowError as exc:
+            _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result})
+        result = {
+            "success": True, "buy_result": "skipped", "page_state": "shop_page",
+            "requested_products": requested_products, "selected_products": [],
+            "selected_product_ids": [], "missing_products": pending,
+            "books_requested": int(books_used or 0), "book_result": book_result,
+            "negotiation": negotiation, "buy_button": None, "settlement": None,
+            "settlement_after_confirm": None, "confirm_panel_found": False,
+            "confirm_click": None, "back": back, "shop_menu_ready": shop,
+            "warnings": warnings, "scan_trace": scan_trace,
+            "selection_stop_reason": selection["stop_reason"],
+        }
+        _report_worker("buy", "skipped", data={"buy_result": "skipped",
+                       "selected_products": [], "missing_products": pending, "warnings": warnings})
+        return result
     try:
         if bool(bargain_to_cap):
             _report_worker("negotiation", "started", operation="bargain")
-        negotiation = execute_bargain_to_cap(
-            requested_to_cap=bool(bargain_to_cap),
-            app=app,
-            vision=vision,
-            max_attempts=negotiation_max_attempts,
-        )
-        if bool(bargain_to_cap):
+            negotiation = execute_bargain_to_cap(
+                requested_to_cap=True,
+                app=app,
+                vision=vision,
+                max_attempts=negotiation_max_attempts,
+            )
             _report_worker("negotiation", "completed", operation="bargain", data=dict(negotiation))
     except NegotiationExecutionError as exc:
         _report_worker(
@@ -1044,125 +1015,120 @@ def resonance_pc_buy_goods_on_buy_page(
             operation="bargain",
             data={"code": exc.code, "message": exc.message, "detail": dict(exc.detail)},
         )
-        _raise_error(exc.code, exc.message, exc.detail)
+        _raise_error(exc.code, exc.message, {**exc.detail, "book_result": book_result})
 
-    buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
-    if buy_button_hit is None:
-        logger.error(
-            "[TradeBuy] phase=buy_button_not_found products=%s selected=%s missing=%s region=%s context=%s",
-            requested_products,
-            selected,
-            pending,
-            _BUY_BUTTON_REGION,
+    try:
+        buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
+        if buy_button_hit is None:
+            logger.error(
+                "[TradeBuy] phase=buy_button_not_found products=%s selected=%s missing=%s region=%s context=%s",
+                requested_products,
+                selected,
+                pending,
+                _BUY_BUTTON_REGION,
+                dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+            _raise_error(
+                "buy_button_not_found",
+                "Unable to find 买入 button on buy page; fixed-coordinate fallback is disabled.",
+                {"region": list(_BUY_BUTTON_REGION), "requested_products": requested_products,
+                 "selected_products": selected, "book_result": book_result},
+            )
+        buy_button = _click_hit(app, buy_button_hit)
+        buy_button["method"] = "text"
+        logger.info(
+            "[TradeBuy] phase=buy_button_clicked click=%s context=%s",
+            buy_button,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        _raise_error(
-            "buy_button_not_found",
-            "Unable to find 买入 button on buy page; fixed-coordinate fallback is disabled.",
-            {"region": list(_BUY_BUTTON_REGION), "requested_products": requested_products, "selected_products": selected},
-        )
-    buy_button = _click_hit(app, buy_button_hit)
-    buy_button["method"] = "text"
-    logger.info(
-        "[TradeBuy] phase=buy_button_clicked click=%s context=%s",
-        buy_button,
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
-    )
-    time.sleep(0.5)
+        time.sleep(0.5)
 
-    settlement = _close_settlement(app, vision, "buy", timeout_sec=3.0)
-    confirm_panel = None
-    confirm_click = None
-    settlement_after_confirm = None
-    if not settlement.get("closed"):
-        confirm_panel = _wait_for_text_hit(
-            app,
-            ocr,
-            ("预计买入",),
-            _BUY_CONFIRM_PANEL_REGION,
-            timeout_sec=2.0,
-            interval_sec=0.3,
-        )
-        if confirm_panel is not None:
-            confirm_click = _wait_and_click_text(
+        settlement = _close_settlement(app, vision, "buy", timeout_sec=3.0)
+        confirm_panel = None
+        confirm_click = None
+        settlement_after_confirm = None
+        if not settlement.get("closed"):
+            confirm_panel = _wait_for_text_hit(
                 app,
                 ocr,
-                ("买入",),
-                _BUY_CONFIRM_BUTTON_REGION,
+                ("预计买入",),
+                _BUY_CONFIRM_PANEL_REGION,
                 timeout_sec=2.0,
                 interval_sec=0.3,
             )
-            time.sleep(0.8)
-            settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
+            if confirm_panel is not None:
+                confirm_click = _wait_and_click_text(
+                    app,
+                    ocr,
+                    ("买入",),
+                    _BUY_CONFIRM_BUTTON_REGION,
+                    timeout_sec=2.0,
+                    interval_sec=0.3,
+                )
+                time.sleep(0.8)
+                settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
 
-    bought = bool(settlement.get("closed")) or bool(
-        isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
-    )
-    if not bought:
-        _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
-                     {"book_result": book_result, "negotiation": negotiation,
-                      "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
-                      "selected_products": selected})
-    log_method = logger.info if bought else logger.warning
-    log_method(
-        "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
-        bought,
-        settlement,
-        confirm_panel is not None,
-        confirm_click,
-        settlement_after_confirm,
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
-    )
-    if bought:
+        bought = bool(settlement.get("closed")) or bool(
+            isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
+        )
+        if not bought:
+            _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
+                         {"book_result": book_result, "negotiation": negotiation,
+                          "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
+                          "selected_products": selected})
+        logger.info(
+            "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
+            bought,
+            settlement,
+            confirm_panel is not None,
+            confirm_click,
+            settlement_after_confirm,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
         back = {
             "skipped": True,
             "reason": "buy_success_returns_to_shop_page",
             "page_state": "shop_page",
         }
-    else:
-        back = resonance_pc_tap_back_once(app=app, vision=vision)
-    result = {
-        "success": True,
-        "page_state": "shop_page",
-        "requested_products": requested_products,
-        "selected_products": selected,
-        "missing_products": pending,
-        "books_requested": int(books_used or 0),
-        "book_result": book_result,
-        "negotiation": negotiation,
-        "buy_button": buy_button,
-        "settlement": settlement,
-        "confirm_panel_found": confirm_panel is not None,
-        "confirm_click": confirm_click,
-        "settlement_after_confirm": settlement_after_confirm,
-        "back": back,
-        "scan_trace": scan_trace,
-    }
-    _report_worker(
-        "buy",
-        "completed",
-        data={
-            "selected_products": list(selected),
-            "missing_products": list(pending),
-            "bought": bought,
-        },
-    )
-    if not bought:
-        logger.warning(
-            "[TradeBuy] phase=completed reported_success=true declared_page_state=shop_page bought_confirmed=false back=%s selected=%s missing=%s context=%s",
-            back,
-            selected,
-            pending,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        result = {
+            "success": True,
+            "page_state": "shop_page",
+            "requested_products": requested_products,
+            "buy_result": buy_result,
+            "selected_product_ids": list(selection["selected_product_ids"]),
+            "selected_products": selected,
+            "missing_products": pending,
+            "books_requested": int(books_used or 0),
+            "book_result": book_result,
+            "negotiation": negotiation,
+            "buy_button": buy_button,
+            "settlement": settlement,
+            "confirm_panel_found": confirm_panel is not None,
+            "confirm_click": confirm_click,
+            "settlement_after_confirm": settlement_after_confirm,
+            "back": back,
+            "scan_trace": scan_trace,
+            "selection_stop_reason": selection["stop_reason"],
+            "warnings": warnings,
+        }
+        _report_worker(
+            "buy",
+            "completed",
+            data={
+                "selected_products": list(selected),
+                "missing_products": list(pending),
+                "bought": bought,
+                "buy_result": buy_result,
+                "warnings": warnings,
+            },
         )
-    else:
         logger.info(
             "[TradeBuy] phase=completed reported_success=true declared_page_state=shop_page bought_confirmed=true selected=%s missing=%s context=%s",
-            selected,
-            pending,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
+            selected, pending, dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-    return result
+        return result
+    except CityTradeFlowError as exc:
+        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result})
 
 
 @action_info(
@@ -1391,7 +1357,10 @@ def _execute_city_trade_inside_current_city_scoped(
         buy_confirmed = bool((buy.get("settlement") or {}).get("closed")) or bool(
             (buy.get("settlement_after_confirm") or {}).get("closed")
         )
-        if buy.get("success") is not True or not buy_confirmed or buy.get("missing_products"):
+        skipped = (buy.get("buy_result") == "skipped" and not buy.get("selected_products")
+                   and buy.get("page_state") == "shop_page")
+        if (buy.get("success") is not True or buy.get("page_state") != "shop_page"
+                or (not skipped and (buy.get("buy_result") not in {"complete", "partial"} or not buy_confirmed))):
             _raise_error("buy_transaction_not_confirmed", "Cannot depart after an unconfirmed purchase", buy)
     logger.info(
         "[CityTrade] phase=before_return_city_main city=%s sold_confirmed=%s buy_required=%s buy_confirmed=%s declared_sell_page_state=%s declared_buy_page_state=%s context=%s",
@@ -2761,6 +2730,10 @@ async def resonance_pc_auto_cycle_trade_flow(
     result = dict(plan)
     result_warnings = list(result.get("warnings") or [])
     result_warnings.extend(negotiation_execution["warnings"])
+    for leg_result in execution.get("leg_results") or []:
+        buy = ((leg_result.get("city_trade") or {}).get("buy") or {})
+        result_warnings.extend({**warning, "leg_index": leg_result.get("leg_index", leg_result.get("index"))}
+                               for warning in buy.get("warnings") or [])
     result.update(
         {
             "success": success,
