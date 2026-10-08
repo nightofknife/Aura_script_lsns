@@ -233,6 +233,31 @@ class ResonanceConfigRepository:
             )
             raise OSError(f"{reason}：{self.settings.fileName()}")
 
+    def load_hotkeys(self) -> dict[str, str]:
+        try:
+            values = json.loads(str(self.value("execution/hotkeys_json", "{}") or "{}"))
+        except (TypeError, ValueError):
+            values = {}
+        if not isinstance(values, dict):
+            values = {}
+        return {key: values.get(key) if isinstance(values.get(key), str) else ""
+                for key in ("start", "stop")}
+
+    def save_hotkeys(self, start: str, stop: str) -> None:
+        """Store the pair together; retain the previous pair on a failed flush."""
+        key = "execution/hotkeys_json"
+        previous = self.settings.value(key)
+        self.settings.setValue(key, json.dumps({"start": start, "stop": stop}, ensure_ascii=False))
+        try:
+            self.sync_checked()
+        except OSError:
+            if previous is None:
+                self.settings.remove(key)
+            else:
+                self.settings.setValue(key, previous)
+            self.settings.sync()
+            raise
+
     def load_trade_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("trade/inputs_json", "")
         if raw:

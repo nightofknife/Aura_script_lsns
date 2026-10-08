@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 from packages.aura_core.observability.logging.core_logger import logger
 
 from .bridge import RunnerBridge
+from .hotkeys import GlobalHotkeyManager
 from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
@@ -101,6 +102,7 @@ class ResonanceMainWindow(QMainWindow):
         settings: ResonanceConfigRepository | None = None,
         initialize_on_startup: bool = True,
         update_checker: Callable[[], str] | None = None,
+        hotkey_backend: Any = None,
     ) -> None:
         super().__init__()
         self._settings = settings or ResonanceConfigRepository()
@@ -143,9 +145,68 @@ class ResonanceMainWindow(QMainWindow):
         self._sync_input_bridge_setting()
         self.updateCheckCompleted.connect(self._show_available_update)
         self._select_task(self._current_task.task_id)
+        self._setup_global_hotkeys(hotkey_backend)
         if initialize_on_startup:
             QTimer.singleShot(0, self.requestInitialize.emit)
             QTimer.singleShot(0, self._start_update_check)
+
+    def _setup_global_hotkeys(self, backend: Any) -> None:
+        self._last_hotkey_error = ""
+        self._hotkeys = GlobalHotkeyManager(self, backend=backend)
+        self._hotkeys.activated.connect(self._on_global_hotkey)
+        self._hotkeys.errorOccurred.connect(self._on_hotkey_error)
+        self.settings_page.set_hotkey_binder(self._apply_global_hotkeys)
+        self.settings_page.hotkeyRecordingChanged.connect(self._hotkeys.set_suspended)
+        saved = self._settings.load_hotkeys()
+        try:
+            self._apply_global_hotkeys(saved["start"], saved["stop"])
+        except ValueError:
+            # Invalid/occupied saved bindings must not prevent opening settings.
+            pass
+
+    def _apply_global_hotkeys(self, start: str, stop: str) -> Callable[[], None]:
+        previous = self._hotkeys.active_shortcuts
+        self._last_hotkey_error = ""
+        if not self._hotkeys.configure(start, stop):
+            raise ValueError(self._last_hotkey_error or "无法注册全局快捷键，请检查是否被占用。")
+        self.settings_page.show_hotkey_status("全局快捷键已生效" if start or stop else "未设置快捷键")
+
+        def undo() -> None:
+            self._last_hotkey_error = ""
+            if not self._hotkeys.configure(*previous):
+                error = self._last_hotkey_error or "无法恢复原快捷键"
+                if self._hotkeys.configure("", ""):
+                    raise ValueError(f"{error}；已停用快捷键，请重新设置。")
+                self._hotkeys.close()
+                raise ValueError(f"{error}；快捷键监听已关闭，请重启界面。")
+            self.settings_page.show_hotkey_status("全局快捷键已生效" if any(previous) else "未设置快捷键")
+
+        return undo
+
+    def _on_hotkey_error(self, message: str) -> None:
+        self._last_hotkey_error = str(message)
+        self.settings_page.show_hotkey_status(f"全局快捷键未生效：{message}", error=True)
+        self.statusBar().showMessage(f"快捷键：{message}")
+
+    def _on_global_hotkey(self, action: str) -> None:
+        if (self._closing or self._close_ready or self.settings_page.start_hotkey.recording
+                or self.settings_page.stop_hotkey.recording):
+            return
+        if action == "start":
+            if (self._busy or self._workflow_active or self._commerce_active
+                    or QApplication.activeModalWidget() is not None):
+                return
+            self._start_workflow()
+        elif action == "stop" and (self._busy or self._workflow_active or self._commerce_active):
+            self.requestClearQueue.emit()
+            if self._workflow_active:
+                if not self._workflow_stopping:
+                    self._stop_workflow()
+            elif self._commerce_active:
+                if not self._commerce_stopping:
+                    self._stop_commerce_sequence()
+            else:
+                self.requestCancelCurrent.emit()
 
     def _start_update_check(self) -> None:
         if self._update_check_started:
@@ -1897,6 +1958,7 @@ class ResonanceMainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802
         if self._close_ready:
+            self._hotkeys.close()
             super().closeEvent(event)
             return
         if self._closing:
@@ -1918,6 +1980,7 @@ class ResonanceMainWindow(QMainWindow):
         # Runner shutdown cancels scheduler work without another blocking IPC
         # cancellation request ahead of the close request.
         self._save_preferences()
+        self._hotkeys.close()
         event.ignore()
         self._closing = True
         self._workflow_active = False
