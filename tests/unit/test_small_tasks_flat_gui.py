@@ -96,7 +96,7 @@ def test_run_cancel_scan_and_data_snapshot_contracts(page):
     page.consciousness_deep_dive_panel.scan_button.click()
     assert scan_requests == [True]
     assert hasattr(page.consciousness_deep_dive_panel, "scan_report_button")
-    assert not hasattr(page.consciousness_deep_dive_panel, "plan_report_button")
+    assert hasattr(page.consciousness_deep_dive_panel, "plan_report_button")
 
 
 def test_team_status_and_controls_stay_below_result_workspace():
