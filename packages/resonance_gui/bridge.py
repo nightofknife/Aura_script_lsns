@@ -344,22 +344,23 @@ class RunnerBridge(QObject):
             run = normalize_run_payload(runner.get_run(self._current_cid))
         except Exception as exc:  # noqa: BLE001
             self._poll_error_count += 1
-            # Losing visibility while stopping is not proof that the worker
-            # exited. Keep the run button locked and continue polling.
-            terminal_failure = self._poll_error_count >= 3 and not self._cancel_sent
+            # Losing visibility is never proof that the worker exited, including
+            # before a user cancellation. Preserve its CID and the busy lock;
+            # repeated failures request cancellation but still need a real
+            # terminal snapshot with execution_pending=False before draining.
+            request_cancel = self._poll_error_count >= 3 and not self._cancel_sent
             self.taskFailed.emit(
                 {
                     "stage": "poll_run",
                     "cid": self._current_cid,
                     "error": str(exc),
-                    "recoverable": not terminal_failure,
+                    "recoverable": True,
                     "attempt": self._poll_error_count,
                 }
             )
-            if terminal_failure:
-                self.logMessage.emit(f"任务状态连续读取失败：{exc}")
-                self._reset_current()
-                self._run_next()
+            if request_cancel:
+                self.logMessage.emit(f"任务状态连续读取失败，正在请求停止并等待执行端确认：{exc}")
+                self._request_cancel(reason="poll_error")
             return
 
         self._poll_error_count = 0

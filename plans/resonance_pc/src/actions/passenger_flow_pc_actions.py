@@ -21,9 +21,11 @@ from .city_trade_flow_pc_actions import (
     _execute_city_trade_inside_current_city,
     resonance_pc_go_city_main_direct,
     resonance_pc_open_city_panel_from_main,
-    resonance_pc_read_city_name_on_city_panel,
 )
 from .city_travel_pc_actions import IntercityDestinationError, resonance_pc_intercity_depart_and_wait
+from ._operation_progress import (
+    observe_operation, observe_worker_future, operation_progress, utc_timestamp,
+)
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .passenger_pc_actions import (
     PassengerPcError,
@@ -110,8 +112,13 @@ class _PassengerProgressReporter:
         self._loop = loop
         self._sequence = 0
         self._lock = threading.Lock()
+        self.operation_stage = "task"
+        self.operation_fields: Dict[str, Any] = {}
 
     async def emit(self, stage: str, state: str, **fields: Any) -> None:
+        if not (fields.get("data") or {}).get("operation"):
+            self.operation_stage = stage
+            self.operation_fields = {key: value for key, value in fields.items() if key != "data"}
         with self._lock:
             self._sequence += 1
             sequence = self._sequence
@@ -121,8 +128,12 @@ class _PassengerProgressReporter:
             "sequence": sequence,
             "stage": str(stage),
             "state": str(state),
+            "timestamp": utc_timestamp(),
         }
         payload.update({key: value for key, value in fields.items() if value is not None})
+        data = dict(payload.get("data") or {})
+        data["route_revision"] = 0  # alternating passenger route is fixed, not replanned
+        payload["data"] = data
         try:
             await self._event_bus.publish(Event(name=_PASSENGER_PROGRESS_EVENT, payload=payload))
         except Exception as exc:  # noqa: BLE001
@@ -131,7 +142,10 @@ class _PassengerProgressReporter:
     def emit_from_worker(self, stage: str, state: str, **fields: Any) -> None:
         try:
             future = asyncio.run_coroutine_threadsafe(self.emit(stage, state, **fields), self._loop)
-            future.result(timeout=2.0)
+            if (fields.get("data") or {}).get("operation"):
+                future.add_done_callback(observe_worker_future)
+            else:
+                future.result(timeout=2.0)
         except Exception as exc:  # noqa: BLE001
             logger.warning("PC passenger worker progress could not be scheduled: %s", exc)
 
@@ -157,7 +171,13 @@ def _with_passenger_progress(func: Callable[..., Any]) -> Callable[..., Any]:
         try:
             if reporter is not None:
                 await reporter.emit("task", "started")
-            result = await func(*args, **kwargs)
+            def operation_observer(operation: Dict[str, Any]) -> None:
+                reporter.emit_from_worker(reporter.operation_stage, "progress",
+                                          **reporter.operation_fields,
+                                          data={"operation": operation})
+
+            with operation_progress(operation_observer if reporter is not None else None):
+                result = await func(*args, **kwargs)
             if reporter is not None:
                 await reporter.emit(
                     "task",
@@ -284,17 +304,11 @@ def _block(
 
 def _read_current_city(
     app: Any,
-    ocr: Any,
     vision: Any,
-    city_shop_data: ResonancePcCityShopDataService,
 ) -> Dict[str, Any]:
-    resonance_pc_open_city_panel_from_main(app=app, ocr=ocr)
+    opened = resonance_pc_open_city_panel_from_main(app=app, vision=vision)
     try:
-        current = resonance_pc_read_city_name_on_city_panel(
-            app=app,
-            ocr=ocr,
-            resonance_pc_city_shop_data=city_shop_data,
-        )
+        current = opened["city"]
     finally:
         resonance_pc_go_city_main_direct(app=app, vision=vision)
     return current
@@ -429,7 +443,7 @@ def _execute_passenger_trade_at_city(
         )
         buy_products = list(plan.get("buy_products") or [])
 
-    resonance_pc_open_city_panel_from_main(app=app, ocr=ocr)
+    resonance_pc_open_city_panel_from_main(app=app, vision=vision)
     execution = _execute_city_trade_inside_current_city(
         current_city=current["city_name"],
         buy_products=buy_products,
@@ -496,7 +510,7 @@ def _run_passenger_trips_sync(
 
     _emit("resolve_start", "started")
     try:
-        current = _read_current_city(app, ocr, vision, city_shop_data)
+        current = _read_current_city(app, vision)
     except Exception as exc:  # noqa: BLE001 - converted into an expected operational result
         return _block(
             result,
@@ -644,6 +658,7 @@ def _run_passenger_trips_sync(
             )
 
         _emit("recruit", "started", **progress_fields)
+        observe_operation("recruit.passenger_task", "揽客子任务", "started")
         try:
             recruitment = resonance_pc_recruit_passengers_by_flyer(
                 to_city_name=destination["city_name"],
@@ -665,6 +680,9 @@ def _run_passenger_trips_sync(
         loaded_destination = destination
         result["recruited_passengers"] += int(recruitment.get("recruited_passengers") or 0)
         result["flyers_used"] += int(recruitment.get("flyers_used") or 0)
+        observe_operation("recruit.passenger_task", "揽客结果已返回", "completed",
+                          recruited_passengers=recruitment.get("recruited_passengers"),
+                          flyers_used=recruitment.get("flyers_used"), seat_capacity=recruitment.get("seat_capacity"))
         _emit(
             "recruit",
             "completed",
@@ -716,6 +734,7 @@ def _run_passenger_trips_sync(
         )
 
         _emit("settlement", "started", **progress_fields)
+        observe_operation("settlement.passenger_task", "到站结算子任务", "started")
         try:
             settlement = resonance_pc_enter_city_and_settle_passengers(
                 app=app,
@@ -733,6 +752,9 @@ def _run_passenger_trips_sync(
                 detail=exc.to_dict(),
             )
 
+        observe_operation("settlement.passenger_task", "到站结算子任务返回", "completed",
+                          success=settlement.get("success"), ticket_revenue=settlement.get("ticket_revenue"),
+                          extra_revenue=settlement.get("extra_revenue"), total_revenue=settlement.get("total_revenue"))
         loaded_destination = None
         for key in ("ticket_revenue", "extra_revenue", "total_revenue"):
             value = settlement.get(key)

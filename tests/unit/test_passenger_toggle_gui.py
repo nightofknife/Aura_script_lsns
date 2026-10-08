@@ -5,9 +5,9 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QSettings
 from PySide6.QtGui import QFont, QFontDatabase
-from PySide6.QtWidgets import QApplication, QCheckBox, QScrollArea
+from PySide6.QtWidgets import QApplication, QCheckBox, QScrollArea, QVBoxLayout, QWidget
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.style import APP_STYLE
@@ -123,3 +123,76 @@ def test_endpoint_choices_are_collapsed_until_selected(page):
     assert desired in page.endpoint_buttons["B"]
     assert page.endpoint_panels["B"].isHidden()
     assert page.city_b.currentText() in page.endpoint_selector_buttons["B"].text()
+
+
+@pytest.mark.parametrize("width,columns", [(920, 2), (1220, 3)])
+def test_standalone_city_grid_adapts_without_clipping_text(page, width, columns):
+    page.resize(width, 820)
+    page.show()
+    page.endpoint_selector_buttons["A"].click()
+    for _ in range(3):
+        QApplication.processEvents()
+    assert page._endpoint_grid_columns["A"] == columns
+    viewport = page.parameter_panel.viewport()
+    for button in page.endpoint_buttons["A"].values():
+        assert button.width() >= button.minimumSizeHint().width()
+        assert button.mapTo(viewport, QPoint(button.width(), 0)).x() <= viewport.width()
+
+
+def test_reparented_parameter_editor_reflows_when_its_viewport_resizes(page):
+    host = QWidget()
+    host.setFont(page.font())
+    host.setStyleSheet(APP_STYLE)
+    layout = QVBoxLayout(host)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(page.parameter_panel)
+    page.endpoint_selector_buttons["A"].click()
+    try:
+        host.show()
+        for width, columns in ((540, 3), (340, 2), (540, 3)):
+            host.resize(width, 700)
+            for _ in range(3):
+                QApplication.processEvents()
+            assert page._endpoint_grid_columns["A"] == columns
+            viewport = page.parameter_panel.viewport()
+            for button in page.endpoint_buttons["A"].values():
+                assert button.width() >= button.minimumSizeHint().width()
+                assert button.mapTo(viewport, QPoint(button.width(), 0)).x() <= viewport.width()
+    finally:
+        # Return ownership to the fixture before destroying the embedding host.
+        page.parameter_panel.setParent(page)
+        host.close()
+
+
+def test_destroying_embedded_editor_cancels_pending_grid_resize(page):
+    host = QWidget()
+    QVBoxLayout(host).addWidget(page.parameter_panel)
+    timeouts = []
+    page._endpoint_grid_resize_timer.timeout.connect(lambda: timeouts.append(True))
+    page._queue_endpoint_grid_resize()
+    assert page._endpoint_grid_resize_timer.isActive()
+    host.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert page._parameter_viewport is None
+    assert not page._endpoint_grid_resize_timer.isActive()
+    QApplication.processEvents()
+    assert timeouts == []
+    # Later requests from surviving Python adapters must remain harmless too.
+    page._queue_endpoint_grid_resize()
+    page._resize_endpoint_grids()
+    assert not page._endpoint_grid_resize_timer.isActive()
+
+
+def test_deleting_passenger_page_drops_pending_resize_callback(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    widget = PassengerPage(ResonanceConfigRepository(base_path=tmp_path))
+    timeouts, timer_destroyed = [], []
+    widget._endpoint_grid_resize_timer.timeout.connect(lambda: timeouts.append(True))
+    widget._endpoint_grid_resize_timer.destroyed.connect(lambda: timer_destroyed.append(True))
+    widget._queue_endpoint_grid_resize()
+    assert widget._endpoint_grid_resize_timer.isActive()
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
+    assert timer_destroyed == [True]
+    assert timeouts == []

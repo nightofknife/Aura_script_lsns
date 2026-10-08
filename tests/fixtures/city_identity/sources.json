@@ -1,0 +1,101 @@
+{
+  "kind": "actual_user_screenshot_rois_not_synthetic",
+  "screenshots": {
+    "main": {
+      "attachment": "codex-clipboard-17002cc1-dbf7-442c-bbd6-a89ddc9a1dfd.png",
+      "source_sha256": "bd941bc8d1067df92c97c42309bebfe02c73ab0966d3bb2adf29b915aa2ec445",
+      "client_crop": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "regions": {
+        "city": {
+          "path": "main_city_roi.png",
+          "roi": [
+            25,
+            490,
+            175,
+            170
+          ],
+          "sha256": "a5610704966a650672a44875400b177d13c36176c3ef09d8be03a1c2065ccd3f"
+        },
+        "visit": {
+          "path": "main_visit_roi.png",
+          "roi": [
+            1000,
+            450,
+            250,
+            70
+          ],
+          "sha256": "1109de724162b49e3a2903d552302aa39ba3a8134b5de1edba1318b2ad71faa1"
+        }
+      }
+    },
+    "city": {
+      "attachment": "codex-clipboard-33212f8e-d3f0-42af-bfe6-b8daf9fd24c4.png",
+      "source_sha256": "492bb935dfcc73e7832678914d09895aec6b21ad6e2329fe9c225a23bb1d99ec",
+      "client_crop": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "regions": {
+        "city": {
+          "path": "city_city_roi.png",
+          "roi": [
+            25,
+            490,
+            175,
+            170
+          ],
+          "sha256": "1cbb92535bc5584f4098168710342b623b49655b645a3fae92e981c63c2be4e2"
+        },
+        "visit": {
+          "path": "city_visit_roi.png",
+          "roi": [
+            1000,
+            450,
+            250,
+            70
+          ],
+          "sha256": "36f4feeeb158aadbb6ea4b4c26ae595d3d5e57fd100281b347677d1f2255df03"
+        }
+      }
+    },
+    "bridge": {
+      "attachment": "codex-clipboard-c36feea3-2789-47a7-96a3-b2dc6b54b6dc.png",
+      "source_sha256": "acd19bc98de78a24f1ff11f5996b54f93d84d1b44f44690df0449afdd115e2ee",
+      "client_crop": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "regions": {
+        "city": {
+          "path": "bridge_city_roi.png",
+          "roi": [
+            25,
+            490,
+            175,
+            170
+          ],
+          "sha256": "85a39920fa190a5f7c6bc32799af638ef6b6bf4763cfd31d9f2d678d53f00bb0"
+        },
+        "visit": {
+          "path": "bridge_visit_roi.png",
+          "roi": [
+            1000,
+            450,
+            250,
+            70
+          ],
+          "sha256": "ce05827de420b3810bb577dd3649e307efc572e1ff1f4e19b2f18c264713db12"
+        }
+      }
+    }
+  }
+}

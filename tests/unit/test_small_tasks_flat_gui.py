@@ -32,7 +32,7 @@ def test_flat_navigation_reserves_detail_workspace(page):
     page.show()
     QApplication.processEvents()
     assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == [
-        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗", "数据采集",
+        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗",
     ]
     assert page.layout().count() == 2
     assert page.category_list.isHidden()
@@ -64,7 +64,30 @@ def test_each_task_selects_existing_panel_and_preview_api(page):
     team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
     page.category_list.setCurrentItem(team_category)
     assert page.current_task_id == "team_recommendation"
-    assert page.task_list.count() == 6
+    assert page.task_list.count() == 5
+
+
+def test_preview_can_return_to_trade_without_running_or_rebuilding(page):
+    returns, previews = [], []
+    page.returnToTradeRequested.connect(lambda: returns.append(True))
+    page.previewTradeRequested.connect(lambda *_: previews.append(True))
+    page.show_trade_preview()
+    original_panel = page.trade_preview_panel
+    page.return_to_trade_button.click()
+    assert returns == [True]
+    assert previews == []
+    assert page.trade_preview_panel is original_panel
+
+
+def test_data_collection_has_no_ordinary_entry_but_keeps_developer_api(page):
+    ids = [page.task_list.item(i).data(Qt.ItemDataRole.UserRole)
+           for i in range(page.task_list.count())]
+    assert "data_collection" not in ids
+    page.show_task("data_collection")
+    assert page.current_task_id == "data_collection"
+    assert page.detail_stack.currentWidget() is page.data_collection_panel
+    page.show_trade_preview()
+    assert page.detail_stack.currentWidget() is page.trade_preview_panel
 
 
 def test_run_cancel_scan_and_data_snapshot_contracts(page):

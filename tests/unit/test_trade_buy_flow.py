@@ -391,3 +391,23 @@ def test_passenger_city_trade_uses_new_shared_purchase_without_books_or_negotiat
     assert purchase["warnings"] == buy_rig.selection["warnings"]
     assert "books" not in buy_rig.names() and "bargain" not in buy_rig.names()
     assert buy_rig.names().count("settlement") == (0 if empty else 1)
+
+
+def test_passenger_current_city_reuses_identity_confirmed_by_opener(monkeypatch):
+    calls = []
+    city = {"success": True, "city_name": "city-a", "city_key": "city-a"}
+
+    def open_panel(*, app, vision):
+        calls.append("open")
+        return {"success": True, "page_state": "city_panel", "city": dict(city)}
+
+    def return_main(*, app, vision):
+        calls.append("return")
+        return {"success": True, "page_state": "city_main"}
+
+    monkeypatch.setattr(passenger, "resonance_pc_open_city_panel_from_main", open_panel)
+    monkeypatch.setattr(passenger, "resonance_pc_go_city_main_direct", return_main)
+    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel",
+                        lambda **kwargs: pytest.fail("The opener already confirmed this city"))
+    assert passenger._read_current_city(object(), object()) == city
+    assert calls == ["open", "return"]

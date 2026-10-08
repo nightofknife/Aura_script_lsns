@@ -49,6 +49,7 @@ _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
     frozenset(str(city_id) for city_id in range(1, 21)),
 )
 _CITY_DEFAULTS_VERSION = 2
+PORTABLE_SETTINGS_FILENAME = "gui-settings-layout-v2.ini"
 
 
 @dataclass(frozen=True)
@@ -166,25 +167,15 @@ def create_portable_settings(
     *,
     legacy_settings: QSettings | None = None,
 ) -> QSettings:
+    """Use the layout-v2 namespace without reading or mutating older settings.
+
+    ``legacy_settings`` remains an accepted argument for older callers, but is
+    intentionally ignored. Registry preferences and gui-settings.ini belong to
+    the previous layout and must remain untouched.
+    """
     root = Path(base_path).resolve() if base_path is not None else resolve_application_root()
-    settings_path = root / "gui-settings.ini"
-    portable = QSettings(str(settings_path), QSettings.Format.IniFormat)
-
-    if settings_path.exists() or portable.allKeys():
-        return portable
-
-    legacy = legacy_settings if legacy_settings is not None else QSettings("Aura", "ResonanceGui")
-    legacy_keys = list(legacy.allKeys())
-    if not legacy_keys:
-        return portable
-
-    for key in legacy_keys:
-        portable.setValue(key, legacy.value(key))
-    portable.sync()
-    if portable.status() == QSettings.Status.NoError:
-        legacy.clear()
-        legacy.sync()
-    return portable
+    settings_path = root / PORTABLE_SETTINGS_FILENAME
+    return QSettings(str(settings_path), QSettings.Format.IniFormat)
 
 
 class ResonanceConfigRepository:

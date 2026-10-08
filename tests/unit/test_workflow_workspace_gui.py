@@ -1,4 +1,4 @@
-"""Independent tasks share a wide editor and bottom execution dock."""
+"""Independent tasks share one editor and a right-hand execution inspector."""
 import os
 from pathlib import Path
 
@@ -110,8 +110,8 @@ def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
     page.mark_step("startup", "success", "ready")
     assert page.task_progress_bar.value() == 1
     assert "1 / 5" in page.task_progress_label.text()
-    assert not page.center_panel.isEnabled()
-    assert not page.task_rows_host.isEnabled()
+    assert page.center_panel.isEnabled()  # Viewing remains available.
+    assert page.task_rows_host.isEnabled()
     assert all(not button.isEnabled() for button in page._task_checks.values())
     assert not window.trade_page.fatigue_budget.isEnabled()
     assert not window.passenger_page.trip_count.isEnabled()
@@ -127,25 +127,25 @@ def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
 
 @pytest.mark.parametrize("size", [(1440, 860), (1180, 720)])
 @pytest.mark.parametrize("task", ["trade", "passenger", "battle"])
-def test_workspace_is_wide_with_bottom_dock(window, tmp_path, size, task):
+def test_workspace_restores_three_columns(window, tmp_path, size, task):
     window.resize(*size)
     page = window.workflow_page
     page._select_task(task)
     window.show()
     QApplication.processEvents()
-    assert page.workspace_splitter.orientation() == Qt.Orientation.Vertical
+    assert page.workspace_splitter.orientation() == Qt.Orientation.Horizontal
     assert page.workspace_splitter.widget(0) is page.center_panel
     assert page.workspace_splitter.widget(1) is page.right_panel
-    assert page.center_panel.width() > page.left_panel.width() * 3
-    assert page.center_panel.geometry().bottom() < page.right_panel.geometry().top()
-    assert page.center_panel.width() == page.right_panel.width()
+    assert page.center_panel.width() > page.left_panel.width()
+    assert page.center_panel.geometry().right() < page.right_panel.geometry().left()
+    assert page.right_panel.width() >= 250
     assert page.run_button.isVisible()
     if task in {"trade", "passenger"}:
         editor = window.trade_page if task == "trade" else window.passenger_page
-        assert editor.parameter_panel.width() > 500
+        assert editor.parameter_panel.width() > 240
         assert page.center_panel.isAncestorOf(editor.parameter_panel)
     else:
-        assert page.center_stack.currentWidget() is window.battle_page
+        assert page.center_stack.currentWidget().isAncestorOf(window.battle_page)
     assert window.grab().save(str(tmp_path / f"workspace-{task}-{size[0]}.png"))
 
 
@@ -212,7 +212,7 @@ def test_full_window_visual_qa_all_surfaces(window, size, surface):
     window.show()
     QApplication.processEvents()
     assert (window.width(), window.height()) == size
-    folder = Path(".pytest_tmp/gui-workspace/visual-qa")
+    folder = Path(".pytest_tmp/gui-layout-restore/visual-qa")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / f"{surface}-{size[0]}x{size[1]}.png"))
     assert_no_sibling_control_overlap(window)
@@ -321,7 +321,7 @@ def test_populated_freight_result_keeps_readable_rows_and_can_scroll(window, siz
         QApplication.processEvents()
         assert scroll.viewport().rect().contains(label.mapTo(scroll.viewport(), label.rect().topLeft()))
         assert scroll.viewport().rect().contains(label.mapTo(scroll.viewport(), label.rect().bottomRight()))
-    folder = Path(".pytest_tmp/gui-layout-fix/visual")
+    folder = Path(".pytest_tmp/gui-layout-restore/visual-details")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / f"result-{size[0]}x{size[1]}.png"))
 
@@ -332,9 +332,11 @@ def test_freight_additional_and_bento_buttons_share_compact_rows(window):
     window.show()
     QApplication.processEvents()
     page = window.trade_page
+    page.recovery_section.toggle.setChecked(True)
+    QApplication.processEvents()
     buttons = [page.auto_pickup, page.use_fatigue_medicine,
                page.auto_cape_island_investment, page.auto_rubbish_recycling]
-    assert len({button.y() for button in buttons}) == 1
+    assert len({button.y() for button in buttons}) == 2
     assert all(button.width() < 250 for button in buttons)
     assert len({row.y() for row in page._bento_rows.values()}) == 1
     page._move_bento_type("love_bentos", -1)
@@ -345,12 +347,12 @@ def test_freight_additional_and_bento_buttons_share_compact_rows(window):
     scroll = page.parameter_panel.findChild(QScrollArea)
     scroll.ensureWidgetVisible(page.additional_options)
     QApplication.processEvents()
-    folder = Path(".pytest_tmp/gui-layout-fix/visual")
+    folder = Path(".pytest_tmp/gui-layout-restore/visual-details")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / "compact-options-1180x720.png"))
 
 
-@pytest.mark.parametrize("size,columns", [((1180, 720), 2), ((1440, 860), 3), ((1920, 1080), 3)])
+@pytest.mark.parametrize("size,columns", [((1180, 720), 1), ((1440, 860), 2), ((1920, 1080), 2)])
 @pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
 def test_freight_parameters_reflow_without_changing_values(window, size, columns, mode):
     window.workflow_page._select_task("trade")
@@ -376,13 +378,13 @@ def test_freight_parameters_reflow_without_changing_values(window, size, columns
     visible = [editor for editor in editors if editor.isVisible()]
     assert all(editor.width() <= 220 for editor in visible)
     assert len({editor.parentWidget().y() for editor in visible}) == (len(visible) + columns - 1) // columns
-    assert grid.height() <= (210 if columns == 2 else 150)
+    assert grid.height() <= (360 if columns == 1 else 210)
     assert page.collect_task_inputs(preview=True) == expected
     assert_no_sibling_control_overlap(window)
     page.book_usage.setCurrentIndex(page.book_usage.findData("none"))
     QApplication.processEvents()
     assert page.book_budget.parentWidget().isHidden()
     assert page.target_profit.parentWidget().isHidden() is (mode != "target")
-    folder = Path(".pytest_tmp/gui-compact-fields/visual")
+    folder = Path(".pytest_tmp/gui-layout-restore/visual-compact-fields")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / f"{mode}-{size[0]}x{size[1]}.png"))

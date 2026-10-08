@@ -100,7 +100,8 @@ def test_cpu_update_replaces_updater_and_preserves_user_files(tmp_path):
     root = make_release(tmp_path / "installed", "v1.9.9")
     staged = make_release(tmp_path / "source", "v1.9.10")
     expected = snapshot(staged)
-    retained = ["user-data/player.json", "gui-settings.ini", "logs/session.log", "custom.txt"]
+    retained = ["user-data/player.json", "gui-settings.ini", "gui-settings-layout-v2.ini",
+                "logs/session.log", "custom.txt"]
     for name in retained:
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)

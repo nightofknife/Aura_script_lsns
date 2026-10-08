@@ -14,7 +14,7 @@ def test_compact_grid_falls_back_to_one_column_and_preserves_editor_instances():
         field.setValue(index + 7)
         grid.add_field(f"参数 {index}", field)
     grid.show()
-    for width, columns in [(520, 1), (800, 2), (1300, 3), (520, 1)]:
+    for width, columns in [(520, 1), (800, 2), (1300, 2), (520, 1)]:
         grid.resize(width, 400)
         app.processEvents()
         assert grid.column_count == columns

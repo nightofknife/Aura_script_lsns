@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal
-from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QPushButton, QToolTip, QWidget
+from PySide6.QtGui import QCursor, QIcon
+from PySide6.QtWidgets import QPushButton, QToolTip, QWidget, QStyle
 
 
 class ToggleButton(QPushButton):
@@ -28,9 +28,19 @@ class ToggleButton(QPushButton):
         self.toggled.connect(self._emit_state_changed)
 
     def _emit_state_changed(self, checked: bool) -> None:
+        self._sync_checked_icon(checked)
         self.stateChanged.emit(
             Qt.CheckState.Checked.value if checked else Qt.CheckState.Unchecked.value
         )
+
+    def _sync_checked_icon(self, checked: bool) -> None:
+        self.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton) if checked else QIcon())
+
+    def setChecked(self, checked: bool) -> None:  # noqa: N802
+        super().setChecked(checked)
+        # Configuration synchronisation intentionally blocks signals. The
+        # visual checked indicator must still follow the real button state.
+        self._sync_checked_icon(self.isChecked())
 
     def checkState(self) -> Qt.CheckState:
         return Qt.CheckState.Checked if self.isChecked() else Qt.CheckState.Unchecked

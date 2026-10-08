@@ -71,7 +71,7 @@ class BattlePage(QWidget):
         root.setSpacing(0)
         root.addWidget(self._build_status_band())
 
-        body = QHBoxLayout()
+        body = QVBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(0)
         body.addWidget(self._build_builder_panel())
@@ -110,8 +110,7 @@ class BattlePage(QWidget):
     def _build_builder_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
-        panel.setMinimumWidth(300)
-        panel.setMaximumWidth(360)
+        panel.setMinimumWidth(0)
         outer = QVBoxLayout(panel)
         outer.setContentsMargins(16, 14, 16, 14)
         title = QLabel("新增作战任务", panel)
@@ -119,6 +118,9 @@ class BattlePage(QWidget):
         outer.addWidget(title)
 
         scroll = QScrollArea(panel)
+        # The workflow already provides an outer vertical scroll area. Keep the
+        # builder usable rather than squeezing its form to a single row.
+        scroll.setMinimumHeight(280)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         content = QWidget(scroll)

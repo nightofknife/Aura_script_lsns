@@ -571,9 +571,7 @@ async def resonance_pc_auto_combined_commerce_flow(
             current = await asyncio.to_thread(
                 _read_current_city,
                 app,
-                ocr,
                 vision,
-                resonance_pc_city_shop_data,
             )
             forecast = _passenger_forecast(
                 passenger_inputs=effective_passenger,

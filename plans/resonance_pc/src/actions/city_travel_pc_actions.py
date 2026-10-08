@@ -15,6 +15,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
+from ._operation_progress import observe_operation
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -1109,6 +1110,8 @@ def _blocked_departure_result(
         payload["fatigue_back"] = back_result
     if extra:
         payload.update(extra)
+    observe_operation("travel.fatigue_recovery", "疲劳恢复未完成", "blocked",
+                      reason=reason, fatigue_medicine_used=payload["fatigue_medicine_used"])
     return payload
 
 
@@ -1577,6 +1580,7 @@ def resonance_pc_intercity_depart_and_wait(
     departure_attempts = 0
 
     while True:
+        observe_operation("travel.destination", "进入地图并选择目的地", "started", to_city_name=to_city_name)
         _open_intercity_map(app, vision)
 
         selected = resonance_pc_select_intercity_destination(
@@ -1595,6 +1599,10 @@ def resonance_pc_intercity_depart_and_wait(
             app=app,
             ocr=ocr,
         )
+
+        observe_operation("travel.destination", "进入地图并选择目的地", "completed",
+                          to_city_name=to_city_name, mode=selected.get("mode"))
+        observe_operation("travel.departure_confirming", "前往目的地并等待出发判定", "started")
 
         go_result = _wait_and_click_go_destination(
             app=app,
@@ -1619,7 +1627,12 @@ def resonance_pc_intercity_depart_and_wait(
             interval_sec=0.5,
         )
         gate_state = str(gate.get("state") or "")
+        observe_operation("travel.departure_confirming", "出发判定结果", "progress",
+                          gate_state=gate_state, departure_attempts=departure_attempts,
+                          confirmed=False)
         if gate_state in {"confirm_clicked", "assume_traveling"}:
+            observe_operation("travel.wait_arrival", "等待到站（出发未单独核实）", "started",
+                              gate_state=gate_state, departure_confirmed=False)
             arrival = resonance_pc_wait_intercity_arrival(
                 timeout_sec=enter_station_timeout_seconds,
                 interval_sec=3.0,
@@ -1628,6 +1641,10 @@ def resonance_pc_intercity_depart_and_wait(
                 vision=vision,
                 **({"auto_pickup": True} if auto_pickup else {}),
             )
+            observe_operation("travel.wait_arrival", "到站等待返回", "completed",
+                              arrival_status=arrival.get("status"),
+                              arrival_confirmed=arrival.get("success") is True,
+                              arrival_mode=arrival.get("arrival_mode"))
             return {
                 "success": True,
                 "status": "ok",
@@ -1654,6 +1671,7 @@ def resonance_pc_intercity_depart_and_wait(
                 detail={"to_city_name": to_city_name, "selected": selected, "gate": gate},
             )
 
+        observe_operation("travel.fatigue_recovery", "处理疲劳恢复面板", "started")
         if not bool(use_fatigue_medicine):
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
             time.sleep(1.0)
@@ -1769,6 +1787,9 @@ def resonance_pc_intercity_depart_and_wait(
             )
         medicine_usage[medicine_name] = int(medicine_usage.get(medicine_name) or 0) + 1
         ineffective_medicines.clear()
+        observe_operation("travel.fatigue_recovery", "恢复道具使用后已返回城市", "completed",
+                          medicine_name=medicine_name, main_confirmed=True,
+                          fatigue_medicine_used=_merge_medicine_usage(medicine_usage))
 
 
 class _TravelPickup:

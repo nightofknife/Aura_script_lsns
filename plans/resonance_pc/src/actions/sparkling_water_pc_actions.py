@@ -342,8 +342,8 @@ class SparklingWaterSession:
             try:
                 return read_city()
             except Exception as exc:
-                from ..services.city_shop_data_pc_service import CityShopDataError
-                if isinstance(exc, CityShopDataError):
+                from .city_trade_flow_pc_actions import CityTradeFlowError
+                if isinstance(exc, CityTradeFlowError) and exc.code == "city_panel_not_confirmed":
                     return {"city_key": None, "error": str(exc)}
                 raise
 
@@ -407,7 +407,7 @@ async def resonance_pc_drink_sparkling_water_from_city_panel(
             await asyncio.sleep(layout["after_click_sec"])
         await session.return_to_city(
             lambda: resonance_pc_read_city_name_on_city_panel(
-                app=app, ocr=ocr, resonance_pc_city_shop_data=resonance_pc_city_shop_data,
+                app=app, vision=vision, timeout_sec=0.5,
             ), point["city_key"],
         )
     except asyncio.CancelledError:

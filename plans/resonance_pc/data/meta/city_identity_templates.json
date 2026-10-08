@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "cities": [
+    {
+      "city_key": "anita_energy_research_institute",
+      "city_name": "阿妮塔能源研究所",
+      "template": "templates/city_identity/anita_energy_research_institute.png",
+      "mask": "templates/city_identity/anita_energy_research_institute_mask.png"
+    },
+    {
+      "city_key": "freeport",
+      "city_name": "7号自由港",
+      "template": "templates/city_identity/freeport.png",
+      "mask": "templates/city_identity/freeport_mask.png"
+    },
+    {
+      "city_key": "clarity_data_center_administration_bureau",
+      "city_name": "澄明数据中心",
+      "template": "templates/city_identity/clarity_data_center_administration_bureau.png",
+      "mask": "templates/city_identity/clarity_data_center_administration_bureau_mask.png"
+    },
+    {
+      "city_key": "shoggolith_city",
+      "city_name": "修格里城",
+      "template": "templates/city_identity/shoggolith_city.png",
+      "mask": "templates/city_identity/shoggolith_city_mask.png"
+    },
+    {
+      "city_key": "brcl_outpost",
+      "city_name": "铁盟哨站",
+      "template": "templates/city_identity/brcl_outpost.png",
+      "mask": "templates/city_identity/brcl_outpost_mask.png"
+    },
+    {
+      "city_key": "wilderness_station",
+      "city_name": "荒原站",
+      "template": "templates/city_identity/wilderness_station.png",
+      "mask": "templates/city_identity/wilderness_station_mask.png"
+    },
+    {
+      "city_key": "mander_mine",
+      "city_name": "曼德矿场",
+      "template": "templates/city_identity/mander_mine.png",
+      "mask": "templates/city_identity/mander_mine_mask.png"
+    },
+    {
+      "city_key": "onederland",
+      "city_name": "淘金乐园",
+      "template": "templates/city_identity/onederland.png",
+      "mask": "templates/city_identity/onederland_mask.png"
+    },
+    {
+      "city_key": "anita_weapon_research_institute",
+      "city_name": "阿妮塔战备工厂",
+      "template": "templates/city_identity/anita_weapon_research_institute.png",
+      "mask": "templates/city_identity/anita_weapon_research_institute_mask.png"
+    },
+    {
+      "city_key": "anita_rocket_base",
+      "city_name": "阿妮塔发射中心",
+      "template": "templates/city_identity/anita_rocket_base.png",
+      "mask": "templates/city_identity/anita_rocket_base_mask.png"
+    },
+    {
+      "city_key": "farstar_bridge",
+      "city_name": "远星大桥",
+      "template": "templates/city_identity/farstar_bridge.png",
+      "mask": "templates/city_identity/farstar_bridge_mask.png"
+    },
+    {
+      "city_key": "tatu_station",
+      "city_name": "塔图站",
+      "template": "templates/city_identity/tatu_station.png",
+      "mask": "templates/city_identity/tatu_station_mask.png"
+    },
+    {
+      "city_key": "gronru_city",
+      "city_name": "贡露城",
+      "template": "templates/city_identity/gronru_city.png",
+      "mask": "templates/city_identity/gronru_city_mask.png"
+    },
+    {
+      "city_key": "cape_city",
+      "city_name": "海角城",
+      "template": "templates/city_identity/cape_city.png",
+      "mask": "templates/city_identity/cape_city_mask.png"
+    },
+    {
+      "city_key": "black_moon_amusement_park",
+      "city_name": "黑月游乐城",
+      "template": "templates/city_identity/black_moon_amusement_park.png",
+      "mask": "templates/city_identity/black_moon_amusement_park_mask.png"
+    },
+    {
+      "city_key": "qiyu_station",
+      "city_name": "栖羽站",
+      "template": "templates/city_identity/qiyu_station.png",
+      "mask": "templates/city_identity/qiyu_station_mask.png"
+    },
+    {
+      "city_key": "lanxin_city",
+      "city_name": "岚心城",
+      "template": "templates/city_identity/lanxin_city.png",
+      "mask": "templates/city_identity/lanxin_city_mask.png"
+    },
+    {
+      "city_key": "vitilin_forest",
+      "city_name": "维蒂林场",
+      "template": "templates/city_identity/vitilin_forest.png",
+      "mask": "templates/city_identity/vitilin_forest_mask.png"
+    },
+    {
+      "city_key": "yunxiuqiao_base",
+      "city_name": "云岫桥基地",
+      "template": "templates/city_identity/yunxiuqiao_base.png",
+      "mask": "templates/city_identity/yunxiuqiao_base_mask.png"
+    },
+    {
+      "city_key": "confluence_tower",
+      "city_name": "汇流塔",
+      "template": "templates/city_identity/confluence_tower.png",
+      "mask": "templates/city_identity/confluence_tower_mask.png"
+    },
+    {
+      "city_key": "wulin_source",
+      "city_name": "武林源",
+      "template": "templates/city_identity/wulin_source.png",
+      "mask": "templates/city_identity/wulin_source_mask.png"
+    }
+  ],
+  "city_match": {
+    "method": "TM_CCORR_NORMED",
+    "threshold": 0.55,
+    "roi": [
+      25,
+      490,
+      175,
+      170
+    ],
+    "use_grayscale": true,
+    "preprocess": "edge"
+  },
+  "mask_generation": {
+    "source": "black_composited_rgb_contour_neighborhood",
+    "canny": [
+      50,
+      150
+    ],
+    "dilate": [
+      5,
+      5
+    ]
+  },
+  "visit_entry": {
+    "template": "templates/visit_city_entry.png",
+    "method": "TM_SQDIFF_NORMED",
+    "threshold": 0.9,
+    "roi": [
+      1000,
+      450,
+      250,
+      70
+    ],
+    "use_grayscale": false,
+    "preprocess": "none"
+  },
+  "assets": {
+    "templates/city_identity/anita_energy_research_institute.png": {
+      "sha256": "daa5032c13bf49f55f5a5b766ba953a8cfe294d7c9dbeabedc2baa5ac33cb32e",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/anita_energy_research_institute_mask.png": {
+      "sha256": "c0bee6ca73c74cfd1bd0bc8c2ac054d5fcc83df2d107c7b57303d5cf3b4eb6f6",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/freeport.png": {
+      "sha256": "12cc4f5371fa5eeaa6b0b8e3c7d8c75accbb6fe29d750ac6f4e034d59be53983",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/freeport_mask.png": {
+      "sha256": "6dae415a6f57c11bdb9da9d90ea6c037685e08e137762698edb48f8812685516",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/clarity_data_center_administration_bureau.png": {
+      "sha256": "febdc8a9edba5f29b0129d8e4f41ecc14da775e78d5422100ce8217ac65f1545",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/clarity_data_center_administration_bureau_mask.png": {
+      "sha256": "d7d1a94eb6837e466d2cce2425b409ea1a2f836ae637c60a57bfa386477c6aa5",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/shoggolith_city.png": {
+      "sha256": "940e63441249dca4c62715dcc4a076d644f7350d5ee138f120a490673e10c998",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/shoggolith_city_mask.png": {
+      "sha256": "394be022895d4abb2618a0209fff339998d93fd33d2cc073e41249a4ba5b6804",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/brcl_outpost.png": {
+      "sha256": "b3864de78ff541edc2062bf5e8a15248134cb68ce7ded7f413c519008fe5daea",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/brcl_outpost_mask.png": {
+      "sha256": "ffec404d226f30096210cb9df6b09a6d03222c3a78648e10cf0a3b086183e39b",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/wilderness_station.png": {
+      "sha256": "ff31ffee8098c59e821188106be5f560ad9194176df85fd3c50704b1fea1b819",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/wilderness_station_mask.png": {
+      "sha256": "5f093c318294ed3197cb3ea19acf68ccfcb13d2882f7a251ad8b0628640bd7d3",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/mander_mine.png": {
+      "sha256": "c15537db7d01cd3630c5a3c8836e07d13dd2562ec141625bce00f4c4e9f4b06b",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/mander_mine_mask.png": {
+      "sha256": "8ff35a9c7e49ce2dc082f32d360fde78d7a0512cb3338437e0912f88d919bf23",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/onederland.png": {
+      "sha256": "db36e37f51d6d057498ccc450474815cf18130d54d5c9cc4d57a6b96b6045a6c",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/onederland_mask.png": {
+      "sha256": "3bed84954d5b935f287e0384298e7873495dae75721d32e4b6feac2afef36ebd",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/anita_weapon_research_institute.png": {
+      "sha256": "0018489fdf557b6ee3428aa1027943ab70603e7ac85fc3d41fe3f9452be0ad16",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/anita_weapon_research_institute_mask.png": {
+      "sha256": "7dcd9ea120b9b01860e35b64641c3a45cc6de20cdbce5acafb79e160b2d1f048",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/anita_rocket_base.png": {
+      "sha256": "d49e17d3c08a458e73bfecd703741d70418743013212a36af7ebf2a8b64a2b1d",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/anita_rocket_base_mask.png": {
+      "sha256": "6d2e8d2d35947fe32bdb085f4e97fa2ead885e3201ce2994c4fbc3a6b0ec7ce2",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/farstar_bridge.png": {
+      "sha256": "0b6225e79cd76b27032c04dad2a485d2cc3fd9ee334eeb793e80710477684f79",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/farstar_bridge_mask.png": {
+      "sha256": "e4ba503a1dad0a1e1223982aeb4cdad667c203b95a3a1044d0cc41dab775abc2",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/tatu_station.png": {
+      "sha256": "bbdd96ab4635f05e5db03d6ddb3365c4df2fd71714b81ab882dd864f010cf408",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/tatu_station_mask.png": {
+      "sha256": "9c0806f842667f5129f22c9a781a712f85acfd38dae3ea62cb2952690380b109",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/gronru_city.png": {
+      "sha256": "3d85d7f959a0dd61a485f2c8ad7be124131373a64c69abaa6006cdb4644a2883",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/gronru_city_mask.png": {
+      "sha256": "186134817ab992289818f8f766aadd5c83e747363866ef4a2dc2cda45d273139",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/cape_city.png": {
+      "sha256": "c5118601a422fabf46a0c1b8da447efd7050b2ef2accceb7d75320e82319e6e8",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/cape_city_mask.png": {
+      "sha256": "2f13e2672b26877f44b4f25d42a5dec57a7af7ae3416cb55cb5ee28bd0ad484d",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/black_moon_amusement_park.png": {
+      "sha256": "edd0b8df02cefc1fa57e106391cf180ecb0985eabfbc3c5c77dab3142b5cb796",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/black_moon_amusement_park_mask.png": {
+      "sha256": "e008db41cb928a8e6680a9cd70a4cb558d697a7476188dd259c357fe2d568d81",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/qiyu_station.png": {
+      "sha256": "9d19721243edbf55af22269f5f51ede3f189216f362d603e6409a6ec59e48dab",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/qiyu_station_mask.png": {
+      "sha256": "48746e3daa0685701a45d09fff8d49a5bff55d8de402f328f59de65e8d2bf61e",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/lanxin_city.png": {
+      "sha256": "a0a6aaf9ca9a58d8c742ea59d68afc05dfcc19340a2e425c469839c541764e94",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/lanxin_city_mask.png": {
+      "sha256": "24343e37e7f2fac5e1493f3aa81ffd235391ad52a33be37477da21fd1a23f911",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/vitilin_forest.png": {
+      "sha256": "fa86d41b943ed1e4bf0db676108b8cf89c712c2f9bf29e3060dd98f0981e62d8",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/vitilin_forest_mask.png": {
+      "sha256": "bac64a871d19910d6e8c5812d5847258946e31be56b752898ef30ea931cded0a",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/yunxiuqiao_base.png": {
+      "sha256": "96f54531ed30145226b95b3589012e93bb573f9ba83a8f4371d7cc47d8b1c77c",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/yunxiuqiao_base_mask.png": {
+      "sha256": "b83b541335d5ae0126f7ec8cac45f97187cde5b308968452e0349c437cdf351a",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/confluence_tower.png": {
+      "sha256": "ee9faf5cd84774cf0ffdd125da22291e4d943eb875cf3075e12500ff4b1d6e2a",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/confluence_tower_mask.png": {
+      "sha256": "032064e6780ea159fb164a9928ca2db881f1213c1f5fb415d17490600a11ed2d",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/city_identity/wulin_source.png": {
+      "sha256": "a0646b1ba59046e07b831530009597187c9de733f28b6f601deb47b13a85f21c",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "RGB"
+    },
+    "templates/city_identity/wulin_source_mask.png": {
+      "sha256": "a31816995aa0afaeba45c8c1e152eed6bbeee6d9371a274732a2c06a53a6005a",
+      "size": [
+        133,
+        133
+      ],
+      "mode": "L"
+    },
+    "templates/visit_city_entry.png": {
+      "sha256": "121af10b632c6253d787f012caf3a938345f3010e2895b317f95ad85a8f36b51",
+      "size": [
+        35,
+        29
+      ],
+      "mode": "RGB"
+    }
+  },
+  "source_hashes": {
+    "anita_energy_research_institute.png": "afaa0463d5b34e464bc1b23db415af803810cd1ccb72719c6c3f984eabd75327",
+    "freeport.png": "5560eed7718b183a1bb74bf2a03c00f2a9aa8e6bae563b9be0f4abe2e8e34b8b",
+    "clarity_data_center_administration_bureau.png": "685fffb48fc7ee780058714092832c4de8c83e40db0e3ea603ec1e3598f20bc3",
+    "shoggolith_city.png": "5dcadae8e0f274c3eed2856123bb1b75b53aa9290952aedb9dce9eafa618b949",
+    "brcl_outpost.png": "f91c026d7b25192e8e89629a7cc789ab44efe20c6dbfd41d6b45e0648f7ac3a5",
+    "wilderness_station.png": "853b5cc66bd4787529d2b6f6b29b5fbc4d5f3600e04401cae32e2ea6a2616f27",
+    "mander_mine.png": "fbb9a956f551f3fce1957d488832252fe35bf0f7b1c27e9b36e3d9ff0db7da07",
+    "onederland.png": "48dd2073180b283e93f15c7a9f0d3da72b8573b93591342aa9c586ccf852ed69",
+    "anita_weapon_research_institute.png": "b5af361a151d146e74551e42574d13779967de7c40919b3b6c4cbd206f7bb233",
+    "anita_rocket_base.png": "99adca51026affbf1677e4b2d1adde16ce0f63c67c62f9f82a21ce1a357b1421",
+    "farstar_bridge.png": "319cd1c7899174d4c279d9d05451cd8a384d5686fccda3c40bc311aa5e6281d8",
+    "tatu_station.png": "7b98efa5833f2e6277d58eb35810e6af8b8a99b2cbb2192af9f4e7643eaa1741",
+    "gronru_city.png": "fadb73c84384aeed57f9128d9c185ca64c624a9974eec8ff2c37a587205c3930",
+    "cape_city.png": "6161d4062901e98d8cb31cba0cafb5e8d89191c7f11ba8e2f841bcf7e5b85994",
+    "black_moon_amusement_park.png": "3cd94496df59a3169dc963c91c41be70a03a4bad6649ed07e3a226b901230bf6",
+    "qiyu_station.png": "18ae7b52853185b401fefe26fad9fd37dd6bc78f037dd2bb4b7ab650440e272b",
+    "lanxin_city.png": "d5b286ee6540621360eb8ac081670c744b9c2c5a3c2d9f83fec2bfe1abab8c84",
+    "vitilin_forest.png": "a7dfd43d021055451254de6d95454f2ddfad4c5c437bd2a0bf590ac6a062e74e",
+    "yunxiuqiao_base.png": "85f20d97c13d61fefc8923b4505b8f51237cb22b65383be3f7396df48eba2260",
+    "confluence_tower.png": "515c5097cc3661ea7aab0c26ec96f19202c3e2749a251285f45a443e714d304c",
+    "wulin_source.png": "0cdbafa97162bbaba2d5384812618b0825f3c4d821f35b3df7afafcc2a226a83",
+    "visit-city-icon-template.png": "121af10b632c6253d787f012caf3a938345f3010e2895b317f95ad85a8f36b51"
+  }
+}

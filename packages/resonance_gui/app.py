@@ -120,6 +120,41 @@ def _close_window_and_wait(window: ResonanceMainWindow) -> None:
         window._bridge_thread.finished.disconnect(close_loop.quit)
 
 
+def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) -> None:
+    """Exercise actual Qt editors in frozen checks, without dispatching a task."""
+    window.show()
+    page = window.workflow_page
+    for _ in range(2):
+        for task in ("startup", "trade", "passenger", "battle", "close"):
+            page._select_task(task)
+            app.processEvents()
+        for mode in ("profit", "quick", "fixed", "target", "profit"):
+            window.trade_page.mode_buttons[mode].click()
+            app.processEvents()
+    page._drop_task("close", 0)
+    page._drop_task("close", 5)
+    page._select_task("trade")
+    window._open_freight_trial()
+    window.small_tasks_page.return_to_trade_button.click()
+    if window.page_stack.currentWidget() is not page:
+        raise RuntimeError("Freight trial did not return to the shared editor")
+    page.append_log("离线界面自检；未派发游戏任务。")
+    page._set_inspector_collapsed(True)
+    page._set_inspector_collapsed(False)
+    if "离线界面自检" not in page.log_view.toPlainText():
+        raise RuntimeError("Inspector folding discarded logs")
+    page.begin_workflow(["trade"], [])
+    page._select_task("passenger")
+    if window.trade_page.fatigue_budget.isEnabled():
+        raise RuntimeError("Workflow editors were not locked")
+    page.set_stopping()
+    if page.run_button.isEnabled():
+        raise RuntimeError("Stop acknowledgement gate was not applied")
+    page.finish_workflow(success=False, message="离线界面自检结束")
+    page._select_task("trade")
+    app.processEvents()
+
+
 def self_check_resonance_gui() -> int:
     try:
         _import_required_wgc_module()
@@ -158,6 +193,7 @@ def self_check_resonance_gui() -> int:
                 raise RuntimeError("Resonance main window did not create a central widget.")
             if app.windowIcon().isNull() or window.windowIcon().isNull():
                 raise RuntimeError("Resonance application icon was not applied to the GUI window.")
+            _exercise_layout_self_check(window, app)
             _close_window_and_wait(window)
             app.processEvents()
         return 0

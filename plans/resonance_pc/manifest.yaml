@@ -793,16 +793,13 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Open the city panel from the city main screen by clicking 访问城市/访问地区.
+    description: Open the city panel using its visit-entry template and confirm the
+      current city badge.
     parameters:
     - name: timeout_sec
       type: Any
       required: false
       default: 12.0
-    - name: settle_sec
-      type: Any
-      required: false
-      default: 3.0
   - name: resonance_pc.tap_back_once
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_tap_back_once
@@ -833,13 +830,13 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Read and resolve current city name on the city panel. This action
-      does not click.
+    description: Identify the current city using two stable masked badge-template
+      matches. Does not click.
     parameters:
-    - name: location_file_path
+    - name: timeout_sec
       type: Any
       required: false
-      default: data/meta/location_pc.json
+      default: 3.0
   - name: resonance_pc.click_city_shop_by_name
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_click_city_shop_by_name
@@ -3211,4 +3208,4 @@ exports:
     description: Match cached player characters and weapons against fixed team guides.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-08T16:49:31Z'
+  generated_at: '2026-10-08T19:00:24Z'

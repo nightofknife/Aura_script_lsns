@@ -6,7 +6,8 @@ from copy import deepcopy
 import threading
 from typing import Any, Callable, Mapping
 
-from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot
+from PySide6.QtCore import QThread, QTimer, Qt, Signal, Slot, QSignalBlocker
+from packages.aura_game.executable_locator import validate_executable_path
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -142,9 +143,14 @@ class ResonanceMainWindow(QMainWindow):
 
         self._base_window_title = "Aura 雷索纳斯控制台"
         self.setWindowTitle(self._base_window_title)
-        self.setMinimumSize(1180, 720)
-        self.resize(1440, 860)
+        screen = QApplication.primaryScreen()
+        available = screen.availableGeometry() if screen is not None else None
+        width = min(1440, max(available.width() - 24, 400)) if available else 1440
+        height = min(860, max(available.height() - 48, 400)) if available else 860
+        self.setMinimumSize(min(760, width), min(460, height))
+        self.resize(width, height)
         self._build_ui()
+        self._sync_workflow_settings()
         self._wire_bridge()
         self._sync_input_bridge_setting()
         self.updateCheckCompleted.connect(self._show_available_update)
@@ -343,11 +349,13 @@ class ResonanceMainWindow(QMainWindow):
         self._switch_page(self.WORKFLOW_PAGE_INDEX)
 
         self.workflow_page.runRequested.connect(self._start_workflow)
+        self.workflow_page.saveParametersRequested.connect(self._save_current_task_parameters)
         self.workflow_page.stopRequested.connect(self._stop_workflow)
         self.workflow_page.openTradeRequested.connect(self._open_trade_editor)
         self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._switch_page(self.BATTLE_PAGE_INDEX))
         self.small_tasks_page.previewTradeRequested.connect(self._preview_pc_trade)
+        self.small_tasks_page.returnToTradeRequested.connect(self._open_trade_editor)
         self.small_tasks_page.runPlayerDataRequested.connect(
             self._run_small_task_player_data
         )
@@ -384,6 +392,9 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.settingsRequested.connect(lambda: self._switch_page(self.SETTINGS_PAGE_INDEX))
         self.settings_page.backRequested.connect(lambda: self._switch_page(self.WORKFLOW_PAGE_INDEX))
         self.settings_page.settingsSaved.connect(self._sync_workflow_settings)
+        self.settings_page.gamePathSaved.connect(
+            lambda path: self.workflow_page.startup_path_label.setText(f"游戏路径：{path or '未设置'}")
+        )
         self.settings_page.settingsSaved.connect(self._sync_input_bridge_setting)
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
         self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
@@ -829,6 +840,8 @@ class ResonanceMainWindow(QMainWindow):
         self.requestInputBridgeEnabled.emit(enabled)
 
     def _sync_workflow_settings(self) -> None:
+        path = str(self._settings.value("game/executable_path", "") or "")
+        self.workflow_page.startup_path_label.setText(f"游戏路径：{path or '未设置'}")
         startup = self.settings_page.startup_inputs()
         close = self.settings_page.close_inputs()
         self.workflow_page.startup_launch.setChecked(bool(startup["launch_if_not_running"]))
@@ -843,28 +856,37 @@ class ResonanceMainWindow(QMainWindow):
     def _bind_lifecycle_parameters(self) -> None:
         """Keep lifecycle fields consistent with the global settings editor."""
         quick, settings = self.workflow_page, self.settings_page
+        def sync_value(target, value, key, setter="setValue"):
+            with QSignalBlocker(target):
+                getattr(target, setter)(value)
+            try:
+                self._settings.set_value(key, value)
+            except OSError as exc:
+                self.statusBar().showMessage(f"设置保存失败：{exc}")
         for source, target, key in (
             (quick.startup_window_timeout, settings.window_timeout, "game/window_timeout_sec"),
             (quick.startup_rounds, settings.settle_rounds, "game/max_settle_rounds"),
             (quick.close_timeout, settings.close_timeout, "game/graceful_timeout_sec"),
         ):
-            source.valueChanged.connect(target.setValue)
-            target.valueChanged.connect(source.setValue)
-            source.valueChanged.connect(lambda value, setting=key: self._settings.set_value(setting, value))
-        quick.startup_launch.toggled.connect(settings.launch_if_needed.setChecked)
-        settings.launch_if_needed.toggled.connect(quick.startup_launch.setChecked)
-        quick.startup_launch.toggled.connect(
-            lambda checked: self._settings.set_value("game/launch_if_not_running", checked)
-        )
-        quick.close_force.toggled.connect(
-            lambda checked: settings.close_mode.setCurrentIndex(0 if checked else 1)
-        )
+            source.valueChanged.connect(lambda value, peer=target, setting=key: sync_value(peer, value, setting))
+            target.valueChanged.connect(lambda value, peer=source, setting=key: sync_value(peer, value, setting))
+        quick.startup_launch.toggled.connect(lambda checked: sync_value(settings.launch_if_needed, checked, "game/launch_if_not_running", "setChecked"))
+        settings.launch_if_needed.toggled.connect(lambda checked: sync_value(quick.startup_launch, checked, "game/launch_if_not_running", "setChecked"))
+        def set_close_mode(checked):
+            with QSignalBlocker(settings.close_mode):
+                settings.close_mode.setCurrentIndex(0 if checked else 1)
+            sync_value(quick.close_force, checked, "game/force_after_timeout", "setChecked")
+        quick.close_force.toggled.connect(set_close_mode)
         settings.close_mode.currentIndexChanged.connect(
-            lambda _index: quick.close_force.setChecked(bool(settings.close_mode.currentData()))
+            lambda _index: sync_value(quick.close_force, bool(settings.close_mode.currentData()), "game/force_after_timeout", "setChecked")
         )
-        quick.close_force.toggled.connect(
-            lambda checked: self._settings.set_value("game/force_after_timeout", checked)
+        settings.trade_arrival_timeout.valueChanged.connect(
+            lambda value: self.trade_page.arrival_timeout_minutes.setValue(value)
         )
+        def sync_arrival(value):
+            with QSignalBlocker(settings.trade_arrival_timeout):
+                settings.trade_arrival_timeout.setValue(value)
+        self.trade_page.arrival_timeout_minutes.valueChanged.connect(sync_arrival)
 
     def _start_commerce_sequence(self, run_trade: bool, run_passenger: bool) -> None:
         if self._busy or self._workflow_active or self._commerce_active or not (run_trade or run_passenger):
@@ -921,6 +943,30 @@ class ResonanceMainWindow(QMainWindow):
         self.commerce_page.overview_page.set_running(True)
         self._dispatch_next_commerce_task()
 
+    def _save_current_task_parameters(self) -> None:
+        if self._busy or self._workflow_active or self._commerce_active:
+            return
+        task = self.workflow_page._selected_task
+        try:
+            if task == "trade":
+                self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
+            elif task == "passenger":
+                self._settings.save_passenger_inputs(self.passenger_page.collect_inputs())
+            elif task == "battle":
+                self._settings.save_battle_inputs(self.battle_page.collect_inputs())
+            elif task == "startup":
+                for key, value in self.workflow_page.startup_inputs().items():
+                    if key in {"executable_path", "launch_if_not_running", "window_timeout_sec", "max_settle_rounds"}:
+                        self._settings.set_value(f"game/{key}", value or "" if key == "executable_path" else value)
+            elif task == "close":
+                for key, value in self.workflow_page.close_inputs().items():
+                    self._settings.set_value(f"game/{key}", value)
+            self._settings.sync_checked()
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "参数未保存", str(exc))
+            return
+        self.statusBar().showMessage("当前任务参数已保存")
+
     def _start_workflow(self) -> None:
         if self._busy or self._workflow_active or self._commerce_active:
             return
@@ -931,20 +977,42 @@ class ResonanceMainWindow(QMainWindow):
         commerce_steps: list[str] = []
 
         snapshots: dict[str, dict[str, Any]] = {}
+        validating = ""
         try:
+            if "startup" in steps:
+                validating = "进入主界面"
+                snapshots["startup"] = self.workflow_page.startup_inputs()
+                if snapshots["startup"].get("launch_if_not_running", True):
+                    path = str(snapshots["startup"].get("executable_path") or "").strip()
+                    if not path:
+                        raise ValueError("游戏路径为空，请到设置中填写或点击检测。")
+                    if validate_executable_path(path, executable_name="雷索纳斯.exe") is None:
+                        raise ValueError("游戏路径无效，请选择雷索纳斯.exe。")
+            if "close" in steps:
+                snapshots["close"] = self.workflow_page.close_inputs()
             if "trade" in steps:
+                validating = "货运"
                 snapshots["trade"] = self.trade_page.collect_task_inputs()
+            if "passenger" in steps:
+                validating = "客运"
+                snapshots["passenger"] = self.passenger_page.collect_inputs()
+            if "battle" in steps:
+                validating = "自动战斗"
+                snapshots["battle"] = self.battle_page.collect_inputs()
+                if not snapshots["battle"].get("jobs"):
+                    raise ValueError("作战任务单为空，请先添加作战任务。")
+            validating = "保存设置"
+            if "trade" in steps:
                 self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
             if "passenger" in steps:
-                snapshots["passenger"] = self.passenger_page.collect_inputs()
                 self._settings.save_passenger_inputs(snapshots["passenger"])
             if "battle" in steps:
-                snapshots["battle"] = self.battle_page.collect_inputs()
                 self._settings.save_battle_inputs(snapshots["battle"])
+            self._settings.sync_checked()
 
-            run_snapshots = {kind: dict(values) for kind, values in snapshots.items()}
-        except ValueError as exc:
-            QMessageBox.warning(self, "流程参数错误", str(exc))
+            run_snapshots = deepcopy(snapshots)
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "流程参数错误", f"{validating}：{exc}")
             return
 
         trade = snapshots.get("trade", {})
@@ -956,7 +1024,7 @@ class ResonanceMainWindow(QMainWindow):
                 pending.append({
                     "step": "startup",
                     "task_ref": "tasks:game_startup_pc.yaml:enter_main",
-                    "inputs": self.workflow_page.startup_inputs(),
+                    "inputs": deepcopy(run_snapshots["startup"]),
                     "label": "进入主界面",
                     "dispatch": "pc_task",
                 })
@@ -980,7 +1048,7 @@ class ResonanceMainWindow(QMainWindow):
                 pending.append({
                     "step": "close",
                     "task_ref": "tasks:game_startup_pc.yaml:close_game",
-                    "inputs": self.workflow_page.close_inputs(),
+                    "inputs": deepcopy(run_snapshots["close"]),
                     "label": "关闭游戏",
                     "dispatch": "pc_task",
                 })
@@ -1254,14 +1322,17 @@ class ResonanceMainWindow(QMainWindow):
             return
         self._workflow_pending.clear()
         self._workflow_stopping = True
+        self.workflow_page.set_stopping()
         if self._workflow_current is not None:
             self.workflow_page.mark_step(
-                str(self._workflow_current["step"]), "cancelled", "用户请求停止流程"
+                str(self._workflow_current["step"]), "stopping", "等待执行端停止确认"
             )
             parent = str(self._workflow_current.get("parent") or "")
             if parent:
-                self.workflow_page.mark_step(parent, "cancelled", "用户请求停止流程")
-        if self._busy:
+                self.workflow_page.mark_step(parent, "stopping", "等待执行端停止确认")
+        # The dispatch signal may still be queued when the user presses Stop.
+        # A pending current task must receive cancel even before busyChanged.
+        if self._busy or self._workflow_current is not None:
             self.requestCancelCurrent.emit()
         else:
             self._finish_workflow(False, "流程已停止。")
@@ -1295,6 +1366,9 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_pending.clear()
         self._workflow_current = None
         self.workflow_page.finish_workflow(success=success, message=message)
+        self.trade_page.set_busy(False)
+        self.passenger_page.set_busy(False)
+        self.battle_page.set_busy(False)
         self._workflow_failed_message = ""
 
     def _dispatch_next_commerce_task(self) -> None:
@@ -1848,6 +1922,9 @@ class ResonanceMainWindow(QMainWindow):
             current = self._workflow_current
             step = str(current["step"])
             if self._workflow_stopping:
+                self.workflow_page.mark_step(step, "cancelled", "执行端已确认任务结束")
+                if current.get("parent"):
+                    self.workflow_page.mark_step(str(current["parent"]), "cancelled", "执行端已确认任务结束")
                 self._workflow_current = None
             elif step == "refresh_recovery":
                 item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
@@ -1968,9 +2045,12 @@ class ResonanceMainWindow(QMainWindow):
                     "任务已停止，但没有返回可用结果。",
                 )
                 self._small_task_active_ref = ""
-        self.trade_page.set_busy(busy or self._commerce_active)
-        self.passenger_page.set_busy(busy or self._commerce_active)
-        self.battle_page.set_busy(busy)
+        locked = busy or self._commerce_active or self._workflow_active
+        self.trade_page.set_busy(locked)
+        self.passenger_page.set_busy(locked)
+        self.battle_page.set_busy(locked)
+        if self._workflow_active:
+            self.workflow_page._set_editing_enabled(False)
         self.small_tasks_page.set_runner_busy(busy)
         self.commerce_page.overview_page.set_external_busy(busy)
         self.run_button.setEnabled(not busy and not self._commerce_active)
