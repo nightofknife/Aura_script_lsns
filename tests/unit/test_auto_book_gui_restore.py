@@ -200,6 +200,8 @@ def test_formal_planning_event_updates_visible_workflow(window):
             "route": [{"from_city": "修格里城", "to_city": "铁盟哨站", "books_used": 2,
                        "expected_profit": 1500000, "expected_fatigue_cost": 20}]}}})
     QApplication.processEvents()
+    assert page.center_stack.currentWidget() is not page.runtime_trade_plan_page
+    page.runtime_plan_button.click()
     assert page.center_stack.currentWidget() is page.runtime_trade_plan_page
     assert page.runtime_average_book_profit.isVisible()
     assert "600,000" in page.runtime_average_book_profit.text()

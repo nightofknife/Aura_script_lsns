@@ -32,7 +32,8 @@ class Market:
 @pytest.fixture
 def harness(monkeypatch):
     operations = []
-    state = {"completed": 0, "blocked": False, "current_fatigue": 250, "local_quota": 6}
+    state = {"completed": 0, "blocked": False, "current_fatigue": 250, "local_quota": 6,
+             "city": {"success": True, "city_name": "岚心城", "city_key": "lanxin_city"}}
 
     async def init(**kwargs):
         return {"run_key": "route"}
@@ -65,7 +66,7 @@ def harness(monkeypatch):
 
     def open_panel(**kwargs):
         operations.append("open_panel")
-        return {"success": True, "page_state": "city_panel"}
+        return {"success": True, "page_state": "city_panel", "city": dict(state["city"])}
 
     def final_sale(**kwargs):
         operations.append("final_sale")
@@ -92,7 +93,8 @@ def harness(monkeypatch):
     monkeypatch.setattr(trade, "load_pc_user_info", lambda store: snapshot(remaining=state["local_quota"]))
     monkeypatch.setattr(trade, "resonance_pc_drink_sparkling_water_from_city_panel", drink)
     monkeypatch.setattr(trade, "resonance_pc_open_city_panel_from_main", open_panel)
-    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel", lambda **kw: {"city_name": "岚心城", "city_key": "lanxin_city"})
+    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel",
+                        lambda **kw: pytest.fail("Use the city already confirmed by the opener"))
     monkeypatch.setattr(trade, "resonance_pc_market_refresh", lambda **kw: {"snapshot_id": "market"})
     monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", lambda **kw: {"status": "ok", "route": routes()})
     monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city", final_sale)

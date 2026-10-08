@@ -766,7 +766,10 @@ def _perform_update_locked(root: Path, *, opener: Callable[..., Any] | None) -> 
 def self_check() -> None:
     if parse_version("v1.2.3") != (1, 2, 3):
         raise UpdateError("Version parser self-check failed")
-    if "更新.exe" not in MANAGED_PATHS or any(p in MANAGED_PATHS for p in ("gui-settings.ini", "logs", "user-data")):
+    if "更新.exe" not in MANAGED_PATHS or any(
+        p in MANAGED_PATHS
+        for p in ("gui-settings.ini", "gui-settings-layout-v2.ini", "logs", "user-data")
+    ):
         raise UpdateError("Portable-data preservation self-check failed")
 
 

@@ -7,6 +7,7 @@ import threading
 from types import SimpleNamespace
 
 import pytest
+import numpy as np
 
 from packages.aura_core.api import ACTION_REGISTRY, ActionDefinition
 from packages.aura_core.context.execution import ExecutionContext
@@ -16,6 +17,7 @@ from packages.aura_core.scheduler.cancellation import (
 )
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
+from plans.resonance_pc.src.actions import _city_panel_vision as city_vision
 from packages.resonance_gui.logic import TradeProgressState, reduce_trade_progress
 from tests.unit.test_resonance_pc_sparkling_water_handoff import harness as combined_harness
 from tests.unit.test_resonance_pc_sparkling_water_trade import (
@@ -462,38 +464,36 @@ def test_registered_recovery_adapter_tracks_cancelled_sync_worker(
 
 
 @pytest.mark.parametrize("already_cancelled", [False, True],
-                         ids=["cancelled-during-ocr", "cancelled-before-ocr"])
+                         ids=["cancelled-during-template-match", "cancelled-before-template-match"])
 def test_real_city_panel_opener_never_clicks_after_cancellation(monkeypatch, already_cancelled):
     cancelled = {"value": already_cancelled}
     operations = []
-    frame = object()
+    frame = np.zeros((170, 175, 3), np.uint8)
     monkeypatch.setattr(trade, "is_current_task_cancel_requested", lambda: cancelled["value"])
 
     def capture(*, rect):
         operations.append("capture")
-        assert rect == tuple(trade._VISIT_BUTTON_REGION)
+        assert rect == city_vision.CITY_REGION
         return SimpleNamespace(success=True, image=frame)
 
-    def recognize_all(*, source_image):
-        operations.append("ocr")
-        assert source_image is frame
-        # Model cancellation while OCR was busy, immediately before it returns a valid hit.
+    def find_templates_batch(**options):
+        operations.append("match")
+        assert options["source_image"] is frame
+        # Cancellation while vision was busy must prevent accepting its result or clicking.
         cancelled["value"] = True
-        return SimpleNamespace(results=[SimpleNamespace(
-            text="\u8bbf\u95ee\u57ce\u5e02", center_point=(20, 20), confidence=1.0,
-        )])
+        return [SimpleNamespace(found=True, confidence=.99, debug_info={}) for _ in range(21)]
 
     def click(**kwargs):
-        pytest.fail("A completed OCR result must not permit a click after cancellation")
+        pytest.fail("A completed template result must not permit a click after cancellation")
 
     app = SimpleNamespace(capture=capture, click=click)
-    ocr = SimpleNamespace(recognize_all=recognize_all)
+    vision = SimpleNamespace(find_templates_batch=find_templates_batch)
     with pytest.raises(trade.CityTradeFlowError) as error:
         trade.resonance_pc_open_city_panel_from_main(
-            app=app, ocr=ocr, timeout_sec=0, settle_sec=0,
+            app=app, vision=vision, timeout_sec=0,
         )
     assert error.value.code == "trade_cancelled"
-    assert operations == ([] if already_cancelled else ["capture", "ocr"])
+    assert operations == ([] if already_cancelled else ["capture", "match"])
 
 
 def test_required_navigation_does_not_click_when_cancelled_during_template_wait(monkeypatch):

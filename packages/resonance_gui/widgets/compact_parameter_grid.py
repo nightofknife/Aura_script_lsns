@@ -49,7 +49,7 @@ class CompactParameterGrid(QWidget):
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        columns = 3 if self.width() >= 1080 else 2 if self.width() >= 640 else 1
+        columns = 2 if self.width() >= 560 else 1
         if columns != self.column_count:
             self.column_count = columns
             self._reflow()

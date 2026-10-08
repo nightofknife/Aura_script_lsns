@@ -10,6 +10,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QButtonGroup,
     QAbstractItemView,
+    QAbstractButton,
     QComboBox,
     QDoubleSpinBox,
     QDialog,
@@ -60,6 +61,7 @@ from ..logic import (
 )
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from .compact_parameter_grid import CompactParameterGrid
+from .disclosure_section import DisclosureSection
 from .toggle_button import ToggleButton as QCheckBox
 
 
@@ -479,7 +481,7 @@ class TradePage(QWidget):
     def _build_parameter_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
-        panel.setMinimumWidth(460)
+        panel.setMinimumWidth(0)
         outer = QVBoxLayout(panel)
         outer.setContentsMargins(16, 14, 16, 14)
         scroll = QScrollArea(panel)
@@ -490,24 +492,27 @@ class TradePage(QWidget):
         form_stack.setContentsMargins(0, 8, 4, 8)
         form_stack.setSpacing(12)
 
-        mode_row = QHBoxLayout()
+        mode_row = QGridLayout()
         self.mode_buttons: dict[str, QPushButton] = {}
         self.mode_group = QButtonGroup(content)
         self.mode_group.setExclusive(True)
-        for mode, caption in (("profit", "收益模式"), ("quick", "快速模式"),
-                              ("fixed", "固定线路"), ("target", "指定收益")):
-            button = QPushButton(caption, content)
+        for index, (mode, caption) in enumerate((("profit", "收益模式"), ("quick", "快速模式"),
+                              ("fixed", "固定线路"), ("target", "指定收益"))):
+            button = QCheckBox(caption, content)
             button.setCheckable(True)
             button.setProperty("cityOption", True)
             self.mode_group.addButton(button)
             button.setToolTip({"profit": "在疲劳与全任务用书额度内优先预计收益。", "quick": "固定优先满仓和必须协商；单本收益阈值仍然生效。", "fixed": "按有序线路访问，预算内自动继续；不设置执行次数。", "target": "填写正的目标收益；达标表示预计收益，不代表实测现金收益。"}[mode])
             self.mode_buttons[mode] = button
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-            mode_row.addWidget(button)
+            mode_row.addWidget(button, index // 2, index % 2)
             button.toggled.connect(self._sync_mode_controls)
         self.mode_buttons["profit"].setChecked(True)
-        mode_row.addStretch(1)
         form_stack.addLayout(mode_row)
+        self.mode_note = QLabel("", content)
+        self.mode_note.setWordWrap(True)
+        self.mode_note.setProperty("caption", True)
+        form_stack.addWidget(self.mode_note)
         form_stack.addWidget(QLabel("规划", content))
 
         self.common_parameters = CompactParameterGrid(content)
@@ -572,6 +577,7 @@ class TradePage(QWidget):
         common_form.add_field("用书策略", self.book_policy)
         common_form.add_field("协商策略", self.negotiation_policy)
         common_form.add_field("试算当前城市", self.start_city)
+        common_form.set_field_visible(self.start_city, self.preview_mode)
         common_form.add_field(self.target_label, self.target_profit)
         form_stack.addWidget(common_form)
         form_stack.addWidget(self.fixed_panel)
@@ -579,7 +585,10 @@ class TradePage(QWidget):
         form_stack.addWidget(self.end_city_notice)
 
         self.recovery_heading = QLabel("恢复与附加", content)
-        form_stack.addWidget(self.recovery_heading)
+        self.recovery_heading.hide()
+        self.recovery_section = DisclosureSection("恢复与附加行为", content)
+        form_stack.addWidget(self.recovery_section)
+        recovery_layout = self.recovery_section.body_layout
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
         self.auto_bento = QCheckBox("自动吃便当", content)
         self.auto_bento.toggled.connect(self._sync_bento_type_checks)
@@ -587,7 +596,7 @@ class TradePage(QWidget):
         recovery_options.addWidget(self.auto_sparkling_water)
         recovery_options.addWidget(self.auto_bento)
         recovery_options.addStretch(1)
-        form_stack.addLayout(recovery_options)
+        recovery_layout.addLayout(recovery_options)
         self.base_fatigue_reserve = self._spin(0, 2147483647)
         self.base_fatigue_reserve.setValue(200)
         self.water_reserve_panel = QWidget(content)
@@ -596,9 +605,9 @@ class TradePage(QWidget):
         reserve_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
         self.base_fatigue_reserve.setMaximumWidth(220)
         reserve_form.addRow("基础疲劳保留", self.base_fatigue_reserve)
-        form_stack.addWidget(self.water_reserve_panel)
+        recovery_layout.addWidget(self.water_reserve_panel)
         self.bento_priority_panel = self._build_bento_priority_panel(content)
-        form_stack.addWidget(self.bento_priority_panel)
+        recovery_layout.addWidget(self.bento_priority_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
         self.use_fatigue_medicine = QCheckBox("行车使用疲劳药", content)
         self.fatigue_medicine_max_uses = self._spin(0, 100000)
@@ -606,23 +615,23 @@ class TradePage(QWidget):
         self.auto_cape_island_investment = QCheckBox("蜃息岛投资", content)
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
         self.additional_options = QWidget(content)
-        options_layout = QHBoxLayout(self.additional_options)
+        options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.setSpacing(8)
-        for button in (self.auto_pickup, self.use_fatigue_medicine,
-                       self.auto_cape_island_investment, self.auto_rubbish_recycling):
+        for index, button in enumerate((self.auto_pickup, self.use_fatigue_medicine,
+                       self.auto_cape_island_investment, self.auto_rubbish_recycling)):
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-            options_layout.addWidget(button)
-        options_layout.addStretch(1)
-        form_stack.addWidget(self.additional_options)
+            options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
+        recovery_layout.addWidget(self.additional_options)
         medicine_form = QFormLayout()
         medicine_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
         self.fatigue_medicine_max_uses.setMaximumWidth(220)
         self.medicine_limit_label = QLabel("疲劳药使用上限", content)
         medicine_form.addRow(self.medicine_limit_label, self.fatigue_medicine_max_uses)
-        form_stack.addLayout(medicine_form)
+        recovery_layout.addLayout(medicine_form)
 
         if self.preview_mode:
+            self.recovery_section.hide()
             self.additional_options.hide()
             self.recovery_heading.hide()
             self.use_fatigue_medicine.hide()
@@ -638,7 +647,9 @@ class TradePage(QWidget):
 
         self.advanced_toggle = QToolButton(content)
         self.advanced_toggle.setText("账号与执行参数")
+        self.advanced_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.advanced_toggle.setCheckable(True)
+        self.advanced_toggle.setProperty("uiDisclosure", True)
         self.advanced_toggle.setArrowType(Qt.ArrowType.RightArrow)
         self.advanced_toggle.toggled.connect(self._toggle_advanced)
         form_stack.addWidget(self.advanced_toggle)
@@ -661,9 +672,10 @@ class TradePage(QWidget):
         layout.addWidget(self.automatic_end, 0, 0, 1, 3, alignment=Qt.AlignmentFlag.AlignLeft)
         self.end_city_checks: dict[str, QPushButton] = {}
         for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            button = QPushButton(name, panel)
+            button = QCheckBox(name, panel)
             button.setCheckable(True)
             button.setProperty("cityOption", True)
+            button.setToolTip(f"允许货运在{name}结束；可选择多个终点，规划器从中选择。")
             self.end_city_checks[city_id] = button
             layout.addWidget(button, 1 + index // 3, index % 3)
         return panel
@@ -672,19 +684,23 @@ class TradePage(QWidget):
         panel = QWidget(parent)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QLabel("点击城市追加线路，拖动调整顺序；双击移除。至少两站，可重复访问。", panel))
+        note = QLabel("点击城市追加线路，拖动调整顺序；双击移除。至少两站，可重复访问。", panel)
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        picker = DisclosureSection("添加线路城市", panel)
         grid = QGridLayout()
         for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
             button = QPushButton(name, panel)
             button.clicked.connect(lambda _checked=False, city=city_id: self.add_route_city(city))
             grid.addWidget(button, index // 3, index % 3)
-        layout.addLayout(grid)
+        picker.body_layout.addLayout(grid)
         self.fixed_route = QListWidget(panel)
         self.fixed_route.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.fixed_route.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.fixed_route.setMaximumHeight(160)
         self.fixed_route.itemDoubleClicked.connect(lambda item: self.fixed_route.takeItem(self.fixed_route.row(item)))
         layout.addWidget(self.fixed_route)
+        layout.addWidget(picker)
         self.reposition_to_route = QCheckBox("导航到线路起点", panel)
         layout.addWidget(self.reposition_to_route)
         return panel
@@ -704,6 +720,12 @@ class TradePage(QWidget):
         if not hasattr(self, "fixed_panel"):
             return
         mode = self.trade_mode()
+        self.mode_note.setText({
+            "profit": "在疲劳与用书额度内优先预计收益。",
+            "quick": "固定使用优先满仓、必须协商；下方锁定项无需设置。",
+            "fixed": "按线路顺序访问，预算内继续；可重复访问同一城市。",
+            "target": "目标为规划预计收益，不代表实际现金收益。",
+        }[mode])
         was_quick = getattr(self, "_was_quick", False)
         if mode == "quick" and not was_quick:
             self._retained_book_policy = str(self.book_policy.currentData())
@@ -844,6 +866,7 @@ class TradePage(QWidget):
         self.city_selector_toggle = QToolButton(selector)
         self.city_selector_toggle.setText("参与规划城市 · 已选 0 城")
         self.city_selector_toggle.setCheckable(True)
+        self.city_selector_toggle.setProperty("uiDisclosure", True)
         self.city_selector_toggle.setArrowType(Qt.ArrowType.RightArrow)
         self.city_selector_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.city_selector_toggle.setToolTip("展开城市按钮网格；至少选择两城。当前选项不会因收起而改变。")
@@ -858,7 +881,7 @@ class TradePage(QWidget):
         grid.setVerticalSpacing(6)
         self.city_checks: dict[str, QPushButton] = {}
         for index, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            button = QPushButton(city_name, selector)
+            button = QCheckBox(city_name, selector)
             button.setCheckable(True)
             button.setProperty("cityOption", True)
             button.setMinimumHeight(30)
@@ -1633,9 +1656,7 @@ class TradePage(QWidget):
             self.auto_pickup,
             self.auto_cape_island_investment,
             self.auto_rubbish_recycling,
-            self.advanced_toggle,
             self.advanced_panel,
-            self.city_selector,
             self.start_city,
             self.book_usage,
             self.book_profit_threshold,
@@ -1646,6 +1667,9 @@ class TradePage(QWidget):
             *self.mode_buttons.values(),
         ):
             if widget is not None:
+                widget.setEnabled(not busy)
+        for widget in self.city_selector.findChildren(QAbstractButton):
+            if widget is not self.city_selector_toggle:
                 widget.setEnabled(not busy)
         self._sync_book_controls()
         self._sync_end_city_options()

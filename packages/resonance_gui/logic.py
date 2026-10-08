@@ -108,6 +108,120 @@ FREIGHT_PHASE_LABELS = {
 }
 
 
+class ProgressDisplayState:
+    """Shared read-only display API; no timings or resources are inferred."""
+
+    @property
+    def current_operation_key(self) -> str:
+        return str(self.current_operation.get("key") or "")
+
+    @property
+    def current_operation_name(self) -> str:
+        return str(self.current_operation.get("label") or self.current_operation_key)
+
+    @property
+    def current_operation_detail(self) -> str:
+        detail = self.current_operation.get("detail")
+        if isinstance(detail, Mapping):
+            message = detail.get("message") or detail.get("reason")
+            return message if isinstance(message, str) else ""
+        return detail if isinstance(detail, str) else ""
+
+    @property
+    def current_operation_state(self) -> str:
+        return str(self.current_operation.get("state") or "")
+
+    @property
+    def history_revisions(self) -> list[dict[str, Any]]:
+        """Completed/superseded route snapshots, oldest first, excluding current."""
+        return copy.deepcopy(self.route_history)
+
+    @property
+    def state_label(self) -> str:
+        if self.state in {"completed", "success"} and not self.task_succeeded:
+            return "运行中"
+        return {
+            "blocked": "等待确认", "waiting_confirmation": "等待确认",
+            "awaiting_confirmation": "等待确认", "stopping": "停止中",
+            "cancelled": "已停止", "stopped": "已停止", "failed": "失败",
+            "error": "失败", "timeout": "失败", "completed": "已完成",
+            "success": "已完成", "running": "运行中", "started": "运行中",
+            "progress": "运行中", "waiting": "等待开始", "idle": "等待开始",
+        }.get(self.state, self.state)
+
+
+def _progress_event_is_stale(state: Any, payload: Mapping[str, Any], expected_cid: str) -> bool:
+    cid = str(payload.get("cid") or "")
+    if (expected_cid and cid != str(expected_cid)) or (state.cid and cid != state.cid):
+        return True
+    sequence = payload.get("sequence")
+    # bool, fractional numbers and numeric strings are not valid sequence counters.
+    if type(sequence) is not int or sequence <= state.sequence:
+        return True
+    if state.task_succeeded or state.state in {"failed", "error", "timeout", "cancelled", "stopped"}:
+        return True
+    data = payload.get("data")
+    if isinstance(data, Mapping) and "route_revision" in data:
+        revision = data["route_revision"]
+        if type(revision) is not int or revision < state.route_revision:
+            return True
+    if state.state == "stopping":
+        event_state = str(payload.get("state") or "").lower()
+        if event_state in {"completed", "success"}:
+            if payload.get("stage") != "task":
+                return True
+        elif event_state not in {"stopping", "stopped", "cancelled", "failed", "error", "timeout"}:
+            return True
+    return False
+
+
+def _update_progress_display(state: Any, payload: Mapping[str, Any], data: Mapping[str, Any]) -> None:
+    timestamp = payload.get("timestamp")
+    timestamp = timestamp if isinstance(timestamp, str) and timestamp.strip() else None
+    stage = str(payload.get("stage") or "task")
+    identity = (stage, payload.get("city_index"), payload.get("leg_index"), payload.get("trip_index"))
+    if identity != state._stage_identity:
+        state.stage_started_at = timestamp
+        state._stage_identity = identity
+        state.current_operation = {}
+        state.operation_started_at = None
+    state.timestamp = timestamp
+    operation = data.get("operation")
+    if isinstance(operation, Mapping) and operation.get("key"):
+        operation = copy.deepcopy(dict(operation))
+        for key in ("key", "label", "state"):
+            operation[key] = str(operation.get(key) or "")
+        if state.current_operation_key != operation["key"]:
+            state.operation_started_at = timestamp
+        state.current_operation = operation
+    else:
+        state.current_operation = {}
+        state.operation_started_at = None
+
+
+def _archive_progress_route(state: Any) -> None:
+    if not state.route and not getattr(state, "cities", []):
+        return
+    snapshot = {"route_revision": state.route_revision, "route": copy.deepcopy(state.route),
+                "timestamp": state.timestamp, "state": state.state}
+    if hasattr(state, "cities"):
+        snapshot["cities"] = copy.deepcopy(state.cities)
+        snapshot["summary"] = copy.deepcopy(state.summary)
+    state.route_history.append(snapshot)
+
+
+def _operation_parent_state(event_state: str, data: Mapping[str, Any]) -> str:
+    """A completed child operation cannot complete its containing business phase."""
+    operation = data.get("operation")
+    if isinstance(operation, Mapping):
+        child_state = str(operation.get("state") or "").lower()
+        if child_state in {"blocked", "failed", "error", "timeout", "cancelled", "stopping", "stopped"}:
+            return child_state
+        if event_state in {"completed", "success", "skipped"}:
+            return "running"
+    return event_state
+
+
 @dataclass
 class FreightBusinessPhase:
     """One user-meaningful business phase inside a freight city visit."""
@@ -116,6 +230,7 @@ class FreightBusinessPhase:
     label: str
     state: str = "waiting"
     detail: str = ""
+    started_at: str | None = None
 
 
 @dataclass
@@ -134,6 +249,9 @@ class FreightCityStage:
         states = {phase.state for phase in self.phases}
         if "failed" in states:
             return "failed"
+        for special in ("stopping", "blocked", "waiting_confirmation", "cancelled", "stopped"):
+            if special in states:
+                return special
         if "running" in states:
             return "running"
         if self.phases and states <= {"completed", "skipped"}:
@@ -142,7 +260,7 @@ class FreightCityStage:
 
 
 @dataclass
-class WorkflowFreightProgressState:
+class WorkflowFreightProgressState(ProgressDisplayState):
     """City-oriented workflow progress reduced from additive trade events."""
 
     cid: str = ""
@@ -166,6 +284,15 @@ class WorkflowFreightProgressState:
     resources: dict[str, Any] = field(default_factory=dict)
     backend_completed_units: int | None = None
     backend_total_units: int | None = None
+    timestamp: str | None = None
+    stage_started_at: str | None = None
+    operation_started_at: str | None = None
+    current_operation: dict[str, Any] = field(default_factory=dict)
+    route_revision: int = 0
+    route_history: list[dict[str, Any]] = field(default_factory=list)
+    task_succeeded: bool = False
+    _stage_identity: tuple[Any, ...] = field(default_factory=tuple, repr=False)
+    stage: str = ""
 
     @property
     def total_units(self) -> int:
@@ -189,7 +316,7 @@ class WorkflowFreightProgressState:
 
     @property
     def percent(self) -> int | None:
-        if self.state in {"completed", "success"}:
+        if self.task_succeeded:
             return 100
         if self.backend_total_units is None and not self.route and not self.cities:
             return None
@@ -197,7 +324,13 @@ class WorkflowFreightProgressState:
         return min(99, round(self.completed_units * 100 / total))
 
     @property
+    def stage_label(self) -> str:
+        return TRADE_STAGE_LABELS.get(self.stage, self.stage or "等待阶段信息")
+
+    @property
     def current_label(self) -> str:
+        if self.current_operation:
+            return self.current_operation_detail or self.current_operation_name
         if self.active_phase == "reposition":
             return self.reposition_detail
         if self.active_city_index is not None and 0 <= self.active_city_index < len(self.cities):
@@ -206,6 +339,8 @@ class WorkflowFreightProgressState:
                 if phase.key == self.active_phase:
                     return f"{city.name} · {phase.detail or phase.label}"
             return city.name
+        if self.stage and self.stage not in {"target", "city", "market", "planning"}:
+            return self.stage_label
         return self.preparation_detail
 
 
@@ -221,12 +356,6 @@ def reduce_workflow_freight_progress(
     """Reduce trade progress into route preparation and city business stages."""
 
     state = copy.deepcopy(current) if current is not None else WorkflowFreightProgressState()
-    if investment_enabled is not None:
-        state.investment_enabled = bool(investment_enabled)
-    if rubbish_recycling_enabled is not None:
-        state.rubbish_recycling_enabled = bool(rubbish_recycling_enabled)
-    if bento_enabled is not None:
-        state.bento_enabled = bool(bento_enabled)
     envelope = dict(event or {})
     if str(envelope.get("name") or "") != TRADE_PROGRESS_EVENT:
         return state
@@ -236,21 +365,31 @@ def reduce_workflow_freight_progress(
     payload = dict(payload)
     if str(payload.get("schema") or "") != TRADE_PROGRESS_SCHEMA:
         return state
-    cid = str(payload.get("cid") or "")
-    if expected_cid and cid != str(expected_cid):
+    if _progress_event_is_stale(state, payload, expected_cid):
         return state
-    try:
-        sequence = int(payload.get("sequence", -1))
-    except (TypeError, ValueError):
-        return state
-    if sequence <= state.sequence:
-        return state
-
-    state.cid = cid or state.cid
-    state.sequence = sequence
+    if investment_enabled is not None:
+        state.investment_enabled = bool(investment_enabled)
+    if rubbish_recycling_enabled is not None:
+        state.rubbish_recycling_enabled = bool(rubbish_recycling_enabled)
+    if bento_enabled is not None:
+        state.bento_enabled = bool(bento_enabled)
+    state.cid = str(payload.get("cid") or state.cid)
+    state.sequence = payload["sequence"]
     stage = str(payload.get("stage") or "task")
+    state.stage = stage
     event_state = str(payload.get("state") or "running").lower()
     data = dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {}
+    event_state = _operation_parent_state(event_state, data)
+    if event_state in {"started", "progress", "running"}:
+        state.state = "running"
+    incoming_revision = data.get("route_revision", state.route_revision)
+    new_route = [dict(item) for item in data.get("route", []) if isinstance(item, Mapping)] if isinstance(data.get("route"), list) else []
+    replace_route = (stage == "planning" and event_state == "completed"
+                     and (incoming_revision != state.route_revision or new_route != state.route or not state.cities))
+    if replace_route:
+        _archive_progress_route(state)
+    _update_progress_display(state, payload, data)
+    state.route_revision = incoming_revision
     for key in ("trade_mode", "request_kind"):
         if key in payload:
             state.summary[key] = payload[key]
@@ -262,27 +401,47 @@ def reduce_workflow_freight_progress(
         if type(completed) is int and type(total) is int and total > 0 and 0 <= completed <= total:
             state.backend_completed_units, state.backend_total_units = completed, total
 
+    if event_state in {"blocked", "failed", "error", "timeout"}:
+        state.state = "blocked" if event_state == "blocked" else "failed"
+    if event_state in {"stopping", "stopped", "cancelled", "waiting_confirmation", "awaiting_confirmation"}:
+        state.state = event_state
+        if state.active_city_index is not None and 0 <= state.active_city_index < len(state.cities):
+            phase = next((item for item in state.cities[state.active_city_index].phases
+                          if item.key == state.active_phase), None)
+            if phase is not None and phase.state not in {"completed", "skipped"}:
+                phase.state = event_state
+        return state
+
     if stage == "reposition":
         state.reposition.update(copy.deepcopy(dict(data.get("reposition") or {})))
         state.reposition_state = _freight_view_state(event_state)
         state.reposition_detail = str(data.get("message") or data.get("reason") or "前往线路起点")
         state.active_city_index = None
         state.active_phase = "reposition"
-        state.state = event_state if event_state in {"blocked", "failed", "cancelled"} else "running"
+        state.state = _freight_view_state(event_state) if event_state in {"blocked", "failed", "error", "timeout", "cancelled"} else "running"
         return state
 
     if stage in {"target", "city", "market", "planning"}:
-        preparation_failed = event_state in {"blocked", "failed", "error", "cancelled"}
-        state.state = ("failed" if event_state == "error" else event_state) if preparation_failed else "running"
+        state.active_city_index = None
+        state.active_phase = ""
+        preparation_failed = event_state in {"blocked", "failed", "error", "timeout", "cancelled"}
+        state.state = _freight_view_state(event_state) if preparation_failed else "running"
         state.preparation_detail = TRADE_STAGE_LABELS.get(stage, "准备货运")
         if preparation_failed:
             state.preparation_detail = str(data.get("message") or data.get("reason") or state.preparation_detail)
-        state.preparation_state = "failed" if preparation_failed else "completed" if stage == "planning" and event_state == "completed" else "running"
+        state.preparation_state = _freight_view_state(event_state) if preparation_failed else "completed" if stage == "planning" and event_state == "completed" else "running"
         if stage == "market" and data.get("source"):
             state.market_source = str(data["source"])
-        if stage == "planning" and event_state == "completed":
-            route = [dict(item) for item in data.get("route", []) if isinstance(item, Mapping)]
-            state.route = route
+        if stage == "planning" and event_state == "completed" and replace_route:
+            state.route = new_route
+            state.active_city_index = None
+            state.active_phase = ""
+            state.backend_completed_units = None
+            state.backend_total_units = None
+            if isinstance(progress, Mapping):
+                completed, total = progress.get("completed_units"), progress.get("total_units")
+                if type(completed) is int and type(total) is int and total > 0 and 0 <= completed <= total:
+                    state.backend_completed_units, state.backend_total_units = completed, total
             if isinstance(data.get("summary"), Mapping):
                 state.summary.update(copy.deepcopy(dict(data["summary"])))
             visits = data.get("city_visits", state.summary.get("city_visits"))
@@ -290,7 +449,7 @@ def reduce_workflow_freight_progress(
             if state.explicit_phase_plan:
                 state.cities = _freight_city_stages_from_visits(visits)
             else:
-                state.cities = _build_freight_city_stages(route, state.investment_enabled,
+                state.cities = _build_freight_city_stages(new_route, state.investment_enabled,
                                                        state.rubbish_recycling_enabled, state.bento_enabled)
             reposition = data.get("reposition", state.summary.get("reposition"))
             if isinstance(reposition, Mapping):
@@ -299,11 +458,11 @@ def reduce_workflow_freight_progress(
 
     if stage == "task" and event_state in {"blocked", "failed", "error", "cancelled"}:
         state.state = event_state if event_state in {"blocked", "cancelled"} else "failed"
-        _fail_active_freight_phase(state, str(data.get("message") or "货运执行失败"))
+        _fail_active_freight_phase(state, str(data.get("message") or "货运执行失败"), state.state)
         return state
     if stage == "route" and event_state in {"blocked", "failed", "error"}:
-        state.state = "failed"
-        _fail_active_freight_phase(state, str(data.get("reason") or "路线执行失败"))
+        state.state = "blocked" if event_state == "blocked" else "failed"
+        _fail_active_freight_phase(state, str(data.get("reason") or "路线执行失败"), state.state)
         return state
     if stage == "route" and event_state in {"completed", "success"}:
         # Arrival/route completion is not terminal sale or bento confirmation.
@@ -311,6 +470,7 @@ def reduce_workflow_freight_progress(
         return state
     if stage == "task" and event_state in {"completed", "success"}:
         state.state = "completed"
+        state.task_succeeded = True
         state.preparation_state = "completed"
         for city in state.cities:
             for phase in city.phases:
@@ -320,6 +480,8 @@ def reduce_workflow_freight_progress(
         state.active_phase = ""
         return state
     if not state.cities:
+        if event_state in {"blocked", "failed", "error", "timeout"}:
+            state.state = "blocked" if event_state == "blocked" else "failed"
         return state
 
     city_index = _freight_event_city_index(payload, stage, event_state, len(state.cities))
@@ -342,11 +504,16 @@ def reduce_workflow_freight_progress(
         return state
 
     view_state = _freight_view_state(event_state)
+    if phase.state in {"completed", "skipped"} and view_state == "running":
+        # A later child heartbeat must not undo a confirmed parent completion.
+        return copy.deepcopy(current) if current is not None else state
+    if phase.started_at is None:
+        phase.started_at = state.stage_started_at
     if stage == "negotiation" and phase_key != "negotiation":
         operation = str(payload.get("operation") or "")
         phase.detail = "售出 · 抬价中" if operation == "raise" else "购买 · 砍价中"
-        if view_state == "failed":
-            phase.state = "failed"
+        if view_state in {"failed", "blocked", "cancelled", "stopping", "stopped"}:
+            phase.state = view_state
         elif phase.state not in {"completed", "skipped"}:
             phase.state = "running"
     elif stage == "bento":
@@ -376,7 +543,7 @@ def reduce_workflow_freight_progress(
             previous_travel.state = "completed"
     state.active_city_index = city_index
     state.active_phase = phase_key
-    state.state = "failed" if view_state == "failed" else "running"
+    state.state = view_state if view_state in {"failed", "blocked", "cancelled", "stopping", "stopped"} else "running"
     return state
 
 
@@ -494,17 +661,19 @@ def _freight_view_state(state: str) -> str:
         return "completed"
     if state in {"skipped"}:
         return "skipped"
-    if state in {"blocked", "failed", "error", "cancelled"}:
+    if state in {"blocked", "cancelled", "stopping", "stopped", "waiting_confirmation", "awaiting_confirmation"}:
+        return state
+    if state in {"failed", "error", "timeout"}:
         return "failed"
     return "running"
 
 
-def _fail_active_freight_phase(state: WorkflowFreightProgressState, detail: str) -> None:
+def _fail_active_freight_phase(state: WorkflowFreightProgressState, detail: str, phase_state: str = "failed") -> None:
     if state.active_city_index is None or not 0 <= state.active_city_index < len(state.cities):
         return
     for phase in state.cities[state.active_city_index].phases:
         if phase.key == state.active_phase:
-            phase.state = "failed"
+            phase.state = phase_state
             if phase.key == "bento":
                 phase.detail = f"{phase.detail or phase.label} · {detail}"
             else:
@@ -604,7 +773,7 @@ def reduce_trade_progress(
 
 
 @dataclass
-class PassengerProgressState:
+class PassengerProgressState(ProgressDisplayState):
     """Reduced presentation state for one passenger run."""
 
     cid: str = ""
@@ -625,10 +794,30 @@ class PassengerProgressState:
     requires_manual_completion: bool = False
     last_data: dict[str, Any] = field(default_factory=dict)
     events: list[dict[str, Any]] = field(default_factory=list)
+    timestamp: str | None = None
+    stage_started_at: str | None = None
+    operation_started_at: str | None = None
+    current_operation: dict[str, Any] = field(default_factory=dict)
+    route_revision: int = 0
+    route: list[dict[str, Any]] = field(default_factory=list)
+    route_history: list[dict[str, Any]] = field(default_factory=list)
+    resources: dict[str, Any] = field(default_factory=dict)
+    backend_completed_units: int | None = None
+    backend_total_units: int | None = None
+    task_succeeded: bool = False
+    _stage_identity: tuple[Any, ...] = field(default_factory=tuple, repr=False)
 
     @property
     def stage_label(self) -> str:
         return PASSENGER_STAGE_LABELS.get(self.stage, self.stage or "待开始")
+
+    @property
+    def percent(self) -> int | None:
+        if self.task_succeeded:
+            return 100
+        if self.backend_total_units is None or self.backend_completed_units is None:
+            return None
+        return min(99, round(self.backend_completed_units * 100 / max(self.backend_total_units, 1)))
 
 
 def reduce_passenger_progress(
@@ -637,7 +826,7 @@ def reduce_passenger_progress(
     *,
     expected_cid: str = "",
 ) -> PassengerProgressState:
-    state = current or PassengerProgressState(cid=str(expected_cid or ""))
+    state = copy.deepcopy(current) if current is not None else PassengerProgressState(cid=str(expected_cid or ""))
     envelope = dict(event or {})
     if str(envelope.get("name") or "") != PASSENGER_PROGRESS_EVENT:
         return state
@@ -647,37 +836,46 @@ def reduce_passenger_progress(
     payload = dict(payload)
     if str(payload.get("schema") or "") != PASSENGER_PROGRESS_SCHEMA:
         return state
-    cid = str(payload.get("cid") or "")
-    if expected_cid and cid != str(expected_cid):
+    if _progress_event_is_stale(state, payload, expected_cid):
         return state
-    try:
-        sequence = int(payload.get("sequence", -1))
-    except (TypeError, ValueError):
-        return state
-    if sequence <= state.sequence:
-        return state
-    return PassengerProgressState(
-        cid=cid or state.cid,
-        sequence=sequence,
-        stage=str(payload.get("stage") or state.stage),
-        state=str(payload.get("state") or state.state),
-        trip_index=_optional_int(payload.get("trip_index")),
-        leg_index=_optional_int(payload.get("leg_index")),
-        leg_count=_int_or(payload.get("leg_count"), state.leg_count),
-        source_city=str(payload.get("source_city") or state.source_city),
-        destination_city=str(payload.get("destination_city") or state.destination_city),
-        recruited_count=_optional_int(payload.get("recruited_count")),
-        seat_capacity=_optional_int(payload.get("seat_capacity")),
-        expected_fatigue_used=_int_or(payload.get("expected_fatigue_used"), state.expected_fatigue_used),
-        expected_fatigue_total=_int_or(payload.get("expected_fatigue_total"), state.expected_fatigue_total),
-        leg_revenue=_optional_int(payload.get("leg_revenue")),
-        total_revenue=_int_or(payload.get("total_revenue"), state.total_revenue),
-        requires_manual_completion=bool(
-            payload.get("requires_manual_completion", state.requires_manual_completion)
-        ),
-        last_data=dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {},
-        events=[*state.events, envelope],
-    )
+    data = dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {}
+    revision = data.get("route_revision", state.route_revision)
+    route = data.get("route")
+    if isinstance(route, list):
+        route = [dict(item) for item in route if isinstance(item, Mapping)]
+        if route != state.route or revision != state.route_revision:
+            _archive_progress_route(state)
+            state.route = copy.deepcopy(route)
+            state.backend_completed_units = None
+            state.backend_total_units = None
+    _update_progress_display(state, payload, data)
+    state.cid = str(payload.get("cid") or state.cid)
+    state.sequence = payload["sequence"]
+    state.stage = str(payload.get("stage") or state.stage)
+    state.state = _operation_parent_state(str(payload.get("state") or state.state).lower(), data)
+    state.task_succeeded = state.stage == "task" and state.state in {"completed", "success"}
+    state.route_revision = revision
+    for key in ("trip_index", "leg_index", "recruited_count", "seat_capacity", "leg_revenue"):
+        if key in payload:
+            setattr(state, key, _optional_int(payload[key]))
+    for key in ("leg_count", "expected_fatigue_used", "expected_fatigue_total", "total_revenue"):
+        if key in payload:
+            setattr(state, key, _int_or(payload[key], getattr(state, key)))
+    for key in ("source_city", "destination_city"):
+        if key in payload:
+            setattr(state, key, str(payload[key] or ""))
+    if "requires_manual_completion" in payload:
+        state.requires_manual_completion = bool(payload["requires_manual_completion"])
+    if isinstance(data.get("resources"), Mapping):
+        state.resources.update(copy.deepcopy(dict(data["resources"])))
+    progress = data.get("progress")
+    if isinstance(progress, Mapping):
+        completed, total = progress.get("completed_units"), progress.get("total_units")
+        if type(completed) is int and type(total) is int and total > 0 and 0 <= completed <= total:
+            state.backend_completed_units, state.backend_total_units = completed, total
+    state.last_data = copy.deepcopy(data)
+    state.events.append(copy.deepcopy(envelope))
+    return state
 
 
 def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:

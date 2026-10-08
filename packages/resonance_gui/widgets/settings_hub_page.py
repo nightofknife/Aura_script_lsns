@@ -43,6 +43,7 @@ GAME_EXECUTABLE_NAME = "雷索纳斯.exe"
 class SettingsHubPage(QWidget):
     backRequested = Signal()
     settingsSaved = Signal()
+    gamePathSaved = Signal(str)
     hotkeyRecordingChanged = Signal(bool)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
@@ -309,6 +310,7 @@ class SettingsHubPage(QWidget):
             self._set_detection_status(f"游戏路径保存失败：{exc}", "warning")
             return False
         self._set_detection_status(message, "success")
+        self.gamePathSaved.emit(str(path))
         return True
 
     def _detect_executable(self) -> None:
@@ -392,6 +394,8 @@ class SettingsHubPage(QWidget):
         except OSError as exc:
             self.save_result.setText(f"设置保存失败：{exc}")
             return
+        if not path:
+            self.gamePathSaved.emit("")
         undo_hotkeys: Callable[[], None] | None = None
         try:
             if self._hotkey_binder is not None:

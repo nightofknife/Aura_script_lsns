@@ -34,7 +34,11 @@ from .cape_island_investment_pc_actions import (
     resonance_pc_execute_cape_island_investment_from_city_panel,
 )
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
+from ._operation_progress import (
+    observe_operation, observe_worker_future, operation_progress, utc_timestamp,
+)
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button
+from ._city_panel_vision import CityPanelVisionError, open_city_panel, wait_city
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
 from .rubbish_recycling_pc_actions import (
@@ -103,12 +107,18 @@ class _TradeProgressReporter:
         self._total_units: Optional[int] = None
         self._completed_units: set[Tuple[Any, ...]] = set()
         self._phase_keys: set[Tuple[Any, ...]] = set()
+        self.route_revision = 0
+        self.operation_fields: Dict[str, Any] = {}
+        self.operation_stage = "task"
 
     @property
     def sequence(self) -> int:
         return self._sequence
 
     async def emit(self, stage: str, state: str, **fields: Any) -> None:
+        if not (fields.get("data") or {}).get("operation"):
+            self.operation_fields = {key: value for key, value in fields.items() if key != "data"}
+            self.operation_stage = stage
         with self._lock:
             self._sequence += 1
             sequence = self._sequence
@@ -118,34 +128,41 @@ class _TradeProgressReporter:
             "sequence": sequence,
             "stage": str(stage),
             "state": str(state),
+            "timestamp": utc_timestamp(),
         }
         payload.update(self.fields)
         payload.update({key: value for key, value in fields.items() if value is not None})
         data = dict(payload.get("data") or {})
-        if stage == "planning" and state == "completed" and data.get("city_visits"):
+        is_operation = isinstance(data.get("operation"), dict)
+        summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+        planning_status = summary.get("planning_status") or summary.get("status")
+        if (stage == "planning" and state == "completed" and data.get("city_visits")
+                and planning_status in {None, "ok", "planned"} and not is_operation):
+            self.route_revision += 1
             self._total_units = (1 + len((data.get("reposition") or {}).get("route") or [])
                                  + sum(phase["status"] == "waiting"
                                        for visit in data["city_visits"] for phase in visit["phases"]))
-            self._completed_units.add(("preparation",))
+            self._completed_units = {("preparation",)}
             self._phase_keys = {(phase["key"], visit["city_index"])
                                 for visit in data["city_visits"] for phase in visit["phases"]
                                 if phase["status"] == "waiting"}
         if self._total_units is not None:
-            if stage == "reposition" and state == "completed":
+            if stage == "reposition" and state == "completed" and not is_operation:
                 self._completed_units.add((stage, (data.get("reposition") or {}).get("leg_index")))
             elif stage in {"arrival", "investment", "rubbish_recycling", "sparkling_water",
-                           "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"}:
+                           "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"} and not is_operation:
                 key = (stage, payload.get("city_index"))
                 if key in self._phase_keys:
                     self._completed_units.add(key)
                 if stage == "arrival" and state == "completed" and type(payload.get("city_index")) is int:
                     self._completed_units.add(("travel", payload["city_index"] - 1))
             completed = len(self._completed_units)
-            if stage == "task" and state == "completed":
+            if stage == "task" and state == "completed" and not is_operation:
                 completed = self._total_units
             data["progress"] = {"completed_units": min(completed, self._total_units),
                                 "total_units": self._total_units}
         data.setdefault("resources", dict(self.resources))
+        data["route_revision"] = self.route_revision
         payload["data"] = data
         try:
             await self._event_bus.publish(Event(name=_TRADE_PROGRESS_EVENT, payload=payload))
@@ -155,7 +172,10 @@ class _TradeProgressReporter:
     def emit_from_worker(self, stage: str, state: str, **fields: Any) -> None:
         try:
             future = asyncio.run_coroutine_threadsafe(self.emit(stage, state, **fields), self._loop)
-            future.result(timeout=2.0)
+            if (fields.get("data") or {}).get("operation"):
+                future.add_done_callback(observe_worker_future)
+            else:
+                future.result(timeout=2.0)
         except Exception as exc:  # noqa: BLE001
             logger.warning("PC trade worker progress could not be scheduled: %s", exc)
 
@@ -188,7 +208,14 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
         try:
             if reporter is not None:
                 await reporter.emit("task", "started")
-            result = await func(*args, **kwargs)
+            def operation_observer(operation: Dict[str, Any]) -> None:
+                stage = operation["key"].split(".", 1)[0]
+                if stage == "travel" and reporter.operation_stage == "reposition":
+                    stage = "reposition"
+                _report_worker(stage, "progress", data={"operation": operation})
+
+            with operation_progress(operation_observer if reporter is not None else None):
+                result = await func(*args, **kwargs)
             if reporter is not None:
                 if result.get("bento_pending"):
                     result["bento_progress_sequence"] = reporter.sequence
@@ -196,6 +223,7 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
                         "total_units": reporter._total_units,
                         "completed_units": [list(key) for key in reporter._completed_units],
                         "phase_keys": [list(key) for key in reporter._phase_keys],
+                        "route_revision": reporter.route_revision,
                     }
                 else:
                     failed = (result.get("success") is False or
@@ -222,7 +250,7 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     if reporter is None:
         return
-    context = dict(_WORKER_PROGRESS_CONTEXT.get())
+    context = dict(_WORKER_PROGRESS_CONTEXT.get() or reporter.operation_fields)
     context.update(fields)
     if stage == "negotiation" and state == "completed":
         used = (fields.get("data") or {}).get("actual_fatigue_used")
@@ -231,8 +259,6 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
     reporter.emit_from_worker(stage, state, **context)
 
 
-_VISIT_BUTTON_REGION = [1000, 450, 250, 70]
-_CITY_NAME_REGION = [170, 520, 400, 50]
 _SHOP_MENU_REGION = [720, 280, 280, 420]
 _BUY_BUTTON_REGION = [1000, 630, 140, 50]
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
@@ -757,29 +783,21 @@ def _drag_buy_list(app: Any) -> None:
     name="resonance_pc.open_city_panel_from_main",
     public=True,
     read_only=False,
-    description="Open the city panel from the city main screen by clicking 访问城市/访问地区.",
+    description="Open the city panel using its visit-entry template and confirm the current city badge.",
 )
-@requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr")
+@requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision")
 def resonance_pc_open_city_panel_from_main(
     timeout_sec: float = 12.0,
-    settle_sec: float = 3.0,
     app: Any = None,
-    ocr: Any = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None:
-        raise RuntimeError("app/ocr services are required")
-    click = _wait_and_click_text(
-        app,
-        ocr,
-        ("访问城市", "访问地区"),
-        _VISIT_BUTTON_REGION,
-        timeout_sec=timeout_sec,
-        interval_sec=0.5,
-    )
-    if not click.get("clicked"):
-        _raise_error("open_city_panel_failed", "Unable to find 访问城市/访问地区 on city main screen.", click)
-    time.sleep(max(float(settle_sec), 0.0))
-    return {"success": True, "page_state": "city_panel", "click": click}
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required")
+    try:
+        return open_city_panel(app=app, vision=vision, check_cancelled=_check_trade_cancelled,
+                               timeout_sec=timeout_sec)
+    except CityPanelVisionError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
 
 
 @action_info(name="resonance_pc.tap_back_once", public=True, read_only=False, description="Tap the top-left back button once.")
@@ -848,32 +866,24 @@ def resonance_pc_go_city_main_direct(timeout_sec: float = 5.0, app: Any = None, 
     name="resonance_pc.read_city_name_on_city_panel",
     public=True,
     read_only=False,
-    description="Read and resolve current city name on the city panel. This action does not click.",
+    description="Identify the current city using two stable masked badge-template matches. Does not click.",
 )
 @requires_services(
     app="plans/aura_base/app",
-    ocr="plans/aura_base/ocr",
-    resonance_pc_city_shop_data="resonance_pc_city_shop_data",
+    vision="plans/aura_base/vision",
 )
 def resonance_pc_read_city_name_on_city_panel(
-    location_file_path: str = "data/meta/location_pc.json",
+    timeout_sec: float = 3.0,
     app: Any = None,
-    ocr: Any = None,
-    resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
+    vision: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or resonance_pc_city_shop_data is None:
-        raise RuntimeError("app/ocr/resonance_pc_city_shop_data services are required")
-    items = _capture_text_items(app, ocr, _CITY_NAME_REGION)
-    ocr_text = " ".join(str(item.get("text") or "") for item in items).strip()
-    resolved = resonance_pc_city_shop_data.resolve_city(ocr_text, location_file_path=location_file_path)
-    return {
-        "success": True,
-        "page_state": "city_panel",
-        "ocr_city_text": ocr_text,
-        "city_key": resolved["city_key"],
-        "city_name": resolved["city_name"],
-        "ocr_items": items,
-    }
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required")
+    try:
+        return wait_city(app=app, vision=vision, check_cancelled=_check_trade_cancelled,
+                         timeout_sec=timeout_sec)
+    except CityPanelVisionError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
 
 
 @action_info(
@@ -970,6 +980,7 @@ def resonance_pc_buy_goods_on_buy_page(
     book_result: Dict[str, Any] = {"ok": True, "used": 0, "skipped": True}
     if int(books_used or 0) > 0:
         _report_worker("books", "started", data={"requested": books_used})
+        observe_operation("books.use", "使用采买书并核实数量", "started", requested=books_used)
         book_result = resonance_pc_use_purchase_books(
             books_used=int(books_used),
             item_name="进货采买书",
@@ -980,13 +991,16 @@ def resonance_pc_buy_goods_on_buy_page(
         if reporter and type(book_result.get("used")) is int and book_result["used"] >= 0:
             reporter.resources["confirmed_books_used"] += book_result["used"]
         if book_result.get("ok") is not True or book_result.get("used") != books_used:
+            observe_operation("books.use", "使用采买书并核实数量", "failed", result=book_result)
             _raise_error("purchase_books_not_confirmed", "Requested purchase books were not confirmed",
                          {**book_result, "book_result": book_result})
+        observe_operation("books.use", "使用采买书并核实数量", "completed", used=book_result["used"])
         _report_worker("books", "completed", data={"result": book_result})
 
     def selection_trace(entry):
         logger.info("[TradeBuy] %s context=%s", entry, dict(_WORKER_PROGRESS_CONTEXT.get()))
 
+    observe_operation("buy.selection", "选择并核实商品", "started", requested_products=requested_products)
     try:
         selection = select_buy_products(
             product_list=requested_products, app=app, vision=vision,
@@ -1000,6 +1014,9 @@ def resonance_pc_buy_goods_on_buy_page(
     warnings = list(selection["warnings"])
     scan_trace = list(selection["scan_trace"])
     buy_result = "partial" if pending else "complete"
+    observe_operation("buy.selection", "选择并核实商品", "completed",
+                      selected_products=selected, missing_products=pending,
+                      stop_reason=selection["stop_reason"])
     logger.info("[TradeBuy] phase=selection_completed selected=%s missing=%s stop_reason=%s context=%s",
                 selected, pending, selection["stop_reason"], dict(_WORKER_PROGRESS_CONTEXT.get()))
 
@@ -1027,14 +1044,17 @@ def resonance_pc_buy_goods_on_buy_page(
     try:
         if bool(bargain_to_cap):
             _report_worker("negotiation", "started", operation="bargain")
+            observe_operation("negotiation.bargain", "砍价子任务", "started")
             negotiation = execute_bargain_to_cap(
                 requested_to_cap=True,
                 app=app,
                 vision=vision,
                 max_attempts=negotiation_max_attempts,
             )
+            observe_operation("negotiation.bargain", "砍价子任务返回", "completed", result=dict(negotiation))
             _report_worker("negotiation", "completed", operation="bargain", data=dict(negotiation))
     except NegotiationExecutionError as exc:
+        observe_operation("negotiation.bargain", "砍价子任务失败", "failed", reason=exc.code)
         _report_worker(
             "negotiation",
             "failed",
@@ -1060,6 +1080,8 @@ def resonance_pc_buy_goods_on_buy_page(
                 {"region": list(_BUY_BUTTON_REGION), "requested_products": requested_products,
                  "selected_products": selected, "book_result": book_result},
             )
+        observe_operation("buy.confirming", "确认买入与结算", "started",
+                          selected_products=selected)
         buy_button = _click_hit(app, buy_button_hit)
         buy_button["method"] = "text"
         logger.info(
@@ -1098,10 +1120,13 @@ def resonance_pc_buy_goods_on_buy_page(
             isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
         )
         if not bought:
+            observe_operation("buy.confirming", "确认买入与结算", "failed",
+                              settlement=settlement, settlement_after_confirm=settlement_after_confirm)
             _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
                          {"book_result": book_result, "negotiation": negotiation,
                           "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
                           "selected_products": selected})
+        observe_operation("buy.confirming", "确认买入与结算", "completed", bought_confirmed=bought)
         logger.info(
             "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
             bought,
@@ -1182,7 +1207,9 @@ def resonance_pc_sell_goods_on_sell_page(
     _report_worker("sell", "started", data={"raise_to_cap": bool(raise_to_cap)})
     from ._trade_sell_state import SellSession
     session = SellSession(app, vision, _check_trade_cancelled, _raise_error)
+    observe_operation("sell.selection", "核实卖出商品", "started")
     selection = session.select()
+    observe_operation("sell.selection", "核实卖出商品", "completed", selection_status=selection['status'])
     sell_all_click = (selection['clicks'][-1] if selection['clicks']
                       else {"clicked": False, "reason": selection['status']})
     log_method = logger.info if sell_all_click.get("clicked") else logger.warning
@@ -1203,6 +1230,7 @@ def resonance_pc_sell_goods_on_sell_page(
         try:
             if bool(raise_to_cap):
                 _report_worker("negotiation", "started", operation="raise")
+                observe_operation("negotiation.raise", "抬价子任务", "started")
             negotiation = execute_raise_to_cap(
                 requested_to_cap=bool(raise_to_cap),
                 app=app,
@@ -1210,8 +1238,10 @@ def resonance_pc_sell_goods_on_sell_page(
                 max_attempts=negotiation_max_attempts,
             )
             if bool(raise_to_cap):
+                observe_operation("negotiation.raise", "抬价子任务返回", "completed", result=dict(negotiation))
                 _report_worker("negotiation", "completed", operation="raise", data=dict(negotiation))
         except NegotiationExecutionError as exc:
+            observe_operation("negotiation.raise", "抬价子任务失败", "failed", reason=exc.code)
             _report_worker(
                 "negotiation",
                 "failed",
@@ -1219,6 +1249,7 @@ def resonance_pc_sell_goods_on_sell_page(
                 data={"code": exc.code, "message": exc.message, "detail": dict(exc.detail)},
             )
             _raise_error(exc.code, exc.message, exc.detail)
+        observe_operation("sell.confirming", "确认卖出与结算", "started")
         commit = session.submit()
         sell_button_click = (commit['clicks'][-1] if commit['clicks']
                              else {"clicked": False, "reason": "settlement_already_visible"})
@@ -1233,7 +1264,9 @@ def resonance_pc_sell_goods_on_sell_page(
         _check_trade_cancelled()
         settlement = _close_settlement(app, vision, "sell", timeout_sec=3.0)
         if not settlement.get('closed') or not settlement.get('final_absence_verified'):
+            observe_operation("sell.confirming", "确认卖出与结算", "failed", settlement=settlement)
             _raise_error('sell_settlement_close_unconfirmed', '卖货结算关闭未确认', settlement)
+        observe_operation("sell.confirming", "确认卖出与结算", "completed", sold_confirmed=True)
 
     sold = bool(settlement.get("closed"))
     back = session.return_to_shop(sold)
@@ -1477,7 +1510,9 @@ async def _plan_and_execute_water_arrival(
     selection: dict, *, route, travel_costs, page_state, context, engine,
     app, ocr, vision, city_shop_data, persistent_data,
 ) -> dict:
+    observe_operation("sparkling_water.fatigue_refresh", "刷新当前疲劳", "started")
     current = await _refresh_recovery_fatigue(page_state=page_state, context=context, engine=engine)
+    observe_operation("sparkling_water.fatigue_refresh", "当前疲劳已刷新", "completed", actual_fatigue=current)
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     if reporter:
         reporter.resources["actual_fatigue"] = current
@@ -1728,7 +1763,7 @@ async def _execute_trade_leg(
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
     if page_state == "city_main":
-        await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+        await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
         page_state = "city_panel"
     elif page_state != "city_panel":
         _raise_error(
@@ -1934,8 +1969,9 @@ async def _execute_cape_island_investment_after_arrival(
         open_city = await asyncio.to_thread(
             resonance_pc_open_city_panel_from_main,
             app=app,
-            ocr=ocr,
+            vision=vision,
         )
+        observe_operation("investment.execute", "投资子任务", "started")
         investment = await resonance_pc_execute_cape_island_investment_from_city_panel(
             app=app,
             ocr=ocr,
@@ -1943,11 +1979,17 @@ async def _execute_cape_island_investment_after_arrival(
             resonance_pc_city_shop_data=city_shop_data,
             engine=engine,
         )
+        observe_operation("investment.execute", "投资子任务返回", "completed",
+                          status=investment.get("status"), reason=investment.get("reason"),
+                          selected_option=investment.get("selected_option"))
+        observe_operation("investment.return_main", "投资后返回城市", "started")
         return_main = await asyncio.to_thread(
             resonance_pc_go_city_main_direct,
             app=app,
             vision=vision,
         )
+        observe_operation("investment.return_main", "投资后返回城市子任务返回", "completed",
+                          success=return_main.get("success"), page_state=return_main.get("page_state"))
     except Exception as exc:
         code = str(getattr(exc, "code", type(exc).__name__))
         logger.exception(
@@ -2009,8 +2051,9 @@ async def _execute_rubbish_recycling_after_arrival(
         open_city = await asyncio.to_thread(
             resonance_pc_open_city_panel_from_main,
             app=app,
-            ocr=ocr,
+            vision=vision,
         )
+        observe_operation("rubbish_recycling.execute", "垃圾回收子任务", "started")
         recycling = await asyncio.to_thread(
             resonance_pc_execute_rubbish_recycling_from_city_panel,
             city_name=arrival_city,
@@ -2018,6 +2061,10 @@ async def _execute_rubbish_recycling_after_arrival(
             vision=vision,
             resonance_pc_city_shop_data=city_shop_data,
         )
+        observe_operation("rubbish_recycling.execute", "垃圾回收子任务返回", "completed",
+                          status=recycling.get("status"), reason=recycling.get("reason"),
+                          final_state=recycling.get("final_state"),
+                          reward_overlay_seen=recycling.get("reward_overlay_seen"))
     except Exception as exc:
         code = str(getattr(exc, "code", type(exc).__name__))
         logger.exception(
@@ -2123,7 +2170,7 @@ def _summarize_negotiation_execution(
 
 
 async def _execute_freight_reposition(
-    route: List[Dict[str, Any]], *, page_state: str, app, ocr, vision, city_shop_data,
+    route: List[Dict[str, Any]], *, page_state: str, app, ocr, vision,
     arrival_timeout_seconds: float, use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
 ) -> Dict[str, Any]:
@@ -2175,11 +2222,10 @@ async def _execute_freight_reposition(
                     "reason": travel.get("reason") or "reposition_arrival_not_confirmed",
                     "leg_results": results, "page_state": travel.get("page_state", "unknown"),
                     "blocked_at": travel.get("blocked_at"), "blocked_leg": leg}
-    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
     if opened.get("success") is not True:
         _raise_error("reposition_panel_not_opened", "Cannot confirm route starting city", opened)
-    current = await asyncio.to_thread(resonance_pc_read_city_name_on_city_panel, app=app, ocr=ocr,
-                                     resonance_pc_city_shop_data=city_shop_data)
+    current = opened["city"]
     if current.get("city_name") != route[-1]["to_city"]:
         _raise_error("reposition_city_mismatch", "Route starting city was not confirmed", current)
     return {"success": True, "status": "completed", "leg_results": results,
@@ -2510,13 +2556,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     if reporter is not None:
         await reporter.emit("target", "started")
         await reporter.emit("city", "started")
-    await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
-    current = await asyncio.to_thread(
-        resonance_pc_read_city_name_on_city_panel,
-        app=app,
-        ocr=ocr,
-        resonance_pc_city_shop_data=resonance_pc_city_shop_data,
-    )
+    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
+    current = opened["city"]
     page_state = "city_panel"
     if reporter is not None:
         await reporter.emit("target", "completed")
@@ -2631,7 +2672,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     if plan.get("status") == "ok" and route and plan["reposition"]["required"]:
         reposition_execution = await _execute_freight_reposition(
             plan["reposition"]["route"], page_state=page_state,
-            app=app, ocr=ocr, vision=vision, city_shop_data=resonance_pc_city_shop_data,
+            app=app, ocr=ocr, vision=vision,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             use_fatigue_medicine=use_fatigue_medicine,
             allowed_fatigue_medicines=allowed_fatigue_medicines,
@@ -2667,7 +2708,7 @@ async def resonance_pc_auto_cycle_trade_flow(
 
         if str(execution.get("status") or "").lower() == "completed":
             if page_state == "city_main":
-                await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, ocr=ocr)
+                await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
                 page_state = "city_panel"
             endpoint_city = str(route[-1].get("to_city") or "")
             if reporter is not None:
@@ -2782,7 +2823,6 @@ async def resonance_pc_auto_cycle_trade_flow(
                 "city_id": current.get("city_id"),
                 "city_name": current.get("city_name"),
                 "city_key": current.get("city_key"),
-                "ocr_city_text": current.get("ocr_city_text"),
             },
             "page_state": page_state,
         }
@@ -2902,6 +2942,7 @@ async def resonance_pc_finish_auto_cycle_trade(
             reporter._total_units = checkpoint["total_units"]
             reporter._completed_units = {tuple(key) for key in checkpoint["completed_units"]}
             reporter._phase_keys = {tuple(key) for key in checkpoint["phase_keys"]}
+            reporter.route_revision = checkpoint.get("route_revision", 0)
         await reporter.emit("bento", "completed" if result["success"] else "failed",
                             city_index=len(result.get("route") or []),
                             current_city=str((result.get("route") or [{}])[-1].get("to_city") or ""),

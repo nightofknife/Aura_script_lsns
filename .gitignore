@@ -16,6 +16,7 @@ __pycache__/
 logs/
 user-data/
 gui-settings.ini
+gui-settings-layout-v2.ini
 updates/
 .update-work/
 plans/logs/

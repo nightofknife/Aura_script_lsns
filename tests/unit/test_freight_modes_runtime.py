@@ -146,7 +146,7 @@ def test_fixed_wrong_start_stops_without_planner_or_departure(harness, monkeypat
 
 @pytest.mark.parametrize("blocked", [False, True])
 def test_reposition_is_navigation_only_and_precedes_trade(harness, monkeypatch, blocked):
-    operations, _ = harness
+    operations, state = harness
     leg = routes()[0]
     planned = {"status": "ok", "route": [routes()[1]], "reposition_route": [leg],
                "reposition_expected_fatigue": 100, "expected_fatigue_used": 200}
@@ -156,13 +156,11 @@ def test_reposition_is_navigation_only_and_precedes_trade(harness, monkeypatch, 
     def travel(**kwargs):
         operations.append("reposition_travel")
         assert kwargs["auto_pickup"] is False
+        if not blocked:
+            state["city"] = {"success": True, "city_name": "海角城", "city_key": "cape_city"}
         return {"success": not blocked, "status": "blocked" if blocked else "ok",
                 "page_state": "city_main"}
     monkeypatch.setattr(trade, "resonance_pc_intercity_depart_and_wait", travel)
-    def read_city(**kwargs):
-        return {"city_name": "海角城" if "reposition_travel" in operations else "岚心城",
-                "city_key": "cape_city" if "reposition_travel" in operations else "lanxin_city"}
-    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel", read_city)
     result = run_full(trade_mode="fixed", fixed_route_city_ids=["11", "15", "11"],
                       reposition_to_route=True, auto_sparkling_water=False)
     assert result["reposition"]["expected_fatigue"] == 100
@@ -230,11 +228,11 @@ def test_unconfirmed_books_stop_before_selecting_products(monkeypatch):
 @pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
 def test_real_service_is_wired_to_preview_and_execution(service, harness, monkeypatch, mode):
     api, _ = service
+    _, state = harness
+    state["city"] = {"success": True, "city_name": "A", "city_key": "A"}
     monkeypatch.setattr(api.market_data, "get_snapshot", lambda **kw: api.market_data.get_latest(), raising=False)
     monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route",
                         planner_action.resonance_pc_trade_plan_optimal_route)
-    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel",
-                        lambda **kw: {"city_name": "A", "city_key": "A"})
     request = {"trade_mode": mode, "fatigue_budget": 100, "cargo_capacity": 3,
                "book_budget": None, "book_profit_threshold": 0,
                "fixed_route_city_ids": ["A", "B", "A"], "target_profit": 20,

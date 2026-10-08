@@ -38,8 +38,10 @@ def test_toggle_button_checkbox_api_and_blocked_signals(app):
     button.setCheckState(Qt.CheckState.Checked)
     button.blockSignals(False)
     assert button.isChecked()
+    assert not button.icon().isNull()
     assert states == [2, 0]
     button.setCheckState(0)
+    assert button.icon().isNull()
     assert states == [2, 0, 0]
     parent = QWidget()
     assert ToggleButton(parent).parent() is parent

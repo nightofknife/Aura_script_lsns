@@ -46,6 +46,7 @@ CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
 )
 SMALL_TASKS: tuple[tuple[str, str], ...] = tuple(
     task for _category_id, _label, tasks in CATEGORY_TASKS for task in tasks
+    if task[0] != DATA_COLLECTION_TASK_ID
 )
 TASK_TOOLTIPS = {
     USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
@@ -89,6 +90,7 @@ class SmallTasksPage(QWidget):
 
     runPlayerDataRequested = Signal(object)
     previewTradeRequested = Signal(object, float)
+    returnToTradeRequested = Signal()
     runTeamRecommendationRequested = Signal()
     runConsciousnessDeepDiveRequested = Signal()
     runConsciousnessDeepDiveSingleRunRequested = Signal(object)
@@ -120,7 +122,7 @@ class SmallTasksPage(QWidget):
         root.setSpacing(12)
 
         # Keep the legacy category selector API off-screen for older integrations.
-        # The visible list always contains every available task.
+        # Developer-only panels remain registered, but have no ordinary entry.
         self.category_list = QListWidget(self)
         self.category_list.setObjectName("smallTaskCategoryList")
         self.category_list.hide()
@@ -218,6 +220,11 @@ class SmallTasksPage(QWidget):
         self._task_pages[DATA_COLLECTION_TASK_ID] = self.data_collection_panel
 
         self.trade_preview_panel = TradePage(settings, self.detail_stack, preview_mode=True)
+        self.return_to_trade_button = QPushButton("← 返回货运", self.trade_preview_panel)
+        self.return_to_trade_button.setObjectName("quietButton")
+        self.return_to_trade_button.setToolTip("返回任务流程中的货运参数页，不执行交易。")
+        self.return_to_trade_button.clicked.connect(self.returnToTradeRequested.emit)
+        self.trade_preview_panel.layout().insertWidget(0, self.return_to_trade_button)
         self.trade_preview_panel.previewRequested.connect(self.previewTradeRequested.emit)
         self.trade_preview_panel.cancelRequested.connect(self.cancelRequested.emit)
         self.detail_stack.addWidget(self.trade_preview_panel)
@@ -232,6 +239,8 @@ class SmallTasksPage(QWidget):
 
     @property
     def current_task_id(self) -> str:
+        if self.detail_stack.currentWidget() is self.data_collection_panel:
+            return DATA_COLLECTION_TASK_ID
         item = self.task_list.currentItem()
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
 
@@ -243,7 +252,11 @@ class SmallTasksPage(QWidget):
         for index in range(self.task_list.count()):
             if self.task_list.item(index).data(Qt.ItemDataRole.UserRole) == task_id:
                 self.task_list.setCurrentRow(index)
+                self.detail_stack.setCurrentWidget(self._task_pages[task_id])
                 return
+        if task_id == DATA_COLLECTION_TASK_ID:
+            # Keep explicit developer integrations available off the normal list.
+            self.detail_stack.setCurrentWidget(self.data_collection_panel)
 
     def _build_player_action_band(self, parent_layout: QVBoxLayout) -> None:
         run_band = QFrame(self.player_task_page)

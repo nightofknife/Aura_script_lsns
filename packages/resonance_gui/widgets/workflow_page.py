@@ -1,8 +1,10 @@
-"""Compact task rail, full parameter workspace and bottom execution dock."""
+"""Task rail, shared parameter editor and city-oriented runtime inspector."""
 
 from __future__ import annotations
 
 from typing import Any, Mapping
+from datetime import datetime, timezone
+import time
 
 from PySide6.QtCore import (
     QEasingCurve,
@@ -13,11 +15,15 @@ from PySide6.QtCore import (
     QRect,
     QSize,
     Qt,
+    QTimer,
     Signal,
 )
 from PySide6.QtGui import QBrush, QColor, QDrag, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
+    QApplication,
     QAbstractItemView,
+    QAbstractButton,
+    QAbstractSpinBox,
     QComboBox,
     QFormLayout,
     QFrame,
@@ -26,6 +32,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
+    QLineEdit,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -39,6 +46,7 @@ from PySide6.QtWidgets import (
     QTextBrowser,
     QTreeWidget,
     QTreeWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -478,6 +486,7 @@ class WorkflowPage(QWidget):
     openPassengerRequested = Signal()
     openBattleRequested = Signal()
     settingsRequested = Signal()
+    saveParametersRequested = Signal()
     tradeEndCityAvailabilityChanged = Signal(bool)
     autoBookChanged = Signal(bool)
 
@@ -501,6 +510,11 @@ class WorkflowPage(QWidget):
         self._trade_investment_enabled = False
         self._trade_rubbish_recycling_enabled = False
         self._passenger_route_catalog = load_passenger_route_catalog()
+        self._active_runtime_kind = ""
+        self._operation_started_monotonic = time.monotonic()
+        self._operation_identity: tuple = ()
+        self._stopping = False
+        self._operation_records: dict[tuple, dict[str, Any]] = {}
         self._build_ui()
         self._load_state()
         self._select_row(0)
@@ -513,21 +527,128 @@ class WorkflowPage(QWidget):
         self.left_panel = self._build_task_panel()
         self.center_panel = self._build_config_panel()
         self.right_panel = self._build_run_panel()
-        self.workspace_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self.workspace_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.workspace_splitter.setChildrenCollapsible(False)
         self.workspace_splitter.addWidget(self.center_panel)
         self.workspace_splitter.addWidget(self.right_panel)
-        self.workspace_splitter.setStretchFactor(0, 3)
-        self.workspace_splitter.setStretchFactor(1, 1)
-        self.workspace_splitter.setSizes([550, 220])
-        self.right_panel.setMinimumHeight(170)
+        self.inspector_strip = QFrame(self)
+        self.inspector_strip.setFixedWidth(44)
+        strip_layout = QVBoxLayout(self.inspector_strip)
+        strip_layout.setContentsMargins(2, 8, 2, 8)
+        self.expand_inspector_button = QToolButton(self.inspector_strip)
+        self.expand_inspector_button.setText("‹")
+        self.expand_inspector_button.setToolTip("展开运行状态与日志")
+        self.expand_inspector_button.clicked.connect(lambda: self._set_inspector_collapsed(False, manual=True))
+        strip_layout.addWidget(self.expand_inspector_button)
+        self.compact_task_label = QLabel("待命", self.inspector_strip)
+        self.compact_task_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        strip_layout.addWidget(self.compact_task_label)
+        self.compact_run_button = QPushButton("运行", self.inspector_strip)
+        self.compact_run_button.setMaximumWidth(40)
+        self.compact_run_button.setStyleSheet("padding: 6px 1px; min-width: 0px;")
+        self.compact_run_button.setToolTip("运行已启用的工作流程")
+        self.compact_run_button.clicked.connect(self._toggle_run)
+        strip_layout.addWidget(self.compact_run_button)
+        strip_layout.addStretch(1)
+        self.workspace_splitter.addWidget(self.inspector_strip)
+        self.inspector_strip.hide()
+        self._inspector_collapsed = False
+        self._manual_expand_narrow = False
+        self._inspector_mode = str(self._settings.value("workflow/inspector_mode", "auto"))
+        self.workspace_splitter.setStretchFactor(0, 1)
+        self.workspace_splitter.setStretchFactor(1, 0)
+        self.workspace_splitter.setSizes([560, 360, 0])
+        self.center_panel.setMinimumWidth(0)
+        self.right_panel.setMinimumWidth(250)
+        self._width_save_timer = QTimer(self)
+        self._width_save_timer.setSingleShot(True)
+        self._width_save_timer.setInterval(300)
+        self._width_save_timer.timeout.connect(self._save_workspace_widths)
+        self.workspace_splitter.splitterMoved.connect(lambda *_: self._width_save_timer.start())
         root.addWidget(self.left_panel)
         root.addWidget(self.workspace_splitter, 1)
+        self._restore_workspace_widths()
+        self._workspace_shown_once = False
+        if self._inspector_mode == "collapsed":
+            self._set_inspector_collapsed(True)
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        if not self._workspace_shown_once:
+            self._workspace_shown_once = True
+            # Parent layouts have not necessarily settled during Show. This
+            # owned timer is cancelled automatically if the page is destroyed.
+            self._initial_width_timer = QTimer(self)
+            self._initial_width_timer.setSingleShot(True)
+            self._initial_width_timer.timeout.connect(self._apply_initial_workspace_widths)
+            self._initial_width_timer.start(0)
+
+    def _apply_initial_workspace_widths(self) -> None:
+        if not self._inspector_collapsed:
+            raw = self._settings.value("workflow/workspace_widths", "")
+            if raw:
+                self._restore_workspace_widths()
+            else:
+                self.workspace_splitter.setSizes([max(self.workspace_splitter.width() - 364, 100), 360, 0])
+
+    def _restore_workspace_widths(self) -> None:
+        raw = str(self._settings.value("workflow/workspace_widths", "560,360") or "")
+        try:
+            sizes = [int(value) for value in raw.split(",")]
+            if len(sizes) == 2 and all(value > 0 for value in sizes):
+                self.workspace_splitter.setSizes(sizes)
+        except ValueError:
+            pass
+
+    def _save_workspace_widths(self) -> None:
+        if self._inspector_collapsed:
+            return
+        try:
+            self._settings.set_value("workflow/workspace_widths", ",".join(map(str, self.workspace_splitter.sizes()[:2])))
+        except OSError as exc:
+            self.append_log(f"栏宽保存失败：{exc}")
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        if hasattr(self, "left_panel"):
+            self.left_panel.setFixedWidth(170 if self.width() < 1100 else 200)
+        if hasattr(self, "inspector_strip") and self._inspector_mode != "collapsed":
+            if self.width() >= 1200:
+                self._manual_expand_narrow = False
+                self._set_inspector_collapsed(False)
+            elif self.width() < 1120 and not self._manual_expand_narrow:
+                self._set_inspector_collapsed(True)
+
+    def _set_inspector_collapsed(self, collapsed: bool, *, manual: bool = False) -> None:
+        if manual:
+            self._inspector_mode = "collapsed" if collapsed else "auto"
+            self._manual_expand_narrow = not collapsed and self.width() < 1120
+            try:
+                self._settings.set_value("workflow/inspector_mode", self._inspector_mode)
+            except OSError as exc:
+                self.append_log(f"面板设置保存失败：{exc}")
+        if self._inspector_collapsed == collapsed:
+            return
+        if collapsed:
+            self._expanded_inspector_sizes = self.workspace_splitter.sizes()[:2]
+        self._inspector_collapsed = collapsed
+        self.right_panel.setVisible(not collapsed)
+        self.inspector_strip.setVisible(collapsed)
+        if collapsed:
+            self.workspace_splitter.setSizes([max(self.width() - 240, 300), 0, 44])
+        else:
+            sizes = getattr(self, "_expanded_inspector_sizes", [560, 360])
+            self.workspace_splitter.setSizes([*sizes, 0])
+
+    def _sync_compact_controls(self) -> None:
+        self.compact_run_button.setText("停止中" if self._stopping else "停止" if self._busy else "运行")
+        self.compact_run_button.setEnabled(not self._stopping)
+        self.compact_run_button.setToolTip(self.runtime_task_label.text())
 
     def _build_task_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("workflowPanel")
-        panel.setFixedWidth(184)
+        panel.setFixedWidth(200)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(8, 12, 8, 10)
         layout.setSpacing(10)
@@ -540,7 +661,12 @@ class WorkflowPage(QWidget):
         self.task_rows_layout = QVBoxLayout(self.task_rows_host)
         self.task_rows_layout.setContentsMargins(0, 0, 0, 0)
         self.task_rows_layout.setSpacing(6)
-        layout.addWidget(self.task_rows_host)
+        task_scroll = QScrollArea(panel)
+        task_scroll.setWidgetResizable(True)
+        task_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        task_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        task_scroll.setWidget(self.task_rows_host)
+        layout.addWidget(task_scroll, 1)
         for task_id, title_text in WORKFLOW_TASKS:
             self._append_task(task_id, title_text)
         self.task_rows_layout.addStretch(1)
@@ -573,6 +699,19 @@ class WorkflowPage(QWidget):
         panel.setObjectName("workflowPanel")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(18, 16, 18, 14)
+        self.editing_label = QLabel("正在查看：进入主界面", panel)
+        self.editing_label.setProperty("caption", True)
+        editor_header = QHBoxLayout()
+        editor_header.addWidget(self.editing_label, 1)
+        self.save_parameters_button = QPushButton("保存参数", panel)
+        self.save_parameters_button.setToolTip("保存当前任务参数，不启动或计算任务")
+        self.save_parameters_button.clicked.connect(self.saveParametersRequested.emit)
+        editor_header.addWidget(self.save_parameters_button)
+        self.runtime_plan_button = QPushButton("运行方案", panel)
+        self.runtime_plan_button.setEnabled(False)
+        self.runtime_plan_button.clicked.connect(self._toggle_runtime_plan)
+        editor_header.addWidget(self.runtime_plan_button)
+        layout.addLayout(editor_header)
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.startup_config_page = self._build_startup_config()
@@ -747,14 +886,26 @@ class WorkflowPage(QWidget):
 
     def show_runtime_trade_plan(self) -> None:
         self.center_stack.setCurrentWidget(self.runtime_trade_plan_page)
+        self.runtime_plan_button.setText("返回参数")
+
+    def _toggle_runtime_plan(self) -> None:
+        if self.center_stack.currentWidget() is self.runtime_trade_plan_page:
+            self._select_task(self._selected_task)
+        else:
+            self.show_runtime_trade_plan()
 
     def show_commerce_summary(self) -> None:
         self._select_task("trade")
 
     def attach_battle_editor(self, panel: QWidget) -> None:
         """Reuse the real battle widget rather than maintain a second form."""
-        self._task_config_pages["battle"] = panel
-        self.center_stack.addWidget(panel)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(panel)
+        self._task_config_pages["battle"] = scroll
+        self.center_stack.addWidget(scroll)
 
     def _page_heading(self, title: str, description: str, parent: QWidget) -> QVBoxLayout:
         box = QVBoxLayout()
@@ -771,6 +922,10 @@ class WorkflowPage(QWidget):
         page = QWidget(self)
         layout = QVBoxLayout(page)
         layout.addLayout(self._page_heading("进入主界面", "启动客户端并等待雷索纳斯主界面就绪。", page))
+        self.startup_path_label = QLabel("游戏路径：未设置", page)
+        self.startup_path_label.setWordWrap(True)
+        self.startup_path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.startup_path_label)
         form = QFormLayout()
         self.startup_launch = QCheckBox("自动启动游戏", page)
         self.startup_launch.setToolTip("游戏未运行时使用设置页保存的游戏程序路径启动；路径为空会报错，不自动检测。")
@@ -839,15 +994,31 @@ class WorkflowPage(QWidget):
         title.setObjectName("workflowTitle")
         header.addWidget(title)
         header.addStretch(1)
+        self.collapse_inspector_button = QToolButton(panel)
+        self.collapse_inspector_button.setText("›")
+        self.collapse_inspector_button.setToolTip("收起运行状态与日志，扩大参数区")
+        self.collapse_inspector_button.clicked.connect(lambda: self._set_inspector_collapsed(True, manual=True))
+        header.addWidget(self.collapse_inspector_button)
         self.run_button = QPushButton("运行流程", panel)
         self.run_button.setObjectName("primaryButton")
         self.run_button.clicked.connect(self._toggle_run)
         header.addWidget(self.run_button)
         layout.addLayout(header)
+        self.runtime_task_label = QLabel("正在运行：无", panel)
+        self.runtime_task_label.setWordWrap(True)
+        layout.addWidget(self.runtime_task_label)
+        self.runtime_tabs = QTabWidget(panel)
+        self.runtime_tabs.setObjectName("workflowRuntimeTabs")
+        self.runtime_progress_page = QWidget(panel)
+        progress_layout = QVBoxLayout(self.runtime_progress_page)
+        progress_layout.setContentsMargins(0, 6, 0, 0)
+        progress_layout.setSpacing(8)
+        self.runtime_tabs.addTab(self.runtime_progress_page, "进度")
+        layout.addWidget(self.runtime_tabs, 1)
         progress_metrics = QGridLayout()
-        progress_metrics.setHorizontalSpacing(24)
+        progress_metrics.setHorizontalSpacing(8)
         progress_metrics.setColumnStretch(0, 1)
-        progress_metrics.setColumnStretch(1, 1)
+        progress_metrics.setColumnStretch(1, 0)
         task_progress_row = QHBoxLayout()
         task_progress_row.setContentsMargins(0, 0, 0, 0)
         task_progress_title = QLabel("任务进度", panel)
@@ -880,19 +1051,33 @@ class WorkflowPage(QWidget):
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         )
         internal_progress_row.addWidget(self.internal_progress_label)
-        progress_metrics.addLayout(internal_progress_row, 0, 1)
+        progress_metrics.addLayout(internal_progress_row, 2, 0)
         self.internal_progress_bar = QProgressBar(panel)
         self.internal_progress_bar.setObjectName("workflowInternalProgressBar")
         self.internal_progress_bar.setRange(0, 100)
         self.internal_progress_bar.setValue(0)
         self.internal_progress_bar.setFormat("")
-        progress_metrics.addWidget(self.internal_progress_bar, 1, 1)
-        layout.addLayout(progress_metrics)
+        progress_metrics.addWidget(self.internal_progress_bar, 3, 0)
+        progress_layout.addLayout(progress_metrics)
+        for label in (self.task_progress_label, self.internal_progress_label):
+            label.setWordWrap(True)
+            label.setMinimumWidth(0)
+        self.current_operation_label = QLabel("当前操作：等待开始", panel)
+        self.current_operation_label.setWordWrap(True)
+        self.current_operation_label.setObjectName("workflowCurrentOperation")
+        progress_layout.addWidget(self.current_operation_label)
+        self.operation_elapsed_label = QLabel("", panel)
+        self.operation_elapsed_label.setProperty("caption", True)
+        progress_layout.addWidget(self.operation_elapsed_label)
+        self._elapsed_timer = QTimer(self)
+        self._elapsed_timer.setInterval(1000)
+        self._elapsed_timer.timeout.connect(self._refresh_operation_elapsed)
+        self._elapsed_timer.start()
         self.resource_progress_label = QLabel("", panel)
         self.resource_progress_label.setProperty("caption", True)
         self.resource_progress_label.setWordWrap(True)
         self.resource_progress_label.hide()
-        layout.addWidget(self.resource_progress_label)
+        progress_layout.addWidget(self.resource_progress_label)
         self.run_tree = QTreeWidget(panel)
         self.run_tree.setObjectName("workflowRunTree")
         self.run_tree.setHeaderLabels(["任务与阶段", "状态"])
@@ -912,7 +1097,7 @@ class WorkflowPage(QWidget):
         self.progress_stack.addWidget(self.run_tree)
         self.progress_stack.addWidget(self.timeline_view)
         self.progress_stack.setCurrentWidget(self.run_tree)
-        layout.addWidget(self.progress_stack, 1)
+        progress_layout.addWidget(self.progress_stack, 1)
         self._log_count = 0
         self.log_toggle = QPushButton("详细日志 · 0 条  ›", panel)
         self.log_toggle.setObjectName("workflowLogToggle")
@@ -922,15 +1107,92 @@ class WorkflowPage(QWidget):
         self.log_view = QTextBrowser(panel)
         self.log_view.setObjectName("workflowLog")
         self.log_view.setPlaceholderText("流程事件和失败原因会显示在这里。")
-        self.log_view.setMaximumHeight(150)
-        self.log_view.hide()
-        layout.addWidget(self.log_view)
+        log_page = QWidget(panel)
+        log_layout = QVBoxLayout(log_page)
+        log_layout.setContentsMargins(0, 6, 0, 0)
+        copy_button = QPushButton("复制日志", log_page)
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(self.log_view.toPlainText()))
+        log_layout.addWidget(copy_button, alignment=Qt.AlignmentFlag.AlignRight)
+        log_layout.addWidget(self.log_view, 1)
+        self.runtime_tabs.addTab(log_page, "日志 · 0")
+        self.runtime_tabs.currentChanged.connect(self._runtime_tab_changed)
         return panel
 
     def _toggle_log(self, visible: bool) -> None:
-        self.log_view.setVisible(visible)
+        if hasattr(self, "runtime_tabs"):
+            self.runtime_tabs.setCurrentIndex(1 if visible else 0)
         arrow = "﹀" if visible else "›"
         self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {arrow}")
+
+    def _runtime_tab_changed(self, index: int) -> None:
+        self.log_toggle.blockSignals(True)
+        self.log_toggle.setChecked(index == 1)
+        self.log_toggle.blockSignals(False)
+        self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {'﹀' if index == 1 else '›'}")
+
+    def _refresh_operation_elapsed(self) -> None:
+        if self._busy and self._active_runtime_kind:
+            seconds = max(int(time.monotonic() - self._operation_started_monotonic), 0)
+            self.operation_elapsed_label.setText(f"当前阶段已耗时 {seconds // 60:02d}:{seconds % 60:02d}")
+
+    def _show_current_operation(self, kind: str, state: Any) -> None:
+        label = getattr(state, "current_operation_name", "") or (
+            state.current_label if kind == "trade" else state.stage_label
+        )
+        detail = getattr(state, "current_operation_detail", "")
+        status = getattr(state, "current_operation_state", "")
+        city = getattr(state, "current_city", "")
+        if kind == "trade" and state.active_city_index is not None:
+            city = next((f"第 {visit.index + 1} 站 · {visit.name}" for visit in state.cities if visit.index == state.active_city_index), city)
+        elif kind == "passenger":
+            city = self._passenger_detail()
+        identity = (kind, getattr(state, "route_revision", 0), getattr(state, "active_city_index", None),
+                    getattr(state, "leg_index", None), getattr(state, "current_operation_key", ""), label, status)
+        if identity != self._operation_identity:
+            self._operation_identity = identity
+            self._operation_started_monotonic = time.monotonic()
+            stamp = getattr(state, "operation_started_at", None) or getattr(state, "stage_started_at", None)
+            if stamp:
+                try:
+                    started = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+                    elapsed = max((datetime.now(timezone.utc) - started).total_seconds(), 0)
+                    self._operation_started_monotonic -= elapsed
+                except (ValueError, TypeError):
+                    pass
+        text = " · ".join(part for part in (str(city), str(label), self._tree_state_text(status) if status else "", str(detail)) if part)
+        self.current_operation_label.setText(f"当前操作：{text}")
+        self.inspector_strip.setToolTip(self.current_operation_label.text())
+        self._refresh_operation_elapsed()
+
+    def _remember_operation(self, kind: str, payload: Mapping[str, Any]) -> None:
+        data = payload.get("data") or {}
+        operation = data.get("operation") if isinstance(data, Mapping) else None
+        if not isinstance(operation, Mapping) or not operation.get("key"):
+            return
+        key = (kind, data.get("route_revision", 0), payload.get("city_index") if kind == "trade" else None,
+               payload.get("leg_index") if kind == "passenger" else None, payload.get("stage"), operation["key"])
+        self._operation_records[key] = dict(operation)
+
+    def _append_operations(self, parent: QTreeWidgetItem, kind: str, stage: str,
+                           *, city_index=None, leg_index=None, revision=0) -> None:
+        for key, operation in self._operation_records.items():
+            if key[:5] != (kind, revision, city_index, leg_index, stage):
+                continue
+            label = str(operation.get("label") or operation["key"])
+            state = str(operation.get("state") or "running")
+            child = QTreeWidgetItem([label, self._tree_state_text(state)])
+            detail = operation.get("detail")
+            if isinstance(detail, str):
+                child.setToolTip(0, detail)
+            self._style_progress_item(child, state, row_kind="phase")
+            parent.addChild(child)
+
+    def set_stopping(self) -> None:
+        self._stopping = True
+        self.run_button.setText("停止中…")
+        self.run_button.setEnabled(False)
+        self._sync_compact_controls()
+        self.current_operation_label.setText("当前操作：正在停止，等待执行端确认")
 
     def _select_row(self, row: int) -> None:
         if 0 <= row < len(self._task_order):
@@ -941,6 +1203,8 @@ class WorkflowPage(QWidget):
         if task_id not in self._task_rows:
             return
         self._selected_task = task_id
+        self.editing_label.setText(f"正在查看：{dict(WORKFLOW_TASKS)[task_id]}参数")
+        self.runtime_plan_button.setText("运行方案")
         page = self._task_config_pages[task_id]
         if self.config_stack.indexOf(page) >= 0:
             self.center_stack.setCurrentWidget(self.config_stack)
@@ -1036,7 +1300,15 @@ class WorkflowPage(QWidget):
         if self.center_stack.currentWidget() is self.runtime_trade_plan_page:
             self._select_task(self._selected_task)
         self._clear_runtime_trade_plan()
+        self._operation_records.clear()
+        self.runtime_plan_button.setEnabled(False)
+        self._stopping = False
+        self._active_runtime_kind = ""
+        self.runtime_task_label.setText("正在运行：准备开始")
+        self.current_operation_label.setText("当前操作：准备开始")
+        self.operation_elapsed_label.clear()
         self._busy = True
+        self.run_button.setEnabled(True)
         self.run_button.setText("停止")
         self.run_button.setObjectName("dangerButton")
         self.run_button.style().unpolish(self.run_button)
@@ -1087,6 +1359,7 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setFormat("")
         self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
+        self._sync_compact_controls()
 
     def add_freight_preparation(self) -> None:
         parent = self._tree_items.get("trade")
@@ -1103,6 +1376,7 @@ class WorkflowPage(QWidget):
         state_text = {
             "waiting": "等待", "running": "执行中", "success": "完成",
             "failed": "失败", "skipped": "跳过", "cancelled": "已停止",
+            "stopping": "停止中",
         }.get(state, state)
         if item is not None:
             item.setText(1, state_text)
@@ -1121,6 +1395,11 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setValue(done)
         self.task_progress_bar.setFormat("")
         if state == "running":
+            self._active_runtime_kind = step
+            self.runtime_task_label.setText(f"正在运行：{dict(WORKFLOW_TASKS).get(step, '货运准备')}")
+            self.compact_task_label.setText({"startup": "启动", "trade": "货运", "passenger": "客运", "battle": "作战", "close": "关闭"}.get(step, "准备"))
+            self._operation_started_monotonic = time.monotonic()
+            self.current_operation_label.setText(f"当前操作：{detail or state_text}")
             if step not in {"trade", "refresh_recovery"}:
                 self.resource_progress_label.hide()
             self._set_internal_progress(detail or state_text, None)
@@ -1150,7 +1429,7 @@ class WorkflowPage(QWidget):
             self._passenger_progress.cid = str(cid)
 
     def apply_progress_event(self, kind: str, event: Mapping[str, Any]) -> None:
-        if not self._busy or kind not in {"trade", "passenger"}:
+        if not self._busy or self._stopping or kind not in {"trade", "passenger"}:
             return
         payload = event.get("payload")
         if not isinstance(payload, Mapping):
@@ -1166,15 +1445,18 @@ class WorkflowPage(QWidget):
             )
             if self._freight_progress.sequence == previous_sequence:
                 return
+            self._remember_operation(kind, payload)
             if self.step_is_waiting(kind):
                 self.mark_step(kind, "running", "开始货运")
             self._render_freight_progress()
+            self._active_runtime_kind = kind
+            self._show_current_operation(kind, self._freight_progress)
             if (
                 str(payload.get("stage") or "") == "planning"
                 and str(payload.get("state") or "").lower() == "completed"
             ):
                 self._render_runtime_trade_plan()
-                self.show_runtime_trade_plan()
+                self.runtime_plan_button.setEnabled(True)
             percent = self._freight_progress.percent
             self._set_internal_progress(
                 self._freight_progress.current_label,
@@ -1196,9 +1478,12 @@ class WorkflowPage(QWidget):
         )
         if self._passenger_progress.sequence == previous_sequence:
             return
+        self._remember_operation(kind, payload)
         if self.step_is_waiting(kind):
             self.mark_step(kind, "running", "开始客运")
         self._render_passenger_progress()
+        self._active_runtime_kind = kind
+        self._show_current_operation(kind, self._passenger_progress)
         label = self._passenger_progress.stage_label
         detail = self._passenger_detail()
         self._set_internal_progress(
@@ -1215,20 +1500,33 @@ class WorkflowPage(QWidget):
         self.append_log(self._progress_log_line(payload, f"{label} · {detail}" if detail else label))
 
     def finish_workflow(self, *, success: bool, message: str) -> None:
+        stopped = self._stopping
+        if stopped:
+            for step, item in self._tree_items.items():
+                if item.text(1) == "停止中":
+                    self.mark_step(step, "cancelled", "执行端已确认任务结束")
         self._busy = False
+        self._stopping = False
+        self._active_runtime_kind = ""
+        self.run_button.setEnabled(True)
         self.run_button.setText("运行流程")
         self.run_button.setObjectName("primaryButton")
         self.run_button.style().unpolish(self.run_button)
         self.run_button.style().polish(self.run_button)
         self._set_editing_enabled(True)
-        self.task_progress_label.setText(("已完成 · " if success else "已停止 · ") + message)
+        terminal = "已完成" if success else "已停止" if stopped else "失败"
+        self.runtime_task_label.setText(f"运行结果：{terminal}")
+        self.current_operation_label.setText(f"当前操作：{message}")
+        self.task_progress_label.setText(f"{terminal} · {message}")
         if success:
             self.task_progress_bar.setValue(self.task_progress_bar.maximum())
             self._set_internal_progress("当前流程已完成", 100)
         else:
-            self._set_internal_terminal(message, "failed")
+            self._set_internal_terminal(message, "cancelled" if stopped else "failed")
             self.log_toggle.setChecked(True)
         self.append_log(message)
+        self.compact_task_label.setText(terminal)
+        self._sync_compact_controls()
 
     def _set_internal_progress(
         self, label: str, percent: int | None, *, state: str = "running"
@@ -1264,6 +1562,16 @@ class WorkflowPage(QWidget):
         if parent is None:
             return
         parent.takeChildren()
+        for history in getattr(self._freight_progress, "route_history", []):
+            historical = QTreeWidgetItem([f"历史路线 {history['route_revision'] + 1}", "已调整"])
+            for city in history.get("cities", []):
+                visit = QTreeWidgetItem([f"第 {city.index + 1} 站 · {city.name}", self._tree_state_text(city.state)])
+                historical.addChild(visit)
+                for phase in city.phases:
+                    phase_item = QTreeWidgetItem([phase.detail or phase.label, self._tree_state_text(phase.state)])
+                    visit.addChild(phase_item)
+                    self._append_operations(phase_item, "trade", phase.key, city_index=city.index, revision=history["route_revision"])
+            parent.addChild(historical)
         preparation = QTreeWidgetItem(
             ["准备与路线规划", self._tree_state_text(self._freight_progress.preparation_state)]
         )
@@ -1309,18 +1617,16 @@ class WorkflowPage(QWidget):
                 phase_item.setToolTip(0, phase.detail)
                 self._style_progress_item(phase_item, phase.state, row_kind="phase")
                 city_item.addChild(phase_item)
+                self._append_operations(phase_item, "trade", phase.key, city_index=city.index,
+                                        revision=self._freight_progress.route_revision)
             is_active = city.index == self._freight_progress.active_city_index
             city_item.setExpanded(is_active or city.state == "failed")
             if is_active:
                 active_item = city_item
         parent.setExpanded(True)
-        self.timeline_view.set_progress(self._freight_progress)
-        self.progress_stack.setCurrentWidget(
-            self.run_tree if not self._freight_progress.cities or self._freight_progress.active_phase == "reposition"
-            else self.timeline_view
-        )
-        if active_item is not None:
-            self.run_tree.scrollToItem(active_item)
+        # Keep the compact expandable business tree in the narrow inspector;
+        # changing progress must not jump the user's scroll or parameter page.
+        self.progress_stack.setCurrentWidget(self.run_tree)
 
     def _render_runtime_trade_plan(self) -> None:
         route = list(self._freight_progress.route)
@@ -1515,16 +1821,28 @@ class WorkflowPage(QWidget):
         if parent is None:
             return
         stage = self._passenger_progress.stage
-        key = ("passenger", stage)
+        leg = self._passenger_progress.leg_index
+        leg_key = ("passenger_leg", str(leg or 0))
+        leg_item = self._progress_items.get(leg_key)
+        if leg_item is None:
+            detail = self._passenger_detail()
+            leg_item = QTreeWidgetItem([detail or "客运准备", ""])
+            parent.addChild(leg_item)
+            self._progress_items[leg_key] = leg_item
+        key = ("passenger", f"{leg or 0}:{stage}")
         item = self._progress_items.get(key)
         if item is None:
             item = QTreeWidgetItem([PASSENGER_STAGE_LABELS.get(stage, stage), "等待"])
-            parent.addChild(item)
+            leg_item.addChild(item)
             self._progress_items[key] = item
         item.setText(1, self._tree_state_text(self._passenger_progress.state))
+        item.takeChildren()
+        self._append_operations(item, "passenger", stage, leg_index=leg,
+                                revision=self._passenger_progress.route_revision)
         self._style_progress_item(item, self._passenger_progress.state, row_kind="phase")
         parent.setExpanded(True)
-        self.run_tree.scrollToItem(item)
+        leg_item.setExpanded(True)
+        item.setExpanded(True)
 
     @staticmethod
     def _style_progress_item(
@@ -1540,7 +1858,12 @@ class WorkflowPage(QWidget):
             "running": "running",
             "progress": "running",
             "failed": "failed",
-            "blocked": "failed",
+            "blocked": "waiting",
+            "confirming": "running",
+            "waiting_confirmation": "running",
+            "awaiting_confirmation": "running",
+            "stopping": "running",
+            "stopped": "waiting",
             "error": "failed",
             "cancelled": "failed",
         }.get(str(state).lower(), "waiting")
@@ -1564,17 +1887,7 @@ class WorkflowPage(QWidget):
                 item.setFont(column, font)
 
     def _passenger_percent(self) -> int | None:
-        state = self._passenger_progress
-        if state.leg_index is None or state.leg_count <= 0:
-            return 100 if state.state in {"completed", "success"} else None
-        stage_fraction = {
-            "trade": 0.18,
-            "recruit": 0.4,
-            "travel": 0.68,
-            "settlement": 1.0 if state.state == "completed" else 0.88,
-        }.get(state.stage, 0.0)
-        completed = max(state.leg_index - 1, 0) + stage_fraction
-        return min(100, round(completed * 100 / state.leg_count))
+        return self._passenger_progress.percent
 
     def _passenger_detail(self) -> str:
         state = self._passenger_progress
@@ -1592,9 +1905,14 @@ class WorkflowPage(QWidget):
             "success": "已完成",
             "skipped": "已跳过",
             "failed": "失败",
-            "blocked": "失败",
+            "blocked": "等待确认",
             "error": "失败",
             "cancelled": "已停止",
+            "stopped": "已停止",
+            "stopping": "停止中",
+            "confirming": "等待确认",
+            "waiting_confirmation": "等待确认",
+            "started": "进行中",
             "idle": "等待",
         }.get(state, state)
 
@@ -1608,21 +1926,40 @@ class WorkflowPage(QWidget):
         self._log_count += 1
         arrow = "﹀" if self.log_toggle.isChecked() else "›"
         self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {arrow}")
+        if hasattr(self, "runtime_tabs"):
+            self.runtime_tabs.setTabText(1, f"日志 · {self._log_count}")
 
     def is_running(self) -> bool:
         return self._busy
 
     def _set_left_status(self, task_id: str, state: str) -> None:
-        symbols = {"waiting": "○", "running": "◉", "success": "✓", "failed": "!", "skipped": "–", "cancelled": "×"}
+        symbols = {"waiting": "○", "running": "◉", "success": "✓", "failed": "!", "skipped": "–", "cancelled": "×", "stopping": "…"}
         label = self._task_status[task_id]
         label.setText(symbols.get(state, "○"))
+        label.setToolTip(self._tree_state_text(state))
         label.setProperty("runState", state)
         label.style().unpolish(label)
         label.style().polish(label)
 
     def _set_editing_enabled(self, enabled: bool) -> None:
-        self.task_rows_host.setEnabled(enabled)
-        self.center_panel.setEnabled(enabled)
+        self.task_rows_host.setAcceptDrops(enabled)
+        for row in self._task_rows.values():
+            row.enabled_check.setEnabled(enabled)
+            row.drag_handle.setEnabled(enabled)
+        if not enabled:
+            newly_locked = [
+                widget for widget in self.center_panel.findChildren(QWidget)
+                if isinstance(widget, (QAbstractButton, QAbstractSpinBox, QComboBox, QLineEdit))
+                and widget.isEnabled() and not widget.property("uiDisclosure")
+                and widget is not self.runtime_plan_button
+            ]
+            self._locked_editors = list(dict.fromkeys(getattr(self, "_locked_editors", []) + newly_locked))
+            for widget in self._locked_editors:
+                widget.setEnabled(False)
+        else:
+            for widget in getattr(self, "_locked_editors", []):
+                widget.setEnabled(True)
+            self._locked_editors = []
         self._sync_move_buttons()
 
     def _sync_move_buttons(self) -> None:

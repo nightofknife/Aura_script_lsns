@@ -37,7 +37,7 @@ def test_single_parameter_components_survive_navigation_without_collecting(windo
     workflow, trade, passenger = window.workflow_page, window.trade_page, window.passenger_page
     assert workflow.trade_editor_page.isAncestorOf(trade.parameter_panel)
     assert workflow.passenger_editor_page.isAncestorOf(passenger.parameter_panel)
-    assert workflow._task_config_pages["battle"] is window.battle_page
+    assert workflow._task_config_pages["battle"].isAncestorOf(window.battle_page)
     for page in (trade, passenger):
         monkeypatch.setattr(page, "collect_inputs", lambda: pytest.fail("navigation collected inputs"))
     trade.fatigue_budget.setValue(333)

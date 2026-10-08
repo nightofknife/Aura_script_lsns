@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -54,6 +54,11 @@ class PassengerPage(QWidget):
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
+        self._parameter_viewport: QWidget | None = None
+        self._endpoint_grid_resize_timer = QTimer(self)
+        self._endpoint_grid_resize_timer.setSingleShot(True)
+        self._endpoint_grid_resize_timer.setInterval(0)
+        self._endpoint_grid_resize_timer.timeout.connect(self._resize_endpoint_grids)
         self._build_ui()
         self.set_inputs(self._settings.load_passenger_inputs())
         self.set_busy(False)
@@ -68,8 +73,8 @@ class PassengerPage(QWidget):
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(0)
         self.parameter_panel = self._build_parameter_panel()
-        body.addWidget(self.parameter_panel)
-        body.addWidget(self._build_progress_panel(), 1)
+        body.addWidget(self.parameter_panel, 1)
+        body.addWidget(self._build_progress_panel(), 2)
         root.addLayout(body, 1)
         root.addWidget(self._build_action_bar())
 
@@ -124,9 +129,10 @@ class PassengerPage(QWidget):
         form.setSpacing(8)
         self.trip_count = QSpinBox(panel)
         self.trip_count.setRange(1, 198)
-        self.trip_count.setSuffix(" 次")
+        self.trip_count.setSuffix(" 单程")
         self.trip_count.valueChanged.connect(self._refresh_expected_fatigue)
-        form.addRow("客运次数", self.trip_count)
+        self.trip_count.setMaximumWidth(220)
+        form.addRow("执行单程数", self.trip_count)
         layout.addLayout(form)
         options = QHBoxLayout()
         self.trade_during_trip = QCheckBox("中途买卖货", panel)
@@ -152,6 +158,8 @@ class PassengerPage(QWidget):
         self.endpoint_selector_buttons: dict[str, QCheckBox] = {}
         self.endpoint_panels: dict[str, QWidget] = {}
         self.endpoint_buttons: dict[str, dict[str, QCheckBox]] = {}
+        self._endpoint_grids: dict[str, QGridLayout] = {}
+        self._endpoint_grid_columns: dict[str, int] = {}
         self._endpoint_groups: list[QButtonGroup] = []
         for endpoint in ("A", "B"):
             selector = QCheckBox(f"{endpoint} · 选择城市", panel)
@@ -186,7 +194,10 @@ class PassengerPage(QWidget):
             choices.hide()
             self.endpoint_panels[endpoint] = choices
             self.endpoint_buttons[endpoint] = buttons
+            self._endpoint_grids[endpoint] = grid
+            self._endpoint_grid_columns[endpoint] = 3
             self.endpoint_selector_buttons[endpoint].toggled.connect(choices.setVisible)
+            self.endpoint_selector_buttons[endpoint].toggled.connect(self._queue_endpoint_grid_resize)
             self._endpoint_groups.append(group)
             layout.addWidget(choices)
         self.city_a.currentIndexChanged.connect(
@@ -211,9 +222,59 @@ class PassengerPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setFixedWidth(490)
+        scroll.setMinimumWidth(0)
         scroll.setWidget(panel)
+        self._parameter_viewport = scroll.viewport()
+        self._parameter_viewport.installEventFilter(self)
+        scroll.destroyed.connect(self._parameter_panel_destroyed)
         return scroll
+
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802
+        # The scroll area is reparented into the workflow editor. Watch its
+        # viewport, not PassengerPage's geometry, so both usages stay responsive.
+        if watched is self._parameter_viewport:
+            if event.type() in (QEvent.Type.Resize, QEvent.Type.Show):
+                self._queue_endpoint_grid_resize()
+        return super().eventFilter(watched, event)
+
+    def _parameter_panel_destroyed(self, *_args: object) -> None:
+        # The workflow may own and destroy this editor before PassengerPage.
+        self._parameter_viewport = None
+        self._endpoint_grid_resize_timer.stop()
+
+    def _queue_endpoint_grid_resize(self, *_args: object) -> None:
+        if self._parameter_viewport is None or self._endpoint_grid_resize_timer.isActive():
+            return
+        self._endpoint_grid_resize_timer.start()
+
+    def _resize_endpoint_grids(self) -> None:
+        if self._parameter_viewport is None:
+            return
+        panel = self.parameter_panel.widget()
+        margins = panel.layout().contentsMargins()
+        available = max(self.parameter_panel.viewport().width() - margins.left() - margins.right(), 1)
+        for endpoint, grid in self._endpoint_grids.items():
+            buttons = list(self.endpoint_buttons[endpoint].values())
+            minimum = max(button.minimumSizeHint().width() for button in buttons)
+            # Reserve full styled text/icon width. QGridLayout may otherwise
+            # squeeze QPushButtons below minimumSizeHint in a narrow scroll area.
+            for button in buttons:
+                button.setMinimumWidth(button.minimumSizeHint().width())
+            columns = min(3, max(1, (available + grid.spacing()) // (minimum + grid.spacing())))
+            if self._endpoint_grid_columns[endpoint] == columns:
+                continue
+            for button in buttons:
+                grid.removeWidget(button)
+            for column in range(3):
+                grid.setColumnStretch(column, 0)
+            for row in range(grid.rowCount()):
+                grid.setRowMinimumHeight(row, 0)
+            for index, button in enumerate(buttons):
+                grid.addWidget(button, index // columns, index % columns)
+                grid.setRowMinimumHeight(index // columns, 40)
+            for column in range(columns):
+                grid.setColumnStretch(column, 1)
+            self._endpoint_grid_columns[endpoint] = columns
 
     def _build_progress_panel(self) -> QWidget:
         panel = QFrame(self)

@@ -119,11 +119,14 @@ def test_preview_flow_forwards_unlimited_books_and_reports_book_profit(monkeypat
 def test_execute_flow_forwards_unlimited_books(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, Any] = {}
 
-    monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **_kwargs: None)
+    monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **_kwargs: {
+        "success": True, "page_state": "city_panel",
+        "city": {"success": True, "city_name": "起点", "city_key": "start"},
+    })
     monkeypatch.setattr(
         trade_flow,
         "resonance_pc_read_city_name_on_city_panel",
-        lambda **_kwargs: {"city_name": "起点", "city_key": "start", "ocr_city_text": "起点"},
+        lambda **_kwargs: pytest.fail("Use the city already confirmed by the opener"),
     )
     monkeypatch.setattr(
         trade_flow,

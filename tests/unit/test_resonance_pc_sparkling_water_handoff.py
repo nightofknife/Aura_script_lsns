@@ -226,10 +226,12 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     inputs["resonance_pc_city_shop_data"] = Shops()
     persistent_data = object()
     monkeypatch.setattr(combined, "resonance_pc_auto_cycle_trade_flow", trade_flow.resonance_pc_auto_cycle_trade_flow)
-    monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **kwargs: None)
-    monkeypatch.setattr(trade_flow, "resonance_pc_read_city_name_on_city_panel", lambda **kwargs: {
-        "city_id": "15", "city_key": "key15", "city_name": "City 15",
+    monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **kwargs: {
+        "success": True, "page_state": "city_panel",
+        "city": {"success": True, "city_id": "15", "city_key": "key15", "city_name": "City 15"},
     })
+    monkeypatch.setattr(trade_flow, "resonance_pc_read_city_name_on_city_panel",
+                        lambda **kwargs: pytest.fail("Use the city already confirmed by the opener"))
     monkeypatch.setattr(trade_flow, "resonance_pc_market_refresh", lambda **kwargs: {"snapshot_id": "offline-market"})
     planning_inputs = {}
 

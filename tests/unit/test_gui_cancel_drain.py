@@ -92,3 +92,107 @@ def test_gui_stays_busy_until_exit_including_poll_errors(monkeypatch):
     state.update(error=False, pending=False)
     bridge.poll_current()
     assert not bridge.busy and not bridge.current_cid and len(finished) == 1
+
+
+@pytest.mark.parametrize('failure_source', ['poll_events', 'get_run'])
+def test_poll_failures_request_cancel_without_losing_cid_or_unlocking(monkeypatch, failure_source):
+    state = {'error': True, 'pending': True}
+    cancelled, finished, failures, busy_changes, queue_advances = [], [], [], [], []
+
+    def poll_events(**kwargs):
+        if state['error'] and failure_source == 'poll_events':
+            raise RuntimeError('temporary event IPC failure')
+        return []
+
+    def get_run(cid):
+        if state['error'] and failure_source == 'get_run':
+            raise RuntimeError('temporary status IPC failure')
+        return {'cid': cid, 'status': 'cancelled', 'execution_pending': state['pending']}
+
+    bridge = RunnerBridge()
+    bridge._runner = SimpleNamespace(
+        poll_events=poll_events, get_run=get_run,
+        cancel_task=lambda cid: cancelled.append(cid) or {'status': 'cancel_requested'},
+    )
+    bridge._current_cid = 'poll-error-task'
+    bridge._current_item = {'label': 'test', 'timeout_sec': 0}
+    bridge._busy = True
+    bridge.taskFinished.connect(finished.append)
+    bridge.taskFailed.connect(failures.append)
+    bridge.busyChanged.connect(busy_changes.append)
+    monkeypatch.setattr(bridge, 'refresh_history', lambda: None)
+    monkeypatch.setattr(bridge, 'refresh_target', lambda: None)
+    run_next = bridge._run_next
+
+    def track_next():
+        queue_advances.append(True)
+        run_next()
+
+    monkeypatch.setattr(bridge, '_run_next', track_next)
+    for _ in range(2):
+        bridge.poll_current()
+    assert not cancelled
+    for _ in range(4):
+        bridge.poll_current()
+    assert cancelled == ['poll-error-task']
+    assert bridge._cancel_sent
+    assert bridge.busy and bridge.current_cid == 'poll-error-task'
+    assert bridge._current_item == {'label': 'test', 'timeout_sec': 0}
+    assert not finished and not busy_changes and not queue_advances
+    assert all(failure['recoverable'] for failure in failures)
+    assert not bridge._timeout_cancel
+
+    state['error'] = False
+    bridge.poll_current()
+    assert bridge.busy and bridge.current_cid == 'poll-error-task'
+    assert not finished and not busy_changes and not queue_advances
+    state['pending'] = False
+    bridge.poll_current()
+    assert not bridge.busy and not bridge.current_cid
+    assert len(finished) == 1
+    assert busy_changes == [False]
+    assert queue_advances == [True]
+
+
+def test_failed_poll_error_cancellation_keeps_lock_and_retries_until_confirmed_exit(monkeypatch):
+    state = {'error': True, 'cancel_error': True}
+    cancel_attempts, failures, finished = [], [], []
+
+    def get_run(cid):
+        if state['error']:
+            raise RuntimeError('status IPC failure')
+        return {'cid': cid, 'status': 'cancelled', 'execution_pending': False}
+
+    def cancel_task(cid):
+        cancel_attempts.append(cid)
+        if state['cancel_error']:
+            raise RuntimeError('cancel IPC failure')
+        return {'status': 'cancel_requested'}
+
+    bridge = RunnerBridge()
+    bridge._runner = SimpleNamespace(poll_events=lambda **kwargs: [], get_run=get_run, cancel_task=cancel_task)
+    bridge._current_cid = 'poll-error-cancel-retry'
+    bridge._current_item = {'label': 'test', 'timeout_sec': 0}
+    bridge._busy = True
+    bridge.taskFailed.connect(failures.append)
+    bridge.taskFinished.connect(finished.append)
+    monkeypatch.setattr(bridge, 'refresh_history', lambda: None)
+    monkeypatch.setattr(bridge, 'refresh_target', lambda: None)
+    for _ in range(3):
+        bridge.poll_current()
+    assert cancel_attempts == ['poll-error-cancel-retry']
+    assert not bridge._cancel_sent
+    assert bridge.busy and bridge.current_cid == 'poll-error-cancel-retry'
+    assert any(failure['stage'] == 'cancel_task' for failure in failures)
+    assert not finished
+
+    state['cancel_error'] = False
+    bridge.poll_current()
+    assert cancel_attempts == ['poll-error-cancel-retry', 'poll-error-cancel-retry']
+    assert bridge._cancel_sent and bridge.busy
+    assert bridge.current_cid == 'poll-error-cancel-retry'
+    assert not finished
+    state['error'] = False
+    bridge.poll_current()
+    assert not bridge.busy and not bridge.current_cid
+    assert len(finished) == 1

@@ -35,9 +35,12 @@ def window(tmp_path, monkeypatch):
     repository = ResonanceConfigRepository(
         QSettings(str(tmp_path / "gui.ini"), QSettings.Format.IniFormat)
     )
+    executable = tmp_path / "雷索纳斯.exe"
+    executable.write_bytes(b"offline fixture; never executed")
+    repository.set_value("game/executable_path", str(executable))
     widget = ResonanceMainWindow(settings=repository, initialize_on_startup=False)
     monkeypatch.setattr(widget.settings_page, "close_on_failure_enabled", lambda: False)
-    monkeypatch.setattr(widget.battle_page, "collect_inputs", lambda: {})
+    monkeypatch.setattr(widget.battle_page, "collect_inputs", lambda: {"jobs": [{"label": "offline fixture"}]})
     yield widget
     widget._busy = False
     widget._finish_workflow(False, "test finished")
@@ -601,6 +604,7 @@ def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_n
     QApplication.processEvents()
     assert (window.width(), window.height()) == size
     page = window.trade_page
+    page.recovery_section.toggle.setChecked(True)
     check, bento = page.auto_sparkling_water, page.auto_bento
     scroll = page.parameter_panel.findChild(QScrollArea)
     scroll.ensureWidgetVisible(page.bento_priority_panel)
@@ -622,11 +626,12 @@ def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_n
     window._start_workflow()
     QApplication.processEvents()
     assert not check.isEnabled() and not bento.isEnabled()
-    assert not page.bento_priority_panel.isEnabled()
+    assert all(not button.isEnabled() for button in page.bento_type_checks.values())
+    assert all(not button.isEnabled() for button in page.bento_move_buttons.values())
     assert window.workflow_page.task_progress_bar.maximum() == 1
     window._finish_workflow(True, "done")
     assert check.isEnabled() and bento.isEnabled()
-    assert page.bento_priority_panel.isEnabled()
+    assert all(button.isEnabled() for button in page.bento_type_checks.values())
 
 
 def test_bento_checkbox_and_priority_persist_without_consumption(window):
@@ -760,10 +765,15 @@ def test_bento_progress_keeps_final_sale_completed(window, outcome):
     progress = page._freight_progress
     phases = {phase.key: phase for phase in progress.cities[-1].phases}
     assert phases["final_sale"].state == "completed"
-    assert phases["bento"].state == ("failed" if outcome == "cancelled" else outcome)
+    assert phases["bento"].state == outcome
     assert "吃便当" in progress.current_label
     assert "吃便当" in page.internal_progress_label.text()
-    assert any("吃便当" in label.text() for label in page.timeline_view.findChildren(QLabel))
+    def tree_labels(item):
+        yield item.text(0)
+        for index in range(item.childCount()):
+            yield from tree_labels(item.child(index))
+    assert page.progress_stack.currentWidget() is page.run_tree
+    assert any("吃便当" in text for text in tree_labels(page.run_tree.invisibleRootItem()))
     if outcome == "failed":
         assert "已确认 1 份" in progress.current_label
         assert progress.cities[-1].state == "failed"

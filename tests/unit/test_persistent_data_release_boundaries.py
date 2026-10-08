@@ -76,5 +76,7 @@ def test_release_runtime_cleanup_preserves_user_data_and_removes_logs(tmp_path: 
 
 
 def test_release_contract_forbids_user_data() -> None:
-    contract = json.loads(Path("packaging/release-contract.json").read_text(encoding="utf-8"))
+    contract = json.loads((Path(__file__).resolve().parents[2] / "packaging/release-contract.json").read_text(encoding="utf-8"))
     assert "user-data" in contract["full_release"]["forbidden_paths"]
+    assert "gui-settings.ini" in contract["full_release"]["forbidden_paths"]
+    assert "gui-settings-layout-v2.ini" in contract["full_release"]["forbidden_paths"]
