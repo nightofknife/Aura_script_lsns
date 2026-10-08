@@ -137,7 +137,6 @@ def test_real_capture_recovery_digits(name, style, expected):
     cfg = layout["recovery_digits"]
     actual, diagnostics = decode_recovery(
         frame, cfg["banks"][style], threshold=cfg[f"{style}_threshold"],
-        margin=cfg["min_score_margin"],
     )
     assert actual == expected
     assert len(diagnostics) == 2
@@ -147,8 +146,29 @@ def test_blank_recovery_is_unknown_not_zero():
     cfg = load_auto_layout(VisionService())["recovery_digits"]
     frame = np.zeros((16, 22, 3), dtype=np.uint8)
     actual, _ = decode_recovery(frame, cfg["banks"]["work"],
-                                threshold=cfg["work_threshold"], margin=cfg["min_score_margin"])
+                                threshold=cfg["work_threshold"])
     assert actual is None
+
+
+@pytest.mark.parametrize("threshold,expected", [(0.68, 46), (0.70, None)])
+def test_recovery_digit_acceptance_uses_score_not_runner_up_gap(monkeypatch, threshold, expected):
+    frame = np.asarray(Image.open(FIXTURES / "fixture_love_first_46.png").convert("RGB"))
+    bank = {digit: [np.full((16, 12), digit, dtype=np.uint8)] for digit in range(10)}
+    scores = [dict.fromkeys(range(10), 0.1), dict.fromkeys(range(10), 0.1)]
+    scores[0].update({4: 1.0, 0: 0.6487})
+    scores[1].update({6: 0.6968, 8: 0.6941})
+    calls = []
+
+    def match(glyph, template, method):
+        half = len(calls) // 10
+        digit = int(template[0, 0])
+        calls.append(digit)
+        return np.array([[scores[half][digit]]], dtype=np.float32)
+
+    monkeypatch.setattr(auto_bento.cv2, "matchTemplate", match)
+    actual, diagnostics = decode_recovery(frame, bank, threshold=threshold)
+    assert actual == expected
+    assert diagnostics[1]["margin"] == pytest.approx(0.0027)
 
 
 def test_enabled_types_must_match_priority_exactly():

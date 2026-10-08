@@ -10,8 +10,7 @@
   "recovery_digits": {
     "manifest": "templates/bento_consumption/recovery_digits/manifest.json",
     "work_threshold": 0.72,
-    "love_threshold": 0.68,
-    "min_score_margin": 0.08
+    "love_threshold": 0.68
   },
   "max_portions": 24,
   "blank_point": [1050, 620],
