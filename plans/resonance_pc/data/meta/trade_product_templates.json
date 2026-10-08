@@ -1,0 +1,5315 @@
+{
+  "schema_version": 1,
+  "match": {
+    "method": "TM_SQDIFF_NORMED",
+    "threshold": 0.92,
+    "use_grayscale": false,
+    "preprocess": "none"
+  },
+  "icon_size": [
+    96,
+    96
+  ],
+  "crop": [
+    8,
+    24,
+    80,
+    56
+  ],
+  "template_size": [
+    80,
+    56
+  ],
+  "rendering": {
+    "native_size": [
+      180,
+      180
+    ],
+    "background_offset": [
+      -8,
+      0
+    ],
+    "selected_brightness": 0.4,
+    "glyphs": {
+      "plus": {
+        "text": "+",
+        "font_size": 64,
+        "center": [
+          88.125,
+          69.25
+        ]
+      },
+      "label": {
+        "text": "可补充",
+        "font_size": 34,
+        "center": [
+          89.0625,
+          131.375
+        ]
+      }
+    }
+  },
+  "source_hashes": {
+    "il2cpp_data/Metadata/global-metadata.dat": "84c24d58e5656de4d339c4a607f942f519add796806f9739b1225e38bda85a73",
+    "Patch/BinaryConfig/HomeGoodsFactory.bin": "d2299b7280fb5c7cfca4d5d8e42c84adbe6c851835d826050b1be2bb43d9e03d",
+    "plan/products.json": "404f6342677959e8d573cae81c55d66beed60d7d3aa15b27138f33965e80dbfe",
+    "Patch/Asset/item/goods/small.asset": "627281022046c4c64d4d5f51e191764839ae06730618aefcfa2ae6f42c9c8b7f",
+    "Patch/Asset/item/goods/wulinyuan.asset": "1930b57fc326f7817637c1ada1da41cae038d99a5c05e670e79f29de777ec774",
+    "Patch/Asset/ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+    "Patch/Asset/ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+  },
+  "products": {
+    "1": {
+      "name": "发动机",
+      "supported": true,
+      "source": "Item/Goods/Small/qichefadongji",
+      "available": "templates/trade_products/1_available.png",
+      "selected": "templates/trade_products/1_selected.png"
+    },
+    "2": {
+      "name": "弹丸加速装置",
+      "supported": true,
+      "source": "Item/Goods/Small/qiangxie",
+      "available": "templates/trade_products/2_available.png",
+      "selected": "templates/trade_products/2_selected.png"
+    },
+    "3": {
+      "name": "家电",
+      "supported": true,
+      "source": "Item/Goods/Small/jiadian",
+      "available": "templates/trade_products/3_available.png",
+      "selected": "templates/trade_products/3_selected.png"
+    },
+    "4": {
+      "name": "纯棉布料",
+      "supported": true,
+      "source": "Item/Goods/Small/chunmianbuliao",
+      "available": "templates/trade_products/4_available.png",
+      "selected": "templates/trade_products/4_selected.png"
+    },
+    "5": {
+      "name": "汽配零件",
+      "supported": true,
+      "source": "Item/Goods/Small/qipeilingjian",
+      "available": "templates/trade_products/5_available.png",
+      "selected": "templates/trade_products/5_selected.png"
+    },
+    "6": {
+      "name": "红茶",
+      "supported": true,
+      "source": "Item/Goods/Small/hongcha",
+      "available": "templates/trade_products/6_available.png",
+      "selected": "templates/trade_products/6_selected.png"
+    },
+    "7": {
+      "name": "高档餐具",
+      "supported": true,
+      "source": "Item/Goods/Small/gaodangcanju",
+      "available": "templates/trade_products/7_available.png",
+      "selected": "templates/trade_products/7_selected.png"
+    },
+    "8": {
+      "name": "沃德烤鸡",
+      "supported": true,
+      "source": "Item/Goods/Small/wodekaoji",
+      "available": "templates/trade_products/8_available.png",
+      "selected": "templates/trade_products/8_selected.png"
+    },
+    "9": {
+      "name": "罐头",
+      "supported": true,
+      "source": "Item/Goods/Small/guantou",
+      "available": "templates/trade_products/9_available.png",
+      "selected": "templates/trade_products/9_selected.png"
+    },
+    "10": {
+      "name": "沃德山泉",
+      "supported": true,
+      "source": "Item/Goods/Small/wodeshanquan",
+      "available": "templates/trade_products/10_available.png",
+      "selected": "templates/trade_products/10_selected.png"
+    },
+    "11": {
+      "name": "钛钢轨条",
+      "supported": true,
+      "source": "Item/Goods/Small/taigangguitiao",
+      "available": "templates/trade_products/11_available.png",
+      "selected": "templates/trade_products/11_selected.png"
+    },
+    "12": {
+      "name": "修格里严选礼包",
+      "supported": true,
+      "source": "Item/Goods/Small/Xiugelilibao",
+      "available": "templates/trade_products/12_available.png",
+      "selected": "templates/trade_products/12_selected.png"
+    },
+    "13": {
+      "name": "年货大礼包",
+      "supported": true,
+      "source": "Item/Goods/Small/Nianhuolibao",
+      "available": "templates/trade_products/13_available.png",
+      "selected": "templates/trade_products/13_selected.png"
+    },
+    "14": {
+      "name": "防弹背心",
+      "supported": true,
+      "source": "Item/Goods/Small/fangdanbeixin",
+      "available": "templates/trade_products/14_available.png",
+      "selected": "templates/trade_products/14_selected.png"
+    },
+    "15": {
+      "name": "炮弹",
+      "supported": true,
+      "source": "Item/Goods/Small/paodan",
+      "available": "templates/trade_products/15_available.png",
+      "selected": "templates/trade_products/15_selected.png"
+    },
+    "16": {
+      "name": "精钢",
+      "supported": true,
+      "source": "Item/Goods/Small/jinggang",
+      "available": "templates/trade_products/16_available.png",
+      "selected": "templates/trade_products/16_selected.png"
+    },
+    "17": {
+      "name": "塑胶炸药",
+      "supported": true,
+      "source": "Item/Goods/Small/sujiaozhadan",
+      "available": "templates/trade_products/17_available.png",
+      "selected": "templates/trade_products/17_selected.png"
+    },
+    "18": {
+      "name": "子弹",
+      "supported": true,
+      "source": "Item/Goods/Small/zidan",
+      "available": "templates/trade_products/18_available.png",
+      "selected": "templates/trade_products/18_selected.png"
+    },
+    "19": {
+      "name": "汽油",
+      "supported": true,
+      "source": "Item/Goods/Small/qiyou",
+      "available": "templates/trade_products/19_available.png",
+      "selected": "templates/trade_products/19_selected.png"
+    },
+    "20": {
+      "name": "靛红五月军用食品",
+      "supported": true,
+      "source": "Item/Goods/Small/wucanrou",
+      "available": "templates/trade_products/20_available.png",
+      "selected": "templates/trade_products/20_selected.png"
+    },
+    "21": {
+      "name": "桦石发财树",
+      "supported": true,
+      "source": "Item/Goods/Small/huashifacaishu",
+      "available": "templates/trade_products/21_available.png",
+      "selected": "templates/trade_products/21_selected.png"
+    },
+    "22": {
+      "name": "石墨烯",
+      "supported": true,
+      "source": "Item/Goods/Small/shimoxi",
+      "available": "templates/trade_products/22_available.png",
+      "selected": "templates/trade_products/22_selected.png"
+    },
+    "23": {
+      "name": "人工晶花",
+      "supported": true,
+      "source": "Item/Goods/Small/rengongjinghua",
+      "available": "templates/trade_products/23_available.png",
+      "selected": "templates/trade_products/23_selected.png"
+    },
+    "24": {
+      "name": "电子配件",
+      "supported": true,
+      "source": "Item/Goods/Small/dianzipeijian",
+      "available": "templates/trade_products/24_available.png",
+      "selected": "templates/trade_products/24_selected.png"
+    },
+    "25": {
+      "name": "航天纪念品",
+      "supported": true,
+      "source": "Item/Goods/Small/hangtianjinianpin",
+      "available": "templates/trade_products/25_available.png",
+      "selected": "templates/trade_products/25_selected.png"
+    },
+    "26": {
+      "name": "斑节虾",
+      "supported": true,
+      "source": "Item/Goods/Small/banjiexia",
+      "available": "templates/trade_products/26_available.png",
+      "selected": "templates/trade_products/26_selected.png"
+    },
+    "27": {
+      "name": "纯棉T恤",
+      "supported": true,
+      "source": "Item/Goods/Small/Tshirt",
+      "available": "templates/trade_products/27_available.png",
+      "selected": "templates/trade_products/27_selected.png"
+    },
+    "28": {
+      "name": "坚果",
+      "supported": true,
+      "source": "Item/Goods/Small/jianguo",
+      "available": "templates/trade_products/28_available.png",
+      "selected": "templates/trade_products/28_selected.png"
+    },
+    "29": {
+      "name": "啤酒",
+      "supported": true,
+      "source": "Item/Goods/Small/pijiu",
+      "available": "templates/trade_products/29_available.png",
+      "selected": "templates/trade_products/29_selected.png"
+    },
+    "30": {
+      "name": "海盐",
+      "supported": true,
+      "source": "Item/Goods/Small/haiyan",
+      "available": "templates/trade_products/30_available.png",
+      "selected": "templates/trade_products/30_selected.png"
+    },
+    "31": {
+      "name": "游戏机",
+      "supported": true,
+      "source": "Item/Goods/Small/youxiji",
+      "available": "templates/trade_products/31_available.png",
+      "selected": "templates/trade_products/31_selected.png"
+    },
+    "32": {
+      "name": "银矿石",
+      "supported": true,
+      "source": "Item/Goods/Small/yinkuangshi",
+      "available": "templates/trade_products/32_available.png",
+      "selected": "templates/trade_products/32_selected.png"
+    },
+    "33": {
+      "name": "花呢上衣",
+      "supported": true,
+      "source": "Item/Goods/Small/huaneshangyi",
+      "available": "templates/trade_products/33_available.png",
+      "selected": "templates/trade_products/33_selected.png"
+    },
+    "34": {
+      "name": "扬声器",
+      "supported": true,
+      "source": "Item/Goods/Small/yangshengqi",
+      "available": "templates/trade_products/34_available.png",
+      "selected": "templates/trade_products/34_selected.png"
+    },
+    "35": {
+      "name": "游戏卡带",
+      "supported": true,
+      "source": "Item/Goods/Small/youxikadai",
+      "available": "templates/trade_products/35_available.png",
+      "selected": "templates/trade_products/35_selected.png"
+    },
+    "36": {
+      "name": "录像带",
+      "supported": true,
+      "source": "Item/Goods/Small/luxiangdai",
+      "available": "templates/trade_products/36_available.png",
+      "selected": "templates/trade_products/36_selected.png"
+    },
+    "37": {
+      "name": "荧光棒",
+      "supported": true,
+      "source": "Item/Goods/Small/yingguangbang",
+      "available": "templates/trade_products/37_available.png",
+      "selected": "templates/trade_products/37_selected.png"
+    },
+    "38": {
+      "name": "火车玩具",
+      "supported": true,
+      "source": "Item/Goods/Small/wanjuhuoche",
+      "available": "templates/trade_products/38_available.png",
+      "selected": "templates/trade_products/38_selected.png"
+    },
+    "39": {
+      "name": "录音带",
+      "supported": true,
+      "source": "Item/Goods/Small/cidai",
+      "available": "templates/trade_products/39_available.png",
+      "selected": "templates/trade_products/39_selected.png"
+    },
+    "40": {
+      "name": "金制列车工艺品",
+      "supported": true,
+      "source": "Item/Goods/Small/jinzhilieche",
+      "available": "templates/trade_products/40_available.png",
+      "selected": "templates/trade_products/40_selected.png"
+    },
+    "41": {
+      "name": "银制列车工艺品",
+      "supported": true,
+      "source": "Item/Goods/Small/yinzhilieche",
+      "available": "templates/trade_products/41_available.png",
+      "selected": "templates/trade_products/41_selected.png"
+    },
+    "42": {
+      "name": "花呢",
+      "supported": true,
+      "source": "Item/Goods/Small/huane",
+      "available": "templates/trade_products/42_available.png",
+      "selected": "templates/trade_products/42_selected.png"
+    },
+    "43": {
+      "name": "火澄石",
+      "supported": true,
+      "source": "Item/Goods/Small/huochengshi",
+      "available": "templates/trade_products/43_available.png",
+      "selected": "templates/trade_products/43_selected.png"
+    },
+    "44": {
+      "name": "负片炮弹",
+      "supported": true,
+      "source": "Item/Goods/Small/fupianpaodan",
+      "available": "templates/trade_products/44_available.png",
+      "selected": "templates/trade_products/44_selected.png"
+    },
+    "45": {
+      "name": "阿妮塔202军用无人机",
+      "supported": true,
+      "source": "Item/Goods/Small/anitajunyongwurenji",
+      "available": "templates/trade_products/45_available.png",
+      "selected": "templates/trade_products/45_selected.png"
+    },
+    "46": {
+      "name": "抗污染防护服",
+      "supported": true,
+      "source": "Item/Goods/Small/kangwiranfanghufu",
+      "available": "templates/trade_products/46_available.png",
+      "selected": "templates/trade_products/46_selected.png"
+    },
+    "47": {
+      "name": "钛合金",
+      "supported": true,
+      "source": "Item/Goods/Small/taihejin",
+      "available": "templates/trade_products/47_available.png",
+      "selected": "templates/trade_products/47_selected.png"
+    },
+    "48": {
+      "name": "碳纤维",
+      "supported": true,
+      "source": "Item/Goods/Small/tanxianwei",
+      "available": "templates/trade_products/48_available.png",
+      "selected": "templates/trade_products/48_selected.png"
+    },
+    "49": {
+      "name": "形态共振瞄准器",
+      "supported": true,
+      "source": "Item/Goods/Small/xingtaigongzhenmiaozhunqi",
+      "available": "templates/trade_products/49_available.png",
+      "selected": "templates/trade_products/49_selected.png"
+    },
+    "50": {
+      "name": "高导磁硅钢片",
+      "supported": true,
+      "source": "Item/Goods/Small/gaodaociguigangpian",
+      "available": "templates/trade_products/50_available.png",
+      "selected": "templates/trade_products/50_selected.png"
+    },
+    "51": {
+      "name": "黄铜线圈",
+      "supported": true,
+      "source": "Item/Goods/Small/huangtongxianquan",
+      "available": "templates/trade_products/51_available.png",
+      "selected": "templates/trade_products/51_selected.png"
+    },
+    "52": {
+      "name": "阿妮塔小型桦树发电机",
+      "supported": true,
+      "source": "Item/Goods/Small/huashifadianji",
+      "available": "templates/trade_products/52_available.png",
+      "selected": "templates/trade_products/52_selected.png"
+    },
+    "53": {
+      "name": "石墨烯电池",
+      "supported": true,
+      "source": "Item/Goods/Small/shimoxidianchi",
+      "available": "templates/trade_products/53_available.png",
+      "selected": "templates/trade_products/53_selected.png"
+    },
+    "54": {
+      "name": "阿妮塔101民用无人机",
+      "supported": true,
+      "source": "Item/Goods/Small/wurenji",
+      "available": "templates/trade_products/54_available.png",
+      "selected": "templates/trade_products/54_selected.png"
+    },
+    "55": {
+      "name": "家用太阳能电池组",
+      "supported": true,
+      "source": "Item/Goods/Small/taiyannengdianchi",
+      "available": "templates/trade_products/55_available.png",
+      "selected": "templates/trade_products/55_selected.png"
+    },
+    "56": {
+      "name": "锂电池",
+      "supported": true,
+      "source": "Item/Goods/Small/lidianchi",
+      "available": "templates/trade_products/56_available.png",
+      "selected": "templates/trade_products/56_selected.png"
+    },
+    "57": {
+      "name": "无纺布",
+      "supported": true,
+      "source": "Item/Goods/Small/wufangbu",
+      "available": "templates/trade_products/57_available.png",
+      "selected": "templates/trade_products/57_selected.png"
+    },
+    "58": {
+      "name": "充电电池",
+      "supported": true,
+      "source": "Item/Goods/Small/chongdiandianchi",
+      "available": "templates/trade_products/58_available.png",
+      "selected": "templates/trade_products/58_selected.png"
+    },
+    "59": {
+      "name": "阿妮塔连体衣",
+      "supported": true,
+      "source": "Item/Goods/Small/anitaliantiyi",
+      "available": "templates/trade_products/59_available.png",
+      "selected": "templates/trade_products/59_selected.png"
+    },
+    "60": {
+      "name": "琥珀",
+      "supported": true,
+      "source": "Item/Goods/Small/hupo",
+      "available": "templates/trade_products/60_available.png",
+      "selected": "templates/trade_products/60_selected.png"
+    },
+    "61": {
+      "name": "孔雀石",
+      "supported": true,
+      "source": "Item/Goods/Small/kongqueshi",
+      "available": "templates/trade_products/61_available.png",
+      "selected": "templates/trade_products/61_selected.png"
+    },
+    "62": {
+      "name": "绿松石",
+      "supported": true,
+      "source": "Item/Goods/Small/lvsongshi",
+      "available": "templates/trade_products/62_available.png",
+      "selected": "templates/trade_products/62_selected.png"
+    },
+    "63": {
+      "name": "棉花",
+      "supported": true,
+      "source": "Item/Goods/Small/mianhua",
+      "available": "templates/trade_products/63_available.png",
+      "selected": "templates/trade_products/63_selected.png"
+    },
+    "64": {
+      "name": "铅矿石",
+      "supported": true,
+      "source": "Item/Goods/Small/qiankuangshi",
+      "available": "templates/trade_products/64_available.png",
+      "selected": "templates/trade_products/64_selected.png"
+    },
+    "65": {
+      "name": "石墨",
+      "supported": true,
+      "source": "Item/Goods/Small/shimo",
+      "available": "templates/trade_products/65_available.png",
+      "selected": "templates/trade_products/65_selected.png"
+    },
+    "66": {
+      "name": "土豆",
+      "supported": true,
+      "source": "Item/Goods/Small/tudou",
+      "available": "templates/trade_products/66_available.png",
+      "selected": "templates/trade_products/66_selected.png"
+    },
+    "67": {
+      "name": "宝石工艺品",
+      "supported": false,
+      "source": "Item/Goods/Small/baoshigongyiping",
+      "reason": "configured_sprite_not_found"
+    },
+    "68": {
+      "name": "图形加速卡",
+      "supported": true,
+      "source": "Item/Goods/Small/xianka",
+      "available": "templates/trade_products/68_available.png",
+      "selected": "templates/trade_products/68_selected.png"
+    },
+    "69": {
+      "name": "钛矿石",
+      "supported": true,
+      "source": "Item/Goods/Small/taikuangshi",
+      "available": "templates/trade_products/69_available.png",
+      "selected": "templates/trade_products/69_selected.png"
+    },
+    "70": {
+      "name": "铁轨用特种钢材",
+      "supported": true,
+      "source": "Item/Goods/Small/teshugangcai",
+      "available": "templates/trade_products/70_available.png",
+      "selected": "templates/trade_products/70_selected.png"
+    },
+    "71": {
+      "name": "曼德工具箱",
+      "supported": true,
+      "source": "Item/Goods/Small/mandegongjuxiang",
+      "available": "templates/trade_products/71_available.png",
+      "selected": "templates/trade_products/71_selected.png"
+    },
+    "72": {
+      "name": "黄铜",
+      "supported": true,
+      "source": "Item/Goods/Small/huangtong",
+      "available": "templates/trade_products/72_available.png",
+      "selected": "templates/trade_products/72_selected.png"
+    },
+    "73": {
+      "name": "钢筋混凝土轨枕",
+      "supported": true,
+      "source": "Item/Goods/Small/guizhen",
+      "available": "templates/trade_products/73_available.png",
+      "selected": "templates/trade_products/73_selected.png"
+    },
+    "74": {
+      "name": "建材",
+      "supported": true,
+      "source": "Item/Goods/Small/jiancai",
+      "available": "templates/trade_products/74_available.png",
+      "selected": "templates/trade_products/74_selected.png"
+    },
+    "75": {
+      "name": "铁矿石",
+      "supported": true,
+      "source": "Item/Goods/Small/tiekuangshi",
+      "available": "templates/trade_products/75_available.png",
+      "selected": "templates/trade_products/75_selected.png"
+    },
+    "76": {
+      "name": "石材",
+      "supported": true,
+      "source": "Item/Goods/Small/shicai",
+      "available": "templates/trade_products/76_available.png",
+      "selected": "templates/trade_products/76_selected.png"
+    },
+    "77": {
+      "name": "砂石",
+      "supported": true,
+      "source": "Item/Goods/Small/shashi",
+      "available": "templates/trade_products/77_available.png",
+      "selected": "templates/trade_products/77_selected.png"
+    },
+    "78": {
+      "name": "沙金",
+      "supported": true,
+      "source": "Item/Goods/Small/jinsha",
+      "available": "templates/trade_products/78_available.png",
+      "selected": "templates/trade_products/78_selected.png"
+    },
+    "79": {
+      "name": "青金石",
+      "supported": true,
+      "source": "Item/Goods/Small/qingjinshi",
+      "available": "templates/trade_products/79_available.png",
+      "selected": "templates/trade_products/79_selected.png"
+    },
+    "80": {
+      "name": "玛瑙",
+      "supported": true,
+      "source": "Item/Goods/Small/manao",
+      "available": "templates/trade_products/80_available.png",
+      "selected": "templates/trade_products/80_selected.png"
+    },
+    "81": {
+      "name": "漆黑矿渣",
+      "supported": true,
+      "source": "Item/Goods/Small/kuangzha",
+      "available": "templates/trade_products/81_available.png",
+      "selected": "templates/trade_products/81_selected.png"
+    },
+    "82": {
+      "name": "牛仔裤",
+      "supported": true,
+      "source": "Item/Goods/Small/niuzaiku",
+      "available": "templates/trade_products/82_available.png",
+      "selected": "templates/trade_products/82_selected.png"
+    },
+    "83": {
+      "name": "石英砂",
+      "supported": true,
+      "source": "Item/Goods/Small/shiyingsha",
+      "available": "templates/trade_products/83_available.png",
+      "selected": "templates/trade_products/83_selected.png"
+    },
+    "84": {
+      "name": "纯金线材",
+      "supported": true,
+      "source": "Item/Goods/Small/chunjinxiancai",
+      "available": "templates/trade_products/84_available.png",
+      "selected": "templates/trade_products/84_selected.png"
+    },
+    "85": {
+      "name": "金箔",
+      "supported": true,
+      "source": "Item/Goods/Small/jinbo",
+      "available": "templates/trade_products/85_available.png",
+      "selected": "templates/trade_products/85_selected.png"
+    },
+    "86": {
+      "name": "航天半导体",
+      "supported": true,
+      "source": "Item/Goods/Small/hangtianbandaoti",
+      "available": "templates/trade_products/86_available.png",
+      "selected": "templates/trade_products/86_selected.png"
+    },
+    "87": {
+      "name": "太阳电池阵",
+      "supported": true,
+      "source": "Item/Goods/Small/taiyangdianchizhen",
+      "available": "templates/trade_products/87_available.png",
+      "selected": "templates/trade_products/87_selected.png"
+    },
+    "88": {
+      "name": "蜂窝防热烧蚀材料",
+      "supported": true,
+      "source": "Item/Goods/Small/fengwokangshaoshicailiao",
+      "available": "templates/trade_products/88_available.png",
+      "selected": "templates/trade_products/88_selected.png"
+    },
+    "89": {
+      "name": "高导热陶瓷",
+      "supported": true,
+      "source": "Item/Goods/Small/gaodaoretaoci",
+      "available": "templates/trade_products/89_available.png",
+      "selected": "templates/trade_products/89_selected.png"
+    },
+    "90": {
+      "name": "镍基高温合金",
+      "supported": true,
+      "source": "Item/Goods/Small/niejigaowenhejin",
+      "available": "templates/trade_products/90_available.png",
+      "selected": "templates/trade_products/90_selected.png"
+    },
+    "91": {
+      "name": "液氧甲烷燃料",
+      "supported": true,
+      "source": "Item/Goods/Small/qingyangjiawanranliao",
+      "available": "templates/trade_products/91_available.png",
+      "selected": "templates/trade_products/91_selected.png"
+    },
+    "92": {
+      "name": "无刷电机",
+      "supported": true,
+      "source": "Item/Goods/Small/wushuadianji",
+      "available": "templates/trade_products/92_available.png",
+      "selected": "templates/trade_products/92_selected.png"
+    },
+    "93": {
+      "name": "火箭拼装玩具",
+      "supported": true,
+      "source": "Item/Goods/Small/huojianpinzhuangwanju",
+      "available": "templates/trade_products/93_available.png",
+      "selected": "templates/trade_products/93_selected.png"
+    },
+    "94": {
+      "name": "珍珠",
+      "supported": true,
+      "source": "Item/Goods/Small/zhenzhu",
+      "available": "templates/trade_products/94_available.png",
+      "selected": "templates/trade_products/94_selected.png"
+    },
+    "95": {
+      "name": "蕾丝连衣裙",
+      "supported": true,
+      "source": "Item/Goods/Small/leisilianyiqun",
+      "available": "templates/trade_products/95_available.png",
+      "selected": "templates/trade_products/95_selected.png"
+    },
+    "96": {
+      "name": "单晶硅",
+      "supported": true,
+      "source": "Item/Goods/Small/danjinggui",
+      "available": "templates/trade_products/96_available.png",
+      "selected": "templates/trade_products/96_selected.png"
+    },
+    "97": {
+      "name": "大龙虾",
+      "supported": true,
+      "source": "Item/Goods/Small/dalongxia",
+      "available": "templates/trade_products/97_available.png",
+      "selected": "templates/trade_products/97_selected.png"
+    },
+    "98": {
+      "name": "学会书籍",
+      "supported": true,
+      "source": "Item/Goods/Small/xuehuishuji",
+      "available": "templates/trade_products/98_available.png",
+      "selected": "templates/trade_products/98_selected.png"
+    },
+    "99": {
+      "name": "行李箱包",
+      "supported": true,
+      "source": "Item/Goods/Small/xinglixiangbao",
+      "available": "templates/trade_products/99_available.png",
+      "selected": "templates/trade_products/99_selected.png"
+    },
+    "100": {
+      "name": "户外用品",
+      "supported": true,
+      "source": "Item/Goods/Small/huwaiyongpin",
+      "available": "templates/trade_products/100_available.png",
+      "selected": "templates/trade_products/100_selected.png"
+    },
+    "101": {
+      "name": "带鱼",
+      "supported": true,
+      "source": "Item/Goods/Small/daiyu",
+      "available": "templates/trade_products/101_available.png",
+      "selected": "templates/trade_products/101_selected.png"
+    },
+    "102": {
+      "name": "鱿鱼",
+      "supported": true,
+      "source": "Item/Goods/Small/youyu",
+      "available": "templates/trade_products/102_available.png",
+      "selected": "templates/trade_products/102_selected.png"
+    },
+    "103": {
+      "name": "海角辣椒",
+      "supported": true,
+      "source": "Item/Goods/Small/lajiao",
+      "available": "templates/trade_products/103_available.png",
+      "selected": "templates/trade_products/103_selected.png"
+    },
+    "104": {
+      "name": "海角水产礼盒",
+      "supported": true,
+      "source": "Item/Goods/Small/Shuichanlibao",
+      "available": "templates/trade_products/104_available.png",
+      "selected": "templates/trade_products/104_selected.png"
+    },
+    "105": {
+      "name": "蕾丝花边",
+      "supported": true,
+      "source": "Item/Goods/Small/leisihuabian",
+      "available": "templates/trade_products/105_available.png",
+      "selected": "templates/trade_products/105_selected.png"
+    },
+    "106": {
+      "name": "法兰绒",
+      "supported": true,
+      "source": "Item/Goods/Small/falanrong",
+      "available": "templates/trade_products/106_available.png",
+      "selected": "templates/trade_products/106_selected.png"
+    },
+    "107": {
+      "name": "亚麻",
+      "supported": true,
+      "source": "Item/Goods/Small/yama",
+      "available": "templates/trade_products/107_available.png",
+      "selected": "templates/trade_products/107_selected.png"
+    },
+    "108": {
+      "name": "缝纫工具包",
+      "supported": true,
+      "source": "Item/Goods/Small/fengrengongjubao",
+      "available": "templates/trade_products/108_available.png",
+      "selected": "templates/trade_products/108_selected.png"
+    },
+    "109": {
+      "name": "尼龙",
+      "supported": true,
+      "source": "Item/Goods/Small/nilong",
+      "available": "templates/trade_products/109_available.png",
+      "selected": "templates/trade_products/109_selected.png"
+    },
+    "110": {
+      "name": "绣线",
+      "supported": true,
+      "source": "Item/Goods/Small/xiuxian",
+      "available": "templates/trade_products/110_available.png",
+      "selected": "templates/trade_products/110_selected.png"
+    },
+    "111": {
+      "name": "牛仔布",
+      "supported": true,
+      "source": "Item/Goods/Small/niuzaibu",
+      "available": "templates/trade_products/111_available.png",
+      "selected": "templates/trade_products/111_selected.png"
+    },
+    "112": {
+      "name": "绵羊",
+      "supported": true,
+      "source": "Item/Goods/Small/mianyang",
+      "available": "templates/trade_products/112_available.png",
+      "selected": "templates/trade_products/112_selected.png"
+    },
+    "113": {
+      "name": "涤纶",
+      "supported": true,
+      "source": "Item/Goods/Small/dilun",
+      "available": "templates/trade_products/113_available.png",
+      "selected": "templates/trade_products/113_selected.png"
+    },
+    "114": {
+      "name": "鸭",
+      "supported": true,
+      "source": "Item/Goods/Small/yazi",
+      "available": "templates/trade_products/114_available.png",
+      "selected": "templates/trade_products/114_selected.png"
+    },
+    "115": {
+      "name": "肥皂",
+      "supported": true,
+      "source": "Item/Goods/Small/feizao",
+      "available": "templates/trade_products/115_available.png",
+      "selected": "templates/trade_products/115_selected.png"
+    },
+    "116": {
+      "name": "手工编织地毯",
+      "supported": true,
+      "source": "Item/Goods/Small/shougongbianzhiditan",
+      "available": "templates/trade_products/116_available.png",
+      "selected": "templates/trade_products/116_selected.png"
+    },
+    "117": {
+      "name": "羽绒服",
+      "supported": true,
+      "source": "Item/Goods/Small/yurongfu",
+      "available": "templates/trade_products/117_available.png",
+      "selected": "templates/trade_products/117_selected.png"
+    },
+    "118": {
+      "name": "蚕丝",
+      "supported": true,
+      "source": "Item/Goods/Small/cansi",
+      "available": "templates/trade_products/118_available.png",
+      "selected": "templates/trade_products/118_selected.png"
+    },
+    "119": {
+      "name": "金丝",
+      "supported": true,
+      "source": "Item/Goods/Small/jinsi",
+      "available": "templates/trade_products/119_available.png",
+      "selected": "templates/trade_products/119_selected.png"
+    },
+    "120": {
+      "name": "羊毛",
+      "supported": true,
+      "source": "Item/Goods/Small/yangmao",
+      "available": "templates/trade_products/120_available.png",
+      "selected": "templates/trade_products/120_selected.png"
+    },
+    "121": {
+      "name": "法兰绒睡衣",
+      "supported": true,
+      "source": "Item/Goods/Small/falanrongshuiyi",
+      "available": "templates/trade_products/121_available.png",
+      "selected": "templates/trade_products/121_selected.png"
+    },
+    "122": {
+      "name": "羊毛布料",
+      "supported": true,
+      "source": "Item/Goods/Small/yangmaobuliao",
+      "available": "templates/trade_products/122_available.png",
+      "selected": "templates/trade_products/122_selected.png"
+    },
+    "123": {
+      "name": "西服面料",
+      "supported": true,
+      "source": "Item/Goods/Small/xifubuliao",
+      "available": "templates/trade_products/123_available.png",
+      "selected": "templates/trade_products/123_selected.png"
+    },
+    "124": {
+      "name": "太空棉",
+      "supported": true,
+      "source": "Item/Goods/Small/taikongmian",
+      "available": "templates/trade_products/124_available.png",
+      "selected": "templates/trade_products/124_selected.png"
+    },
+    "125": {
+      "name": "羊绒衫",
+      "supported": true,
+      "source": "Item/Goods/Small/yangrongshan",
+      "available": "templates/trade_products/125_available.png",
+      "selected": "templates/trade_products/125_selected.png"
+    },
+    "126": {
+      "name": "羊绒",
+      "supported": true,
+      "source": "Item/Goods/Small/yangrong",
+      "available": "templates/trade_products/126_available.png",
+      "selected": "templates/trade_products/126_selected.png"
+    },
+    "127": {
+      "name": "锦缎",
+      "supported": true,
+      "source": "Item/Goods/Small/jinduan",
+      "available": "templates/trade_products/127_available.png",
+      "selected": "templates/trade_products/127_selected.png"
+    },
+    "128": {
+      "name": "法兰绒靠垫",
+      "supported": true,
+      "source": "Item/Goods/Small/falanrongkaodian",
+      "available": "templates/trade_products/128_available.png",
+      "selected": "templates/trade_products/128_selected.png"
+    },
+    "129": {
+      "name": "西服",
+      "supported": true,
+      "source": "Item/Goods/Small/xifu",
+      "available": "templates/trade_products/129_available.png",
+      "selected": "templates/trade_products/129_selected.png"
+    },
+    "130": {
+      "name": "雪纺",
+      "supported": true,
+      "source": "Item/Goods/Small/xuefang",
+      "available": "templates/trade_products/130_available.png",
+      "selected": "templates/trade_products/130_selected.png"
+    },
+    "131": {
+      "name": "高级女装",
+      "supported": true,
+      "source": "Item/Goods/Small/gaojinvzhuang",
+      "available": "templates/trade_products/131_available.png",
+      "selected": "templates/trade_products/131_selected.png"
+    },
+    "132": {
+      "name": "灯芯绒休闲裤",
+      "supported": true,
+      "source": "Item/Goods/Small/dengxinrongxiuxianku",
+      "available": "templates/trade_products/132_available.png",
+      "selected": "templates/trade_products/132_selected.png"
+    },
+    "133": {
+      "name": "雪金锦袍",
+      "supported": true,
+      "source": "Item/Goods/Small/qipao",
+      "available": "templates/trade_products/133_available.png",
+      "selected": "templates/trade_products/133_selected.png"
+    },
+    "134": {
+      "name": "真丝羽绒枕头",
+      "supported": true,
+      "source": "Item/Goods/Small/zhenzhiyurongzhentou",
+      "available": "templates/trade_products/134_available.png",
+      "selected": "templates/trade_products/134_selected.png"
+    },
+    "135": {
+      "name": "冲锋衣",
+      "supported": true,
+      "source": "Item/Goods/Small/chongfengyi",
+      "available": "templates/trade_products/135_available.png",
+      "selected": "templates/trade_products/135_selected.png"
+    },
+    "136": {
+      "name": "灯芯绒",
+      "supported": true,
+      "source": "Item/Goods/Small/dengxinrong",
+      "available": "templates/trade_products/136_available.png",
+      "selected": "templates/trade_products/136_selected.png"
+    },
+    "137": {
+      "name": "天鹅绒椅披",
+      "supported": true,
+      "source": "Item/Goods/Small/tianerongyipi",
+      "available": "templates/trade_products/137_available.png",
+      "selected": "templates/trade_products/137_selected.png"
+    },
+    "138": {
+      "name": "尼龙晴雨伞",
+      "supported": true,
+      "source": "Item/Goods/Small/yusan_blue",
+      "available": "templates/trade_products/138_available.png",
+      "selected": "templates/trade_products/138_selected.png"
+    },
+    "139": {
+      "name": "天鹅绒",
+      "supported": true,
+      "source": "Item/Goods/Small/tianerong",
+      "available": "templates/trade_products/139_available.png",
+      "selected": "templates/trade_products/139_selected.png"
+    },
+    "140": {
+      "name": "真丝睡衣",
+      "supported": true,
+      "source": "Item/Goods/Small/zhensishuiyi",
+      "available": "templates/trade_products/140_available.png",
+      "selected": "templates/trade_products/140_selected.png"
+    },
+    "141": {
+      "name": "棉花枕头",
+      "supported": true,
+      "source": "Item/Goods/Small/mianhuazhentou",
+      "available": "templates/trade_products/141_available.png",
+      "selected": "templates/trade_products/141_selected.png"
+    },
+    "142": {
+      "name": "丝绸布料",
+      "supported": true,
+      "source": "Item/Goods/Small/sichoubuliao",
+      "available": "templates/trade_products/142_available.png",
+      "selected": "templates/trade_products/142_selected.png"
+    },
+    "143": {
+      "name": "织锦缎",
+      "supported": true,
+      "source": "Item/Goods/Small/zhijinduan",
+      "available": "templates/trade_products/143_available.png",
+      "selected": "templates/trade_products/143_selected.png"
+    },
+    "144": {
+      "name": "宇航服",
+      "supported": true,
+      "source": "Item/Goods/Small/yuhangfu",
+      "available": "templates/trade_products/144_available.png",
+      "selected": "templates/trade_products/144_selected.png"
+    },
+    "145": {
+      "name": "鱼肝油",
+      "supported": true,
+      "source": "Item/Goods/Small/yuganyou",
+      "available": "templates/trade_products/145_available.png",
+      "selected": "templates/trade_products/145_selected.png"
+    },
+    "146": {
+      "name": "学会纪念品",
+      "supported": true,
+      "source": "Item/Goods/Small/xuehuijinianpin",
+      "available": "templates/trade_products/146_available.png",
+      "selected": "templates/trade_products/146_selected.png"
+    },
+    "147": {
+      "name": "帝王蟹",
+      "supported": true,
+      "source": "Item/Goods/Small/diwangxie",
+      "available": "templates/trade_products/147_available.png",
+      "selected": "templates/trade_products/147_selected.png"
+    },
+    "148": {
+      "name": "芳纶纤维",
+      "supported": true,
+      "source": "Item/Goods/Small/fanglunxianwei",
+      "available": "templates/trade_products/148_available.png",
+      "selected": "templates/trade_products/148_selected.png"
+    },
+    "149": {
+      "name": "水银",
+      "supported": true,
+      "source": "Item/Goods/Small/shuiyin",
+      "available": "templates/trade_products/149_available.png",
+      "selected": "templates/trade_products/149_selected.png"
+    },
+    "150": {
+      "name": "香薰蜡烛",
+      "supported": true,
+      "source": "Item/Goods/Small/xiangxunlazhu",
+      "available": "templates/trade_products/150_available.png",
+      "selected": "templates/trade_products/150_selected.png"
+    },
+    "151": {
+      "name": "山羊",
+      "supported": true,
+      "source": "Item/Goods/Small/shanyang",
+      "available": "templates/trade_products/151_available.png",
+      "selected": "templates/trade_products/151_selected.png"
+    },
+    "152": {
+      "name": "马鲛鱼",
+      "supported": true,
+      "source": "Item/Goods/Small/majiaoyu",
+      "available": "templates/trade_products/152_available.png",
+      "selected": "templates/trade_products/152_selected.png"
+    },
+    "153": {
+      "name": "贻贝",
+      "supported": true,
+      "source": "Item/Goods/Small/taibei",
+      "available": "templates/trade_products/153_available.png",
+      "selected": "templates/trade_products/153_selected.png"
+    },
+    "154": {
+      "name": "水产甄选礼盒",
+      "supported": true,
+      "source": "Item/Goods/Small/Shuichanzhenxuanlibao",
+      "available": "templates/trade_products/154_available.png",
+      "selected": "templates/trade_products/154_selected.png"
+    },
+    "155": {
+      "name": "碳纤维索",
+      "supported": true,
+      "source": "Item/Goods/Small/tanxianweisuo",
+      "available": "templates/trade_products/155_available.png",
+      "selected": "templates/trade_products/155_selected.png"
+    },
+    "156": {
+      "name": "复合钢索",
+      "supported": true,
+      "source": "Item/Goods/Small/fuhegangsuo",
+      "available": "templates/trade_products/156_available.png",
+      "selected": "templates/trade_products/156_selected.png"
+    },
+    "157": {
+      "name": "玄武岩纤维",
+      "supported": true,
+      "source": "Item/Goods/Small/xuanwuyanxianwei",
+      "available": "templates/trade_products/157_available.png",
+      "selected": "templates/trade_products/157_selected.png"
+    },
+    "158": {
+      "name": "象拔蚌",
+      "supported": true,
+      "source": "Item/Goods/Small/xiangbabang",
+      "available": "templates/trade_products/158_available.png",
+      "selected": "templates/trade_products/158_selected.png"
+    },
+    "159": {
+      "name": "索具",
+      "supported": true,
+      "source": "Item/Goods/Small/suoju",
+      "available": "templates/trade_products/159_available.png",
+      "selected": "templates/trade_products/159_selected.png"
+    },
+    "160": {
+      "name": "陨铁矿",
+      "supported": true,
+      "source": "Item/Goods/Small/yuntieshi",
+      "available": "templates/trade_products/160_available.png",
+      "selected": "templates/trade_products/160_selected.png"
+    },
+    "161": {
+      "name": "玄武岩",
+      "supported": true,
+      "source": "Item/Goods/Small/xuanwuyan",
+      "available": "templates/trade_products/161_available.png",
+      "selected": "templates/trade_products/161_selected.png"
+    },
+    "162": {
+      "name": "竹荚鱼",
+      "supported": true,
+      "source": "Item/Goods/Small/zhujiayu",
+      "available": "templates/trade_products/162_available.png",
+      "selected": "templates/trade_products/162_selected.png"
+    },
+    "163": {
+      "name": "扇贝",
+      "supported": true,
+      "source": "Item/Goods/Small/shanbei",
+      "available": "templates/trade_products/163_available.png",
+      "selected": "templates/trade_products/163_selected.png"
+    },
+    "164": {
+      "name": "水泥",
+      "supported": true,
+      "source": "Item/Goods/Small/shuini",
+      "available": "templates/trade_products/164_available.png",
+      "selected": "templates/trade_products/164_selected.png"
+    },
+    "165": {
+      "name": "岚心锦服",
+      "supported": true,
+      "source": "Item/Goods/Small/lanxinjinfu",
+      "available": "templates/trade_products/165_available.png",
+      "selected": "templates/trade_products/165_selected.png"
+    },
+    "166": {
+      "name": "黑毛牛排",
+      "supported": true,
+      "source": "Item/Goods/Small/heimaoniupai",
+      "available": "templates/trade_products/166_available.png",
+      "selected": "templates/trade_products/166_selected.png"
+    },
+    "167": {
+      "name": "金箔酒",
+      "supported": true,
+      "source": "Item/Goods/Small/jinbojiu",
+      "available": "templates/trade_products/167_available.png",
+      "selected": "templates/trade_products/167_selected.png"
+    },
+    "168": {
+      "name": "刀具",
+      "supported": true,
+      "source": "Item/Goods/Small/daoju",
+      "available": "templates/trade_products/168_available.png",
+      "selected": "templates/trade_products/168_selected.png"
+    },
+    "169": {
+      "name": "随身听",
+      "supported": true,
+      "source": "Item/Goods/Small/bianxieshouluji",
+      "available": "templates/trade_products/169_available.png",
+      "selected": "templates/trade_products/169_selected.png"
+    },
+    "170": {
+      "name": "折扇",
+      "supported": true,
+      "source": "Item/Goods/Small/zheshan",
+      "available": "templates/trade_products/170_available.png",
+      "selected": "templates/trade_products/170_selected.png"
+    },
+    "171": {
+      "name": "画材",
+      "supported": true,
+      "source": "Item/Goods/Small/huacai",
+      "available": "templates/trade_products/171_available.png",
+      "selected": "templates/trade_products/171_selected.png"
+    },
+    "172": {
+      "name": "纳豆",
+      "supported": true,
+      "source": "Item/Goods/Small/nadou",
+      "available": "templates/trade_products/172_available.png",
+      "selected": "templates/trade_products/172_selected.png"
+    },
+    "173": {
+      "name": "杯面",
+      "supported": true,
+      "source": "Item/Goods/Small/beimian",
+      "available": "templates/trade_products/173_available.png",
+      "selected": "templates/trade_products/173_selected.png"
+    },
+    "174": {
+      "name": "岚心锦",
+      "supported": true,
+      "source": "Item/Goods/Small/lanxinjin",
+      "available": "templates/trade_products/174_available.png",
+      "selected": "templates/trade_products/174_selected.png"
+    },
+    "175": {
+      "name": "碳钢匕首",
+      "supported": true,
+      "source": "Item/Goods/Small/tangangbishou",
+      "available": "templates/trade_products/175_available.png",
+      "selected": "templates/trade_products/175_selected.png"
+    },
+    "176": {
+      "name": "鹅绒被",
+      "supported": true,
+      "source": "Item/Goods/Small/erongbei",
+      "available": "templates/trade_products/176_available.png",
+      "selected": "templates/trade_products/176_selected.png"
+    },
+    "177": {
+      "name": "羽绒睡袋",
+      "supported": true,
+      "source": "Item/Goods/Small/yurongshuidai",
+      "available": "templates/trade_products/177_available.png",
+      "selected": "templates/trade_products/177_selected.png"
+    },
+    "178": {
+      "name": "鹅绒",
+      "supported": true,
+      "source": "Item/Goods/Small/erong",
+      "available": "templates/trade_products/178_available.png",
+      "selected": "templates/trade_products/178_selected.png"
+    },
+    "179": {
+      "name": "牛",
+      "supported": true,
+      "source": "Item/Goods/Small/niu",
+      "available": "templates/trade_products/179_available.png",
+      "selected": "templates/trade_products/179_selected.png"
+    },
+    "180": {
+      "name": "羽绒",
+      "supported": true,
+      "source": "Item/Goods/Small/yumao",
+      "available": "templates/trade_products/180_available.png",
+      "selected": "templates/trade_products/180_selected.png"
+    },
+    "181": {
+      "name": "鹅",
+      "supported": true,
+      "source": "Item/Goods/Small/e",
+      "available": "templates/trade_products/181_available.png",
+      "selected": "templates/trade_products/181_selected.png"
+    },
+    "182": {
+      "name": "全合成基础油",
+      "supported": true,
+      "source": "Item/Goods/Small/hcjcy180",
+      "available": "templates/trade_products/182_available.png",
+      "selected": "templates/trade_products/182_selected.png"
+    },
+    "183": {
+      "name": "石油",
+      "supported": true,
+      "source": "Item/Goods/Small/shiyou",
+      "available": "templates/trade_products/183_available.png",
+      "selected": "templates/trade_products/183_selected.png"
+    },
+    "184": {
+      "name": "石蜡",
+      "supported": true,
+      "source": "Item/Goods/Small/shila",
+      "available": "templates/trade_products/184_available.png",
+      "selected": "templates/trade_products/184_selected.png"
+    },
+    "185": {
+      "name": "硅矿石",
+      "supported": true,
+      "source": "Item/Goods/Small/guikuangshi",
+      "available": "templates/trade_products/185_available.png",
+      "selected": "templates/trade_products/185_selected.png"
+    },
+    "186": {
+      "name": "黄铁矿",
+      "supported": true,
+      "source": "Item/Goods/Small/huangtiekuang",
+      "available": "templates/trade_products/186_available.png",
+      "selected": "templates/trade_products/186_selected.png"
+    },
+    "187": {
+      "name": "石灰岩",
+      "supported": true,
+      "source": "Item/Goods/Small/shihuiyan",
+      "available": "templates/trade_products/187_available.png",
+      "selected": "templates/trade_products/187_selected.png"
+    },
+    "188": {
+      "name": "限定公仔",
+      "supported": true,
+      "source": "Item/Goods/Small/xiandinggongzai_luleidi",
+      "available": "templates/trade_products/188_available.png",
+      "selected": "templates/trade_products/188_selected.png"
+    },
+    "189": {
+      "name": "游乐城主题配饰",
+      "supported": true,
+      "source": "Item/Goods/Small/youlechengzhutipeishi",
+      "available": "templates/trade_products/189_available.png",
+      "selected": "templates/trade_products/189_selected.png"
+    },
+    "190": {
+      "name": "限定典藏游戏卡带",
+      "supported": true,
+      "source": "Item/Goods/Small/juebanyouxikadai",
+      "available": "templates/trade_products/190_available.png",
+      "selected": "templates/trade_products/190_selected.png"
+    },
+    "191": {
+      "name": "游乐城纪念唱片",
+      "supported": true,
+      "source": "Item/Goods/Small/xiandingchangpian",
+      "available": "templates/trade_products/191_available.png",
+      "selected": "templates/trade_products/191_selected.png"
+    },
+    "192": {
+      "name": "纪念卫衣",
+      "supported": true,
+      "source": "Item/Goods/Small/xiandingweiyi",
+      "available": "templates/trade_products/192_available.png",
+      "selected": "templates/trade_products/192_selected.png"
+    },
+    "193": {
+      "name": "城堡摆件",
+      "supported": true,
+      "source": "Item/Goods/Small/chengbaobaijian",
+      "available": "templates/trade_products/193_available.png",
+      "selected": "templates/trade_products/193_selected.png"
+    },
+    "194": {
+      "name": "毛绒玩具",
+      "supported": true,
+      "source": "Item/Goods/Small/maorongwanju",
+      "available": "templates/trade_products/194_available.png",
+      "selected": "templates/trade_products/194_selected.png"
+    },
+    "195": {
+      "name": "游乐城纪念徽章",
+      "supported": true,
+      "source": "Item/Goods/Small/youlechengjinianhuizhang",
+      "available": "templates/trade_products/195_available.png",
+      "selected": "templates/trade_products/195_selected.png"
+    },
+    "196": {
+      "name": "游乐城纪念文具",
+      "supported": true,
+      "source": "Item/Goods/Small/youlechengjinianwenju",
+      "available": "templates/trade_products/196_available.png",
+      "selected": "templates/trade_products/196_selected.png"
+    },
+    "197": {
+      "name": "鱼子酱",
+      "supported": true,
+      "source": "Item/Goods/Small/yuzijiang",
+      "available": "templates/trade_products/197_available.png",
+      "selected": "templates/trade_products/197_selected.png"
+    },
+    "198": {
+      "name": "高端护肤品",
+      "supported": true,
+      "source": "Item/Goods/Small/gaoduanhufupin",
+      "available": "templates/trade_products/198_available.png",
+      "selected": "templates/trade_products/198_selected.png"
+    },
+    "199": {
+      "name": "火腿",
+      "supported": true,
+      "source": "Item/Goods/Small/huotui",
+      "available": "templates/trade_products/199_available.png",
+      "selected": "templates/trade_products/199_selected.png"
+    },
+    "200": {
+      "name": "轻奢女装",
+      "supported": true,
+      "source": "Item/Goods/Small/qingshenvzhuang",
+      "available": "templates/trade_products/200_available.png",
+      "selected": "templates/trade_products/200_selected.png"
+    },
+    "201": {
+      "name": "香水",
+      "supported": true,
+      "source": "Item/Goods/Small/xiangshui",
+      "available": "templates/trade_products/201_available.png",
+      "selected": "templates/trade_products/201_selected.png"
+    },
+    "202": {
+      "name": "水晶工艺品",
+      "supported": true,
+      "source": "Item/Goods/Small/shuijinggongyipin",
+      "available": "templates/trade_products/202_available.png",
+      "selected": "templates/trade_products/202_selected.png"
+    },
+    "203": {
+      "name": "白兰地",
+      "supported": true,
+      "source": "Item/Goods/Small/bailandi",
+      "available": "templates/trade_products/203_available.png",
+      "selected": "templates/trade_products/203_selected.png"
+    },
+    "204": {
+      "name": "化妆品",
+      "supported": true,
+      "source": "Item/Goods/Small/huazhuangpin",
+      "available": "templates/trade_products/204_available.png",
+      "selected": "templates/trade_products/204_selected.png"
+    },
+    "205": {
+      "name": "橄榄油",
+      "supported": true,
+      "source": "Item/Goods/Small/ganlanyou",
+      "available": "templates/trade_products/205_available.png",
+      "selected": "templates/trade_products/205_selected.png"
+    },
+    "206": {
+      "name": "日化用品",
+      "supported": true,
+      "source": "Item/Goods/Small/rihuayongpin",
+      "available": "templates/trade_products/206_available.png",
+      "selected": "templates/trade_products/206_selected.png"
+    },
+    "207": {
+      "name": "西大陆甄选礼盒",
+      "supported": true,
+      "source": "Item/Goods/Small/Xidalulibao",
+      "available": "templates/trade_products/207_available.png",
+      "selected": "templates/trade_products/207_selected.png"
+    },
+    "208": {
+      "name": "黑胡桃木座钟",
+      "supported": true,
+      "source": "Item/Goods/Small/heihutaozhong180",
+      "available": "templates/trade_products/208_available.png",
+      "selected": "templates/trade_products/208_selected.png"
+    },
+    "209": {
+      "name": "高山云杉",
+      "supported": true,
+      "source": "Item/Goods/Small/gaoshanyunshan180",
+      "available": "templates/trade_products/209_available.png",
+      "selected": "templates/trade_products/209_selected.png"
+    },
+    "210": {
+      "name": "精钢伐木斧",
+      "supported": true,
+      "source": "Item/Goods/Small/famufu180",
+      "available": "templates/trade_products/210_available.png",
+      "selected": "templates/trade_products/210_selected.png"
+    },
+    "211": {
+      "name": "胡桃木",
+      "supported": true,
+      "source": "Item/Goods/Small/hutaomu180",
+      "available": "templates/trade_products/211_available.png",
+      "selected": "templates/trade_products/211_selected.png"
+    },
+    "212": {
+      "name": "烟熏橡木",
+      "supported": true,
+      "source": "Item/Goods/Small/sucaiyanxunxiangmu180",
+      "available": "templates/trade_products/212_available.png",
+      "selected": "templates/trade_products/212_selected.png"
+    },
+    "213": {
+      "name": "白蜡木",
+      "supported": true,
+      "source": "Item/Goods/Small/bailamu180",
+      "available": "templates/trade_products/213_available.png",
+      "selected": "templates/trade_products/213_selected.png"
+    },
+    "214": {
+      "name": "精密木构件",
+      "supported": true,
+      "source": "Item/Goods/Small/jingmimugoujian180",
+      "available": "templates/trade_products/214_available.png",
+      "selected": "templates/trade_products/214_selected.png"
+    },
+    "215": {
+      "name": "树脂",
+      "supported": true,
+      "source": "Item/Goods/Small/shuzhi",
+      "available": "templates/trade_products/215_available.png",
+      "selected": "templates/trade_products/215_selected.png"
+    },
+    "216": {
+      "name": "优质松木",
+      "supported": true,
+      "source": "Item/Goods/Small/youzhisongmu180",
+      "available": "templates/trade_products/216_available.png",
+      "selected": "templates/trade_products/216_selected.png"
+    },
+    "217": {
+      "name": "树脂复合木板",
+      "supported": true,
+      "source": "Item/Goods/Small/shuzhifuhemuban180",
+      "available": "templates/trade_products/217_available.png",
+      "selected": "templates/trade_products/217_selected.png"
+    },
+    "218": {
+      "name": "松香",
+      "supported": true,
+      "source": "Item/Goods/Small/songxiang180",
+      "available": "templates/trade_products/218_available.png",
+      "selected": "templates/trade_products/218_selected.png"
+    },
+    "219": {
+      "name": "明前龙井",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/mqlj180",
+      "available": "templates/trade_products/219_available.png",
+      "selected": "templates/trade_products/219_selected.png"
+    },
+    "220": {
+      "name": "家用机器人",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/jqr180",
+      "available": "templates/trade_products/220_available.png",
+      "selected": "templates/trade_products/220_selected.png"
+    },
+    "221": {
+      "name": "龙井茶",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/lj180",
+      "available": "templates/trade_products/221_available.png",
+      "selected": "templates/trade_products/221_selected.png"
+    },
+    "222": {
+      "name": "武林丝绸",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/wlsc180",
+      "available": "templates/trade_products/222_available.png",
+      "selected": "templates/trade_products/222_selected.png"
+    },
+    "223": {
+      "name": "羽纸扇",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/yzs180",
+      "available": "templates/trade_products/223_available.png",
+      "selected": "templates/trade_products/223_selected.png"
+    },
+    "224": {
+      "name": "临安山核桃",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/sht180",
+      "available": "templates/trade_products/224_available.png",
+      "selected": "templates/trade_products/224_selected.png"
+    },
+    "225": {
+      "name": "西湖醋鱼",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/xhcy180",
+      "available": "templates/trade_products/225_available.png",
+      "selected": "templates/trade_products/225_selected.png"
+    },
+    "226": {
+      "name": "西湖藕粉",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/of180",
+      "available": "templates/trade_products/226_available.png",
+      "selected": "templates/trade_products/226_selected.png"
+    },
+    "227": {
+      "name": "叫化童鸡",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/jhj180",
+      "available": "templates/trade_products/227_available.png",
+      "selected": "templates/trade_products/227_selected.png"
+    },
+    "228": {
+      "name": "杭白菊",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/hbj180",
+      "available": "templates/trade_products/228_available.png",
+      "selected": "templates/trade_products/228_selected.png"
+    },
+    "229": {
+      "name": "笋干",
+      "supported": true,
+      "source": "Item/Goods/wulinyuan/sg180",
+      "available": "templates/trade_products/229_available.png",
+      "selected": "templates/trade_products/229_selected.png"
+    }
+  },
+  "assets": {
+    "templates/trade_products/1_available.png": {
+      "sha256": "f4fd7742f4c9543519b88fbdbcce97b68e73e7cbc11ba023275cfd2fb6a7e761",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/1_selected.png": {
+      "sha256": "b8a3d46e737e6ac11d3c8196b457df2a4f198b7453cb5d2e018e5c1397b71429",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/2_available.png": {
+      "sha256": "67e35883d474e5f3a3ea8a3305bee445f99f6b4c63c397d689c74387bc81948e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/2_selected.png": {
+      "sha256": "85cf5cc258ac06933c4aa1af86cada8960b5f7dde31e5909b5f78075e4cf7214",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/3_available.png": {
+      "sha256": "808ab42e7897f5265d4ae725d778cae2aac48646d045e7f091f4724e27a6cd1b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/3_selected.png": {
+      "sha256": "4783e47cd00fcf9dfabc83427d001a150867931698632e8608ca6c970b44b62b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/4_available.png": {
+      "sha256": "e6457733c6a4b0278875ff4612fe0cf97a8e2bedc8fc913f9181f9f4ed6181ab",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/4_selected.png": {
+      "sha256": "3322c4acb7b64c43f988d2b4b2e22358051be1cfd0db7d824bef2446cdb9b25f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/5_available.png": {
+      "sha256": "b3be2075536f9ca1d89bc9af3e9651e57e90949d867797314f7780148f4de6ac",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/5_selected.png": {
+      "sha256": "76ec1f9feb1d5f7d40e81203a8c86efe82e837a500d0bcf41fe165dcfd41e376",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/6_available.png": {
+      "sha256": "d817badc64c57b23dfa57ad2da568c7adb06f7b1a9ab870975ddc827f0c8de17",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/6_selected.png": {
+      "sha256": "91d62ed89a7af879869c0bdf2b314283a156f99b24e3bbfb625891b913dbee28",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/7_available.png": {
+      "sha256": "e353042749909505a75b81a3f748d14b6bc3b1fcef94846bfe9c68e0d55f0bcc",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/7_selected.png": {
+      "sha256": "024e97dd8f899b49f37939febb91fe666c798e9ceabd186e2867469a6df2e78f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/8_available.png": {
+      "sha256": "cdec07e6bc5026d047e44cfc733d4dbaec5efe27fa84e981e55c02d71afb0c64",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/8_selected.png": {
+      "sha256": "da8dc107ab1e4f0f52ac52b3d385bc336dc9751669acb402f4bca61b27a4db3a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/9_available.png": {
+      "sha256": "42783ff3ad6808ba2b87b3d0f739fa93bd3cd750ff91afd875e52a939acb7335",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/9_selected.png": {
+      "sha256": "ef35432e793179fd0094234ebf6f8a0f02ccca95d06ab6e2d486b806351a879d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/10_available.png": {
+      "sha256": "7dc7ebc03a6e717443158916f55b462c1df55b0fea696f8003033d3e7127ec09",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/10_selected.png": {
+      "sha256": "034b269e1af5fbbaf0f55305a39e9386ac632acada0f18a28cc2eb7913f2d428",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/11_available.png": {
+      "sha256": "993437db6101c04870534200f3f15351e5012fdb7dcb8dc0d223bdaa83ef42e0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/11_selected.png": {
+      "sha256": "92709270a163231724a4dced0e971fd0a51410c89565ef505dfea781e17dae24",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/12_available.png": {
+      "sha256": "7b765e68740df6b453123dcf5dfe9d4a25040c1f0bcc10952563ff2dbc1e3f9c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/12_selected.png": {
+      "sha256": "590dc448defd62bc60868a55fb438cee3e1dac5a4422adcc3a1d33119c673c71",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/13_available.png": {
+      "sha256": "e97974aac4fe7c1374d918263363d987eff1e996a118ce25b129a97999de8261",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/13_selected.png": {
+      "sha256": "9cbe6a85fe8365fd1399d1f54be83e70b389089f23d1fb4ab1fc55f869731deb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/14_available.png": {
+      "sha256": "32be78d6a37a19398ffef8937396bc0f6b4fc96e5225e69786dcca7ade24814d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/14_selected.png": {
+      "sha256": "ba120e81eb66b7bf3a039cfe3b76ef0a740db04aa20e497f5eb4fad4c1d6126e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/15_available.png": {
+      "sha256": "0465283edc61c6f8cef05c2e622639aaf8d53b6a73f5032e7069e546da78bc36",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/15_selected.png": {
+      "sha256": "5e6f98ee20b9512862014c586d1d5d569da041c4354bdb040786829dd378c6fe",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/16_available.png": {
+      "sha256": "5f60ba53d12d2938a67e4eb4538c6d251143765d27acf6e2d057385902b7ea72",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/16_selected.png": {
+      "sha256": "f490a1473ed35cedfa3384e9557cb47cdaf8ef1cf42a46408d90bcf29f408a18",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/17_available.png": {
+      "sha256": "ee3c46f98c2deb9d82a1b7e7999cc8015c6a0a1ac06bd508c1823d3bd65485b4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/17_selected.png": {
+      "sha256": "62af7975a62766b3e29a7ddf3f92c774cbee5fe9ff05c1eec13146ebf409772c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/18_available.png": {
+      "sha256": "4f1a9ab8070f8bf6ad292041df742818dac976b25dea75c109d8855914f98d53",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/18_selected.png": {
+      "sha256": "bcca8effdbba4a58854b18abb9a7558051373c9fb940dc8f7d08bfde63167d52",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/19_available.png": {
+      "sha256": "3f1a9e5a75818bbd7125531f2326c822b5495ad46242c99298d5938eeb9c837e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/19_selected.png": {
+      "sha256": "4f13a38c5de8dbe3cdd328074fa6b758ade044a624652e3af3fe6df84eea4a84",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/20_available.png": {
+      "sha256": "30e6af3e92c4104b16265ebd6d752fa96b95e0f08eceab238d01fcdb0bbece67",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/20_selected.png": {
+      "sha256": "4b3b25d73b75806a9271144c0d3125ad15ea9b522a27933bcf96443955d0b7d6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/21_available.png": {
+      "sha256": "41fb8916c5e769e6ede601b81f31e0a6c4059f0c1cff2b2114d6218af748ab6e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/21_selected.png": {
+      "sha256": "e667e675085e8c57cc3d0f1ceda23e77afa93b3066bd42b1c3a07b2147327c53",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/22_available.png": {
+      "sha256": "1ba7136e3c2d68c158b57388a8b7ad1145f40dfde8dc4fd33cbb6c59d4336b2d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/22_selected.png": {
+      "sha256": "fb723978d4f2b6ad5e5deb611b46db7d621c2d9da03cc0f1da93eeab93164694",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/23_available.png": {
+      "sha256": "3bb086c75ef1424752413792ce40bcd18cdd596f39dfbeea113c25ccdb5138b4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/23_selected.png": {
+      "sha256": "388a6038b0c9acd095c364a34c6958aac8ad2dadf1c18de7d71737eb31b26e16",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/24_available.png": {
+      "sha256": "7cb90e556b180cb511a912898e11b79b87816d9f2d22de76ef2484f8424f9dcc",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/24_selected.png": {
+      "sha256": "4ab56cd46e33e9e01139c76c2fa391446cdc6c33866c73fd6a55c2a09a00c459",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/25_available.png": {
+      "sha256": "d74149715e867d164f0f3cee0ec2dbe835374cf3b1ddeeeb1cc59c57e4516606",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/25_selected.png": {
+      "sha256": "1662424f2648e34c6215fbe2846c533ee53f2c6a69ad70e8537473072b2e2ec6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/26_available.png": {
+      "sha256": "1328d27aa3c948a986defc58c986fb0d7bbad0723a3b6497631e5477f6f9b31c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/26_selected.png": {
+      "sha256": "495f2649b5661f65d43e8b5392d451d2a76f72a948f83a6d4abe559643a0aa70",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/27_available.png": {
+      "sha256": "1f0e9adea11ca8c9f7996aa1f8d7806362894a29fdf650ce3ba204b3700c916a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/27_selected.png": {
+      "sha256": "d6c8d966c71232358b774544cea782000ae00630231bdd046001e6d301c1376c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/28_available.png": {
+      "sha256": "484a1d99c569afe9e44e0bf4ea616548fdf745073947e728fb03620cdbb4b256",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/28_selected.png": {
+      "sha256": "84e88c4e8c1170989e200de99714f59fa6c6684d8bc781f1ed75343bf679c725",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/29_available.png": {
+      "sha256": "7a47b9a2d8d360a73f4bd7cbbdb25505676c8c99079e8149e8a5c189625127a5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/29_selected.png": {
+      "sha256": "f5a20adb1d3faa3f5c23cdbeaa1fc62df6eaca4224be09fe4bc3dfe2fbb62a4b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/30_available.png": {
+      "sha256": "784f0a72282ed4b4c62176d94c87a60e4c2da8768cd9f1881cf4eae4805342de",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/30_selected.png": {
+      "sha256": "38d5c00605fc71d7052c97b1d083049525652801fdef24ebeb3f9b2283e95cc1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/31_available.png": {
+      "sha256": "e28b6c6988d2ecd82be202943073a3d308e7cf3d9b486f4065e8de44c5641f4b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/31_selected.png": {
+      "sha256": "3c4da5dbbf98d9b1468e75198ceb8fb9af7ed5631686e1e22b954f2f0ab2d051",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/32_available.png": {
+      "sha256": "c300cf479e4312caaf379e6f20642729ede2c2837636b062931f4afb3fcfa123",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/32_selected.png": {
+      "sha256": "4d813825aff658b5675fc37626dabd846587ab15d5809632bc008942189e6de0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/33_available.png": {
+      "sha256": "932092b04afe854af169287ec8097ebce447751a15f50005817746bf193390ba",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/33_selected.png": {
+      "sha256": "82822a88e1405397c92eecf5e1069a75cd5372ca5d9941d44c02695409dad0fd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/34_available.png": {
+      "sha256": "8d1c1bc6adef61cfa426fa16c81ee0712b6f2960d6812feb4cd3cd4d487106f0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/34_selected.png": {
+      "sha256": "86d9a5338d79405462ddb897a6c426a879b3de3e148318a03a6da826182e22b1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/35_available.png": {
+      "sha256": "9e04f7244e9daddd9bfae828629b7e7fa1873fb4e0dd638103fa139be2a27308",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/35_selected.png": {
+      "sha256": "ceb915c409366642477d0373adfa8ff14289ad7a97b5630e42de1e197bfae0b9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/36_available.png": {
+      "sha256": "3722cbe4d313e681bc489d4bf9059820f9d7bcb0102f30d9c54a5cccfe6f41cd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/36_selected.png": {
+      "sha256": "9acb610532e6063e1eb22fcd7d560297a40a561a3c8fc66aaf93313bc498e12e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/37_available.png": {
+      "sha256": "6224b58a094cd423def00eee146b45f600e344207206427ce893a9dddd74e2e8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/37_selected.png": {
+      "sha256": "28f23d67969a9574a4e4d90318e6e2444be27109dec29f92827664703561fcaa",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/38_available.png": {
+      "sha256": "0282f6d69e55e69a7544bff6a89eff449a2f154add726b407e4a2c585f4f67c6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/38_selected.png": {
+      "sha256": "62e096a8a9f02e36afdd4fb8586d575cde6f0916ca38b380833c9f51004c3338",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/39_available.png": {
+      "sha256": "a5edbc151944962ba63109b4a51865255284ddb4803373208b4e9fe5331b7139",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/39_selected.png": {
+      "sha256": "e10814838ae9fd63e34291f6cfdd072f400eda43f897c4d4fe81e82455af12ae",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/40_available.png": {
+      "sha256": "fa390b6c5481132f5fa720773db539d8f8055ba23ebd8689c23f5ae5afaa057b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/40_selected.png": {
+      "sha256": "f5c9d57831c2c4575bf465ecae373015c115bd93c3f0d5c5f47d5bb4312eacd0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/41_available.png": {
+      "sha256": "24d5e520ada0c56ba3efb793d94b41bfe2e8c4f83f6f277a657961c7941804ee",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/41_selected.png": {
+      "sha256": "52093fd367e5852dccbe86e8a7342098dc1222d3721d8b917e089081232dcf4a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/42_available.png": {
+      "sha256": "0b97139d503e03c09de3d7e0340dd51682e510f3c4f1d78483c272e00f817694",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/42_selected.png": {
+      "sha256": "9040d86c058303511aa565f62d6922f85a01a51d940ac56979d16a1778cb7051",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/43_available.png": {
+      "sha256": "a4bd95353cabad6130f74c0cad38dc07b7b6e1504c53a8d663451b296e8158f2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/43_selected.png": {
+      "sha256": "4681722f3dc21cfa2800ed42b0a8bc2d2db762699372c7d58f5a9f0aea9d7a6b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/44_available.png": {
+      "sha256": "0507f605b71262273b94fbfe893397e98fa05c15911c9e6fb15277995861c1f2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/44_selected.png": {
+      "sha256": "380b25b160f6eed603684ab3d137fc2c05c800f612f4046fd97805e03feabb03",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/45_available.png": {
+      "sha256": "10b53cc3f90113460929f30a967bbf02893676fff1cdab270a795c8c90495fe5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/45_selected.png": {
+      "sha256": "1fc937fc9939d9f8a448a0086f41f8cf68b62367ddac9c1c894306442c0b2ef0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/46_available.png": {
+      "sha256": "cf48c851f2b666692f22beb684a819485f0b0f8362eb8a9063d012ca035e339c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/46_selected.png": {
+      "sha256": "5873da2f23dd6fddcb424a783d18d24d73b141afe450bb01901284a124616e13",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/47_available.png": {
+      "sha256": "1473d29e363623167169ea4ed5c8cb28ef53e29a3e39532d6df940b2d499d125",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/47_selected.png": {
+      "sha256": "37517f9ff2a26df09aeaf3b0daa99c8078b10037661fac046bcc563e588d369b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/48_available.png": {
+      "sha256": "3b7e83e2ef7f3ef25ff1d2f42795209213b675a3029a2e9c80349c5d1d3a998a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/48_selected.png": {
+      "sha256": "81fbf00c9aee7d846263adc81c9fc72cda8573639691757d431b001181d5290c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/49_available.png": {
+      "sha256": "cdaefca8ce95412da2f63d12d06f19e71f00d7b35e556b377459cef8f9d8c7ec",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/49_selected.png": {
+      "sha256": "1779996e75263352b86335e01a6ab81615dfc448682def7421a319aea8d3d1b7",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/50_available.png": {
+      "sha256": "45fc35b91338e97a7e2b657fbea0eb7560a8e293103e5f809cd6c7ce10769a89",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/50_selected.png": {
+      "sha256": "71489fb895fc2db6b0ec23f5435fc8d7954e3fa8fddce36e7e648f22932fc87a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/51_available.png": {
+      "sha256": "321735823e0335f67e9914146d713c49226785ab28138d3e832938ec787fff5e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/51_selected.png": {
+      "sha256": "5aedfb357f4d1124cf1bdba57bcca5304bf5d03cb3b5a411a199db8368729f71",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/52_available.png": {
+      "sha256": "9632271e054336f8391a6e8e704fa44912748d6dcbbec18bc45aadaceaf141ed",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/52_selected.png": {
+      "sha256": "202a32633ee7fdf408500947bd4f29001c1f5e677b7695ddaec72c3a4fced215",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/53_available.png": {
+      "sha256": "8b3c9cce000ac62b5f862ea73a85493974b8370bd5f64693281af9b2b6615c89",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/53_selected.png": {
+      "sha256": "14b4c81b56552ecd4044e664d1a5eafc8d1eda9faecc63cbcaab1da6e9c4ad4e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/54_available.png": {
+      "sha256": "093a6e1c0273ee4704fbf3fbfb29c7485a3efcfaa2c925d3c97163cc5dc783b5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/54_selected.png": {
+      "sha256": "64c6d907e1c23ef2cd1b491ab12e31ede56708761cb406c9b9f3610b92a44f18",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/55_available.png": {
+      "sha256": "ca86e89073c0999276030ece0809aee352fcf1e67091a6a1bfe249f31eb43a0b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/55_selected.png": {
+      "sha256": "7f36e4211aea486b9b14168c93fa85e211d0bbb1ce16ef417b6b7edfacff8831",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/56_available.png": {
+      "sha256": "0593cb6781d8877da77a96e1f6c6923629892f4c459721b24f0a6a6ea412fe15",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/56_selected.png": {
+      "sha256": "2429804e99e21e53020a5c94d3d5c16f46c98b2aa0941e2eea3097c374b573c4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/57_available.png": {
+      "sha256": "1ecbde53596cc9752ac39ad21ebbd7c3d3e84230726af5c92725ed221c34f1d8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/57_selected.png": {
+      "sha256": "d31228dd754639e56874671b018ec82c5fe9a47a8887620961aebafc26b58dde",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/58_available.png": {
+      "sha256": "830eaff724c469d2e6c45995f8902ace4ce67f3a8954f22472f91d5484027227",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/58_selected.png": {
+      "sha256": "215c9a259133e4510de0406165a1d9e4fe3747562205865720926a276643d348",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/59_available.png": {
+      "sha256": "7a13846d934c178038f8982bea592ec850e17d043406009d6e6bd917123e0d57",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/59_selected.png": {
+      "sha256": "c7a5974cc84f17c3253e68f79ec8088412a03fc392342dcf5fa4fab1b1dddb79",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/60_available.png": {
+      "sha256": "0fb244b6ba2b39001d045442a6cace0c14a30939a99db7aa8aeadb91cff59861",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/60_selected.png": {
+      "sha256": "ff1fe17bdf9565f7775fbfd0b13ee97dad92085b3fb85ed2fdabba29486774ae",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/61_available.png": {
+      "sha256": "9ee0c8d29afb266b3a717ce804da6866af3d1fb66c0ae687b5a191ed33127fcf",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/61_selected.png": {
+      "sha256": "f45f724529a6fe25800d2fe79db735c3f45271e2d0d6dbb43213d7f7bc4c6e9d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/62_available.png": {
+      "sha256": "7c53e08df84c0604b588b6d490e870c6dd2d0518e82f2bf319091e93dd5d6848",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/62_selected.png": {
+      "sha256": "28346c149ace6407fee58dac3fe762d65e8482019f4d22ef8ca62c131b782fc8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/63_available.png": {
+      "sha256": "bedad5cf135eb540ec18104c5dc0d43e4b64a21fe55bccc50cbdee706255f3bd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/63_selected.png": {
+      "sha256": "9503206ee3982a2f59f6be6dfad37bf576d9110ffedb700b6359fbac72f0ff69",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/64_available.png": {
+      "sha256": "cc1586ad896e1ac10602a8fb1aa38b31f0e21f4a0309fd125ef7a2b9920d1318",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/64_selected.png": {
+      "sha256": "37c70f49eb9bc689d24b210b25b2ac81bcfd60f15ecc22f37fdd57119b01dc46",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/65_available.png": {
+      "sha256": "4c7a2d6f11907f4bea11ab63b6e2ce266437f7c9aaa8bc99ca51802e21a6eb3f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/65_selected.png": {
+      "sha256": "052cc970a4e6186dbf7ec928ac4a4c44df68389a6961916bedf1a5896f8bfa8f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/66_available.png": {
+      "sha256": "425da8d6d770b122b18e57f185cf7f37fa71a82f3d209558ccfe6e2abdd78228",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/66_selected.png": {
+      "sha256": "ab678ba0230c9003e591b4528495f6180cbf5f3f2fdcbf3ca1516f0ace683db8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/68_available.png": {
+      "sha256": "6de3e9029266e315fcf6656e7bfdd7593703be29276e6db641c097a460b01883",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/68_selected.png": {
+      "sha256": "ba3ab113db7a3ebe4cef02450ffef41d25d32bf78bc1e47604e9b0565379042b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/69_available.png": {
+      "sha256": "474afbc10a95e857eb5324a5dd04a8cfc3aea67822d576d37c739bbf5a48607a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/69_selected.png": {
+      "sha256": "6690fe84a1f5e0440647d7b1a8eb3ad1f2fd5ad321389a3b82d9a4ae6902856c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/70_available.png": {
+      "sha256": "c6d1110a2870e7c19c228091157ac20e7deefb6d53bc8973ad9c0829fb03465a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/70_selected.png": {
+      "sha256": "c2c045036e06aa924cd77a848924adaac658914f98d563ff087953aabf4fb747",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/71_available.png": {
+      "sha256": "2ab78025b5b3cb2aefa54f0ca9ab5761513fd7c6169ffd6b8f5a118b22dccb0c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/71_selected.png": {
+      "sha256": "ff3acb01d5c466cb7ebc86d8c62b9bbffcca17f85cbe279523ea2317d74b73a2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/72_available.png": {
+      "sha256": "cfea760d5ea98ce8e81e50e28ad4fb0882b525d3035237351e32eed088f374e3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/72_selected.png": {
+      "sha256": "ce41a53c53bd0f8f458aa62a4e59400c700b9af0199a69fecf3e8d74683c6960",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/73_available.png": {
+      "sha256": "31c77cb9a739617d4849d33152b57cf2a966d2b38dc3d15a184dc2f6ba676f6b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/73_selected.png": {
+      "sha256": "d181ed59785aad11b6f8346b5f0320b10f933b98eba317b54860697697ef52f1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/74_available.png": {
+      "sha256": "87605488e2feec5efd4c554e6a8b0f1b15a3897c82ba1877042f302697f34885",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/74_selected.png": {
+      "sha256": "8b9a632ecd043e0f9196290de159a4a6f0622b04f8886d1f12a5027a6a3cf39d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/75_available.png": {
+      "sha256": "6cd0677a4d9d7046799a0f2d370563d34368aa350a0309827eab0f91c5f44b41",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/75_selected.png": {
+      "sha256": "12fe7ff189e45b78f07dadb0bc3d5751d4b6c438cb847b2c5794b18e4a4bc65a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/76_available.png": {
+      "sha256": "d86f370a783f4db67727089db33ac97a65a3da4e222634a67b2dff124399e63b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/76_selected.png": {
+      "sha256": "492e565f3b2bb7b0356e0de4ab280a94e4e769dd0b640e7969e6d8232edde64f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/77_available.png": {
+      "sha256": "ace6c88d61ed94156758ee70f3c566d8581c8c6ab4dd0cc9322865cdecb427a1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/77_selected.png": {
+      "sha256": "4828f4f73d766dbab6ebc91942267fb5e01985005c033d2c29e864c62446df74",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/78_available.png": {
+      "sha256": "d1852b22ee45efa2d2a0e8b8e3dfcc14904492a11989e1d82dc6f557336b183e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/78_selected.png": {
+      "sha256": "cd36c6deceb1b01da3d195fc31775d812ddf2a99dcc57ada7eb23aa728a50065",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/79_available.png": {
+      "sha256": "f9f7f7dd60800a110fca22805cbf25406542d12a2a031be015ba60d6cd30b6cb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/79_selected.png": {
+      "sha256": "663f2fda6f8d155aa385f2ccf694c790ec16c2ce3ecd1054080ff1add6a8fb6d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/80_available.png": {
+      "sha256": "4e089b15dc99c77e394a1ce4d62d7a7747487adff49a6b70e459b3f8e537fe9a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/80_selected.png": {
+      "sha256": "2fe70189d370e45f7b5f3c1e6bc8d9644cbe5cbf9eef9ad94745642d810e06ca",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/81_available.png": {
+      "sha256": "00d1a9d58c4bb42645f57b8661167e47eefcf551e5df2e41db6ef1f6e20817d3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/81_selected.png": {
+      "sha256": "89960c43320d17432c9cda0b3faf0331116f13dfedbd7d03212fc88a26e07f35",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/82_available.png": {
+      "sha256": "38929c3f37bc835788a6be10fb78a8dc8aa4d239ab2017204ee79480c14b0ae9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/82_selected.png": {
+      "sha256": "693a499df2fce43853545764ba49275706632e5c9e3c9c0db45a210c97aacce6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/83_available.png": {
+      "sha256": "45cafdb6c9fa79ded61501f51b60926e63e573b51ffff6ae577b44d85277dfac",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/83_selected.png": {
+      "sha256": "cbf4b2eb90109484966f4caea40f357dca7b5d2654287b9835fdf1c788c52327",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/84_available.png": {
+      "sha256": "a312a7bf9fb8e3474fd664a9b223b02018e5f7d4fef91028a5325808c08bbbd7",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/84_selected.png": {
+      "sha256": "854ee56f3292612864962eec1fc7dcc37bd9100a5c1b6965e784816c54f6c0bf",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/85_available.png": {
+      "sha256": "f54d0e11b7b5e51f2c53248e1be116e475527d3e05e7371044f10c6eaae9aed4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/85_selected.png": {
+      "sha256": "1e595b60d3d91a3e4428f64651bb7b1e1a720fbffe9008390b266232ddf62074",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/86_available.png": {
+      "sha256": "081939a06d197b02a00c050f923cbe4678d81e3276207be4508405915c682077",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/86_selected.png": {
+      "sha256": "f97af7731436ea1bedf99d6e0cbdbdaa52e1fc743ea54191798c7b936358c6e2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/87_available.png": {
+      "sha256": "731ea9b158c0fea904e41533ad04bad42f2dd2d12cf711403abd04c35777a899",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/87_selected.png": {
+      "sha256": "7124743c3b0f390e5348d2b718d1b94f5dafafade46556999cd6926bfa77233e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/88_available.png": {
+      "sha256": "f2380c52e4ae3b9bb333be6a74c90b45ae3ee9484024ea0a797e3363ddb483b2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/88_selected.png": {
+      "sha256": "1ace438e661df1577e07343d3ba31ed2ec63b33e6131be780561fb0145a48189",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/89_available.png": {
+      "sha256": "3925e847a1c778c89a92149add89fec948743008bd78fa047c11afb96dfab974",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/89_selected.png": {
+      "sha256": "c61783b3625685bde3cbcadc1ccd920a67cfe1f6b6aa318a31dc5661723050d2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/90_available.png": {
+      "sha256": "c25a99c425303fc6766f287478fde8ac945678b32854a23f556ebda2cb81354c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/90_selected.png": {
+      "sha256": "c984b375ea72d1ce01520e0acb81019b2686f50a73563df722fa1a2b2e43d401",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/91_available.png": {
+      "sha256": "de652e11a9dea48eda05a8084bab89e9b98fc81ea1b92ee1e69b3e7be5c0cfb1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/91_selected.png": {
+      "sha256": "6085f24d84c5d1c20820b5d2567a9da1a60ea7c88dedec48fbc1c1d863bdd1e1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/92_available.png": {
+      "sha256": "5f8d43dd83c2b30aedf5787d5c79af2855677d211d3e3878d42456b1a9be8148",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/92_selected.png": {
+      "sha256": "dc6e2478be2938efa08ccad5f00197305778e8f34db975d37defee8581a450b0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/93_available.png": {
+      "sha256": "afd913fb26da66ce1dc9d541d7dbcd30731fb5fe73374fe795f10b6bb36c6cd2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/93_selected.png": {
+      "sha256": "216516d034d059be035ecf3c8c9e5e8f3f0b541aa60225fa4d6c0be909b0a5a0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/94_available.png": {
+      "sha256": "bb79a450668b8b63b86029dfc6d62fe066e90f8abafd4e56787732bb82191682",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/94_selected.png": {
+      "sha256": "b3c6562d15eb3323ac478f2270110709fec3a72e4fd772b77add97b7250a947a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/95_available.png": {
+      "sha256": "58916dba1f304d002bdcfcc109dec31a10ef75832202086da6ae3e86189f841f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/95_selected.png": {
+      "sha256": "b4fe43bc92c217cc531e26f70ada5a7a2d2c1116efa9b6aac344d819b219d591",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/96_available.png": {
+      "sha256": "9c7d1b0d94a5aaf72019e3a6ebfa4dcad4f4de9249f9c34f7f7debbfa3da2920",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/96_selected.png": {
+      "sha256": "5a4c69c8fb744c99c36c9d1f81fc4cfc09ce0698d5182211f142d85078d91985",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/97_available.png": {
+      "sha256": "6cc59c136f687d547abf89a2fea9d39210da09b607cd1ce0453b849940907a2f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/97_selected.png": {
+      "sha256": "927235401b664ba0112244091a0108371f354e763c64de87e40826f7e4917f2a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/98_available.png": {
+      "sha256": "ce9729625bb19d6684145c9d8904da74c1cafa75cd4c2a804108167885929fd0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/98_selected.png": {
+      "sha256": "af2ad2066dc4412ff57499b0b09b9c3a1c1dedda4e3960a396018d0f07816840",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/99_available.png": {
+      "sha256": "6675e137736c99268b1f3ae7174b919f5758135f9cb2182586dc0cf5c3ebce34",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/99_selected.png": {
+      "sha256": "3d8a379800e2f7be30631865503f8e6a578051a2ed033752f2ac2155b926aad9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/100_available.png": {
+      "sha256": "ee817534fdb266db3be342aa655533f0660509114ac9e45f8491c7749b473c25",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/100_selected.png": {
+      "sha256": "f4f54ee854b32c552ab44ad03010d47a1e5445e329f76d84b412882f5c6b6513",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/101_available.png": {
+      "sha256": "fc52d7b373436fc57b18d4e820d751390a49b8c515d99f812ca03491e3bd1bc5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/101_selected.png": {
+      "sha256": "ccd4a841b74cc53698486fd6104de3290784b0d5589eb0bce02b76d04bdabbd6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/102_available.png": {
+      "sha256": "85267e21bcf23f9840c8eec71733793081b283988ccbfe8befe8686ec264b3d4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/102_selected.png": {
+      "sha256": "8d1050fb1fb7d34d7b59feb6413ae1351918a6eacf5cef17372914ffac922dfa",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/103_available.png": {
+      "sha256": "3f9affae50c91b76cd647fcb49a04b4d6b1e9888d62ff9c78f0f0c137fcedebd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/103_selected.png": {
+      "sha256": "91d752f56bd04e0855a1c6b8624b8c460883b65cd311ddc1972657020a0ee2f8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/104_available.png": {
+      "sha256": "e24e2acd04c9e80700949471eb62ce0e2e4cb754d50c4cdb4aee7403c9cfab5c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/104_selected.png": {
+      "sha256": "dcfc14c9964cda3f976f99189863ed79176f2d6f90e18daf2936a17b09e16eb5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/105_available.png": {
+      "sha256": "9c957d30fa2d22286e15f5f5f9e6bf855bd7c4efa9a5f8f5478780a51ef4b200",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/105_selected.png": {
+      "sha256": "8ae87ca71b6299f7ff4f1b5ea28af11836cba2bd075ff07e7d155b38b9f0f788",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/106_available.png": {
+      "sha256": "f572cf630ac1e376a92ed7eacfa89f7c66d6e465afebe5a9716646a7c824ba39",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/106_selected.png": {
+      "sha256": "b34debd7e5737c85840af909f601b5f59934f6105ed93724a032026ae5185b32",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/107_available.png": {
+      "sha256": "35bfd510d53d60c9dcc5aea4a8e34a87c4910f43892f8b73f9a4e81bb8fff0dc",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/107_selected.png": {
+      "sha256": "5220e15a0ed9cbb4e75b510e18c164cc9cda3333cd9c5442cde5e0f5e6fc330e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/108_available.png": {
+      "sha256": "62106f53f0d770dbe07f21a41b4c8c22fff55e1053083a1d54c6d3b3e106605f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/108_selected.png": {
+      "sha256": "cb87dee96d10c2dd12e11e08f181c729203c57df9e807a1c63113e7ccd16808a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/109_available.png": {
+      "sha256": "62f35474d12da0ef6f9d122a71578b71d990b7a00a6956e9d6e1325a8114c17a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/109_selected.png": {
+      "sha256": "30766602c541f2346cff9afa623a20fee99f97e80f5c8a2fd256a7f50b564e0e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/110_available.png": {
+      "sha256": "f806f338d1e7b43f4c03484d2ebd0f9de44a814e9f7003ccda9bcf430162b832",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/110_selected.png": {
+      "sha256": "477afac610cd9e99642c7bd9b1eda121cdebdb1bbdd248d494406c8cf1c7c710",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/111_available.png": {
+      "sha256": "005653fe44c8d61df57bbcee9ced6596e895c88ceda85adf84f571694ffd8d7c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/111_selected.png": {
+      "sha256": "4d3e45e180027374498a81b7c44205dd6d0a2af5b2b14b1fabfe3f888802a7d3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/112_available.png": {
+      "sha256": "d88cc6036c7b0f3271781387cf3978830c0ff7660e1aeb9dd9da5e45d677df1f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/112_selected.png": {
+      "sha256": "b65b178a997bf2b821ddcffab4937ac3312502c157aa203e05294679d485a0da",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/113_available.png": {
+      "sha256": "417e065c48fe19e3342ddce03b35cb2cd4d2e63b81b4f9770776550e6bfe8757",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/113_selected.png": {
+      "sha256": "7d73eee5536fb2d77e8597ce376e01096204dcbe39dc37a0d6b307f7a3fea946",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/114_available.png": {
+      "sha256": "3395abaf04aaff01bc2537e4aac823a801251f52f4cbb7c5b9d7b3dcc9970844",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/114_selected.png": {
+      "sha256": "22e6d5288828e83a09c835f1bc589e695d5e980f268eb536e9c6cae24758de67",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/115_available.png": {
+      "sha256": "a92bb1c30f5506eb657dafdcb7d2ed2187d6021a3ad3e73ad81ced63aa4dee83",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/115_selected.png": {
+      "sha256": "9071df1f347b5d793b02dc18b2ff17b73f4f527de1168d647dcbafc5ec55437e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/116_available.png": {
+      "sha256": "dbd56e240de2a11a4622214c24667a6cb5b0e64ee860132d8fc4fa548c8c7450",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/116_selected.png": {
+      "sha256": "923d9b4e0b34217d4146b65e82a1efdec9e46e9f75d2517e9408b44764f9d4cd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/117_available.png": {
+      "sha256": "28214eccbe0608d97dc3be138834cd28c31983d8d516522de393ff9908d03799",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/117_selected.png": {
+      "sha256": "d70f17bf379947b8a29073b9e4874ab90f151383dadfe1ccf7306d000c7542cf",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/118_available.png": {
+      "sha256": "34bd93e73b8d95155f2d0e7a3bd3f6f6e5b5ea6e82b31a965cd945fe416f7735",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/118_selected.png": {
+      "sha256": "c98f630ff047d7705ee304b2ebac981c3cd008a416186b3627f05f64ddc8eee9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/119_available.png": {
+      "sha256": "213f7905823a0fcc11797e1bbb904ab673b8edb7c8f37a9002fdf7a3180de56d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/119_selected.png": {
+      "sha256": "16ca2f8681d26bf82ccf98af224cc75509f143613e132867fd02b3559457f9e2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/120_available.png": {
+      "sha256": "4bda6e642469dc26d465f0041fb1c5fd731541727f156aa0dbe07569ce40972c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/120_selected.png": {
+      "sha256": "9c3ebcab27f8320d4fc4cd33fe3ba5d43eed978f17631a318267089232b962a4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/121_available.png": {
+      "sha256": "b7bd182fbf87bb75fc62f7fa73593765acefd959d89bda0129e0c4b2b5251583",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/121_selected.png": {
+      "sha256": "09c43e313cc3749e8e05908642ad713b9faba862ec0fda494e673fae60f8b826",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/122_available.png": {
+      "sha256": "238565d33f7afccc4786ca5e58ae1ee415aa27036ad8b93cc4cf0e51100a32d9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/122_selected.png": {
+      "sha256": "f3aed9223d2a363550e240925054e0f39beafe6c412f14206a9f2e5d41d2c5d5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/123_available.png": {
+      "sha256": "7607fe13811a90975337979bb5540a3e5bb1ec3eba22d57855225d9ef1de746e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/123_selected.png": {
+      "sha256": "45ded87b5460ae546e1d102d927ae7e48f94682928e7fb73a03e501dcf29cff9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/124_available.png": {
+      "sha256": "f35b8a78f68b624c67684e9716d080c9507f472d1ae97357032efb6176b66548",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/124_selected.png": {
+      "sha256": "f5061aca234663e1b3639389a3dfd1958f7a44702355ad8c489c9f43e55a5fd5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/125_available.png": {
+      "sha256": "1a06ac403da369c8fa363422e678f1af0b8eb02c3a2a28a51cbee2b751695122",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/125_selected.png": {
+      "sha256": "13b226ee0e7070dab07685f233b842d3ea2089a451d9c7dc30e7b0b0057a857a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/126_available.png": {
+      "sha256": "6166ae854a408c0cb61f37c03c2a4e3ef4cb996adbbaab8ed40b9f8507238629",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/126_selected.png": {
+      "sha256": "243636a330f01b27917de1fa20f1c17b2fc70a10b34b2487555cd298f0a4c6b9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/127_available.png": {
+      "sha256": "7cde9817459132ebeb9a477531fa87f2bf1aab5cca40e80ffa222e16383c4d61",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/127_selected.png": {
+      "sha256": "1d67af085ec3f5dbab1b6e9127d5b83b7946df2872e769147e32a4734100d772",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/128_available.png": {
+      "sha256": "c90de78076133f50997e8a0a87b28d6f4d110807bb8999bfab35f27a2b0717b6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/128_selected.png": {
+      "sha256": "c9beb96063138397c4e7b45ef860d248cb2cb21fe86ee0cb886001ce2b62be8c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/129_available.png": {
+      "sha256": "67b42724df29052e6f90c2c05bdfabbbc0597c2fab6f810556dc063a037f47d6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/129_selected.png": {
+      "sha256": "b4ca461c52ad27d6568081911ae8e3902a042732c29a9d885005a162d28f9e9b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/130_available.png": {
+      "sha256": "6d8acbb2fd9dc74273aa2a58a51a10f62b262fd5d37ae5c72e1bc6b4be688062",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/130_selected.png": {
+      "sha256": "16176f4aa6f5c2292b6b7032d52317f9d1c21e2d3ac8d323f2bc7f096154dcf1",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/131_available.png": {
+      "sha256": "e7152185fe391fe0d3bc18ae897375d9fe30364450479c28daf38b65ae645248",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/131_selected.png": {
+      "sha256": "22c37b18f35067d36495e7cf1ed3dfd717566d8a4128c0dee0dd5fc021388e19",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/132_available.png": {
+      "sha256": "39523715dccf393714b8367f0bbb1f4a750a70f39d61735de67b391f39d95279",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/132_selected.png": {
+      "sha256": "907dd0696b32e8e025a57d06038b27989bbfa433149b0345a9b3f232a289b7ff",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/133_available.png": {
+      "sha256": "7f7e477fdf9c5a92de6296f465416e67d6a594f8149809fdc67c0b24ed35aa2d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/133_selected.png": {
+      "sha256": "40871ded0b2201ca83875fa65ff554028916221d1b000d7d58695ba431b1e6fb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/134_available.png": {
+      "sha256": "7ff003101aa15ae69eabe8af5ca9df389ac3b50226543311ae551821bc736192",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/134_selected.png": {
+      "sha256": "5c3411ad7dc3466b61ee28fa361c5d84f6176eace3942f716ca7c1e41859d3ec",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/135_available.png": {
+      "sha256": "9c5bc9fa66dfa5fd36b1cedf807e18555631e68984bd05d98dc22dcc42c7e26a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/135_selected.png": {
+      "sha256": "12315b744d7348b2a88896cf2fc5e22bf0642f27570357edd11c779f002497db",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/136_available.png": {
+      "sha256": "4b3458a955188c587334890c5f428558af612d3aba38e7e3b6be09c1bab8cd7f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/136_selected.png": {
+      "sha256": "3017da75a376d98be384aebce98c5ef017b7c51986f91bdc947b36097cded088",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/137_available.png": {
+      "sha256": "404aa119b86dde44f8617632c48b27baa856836df942ed9db6ddbae0b0210a4b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/137_selected.png": {
+      "sha256": "820c3c9e0efffa0045928289c63b1132574111a3e9e6b456565a2fadc35bd48e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/138_available.png": {
+      "sha256": "4d44d07bc7897a1ceb8d0e15657edd712b122b7a4277c51b3e71538c599fc583",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/138_selected.png": {
+      "sha256": "f6cab651bc3fbb337880b895f5550192697a53f12c6ef6c20972fcb688113632",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/139_available.png": {
+      "sha256": "c387f0a190d82a4f63d4cd33d1ad6cf4cb6bfe92cee1af6fe9517e953aac6339",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/139_selected.png": {
+      "sha256": "3d9685b62cd87101af9046c3648bcef0addce15522bdd6820659bf6379826947",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/140_available.png": {
+      "sha256": "b9723bb00b502060b1708c7b0af02ee8814ace8cf487e36488c9236118970335",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/140_selected.png": {
+      "sha256": "ef3587df1334b3e5e75064eecb24fcceabc79251f688d6b15a2328ab5748d042",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/141_available.png": {
+      "sha256": "f68ae20ec2abec359046fdd4962cf5a7ec0b61ae293309d914d4a640ad40283b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/141_selected.png": {
+      "sha256": "a3b061e4c3b2095d1a0393a3887b4f2854f68f1071f5d215fb579ee62aef513d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/142_available.png": {
+      "sha256": "09a5f95f7b8fd03c101535c66cb84e53d2ed45bafc6b1e8c38fd915afb640b6d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/142_selected.png": {
+      "sha256": "9cbcf55b4543746d2768431d7213ac55eda5859f950cc09231631c5ecb3b7cb8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/143_available.png": {
+      "sha256": "5d00d91523ed95138f50ede1f0f99694183f8c34ced405c51a4bb6f000d3324f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/143_selected.png": {
+      "sha256": "aa453ea2cf479253789a566027c647c1f51c496fa9295d95f0a8ce9a9027823c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/144_available.png": {
+      "sha256": "28e515ae5db2e8b819efcf6362609bb8d1de1fd1f6d66de7e2fc6c6e03932d8e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/144_selected.png": {
+      "sha256": "fec1182756bbdf50bdc20d5bc269b10517ac9737f7b59402128de4404c6743b4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/145_available.png": {
+      "sha256": "be3a680298931e1bb3ac933ba66c5dc6f690f22ecb1dce2767bae512bcf4359e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/145_selected.png": {
+      "sha256": "beec49603a04d3dac09c7de9d91ca172714ba67f101b54e303beff879ff6032e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/146_available.png": {
+      "sha256": "897b0e2e7e73211968982a33d7b13498845cd35f14f1526045de33c0f4bed675",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/146_selected.png": {
+      "sha256": "af5afc67c1e8ccb00a4806c2d5b889b5fd7451f84f66489634d9d51244314f08",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/147_available.png": {
+      "sha256": "4f7aef5d962b3016ef9694b88ac2026583e5562accb708897c27deef5796c72b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/147_selected.png": {
+      "sha256": "6fda94b99a1f865c82f4b3d6c9ab33533c2b8485847a54381c7be61adc4f3eb4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/148_available.png": {
+      "sha256": "8d221e3f801dc6b7dcd1b512ee3a98b37ce9cfa404c35047b0c3479626e0a418",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/148_selected.png": {
+      "sha256": "b0484a5899830a27695f95fd3e0a98dd5fe3190abc8c6a172badb52fbc0d5c83",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/149_available.png": {
+      "sha256": "baf0617750fd0126f8a1679811957c9176c871e9a0e9674cb1b101c21c8f9c69",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/149_selected.png": {
+      "sha256": "fbb551541bedbb6ee18fb33b00ac103dfaa60ee8e4fd17ad0e1078ab86c435a8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/150_available.png": {
+      "sha256": "676b82c460d0f0752e2625b07103286070c27c343e42f44546b0cd2e0d377563",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/150_selected.png": {
+      "sha256": "8826492f7292036ec1d22d0ac873a0c244d8bda33c651f6fc91a168834b720c0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/151_available.png": {
+      "sha256": "a48e56254b07c1100e6059c530261e27a210d71cb77814360d83f6bc3a589829",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/151_selected.png": {
+      "sha256": "fbf2157788e79f7c4ccdc51ce9b8d4b8b4458e02c827b5cb1c02dcbf917839fa",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/152_available.png": {
+      "sha256": "f702b7581f4fe6ea35b692530f10ecc24e2f8a7557d661dd63c5cfab4b0dcd3b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/152_selected.png": {
+      "sha256": "48e5252d5a2808f597ebceea1af1203c5a5a111666140f5b992c3cf79561118c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/153_available.png": {
+      "sha256": "2e21e70e3bb7dc9a0b5e75acce1975a7251fbd5b3683b02720fdf0bf8c5bcaa0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/153_selected.png": {
+      "sha256": "bcafeab0b9a7583bbbb638968b9e1761d6d98fa91f11d37a2421e1d07aedcf88",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/154_available.png": {
+      "sha256": "df9e4cc55a4630f13fb1a71520b3b7ae3bbffea1e3a264e09311b23b8a6f55af",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/154_selected.png": {
+      "sha256": "fbce8d9f2c4c029d663f869507b68c5b85f3e30a9c575f2d2859edb37cd851e8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/155_available.png": {
+      "sha256": "bfb33caab6cebfd58e1cc0773094c46b2e7c95cbdc773d833849da32ff4c8de3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/155_selected.png": {
+      "sha256": "1f1fd8caba9cd8013b39e327b275b5a80b07e22506bad841ab488e2cd8f59366",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/156_available.png": {
+      "sha256": "bab5135554a679f37406f9f45fecf76cccacda0e0a4081a3a8241281a449a5f3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/156_selected.png": {
+      "sha256": "c3fbd472199b93a8d2a38d3d04f737485136a4baf0de6ec5d540bef97c193bbf",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/157_available.png": {
+      "sha256": "e4aa51fb780df86dfbdbbd53546c9b9109be81066670165c0a98cb1da0233b81",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/157_selected.png": {
+      "sha256": "991914e3486e0dd70b227b3a200c4580ecb6e914816adaca6042c6a270f655b8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/158_available.png": {
+      "sha256": "8dcfb6383ca428b39ce133959352fc179fd2b7b7aab38d94d777bf9364a21681",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/158_selected.png": {
+      "sha256": "6fa048cdd00484e8f11e535041538d187bd698bcb44a2753fe4bea80680d2c91",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/159_available.png": {
+      "sha256": "3c484845f0f73b921ed9c210ea4d73b726a942104787a26bba6d7ca463563660",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/159_selected.png": {
+      "sha256": "e5dd9897a1a31ffaa2c9f88360c3cc5ddf81d8cd542185a4df07bdc8dfefca3d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/160_available.png": {
+      "sha256": "bfa24d181148600af7288eb18dd424aaa99679eafc8adaab1d3acdb7d99d85f5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/160_selected.png": {
+      "sha256": "18c80724eafd561bcef106eb2c175f3042325daf54ff0a891ce4de697c8efc57",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/161_available.png": {
+      "sha256": "f56feee8efd0877dc122ae6274edb6a8ed00d5177b65b6f947322b6c1d001fe4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/161_selected.png": {
+      "sha256": "3378e0152297901d57d36aeb5cbdc44a2de04f47a951463d36d762509fbd26fd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/162_available.png": {
+      "sha256": "9f42d2e50aa5881edda4f9970f205b451e501a7f3f608943de958dfdc0d0c11e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/162_selected.png": {
+      "sha256": "973fabbb02756c468345df4cee6b58f1ee091f6a06bf28eca111c91c1d11b605",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/163_available.png": {
+      "sha256": "06b2b98b13b07a992de03597afe7276308b05ed3033dfcc1468250ff787c0e02",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/163_selected.png": {
+      "sha256": "715e3331059e2e9d8712147c9f82df346bf538ea32b71a3a3617962f4dc9ac85",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/164_available.png": {
+      "sha256": "254ae9a3cc6f05912654ade272f4e325bbf92a004a5729a0bd071f2e89fe1e3d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/164_selected.png": {
+      "sha256": "c018243aed3d5816b490d500564ea3cefa05d3a89fbcf293deb01c6536447285",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/165_available.png": {
+      "sha256": "96a257d55b28d58d60e999aa0ef98e09cb03b32f6842a8724a5bc338c6b66d53",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/165_selected.png": {
+      "sha256": "6ed9637d379e5a66eaa92c0426fefc4fbc21e8c177174de368233cbfb2df66ed",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/166_available.png": {
+      "sha256": "b24d57e60b2f5483eb275f64c5e0e975abc7a984cfb7a449546245fcd74d3e52",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/166_selected.png": {
+      "sha256": "6f98dfe1c1343d202c9ff1c942b4d326b0bc72f3be5bff7190b2e90d018060c5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/167_available.png": {
+      "sha256": "600c1440a473498150da7a95641ed81efa979143dc02425aafbc961cdec099f2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/167_selected.png": {
+      "sha256": "b2361e603f6c380ce90424a0ea2bc15b1bce38fea6a0794239fc7bf8e98f3fe6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/168_available.png": {
+      "sha256": "336c8e66d520943ee1552efbb2531c1bf7b7a59f5dc58acc3e185d50df47bb96",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/168_selected.png": {
+      "sha256": "28863612a327e9027dfb71e16bed39f420b5d25545eeea077c951f642ea008dd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/169_available.png": {
+      "sha256": "2b90f7097cab23dfc237afadf4ca8e846f75c502a4e777c9a355dc35c95a1c7f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/169_selected.png": {
+      "sha256": "70a5aedc5df8da76b216d9c378d4571653d6036f9a9fa07d2bf8978ee2c02b13",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/170_available.png": {
+      "sha256": "474890812ea6b6daffa9b067bd84b17c4b60967bccdcaf472358e08a6dbcd154",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/170_selected.png": {
+      "sha256": "6c118e958e3c9670e4111b9e3af44df98e28cb40f8b0102ea4e8a252ca1c8a96",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/171_available.png": {
+      "sha256": "ea70736d1239099ffb244894e3128a22a8d78c44298698005f497ce50f27b2dd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/171_selected.png": {
+      "sha256": "1d3eb4791bb128f4f2dbcecdb3d1a5e5b25d8dc4d9bee8da95d5eb21796cf3c4",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/172_available.png": {
+      "sha256": "ae41f229c5ae171e69c97914340cee607f80e07b72b2786c87d7048269484e61",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/172_selected.png": {
+      "sha256": "35aad22e03ff4a08a7dfff397f6261f7b34a5209993b6a368df58023d0681e05",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/173_available.png": {
+      "sha256": "f69b2db825586337991b5ebc8535772d8f2d2455437766e42ccdd209183d6791",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/173_selected.png": {
+      "sha256": "c8433448d996bdce72a45619e8aa56e8cae381e85d0ad84cdbfc2fa1a0a0f1f0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/174_available.png": {
+      "sha256": "c054b57d43dafa9b43afed3a92bb2eb4e7518d027a17fbc840b3a106d1d40fc3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/174_selected.png": {
+      "sha256": "b38f16a0382e6cd15db9d590e22ebf5e8dca6be8d97ff050f09490caeb5c885e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/175_available.png": {
+      "sha256": "ebb5260bee62dd9b0a01500606dbdd5bdedb3c80e78f311586689564345a9126",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/175_selected.png": {
+      "sha256": "403e11b63814380858535d0bf7110ca274da85ea761d5ac74c81ee94b2f0737e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/176_available.png": {
+      "sha256": "7d64d40b29cfdf5efd638eb2c0a1241cde7a6999aa80027db81dfac3b59bc5de",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/176_selected.png": {
+      "sha256": "8b986c06195312a4b521f617f764b4ed469c884b122ba2f0b211a62342d7ec60",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/177_available.png": {
+      "sha256": "098af7112121c1943787c4a042df4c7aa827250d933e3f07e901dbe82e1fb3b8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/177_selected.png": {
+      "sha256": "5d28cbdcdbc64056d41eef99b810216f6877b940efbcfd42e79507a2a272c72d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/178_available.png": {
+      "sha256": "cefa8706f3706119157bbde7a5ead6d27a00f2c46defa15faa3972d818465f21",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/178_selected.png": {
+      "sha256": "4857228e0d9875930d366f2cba8d68afd98a62eda5c2538fbaed8c75d07f4a4a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/179_available.png": {
+      "sha256": "6cca72731c5d086f47fa9e833d8cc0da82beac926d6769847f492dd64e7e024b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/179_selected.png": {
+      "sha256": "ebf3cd0462ac32485359007451f96da0d8a5672f976afca9f0c603237949b60b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/180_available.png": {
+      "sha256": "63f79430860dc2f1b35a79e34ff1373cfb503bee2063d3834633260275605892",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/180_selected.png": {
+      "sha256": "668480886f85b70f5252eaaccefdb81416dd8d803be6edcde9af73fcf4a28bdb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/181_available.png": {
+      "sha256": "479176b7acd85a2d008a05bfb2f56d6487894f2b1b1972847e190161a6282824",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/181_selected.png": {
+      "sha256": "9ec0134772bac2879b88f44f0afa0311b729da5b0b162e660a44e6fe1b54c155",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/182_available.png": {
+      "sha256": "25fe059229de7847c4daa915e47f28d12629b4a2e34e8851c1cbebd450c30614",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/182_selected.png": {
+      "sha256": "ad1ec6e74065c1914b4dd6b8a4c9e2923caf0b73fccf44aa224bd751ab765360",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/183_available.png": {
+      "sha256": "bde2eebc30c542e159ee301f31b478459590b5de383dbaa1bf5f27f4ce0e8d32",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/183_selected.png": {
+      "sha256": "e21598fb175d45f61dde241c745452d9e7f4c3b0dbee5e37f3c2e79181dc9f0b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/184_available.png": {
+      "sha256": "51c1bca3fff9d21e4dc41fd61f14587140f3cd1a0596702e1cb4fc32fdc3b4d8",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/184_selected.png": {
+      "sha256": "8853d4d59beb1cf059204ad38966ef96c49ad87f3940fbcc2df0e6013e264e51",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/185_available.png": {
+      "sha256": "31ae0e6861456274db8a30ea9b925af25eed956355fecc9b0632c2bb92077e60",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/185_selected.png": {
+      "sha256": "963502ac5a3874334c73a7fa84536a4a73ae0c454a4adcb2324426313a270a77",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/186_available.png": {
+      "sha256": "6e086af113cc332e443dbbde7da1a49d28a87b188aee7746393987c644e9a09b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/186_selected.png": {
+      "sha256": "44bd9af02c55fe20b60223d86a3f602c461c1816e8f2aa692271d330b9be1207",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/187_available.png": {
+      "sha256": "7e47b9906cdfff06e7508c5cccc3b486ab4c8b48f781815df43fb6d968a6de87",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/187_selected.png": {
+      "sha256": "e16d7c6c825b2d85c55dd6cd27fdf9a3d99b627d86e4e2f01cdd6cf7b8465350",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/188_available.png": {
+      "sha256": "6f815a04df48201803b2676f72091cd093d47773e7e7d385142518b34e86eea9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/188_selected.png": {
+      "sha256": "81813c20796541658a778ef6ec39d2c7ef62a0536d56dded0d31a9eafe523b0b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/189_available.png": {
+      "sha256": "1ff63e69962f5aae2732184cd91fafe07944c1dc93e451b11b228d207b12c138",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/189_selected.png": {
+      "sha256": "71b419c81f669b4eb501450e05d61100293375e6062a2b1e8c02f0fbc9d06706",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/190_available.png": {
+      "sha256": "02d776157f8580e33ddee2709e6b0496af793843d934ff6598db48ec38142fb9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/190_selected.png": {
+      "sha256": "f1b5cf45a898e7eef52cc748cc04daebf44f2b1efb16177ea709ac0294f6d56d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/191_available.png": {
+      "sha256": "0bdfb46421065b5951c61e4ca2e4690d8ecc22d6ce65a927db1bd08fa4ba21c6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/191_selected.png": {
+      "sha256": "b6c3992e582015a8538de1cdfe84a613eea0b60e7e9a887392a335cbf7995317",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/192_available.png": {
+      "sha256": "c2edb176eaffb63e9f151c10eddb16e264e8c00feca8236cc3e0de7f89240993",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/192_selected.png": {
+      "sha256": "5bd3174a9b4e1bb6811c1c41b1f182b895979eed6435493a86b730cc57574d4f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/193_available.png": {
+      "sha256": "ea9bd1cb272ab3e899614ec9a4ded35b4ccdc469b85b7bc4bb26236bf2debfea",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/193_selected.png": {
+      "sha256": "d38b3c101d3849add22c3f304cec35644b024e62d9880733e8ad226c0e70f9a9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/194_available.png": {
+      "sha256": "9e67e3cae27ec78cc22a1576176f3d8b9116becbf29c4e552600a7799979aa1e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/194_selected.png": {
+      "sha256": "ddc7dc8ef7580896000394562c7f8f293b51fcbb4410184a9e69b660c08e7489",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/195_available.png": {
+      "sha256": "8229a4b990cca5ee9e1687954e7ee25e213e3defbef5588791c28278adff335d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/195_selected.png": {
+      "sha256": "4b5acb1fcf5589c74d3fcf2d09e8f1237abb37d5057d64f79f6375e1c3e9c937",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/196_available.png": {
+      "sha256": "464b1ffa252bfea64de3209d4ec09d6e17a23cc8719eb0f1b13429493ccc7ebb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/196_selected.png": {
+      "sha256": "0fb3346beeb133711af0ee4236c70692213d043514b22a70bdee428c8e29eb79",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/197_available.png": {
+      "sha256": "36b1bdb566c62551c54fc296e3b797ef06706ff1808a7e124de69d4f9626bb11",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/197_selected.png": {
+      "sha256": "8803decabdc496af45da4352c4bcb8d67dd5cbb356f74d16d7f9c86bd558880e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/198_available.png": {
+      "sha256": "15bf6a9580ff6e1a819baecf16421477bef9f018b5e0f9320551bc619617f78c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/198_selected.png": {
+      "sha256": "070609e8cf8ab1b181cb7860b96f2bfb4fe0bc52a188bb8c25ecc2dcbeac01c6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/199_available.png": {
+      "sha256": "0074445d244d21aeb1532c6af76885012eda8a1a5e08b7447fcbd7f2220c4ad3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/199_selected.png": {
+      "sha256": "f69d6cefda6717a147934bd2884e110cbf08d3eaa195980467784187db7930af",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/200_available.png": {
+      "sha256": "0b8411df013e79ab06789c9253ff09c3fd6192ab91fd2e2396bcafa4885d997f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/200_selected.png": {
+      "sha256": "11c808a80776b922d491a80059101a66588d04f98f0d4758ea58468bbba7c6b3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/201_available.png": {
+      "sha256": "b44206ec1d47ccb4138243017ba2c2105bd66aa68896244333bcedb88458b158",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/201_selected.png": {
+      "sha256": "a01002efa96de6c23c18ed5d4b4c9e0b075e35d74ac5095abe8f3ae3b3ed5bcb",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/202_available.png": {
+      "sha256": "61ef0f4e3db893165935ec2f638bf0cc3bf6439e4d9b3757669aa8d647c5a783",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/202_selected.png": {
+      "sha256": "4ec868daf14315dd7c9375daadbd65821b5d7a90045db89edd5f726c8a634b32",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/203_available.png": {
+      "sha256": "8f34c526b9ed77209604e9d72842e94268b51980ebef94a6a0c10685cc485df3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/203_selected.png": {
+      "sha256": "a94143fb45038a2a28b939398ca498296c00bc5379e06a066400b08e5c32d461",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/204_available.png": {
+      "sha256": "ade84f0e6b1dac750ed997740dc8688b216ead90bb968d960b53b81441d9da0b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/204_selected.png": {
+      "sha256": "7df79acff939d514e5c0965cc7dcda83fd974c8f687c21ed42edcc10d53eab8f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/205_available.png": {
+      "sha256": "5c82e3147187041d9fc51cf2bc3d23f6cbeb2ddfa5544cd738a4ba8fb75a796b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/205_selected.png": {
+      "sha256": "292c2d3d9f85d7ea340670cf20a1399ce5ab600bfe32e589fc41de0268fcaa28",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/206_available.png": {
+      "sha256": "0a462a956b8b090e64825abca77a808e2774929c4c7fbd590968a4c82857b9e9",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/206_selected.png": {
+      "sha256": "49d5d730034fa7e06b5fab0d6685d3612bf4baa7af3e77b1b5d952af33780edc",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/207_available.png": {
+      "sha256": "c326eac36cec9b55b2f46e3feb73ee3b68feb124680c301e2ef1f31266e9be80",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/207_selected.png": {
+      "sha256": "ac24593d223cf9e8b0a6170df814ecd7cd73eecfb6e0d20ba4e50b276fc32bb0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/208_available.png": {
+      "sha256": "89f66b3539b9b52db35c0391a04284e147c89b88d7f8813061ad6d27064e5623",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/208_selected.png": {
+      "sha256": "37e6c692a16acfa641d3f2b96b29dec630093555765965a2d0985e541e83bca3",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/209_available.png": {
+      "sha256": "a9342409616ee22d9da45affaf9b4469212188f5eff0a42f52991cbe1af8f61d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/209_selected.png": {
+      "sha256": "5e87ac5e845a02c9ed9c1c1f03ef2fa5b3891bfde7b1c0da5be7ba5a8932a6a7",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/210_available.png": {
+      "sha256": "eac233f15da7f79ede1814a5fe32f977828a3a5794e9e28671795e3732563550",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/210_selected.png": {
+      "sha256": "ad4c81b1e2ebf6c1b5d79e18cfc77f166460c1d96ba7ca77827c146e5b2397ae",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/211_available.png": {
+      "sha256": "502656f0574b56c91e6f1b2021aed524ec2e9de676ac77d5d9c18102a486f321",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/211_selected.png": {
+      "sha256": "d2cdcdba618182d7d5296b74c0fff2a15a4e3fa16b9de9e4e2acf27290103dce",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/212_available.png": {
+      "sha256": "b433241c494443c1b6bc9d58a64901c349a42a432f527fba559bdb90ca42575c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/212_selected.png": {
+      "sha256": "ad37e540c12d6fecd8fcf7f265fdf4aa0c40a7d01b9c3a8ff9da7b342e821954",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/213_available.png": {
+      "sha256": "06384a6e8aa752fa8505ad7752ba7cb6accfbc3245709c10ae3669f7975eda7e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/213_selected.png": {
+      "sha256": "5abf44bd68e8f037a439f5759855d8b91ef373533501a27823ddc772c29557e5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/214_available.png": {
+      "sha256": "207792f5087606d2c97fd7eef31be921f052db9e42cac071d07507c1691dae2d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/214_selected.png": {
+      "sha256": "e76b874e34e6cc7d7c79854ba4caa0d7ccb748be4e1fdc21d05d25c26663432e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/215_available.png": {
+      "sha256": "16394d62335b366fbabddcb119209d18b2e56035a85089d3464e0512454ad386",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/215_selected.png": {
+      "sha256": "e16539ced0820daa70d232e28cbbde0aae4c28db4a41ec7a4d2c95c5e8c194d0",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/216_available.png": {
+      "sha256": "823e017b799386c3c34774010ef69402d417d86f18e9947a3d2652ade550e5ce",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/216_selected.png": {
+      "sha256": "44a2cea35e7181ee44cac95a78332ccbf6c810367fedd4434eadd06943ee679b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/217_available.png": {
+      "sha256": "a50c8417b9d223f07dbc0f425d4300e1ff1d8419b488adc84058d6fb772a269b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/217_selected.png": {
+      "sha256": "07c4f97a442fdf98530679b1b989607350a43d0f74f0a81291d2c66114516d1e",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/218_available.png": {
+      "sha256": "e2f466067868cb53e81e409a5a8019ef68519dab55f357a5ddc80597469ead85",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/218_selected.png": {
+      "sha256": "5f92b5f19d60df182364ccfc9f70510b7ea5cd8a2d4c914ed1315b5726642b63",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/219_available.png": {
+      "sha256": "624d7230a0c9819565b98df874c0ae98c6616996e0c55a3d6bab792d11170f35",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/219_selected.png": {
+      "sha256": "465bf7b6c3119a9d44e94ade369b3be4a8709ac2f5e9381e331c2fed4940831d",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/220_available.png": {
+      "sha256": "4ce6f0c7a78aeb08781c74b51afcf08a0eb5ae258868329948f80c6a0e80081a",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/220_selected.png": {
+      "sha256": "0f0791737ea67b94bc42d4ccc6cb5b3f6e436da95df969b99e822689eec45123",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/221_available.png": {
+      "sha256": "0b182f4d83b578d1c890c65db9de2238a84fb8f84e39fa73627db908af536545",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/221_selected.png": {
+      "sha256": "bc3266ba0b81bc894942d801ba31c439b29f7c57f19317c810f6ec67e629596f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/222_available.png": {
+      "sha256": "3fec20608ed66c95aa8f0c15a62b01a333f5251a620b5ba13cdd47020a4d0360",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/222_selected.png": {
+      "sha256": "9d1e0caf2470a6db677388c7b339369ff749458c35e39c2f73516da5ec344ea2",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/223_available.png": {
+      "sha256": "bee5c44eab246e268cff59a6b4d83cfeec1421bef88c0c2702afe135b6d08a8f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/223_selected.png": {
+      "sha256": "6f7d531e2f45ca3fd4bc56f406663cf4fdc56e2884432b91182b0c0aabc6e425",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/224_available.png": {
+      "sha256": "e8068967407a472fa1af71ecf39751eec3abee273b9969367a4c3d4740b0d1ae",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/224_selected.png": {
+      "sha256": "740d228cd02f42addb013b9aefccce297edcd6cd6a81dc2d70716dcb660303fd",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/225_available.png": {
+      "sha256": "c98454931c36f5063530c6b215b28a1b495687cd3f0262ea1812a9429d73a610",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/225_selected.png": {
+      "sha256": "6970a6012cb06ccb9d36b014855d154dca9281122fb5d67277e0f80a706d27d7",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/226_available.png": {
+      "sha256": "c110565ee26c64c3700edbaf2f72305b238e6ba5f3e5449297798aaf73d5c13c",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/226_selected.png": {
+      "sha256": "2328b1553f9d9dfbfffca6298ad76ba93f4393c0fca796e656c6359830cc29ba",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/227_available.png": {
+      "sha256": "24e5ce5d83598c65a742d423e30fcc1647c13a3196304ed1f0966eaf3fae2861",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/227_selected.png": {
+      "sha256": "5f1ea9b48a25d716b16eaeee8d6954462f9dba9c3536ff894b6b08c05a7ab9b5",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/228_available.png": {
+      "sha256": "63d6585d8f54ea7c7cd1c5879809690fb5ac1e570dc958eafc8017fdf8fc579f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/228_selected.png": {
+      "sha256": "9f74e0b5c23dbc90a833135cb66ac3b4aba5f97dce6ec080367196541acfacc6",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/229_available.png": {
+      "sha256": "62ad60025f245cc1278c7e372baa4f1dd1fdddbc2474152a26e39e659356409f",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    },
+    "templates/trade_products/229_selected.png": {
+      "sha256": "1282f7d0a34bf818f26e3283f679998f5eb08271a3df8077a1f74fb6825e673b",
+      "size": [
+        80,
+        56
+      ],
+      "mode": "RGB"
+    }
+  }
+}

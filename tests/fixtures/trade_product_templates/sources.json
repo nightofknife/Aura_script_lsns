@@ -1,0 +1,13 @@
+{
+  "kind": "lossless_real_user_screenshot_crops_not_synthetic",
+  "source_attachments": {
+    "available": "codex-clipboard-36578a59-8ac9-4fa4-a686-3fd88d9d4e2c.png",
+    "selected": "codex-clipboard-e56941ae-c7d7-4d19-aad7-da282147456c.png"
+  },
+  "archive": "icon_only_states.png",
+  "archive_sha256": "c81106cdf03883849c63f71396f00387d0aeeaa9f4b2f9a54d4bff63dc47c80c",
+  "crop_size": [96, 96],
+  "products": ["175", "176", "177", "178"],
+  "selected_products": ["175", "176", "177"],
+  "note": "Product 178 remains available in both screenshots; its available_after fixture is a negative confirmation control. No fixtures were used as template pixel sources."
+}
