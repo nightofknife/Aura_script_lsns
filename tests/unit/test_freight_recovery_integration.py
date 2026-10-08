@@ -500,6 +500,7 @@ def test_required_navigation_does_not_click_when_cancelled_during_template_wait(
     cancelled = {"value": False}
     operations = []
     monkeypatch.setattr(trade, "is_current_task_cancel_requested", lambda: cancelled["value"])
+    monkeypatch.setattr(trade, "probe_depart_button", lambda **kwargs: {"found": False})
 
     def wait_template(*args, **kwargs):
         operations.append("template_wait")
@@ -509,6 +510,6 @@ def test_required_navigation_does_not_click_when_cancelled_during_template_wait(
     monkeypatch.setattr(trade, "_wait_template", wait_template)
     app = SimpleNamespace(click=lambda **kwargs: pytest.fail("Cancelled navigation must not click"))
     with pytest.raises(trade.CityTradeFlowError) as error:
-        trade.resonance_pc_go_city_main_direct(app=app, vision=object(), wait_sec=0)
+        trade.resonance_pc_go_city_main_direct(app=app, vision=object(), timeout_sec=0)
     assert error.value.code == "trade_cancelled"
     assert operations == ["template_wait"]

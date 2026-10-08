@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -38,7 +39,6 @@ _DEFAULT_CITY_SEARCH_REGION = [120, 120, 1100, 560]  # x,y,w,h; bottom unchanged
 _DEFAULT_DRAG_CENTER = [640, 360]  # x,y
 _DEFAULT_FULL_SCREEN_REGION = [0, 0, 1280, 720]
 
-_DEPART_MARKERS = ("启程",)
 _DEPART_CONFIRM_MARKERS = ("立即出发",)
 
 _GO_DESTINATION_TEMPLATE = "templates/go_destination_button.png"
@@ -904,6 +904,42 @@ def _check_intercity_cancelled() -> None:
         raise asyncio.CancelledError("Resonance PC intercity arrival wait was cancelled")
 
 
+def _open_intercity_map(app: Any, vision: Any) -> Dict[str, Any]:
+    """Click only a current departure hit, retrying only a still-visible button."""
+    try:
+        ready = wait_depart_button(app=app, vision=vision, check_cancelled=_check_intercity_cancelled,
+                                  timeout_sec=3.0)
+        if not ready["confirmed"]:
+            _raise_error("depart_button_not_found", "Unable to confirm the departure button", ready)
+        match = ready["match"]
+        for attempt in (1, 2):
+            _check_intercity_cancelled()
+            app.click(x=int(match["center"][0]), y=int(match["center"][1]))
+            logger.info("[IntercityDeparture] phase=depart_clicked attempt=%s match=%s", attempt, match)
+            time.sleep(1.0)
+            _check_intercity_cancelled()
+            present = absent = 0
+            for poll in range(5):
+                match = probe_depart_button(app=app, vision=vision, check_cancelled=_check_intercity_cancelled)
+                present = present+1 if match["found"] else 0
+                absent = absent+1 if not match["found"] else 0
+                if absent >= 2:
+                    # This is only a transition signal; the existing map selector
+                    # must still identify and select the actual destination.
+                    return {"transitioned": True, "click_attempts": attempt, "last_match": match}
+                if present >= 2:
+                    break
+                if poll < 4:
+                    time.sleep(POLL_INTERVAL)
+                    _check_intercity_cancelled()
+            if present < 2:
+                break
+        _raise_error("depart_transition_unconfirmed", "Departure button did not leave the main screen",
+                     {"click_attempts": attempt, "last_match": match})
+    except DepartButtonError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
+
+
 def _wait_for_marker_hit(
     app: Any,
     ocr: Any,
@@ -1541,22 +1577,7 @@ def resonance_pc_intercity_depart_and_wait(
     departure_attempts = 0
 
     while True:
-        depart_hit = _wait_for_marker_hit(
-            app=app,
-            ocr=ocr,
-            markers=_DEPART_MARKERS,
-            timeout_sec=3.0,
-            interval_sec=0.5,
-            region=_DEFAULT_FULL_SCREEN_REGION,
-        )
-        if depart_hit is None:
-            _raise_error(
-                code="depart_button_not_found",
-                message="Unable to find 启程 before intercity departure.",
-                detail={"to_city_name": to_city_name, "departure_attempts": departure_attempts},
-            )
-        _click_marker_hit(app, depart_hit)
-        time.sleep(1.0)
+        _open_intercity_map(app, vision)
 
         selected = resonance_pc_select_intercity_destination(
             to_city_name=to_city_name,
@@ -1727,15 +1748,12 @@ def resonance_pc_intercity_depart_and_wait(
 
         # Confirming the default 1x use returns to the city main screen.
         time.sleep(1.5)
-        main_hit = _wait_for_marker_hit(
-            app=app,
-            ocr=ocr,
-            markers=_DEPART_MARKERS,
-            timeout_sec=5.0,
-            interval_sec=0.5,
-            region=_DEFAULT_FULL_SCREEN_REGION,
-        )
-        if main_hit is None:
+        try:
+            main_ready = wait_depart_button(app=app, vision=vision, check_cancelled=_check_intercity_cancelled,
+                                            timeout_sec=5.0)
+        except DepartButtonError as exc:
+            _raise_error(exc.code, exc.message, exc.detail)
+        if not main_ready["confirmed"]:
             return _blocked_departure_result(
                 reason="fatigue_medicine_return_to_city_failed",
                 selected=selected,

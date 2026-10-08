@@ -34,6 +34,7 @@ from .cape_island_investment_pc_actions import (
     resonance_pc_execute_cape_island_investment_from_city_panel,
 )
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
+from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
 from .rubbish_recycling_pc_actions import (
@@ -801,21 +802,46 @@ def resonance_pc_tap_back_once(wait_sec: float = 1.0, app: Any = None, vision: A
     name="resonance_pc.go_city_main_direct",
     public=True,
     read_only=False,
-    description="Tap the top-left direct city-main button.",
+    description="Return to the city main screen and confirm its departure button.",
 )
 @requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision")
-def resonance_pc_go_city_main_direct(wait_sec: float = 2.0, app: Any = None, vision: Any = None) -> Dict[str, Any]:
+def resonance_pc_go_city_main_direct(timeout_sec: float = 5.0, app: Any = None, vision: Any = None) -> Dict[str, Any]:
     if app is None or vision is None:
         raise RuntimeError("app/vision services are required")
-    return _click_required_nav_button(
-        app,
-        vision,
-        template=_CITY_MAIN_BUTTON_TEMPLATE,
-        region=_CITY_MAIN_BUTTON_REGION,
-        error_code="nav_city_main_button_not_found",
-        page_state="city_main",
-        wait_sec=wait_sec,
-    )
+    def confirm_main():
+        return wait_depart_button(app=app, vision=vision, check_cancelled=_check_trade_cancelled,
+                                  timeout_sec=timeout_sec)
+
+    try:
+        initial = probe_depart_button(app=app, vision=vision, check_cancelled=_check_trade_cancelled)
+        if initial["found"]:
+            ready = confirm_main()
+            if ready["confirmed"]:
+                return {"success": True, "page_state": "city_main", "skipped": True,
+                        "reason": "already_on_city_main", "main_ready": ready, "click_attempts": 0}
+        clicked = _click_required_nav_button(
+            app, vision, template=_CITY_MAIN_BUTTON_TEMPLATE, region=_CITY_MAIN_BUTTON_REGION,
+            error_code="nav_city_main_button_not_found", page_state="main_transition", wait_sec=0,
+        )
+        clicks = [clicked]
+        ready = confirm_main()
+        if not ready["confirmed"]:
+            # Retry only while the observed source-page navigation is still present.
+            back = _match_template(app, vision, _CITY_MAIN_BUTTON_TEMPLATE,
+                                   _CITY_MAIN_BUTTON_REGION, _NAV_BUTTON_THRESHOLD)
+            if back.get("found") and isinstance(back.get("center"), list) and len(back["center"]) == 2:
+                _check_trade_cancelled()
+                app.click(x=int(back["center"][0]), y=int(back["center"][1]))
+                clicks.append({"match": back})
+                logger.info("[TradeNavigation] phase=return_main_retry match=%s", back)
+                ready = confirm_main()
+        if not ready["confirmed"]:
+            _raise_error("trade_main_not_restored", "Departure button did not confirm the city main screen",
+                         {"main_ready": ready, "click_attempts": len(clicks)})
+        return {**clicked, "success": True, "page_state": "city_main", "main_ready": ready,
+                "click_attempts": len(clicks), "clicks": clicks}
+    except DepartButtonError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
 
 
 @action_info(
