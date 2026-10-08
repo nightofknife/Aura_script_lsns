@@ -77,7 +77,7 @@ def load_auto_layout(vision: Any) -> dict:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("template_size") != [12, 16]:
         raise ValueError("Bento recovery digit templates must be 12x16")
-    for key in ("work_threshold", "love_threshold", "min_score_margin"):
+    for key in ("work_threshold", "love_threshold"):
         value = float(cfg[key])
         if not math.isfinite(value) or not 0 < value <= 1:
             raise ValueError(f"Invalid bento recovery digit threshold: {key}")
@@ -122,8 +122,8 @@ def normalize_digit(image: np.ndarray) -> np.ndarray | None:
     return output
 
 
-def decode_recovery(frame: np.ndarray, bank: dict[int, list[np.ndarray]], *, threshold: float,
-                    margin: float) -> tuple[int | None, list[dict]]:
+def decode_recovery(frame: np.ndarray, bank: dict[int, list[np.ndarray]], *,
+                    threshold: float) -> tuple[int | None, list[dict]]:
     if frame.shape != (16, 22, 3):
         raise BentoConsumptionError("bento_recovery_capture_invalid", "Recovery digit capture must be 22x16 RGB")
     low, high = frame.min(axis=2), frame.max(axis=2)
@@ -142,7 +142,7 @@ def decode_recovery(frame: np.ndarray, bank: dict[int, list[np.ndarray]], *, thr
         best, second = ranked[:2]
         lead = scores[best] - scores[second]
         diagnostics.append({"digit": best, "score": round(scores[best], 4), "margin": round(lead, 4)})
-        if scores[best] < threshold or lead < margin:
+        if scores[best] < threshold:
             return None, diagnostics
         digits.append(best)
     number = digits[0] * 10 + digits[1]
@@ -216,7 +216,6 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
                 self.fail("bento_cabinet_missing", "Cabinet disappeared before recovery reading")
             value, last = decode_recovery(
                 self.capture(roi), cfg["banks"][style], threshold=threshold,
-                margin=cfg["min_score_margin"],
             )
             if value is not None:
                 if value == previous:
