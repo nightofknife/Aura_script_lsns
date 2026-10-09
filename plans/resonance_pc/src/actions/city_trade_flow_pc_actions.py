@@ -34,9 +34,7 @@ from .cape_island_investment_pc_actions import (
     resonance_pc_execute_cape_island_investment_from_city_panel,
 )
 from .trade_goods_investment_pc_actions import (
-    MODE_TARGETS,
-    execute_trade_goods_investment_from_shop,
-    normalize_investment_mode,
+    _INVESTMENT_PROGRESS_CALLBACK, normalize_investment_mode,
 )
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from ._operation_progress import (
@@ -1316,8 +1314,7 @@ def _execute_city_trade_inside_current_city(
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
     progress_context: Optional[Dict[str, Any]] = None,
-    auto_trade_goods_investment: bool = False,
-    trade_goods_investment_mode: str = "unlock",
+    shop_entry: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     progress_token = _WORKER_PROGRESS_CONTEXT.set(dict(progress_context or {}))
     try:
@@ -1332,8 +1329,7 @@ def _execute_city_trade_inside_current_city(
             ocr=ocr,
             vision=vision,
             city_shop_data=city_shop_data,
-            auto_trade_goods_investment=auto_trade_goods_investment,
-            trade_goods_investment_mode=trade_goods_investment_mode,
+            shop_entry=shop_entry,
         )
     finally:
         _WORKER_PROGRESS_CONTEXT.reset(progress_token)
@@ -1351,8 +1347,7 @@ def _execute_city_trade_inside_current_city_scoped(
     ocr: Any,
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
-    auto_trade_goods_investment: bool = False,
-    trade_goods_investment_mode: str = "unlock",
+    shop_entry: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
     logger.info(
@@ -1370,29 +1365,16 @@ def _execute_city_trade_inside_current_city_scoped(
             "Bargaining was requested for a route leg without buy products.",
             {"current_city": current_city},
         )
-    enter_shop = resonance_pc_click_city_shop_by_name(
-        city_name=current_city,
-        shop_name="交易所",
-        wait_sec=_SHOP_ENTRY_SETTLE_SEC,
-        app=app,
-        resonance_pc_city_shop_data=city_shop_data,
-    )
-    shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
-    goods_investment = {"triggered": False, "status": "not_triggered"}
-    if auto_trade_goods_investment:
-        goods_investment = execute_trade_goods_investment_from_shop(
-            mode=trade_goods_investment_mode,
-            city_name=current_city,
-            app=app,
-            vision=vision,
-            progress=lambda state, data: _report_worker("trade_goods_investment", state, data=data),
+    if shop_entry is None:
+        enter_shop = resonance_pc_click_city_shop_by_name(
+            city_name=current_city, shop_name="交易所", wait_sec=_SHOP_ENTRY_SETTLE_SEC,
+            app=app, resonance_pc_city_shop_data=city_shop_data,
         )
-        if goods_investment.get("success") is not True or goods_investment.get("page_state") != "shop_page":
-            _raise_error("goods_investment_not_completed", "Goods investment did not confirm return to the exchange", goods_investment)
-        shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
-        context_fields = _WORKER_PROGRESS_CONTEXT.get()
-        if context_fields.get("leg_count", 0) > 0 and context_fields.get("city_index") == context_fields.get("leg_count"):
-            _report_worker("final_sale", "started", data={"raise_to_cap": bool(sell_raise_to_cap)})
+    else:
+        if shop_entry.get("success") is not True or shop_entry.get("page_state") != "shop_page":
+            _raise_error("trade_shop_entry_unconfirmed", "Cannot reuse an unconfirmed exchange entry", shop_entry)
+        enter_shop = shop_entry
+    shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
@@ -1476,7 +1458,6 @@ def _execute_city_trade_inside_current_city_scoped(
         "buy_bargain_to_cap": bool(buy_bargain_to_cap),
         "enter_shop": enter_shop,
         "shop_menu_ready": shop_menu_ready,
-        "trade_goods_investment": goods_investment,
         "sell_node": sell_node,
         "sell": sell,
         "buy_node": buy_node,
@@ -1485,8 +1466,97 @@ def _execute_city_trade_inside_current_city_scoped(
     }
 
 
+_GOODS_INVESTMENT_TASK = "tasks:trade_goods_investment_pc.yaml:trade_goods_investment_pc"
+
+
+async def _run_trade_goods_investment_task(*, mode: int, city_name: str, progress_context: dict,
+                                          context, engine) -> dict:
+    mode = normalize_investment_mode(mode)
+    if context is None or engine is None:
+        raise RuntimeError("Goods investment requires the current execution context and engine")
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    if reporter is not None:
+        await reporter.emit("trade_goods_investment", "started", **progress_context,
+                            data={"mode": mode, "target_level": mode})
+
+    def forward_progress(state, data):
+        if reporter is not None and state == "running":
+            reporter.emit_from_worker("trade_goods_investment", state, **progress_context, data=data)
+
+    token = _INVESTMENT_PROGRESS_CALLBACK.set(forward_progress)
+    try:
+        injector = ActionInjector(
+            context, engine, TemplateRenderer(context, engine.state_store), engine.services,
+            current_package=getattr(engine.orchestrator, "loaded_package", None),
+            service_resolver=engine.orchestrator.resolve_service,
+        )
+        framework = await injector.execute("aura.run_task", {
+            "task_ref": _GOODS_INVESTMENT_TASK, "inputs": {"mode": mode, "city_name": city_name},
+        })
+        nodes = framework.get("nodes") if isinstance(framework, dict) else None
+        node = nodes.get("invest") if isinstance(nodes, dict) else None
+        result = node.get("output") if isinstance(node, dict) else None
+        if (not isinstance(result, dict) or result.get("success") is not True
+                or result.get("page_state") != "shop_page" or result.get("status") not in {"invested", "skipped"}
+                or type(result.get("mode")) is not int or result.get("mode") != mode
+                or type(result.get("target_level")) is not int or result.get("target_level") != mode):
+            _raise_error("goods_investment_task_incomplete", "Investment task did not confirm return to the exchange",
+                         {"task_ref": _GOODS_INVESTMENT_TASK, "result": result})
+        if reporter is not None:
+            await reporter.emit("trade_goods_investment", "skipped" if result["status"] == "skipped" else "completed",
+                                **progress_context, data=result)
+        return dict(result)
+    except asyncio.CancelledError:
+        if reporter is not None:
+            await reporter.emit("trade_goods_investment", "cancelled", **progress_context)
+        raise
+    except Exception as exc:
+        if reporter is not None:
+            await reporter.emit("trade_goods_investment", "failed", **progress_context,
+                                data={"reason": getattr(exc, "code", "goods_investment_task_failed"), "message": str(exc)})
+        if isinstance(exc, CityTradeFlowError):
+            raise
+        _raise_error("goods_investment_task_failed", "Investment sub-task failed",
+                     {"task_ref": _GOODS_INVESTMENT_TASK, "message": str(exc)})
+    finally:
+        _INVESTMENT_PROGRESS_CALLBACK.reset(token)
+
+
+async def _execute_freight_city_trade(*, auto_trade_goods_investment: bool = False,
+                                    trade_goods_investment_mode: int = 10,
+                                    context=None, engine=None, **trade_inputs) -> dict:
+    if not auto_trade_goods_investment:
+        return await asyncio.to_thread(_execute_city_trade_inside_current_city, **trade_inputs)
+    mode = normalize_investment_mode(trade_goods_investment_mode)
+    if context is None or engine is None:
+        raise RuntimeError("Goods investment requires the current execution context and engine")
+    _check_trade_cancelled()
+    entry = await asyncio.to_thread(
+        resonance_pc_click_city_shop_by_name, city_name=trade_inputs["current_city"],
+        shop_name="交易所", wait_sec=_SHOP_ENTRY_SETTLE_SEC, app=trade_inputs["app"],
+        resonance_pc_city_shop_data=trade_inputs["city_shop_data"],
+    )
+    if entry.get("success") is not True or entry.get("page_state") != "shop_page":
+        _raise_error("trade_shop_entry_unconfirmed", "Cannot invest before entering the exchange", entry)
+    await asyncio.to_thread(_wait_for_shop_menu_ready, trade_inputs["app"], trade_inputs["vision"])
+    _check_trade_cancelled()
+    progress_context = dict(trade_inputs.get("progress_context") or {})
+    investment = await _run_trade_goods_investment_task(
+        mode=mode, city_name=trade_inputs["current_city"], progress_context=progress_context,
+        context=context, engine=engine,
+    )
+    _check_trade_cancelled()
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    if (reporter is not None and progress_context.get("leg_count", 0) > 0
+            and progress_context.get("city_index") == progress_context.get("leg_count")):
+        await reporter.emit("final_sale", "started", **progress_context,
+                            data={"raise_to_cap": bool(trade_inputs.get("sell_raise_to_cap"))})
+    result = await asyncio.to_thread(_execute_city_trade_inside_current_city, **trade_inputs, shop_entry=entry)
+    return {**result, "trade_goods_investment": investment}
+
+
 def _summarize_goods_investment(execution: Dict[str, Any], final_sale: Optional[Dict[str, Any]],
-                                *, enabled: bool, mode: str) -> Dict[str, Any]:
+                                *, enabled: bool, mode: int) -> Dict[str, Any]:
     visits = []
     for leg in execution.get("leg_results") or []:
         investment = (leg.get("city_trade") or {}).get("trade_goods_investment") or {}
@@ -1495,7 +1565,7 @@ def _summarize_goods_investment(execution: Dict[str, Any], final_sale: Optional[
     endpoint = (final_sale or {}).get("trade_goods_investment") or {}
     if endpoint.get("triggered"):
         visits.append({"city_index": len(execution.get("leg_results") or []), **endpoint})
-    return {"enabled": enabled, "mode": mode, "target_level": MODE_TARGETS[mode], "visits": visits,
+    return {"enabled": enabled, "mode": mode, "target_level": mode, "visits": visits,
             "triggered_count": len(visits),
             "transaction_count": sum(int(visit.get("transaction_count") or 0) for visit in visits),
             "upgraded_levels": sum(int(visit.get("upgraded_levels") or 0) for visit in visits)}
@@ -1630,7 +1700,7 @@ async def _execute_route(
     state_store: StateStoreService,
     auto_cape_island_investment: bool = False,
     auto_trade_goods_investment: bool = False,
-    trade_goods_investment_mode: str = "unlock",
+    trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
@@ -1689,6 +1759,7 @@ async def _execute_route(
                         and is_rubbish_recycling_arrival(leg)
                     ),
                     engine=engine,
+                    context=recovery_context,
                 )
             except Exception as exc:
                 if not hasattr(exc, "code"):
@@ -1827,10 +1898,11 @@ async def _execute_trade_leg(
     progress_fields: Optional[Dict[str, Any]] = None,
     auto_cape_island_investment: bool = False,
     auto_trade_goods_investment: bool = False,
-    trade_goods_investment_mode: str = "unlock",
+    trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
+    context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -1844,8 +1916,10 @@ async def _execute_trade_leg(
             {"page_state": page_state, "leg": leg},
         )
 
-    city_trade = await asyncio.to_thread(
-        _execute_city_trade_inside_current_city,
+    city_trade = await _execute_freight_city_trade(
+        auto_trade_goods_investment=bool(auto_trade_goods_investment and index > 0),
+        trade_goods_investment_mode=trade_goods_investment_mode,
+        context=context, engine=engine,
         current_city=str(leg.get("from_city") or ""),
         buy_products=list(leg.get("buy_products") or []),
         books_used=int(leg.get("books_used") or 0),
@@ -1857,8 +1931,6 @@ async def _execute_trade_leg(
         vision=vision,
         city_shop_data=city_shop_data,
         progress_context=progress_fields,
-        auto_trade_goods_investment=bool(auto_trade_goods_investment and index > 0),
-        trade_goods_investment_mode=trade_goods_investment_mode,
     )
     page_state = str(city_trade.get("page_state") or "city_main")
     if city_trade.get("success") is not True or page_state != "city_main":
@@ -2545,7 +2617,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = True,
     auto_trade_goods_investment: bool = False,
-    trade_goods_investment_mode: str = "unlock",
+    trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_sparkling_water: bool = False,
     auto_bento: bool = False,
@@ -2576,6 +2648,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             raise ValueError(f"{name} must be a boolean")
     integer("fatigue_medicine_max_uses", fatigue_medicine_max_uses)
     trade_goods_investment_mode = normalize_investment_mode(trade_goods_investment_mode)
+    if auto_trade_goods_investment and (context is None or engine is None):
+        raise RuntimeError("Automatic goods investment requires the current execution context and engine")
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
     if type(auto_bento) is not bool:
@@ -2812,15 +2886,15 @@ async def resonance_pc_auto_cycle_trade_flow(
                     data={"raise_to_cap": bool(route[-1].get("raise_to_cap"))},
                 )
             try:
-                final_sale = await asyncio.to_thread(
-                    _execute_city_trade_inside_current_city,
+                final_sale = await _execute_freight_city_trade(
+                    auto_trade_goods_investment=auto_trade_goods_investment,
+                    trade_goods_investment_mode=trade_goods_investment_mode,
+                    context=context, engine=engine,
                     current_city=endpoint_city,
                     buy_products=[],
                     books_used=0,
                     sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
                     buy_bargain_to_cap=False,
-                    auto_trade_goods_investment=auto_trade_goods_investment,
-                    trade_goods_investment_mode=trade_goods_investment_mode,
                     negotiation_max_attempts=normalized_negotiation_max_attempts,
                     app=app,
                     ocr=ocr,

@@ -1,71 +1,72 @@
-# Automatic Trade Goods Investment
+# Trade Goods Investment Task
 
-The PC freight flow can invest at every city visit after the initial departure.
-Returning to the starting city is eligible, and the endpoint is eligible before
-final sale. Investment runs in the existing exchange visit before selling and
-buying. It is independent of Cape City Mirage Island investment.
+`tasks:trade_goods_investment_pc.yaml:trade_goods_investment_pc` is the shared
+standalone and freight sub-task. It starts at an already-open exchange menu and
+returns to that menu. It has no standalone GUI entry.
 
-## Configuration
+## Inputs
 
-- `auto_trade_goods_investment`: defaults to `false`.
-- `trade_goods_investment_mode`: `unlock` (10), `balanced` (14), or `full` (20).
+- `mode`: integer target level from 1 to 20 (default 10). Old string modes,
+  booleans, floats, and out-of-range values are rejected without conversion.
+- `city_name`: optional label for results and logs; it does not navigate cities.
 
-The freight parameter editor shared by the three-column workflow persists these fields.
-The preview planner ignores them. Combined commerce forwards them only to the
-freight execution phase. The standalone `trade_goods_investment_pc` task begins
-at an already-open exchange menu and returns to that menu.
+The task checks the 1280x720 client resolution and calls the registered
+`resonance_pc.invest_trade_goods_from_shop` action. Commodity names and money
+are not read with OCR; native templates recognize controls, cards and levels.
 
-## Execution
+## Freight Integration
 
-Goods are traversed in their displayed unlock order using native card frames,
-lock overlays, and selection markers. Names and commodity-specific icon banks
-are not required. The list is not reset to its top, and MAX is never clicked.
-Current/preview levels are recognized from native full-token and digit banks.
-The maximum-level layout uses a separate native anchor and a confirmed level 20.
-Maximum cards have their own native frame and badge. If that overlay covers the
-selection marker, the badge and confirmed right-panel level 20 are both required.
+`auto_trade_goods_investment` defaults to false. The existing freight option
+sets integer `trade_goods_investment_mode` (1-20, default 10); preview planning
+excludes both inputs. The GUI uses a numeric target-level control.
+Combined commerce forwards them to freight, not passenger execution.
 
-Each plus click is followed by a stable preview reading. An unchanged preview
-gets one bounded retry after rereading, then the current affordable selection is
-submitted. Oversized preexisting previews are reduced with minus. Confirm must
-match both template shape and native enabled colors. No amount or allowance OCR
-is performed.
+The initial city is excluded. Each later visit, including a return to the
+starting city and the final sale city, enters the exchange once and invokes
+the same task using `ActionInjector.execute("aura.run_task", ...)` in the
+parent's execution context. The parent reads `framework_data.nodes.invest.output`,
+checks its success, mode, target and exchange-menu return, then resumes the
+existing sell/buy worker without entering the exchange again. No runner or
+scheduler is constructed by the business action.
 
-The submit button is clicked once. The next operation waits until the success
-toast is absent and the actual level matches the submitted target. A missed toast
-is recoverable only when that actual-level update is stable; an uncertain result
-stops the task instead of re-submitting. A product reaches its configured target
-before the next product is selected. If the current product cannot advance, or
-the next product remains locked, the city investment finishes normally.
+Per-product progress is forwarded through a scoped callback to the parent
+freight progress reporter. The callback is reset on completion, failure and
+cancellation; standalone execution requires no freight context. An uncertain
+child result blocks subsequent commerce. Cancellation uses the framework's
+child-task and synchronous-action cleanup path.
 
-Scrolling preserves an overlap. Deduplication matches an ordered suffix of the
-old visible complete cards to the prefix of the new cards using internal image
-fingerprints, not a global item-image identity. Partial/obscured cards cannot be
-clicked. An initial clipped top card without processed-overlap evidence blocks
-execution; a visible full-card header with an unconfirmed frame cannot be skipped.
-Unknown overlap, stalled scrolling with an unprocessed partial card,
-uncertain levels, and unexpected pages stop execution. Polls and clicks check
-cooperative cancellation. The exchange menu must be recognized again before
-normal commerce resumes.
-Native maximum badges hide commodity pixels; matching maximum states in the
-same column is equivalent only for completed-card bookkeeping. It cannot mark
-an ordinary product complete or authorize an investment.
+## Stopping
 
-## Results and Progress
+An unchanged plus click gets a delayed stable reread, not another plus click.
+The pending preview is still submitted once, even if plus never increased it:
+the available resources may fund exactly one level. If the actual level rises,
+the upgrade is recorded. If the actual and preview
+levels remain unchanged through the bounded observation window, with no success
+toast, the submission is treated as ineffective. No-effect submissions are never repeated.
+Unreadable or contradictory feedback remains an explicit failure, not a guessed
+resource limit. Both confirmed stopping cases return to the exchange menu.
 
-Progress uses the distinct `trade_goods_investment` stage, with city occurrence,
-product ordinal, actual level, preview level, target, and transaction count.
-Results include per-visit confirmed transactions and aggregate upgraded levels.
-Investment spending is not read or subtracted from trade profit. The existing
-frozen route estimate may differ after investment changes purchase quantities;
-the result carries an explicit warning when the feature is enabled.
+Reaching the requested target normally advances to the next product. Locked
+products end the visit; uncertain card, level, scroll or submission states fail
+explicitly. An unconfirmed submission is never repeated automatically.
 
-## Evidence and Remaining Coverage
+The next product is never attempted while the current product is below level
+10, even if a requested target of 1-9 was reached. Already-unlocked products
+above a low target can be skipped normally. If a product is at least level 10
+but cannot reach the requested target, the next unfinished, unlocked product
+gets one upgrade preparation and at most one confirmation before the visit
+ends. Reading already-complete products does not spend that final attempt.
 
-Native-generated templates previously passed 138 still-image checks; native
-card detection passed 57 checks across four investment images and a menu
-negative. Those checks predate runtime integration and do not establish live
-scrolling, button feedback, maximum layout, disabled confirmation, or timing.
-No new runtime tests were written or executed during integration under the
-user's testing policy. The generated maximum-layout and maximum-card assets have no real screenshot
-sample in this task. Capture/recognition failures stop the feature explicitly.
+Investment spending is not deducted from trade profit. The route is not
+replanned after investment changes purchase quantities; enabled results carry
+a warning and per-visit transaction/level totals.
+
+## Validation Boundary
+
+The October 9 trials first exposed the old stopping-condition failure after a
+0-to-6 upgrade, then verified a 0-to-9 upgrade and normal exchange-menu return
+under the intermediate stop rule. The subsequent single-submit/no-effect rule
+and freight sub-task integration are covered by offline tests, not live runs.
+Numeric targets and the unlock-level/final-attempt rules have offline coverage
+only; city-specific product identity and persistent investment records remain
+a separate planned change.

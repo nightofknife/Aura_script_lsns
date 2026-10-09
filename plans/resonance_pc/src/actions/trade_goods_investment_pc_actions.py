@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -15,7 +16,9 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 from ._trade_goods_investment_vision import InvestmentRecognitionError, InvestmentVision
 
 
-MODE_TARGETS = {"unlock": 10, "balanced": 14, "full": 20}
+_INVESTMENT_PROGRESS_CALLBACK: ContextVar[Optional[Callable]] = ContextVar(
+    "trade_goods_investment_progress_callback", default=None,
+)
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _POLL_SECONDS = 0.2
 _STATE_TIMEOUT = 5.0
@@ -34,9 +37,9 @@ class TradeGoodsInvestmentError(RuntimeError):
         return {"code": self.code, "message": str(self), "detail": self.detail}
 
 
-def normalize_investment_mode(mode: str) -> str:
-    if not isinstance(mode, str) or mode not in MODE_TARGETS:
-        raise ValueError("trade_goods_investment_mode must be unlock, balanced, or full")
+def normalize_investment_mode(mode: int) -> int:
+    if type(mode) is not int or not 1 <= mode <= 20:
+        raise ValueError("trade_goods_investment_mode must be an integer from 1 to 20")
     return mode
 
 
@@ -167,10 +170,12 @@ def _adjust(app: Any, reader: InvestmentVision, name: str, current: int, previou
     frame, levels = _levels(app, reader, current)
     if levels["preview"] != previous:
         return frame, levels
-    # Recheck before one retry so a delayed first update does not get a second click.
+    # Recheck delayed feedback before declaring the plus limit or retrying minus.
     _pause(.35)
     frame, levels = _levels(app, reader, current)
     if levels["preview"] != previous:
+        return frame, levels
+    if name == "plus":
         return frame, levels
     button = reader.match(frame, name)
     if not button["found"]:
@@ -185,6 +190,7 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
     if preview is None:
         raise TradeGoodsInvestmentError("investment_preview_missing", "No upgrade preview for an unfinished product", levels)
     frame = _capture(app)
+    stop_after_commit = False
     for _ in range(45):
         update(current_level=current, preview_level=preview)
         if preview > target:
@@ -201,6 +207,7 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
         if next_preview is None or next_preview < preview:
             raise TradeGoodsInvestmentError("investment_preview_invalid", "Unexpected preview after plus", next_levels)
         if next_preview == preview:
+            stop_after_commit = True
             break
         preview = next_preview
     else:
@@ -212,7 +219,8 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
     enabled = reader.match(frame, "confirm_enabled")
     if preview <= current or not enabled["found"]:
         return None
-    return {"current_level": current, "upgrade_level": int(preview), "center": enabled["center"]}
+    return {"current_level": current, "upgrade_level": int(preview), "center": enabled["center"],
+            "stop_after_commit": stop_after_commit}
 
 
 def _commit(app: Any, reader: InvestmentVision, operation: dict):
@@ -224,24 +232,33 @@ def _commit(app: Any, reader: InvestmentVision, operation: dict):
         return None
     _click(app, button["center"])
     deadline, seen_success, stable = time.monotonic() + _COMMIT_TIMEOUT, False, 0
+    unchanged = 0
     last = None
     while time.monotonic() < deadline:
         frame = _capture(app)
         if reader.match(frame, "success")["found"]:
-            seen_success, stable = True, 0
+            seen_success, stable, unchanged = True, 0, 0
         else:
             try:
                 last = reader.read_levels(frame)
             except InvestmentRecognitionError:
                 last, stable = None, 0
             if last is not None and last["current"] == operation["upgrade_level"]:
+                unchanged = 0
                 stable += 1
                 if stable >= 2:
                     return {"confirmed": True, "success_toast_seen": seen_success,
                             "current_level": last["current"], "confirmation": "level_updated"}
             else:
                 stable = 0
+                unchanged = (unchanged + 1 if last is not None
+                             and last["current"] == operation["current_level"]
+                             and last.get("preview") == operation["upgrade_level"] else 0)
         _pause(_POLL_SECONDS)
+    if unchanged >= 2 and not seen_success:
+        logger.info("[TradeGoodsInvestment] state=submit_no_effect current_level=%s preview_level=%s",
+                    operation["current_level"], operation["upgrade_level"])
+        return None
     raise TradeGoodsInvestmentError("investment_commit_unconfirmed", "No confirmed actual level after the single submit click", {"operation": operation, "last_levels": last, "success_toast_seen": seen_success})
 
 
@@ -296,14 +313,15 @@ def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
     _wait(app, lambda frame: True if reader.match(frame, "entry")["found"] else None)
 
 
-def execute_trade_goods_investment_from_shop(*, mode: str, city_name: str, app: Any, vision: Any,
+def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: Any, vision: Any,
                                            progress: Optional[Callable[[str, dict], None]] = None) -> Dict[str, Any]:
     mode = normalize_investment_mode(mode)
     if app is None or vision is None:
         raise RuntimeError("app and vision services are required")
-    reader, target = InvestmentVision(), MODE_TARGETS[mode]
+    reader, target = InvestmentVision(), mode
     started_at, transactions, product_index, scroll_count = time.monotonic(), [], 0, 0
     done, reason = [], "all_products_at_target"
+    single_next_attempt = False
     def report(state, **data):
         fields = {"city_name": city_name, "mode": mode, "target_level": target, "product_index": product_index, **data}
         logger.info("[TradeGoodsInvestment] state=%s detail=%s", state, fields)
@@ -348,28 +366,43 @@ def execute_trade_goods_investment_from_shop(*, mode: str, city_name: str, app: 
                     break
                 card = candidates[0]
             product_index += 1
+            attempted, blocked = False, False
             while True:
                 frame, selected, levels = _select(app, reader, card)
+                actual_level = levels["current"]
                 report("running", current_level=levels["current"], preview_level=levels.get("preview"))
                 if levels["current"] >= target:
-                    done.append(dict(selected))
                     break
+                attempted = True
                 operation = _prepare_upgrade(app, reader, levels, target, lambda **data: report("running", **data))
                 if operation is None:
-                    reason = "no_further_upgrade"
+                    blocked = True
                     break
                 if len(transactions) >= _MAX_TRANSACTIONS:
                     raise TradeGoodsInvestmentError("investment_transaction_limit", "Investment exceeded its progress guard")
                 commit = _commit(app, reader, operation)
                 if commit is None:
-                    reason = "no_further_upgrade"
+                    blocked = True
                     break
                 transactions.append({"product_index": product_index, "from_level": operation["current_level"],
                                      "to_level": operation["upgrade_level"], **commit})
                 report("running", current_level=commit["current_level"], transaction_count=len(transactions))
+                actual_level = commit["current_level"]
+                if actual_level >= target or operation["stop_after_commit"] or single_next_attempt:
+                    blocked = actual_level < target
+                    break
                 card = selected
-            if reason == "no_further_upgrade":
+            # Reading an already-complete product does not spend the final attempt.
+            if single_next_attempt and attempted:
+                reason = "next_product_attempted"
                 break
+            if actual_level < 10:
+                reason = "no_further_upgrade" if blocked else "next_product_locked"
+                break
+            done.append(dict(selected))
+            if blocked:
+                reason = "no_further_upgrade"
+                single_next_attempt = True
         _return_shop(app, vision, reader)
     except Exception as exc:
         report("failed", reason=getattr(exc, "code", type(exc).__name__), message=str(exc), transaction_count=len(transactions))
@@ -385,8 +418,11 @@ def execute_trade_goods_investment_from_shop(*, mode: str, city_name: str, app: 
 
 
 @action_info(name="resonance_pc.invest_trade_goods_from_shop", public=True, read_only=False,
-             description="Invest goods in original unlock order to level 10, 14, or 20 and return to the exchange.")
+             description="Invest goods in original unlock order to a target level from 1 to 20 and return to the exchange.")
 @requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision")
-def resonance_pc_invest_trade_goods_from_shop(mode: str = "unlock", city_name: str = "",
+def resonance_pc_invest_trade_goods_from_shop(mode: int = 10, city_name: str = "",
                                             app: Any = None, vision: Any = None) -> Dict[str, Any]:
-    return execute_trade_goods_investment_from_shop(mode=mode, city_name=city_name, app=app, vision=vision)
+    return execute_trade_goods_investment_from_shop(
+        mode=mode, city_name=city_name, app=app, vision=vision,
+        progress=_INVESTMENT_PROGRESS_CALLBACK.get(),
+    )

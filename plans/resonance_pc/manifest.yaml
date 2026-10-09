@@ -1125,7 +1125,7 @@ exports:
     - name: trade_goods_investment_mode
       type: Any
       required: false
-      default: unlock
+      default: 10
     - name: auto_rubbish_recycling
       type: Any
       required: false
@@ -2387,13 +2387,13 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Invest goods in original unlock order to level 10, 14, or 20 and return
-      to the exchange.
+    description: Invest goods in original unlock order to a target level from 1 to
+      20 and return to the exchange.
     parameters:
     - name: mode
       type: Any
       required: false
-      default: unlock
+      default: 10
     - name: city_name
       type: Any
       required: false
@@ -3243,4 +3243,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-08T19:00:24Z'
+  generated_at: '2026-10-09T15:13:33Z'

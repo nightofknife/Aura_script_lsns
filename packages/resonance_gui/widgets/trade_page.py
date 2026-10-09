@@ -48,7 +48,7 @@ from ..config_repository import (
     ResonanceConfigRepository,
 )
 from ..logic import (
-    TRADE_GOODS_INVESTMENT_MODE_OPTIONS,
+    validate_trade_goods_investment_level,
     TradeProgressState,
     expected_profit_per_fatigue,
     extract_run_id,
@@ -382,6 +382,7 @@ class TradePage(QWidget):
             "use_fatigue_medicine": "行车任务允许使用疲劳药；默认关闭，开启后仍受使用上限限制。",
             "fatigue_medicine_max_uses": "本次行车允许使用疲劳药的次数上限；仅在允许使用疲劳药时生效。",
             "auto_cape_island_investment": "货运到达蜃息岛时尝试投资；不会为投资额外改变货运线路。",
+            "auto_trade_goods_investment": "到站交易前按目标等级投资交易品；实际等级不足 10 时停止，受阻后最多尝试下一商品一次。",
             "auto_rubbish_recycling": "到达符合条件的城市时尝试垃圾回收，不为回收额外改变线路。",
             "bargain_rates": "每次砍价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
             "raise_rates": "每次抬价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
@@ -621,10 +622,10 @@ class TradePage(QWidget):
         investment_form = QFormLayout(self.trade_goods_investment_panel)
         investment_form.setContentsMargins(0, 0, 0, 0)
         investment_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
-        self.trade_goods_investment_mode = QComboBox(self.trade_goods_investment_panel)
-        for mode, label in TRADE_GOODS_INVESTMENT_MODE_OPTIONS:
-            self.trade_goods_investment_mode.addItem(label, mode)
-        investment_form.addRow("交易品投资模式", self.trade_goods_investment_mode)
+        self.trade_goods_investment_mode = QSpinBox(self.trade_goods_investment_panel)
+        self.trade_goods_investment_mode.setRange(1, 20)
+        self.trade_goods_investment_mode.setValue(10)
+        investment_form.addRow("目标等级", self.trade_goods_investment_mode)
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
         self.additional_options = QWidget(content)
         options_layout = QGridLayout(self.additional_options)
@@ -1295,14 +1296,9 @@ class TradePage(QWidget):
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
-        investment_mode = values.get("trade_goods_investment_mode", "unlock")
-        investment_mode_index = self.trade_goods_investment_mode.findData(investment_mode)
-        if not isinstance(investment_mode, str) or investment_mode_index < 0:
-            raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
-        self.trade_goods_investment_mode.setCurrentIndex(investment_mode_index)
-        self.auto_trade_goods_investment.setChecked(
-            bool(values.get("auto_trade_goods_investment", False))
-        )
+        investment_mode = validate_trade_goods_investment_level(values.get("trade_goods_investment_mode", 10))
+        self.trade_goods_investment_mode.setValue(investment_mode)
+        self.auto_trade_goods_investment.setChecked(bool(values.get("auto_trade_goods_investment", False)))
         self._sync_goods_investment_controls()
         self.auto_rubbish_recycling.setChecked(
             bool(values.get("auto_rubbish_recycling", True))
@@ -1382,7 +1378,7 @@ class TradePage(QWidget):
             "fatigue_medicine_max_uses": self.fatigue_medicine_max_uses.value(),
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
             "auto_trade_goods_investment": self.auto_trade_goods_investment.isChecked(),
-            "trade_goods_investment_mode": self.trade_goods_investment_mode.currentData(),
+            "trade_goods_investment_mode": self.trade_goods_investment_mode.value(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         })
         return normalize_trade_task_inputs(inputs)
