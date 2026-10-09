@@ -1704,6 +1704,29 @@ async def _execute_route(
         summary["page_state"] = page_state
         summary["leg_results"] = leg_results
         summary["sparkling_water"] = water_result
+        # The shared route store uses "ok" for completion. Freight exposes
+        # "completed" only after every leg has a confirmed arrival.
+        completed_leg_count = sum(
+            item.get("status") == "completed"
+            and (item.get("travel") or {}).get("success") is True
+            and str((item.get("travel") or {}).get("status") or "ok").lower()
+            not in {"blocked", "failed", "cancelled"}
+            for item in leg_results
+        )
+        store_status = str(summary.get("status") or "").lower()
+        if not failure and store_status == "ok":
+            if route and len(leg_results) == len(route) == completed_leg_count:
+                summary.update(status="completed", should_continue=False,
+                               completed_leg_count=completed_leg_count, route_count=len(route))
+            else:
+                summary.update(status="failed", should_continue=False,
+                               reason="route_completion_not_confirmed")
+        logger.info(
+            "[TradeRoute] phase=summary store_status=%s status=%s confirmed_legs=%s/%s "
+            "page_state=%s reason=%s",
+            store_status, summary.get("status"), completed_leg_count, len(route),
+            page_state, summary.get("reason"),
+        )
         island_results = [
             dict(item.get("cape_island_investment") or {})
             for item in leg_results
@@ -2707,10 +2730,11 @@ async def resonance_pc_auto_cycle_trade_flow(
         page_state = str(execution.get("page_state") or "city_main")
 
         if str(execution.get("status") or "").lower() == "completed":
+            endpoint_city = str(route[-1].get("to_city") or "")
+            logger.info("[FinalSale] phase=started city=%s page_state=%s", endpoint_city, page_state)
             if page_state == "city_main":
                 await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
                 page_state = "city_panel"
-            endpoint_city = str(route[-1].get("to_city") or "")
             if reporter is not None:
                 await reporter.emit(
                     "final_sale",
@@ -2751,6 +2775,16 @@ async def resonance_pc_auto_cycle_trade_flow(
                               "error": {"code": str(exc.code), "message": str(exc),
                                         "detail": dict(getattr(exc, "detail", {}) or {})}}
             page_state = str(final_sale.get("page_state") or "unknown")
+            sale_confirmed = final_sale.get("success") is True and page_state == "city_main"
+            sale_log = logger.info if sale_confirmed else logger.error
+            sale_log(
+                "[FinalSale] phase=%s city=%s sold_confirmed=%s sell_result=%s page_state=%s "
+                "reason=%s error=%s",
+                "completed" if sale_confirmed else "failed", endpoint_city,
+                (final_sale.get("sell") or {}).get("sold_confirmed"),
+                (final_sale.get("sell") or {}).get("sell_result"), page_state,
+                final_sale.get("reason"), final_sale.get("error"),
+            )
             if reporter is not None:
                 await reporter.emit(
                     "final_sale",
@@ -2862,6 +2896,17 @@ async def resonance_pc_auto_cycle_trade_flow(
     return result
 
 
+def _log_trade_outcome(result: Dict[str, Any]) -> None:
+    log = logger.info if result.get("success") is True else logger.error
+    log(
+        "[AutoTradeResult] success=%s status=%s reason=%s page_state=%s "
+        "final_sale_success=%s error=%s",
+        result.get("success"), result.get("status"), result.get("reason"),
+        result.get("page_state"), (result.get("final_sale") or {}).get("success"),
+        result.get("error"),
+    )
+
+
 @action_info(
     name="resonance_pc.finish_auto_cycle_trade",
     public=True,
@@ -2895,6 +2940,7 @@ async def resonance_pc_finish_auto_cycle_trade(
             "reason": "disabled" if not auto_bento else "not_at_freight_end",
             "page_state": result.get("page_state", "unknown"),
         }
+        _log_trade_outcome(result)
         return result
 
     nodes = bento_framework.get("nodes") if isinstance(bento_framework, dict) else None
@@ -2949,4 +2995,5 @@ async def resonance_pc_finish_auto_cycle_trade(
                             data={"result": child_result})
         await reporter.emit("task", "completed" if result["success"] else "cancelled" if result["status"] == "cancelled" else "failed",
                             data={"status": result["status"], "reason": result.get("reason")})
+    _log_trade_outcome(result)
     return result
