@@ -1331,6 +1331,9 @@ class WorkflowPage(QWidget):
         )
         self._freight_progress = WorkflowFreightProgressState(
             investment_enabled=self._trade_investment_enabled,
+            goods_investment_enabled=bool(
+                dict(trade_inputs or {}).get("auto_trade_goods_investment", False)
+            ),
             rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
             bento_enabled=bool(dict(trade_inputs or {}).get("auto_bento", False)),
         )
@@ -1441,6 +1444,7 @@ class WorkflowPage(QWidget):
                 event,
                 expected_cid=self._freight_progress.cid,
                 investment_enabled=self._trade_investment_enabled,
+                goods_investment_enabled=self._freight_progress.goods_investment_enabled,
                 rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
             )
             if self._freight_progress.sequence == previous_sequence:

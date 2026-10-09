@@ -1,0 +1,71 @@
+[
+  {
+    "id": "shop",
+    "file": "shop.png",
+    "source_filename": "codex-clipboard-9db5fc25-b023-4e1b-9ff9-0f81182ac3b4.png",
+    "source_sha256": "9a04a46ff519eb967196fd2e8d9d2dee9613221c604a30979e16e1536f56133d",
+    "expected": {
+      "page": "shop"
+    }
+  },
+  {
+    "id": "initial",
+    "file": "initial.png",
+    "source_filename": "codex-clipboard-b820aaaa-4be8-4dcf-b89e-cf646e5b54aa.png",
+    "source_sha256": "5e993ae756a1fd1386216f940a3bef844d4817a824dff4da997c2de5c980bd4d",
+    "expected": {
+      "page": "investment",
+      "current": 0,
+      "preview": 1,
+      "selected": 0
+    }
+  },
+  {
+    "id": "preview_10",
+    "file": "preview_10.png",
+    "source_filename": "codex-clipboard-f8c4525e-3100-4e59-8366-91e520ae6a2f.png",
+    "source_sha256": "e0274faca3c864c5d05a8b00a2c666761f02e4a064a71422d8000ee0c297e42a",
+    "expected": {
+      "page": "investment",
+      "current": 0,
+      "preview": 10,
+      "selected": 0
+    }
+  },
+  {
+    "id": "success",
+    "file": "success.png",
+    "source_filename": "codex-clipboard-b388945a-5fab-472b-8b14-4ce7c56c38e6.png",
+    "source_sha256": "780b446a025e0bf68a0aef54e5f70cc1c07e677886a116f4678231fc17cab4ba",
+    "expected": {
+      "page": "investment",
+      "current": 1,
+      "preview": 2,
+      "selected": 0
+    }
+  },
+  {
+    "id": "shell",
+    "file": "shell.png",
+    "source_filename": "codex-clipboard-2f50562e-f1bf-46f1-b794-feb8c053ac9b.png",
+    "source_sha256": "279b63053cefa0eeedecb82738f128044a42a5fab8ef038a5a99314937bbf12c",
+    "expected": {
+      "page": "investment",
+      "current": 0,
+      "preview": 1,
+      "selected": 1
+    }
+  },
+  {
+    "id": "double_digit",
+    "file": "double_digit.png",
+    "source_filename": "codex-clipboard-7d4dfad4-d0e4-4481-97f5-cafa6f967c9d.png",
+    "source_sha256": "2c66b6ba9be9e3a6f2807308e39a3201d3d28dd8a9926be06bf5d09ad0f82b1b",
+    "expected": {
+      "page": "investment",
+      "current": 10,
+      "preview": 11,
+      "selected": 0
+    }
+  }
+]

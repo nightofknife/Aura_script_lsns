@@ -83,7 +83,8 @@ TRADE_STAGE_LABELS = {
     "negotiation": "协商",
     "travel": "城市移动",
     "arrival": "等待到站",
-    "investment": "投资",
+    "investment": "蜃息岛投资",
+    "trade_goods_investment": "交易品投资",
     "rubbish_recycling": "倒垃圾",
     "sparkling_water": "喝气泡水",
     "bento": "吃便当",
@@ -96,7 +97,8 @@ FREIGHT_PHASE_LABELS = {
     "arrival": "到达城市",
     "sell": "售出货物",
     "buy": "购买货物",
-    "investment": "城市投资",
+    "investment": "蜃息岛投资",
+    "trade_goods_investment": "交易品投资",
     "rubbish_recycling": "倒垃圾",
     "travel": "前往下一城市",
     "final_sale": "终点清仓",
@@ -106,6 +108,49 @@ FREIGHT_PHASE_LABELS = {
     "books": "使用进货书",
     "negotiation": "协商",
 }
+
+
+TRADE_GOODS_INVESTMENT_MODE_OPTIONS: tuple[tuple[str, str], ...] = (
+    ("unlock", "逐步解锁（10级）"),
+    ("balanced", "最佳收益（14级）"),
+    ("full", "升满级（20级）"),
+)
+
+
+def trade_goods_investment_detail(data: Mapping[str, Any], state: str) -> str:
+    parts = ["交易品投资"]
+    product_index = _optional_int(data.get("product_index"))
+    if product_index is not None and product_index > 0:
+        parts.append(f"第 {product_index} 项")
+    current_level = _optional_int(data.get("current_level"))
+    target_level = _optional_int(data.get("target_level"))
+    if current_level is not None and target_level is not None:
+        parts.append(f"等级 {current_level}/{target_level}")
+    elif current_level is not None:
+        parts.append(f"当前 {current_level} 级")
+    elif target_level is not None:
+        parts.append(f"目标 {target_level} 级")
+    preview_level = _optional_int(data.get("preview_level"))
+    if preview_level is not None:
+        parts.append(f"预览 {preview_level} 级")
+    status = {
+        "started": "进入交易所", "working": "投资中", "running": "投资中",
+        "completed": "已完成", "success": "已完成", "skipped": "已跳过",
+        "failed": "失败", "error": "失败", "blocked": "已阻断",
+    }.get(state, "")
+    if status:
+        parts.append(status)
+    transaction_count = _optional_int(data.get("transaction_count"))
+    if transaction_count is not None and state in {"completed", "skipped", "failed"}:
+        parts.append(f"成交 {transaction_count} 次")
+    reason = data.get("reason") or data.get("message")
+    if reason:
+        parts.append({
+            "all_products_at_target": "商品已达到目标等级",
+            "next_product_locked": "后续商品尚未解锁",
+            "no_further_upgrade": "本次无法继续投资",
+        }.get(str(reason), str(reason)))
+    return " · ".join(parts)
 
 
 class ProgressDisplayState:
@@ -277,6 +322,7 @@ class WorkflowFreightProgressState(ProgressDisplayState):
     investment_enabled: bool = False
     rubbish_recycling_enabled: bool = True
     bento_enabled: bool = False
+    goods_investment_enabled: bool = False
     explicit_phase_plan: bool = False
     reposition: dict[str, Any] = field(default_factory=dict)
     reposition_state: str = "waiting"
@@ -352,6 +398,7 @@ def reduce_workflow_freight_progress(
     investment_enabled: bool | None = None,
     rubbish_recycling_enabled: bool | None = None,
     bento_enabled: bool | None = None,
+    goods_investment_enabled: bool | None = None,
 ) -> WorkflowFreightProgressState:
     """Reduce trade progress into route preparation and city business stages."""
 
@@ -373,6 +420,8 @@ def reduce_workflow_freight_progress(
         state.rubbish_recycling_enabled = bool(rubbish_recycling_enabled)
     if bento_enabled is not None:
         state.bento_enabled = bool(bento_enabled)
+    if goods_investment_enabled is not None:
+        state.goods_investment_enabled = bool(goods_investment_enabled)
     state.cid = str(payload.get("cid") or state.cid)
     state.sequence = payload["sequence"]
     stage = str(payload.get("stage") or "task")
@@ -450,7 +499,8 @@ def reduce_workflow_freight_progress(
                 state.cities = _freight_city_stages_from_visits(visits)
             else:
                 state.cities = _build_freight_city_stages(new_route, state.investment_enabled,
-                                                       state.rubbish_recycling_enabled, state.bento_enabled)
+                                                       state.rubbish_recycling_enabled, state.bento_enabled,
+                                                       goods_investment_enabled=state.goods_investment_enabled)
             reposition = data.get("reposition", state.summary.get("reposition"))
             if isinstance(reposition, Mapping):
                 state.reposition = copy.deepcopy(dict(reposition))
@@ -516,6 +566,9 @@ def reduce_workflow_freight_progress(
             phase.state = view_state
         elif phase.state not in {"completed", "skipped"}:
             phase.state = "running"
+    elif stage == "trade_goods_investment":
+        phase.state = view_state
+        phase.detail = trade_goods_investment_detail(data, event_state)
     elif stage == "bento":
         result = data.get("result") if isinstance(data.get("result"), Mapping) else {}
         plan = data.get("plan") if isinstance(data.get("plan"), Mapping) else {}
@@ -574,6 +627,7 @@ def _build_freight_city_stages(
     investment_enabled: bool,
     rubbish_recycling_enabled: bool = True,
     bento_enabled: bool = False,
+    goods_investment_enabled: bool = False,
 ) -> list[FreightCityStage]:
     if not route:
         return []
@@ -598,6 +652,8 @@ def _build_freight_city_stages(
             keys.append("investment")
         if index == rubbish_city_index:
             keys.append("rubbish_recycling")
+        if index > 0 and goods_investment_enabled:
+            keys.append("trade_goods_investment")
         keys.extend(["sell", "buy", "travel"] if index < city_count - 1 else ["final_sale"])
         if index == city_count - 1 and bento_enabled:
             keys.append("bento")
@@ -637,7 +693,7 @@ def _freight_event_city_index(
     leg_index = _optional_int(payload.get("leg_index"))
     if leg_index is None:
         return city_count - 1 if stage in {"final_sale", "bento"} else None
-    if stage in {"arrival", "investment", "rubbish_recycling"} and event_state not in {
+    if stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling"} and event_state not in {
         "blocked",
         "failed",
         "error",
@@ -1084,6 +1140,9 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "full_raise_count": result.get("full_raise_count"),
         "fatigue_medicine_used": list(result.get("fatigue_medicine_used") or []),
         "fatigue_medicine_use_count": result.get("fatigue_medicine_use_count"),
+        "trade_goods_investment": result.get(
+            "trade_goods_investment", execution.get("trade_goods_investment")
+        ),
         "warnings": warnings,
         "initial_city": str(initial_city.get("city_name") or ""),
         "final_city": final_city,
@@ -1111,6 +1170,15 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the four-mode freight task contract."""
     normalized = dict(inputs or {})
+    normalized["auto_trade_goods_investment"] = bool(
+        normalized.get("auto_trade_goods_investment", False)
+    )
+    investment_mode = normalized.get("trade_goods_investment_mode", "unlock")
+    if not isinstance(investment_mode, str) or investment_mode not in {
+        mode for mode, _label in TRADE_GOODS_INVESTMENT_MODE_OPTIONS
+    }:
+        raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
+    normalized["trade_goods_investment_mode"] = investment_mode
     for key in ("auto_book", "book_budget_ignored", "negotiation_budget",
                 "negotiation_budget_ignored", "fixed_route_repeat_count", "trade_level",
                 "active_events", "books_enabled", "books_unlimited", "finite_book_budget"):

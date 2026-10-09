@@ -277,6 +277,15 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: true
+      - name: auto_trade_goods_investment
+        type: boolean
+        required: false
+        default: false
+      - name: trade_goods_investment_mode
+        type: string
+        required: false
+        default: unlock
+        enum: [unlock, balanced, full]
       - name: auto_pickup
         type: boolean
         required: false
@@ -405,6 +414,8 @@ auto_cycle_trade_pc:
         fatigue_medicine_max_uses: "{{ inputs.fatigue_medicine_max_uses | default(4) }}"
         arrival_timeout_seconds: "{{ inputs.arrival_timeout_seconds | default(3600) }}"
         auto_cape_island_investment: "{{ inputs.auto_cape_island_investment | default(true) }}"
+        auto_trade_goods_investment: "{{ inputs.auto_trade_goods_investment | default(false) }}"
+        trade_goods_investment_mode: "{{ inputs.trade_goods_investment_mode | default('unlock') }}"
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
@@ -504,6 +515,7 @@ auto_cycle_trade_pc:
     route: "{{ nodes.finish.output.route }}"
     execution: "{{ nodes.finish.output.execution }}"
     final_sale: "{{ nodes.finish.output.final_sale }}"
+    trade_goods_investment: "{{ nodes.finish.output.trade_goods_investment }}"
     sparkling_water_plan: "{{ nodes.finish.output.sparkling_water_plan }}"
     sparkling_water: "{{ nodes.finish.output.sparkling_water }}"
     bento_consumption: "{{ nodes.finish.output.bento_consumption }}"

@@ -1,0 +1,1616 @@
+{
+  "schema_version": 2,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "native_canvas": [
+    1920,
+    1080
+  ],
+  "station": "Farstar Bridge",
+  "status": "template_runtime_with_unvalidated_states",
+  "source": "native_game_assets_only",
+  "reset_list_to_top": false,
+  "read_investment_amount": false,
+  "use_ocr": false,
+  "bundle_sha256": {
+    "ui/font.asset": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "ui/hometrade/update.asset": "d3539cd100fb9bca83125eb68be6aab1efee5e766408a98d2ba80d8125807082",
+    "ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+    "ui/hometrade/hometradeupgrade.asset": "7540c6c357daf497b12244a813d7cfe263f0f37156002cdd1c947bdc48eed4fd",
+    "ui/hometrade/hometrade.asset": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+    "ui/common/tips.asset": "62d077af2fb0dcb03782a5da9bcd43e3b36bdc0a4f3e3d5abd3960343c766830"
+  },
+  "templates": [
+    {
+      "name": "page_title",
+      "file": "page_title.png",
+      "kind": "native_font_composite",
+      "font": "SourceHanSansCN-Bold",
+      "font_path_id": -2237384480076949585,
+      "font_bundle": "ui/font/originpack.asset",
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "text": "交易品投资",
+      "native_font_size": 32,
+      "render_variant": "native",
+      "native_stroke": 1,
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/Txt_",
+      "roi": [
+        200,
+        85,
+        180,
+        55
+      ],
+      "preprocess": "bright",
+      "threshold": 0.82
+    },
+    {
+      "name": "entry",
+      "file": "entry.png",
+      "kind": "native_font_composite",
+      "font": "SourceHanSansCN-Bold",
+      "font_path_id": -2237384480076949585,
+      "font_bundle": "ui/font/originpack.asset",
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "text": "交易品投资",
+      "native_font_size": 30,
+      "render_variant": "native",
+      "native_stroke": 0,
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest/Txt_Name",
+      "roi": [
+        780,
+        462,
+        220,
+        50
+      ],
+      "preprocess": "dark_blur",
+      "threshold": 0.82
+    },
+    {
+      "name": "success",
+      "file": "success.png",
+      "kind": "native_font_composite",
+      "font": "SourceHanSansCN-Bold",
+      "font_path_id": -2237384480076949585,
+      "font_bundle": "ui/font/originpack.asset",
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "text": "升级成功",
+      "native_font_size": 36,
+      "render_variant": "native",
+      "native_stroke": 0,
+      "prefab_node": "/Tips/Txt_Tips",
+      "roi": [
+        480,
+        335,
+        330,
+        65
+      ],
+      "preprocess": "bright",
+      "threshold": 0.82
+    },
+    {
+      "name": "plus",
+      "file": "plus.png",
+      "kind": "native_sprite",
+      "sprite": "up",
+      "sprite_path_id": 6536270191557314561,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Btn_Up",
+      "native_sprite_size": [
+        80,
+        87
+      ],
+      "client_node_size": [
+        53,
+        58
+      ],
+      "crop_on_client_sprite": [
+        3,
+        2,
+        45,
+        50
+      ],
+      "roi": [
+        1110,
+        200,
+        80,
+        80
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.85
+    },
+    {
+      "name": "minus",
+      "file": "minus.png",
+      "kind": "native_sprite",
+      "sprite": "down",
+      "sprite_path_id": -7278176463974933919,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Btn_Down",
+      "native_sprite_size": [
+        80,
+        87
+      ],
+      "client_node_size": [
+        53,
+        58
+      ],
+      "crop_on_client_sprite": [
+        3,
+        2,
+        45,
+        50
+      ],
+      "roi": [
+        815,
+        200,
+        80,
+        80
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.85
+    },
+    {
+      "name": "confirm_enabled",
+      "file": "confirm_enabled.png",
+      "kind": "native_sprite",
+      "sprite": "confirm",
+      "sprite_path_id": -6030574623585193347,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Btn_confirm",
+      "native_sprite_size": [
+        534,
+        84
+      ],
+      "client_node_size": [
+        356,
+        56
+      ],
+      "crop_on_client_sprite": [
+        3,
+        2,
+        348,
+        48
+      ],
+      "roi": [
+        810,
+        520,
+        390,
+        90
+      ],
+      "preprocess": "rgb_blur",
+      "threshold": 0.85
+    },
+    {
+      "name": "lock",
+      "file": "lock.png",
+      "kind": "native_sprite",
+      "sprite": "lock",
+      "sprite_path_id": 1226731774129558459,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/ScrollGrid_Left/Viewport/Grid/Group_Item_000/Img_lock",
+      "native_sprite_size": [
+        172,
+        194
+      ],
+      "client_node_size": [
+        115,
+        129
+      ],
+      "crop_on_client_sprite": [
+        43,
+        50,
+        29,
+        29
+      ],
+      "roi": [
+        50,
+        140,
+        385,
+        450
+      ],
+      "preprocess": "bright_blur",
+      "threshold": 0.85
+    },
+    {
+      "name": "selected_corner",
+      "file": "selected_corner.png",
+      "kind": "native_sprite",
+      "sprite": "LeftItemMask",
+      "sprite_path_id": -2288881813436498912,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/ScrollGrid_Left/Viewport/Grid/Group_Item_000/Img_OnMask",
+      "native_sprite_size": [
+        172,
+        194
+      ],
+      "client_node_size": [
+        115,
+        129
+      ],
+      "crop_on_client_sprite": [
+        0,
+        3,
+        18,
+        22
+      ],
+      "roi": [
+        50,
+        140,
+        385,
+        450
+      ],
+      "preprocess": "yellow",
+      "threshold": 0.85
+    },
+    {
+      "name": "page_anchor",
+      "file": "page_anchor.png",
+      "kind": "native_sprite",
+      "sprite": "LeftIcon",
+      "sprite_path_id": 6205197831404070342,
+      "bundle": "ui/hometrade/update.asset",
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/Img_icon",
+      "native_sprite_size": [
+        50,
+        50
+      ],
+      "client_node_size": [
+        33,
+        33
+      ],
+      "crop_on_client_sprite": [
+        1,
+        -2,
+        31,
+        36
+      ],
+      "roi": [
+        160,
+        90,
+        70,
+        65
+      ],
+      "preprocess": "bright_blur",
+      "threshold": 0.85
+    },
+    {
+      "name": "max_layout",
+      "file": "max_layout.png",
+      "kind": "native_sprite",
+      "sprite": "lvmax",
+      "sprite_path_id": -1763122843846654301,
+      "bundle": "ui/hometrade/update.asset",
+      "bundle_sha256": "d3539cd100fb9bca83125eb68be6aab1efee5e766408a98d2ba80d8125807082",
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_Max/Img_LvMax",
+      "native_sprite_size": [
+        135,
+        57
+      ],
+      "client_node_size": [
+        90,
+        38
+      ],
+      "crop_on_client_sprite": [
+        0,
+        27,
+        90,
+        11
+      ],
+      "roi": [
+        767,
+        220,
+        90,
+        38
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.85,
+      "excluded_text_node": "/HomeTradeUpgrade/Group_Right/Group_Max/Txt_LvMax",
+      "excluded_text_roi": [
+        775,
+        225,
+        71,
+        21
+      ],
+      "status": "native_generated_unvalidated"
+    },
+    {
+      "name": "maximum_card_badge",
+      "file": "cards/maximum_badge.png",
+      "kind": "native_sprite_composite",
+      "sprite_path_id": 9077236014113405044,
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/ScrollGrid_Left/Viewport/Grid/Group_Item_000/Group_Max/Img_",
+      "roi": [
+        49,
+        143,
+        394,
+        446
+      ],
+      "preprocess": "rgb_blur",
+      "threshold": 0.9
+    }
+  ],
+  "levels": [
+    {
+      "level": 0,
+      "file": "levels/00_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 0,
+      "file": "levels/00_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 1,
+      "file": "levels/01_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        44,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 1,
+      "file": "levels/01_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        43,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 2,
+      "file": "levels/02_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        49,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 2,
+      "file": "levels/02_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 3,
+      "file": "levels/03_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 3,
+      "file": "levels/03_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 4,
+      "file": "levels/04_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        50,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 4,
+      "file": "levels/04_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 5,
+      "file": "levels/05_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        49,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 5,
+      "file": "levels/05_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 6,
+      "file": "levels/06_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 6,
+      "file": "levels/06_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 7,
+      "file": "levels/07_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        48,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 7,
+      "file": "levels/07_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 8,
+      "file": "levels/08_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 8,
+      "file": "levels/08_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        49,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 9,
+      "file": "levels/09_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 9,
+      "file": "levels/09_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        48,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 10,
+      "file": "levels/10_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 10,
+      "file": "levels/10_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 11,
+      "file": "levels/11_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        54,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 11,
+      "file": "levels/11_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        53,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 12,
+      "file": "levels/12_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        59,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 12,
+      "file": "levels/12_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 13,
+      "file": "levels/13_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 13,
+      "file": "levels/13_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 14,
+      "file": "levels/14_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        60,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 14,
+      "file": "levels/14_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 15,
+      "file": "levels/15_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        59,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 15,
+      "file": "levels/15_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 16,
+      "file": "levels/16_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 16,
+      "file": "levels/16_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 17,
+      "file": "levels/17_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        58,
+        25
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 17,
+      "file": "levels/17_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 18,
+      "file": "levels/18_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 18,
+      "file": "levels/18_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        59,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 19,
+      "file": "levels/19_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 19,
+      "file": "levels/19_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        58,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 20,
+      "file": "levels/20_native.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "native",
+      "foreground": [
+        12,
+        30,
+        64,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    },
+    {
+      "level": 20,
+      "file": "levels/20_client.png",
+      "kind": "native_font_composite",
+      "font": "BEBAS___",
+      "font_path_id": 5303591007113889663,
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+      "native_font_size": 44,
+      "render_variant": "client",
+      "foreground": [
+        17,
+        29,
+        63,
+        26
+      ],
+      "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_NotMax/Txt_Lv1"
+    }
+  ],
+  "digits": [
+    {
+      "digit": 0,
+      "file": "digits/0_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 0,
+      "file": "digits/0_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 1,
+      "file": "digits/1_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 1,
+      "file": "digits/1_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 2,
+      "file": "digits/2_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 2,
+      "file": "digits/2_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 3,
+      "file": "digits/3_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 3,
+      "file": "digits/3_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 4,
+      "file": "digits/4_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 4,
+      "file": "digits/4_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 5,
+      "file": "digits/5_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 5,
+      "file": "digits/5_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 6,
+      "file": "digits/6_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 6,
+      "file": "digits/6_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 7,
+      "file": "digits/7_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 7,
+      "file": "digits/7_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 8,
+      "file": "digits/8_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 8,
+      "file": "digits/8_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    },
+    {
+      "digit": 9,
+      "file": "digits/9_native.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "native"
+    },
+    {
+      "digit": 9,
+      "file": "digits/9_client.png",
+      "kind": "native_font_composite",
+      "font_path_id": 5303591007113889663,
+      "native_font_size": 44,
+      "variant": "client"
+    }
+  ],
+  "cards": {
+    "source": "native_game_assets_only",
+    "bundle": "ui/hometrade/update.asset",
+    "normal_sprite": "LetfItemBG",
+    "normal_sprite_id": -1911684238337635889,
+    "selected_sprite": "LeftItemMask",
+    "selected_sprite_id": -2288881813436498912,
+    "size": [
+      115,
+      129
+    ],
+    "header_box": [
+      47,
+      0,
+      22,
+      14
+    ],
+    "header_mask": "cards/header_mask.png",
+    "bottom_sprite_id": 8083724852411651157,
+    "lock_sprite_id": 1226731774129558459,
+    "panel_sprite_id": 8691260631579270363,
+    "backdrop_node": "/HomeTradeUpgrade/Img_Bg",
+    "backdrop_color": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "frame_mask": "cards/frame_mask.png",
+    "variants": [
+      "cards/normal.png",
+      "cards/locked.png",
+      "cards/selected.png",
+      "cards/maximum.png"
+    ],
+    "header_variants": [
+      "cards/normal_header.png",
+      "cards/locked_header.png",
+      "cards/selected_header.png",
+      "cards/maximum_header.png"
+    ],
+    "frame_variants": [
+      {
+        "file": "cards/normal_115x129.png",
+        "mask": "cards/frame_mask_115x129.png",
+        "size": [
+          115,
+          129
+        ],
+        "state": "normal"
+      },
+      {
+        "file": "cards/normal_114x129.png",
+        "mask": "cards/frame_mask_114x129.png",
+        "size": [
+          114,
+          129
+        ],
+        "state": "normal"
+      },
+      {
+        "file": "cards/normal_115x128.png",
+        "mask": "cards/frame_mask_115x128.png",
+        "size": [
+          115,
+          128
+        ],
+        "state": "normal"
+      },
+      {
+        "file": "cards/normal_114x128.png",
+        "mask": "cards/frame_mask_114x128.png",
+        "size": [
+          114,
+          128
+        ],
+        "state": "normal"
+      },
+      {
+        "file": "cards/locked_115x129.png",
+        "mask": "cards/frame_mask_115x129.png",
+        "size": [
+          115,
+          129
+        ],
+        "state": "locked"
+      },
+      {
+        "file": "cards/locked_114x129.png",
+        "mask": "cards/frame_mask_114x129.png",
+        "size": [
+          114,
+          129
+        ],
+        "state": "locked"
+      },
+      {
+        "file": "cards/locked_115x128.png",
+        "mask": "cards/frame_mask_115x128.png",
+        "size": [
+          115,
+          128
+        ],
+        "state": "locked"
+      },
+      {
+        "file": "cards/locked_114x128.png",
+        "mask": "cards/frame_mask_114x128.png",
+        "size": [
+          114,
+          128
+        ],
+        "state": "locked"
+      },
+      {
+        "file": "cards/selected_115x129.png",
+        "mask": "cards/frame_mask_115x129.png",
+        "size": [
+          115,
+          129
+        ],
+        "state": "selected"
+      },
+      {
+        "file": "cards/selected_114x129.png",
+        "mask": "cards/frame_mask_114x129.png",
+        "size": [
+          114,
+          129
+        ],
+        "state": "selected"
+      },
+      {
+        "file": "cards/selected_115x128.png",
+        "mask": "cards/frame_mask_115x128.png",
+        "size": [
+          115,
+          128
+        ],
+        "state": "selected"
+      },
+      {
+        "file": "cards/selected_114x128.png",
+        "mask": "cards/frame_mask_114x128.png",
+        "size": [
+          114,
+          128
+        ],
+        "state": "selected"
+      },
+      {
+        "file": "cards/maximum_114x128.png",
+        "mask": "cards/maximum_frame_mask_114x128.png",
+        "size": [
+          114,
+          128
+        ],
+        "state": "maximum"
+      },
+      {
+        "file": "cards/maximum_114x129.png",
+        "mask": "cards/maximum_frame_mask_114x129.png",
+        "size": [
+          114,
+          129
+        ],
+        "state": "maximum"
+      },
+      {
+        "file": "cards/maximum_115x128.png",
+        "mask": "cards/maximum_frame_mask_115x128.png",
+        "size": [
+          115,
+          128
+        ],
+        "state": "maximum"
+      },
+      {
+        "file": "cards/maximum_115x129.png",
+        "mask": "cards/maximum_frame_mask_115x129.png",
+        "size": [
+          115,
+          129
+        ],
+        "state": "maximum"
+      }
+    ],
+    "viewport": [
+      49,
+      143,
+      394,
+      446
+    ],
+    "header_threshold": 0.88,
+    "frame_threshold": 0.8,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "rgb_blur",
+    "fixed_slot_origins_used": false,
+    "success_occlusion_roi": [
+      0,
+      327,
+      1280,
+      66
+    ],
+    "maximum": {
+      "prefab_node": "/HomeTradeUpgrade/Group_Left/ScrollGrid_Left/Viewport/Grid/Group_Item_000/Group_Max/Img_",
+      "sprite_path_id": 9077236014113405044,
+      "sprite": "itemLvMax",
+      "bundle": "ui/hometrade/update.asset",
+      "bundle_sha256": "d3539cd100fb9bca83125eb68be6aab1efee5e766408a98d2ba80d8125807082",
+      "client_node_rect": [
+        61,
+        143,
+        115,
+        129
+      ],
+      "native_tint": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "group_initially_active": false,
+      "badge_box": [
+        24,
+        31,
+        67,
+        41
+      ],
+      "excluded_interior_rects": [
+        [
+          24,
+          31,
+          67,
+          67
+        ],
+        [
+          11,
+          73,
+          94,
+          20
+        ]
+      ],
+      "status": "native_generated_unvalidated"
+    }
+  },
+  "level_rois": {
+    "current": [
+      899,
+      217,
+      81,
+      48
+    ],
+    "preview": [
+      1030,
+      217,
+      80,
+      48
+    ]
+  },
+  "level_matching": {
+    "method": "TM_CCOEFF_NORMED",
+    "threshold": 0.77,
+    "minimum_margin": 0.02,
+    "require_full_token": true,
+    "canvas": [
+      84,
+      36
+    ],
+    "digit_verification": true,
+    "digit_threshold": 0.8,
+    "digit_margin": 0.04
+  },
+  "rasterization": {
+    "font_cutoff": 180,
+    "foreground_min_rgb": 205,
+    "foreground_max_chroma_spread": 38,
+    "digit_normalized_size": [
+      20,
+      32
+    ],
+    "scale": "1920x1080 -> 1280x720; native and client-size glyph variants"
+  },
+  "slot_origins": [
+    [
+      61,
+      143
+    ],
+    [
+      188,
+      143
+    ],
+    [
+      315,
+      143
+    ],
+    [
+      61,
+      275
+    ],
+    [
+      188,
+      275
+    ],
+    [
+      315,
+      275
+    ],
+    [
+      61,
+      407
+    ],
+    [
+      188,
+      407
+    ],
+    [
+      315,
+      407
+    ]
+  ],
+  "slot_size": [
+    115,
+    129
+  ],
+  "limitations": [
+    "No live or temporal verification",
+    "Unseen levels generated but not screenshot-validated",
+    "Disabled confirm state still requires native state composition",
+    "Maximum-level badge uses a text-free native sprite band; matching threshold is not screenshot-calibrated",
+    "Maximum-level yellow text and layout have no live, screenshot, or temporal verification",
+    "Maximum-level layout and maximum-card state have no real screenshot verification",
+    "Disabled confirm state has no real screenshot verification; runtime uses enabled-template color consistency"
+  ],
+  "max_level_roi": [
+    974,
+    221,
+    105,
+    39
+  ],
+  "max_level_style": {
+    "prefab_node": "/HomeTradeUpgrade/Group_Right/Group_Max/Txt_Lv2",
+    "font": "BEBAS___",
+    "font_path_id": 5303591007113889663,
+    "font_bundle": "ui/font.asset",
+    "font_sha256": "9150a3daca54b2734801e723414c21ed23c228cd9f33dc92a43f7f3c0d62146b",
+    "native_font_size": 44,
+    "native_font_style": 0,
+    "native_color": [
+      1.0,
+      0.7215686440467834,
+      0.0,
+      1.0
+    ],
+    "preprocess": "yellow",
+    "levels_key": "levels",
+    "digits_key": "digits",
+    "reuses_existing_templates": true,
+    "prefab_sha256": "7540c6c357daf497b12244a813d7cfe263f0f37156002cdd1c947bdc48eed4fd",
+    "status": "native_generated_unvalidated"
+  }
+}
