@@ -783,8 +783,12 @@ class ResonanceMainWindow(QMainWindow):
         preview_inputs = {
             key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS
         }
+        preview_inputs = {
+            key: value for key, value in normalize_trade_task_inputs(preview_inputs).items()
+            if key in TRADE_PREVIEW_INPUT_KEYS
+        }
         self.requestPreviewPcTrade.emit(
-            normalize_trade_task_inputs(preview_inputs), float(self.timeout_spin.value())
+            preview_inputs, float(self.timeout_spin.value())
         )
 
     def _open_freight_trial(self) -> None:

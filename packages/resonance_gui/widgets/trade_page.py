@@ -48,6 +48,7 @@ from ..config_repository import (
     ResonanceConfigRepository,
 )
 from ..logic import (
+    TRADE_GOODS_INVESTMENT_MODE_OPTIONS,
     TradeProgressState,
     expected_profit_per_fatigue,
     extract_run_id,
@@ -56,6 +57,7 @@ from ..logic import (
     reduce_trade_progress,
     route_product_lines,
     trade_result_summary,
+    trade_goods_investment_detail,
     normalize_trade_task_inputs,
     average_book_profit_text,
 )
@@ -613,16 +615,28 @@ class TradePage(QWidget):
         self.fatigue_medicine_max_uses = self._spin(0, 100000)
         self.allowed_fatigue_medicines: list[str] = []
         self.auto_cape_island_investment = QCheckBox("蜃息岛投资", content)
+        self.auto_trade_goods_investment = QCheckBox("自动交易品投资", content)
+        self.auto_trade_goods_investment.toggled.connect(self._sync_goods_investment_controls)
+        self.trade_goods_investment_panel = QWidget(content)
+        investment_form = QFormLayout(self.trade_goods_investment_panel)
+        investment_form.setContentsMargins(0, 0, 0, 0)
+        investment_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        self.trade_goods_investment_mode = QComboBox(self.trade_goods_investment_panel)
+        for mode, label in TRADE_GOODS_INVESTMENT_MODE_OPTIONS:
+            self.trade_goods_investment_mode.addItem(label, mode)
+        investment_form.addRow("交易品投资模式", self.trade_goods_investment_mode)
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
         self.additional_options = QWidget(content)
         options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.setSpacing(8)
         for index, button in enumerate((self.auto_pickup, self.use_fatigue_medicine,
-                       self.auto_cape_island_investment, self.auto_rubbish_recycling)):
+                       self.auto_cape_island_investment, self.auto_rubbish_recycling,
+                       self.auto_trade_goods_investment)):
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
             options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
         recovery_layout.addWidget(self.additional_options)
+        recovery_layout.addWidget(self.trade_goods_investment_panel)
         medicine_form = QFormLayout()
         medicine_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
         self.fatigue_medicine_max_uses.setMaximumWidth(220)
@@ -643,6 +657,8 @@ class TradePage(QWidget):
             self.water_reserve_panel.hide()
             self.auto_pickup.hide()
             self.auto_cape_island_investment.hide()
+            self.auto_trade_goods_investment.hide()
+            self.trade_goods_investment_panel.hide()
             self.auto_rubbish_recycling.hide()
 
         self.advanced_toggle = QToolButton(content)
@@ -1279,6 +1295,15 @@ class TradePage(QWidget):
         self.auto_cape_island_investment.setChecked(
             bool(values.get("auto_cape_island_investment", True))
         )
+        investment_mode = values.get("trade_goods_investment_mode", "unlock")
+        investment_mode_index = self.trade_goods_investment_mode.findData(investment_mode)
+        if not isinstance(investment_mode, str) or investment_mode_index < 0:
+            raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
+        self.trade_goods_investment_mode.setCurrentIndex(investment_mode_index)
+        self.auto_trade_goods_investment.setChecked(
+            bool(values.get("auto_trade_goods_investment", False))
+        )
+        self._sync_goods_investment_controls()
         self.auto_rubbish_recycling.setChecked(
             bool(values.get("auto_rubbish_recycling", True))
         )
@@ -1356,6 +1381,8 @@ class TradePage(QWidget):
             "allowed_fatigue_medicines": list(self.allowed_fatigue_medicines),
             "fatigue_medicine_max_uses": self.fatigue_medicine_max_uses.value(),
             "auto_cape_island_investment": self.auto_cape_island_investment.isChecked(),
+            "auto_trade_goods_investment": self.auto_trade_goods_investment.isChecked(),
+            "trade_goods_investment_mode": self.trade_goods_investment_mode.currentData(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         })
         return normalize_trade_task_inputs(inputs)
@@ -1406,7 +1433,17 @@ class TradePage(QWidget):
             return
         self._save_inputs(self.collect_ui_state())
         self._last_inputs = normalize_trade_task_inputs(inputs)
+        if self.preview_mode:
+            self._last_inputs = {
+                key: value for key, value in self._last_inputs.items()
+                if key in TRADE_PREVIEW_INPUT_KEYS
+            }
         signal.emit(dict(self._last_inputs), 0.0)
+
+    def _sync_goods_investment_controls(self) -> None:
+        self.trade_goods_investment_mode.setEnabled(
+            not self._busy and self.auto_trade_goods_investment.isChecked()
+        )
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         if self.target_value is None:
@@ -1655,6 +1692,8 @@ class TradePage(QWidget):
             self.base_fatigue_reserve,
             self.auto_pickup,
             self.auto_cape_island_investment,
+            self.auto_trade_goods_investment,
+            self.trade_goods_investment_panel,
             self.auto_rubbish_recycling,
             self.advanced_panel,
             self.start_city,
@@ -1674,6 +1713,7 @@ class TradePage(QWidget):
         self._sync_book_controls()
         self._sync_end_city_options()
         self._sync_mode_controls()
+        self._sync_goods_investment_controls()
         self._sync_actions()
 
     def set_end_city_constraint_available(self, available: bool) -> None:
@@ -1832,6 +1872,8 @@ class TradePage(QWidget):
 
     def _progress_detail(self) -> str:
         progress = self._progress
+        if progress.stage == "trade_goods_investment":
+            return trade_goods_investment_detail(progress.last_data, progress.state)
         if progress.stage == "market":
             source = str(progress.last_data.get("source") or "")
             if progress.state == "started":

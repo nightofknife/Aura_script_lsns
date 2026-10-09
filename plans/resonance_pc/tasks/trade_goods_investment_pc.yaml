@@ -1,0 +1,36 @@
+trade_goods_investment_pc:
+  meta:
+    title: Trade Goods Investment (PC)
+    description: Invest goods from the current exchange menu in unlock order and return to that menu.
+    entry_point: true
+    inputs:
+      - name: mode
+        type: string
+        required: false
+        default: unlock
+        enum: [unlock, balanced, full]
+      - name: city_name
+        type: string
+        required: false
+        default: ""
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    invest:
+      action: resonance_pc.invest_trade_goods_from_shop
+      depends_on: require_resolution
+      params:
+        mode: "{{ inputs.mode }}"
+        city_name: "{{ inputs.city_name }}"
+  returns:
+    success: "{{ nodes.invest.output.success }}"
+    status: "{{ nodes.invest.output.status }}"
+    reason: "{{ nodes.invest.output.reason }}"
+    mode: "{{ nodes.invest.output.mode }}"
+    target_level: "{{ nodes.invest.output.target_level }}"
+    transaction_count: "{{ nodes.invest.output.transaction_count }}"
+    upgraded_levels: "{{ nodes.invest.output.upgraded_levels }}"
+    transactions: "{{ nodes.invest.output.transactions }}"
+    product_count: "{{ nodes.invest.output.product_count }}"
+    scroll_count: "{{ nodes.invest.output.scroll_count }}"
+    page_state: "{{ nodes.invest.output.page_state }}"

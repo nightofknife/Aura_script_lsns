@@ -59,6 +59,8 @@ _TRADE_INPUT_KEYS = {
     "fatigue_medicine_max_uses",
     "arrival_timeout_seconds",
     "auto_cape_island_investment",
+    "auto_trade_goods_investment",
+    "trade_goods_investment_mode",
     "auto_rubbish_recycling",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
@@ -74,6 +76,8 @@ _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "fatigue_medicine_max_uses",
     "arrival_timeout_seconds",
     "auto_cape_island_investment",
+    "auto_trade_goods_investment",
+    "trade_goods_investment_mode",
     "auto_rubbish_recycling",
 }
 _PASSENGER_INPUT_KEYS = {

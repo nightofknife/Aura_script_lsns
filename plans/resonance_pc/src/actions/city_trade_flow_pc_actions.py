@@ -33,6 +33,11 @@ from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlanne
 from .cape_island_investment_pc_actions import (
     resonance_pc_execute_cape_island_investment_from_city_panel,
 )
+from .trade_goods_investment_pc_actions import (
+    MODE_TARGETS,
+    execute_trade_goods_investment_from_shop,
+    normalize_investment_mode,
+)
 from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
 from ._operation_progress import (
     observe_operation, observe_worker_future, operation_progress, utc_timestamp,
@@ -149,7 +154,7 @@ class _TradeProgressReporter:
         if self._total_units is not None:
             if stage == "reposition" and state == "completed" and not is_operation:
                 self._completed_units.add((stage, (data.get("reposition") or {}).get("leg_index")))
-            elif stage in {"arrival", "investment", "rubbish_recycling", "sparkling_water",
+            elif stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling", "sparkling_water",
                            "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"} and not is_operation:
                 key = (stage, payload.get("city_index"))
                 if key in self._phase_keys:
@@ -1311,6 +1316,8 @@ def _execute_city_trade_inside_current_city(
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
     progress_context: Optional[Dict[str, Any]] = None,
+    auto_trade_goods_investment: bool = False,
+    trade_goods_investment_mode: str = "unlock",
 ) -> Dict[str, Any]:
     progress_token = _WORKER_PROGRESS_CONTEXT.set(dict(progress_context or {}))
     try:
@@ -1325,6 +1332,8 @@ def _execute_city_trade_inside_current_city(
             ocr=ocr,
             vision=vision,
             city_shop_data=city_shop_data,
+            auto_trade_goods_investment=auto_trade_goods_investment,
+            trade_goods_investment_mode=trade_goods_investment_mode,
         )
     finally:
         _WORKER_PROGRESS_CONTEXT.reset(progress_token)
@@ -1342,6 +1351,8 @@ def _execute_city_trade_inside_current_city_scoped(
     ocr: Any,
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
+    auto_trade_goods_investment: bool = False,
+    trade_goods_investment_mode: str = "unlock",
 ) -> Dict[str, Any]:
     products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
     logger.info(
@@ -1367,6 +1378,21 @@ def _execute_city_trade_inside_current_city_scoped(
         resonance_pc_city_shop_data=city_shop_data,
     )
     shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
+    goods_investment = {"triggered": False, "status": "not_triggered"}
+    if auto_trade_goods_investment:
+        goods_investment = execute_trade_goods_investment_from_shop(
+            mode=trade_goods_investment_mode,
+            city_name=current_city,
+            app=app,
+            vision=vision,
+            progress=lambda state, data: _report_worker("trade_goods_investment", state, data=data),
+        )
+        if goods_investment.get("success") is not True or goods_investment.get("page_state") != "shop_page":
+            _raise_error("goods_investment_not_completed", "Goods investment did not confirm return to the exchange", goods_investment)
+        shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
+        context_fields = _WORKER_PROGRESS_CONTEXT.get()
+        if context_fields.get("leg_count", 0) > 0 and context_fields.get("city_index") == context_fields.get("leg_count"):
+            _report_worker("final_sale", "started", data={"raise_to_cap": bool(sell_raise_to_cap)})
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
@@ -1450,12 +1476,29 @@ def _execute_city_trade_inside_current_city_scoped(
         "buy_bargain_to_cap": bool(buy_bargain_to_cap),
         "enter_shop": enter_shop,
         "shop_menu_ready": shop_menu_ready,
+        "trade_goods_investment": goods_investment,
         "sell_node": sell_node,
         "sell": sell,
         "buy_node": buy_node,
         "buy": buy,
         "go_city_main": main,
     }
+
+
+def _summarize_goods_investment(execution: Dict[str, Any], final_sale: Optional[Dict[str, Any]],
+                                *, enabled: bool, mode: str) -> Dict[str, Any]:
+    visits = []
+    for leg in execution.get("leg_results") or []:
+        investment = (leg.get("city_trade") or {}).get("trade_goods_investment") or {}
+        if investment.get("triggered"):
+            visits.append({"city_index": int(leg.get("index") or 0), **investment})
+    endpoint = (final_sale or {}).get("trade_goods_investment") or {}
+    if endpoint.get("triggered"):
+        visits.append({"city_index": len(execution.get("leg_results") or []), **endpoint})
+    return {"enabled": enabled, "mode": mode, "target_level": MODE_TARGETS[mode], "visits": visits,
+            "triggered_count": len(visits),
+            "transaction_count": sum(int(visit.get("transaction_count") or 0) for visit in visits),
+            "upgraded_levels": sum(int(visit.get("upgraded_levels") or 0) for visit in visits)}
 
 
 def _has_recovery_rest_point(city_name: str, city_shop_data) -> bool:
@@ -1586,6 +1629,8 @@ async def _execute_route(
     city_shop_data: ResonancePcCityShopDataService,
     state_store: StateStoreService,
     auto_cape_island_investment: bool = False,
+    auto_trade_goods_investment: bool = False,
+    trade_goods_investment_mode: str = "unlock",
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
@@ -1636,6 +1681,8 @@ async def _execute_route(
                     city_shop_data=city_shop_data,
                     progress_fields=progress_fields,
                     auto_cape_island_investment=bool(auto_cape_island_investment),
+                    auto_trade_goods_investment=bool(auto_trade_goods_investment),
+                    trade_goods_investment_mode=trade_goods_investment_mode,
                     auto_rubbish_recycling=bool(
                         auto_rubbish_recycling
                         and not rubbish_recycling_attempted
@@ -1779,6 +1826,8 @@ async def _execute_trade_leg(
     city_shop_data: ResonancePcCityShopDataService,
     progress_fields: Optional[Dict[str, Any]] = None,
     auto_cape_island_investment: bool = False,
+    auto_trade_goods_investment: bool = False,
+    trade_goods_investment_mode: str = "unlock",
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
@@ -1808,6 +1857,8 @@ async def _execute_trade_leg(
         vision=vision,
         city_shop_data=city_shop_data,
         progress_context=progress_fields,
+        auto_trade_goods_investment=bool(auto_trade_goods_investment and index > 0),
+        trade_goods_investment_mode=trade_goods_investment_mode,
     )
     page_state = str(city_trade.get("page_state") or "city_main")
     if city_trade.get("success") is not True or page_state != "city_main":
@@ -2493,6 +2544,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     fatigue_medicine_max_uses: int = 4,
     arrival_timeout_seconds: float = 3600.0,
     auto_cape_island_investment: bool = True,
+    auto_trade_goods_investment: bool = False,
+    trade_goods_investment_mode: str = "unlock",
     auto_rubbish_recycling: bool = True,
     auto_sparkling_water: bool = False,
     auto_bento: bool = False,
@@ -2517,10 +2570,12 @@ async def resonance_pc_auto_cycle_trade_flow(
     request = normalize_planning_inputs(locals())
     for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
+                        ("auto_trade_goods_investment", auto_trade_goods_investment),
                         ("auto_rubbish_recycling", auto_rubbish_recycling)):
         if type(value) is not bool:
             raise ValueError(f"{name} must be a boolean")
     integer("fatigue_medicine_max_uses", fatigue_medicine_max_uses)
+    trade_goods_investment_mode = normalize_investment_mode(trade_goods_investment_mode)
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
     if type(auto_bento) is not bool:
@@ -2660,6 +2715,15 @@ async def resonance_pc_auto_cycle_trade_flow(
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
                      investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
     plan["sparkling_water_plan"] = water_plan
+    if auto_trade_goods_investment:
+        for visit in plan["city_visits"]:
+            if visit["city_index"] == 0:
+                continue
+            phases = visit["phases"]
+            sale_index = next(index for index, phase in enumerate(phases)
+                              if phase["key"] in {"sell", "final_sale"})
+            phases.insert(sale_index, {"key": "trade_goods_investment",
+                                       "status": "waiting", "reason": None})
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -2720,6 +2784,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             city_shop_data=resonance_pc_city_shop_data,
             state_store=state_store,
             auto_cape_island_investment=bool(auto_cape_island_investment),
+            auto_trade_goods_investment=auto_trade_goods_investment,
+            trade_goods_investment_mode=trade_goods_investment_mode,
             auto_rubbish_recycling=bool(auto_rubbish_recycling),
             engine=engine,
             sparkling_water_plan=water_plan,
@@ -2735,7 +2801,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             if page_state == "city_main":
                 await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
                 page_state = "city_panel"
-            if reporter is not None:
+            if reporter is not None and not auto_trade_goods_investment:
                 await reporter.emit(
                     "final_sale",
                     "started",
@@ -2753,6 +2819,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                     books_used=0,
                     sell_raise_to_cap=bool(route[-1].get("raise_to_cap")),
                     buy_bargain_to_cap=False,
+                    auto_trade_goods_investment=auto_trade_goods_investment,
+                    trade_goods_investment_mode=trade_goods_investment_mode,
                     negotiation_max_attempts=normalized_negotiation_max_attempts,
                     app=app,
                     ocr=ocr,
@@ -2835,6 +2903,12 @@ async def resonance_pc_auto_cycle_trade_flow(
         buy = ((leg_result.get("city_trade") or {}).get("buy") or {})
         result_warnings.extend({**warning, "leg_index": leg_result.get("leg_index", leg_result.get("index"))}
                                for warning in buy.get("warnings") or [])
+    goods_investment_summary = _summarize_goods_investment(
+        execution, final_sale, enabled=auto_trade_goods_investment, mode=trade_goods_investment_mode,
+    )
+    execution["trade_goods_investment"] = goods_investment_summary
+    if auto_trade_goods_investment:
+        result_warnings.append("投资支出不计入贸易收益；商品升级后的进货量可能与预计方案不同。")
     result.update(
         {
             "success": success,
@@ -2845,6 +2919,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "warnings": result_warnings,
             "execution": execution,
             "final_sale": final_sale,
+            "trade_goods_investment": goods_investment_summary,
             "bento_pending": bento_pending,
             "sparkling_water": execution.get("sparkling_water") or {
                 "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),

@@ -1118,6 +1118,14 @@ exports:
       type: Any
       required: false
       default: true
+    - name: auto_trade_goods_investment
+      type: Any
+      required: false
+      default: false
+    - name: trade_goods_investment_mode
+      type: Any
+      required: false
+      default: unlock
     - name: auto_rubbish_recycling
       type: Any
       required: false
@@ -2373,6 +2381,23 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.invest_trade_goods_from_shop
+    module: plans.resonance_pc.src.actions.trade_goods_investment_pc_actions
+    function: resonance_pc_invest_trade_goods_from_shop
+    public: true
+    read_only: false
+    timeout: null
+    description: Invest goods in original unlock order to level 10, 14, or 20 and return
+      to the exchange.
+    parameters:
+    - name: mode
+      type: Any
+      required: false
+      default: unlock
+    - name: city_name
+      type: Any
+      required: false
+      default: ''
   - name: resonance_pc.trade_plan_optimal_route
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_plan_optimal_route
@@ -3206,6 +3231,16 @@ exports:
     title: Fixed Team Recommendations (PC)
     source: tasks/team_recommendation_pc.yaml
     description: Match cached player characters and weapons against fixed team guides.
+  - id: trade_goods_investment_pc/trade_goods_investment_pc
+    title: Trade Goods Investment (PC)
+    source: tasks/trade_goods_investment_pc.yaml
+    description: Invest goods from the current exchange menu in unlock order and return
+      to that menu.
+  - id: trade_goods_investment_pc
+    title: Trade Goods Investment (PC)
+    source: tasks/trade_goods_investment_pc.yaml
+    description: Invest goods from the current exchange menu in unlock order and return
+      to that menu.
 metadata:
   generated_by: ManifestGenerator
   generated_at: '2026-10-08T19:00:24Z'

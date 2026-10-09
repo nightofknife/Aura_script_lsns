@@ -93,6 +93,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_medicine_max_uses": 4,
     "arrival_timeout_seconds": 3600,
     "auto_cape_island_investment": True,
+    "auto_trade_goods_investment": False,
+    "trade_goods_investment_mode": "unlock",
     "auto_rubbish_recycling": True,
 }
 
@@ -473,6 +475,13 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["finite_book_budget"] = finite
     merged["book_budget"] = (None if merged["books_unlimited"] else finite) if merged["books_enabled"] else 0
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
+    merged["auto_trade_goods_investment"] = bool(merged["auto_trade_goods_investment"])
+    goods_investment_mode = merged["trade_goods_investment_mode"]
+    if (
+        not isinstance(goods_investment_mode, str)
+        or goods_investment_mode not in ("unlock", "balanced", "full")
+    ):
+        raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
     merged["auto_bento"] = bool(merged["auto_bento"])
