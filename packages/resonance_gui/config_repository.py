@@ -10,6 +10,7 @@ from typing import Any
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
+from .logic import validate_trade_goods_investment_level
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -94,7 +95,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "arrival_timeout_seconds": 3600,
     "auto_cape_island_investment": True,
     "auto_trade_goods_investment": False,
-    "trade_goods_investment_mode": "unlock",
+    "trade_goods_investment_mode": 10,
     "auto_rubbish_recycling": True,
 }
 
@@ -256,11 +257,15 @@ class ResonanceConfigRepository:
         if raw:
             try:
                 parsed = json.loads(str(raw))
-                if isinstance(parsed, dict):
+            except (TypeError, ValueError):
+                parsed = None
+            if isinstance(parsed, dict):
+                validate_trade_goods_investment_level(parsed.get("trade_goods_investment_mode", 10))
+                try:
                     parsed = self._migrate_trade_city_defaults(parsed)
                     return _merge_trade_inputs(parsed)
-            except (TypeError, ValueError):
-                pass
+                except (TypeError, ValueError):
+                    pass
         self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
         self.settings.sync()
         return _merge_trade_inputs({})
@@ -476,12 +481,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["book_budget"] = (None if merged["books_unlimited"] else finite) if merged["books_enabled"] else 0
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_trade_goods_investment"] = bool(merged["auto_trade_goods_investment"])
-    goods_investment_mode = merged["trade_goods_investment_mode"]
-    if (
-        not isinstance(goods_investment_mode, str)
-        or goods_investment_mode not in ("unlock", "balanced", "full")
-    ):
-        raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
+    merged["trade_goods_investment_mode"] = validate_trade_goods_investment_level(merged["trade_goods_investment_mode"])
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
     merged["auto_bento"] = bool(merged["auto_bento"])

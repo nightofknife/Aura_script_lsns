@@ -5,10 +5,12 @@ trade_goods_investment_pc:
     entry_point: true
     inputs:
       - name: mode
-        type: string
+        type: number
+        strict_integer: true
         required: false
-        default: unlock
-        enum: [unlock, balanced, full]
+        default: 10
+        min: 1
+        max: 20
       - name: city_name
         type: string
         required: false
@@ -23,6 +25,9 @@ trade_goods_investment_pc:
         mode: "{{ inputs.mode }}"
         city_name: "{{ inputs.city_name }}"
   returns:
+    triggered: "{{ nodes.invest.output.triggered }}"
+    city_name: "{{ nodes.invest.output.city_name }}"
+    elapsed_ms: "{{ nodes.invest.output.elapsed_ms }}"
     success: "{{ nodes.invest.output.success }}"
     status: "{{ nodes.invest.output.status }}"
     reason: "{{ nodes.invest.output.reason }}"

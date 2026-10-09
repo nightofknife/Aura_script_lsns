@@ -110,11 +110,10 @@ FREIGHT_PHASE_LABELS = {
 }
 
 
-TRADE_GOODS_INVESTMENT_MODE_OPTIONS: tuple[tuple[str, str], ...] = (
-    ("unlock", "逐步解锁（10级）"),
-    ("balanced", "最佳收益（14级）"),
-    ("full", "升满级（20级）"),
-)
+def validate_trade_goods_investment_level(value: Any) -> int:
+    if type(value) is not int or not 1 <= value <= 20:
+        raise ValueError("交易品投资目标等级必须为 1～20 的整数。")
+    return value
 
 
 def trade_goods_investment_detail(data: Mapping[str, Any], state: str) -> str:
@@ -149,6 +148,7 @@ def trade_goods_investment_detail(data: Mapping[str, Any], state: str) -> str:
             "all_products_at_target": "商品已达到目标等级",
             "next_product_locked": "后续商品尚未解锁",
             "no_further_upgrade": "本次无法继续投资",
+            "next_product_attempted": "已尝试下一项，结束本次投资",
         }.get(str(reason), str(reason)))
     return " · ".join(parts)
 
@@ -1170,15 +1170,11 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the four-mode freight task contract."""
     normalized = dict(inputs or {})
-    normalized["auto_trade_goods_investment"] = bool(
-        normalized.get("auto_trade_goods_investment", False)
-    )
-    investment_mode = normalized.get("trade_goods_investment_mode", "unlock")
-    if not isinstance(investment_mode, str) or investment_mode not in {
-        mode for mode, _label in TRADE_GOODS_INVESTMENT_MODE_OPTIONS
-    }:
-        raise ValueError("交易品投资模式只允许 unlock、balanced 或 full。")
-    normalized["trade_goods_investment_mode"] = investment_mode
+    if "auto_trade_goods_investment" in normalized:
+        normalized["auto_trade_goods_investment"] = bool(normalized["auto_trade_goods_investment"])
+    investment_mode = validate_trade_goods_investment_level(normalized.get("trade_goods_investment_mode", 10))
+    if "trade_goods_investment_mode" in normalized:
+        normalized["trade_goods_investment_mode"] = investment_mode
     for key in ("auto_book", "book_budget_ignored", "negotiation_budget",
                 "negotiation_budget_ignored", "fixed_route_repeat_count", "trade_level",
                 "active_events", "books_enabled", "books_unlimited", "finite_book_budget"):

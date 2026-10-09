@@ -373,6 +373,19 @@ auto_combined_commerce_pc:
             name: auto_cape_island_investment
             type: boolean
             required: false
+          auto_trade_goods_investment:
+            name: auto_trade_goods_investment
+            type: boolean
+            required: false
+            default: false
+          trade_goods_investment_mode:
+            name: trade_goods_investment_mode
+            type: number
+            strict_integer: true
+            required: false
+            default: 10
+            min: 1
+            max: 20
           auto_pickup:
             name: auto_pickup
             type: boolean
