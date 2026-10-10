@@ -28,8 +28,8 @@ def test_shop_recognition_ignores_stock_and_currency(name, brightness):
 
 
 @pytest.mark.parametrize("name", [
-    "01-board.png", "29-node-preview-shop.png", "32-battle-formation.png",
-    "33-battle-victory.png", "34-battle-reward-choices.png",
+    # Battle screenshots already have exact-scene assertions in test_battle_screens.
+    "01-board.png", "29-node-preview-shop.png",
     "20-healing-stone-event-ending.png", "21-purple-workshop-options-disabled.png",
 ])
 def test_other_back_buttons_do_not_make_a_shop(name):

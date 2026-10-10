@@ -330,6 +330,130 @@
       ],
       "preprocess": "rgb_blur",
       "threshold": 0.9
+    },
+    {
+      "name": "entry_available",
+      "file": "entry_available.png",
+      "mask_file": "entry_pair_mask.png",
+      "kind": "native_sprite_font_composite",
+      "background": {
+        "node": "/HomeTrade/Group_Main/Btn_invest",
+        "sprite_path_id": -4532753186095738395,
+        "bundle": "ui/common.asset",
+        "rect": [
+          728,
+          455,
+          471,
+          77
+        ]
+      },
+      "icon": {
+        "node": "/HomeTrade/Group_Main/Btn_invest/Img_Icon",
+        "sprite_path_id": -1992111300957671663,
+        "bundle": "ui/hometrade.asset",
+        "rect": [
+          748,
+          470,
+          40,
+          40
+        ]
+      },
+      "text": {
+        "node": "/HomeTrade/Group_Main/Btn_invest/Txt_Name",
+        "font_path_id": -2237384480076949585,
+        "bundle": "ui/font/originpack.asset",
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_size": 30
+      },
+      "bundle_sha256": {
+        "ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+        "ui/hometrade.asset": "e42774a1cd91da5e343caa59f153b4700f7dc1de6f5c14ad684cae298cdab17d",
+        "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+      },
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_crop_box": [
+        734,
+        456,
+        903,
+        523
+      ],
+      "client_node_size": [
+        169,
+        67
+      ],
+      "roi": [
+        731,
+        453,
+        175,
+        73
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.82,
+      "method": "1 - TM_SQDIFF_NORMED",
+      "status": "native_generated_unvalidated"
+    },
+    {
+      "name": "entry_unavailable",
+      "file": "entry_unavailable.png",
+      "mask_file": "entry_pair_mask.png",
+      "kind": "native_sprite_font_composite",
+      "background": {
+        "node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep",
+        "sprite_path_id": -7361993374187006141,
+        "bundle": "ui/common.asset",
+        "rect": [
+          728,
+          453,
+          471,
+          77
+        ]
+      },
+      "icon": {
+        "node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_Icon",
+        "sprite_path_id": -1992111300957671663,
+        "bundle": "ui/hometrade.asset",
+        "rect": [
+          749,
+          470,
+          40,
+          40
+        ]
+      },
+      "text": {
+        "node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Name",
+        "font_path_id": -2237384480076949585,
+        "bundle": "ui/font/originpack.asset",
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_size": 30
+      },
+      "bundle_sha256": {
+        "ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+        "ui/hometrade.asset": "e42774a1cd91da5e343caa59f153b4700f7dc1de6f5c14ad684cae298cdab17d",
+        "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+      },
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_crop_box": [
+        734,
+        456,
+        903,
+        523
+      ],
+      "client_node_size": [
+        169,
+        67
+      ],
+      "roi": [
+        731,
+        453,
+        175,
+        73
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.82,
+      "method": "1 - TM_SQDIFF_NORMED",
+      "status": "native_generated_unvalidated"
     }
   ],
   "levels": [
@@ -1612,5 +1736,15 @@
     "reuses_existing_templates": true,
     "prefab_sha256": "7540c6c357daf497b12244a813d7cfe263f0f37156002cdd1c947bdc48eed4fd",
     "status": "native_generated_unvalidated"
+  },
+  "entry_availability": {
+    "available": "entry_available",
+    "unavailable": "entry_unavailable",
+    "decision": "available_score > unavailable_score; ties are unavailable",
+    "method": "1 - TM_SQDIFF_NORMED",
+    "shared_mask": "entry_pair_mask.png",
+    "status": "native_generated_unvalidated",
+    "stable_frames": 2,
+    "limitations": "Visual preview approved; no pair-score or live-flow validation was run."
   }
 }

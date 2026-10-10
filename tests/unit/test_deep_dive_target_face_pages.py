@@ -253,8 +253,12 @@ def test_real_seed_pair_candidates_keep_main_and_a_side_not_single_face_front():
     policy.tvec = np.array(value['semantic_metadata']['pose']['tvec']).reshape(3)
     observed = np.array(value['semantic_metadata']['pose']['rotation'])
     rows = [dict(occupant='unknown', node_status='unknown', evidence=[]) for _ in range(54)]
+    before = deepcopy(rows)
     result = policy._select_page_pair(observed, rows, AXES)
     assert result is not None
+    diagnostic = policy.summary()['face_pages']['framing']
+    assert diagnostic['status'] == 'selected' and diagnostic['target_indices'] == []
+    assert 6 <= diagnostic['union_cells'] <= 9 and rows == before
     pair, path = result
     candidates = np.array([p @ policy._page_basis for p in pair[:2]])
     glyphs = policy._readability(candidates, rows, anchors=True, known_only=False)>0

@@ -154,22 +154,6 @@ def test_context_change_missing_basis_clears_all_frozen_framing():
     assert not policy._page_framing and not policy._page_pair_framing
 
 
-def test_default_page_without_hint_uses_full_union_rank_but_no_new_evidence():
-    saved = json.loads((Path(__file__).parent/'fixtures/deep_dive_navigation_sources_13.json').read_text(encoding='utf8'))
-    feedback = saved['sources'][0]['feedback']
-    pose = feedback['semantic_metadata']['pose']
-    policy = TargetFacePageScanPolicy()
-    policy._sync_page_basis(feedback)
-    policy._page_face = 'F'
-    policy.tvec = np.asarray(pose['tvec'])
-    rows = [dict(occupant='unknown',node_status='unknown',evidence=[]) for _ in range(54)]
-    before = deepcopy(rows)
-    assert policy._select_page_pair(np.asarray(pose['rotation']),rows,AXES) is not None
-    diagnostic = policy.summary()['face_pages']['framing']
-    assert diagnostic['status'] == 'selected' and diagnostic['target_indices'] == []
-    assert 6 <= diagnostic['union_cells'] <= 9 and rows == before
-
-
 def test_disabled_kernel_does_not_create_framing_bank_or_boundary_constraint():
     policy,rows,feedback,_ = subject()
     policy._target_framing_enabled = False

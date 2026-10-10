@@ -92,6 +92,88 @@ def save(name: str, pixels: np.ndarray) -> None:
     Image.fromarray(pixels).save(path)
 
 
+def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None:
+    """Compose comparable native RGB icon/label templates for both entry states."""
+    from aura_resonance_devtools.unity_bundle import _logical_sprite_image
+
+    prefab_rel = "ui/hometrade/hometrade.asset"
+    nodes = {node["path"]: node for node in inspect_prefab(load_bundle(assets / prefab_rel, metadata))["nodes"]}
+    prefix = "/HomeTrade/Group_Main/Btn_invest"
+    objects, hashes = {}, {}
+    for relative in ("ui/common.asset", "ui/hometrade.asset", "ui/font/originpack.asset"):
+        bundle = assets / relative
+        hashes[relative] = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        for obj in load_bundle(bundle, metadata).objects:
+            if obj.type.name in ("Sprite", "Font"):
+                objects[obj.path_id] = (obj, relative)
+    crop_box = (734, 456, 903, 523)
+    size = [crop_box[2] - crop_box[0], crop_box[3] - crop_box[1]]
+    roi = [crop_box[0] - 3, crop_box[1] - 3, size[0] + 6, size[1] + 6]
+    names = {"entry_available", "entry_unavailable", "entry_restriction", "entry_lock"}
+    manifest["templates"] = [entry for entry in manifest["templates"] if entry["name"] not in names]
+
+    def component(path, field):
+        return next(item["tree"] for item in nodes[path]["components"] if field in item["tree"])
+
+    def sprite(path):
+        tree = component(path, "m_Sprite")
+        obj, relative = objects[tree["m_Sprite"]["m_PathID"]]
+        rect = nodes[path]["rect_client"]
+        image = _logical_sprite_image(obj.read(), obj.version).convert("RGBA").resize(
+            tuple(rect[2:]), Image.Resampling.BILINEAR)
+        image = Image.merge("RGBA", tuple(channel.point(
+            lambda value, factor=tree["m_Color"][key]: round(value * factor))
+            for channel, key in zip(image.split(), ("r", "g", "b", "a"))))
+        return image, {"node": path, "sprite_path_id": obj.path_id, "bundle": relative, "rect": rect}
+
+    pairs = []
+    for name, parent, expected_id in (("entry_available", prefix, -4532753186095738395),
+                                      ("entry_unavailable", prefix + "/Img_Rep", -7361993374187006141)):
+        canvas = Image.new("RGBA", (1280, 720))
+        background, background_source = sprite(parent)
+        if background_source["sprite_path_id"] != expected_id:
+            raise ValueError(f"Native investment entry sprite changed: {parent}")
+        canvas.alpha_composite(background, tuple(nodes[parent]["rect_client"][:2]))
+        icon, icon_source = sprite(parent + "/Img_Icon")
+        canvas.alpha_composite(icon, tuple(nodes[parent + "/Img_Icon"]["rect_client"][:2]))
+        text_node = parent + "/Txt_Name"
+        tree = component(text_node, "m_FontData")
+        style = tree["m_FontData"]
+        if style["m_FontStyle"] != 0:
+            raise ValueError("Entry text requires the native normal font style")
+        font_obj, font_bundle = objects[style["m_Font"]["m_PathID"]]
+        font_bytes = bytes(font_obj.read().m_FontData)
+        alpha = render_text(tree["m_Text"], font_bytes, style["m_FontSize"])
+        alpha = alpha.crop(alpha.getbbox())
+        color = tuple(round(tree["m_Color"][key] * 255) for key in ("r", "g", "b"))
+        glyph = Image.new("RGBA", alpha.size, color + (0,))
+        glyph.putalpha(alpha)
+        canvas.alpha_composite(glyph, tuple(nodes[text_node]["rect_client"][:2]))
+        image = canvas.crop(crop_box)
+        pairs.append((name, image))
+        save(f"{name}.png", np.array(image.convert("RGB")))
+        manifest["templates"].append({
+            "name": name, "file": f"{name}.png", "mask_file": "entry_pair_mask.png",
+            "kind": "native_sprite_font_composite", "background": background_source, "icon": icon_source,
+            "text": {"node": text_node, "font_path_id": font_obj.path_id, "bundle": font_bundle,
+                     "font_sha256": hashlib.sha256(font_bytes).hexdigest(), "native_size": style["m_FontSize"]},
+            "bundle_sha256": hashes, "prefab_node": parent,
+            "prefab_sha256": hashlib.sha256((assets / prefab_rel).read_bytes()).hexdigest(),
+            "client_crop_box": list(crop_box), "client_node_size": size, "roi": roi,
+            "preprocess": "rgb", "threshold": 0.82,
+            "method": "1 - TM_SQDIFF_NORMED", "status": "native_generated_unvalidated",
+        })
+    alpha = np.minimum(*(np.array(image.getchannel("A")) for _, image in pairs))
+    save("entry_pair_mask.png", np.where(alpha >= 250, 255, 0).astype(np.uint8))
+    manifest["entry_availability"] = {
+        "available": "entry_available", "unavailable": "entry_unavailable",
+        "decision": "available_score > unavailable_score; ties are unavailable",
+        "method": "1 - TM_SQDIFF_NORMED", "shared_mask": "entry_pair_mask.png",
+        "status": "native_generated_unvalidated", "stable_frames": 2,
+        "limitations": "Visual preview approved; no pair-score or live-flow validation was run.",
+    }
+
+
 def add_maximum_cards(assets: Path, metadata: Path, nodes: dict, manifest: dict,
                       normal_pixels=None, normal_header_pixels=None) -> None:
     from aura_resonance_devtools.unity_bundle import _logical_sprite_image
@@ -307,6 +389,8 @@ def main() -> None:
                         help="Add only native maximum-level assets and metadata to an existing manifest")
     parser.add_argument("--maximum-cards-only", action="store_true",
                         help="Add only native maximum-card localization assets to an existing manifest")
+    parser.add_argument("--entry-only", action="store_true",
+                        help="Add only native open and restricted exchange-entry assets")
     args = parser.parse_args()
     configure(args.pythonlibs, args.devtools_src)
     from aura_resonance_devtools.unity_bundle import _logical_sprite_image
@@ -314,9 +398,15 @@ def main() -> None:
     TEMPLATES.mkdir(parents=True, exist_ok=True)
     metadata = args.game_data / "il2cpp_data/Metadata/global-metadata.dat"
     assets = args.game_data / "Patch/Asset"
+    manifest_path = TEMPLATES / "manifest.json"
+    if args.entry_only:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        add_entry_availability(assets, metadata, manifest)
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({"mode": "entry_only", "status": manifest["entry_availability"]["status"]}))
+        return
     pref_path = assets / "ui/hometrade/hometradeupgrade.asset"
     nodes = {node["path"]: node for node in inspect_prefab(load_bundle(pref_path, metadata))["nodes"]}
-    manifest_path = TEMPLATES / "manifest.json"
     if args.maximum_cards_only:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         add_maximum_cards(assets, metadata, nodes, manifest)
@@ -542,6 +632,7 @@ def main() -> None:
                                 "No live or temporal verification", "Unseen levels generated but not screenshot-validated"]}
     add_max_level(assets, metadata, nodes, manifest)
     add_maximum_cards(assets, metadata, nodes, manifest, normal_pixels, header_pixels["normal"])
+    add_entry_availability(assets, metadata, manifest)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"templates": len(templates), "native_levels": len(levels), "font": fonts[level_font_id][1]}))
 

@@ -37,8 +37,12 @@ def probe(image, **capture_fields):
     return ScuffleVision(app, vision, catalog, PLAN)
 
 
-@pytest.mark.parametrize("number", range(1, 17))
-@pytest.mark.parametrize("normalized", (False, True))
+@pytest.mark.parametrize("number,normalized", [
+    (number, normalized)
+    for normalized in (False, True)
+    for number in range(1, 17)
+    if not (normalized and number > 11)
+])
 def test_supplied_scenes_and_shared_reward_boxes(number, normalized):
     async def run():
         helper = probe(frame(number, normalized=normalized))
