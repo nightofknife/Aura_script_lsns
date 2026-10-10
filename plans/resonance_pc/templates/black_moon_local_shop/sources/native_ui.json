@@ -1,0 +1,3068 @@
+{
+  "reference_client": [
+    1280,
+    720
+  ],
+  "status": "native_generated_unvalidated",
+  "prefabs": {
+    "ui/home/barstore/barstore.asset": {
+      "sha256": "2c0671dd8c12c94792d53b904b697ce225349c0f9430be8eb997b64df66c7aed",
+      "excluded_non_ui_transform_count": 0
+    },
+    "ui/common/showitem.asset": {
+      "sha256": "e36a8c1a752d6f138f0c2050b02d4aff25e0e0b6c8533d211f0b00006afa65f6",
+      "excluded_non_ui_transform_count": 2
+    },
+    "ui/mainui/mainui.asset": {
+      "sha256": "c68a3b6f9f9b6c21a3cfc7af5f210e84a965c17d5b712464db0c2c7845f81f61",
+      "excluded_non_ui_transform_count": 0
+    }
+  },
+  "nodes": [
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Talk",
+      "transform_id": -5818328301012275545,
+      "active": true,
+      "rect_native": [
+        1089.0,
+        284.1999969482422,
+        706.0,
+        116.0
+      ],
+      "rect_client": [
+        726,
+        453,
+        471,
+        77
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 484.0,
+          "y": -202.8000030517578
+        },
+        "m_SizeDelta": {
+          "x": 706.0,
+          "y": 116.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -7437862561738237431,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        },
+        {
+          "path_id": 3361066223462535652,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 167948608831335952
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Talk/Img_",
+      "transform_id": -5020560099386924476,
+      "active": true,
+      "rect_native": [
+        1122.2000122070312,
+        312.1999969482422,
+        60.0,
+        60.0
+      ],
+      "rect_client": [
+        748,
+        472,
+        40,
+        40
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -289.79998779296875,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 60.0,
+          "y": 60.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 8516530762004434336,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": -4966010593634663687
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Talk/Txt_",
+      "transform_id": -7849143606238787950,
+      "active": true,
+      "rect_native": [
+        1192.0,
+        327.1999969482422,
+        220.0,
+        30.0
+      ],
+      "rect_client": [
+        795,
+        482,
+        147,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -140.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 220.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -662189637886271210,
+          "_txtId": 80604363
+        },
+        {
+          "path_id": 1458105003253166316,
+          "m_Color": {
+            "r": 0.19607843458652496,
+            "g": 0.19607843458652496,
+            "b": 0.19607843458652496,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": -2237384480076949585
+            },
+            "m_FontSize": 30,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 3,
+            "m_MaxSize": 40,
+            "m_Alignment": 3,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 1,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "交谈"
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Store",
+      "transform_id": -6142908398786988967,
+      "active": true,
+      "rect_native": [
+        1089.0,
+        408.0,
+        706.0,
+        116.0
+      ],
+      "rect_client": [
+        726,
+        371,
+        471,
+        77
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 484.0,
+          "y": -79.0
+        },
+        "m_SizeDelta": {
+          "x": 706.0,
+          "y": 116.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -3732171647123012166,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 167948608831335952
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        },
+        {
+          "path_id": 5881354162839053734,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Store/Img_",
+      "transform_id": -4431355742062398082,
+      "active": true,
+      "rect_native": [
+        1123.0,
+        440.0,
+        60.0,
+        60.0
+      ],
+      "rect_client": [
+        749,
+        387,
+        40,
+        40
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -289.0,
+          "y": 4.0
+        },
+        "m_SizeDelta": {
+          "x": 60.0,
+          "y": 60.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 4797547790210606694,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 6333206172008370989
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_Main/Btn_Store/Txt_",
+      "transform_id": 7017522147192509655,
+      "active": true,
+      "rect_native": [
+        1192.0,
+        453.0,
+        220.0,
+        30.0
+      ],
+      "rect_client": [
+        795,
+        398,
+        147,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -140.0,
+          "y": 2.0
+        },
+        "m_SizeDelta": {
+          "x": 220.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 1807358994881505154,
+          "m_Color": {
+            "r": 0.19607843458652496,
+            "g": 0.19607843458652496,
+            "b": 0.19607843458652496,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": -2237384480076949585
+            },
+            "m_FontSize": 30,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 3,
+            "m_MaxSize": 40,
+            "m_Alignment": 3,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "黑月商店"
+        },
+        {
+          "path_id": 5618269084913940211,
+          "_txtId": 80604365
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_CommonTopLeft/Btn_Return",
+      "transform_id": 4082968239474257476,
+      "active": true,
+      "rect_native": [
+        18.0,
+        984.0,
+        212.0,
+        82.0
+      ],
+      "rect_client": [
+        12,
+        9,
+        141,
+        55
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 74.0,
+          "y": -5.0
+        },
+        "m_SizeDelta": {
+          "x": 212.0,
+          "y": 82.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -8975218569441564121,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": -9033569868668332768
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        },
+        {
+          "path_id": -3217305263098815918,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_CommonTopLeft/Btn_Home",
+      "transform_id": 6224247168864149949,
+      "active": true,
+      "rect_native": [
+        230.0,
+        984.0,
+        132.0,
+        82.0
+      ],
+      "rect_client": [
+        153,
+        9,
+        88,
+        55
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 246.0,
+          "y": -5.0
+        },
+        "m_SizeDelta": {
+          "x": 132.0,
+          "y": 82.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -5493975209210838411,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 8641460421602502150
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        },
+        {
+          "path_id": -3093776633105538904,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        }
+      ]
+    },
+    {
+      "prefab": "ui/mainui/mainui.asset",
+      "path": "/MainUI/Btn_Map",
+      "transform_id": 4890464325041913046,
+      "active": false,
+      "rect_native": [
+        1594.0,
+        378.0,
+        368.0,
+        110.0
+      ],
+      "rect_client": [
+        1063,
+        395,
+        245,
+        73
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "m_AnchorMax": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -142.0,
+          "y": 433.0
+        },
+        "m_SizeDelta": {
+          "x": 368.0,
+          "y": 110.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -1876070856031707225,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        },
+        {
+          "path_id": 4510717113432975112,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": -6648943344617953489
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/mainui/mainui.asset",
+      "path": "/MainUI/Btn_Map/Img_P",
+      "transform_id": -9043082155293718775,
+      "active": true,
+      "rect_native": [
+        1632.0,
+        412.0,
+        60.0,
+        60.0
+      ],
+      "rect_client": [
+        1088,
+        405,
+        40,
+        40
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -116.0,
+          "y": 9.0
+        },
+        "m_SizeDelta": {
+          "x": 60.0,
+          "y": 60.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 5952278578291094252,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 8483320779457621308
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/mainui/mainui.asset",
+      "path": "/MainUI/Btn_Map/Txt_Name",
+      "transform_id": 8698101486130092149,
+      "active": true,
+      "rect_native": [
+        1680.0,
+        418.0,
+        160.0,
+        50.0
+      ],
+      "rect_client": [
+        1120,
+        408,
+        107,
+        33
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -18.0,
+          "y": 10.0
+        },
+        "m_SizeDelta": {
+          "x": 160.0,
+          "y": 50.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -8976574027027976344,
+          "_txtId": 0
+        },
+        {
+          "path_id": -3536408398766977488,
+          "m_Color": {
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": -2237384480076949585
+            },
+            "m_FontSize": 31,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 2,
+            "m_MaxSize": 40,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "探索地图"
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
+      "transform_id": -9135140084996627336,
+      "active": true,
+      "rect_native": [
+        875.9999771118164,
+        22.0,
+        1040.0,
+        958.0
+      ],
+      "rect_client": [
+        584,
+        67,
+        693,
+        639
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 422.0,
+          "y": -39.0
+        },
+        "m_SizeDelta": {
+          "x": 1040.0,
+          "y": 958.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 8441968901559770286,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 7456007167632363465
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Img_Icon",
+      "transform_id": 1311612309207627695,
+      "active": true,
+      "rect_native": [
+        910.8999767303467,
+        872.0,
+        86.0,
+        116.0
+      ],
+      "rect_client": [
+        607,
+        61,
+        57,
+        77
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -20.100000381469727,
+          "y": 390.0
+        },
+        "m_SizeDelta": {
+          "x": 86.0,
+          "y": 116.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 1052098289486735316,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": -9032850414787162807
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Txt_",
+      "transform_id": -7598403641115922062,
+      "active": true,
+      "rect_native": [
+        1015.0342025756836,
+        889.3999938964844,
+        205.33154296875,
+        50.0
+      ],
+      "rect_client": [
+        677,
+        94,
+        137,
+        33
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 143.6999969482422,
+          "y": 374.3999938964844
+        },
+        "m_SizeDelta": {
+          "x": 205.33154296875,
+          "y": 50.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -1586193032498363050,
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": -2237384480076949585
+            },
+            "m_FontSize": 40,
+            "m_FontStyle": 0,
+            "m_BestFit": 1,
+            "m_MinSize": 3,
+            "m_MaxSize": 40,
+            "m_Alignment": 3,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "黑月休息区"
+        },
+        {
+          "path_id": 8353940339000961714,
+          "_txtId": 80604372
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
+      "transform_id": 3392260613636870370,
+      "active": true,
+      "rect_native": [
+        1229.9999771118164,
+        886.2999877929688,
+        526.0,
+        66.0
+      ],
+      "rect_client": [
+        820,
+        85,
+        351,
+        44
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 526.0,
+          "y": 66.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 3542425370895650999,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 6491483996824495362
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1",
+      "transform_id": -3565210176678270962,
+      "active": true,
+      "rect_native": [
+        1484.2999801635742,
+        886.6999893188477,
+        271.0,
+        66.0
+      ],
+      "rect_client": [
+        990,
+        85,
+        181,
+        44
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 271.0,
+          "y": 66.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -4514162087417050691,
+          "m_Padding": {
+            "m_Left": 0,
+            "m_Right": 0,
+            "m_Top": 0,
+            "m_Bottom": 5
+          },
+          "m_Spacing": 0.0,
+          "m_ChildAlignment": 4
+        },
+        {
+          "path_id": -1549128104804319040,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 8472064852053580216
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1/Img_Select",
+      "transform_id": 6171718954421142290,
+      "active": true,
+      "rect_native": [
+        1546.7999801635742,
+        894.6999893188477,
+        50.0,
+        50.0
+      ],
+      "rect_client": [
+        1031,
+        90,
+        33,
+        33
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 87.5,
+          "y": -33.0
+        },
+        "m_SizeDelta": {
+          "x": 50.0,
+          "y": 50.0
+        },
+        "m_LocalScale": {
+          "x": 0.8999999761581421,
+          "y": 0.8999999761581421,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 9138582424118119487,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": -794263625591193353
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_Off/Img_Select",
+      "transform_id": -1006733882338081381,
+      "active": true,
+      "rect_native": [
+        1546.7999801635742,
+        897.1999893188477,
+        50.0,
+        50.0
+      ],
+      "rect_client": [
+        1031,
+        89,
+        33,
+        33
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 80.0,
+          "y": -47.5
+        },
+        "m_SizeDelta": {
+          "x": 50.0,
+          "y": 50.0
+        },
+        "m_LocalScale": {
+          "x": 0.8999999761581421,
+          "y": 0.8999999761581421,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 2154705816831319010,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 1190446655474786635
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Txt_",
+      "transform_id": 8610489416626178738,
+      "active": true,
+      "rect_native": [
+        1728.3000259399414,
+        908.0,
+        160.0,
+        30.0
+      ],
+      "rect_client": [
+        1152,
+        95,
+        107,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -30.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 160.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -7076355340315368253,
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": 6136794397608061395
+            },
+            "m_FontSize": 24,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 2,
+            "m_MaxSize": 40,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "批量"
+        },
+        {
+          "path_id": -5384300028865899755,
+          "_txtId": 80609900
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Img_",
+      "transform_id": 8867285597686981405,
+      "active": true,
+      "rect_native": [
+        1848.3000259399414,
+        905.0,
+        36.0,
+        36.0
+      ],
+      "rect_client": [
+        1232,
+        93,
+        24,
+        24
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 28.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 36.0,
+          "y": 36.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -191877067514873880,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 5402986525929916692
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Txt_",
+      "transform_id": 3928061740533749693,
+      "active": true,
+      "rect_native": [
+        1728.3000259399414,
+        908.0,
+        160.0,
+        30.0
+      ],
+      "rect_client": [
+        1152,
+        95,
+        107,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -30.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 160.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -6930509895701426219,
+          "m_Color": {
+            "r": 0.6823529601097107,
+            "g": 0.6823529601097107,
+            "b": 0.6823529601097107,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": 6136794397608061395
+            },
+            "m_FontSize": 24,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 2,
+            "m_MaxSize": 40,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "批量"
+        },
+        {
+          "path_id": -866919100168857592,
+          "_txtId": 80609900
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Img_",
+      "transform_id": 7459157953938509606,
+      "active": true,
+      "rect_native": [
+        1848.3000259399414,
+        905.0,
+        36.0,
+        36.0
+      ],
+      "rect_client": [
+        1232,
+        93,
+        24,
+        24
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 28.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 36.0,
+          "y": 36.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 8666867235576367544,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 4045235153397676137
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_PL/Img_",
+      "transform_id": -6807311765267869329,
+      "active": true,
+      "rect_native": [
+        888.0999526977539,
+        38.0,
+        1018.0,
+        78.0
+      ],
+      "rect_client": [
+        592,
+        643,
+        679,
+        52
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 61.099853515625,
+          "y": -421.0
+        },
+        "m_SizeDelta": {
+          "x": 1018.0,
+          "y": 78.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -5303292038584830646,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 4791313944625718216
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_PL/Btn_Buy",
+      "transform_id": 2012311732016858289,
+      "active": true,
+      "rect_native": [
+        1708.000373840332,
+        49.79998779296875,
+        180.0,
+        54.0
+      ],
+      "rect_client": [
+        1139,
+        651,
+        120,
+        36
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 462.0002746582031,
+          "y": -421.20001220703125
+        },
+        "m_SizeDelta": {
+          "x": 180.0,
+          "y": 54.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 2302253513368730121,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        },
+        {
+          "path_id": 8038384805458564401,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 7454467744273256877
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/Group_PL/Btn_Buy/Txt_",
+      "transform_id": 7811849170408216422,
+      "active": true,
+      "rect_native": [
+        1711.1227273643017,
+        61.79998779296875,
+        173.17529296875,
+        30.0
+      ],
+      "rect_client": [
+        1141,
+        659,
+        115,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -0.28999999165534973,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 173.17529296875,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 1139491186781399067,
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": 6136794397608061395
+            },
+            "m_FontSize": 26,
+            "m_FontStyle": 0,
+            "m_BestFit": 1,
+            "m_MinSize": 2,
+            "m_MaxSize": 26,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 1,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "确认购买"
+        },
+        {
+          "path_id": 2406007957376091445,
+          "_txtId": 80610006
+        }
+      ]
+    },
+    {
+      "prefab": "ui/common/showitem.asset",
+      "path": "/ShowItem/Group_580/Group_Title/Img_Title",
+      "transform_id": -1850057176190167179,
+      "active": true,
+      "rect_native": [
+        785.0,
+        840.0,
+        100.0,
+        100.0
+      ],
+      "rect_client": [
+        523,
+        93,
+        67,
+        67
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 375.0,
+          "y": -100.0
+        },
+        "m_SizeDelta": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 7723505681769701310,
+          "m_Sprite": {
+            "m_FileID": 2,
+            "m_PathID": 7379400092028253334
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/common/showitem.asset",
+      "path": "/ShowItem/Group_580/Group_Title/Txt_Title",
+      "transform_id": -270855606481942111,
+      "active": true,
+      "rect_native": [
+        895.0,
+        847.0,
+        240.0,
+        86.0
+      ],
+      "rect_client": [
+        597,
+        98,
+        160,
+        57
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 555.0,
+          "y": -100.0
+        },
+        "m_SizeDelta": {
+          "x": 240.0,
+          "y": 86.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -8182636532337485598,
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 3,
+              "m_PathID": -4548631661189831125
+            },
+            "m_FontSize": 60,
+            "m_FontStyle": 0,
+            "m_BestFit": 0,
+            "m_MinSize": 4,
+            "m_MaxSize": 70,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 0,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "获得物品"
+        },
+        {
+          "path_id": -2950626634620041492,
+          "_txtId": 80602849
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000",
+      "transform_id": -5234450877974653963,
+      "active": true,
+      "rect_native": [
+        891.6833419799805,
+        669.7464447021484,
+        506.0,
+        196.0
+      ],
+      "rect_client": [
+        594,
+        143,
+        337,
+        131
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 506.0,
+          "y": 196.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": []
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item",
+      "transform_id": 3402873653373089785,
+      "active": true,
+      "rect_native": [
+        891.6833419799805,
+        669.7464447021484,
+        506.0,
+        196.0
+      ],
+      "rect_client": [
+        594,
+        143,
+        337,
+        131
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 506.0,
+          "y": 196.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -7648754194997981334,
+          "m_Colors": {
+            "m_NormalColor": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "m_HighlightedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_PressedColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 1.0
+            },
+            "m_SelectedColor": {
+              "r": 0.9607843160629272,
+              "g": 0.9607843160629272,
+              "b": 0.9607843160629272,
+              "a": 1.0
+            },
+            "m_DisabledColor": {
+              "r": 0.7843137383460999,
+              "g": 0.7843137383460999,
+              "b": 0.7843137383460999,
+              "a": 0.501960813999176
+            },
+            "m_ColorMultiplier": 1.0,
+            "m_FadeDuration": 0.10000000149011612
+          },
+          "m_Interactable": 1
+        },
+        {
+          "path_id": -6158420532611275162,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 1852433811130857245
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport",
+      "transform_id": -1853511076975153982,
+      "active": true,
+      "rect_native": [
+        891.6833419799805,
+        43.47355651855469,
+        1026.63330078125,
+        822.2728881835938
+      ],
+      "rect_client": [
+        594,
+        143,
+        684,
+        548
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_AnchorMax": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -169.1999969482422,
+          "y": 16.0
+        },
+        "m_SizeDelta": {
+          "x": -338.36669921875,
+          "y": 31.92144775390625
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 5175580007856774891,
+          "m_Sprite": {
+            "m_FileID": 0,
+            "m_PathID": -2320101112833093935
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 1,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_ItemBG/Img_Item",
+      "transform_id": 7935215257380724703,
+      "active": true,
+      "rect_native": [
+        933.5833435058594,
+        678.9464447498322,
+        180.0,
+        180.0
+      ],
+      "rect_client": [
+        622,
+        147,
+        120,
+        120
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 180.0,
+          "y": 180.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -7413493216214435422,
+          "m_Sprite": {
+            "m_FileID": 0,
+            "m_PathID": 0
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_001",
+      "transform_id": 7881817719852790011,
+      "active": true,
+      "rect_native": [
+        1397.6833419799805,
+        669.7464447021484,
+        506.0,
+        196.0
+      ],
+      "rect_client": [
+        932,
+        143,
+        337,
+        131
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchoredPosition": {
+          "x": 506.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 506.0,
+          "y": 196.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": []
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity",
+      "transform_id": 4277189127100699844,
+      "active": true,
+      "rect_native": [
+        891.6999893188477,
+        43.43428039550781,
+        1365.0,
+        790.3514404296875
+      ],
+      "rect_client": [
+        594,
+        164,
+        910,
+        527
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 600.2000122070312,
+          "y": -101.38999938964844
+        },
+        "m_SizeDelta": {
+          "x": 1365.0,
+          "y": 790.3514404296875
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -4809024206275025684,
+          "Padding": {
+            "m_Left": 0,
+            "m_Right": 0,
+            "m_Top": 0,
+            "m_Bottom": 60
+          },
+          "CellSize": {
+            "x": 506.0,
+            "y": 196.0
+          },
+          "Spacing": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "ScrollDirect": 2,
+          "StartCorner": 1,
+          "IsRevert": 0,
+          "IsSort": 0,
+          "DataCount": 0,
+          "Cells": [
+            {
+              "m_FileID": 0,
+              "m_PathID": -5234450877974653963
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": 7881817719852790011
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": 7411239454437322725
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -4417059901988114676
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": 2829640781865554164
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -5684271204477877918
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -153955019491972891
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -2303822410505867403
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -8493902960007224092
+            },
+            {
+              "m_FileID": 0,
+              "m_PathID": -3793580762391524572
+            }
+          ],
+          "Cell": {
+            "m_FileID": 0,
+            "m_PathID": 5733726110456724061
+          }
+        },
+        {
+          "path_id": 5161831843154846396,
+          "m_Content": {
+            "m_FileID": 0,
+            "m_PathID": -8691156400151182791
+          },
+          "m_Viewport": {
+            "m_FileID": 0,
+            "m_PathID": -1853511076975153982
+          },
+          "m_Vertical": 1,
+          "m_Horizontal": 0,
+          "m_MovementType": 1,
+          "m_Inertia": 1,
+          "m_Elasticity": 0.10000000149011612,
+          "m_DecelerationRate": 0.13500000536441803,
+          "m_ScrollSensitivity": 1.0,
+          "m_VerticalScrollbar": {
+            "m_FileID": 0,
+            "m_PathID": 0
+          },
+          "m_HorizontalScrollbar": {
+            "m_FileID": 0,
+            "m_PathID": 0
+          },
+          "m_VerticalScrollbarVisibility": 2,
+          "m_HorizontalScrollbarVisibility": 2,
+          "m_VerticalScrollbarSpacing": -3.0,
+          "m_HorizontalScrollbarSpacing": -3.0
+        },
+        {
+          "path_id": 8688494388857135878,
+          "m_Sprite": {
+            "m_FileID": 0,
+            "m_PathID": -6932470282978226757
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 0.0
+          },
+          "m_Type": 1,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid",
+      "transform_id": -8691156400151182791,
+      "active": true,
+      "rect_native": [
+        891.6833419799805,
+        865.7464447021484,
+        1026.63330078125,
+        0.0
+      ],
+      "rect_client": [
+        594,
+        143,
+        684,
+        0
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchorMax": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "m_Pivot": {
+          "x": 0.0,
+          "y": 1.0
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": []
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold",
+      "transform_id": -2435969248801767090,
+      "active": false,
+      "rect_native": [
+        899.6661911010742,
+        681.8727941513062,
+        490.0343017578125,
+        179.82730102539062
+      ],
+      "rect_client": [
+        600,
+        146,
+        327,
+        120
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -0.0,
+          "y": 4.039999961853027
+        },
+        "m_SizeDelta": {
+          "x": 490.0343017578125,
+          "y": 179.82730102539062
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -6790303518821547500,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 8735325811154869955
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Select/Txt_",
+      "transform_id": -994265435877973666,
+      "active": true,
+      "rect_native": [
+        1273.9233322143555,
+        824.8464508056641,
+        114.0,
+        30.0
+      ],
+      "rect_client": [
+        849,
+        150,
+        76,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 186.33999633789062,
+          "y": 72.30000305175781
+        },
+        "m_SizeDelta": {
+          "x": 114.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -5617854075608609768,
+          "m_Color": {
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": 6136794397608061395
+            },
+            "m_FontSize": 26,
+            "m_FontStyle": 0,
+            "m_BestFit": 1,
+            "m_MinSize": 20,
+            "m_MaxSize": 26,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 1,
+            "m_LineSpacing": 0.6000000238418579
+          },
+          "m_Text": "已选中"
+        },
+        {
+          "path_id": 5848400063296833422,
+          "_txtId": 80604798
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Img_",
+      "transform_id": 9037767105945706429,
+      "active": true,
+      "rect_native": [
+        1079.6833419799805,
+        728.2864446640015,
+        130.0,
+        87.0
+      ],
+      "rect_client": [
+        720,
+        176,
+        87,
+        58
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "m_SizeDelta": {
+          "x": 130.0,
+          "y": 87.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 4137318307104262059,
+          "m_Sprite": {
+            "m_FileID": 3,
+            "m_PathID": 6312395551749767467
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Txt_",
+      "transform_id": -1441871820119860662,
+      "active": true,
+      "rect_native": [
+        1079.6834862199757,
+        744.1864442825317,
+        130.0,
+        30.0
+      ],
+      "rect_client": [
+        720,
+        204,
+        87,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 0.0001442399952793494,
+          "y": -12.600000381469727
+        },
+        "m_SizeDelta": {
+          "x": 130.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -7880110681186387658,
+          "m_Color": {
+            "r": 0.0,
+            "g": 0.0,
+            "b": 0.0,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 2,
+              "m_PathID": 6136794397608061395
+            },
+            "m_FontSize": 23,
+            "m_FontStyle": 0,
+            "m_BestFit": 1,
+            "m_MinSize": 15,
+            "m_MaxSize": 23,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 0,
+            "m_VerticalOverflow": 1,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "已售罄"
+        },
+        {
+          "path_id": 3128339501588708704,
+          "_txtId": 80608827
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Txt_",
+      "transform_id": -569697669759720786,
+      "active": true,
+      "rect_native": [
+        1065.9833419322968,
+        724.1864461898804,
+        160.0,
+        30.0
+      ],
+      "rect_client": [
+        711,
+        217,
+        107,
+        20
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": 1.2999999523162842,
+          "y": -32.599998474121094
+        },
+        "m_SizeDelta": {
+          "x": 160.0,
+          "y": 30.0
+        },
+        "m_LocalScale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": -6792944198816905226,
+          "m_Color": {
+            "r": 0.19607843458652496,
+            "g": 0.19607843458652496,
+            "b": 0.19607843458652496,
+            "a": 1.0
+          },
+          "m_FontData": {
+            "m_Font": {
+              "m_FileID": 6,
+              "m_PathID": 737522495624320712
+            },
+            "m_FontSize": 12,
+            "m_FontStyle": 1,
+            "m_BestFit": 0,
+            "m_MinSize": 1,
+            "m_MaxSize": 40,
+            "m_Alignment": 4,
+            "m_AlignByGeometry": 0,
+            "m_RichText": 1,
+            "m_HorizontalOverflow": 1,
+            "m_VerticalOverflow": 1,
+            "m_LineSpacing": 1.0
+          },
+          "m_Text": "SOLD OUT"
+        },
+        {
+          "path_id": -771135285491653582,
+          "_txtId": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_ItemBG",
+      "transform_id": -158064764508362573,
+      "active": true,
+      "rect_native": [
+        925.5833435058594,
+        670.9464447498322,
+        196.0,
+        196.0
+      ],
+      "rect_client": [
+        617,
+        142,
+        131,
+        131
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -121.0999984741211,
+          "y": 1.2000000476837158
+        },
+        "m_SizeDelta": {
+          "x": 196.0,
+          "y": 196.0
+        },
+        "m_LocalScale": {
+          "x": 0.800000011920929,
+          "y": 0.800000011920929,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 7321077325280048965,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": 8083724852411651157
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    },
+    {
+      "prefab": "ui/home/barstore/barstore.asset",
+      "path": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Mask",
+      "transform_id": -2846071624230247007,
+      "active": true,
+      "rect_native": [
+        933.4833145141602,
+        696.5464935302734,
+        180.0,
+        180.0
+      ],
+      "rect_client": [
+        622,
+        136,
+        120,
+        120
+      ],
+      "transform": {
+        "m_AnchorMin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchorMax": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_Pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "m_AnchoredPosition": {
+          "x": -121.20002746582031,
+          "y": 18.800048828125
+        },
+        "m_SizeDelta": {
+          "x": 180.0,
+          "y": 180.0
+        },
+        "m_LocalScale": {
+          "x": 0.800000011920929,
+          "y": 1.0,
+          "z": 1.0
+        }
+      },
+      "components": [
+        {
+          "path_id": 4806399035745566443,
+          "m_Sprite": {
+            "m_FileID": 1,
+            "m_PathID": -8424398370791927091
+          },
+          "m_Color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "m_Type": 0,
+          "m_PreserveAspect": 0
+        }
+      ]
+    }
+  ]
+}

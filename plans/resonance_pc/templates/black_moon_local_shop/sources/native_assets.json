@@ -1,0 +1,1635 @@
+{
+  "bundle_hashes": {
+    "ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+    "ui/home.asset": "2116712b2f834872f3f11c54a86d2c7a4287d8c684a93c52639c969ca8ee66ec",
+    "ui/home/barstore.asset": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+    "ui/store.asset": "a5894b11476dd58df2c5e07f5b9470d2d10f1088441619ae95fa6ace7295b51d",
+    "ui/hometrade.asset": "e42774a1cd91da5e343caa59f153b4700f7dc1de6f5c14ad684cae298cdab17d",
+    "ui/hometrade/update.asset": "d3539cd100fb9bca83125eb68be6aab1efee5e766408a98d2ba80d8125807082",
+    "ui/font.asset": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "ui/mainui.asset": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+    "item/weapon/tiemeng/small.asset": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+    "item/weapon/diguo/small.asset": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+    "item/weapon/xuehui/small.asset": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+    "item/weapon/heiyue/small.asset": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+    "item/weapon/anita/small.asset": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+    "item/item/small.asset": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b"
+  },
+  "objects": [
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 167948608831335952,
+      "name": "talk_xuanxiang",
+      "type": "Sprite",
+      "node": "/BarStore/Group_Main/Btn_Store",
+      "transform_id": -6142908398786988967,
+      "rect": [
+        726,
+        371,
+        471,
+        77
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -4966010593634663687,
+      "name": "jiaotan",
+      "type": "Sprite",
+      "node": "/BarStore/Group_Main/Btn_Talk/Img_",
+      "transform_id": -5020560099386924476,
+      "rect": [
+        748,
+        472,
+        40,
+        40
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/font/originpack.asset",
+      "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+      "path_id": -2237384480076949585,
+      "name": "SourceHanSansCN-Bold",
+      "type": "Font",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Txt_",
+      "transform_id": -7598403641115922062,
+      "rect": [
+        677,
+        94,
+        137,
+        33
+      ],
+      "text": "黑月商店",
+      "native_font_size": 40,
+      "rendered_native_font_size": 40,
+      "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+      "native_style": {
+        "m_Font": {
+          "m_FileID": 2,
+          "m_PathID": -2237384480076949585
+        },
+        "m_FontSize": 40,
+        "m_FontStyle": 0,
+        "m_BestFit": 1,
+        "m_MinSize": 3,
+        "m_MaxSize": 40,
+        "m_Alignment": 3,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 0,
+        "m_VerticalOverflow": 0,
+        "m_LineSpacing": 1.0
+      },
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "font_renderer": "Pillow native font memory; Unity rasterization unvalidated",
+      "localization": {
+        "file": "Patch/BinaryConfig/TextFactory.bin",
+        "sha256": "8ad4323c4a192752c1cf54b8872415c4080d523bcb12c62c781a071d531dc29f",
+        "pool_offset": 664017,
+        "prefab_text": "黑月休息区",
+        "selection": "exact native string observed in user-provided static screenshot; not an ID join"
+      }
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 6333206172008370989,
+      "name": "icon_buy",
+      "type": "Sprite",
+      "node": "/BarStore/Group_Main/Btn_Store/Img_",
+      "transform_id": -4431355742062398082,
+      "rect": [
+        749,
+        387,
+        40,
+        40
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -9033569868668332768,
+      "name": "common_btn_return",
+      "type": "Sprite",
+      "node": "/BarStore/Group_CommonTopLeft/Btn_Return",
+      "transform_id": 4082968239474257476,
+      "rect": [
+        12,
+        9,
+        141,
+        55
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 8641460421602502150,
+      "name": "common_btn_home",
+      "type": "Sprite",
+      "node": "/BarStore/Group_CommonTopLeft/Btn_Home",
+      "transform_id": 6224247168864149949,
+      "rect": [
+        153,
+        9,
+        88,
+        55
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/mainui.asset",
+      "bundle_sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+      "path_id": -6648943344617953489,
+      "name": "main_btn_city",
+      "type": "Sprite",
+      "node": "/MainUI/Btn_Map",
+      "transform_id": 4890464325041913046,
+      "rect": [
+        1063,
+        395,
+        245,
+        73
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/mainui.asset",
+      "bundle_sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+      "path_id": 8483320779457621308,
+      "name": "main_icon_city",
+      "type": "Sprite",
+      "node": "/MainUI/Btn_Map/Img_P",
+      "transform_id": -9043082155293718775,
+      "rect": [
+        1088,
+        405,
+        40,
+        40
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 7456007167632363465,
+      "name": "store_di",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
+      "transform_id": -9135140084996627336,
+      "rect": [
+        584,
+        67,
+        693,
+        639
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": -9032850414787162807,
+      "name": "icon_store",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_Icon",
+      "transform_id": 1311612309207627695,
+      "rect": [
+        607,
+        61,
+        57,
+        77
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 6491483996824495362,
+      "name": "di_notselect",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
+      "transform_id": 3392260613636870370,
+      "rect": [
+        820,
+        85,
+        351,
+        44
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 8472064852053580216,
+      "name": "di_select",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1",
+      "transform_id": -3565210176678270962,
+      "rect": [
+        990,
+        85,
+        181,
+        44
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": -794263625591193353,
+      "name": "bendi_sel",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1/Img_Select",
+      "transform_id": 6171718954421142290,
+      "rect": [
+        1031,
+        90,
+        33,
+        33
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 1190446655474786635,
+      "name": "bendi",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_Off/Img_Select",
+      "transform_id": -1006733882338081381,
+      "rect": [
+        1031,
+        89,
+        33,
+        33
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/font/originpack.asset",
+      "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+      "path_id": 6136794397608061395,
+      "name": "SourceHanSansCN-Medium",
+      "type": "Font",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Txt_",
+      "transform_id": -1441871820119860662,
+      "rect": [
+        720,
+        204,
+        87,
+        20
+      ],
+      "text": "已售罄",
+      "native_font_size": 23,
+      "rendered_native_font_size": 23,
+      "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+      "native_style": {
+        "m_Font": {
+          "m_FileID": 2,
+          "m_PathID": 6136794397608061395
+        },
+        "m_FontSize": 23,
+        "m_FontStyle": 0,
+        "m_BestFit": 1,
+        "m_MinSize": 15,
+        "m_MaxSize": 23,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 0,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      },
+      "native_tint": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "a": 1.0
+      },
+      "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 5402986525929916692,
+      "name": "trade_btn_type2",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Img_",
+      "transform_id": 8867285597686981405,
+      "rect": [
+        1232,
+        93,
+        24,
+        24
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 4045235153397676137,
+      "name": "trade_btn_type1",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Img_",
+      "transform_id": 7459157953938509606,
+      "rect": [
+        1232,
+        93,
+        24,
+        24
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 4791313944625718216,
+      "name": "di_rest",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_PL/Img_",
+      "transform_id": -6807311765267869329,
+      "rect": [
+        592,
+        643,
+        679,
+        52
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 7454467744273256877,
+      "name": "btn_one_buy",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_PL/Btn_Buy",
+      "transform_id": 2012311732016858289,
+      "rect": [
+        1139,
+        651,
+        120,
+        36
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 7379400092028253334,
+      "name": "common_icon_item",
+      "type": "Sprite",
+      "node": "/ShowItem/Group_580/Group_Title/Img_Title",
+      "transform_id": -1850057176190167179,
+      "rect": [
+        523,
+        93,
+        67,
+        67
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/font.asset",
+      "bundle_sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+      "path_id": -4548631661189831125,
+      "name": "SourceHanSerifCN-Heavy",
+      "type": "Font",
+      "node": "/ShowItem/Group_580/Group_Title/Txt_Title",
+      "transform_id": -270855606481942111,
+      "rect": [
+        597,
+        98,
+        160,
+        57
+      ],
+      "text": "获得物品",
+      "native_font_size": 60,
+      "rendered_native_font_size": 60,
+      "font_sha256": "78101f93fb76951da79728a7ece95a974fb8f95f2024fa50792bc79627951a07",
+      "native_style": {
+        "m_Font": {
+          "m_FileID": 3,
+          "m_PathID": -4548631661189831125
+        },
+        "m_FontSize": 60,
+        "m_FontStyle": 0,
+        "m_BestFit": 0,
+        "m_MinSize": 4,
+        "m_MaxSize": 70,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 0,
+        "m_VerticalOverflow": 0,
+        "m_LineSpacing": 1.0
+      },
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 1852433811130857245,
+      "name": "di_element",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item",
+      "transform_id": 3402873653373089785,
+      "rect": [
+        594,
+        143,
+        337,
+        131
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 8735325811154869955,
+      "name": "BarStore_mask",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold",
+      "transform_id": -2435969248801767090,
+      "rect": [
+        600,
+        146,
+        327,
+        120
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/home/barstore.asset",
+      "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+      "path_id": 6312395551749767467,
+      "name": "img_soldout",
+      "type": "Sprite",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Img_",
+      "transform_id": 9037767105945706429,
+      "rect": [
+        720,
+        176,
+        87,
+        58
+      ],
+      "native_tint": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+      },
+      "native_image_type": 0
+    },
+    {
+      "bundle": "ui/font.asset",
+      "bundle_sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+      "path_id": 737522495624320712,
+      "name": "galderglynn titling regular",
+      "type": "Font",
+      "node": "/BarStore/Group_LocalStore/Group_StoreList/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000/Group_Item/Btn_Item/Img_Sold/Txt_",
+      "transform_id": -569697669759720786,
+      "rect": [
+        711,
+        217,
+        107,
+        20
+      ],
+      "text": "SOLD OUT",
+      "native_font_size": 12,
+      "rendered_native_font_size": 12,
+      "font_sha256": "a9b25d1e41b21b563235362287bfa4d3f07033917eada5ac10a810b7dd1ea6ad",
+      "native_style": {
+        "m_Font": {
+          "m_FileID": 6,
+          "m_PathID": 737522495624320712
+        },
+        "m_FontSize": 12,
+        "m_FontStyle": 1,
+        "m_BestFit": 0,
+        "m_MinSize": 1,
+        "m_MaxSize": 40,
+        "m_Alignment": 4,
+        "m_AlignByGeometry": 0,
+        "m_RichText": 1,
+        "m_HorizontalOverflow": 1,
+        "m_VerticalOverflow": 1,
+        "m_LineSpacing": 1.0
+      },
+      "native_tint": {
+        "r": 0.19607843458652496,
+        "g": 0.19607843458652496,
+        "b": 0.19607843458652496,
+        "a": 1.0
+      },
+      "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -170724767028998334,
+      "name": "13",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 8083724852411651157,
+      "name": "common_bottom_rarity04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -8424398370791927091,
+      "name": "common_mask_rarity04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 3746117705953060051,
+      "name": "10",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -7095726941887343011,
+      "name": "09",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 2263518899186316382,
+      "name": "02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -3476007927882841235,
+      "name": "common_bottom_rarity02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 825738017819415060,
+      "name": "common_mask_rarity02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -771551249457568331,
+      "name": "32",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -2178653873099946850,
+      "name": "21",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -1752134673732857179,
+      "name": "23",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -6328239394230423144,
+      "name": "22",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -3918007854699642384,
+      "name": "28",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -2178653873099946850,
+      "name": "21",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -4461674365487410665,
+      "name": "12",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -1752134673732857179,
+      "name": "23",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -6328239394230423144,
+      "name": "22",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -1514494270705569987,
+      "name": "01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -1514494270705569987,
+      "name": "01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -1514494270705569987,
+      "name": "01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -1514494270705569987,
+      "name": "01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 2263518899186316382,
+      "name": "02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 2263518899186316382,
+      "name": "02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 1268908681405923519,
+      "name": "04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 2616177388341496537,
+      "name": "05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 4085475101506671132,
+      "name": "06",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 7497339008169010246,
+      "name": "25",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 7497339008169010246,
+      "name": "25",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 7497339008169010246,
+      "name": "25",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -5524904420614796999,
+      "name": "26",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 4071518640544891846,
+      "name": "24",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -1752134673732857179,
+      "name": "23",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 4071518640544891846,
+      "name": "24",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -2178653873099946850,
+      "name": "21",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -5974365835743113591,
+      "name": "27",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -5524904420614796999,
+      "name": "26",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -9173885235147381996,
+      "name": "29",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -7909400882313530773,
+      "name": "33",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -7909400882313530773,
+      "name": "33",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -2469135061134646013,
+      "name": "34",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -771551249457568331,
+      "name": "32",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -2469135061134646013,
+      "name": "34",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 373005532424774955,
+      "name": "common_bottom_rarity03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -2655138078009984047,
+      "name": "common_mask_rarity03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -4485309840334752820,
+      "name": "08",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -7095726941887343011,
+      "name": "09",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 3746117705953060051,
+      "name": "10",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -3465016091776984387,
+      "name": "14",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -4169605578695480395,
+      "name": "03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -4169605578695480395,
+      "name": "03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 1268908681405923519,
+      "name": "04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -4485309840334752820,
+      "name": "08",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 3746117705953060051,
+      "name": "10",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -4461674365487410665,
+      "name": "12",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 2263518899186316382,
+      "name": "02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -4169605578695480395,
+      "name": "03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 1268908681405923519,
+      "name": "04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 2616177388341496537,
+      "name": "05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 4085475101506671132,
+      "name": "06",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -3973783857884931399,
+      "name": "07",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 3746117705953060051,
+      "name": "10",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 7609171162569336840,
+      "name": "11",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -4461674365487410665,
+      "name": "12",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -4169605578695480395,
+      "name": "03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 1268908681405923519,
+      "name": "04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 2616177388341496537,
+      "name": "05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 4085475101506671132,
+      "name": "06",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -3973783857884931399,
+      "name": "07",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -4485309840334752820,
+      "name": "08",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 7609171162569336840,
+      "name": "11",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -170724767028998334,
+      "name": "13",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -4169605578695480395,
+      "name": "03",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 1268908681405923519,
+      "name": "04",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 2616177388341496537,
+      "name": "05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 4085475101506671132,
+      "name": "06",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -3973783857884931399,
+      "name": "07",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -4485309840334752820,
+      "name": "08",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -7095726941887343011,
+      "name": "09",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 3746117705953060051,
+      "name": "10",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 7609171162569336840,
+      "name": "11",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -3934919752351960992,
+      "name": "17",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -6328239394230423144,
+      "name": "22",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -1449893460645469808,
+      "name": "19",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": 7609171162569336840,
+      "name": "11",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -4461674365487410665,
+      "name": "12",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -1752134673732857179,
+      "name": "23",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -1514494270705569987,
+      "name": "01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -6328239394230423144,
+      "name": "22",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -3918007854699642384,
+      "name": "28",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 4449900526720172644,
+      "name": "18",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": 7497339008169010246,
+      "name": "25",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 4071518640544891846,
+      "name": "24",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -7095726941887343011,
+      "name": "09",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -3973783857884931399,
+      "name": "07",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": -7095726941887343011,
+      "name": "09",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -2178653873099946850,
+      "name": "21",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 7609171162569336840,
+      "name": "11",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -1752134673732857179,
+      "name": "23",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -4461674365487410665,
+      "name": "12",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -9173885235147381996,
+      "name": "29",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": -3461433477161926379,
+      "name": "20",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 2616177388341496537,
+      "name": "05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": -5524904420614796999,
+      "name": "26",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -3973783857884931399,
+      "name": "07",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 4085475101506671132,
+      "name": "06",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 2263518899186316382,
+      "name": "02",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/anita/small.asset",
+      "bundle_sha256": "be1840478c71684a24a1b5b155b436eebd2f207be11b97e00055bace9876d152",
+      "path_id": 7440342962886404508,
+      "name": "Anitaweaponbox",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/heiyue/small.asset",
+      "bundle_sha256": "1351cbe1ef1803ef9534984696194662bbccf4120df48cb66b0834fa73340139",
+      "path_id": 4922563028260285909,
+      "name": "Heiyueweaponbox",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/diguo/small.asset",
+      "bundle_sha256": "af956db0063d615109bc9655affca0e8c41af83ce2c134a2dc0b4d2ae560160f",
+      "path_id": 8195345989232898213,
+      "name": "Diguoweaponbox",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/tiemeng/small.asset",
+      "bundle_sha256": "fb398e70b6dd93282e0e747df97a15c7f9af341a652f277e76e8655e03797094",
+      "path_id": -5204788781082073399,
+      "name": "Tiemengweaponbox",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/weapon/xuehui/small.asset",
+      "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+      "path_id": -3841348129047882011,
+      "name": "Xuehuiweaponbox",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 145105316485197417,
+      "name": "GuangGao",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -1149425055596503304,
+      "name": "Perfume",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 7939897391055842482,
+      "name": "zhuanshufb180",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -21554730019130064,
+      "name": "common_bottom_rarity05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -5935115825535749326,
+      "name": "common_mask_rarity05",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 4301204911771013200,
+      "name": "DingDan",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -4704553378600057542,
+      "name": "JinHuo",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 5162778709539069422,
+      "name": "X",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -3789987366998293438,
+      "name": "JiaoShe",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 9194946519542408986,
+      "name": "EntryChangeItem_Small",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -8812455022320135285,
+      "name": "XianRenNao",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -2255494248400906992,
+      "name": "kancexinbiao180",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 2299773446730268024,
+      "name": "RenWu",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 6137529249753692133,
+      "name": "gland_S",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 6727372561278423922,
+      "name": "bai",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 5282362192951731177,
+      "name": "common_bottom_rarity01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -3486091232577355980,
+      "name": "common_mask_rarity01",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 4277063858523985203,
+      "name": "lan",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 5811685625017823774,
+      "name": "zi",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -3474947098906885411,
+      "name": "jin",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 2490301196705254196,
+      "name": "ShuZi",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 6443849383274296833,
+      "name": "liehuashi",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 1411253109976704847,
+      "name": "lianying180",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 6536111690479265557,
+      "name": "Exp_R_Small",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": 8193495030395497838,
+      "name": "Exp_SR_Small",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -4458929829779139182,
+      "name": "Exp_SSR_Small",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -1076584869200666926,
+      "name": "XiWang4",
+      "type": "Sprite"
+    },
+    {
+      "bundle": "item/item/small.asset",
+      "bundle_sha256": "880295f65e6e9baad86ade82e9619bb6d287f466a60a7b3b09f32605ec28251b",
+      "path_id": -4059179308876439438,
+      "name": "DuShi",
+      "type": "Sprite"
+    }
+  ]
+}

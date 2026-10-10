@@ -62,6 +62,7 @@ from ._freight_contract import (
 )
 from .sparkling_water_pc_actions import (
     resonance_pc_drink_sparkling_water_from_city_panel, _water_counts,
+    SparklingWaterSession, load_sparkling_water_layout, _drink_sparkling_water_from_rest_menu,
 )
 from .trade_negotiation_pc_actions import (
     DEFAULT_NEGOTIATION_MAX_ATTEMPTS,
@@ -152,7 +153,7 @@ class _TradeProgressReporter:
         if self._total_units is not None:
             if stage == "reposition" and state == "completed" and not is_operation:
                 self._completed_units.add((stage, (data.get("reposition") or {}).get("leg_index")))
-            elif stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling", "sparkling_water",
+            elif stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling", "sparkling_water", "black_moon_local_purchase",
                            "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"} and not is_operation:
                 key = (stage, payload.get("city_index"))
                 if key in self._phase_keys:
@@ -1619,7 +1620,7 @@ async def _refresh_recovery_fatigue(*, page_state: str, context, engine) -> int:
     return current
 
 
-async def _plan_and_execute_water_arrival(
+async def _plan_water_arrival(
     selection: dict, *, route, travel_costs, page_state, context, engine,
     app, ocr, vision, city_shop_data, persistent_data,
 ) -> dict:
@@ -1642,6 +1643,21 @@ async def _plan_and_execute_water_arrival(
                                 current_city=selection["city_name"], data={"reason": selection["reason"]})
         return {"success": True, "triggered": False, "status": "skipped",
                 "reason": selection["reason"], "page_state": "city_main", "selection": dict(selection)}
+    return {"success": True, "triggered": False, "status": "planned",
+            "reason": None, "page_state": "city_main", "selection": dict(selection)}
+
+
+async def _plan_and_execute_water_arrival(
+    selection: dict, *, route, travel_costs, page_state, context, engine,
+    app, ocr, vision, city_shop_data, persistent_data,
+) -> dict:
+    planned = await _plan_water_arrival(
+        selection, route=route, travel_costs=travel_costs, page_state=page_state,
+        context=context, engine=engine, app=app, ocr=ocr, vision=vision,
+        city_shop_data=city_shop_data, persistent_data=persistent_data,
+    )
+    if planned["status"] == "skipped":
+        return planned
     return await _execute_sparkling_water_stop(
         selection, page_state="city_main", app=app, ocr=ocr, vision=vision,
         city_shop_data=city_shop_data, persistent_data=persistent_data,
@@ -1684,6 +1700,230 @@ async def _execute_sparkling_water_stop(
     return {**result, "triggered": True, "selection": dict(selection)}
 
 
+def _black_moon_purchase_gate(
+    *, city_name: str, selected_item_ids: list[str], record_scope: str, catalog: dict,
+    city_shop_data: ResonancePcCityShopDataService, persistent_data: PersistentDataService,
+) -> dict:
+    from ._black_moon_local_shop_state import resolve_purchase_week, read_city_record
+
+    city = city_shop_data.resolve_city(city_name)
+    result = {
+        "success": True, "status": "skipped", "reason": None, "triggered": False,
+        "city_name": city["city_name"], "city_key": city["city_key"], "week_key": None,
+        "completed_this_week": False, "purchased_count": 0, "purchased_items": [],
+    }
+    if not selected_item_ids:
+        result["reason"] = "empty_selection"
+    elif city["city_key"] not in catalog["eligible_cities"]:
+        result["reason"] = "city_not_eligible"
+    elif not _has_recovery_rest_point(city_name, city_shop_data):
+        result["reason"] = "no_rest_point"
+    else:
+        result["week_key"] = resolve_purchase_week(catalog["refresh_policy"])
+        record = read_city_record(
+            persistent_data, scope=record_scope, week_key=result["week_key"], city_key=city["city_key"],
+        )
+        if record is not None and record.get("completed") is True:
+            result.update(reason="completed_this_week", completed_this_week=True)
+        else:
+            result.update(status="pending", triggered=True)
+    return result
+
+
+async def _run_black_moon_local_purchase_task(
+    *, city_name: str, city_key: str, selected_item_ids: list[str], record_scope: str,
+    progress_context: dict, context, engine,
+) -> dict:
+    from .black_moon_local_shop_pc_actions import _BLACK_MOON_PROGRESS_CALLBACK
+
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    pending_progress = []
+
+    def forward_progress(state, data):
+        if reporter is not None and state == "running":
+            future = asyncio.run_coroutine_threadsafe(
+                reporter.emit("black_moon_local_purchase", state, **progress_context, data=data), reporter._loop,
+            )
+            future.add_done_callback(observe_worker_future)
+            pending_progress.append(future)
+
+    token = _BLACK_MOON_PROGRESS_CALLBACK.set(forward_progress)
+    try:
+        framework = await _call_recovery_action("aura.run_task", {
+            "task_ref": "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc",
+            "inputs": {"city_name": city_name, "selected_item_ids": list(selected_item_ids),
+                       "record_scope": record_scope},
+        }, context=context, engine=engine)
+        nodes = framework.get("nodes")
+        node = nodes.get("purchase") if isinstance(nodes, dict) else None
+        result = node.get("output") if isinstance(node, dict) else None
+        if (not isinstance(result, dict) or result.get("success") is not True
+                or result.get("status") not in {"completed", "skipped"}
+                or result.get("page_state") != "rest_menu" or result.get("city_key") != city_key
+                or not isinstance(result.get("week_key"), str)
+                or type(result.get("completed_this_week")) is not bool
+                or type(result.get("purchased_count")) is not int or result["purchased_count"] < 0
+                or not isinstance(result.get("purchased_items"), list)
+                or (result.get("status") == "completed" and result.get("completed_this_week") is not True)):
+            cancelled = isinstance(result, dict) and (
+                result.get("status") == "cancelled" or "cancel" in str(result.get("reason") or "")
+            )
+            _raise_error(
+                "black_moon_local_purchase_cancelled" if cancelled else "black_moon_local_purchase_incomplete",
+                "Local purchase did not confirm completion or skip and return to the rest menu",
+                {"result": result},
+            )
+        return dict(result)
+    finally:
+        _BLACK_MOON_PROGRESS_CALLBACK.reset(token)
+        if pending_progress:
+            await asyncio.gather(*(asyncio.wrap_future(future) for future in pending_progress), return_exceptions=True)
+
+
+def _retain_black_moon_purchase_receipt(
+    purchase: dict, *, persistent_data: PersistentDataService, record_scope: str,
+) -> None:
+    """Retain durable receipts even when the child cannot return its result."""
+    if not purchase.get("week_key") or not purchase.get("city_key") or persistent_data is None:
+        return
+    from ._black_moon_local_shop_state import read_city_record
+
+    try:
+        record = read_city_record(
+            persistent_data, scope=record_scope, week_key=purchase["week_key"], city_key=purchase["city_key"],
+        )
+        if record is None:
+            return
+        items = [
+            {"item_id": item["item_id"], "stock_index": item["stock_index"]}
+            for visit in [*record["previous_visits"], record]
+            for batch in visit["batches"].values() if batch["status"] == "confirmed"
+            for item in batch["items"]
+        ]
+        purchase.update(completed_this_week=record["completed"], purchased_count=len(items), purchased_items=items)
+    except Exception as exc:
+        purchase["receipt_recovery_error"] = str(exc)
+        logger.warning("Could not retain Black Moon receipt city=%s week=%s error=%s",
+                       purchase.get("city_key"), purchase.get("week_key"), exc)
+
+
+async def _execute_freight_rest_stop(
+    *, city_name: str, city_index: int, page_state: str, selected_item_ids: list[str],
+    record_scope: str, catalog: dict, purchase_visits: list[dict], progress_context: dict,
+    water_selection: dict | None, route, travel_costs, context, engine,
+    app, ocr, vision, city_shop_data, persistent_data,
+) -> dict:
+    """Gate shopping and plan cups before entering one shared rest visit."""
+    _check_trade_cancelled()
+    purchase = _black_moon_purchase_gate(
+        city_name=city_name, selected_item_ids=selected_item_ids, record_scope=record_scope,
+        catalog=catalog, city_shop_data=city_shop_data, persistent_data=persistent_data,
+    )
+    purchase.update(city_index=city_index, page_state=page_state)
+    purchase_visits.append(purchase)
+    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    fields = {**progress_context, "city_index": city_index, "current_city": city_name}
+    water = None
+    water_started = False
+    purchase_finished = not purchase["triggered"]
+    restoring_city = False
+    try:
+        if reporter is not None:
+            await reporter.emit("black_moon_local_purchase", "started" if purchase["triggered"] else "skipped",
+                                **fields, data={"result": dict(purchase)})
+        if water_selection is not None:
+            water = await _plan_water_arrival(
+                water_selection, route=route, travel_costs=travel_costs, page_state=page_state,
+                context=context, engine=engine, app=app, ocr=ocr, vision=vision,
+                city_shop_data=city_shop_data, persistent_data=persistent_data,
+            )
+            page_state = water["page_state"]
+        planned_cups = water_selection["drink_count"] if water_selection is not None else 0
+        if not purchase["triggered"] and not planned_cups:
+            purchase["page_state"] = page_state
+            return {"page_state": page_state, "black_moon_local_purchase": dict(purchase), "sparkling_water": water}
+        if page_state == "city_main":
+            opened = await _call_recovery_action(
+                "resonance_pc.open_city_panel_from_main", {}, context=context, engine=engine,
+            )
+            if opened.get("success") is not True or opened.get("page_state") != "city_panel":
+                _raise_error("black_moon_rest_panel_not_restored", "City panel was not confirmed before rest", opened)
+        elif page_state != "city_panel":
+            _raise_error("black_moon_rest_invalid_start_page", "Expected a city page before rest", {"page_state": page_state})
+        point = city_shop_data.resolve_shop_point(city_name=city_name, shop_name="rest")
+        layout = await asyncio.to_thread(load_sparkling_water_layout, vision)
+        session = SparklingWaterSession(app=app, vision=vision, layout=layout)
+        await session.enter_rest(point)
+        if purchase["triggered"]:
+            child = await _run_black_moon_local_purchase_task(
+                city_name=point["city_name"], city_key=point["city_key"],
+                selected_item_ids=selected_item_ids, record_scope=record_scope,
+                progress_context=fields, context=context, engine=engine,
+            )
+            purchase.update(child)
+            purchase_finished = True
+            if reporter is not None:
+                await reporter.emit("black_moon_local_purchase", child["status"], **fields,
+                                    data={"result": dict(purchase)})
+        _check_trade_cancelled()
+        if planned_cups:
+            water_started = True
+            if reporter is not None:
+                await reporter.emit("sparkling_water", "started", **fields, data={"selection": water_selection})
+            result = await _drink_sparkling_water_from_rest_menu(
+                session=session, city_name=point["city_name"], drink_count=planned_cups,
+                persistent_data=persistent_data,
+            )
+            if result.get("success") is not True or result.get("page_state") != "rest_menu":
+                _raise_error("sparkling_water_not_completed", "Drinking did not return to the shared rest menu", result)
+            water = {**result, "city_key": point["city_key"], "triggered": True,
+                     "selection": dict(water_selection)}
+        restoring_city = True
+        await session.return_to_city(
+            lambda: resonance_pc_read_city_name_on_city_panel(app=app, vision=vision, timeout_sec=0.5),
+            point["city_key"],
+        )
+        purchase["page_state"] = "city_panel"
+        if water is not None:
+            water["page_state"] = "city_panel"
+        if water_started and reporter is not None:
+            reporter.resources["water_basic_recovered_fatigue"] = int(water.get("completed_count") or 0) * 50
+            await reporter.emit("sparkling_water", "completed", **fields, data={"result": water})
+        return {"page_state": "city_panel", "black_moon_local_purchase": dict(purchase), "sparkling_water": water}
+    except asyncio.CancelledError:
+        if not purchase_finished or restoring_city:
+            purchase.update(success=False, status="cancelled", reason="black_moon_local_purchase_cancelled",
+                            page_state="unknown")
+        _retain_black_moon_purchase_receipt(
+            purchase, persistent_data=persistent_data, record_scope=record_scope,
+        )
+        if reporter is not None:
+            await reporter.emit("sparkling_water" if water_started else "black_moon_local_purchase",
+                                "cancelled", **fields, data={"result": dict(purchase)})
+        raise
+    except Exception as exc:
+        cancelled = "cancel" in str(getattr(exc, "code", ""))
+        if not purchase_finished or restoring_city:
+            child = (getattr(exc, "detail", {}) or {}).get("result")
+            if isinstance(child, dict):
+                purchase.update(child)
+            purchase.update(success=False,
+                            status="cancelled" if cancelled else "failed",
+                            reason=getattr(exc, "code", "black_moon_local_purchase_failed"), page_state="unknown")
+        _retain_black_moon_purchase_receipt(
+            purchase, persistent_data=persistent_data, record_scope=record_scope,
+        )
+        if reporter is not None:
+            await reporter.emit("sparkling_water" if water_started else "black_moon_local_purchase",
+                                "cancelled" if cancelled else "failed",
+                                **fields, data={"result": dict(purchase), "error": str(exc)})
+        if isinstance(exc, CityTradeFlowError):
+            raise
+        _raise_error("black_moon_local_purchase_cancelled" if cancelled else "black_moon_rest_stop_failed",
+                     "Shared rest visit failed; route cannot continue",
+                     {"code": getattr(exc, "code", None), "message": str(exc), "purchase": dict(purchase)})
+
+
 async def _execute_route(
     *,
     route: List[Dict[str, Any]],
@@ -1705,6 +1945,10 @@ async def _execute_route(
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
     sparkling_water_plan: Optional[Dict[str, Any]] = None,
+    auto_black_moon_local_purchase: bool = False,
+    black_moon_local_purchase_items: list[str] | None = None,
+    black_moon_purchase_record_scope: str = "default",
+    black_moon_catalog: dict | None = None,
     persistent_data: PersistentDataService | None = None,
     recovery_context: ExecutionContext | None = None,
     recovery_travel_costs: Optional[Dict[str, Any]] = None,
@@ -1718,6 +1962,7 @@ async def _execute_route(
     rubbish_recycling_attempted = False
     selection = sparkling_water_plan if sparkling_water_plan is not None else {}
     water_result: Dict[str, Any] = {"triggered": False, "status": "not_triggered", "reason": selection.get("reason")}
+    purchase_visits: list[dict] = []
     try:
         for index, leg in enumerate(route):
             progress_fields = {
@@ -1732,6 +1977,17 @@ async def _execute_route(
             if reporter is not None:
                 await reporter.emit("leg", "started", **progress_fields, data={"leg": dict(leg)})
             try:
+                if index == 0 and auto_black_moon_local_purchase:
+                    rest = await _execute_freight_rest_stop(
+                        city_name=str(leg.get("from_city") or ""), city_index=0, page_state=page_state,
+                        selected_item_ids=black_moon_local_purchase_items or [],
+                        record_scope=black_moon_purchase_record_scope, catalog=black_moon_catalog,
+                        purchase_visits=purchase_visits, progress_context=progress_fields,
+                        water_selection=None, route=route, travel_costs=recovery_travel_costs,
+                        context=recovery_context, engine=engine, app=app, ocr=ocr, vision=vision,
+                        city_shop_data=city_shop_data, persistent_data=persistent_data,
+                    )
+                    page_state = rest["page_state"]
                 leg_result = await _execute_trade_leg(
                     index=index,
                     leg=leg,
@@ -1779,20 +2035,51 @@ async def _execute_route(
             travel = dict(leg_result.get("travel") or {})
             if travel.get("success") is False and str(travel.get("status") or "").lower() != "blocked":
                 _raise_error("trade_arrival_not_confirmed", "Arrival failed; cannot continue city actions", travel)
-            if (
-                selection.get("planned") and selection.get("city_index") == index + 1
-                and str(travel.get("status") or "ok").lower() != "blocked"
-                and travel.get("success", True)
-            ):
-                water_result = await _plan_and_execute_water_arrival(
-                    selection, page_state=page_state, app=app, ocr=ocr, vision=vision,
-                    city_shop_data=city_shop_data, persistent_data=persistent_data,
-                    route=route, travel_costs=recovery_travel_costs,
-                    context=recovery_context, engine=engine,
-                )
-                page_state = water_result["page_state"]
-                leg_result["page_state"] = page_state
-                leg_result["sparkling_water"] = water_result
+            water_due = bool(selection.get("planned") and selection.get("city_index") == index + 1)
+            if (str(travel.get("status") or "ok").lower() not in {"blocked", "failed", "cancelled"}
+                    and travel.get("success") is True and (auto_black_moon_local_purchase or water_due)):
+                try:
+                    if auto_black_moon_local_purchase:
+                        rest = await _execute_freight_rest_stop(
+                            city_name=str(leg.get("to_city") or ""), city_index=index + 1, page_state=page_state,
+                            selected_item_ids=black_moon_local_purchase_items or [],
+                            record_scope=black_moon_purchase_record_scope, catalog=black_moon_catalog,
+                            purchase_visits=purchase_visits, progress_context=progress_fields,
+                            water_selection=selection if water_due else None,
+                            route=route, travel_costs=recovery_travel_costs,
+                            context=recovery_context, engine=engine, app=app, ocr=ocr, vision=vision,
+                            city_shop_data=city_shop_data, persistent_data=persistent_data,
+                        )
+                        page_state = rest["page_state"]
+                        leg_result["black_moon_local_purchase"] = rest["black_moon_local_purchase"]
+                        if water_due:
+                            water_result = rest["sparkling_water"]
+                    else:
+                        water_result = await _plan_and_execute_water_arrival(
+                            selection, page_state=page_state, app=app, ocr=ocr, vision=vision,
+                            city_shop_data=city_shop_data, persistent_data=persistent_data,
+                            route=route, travel_costs=recovery_travel_costs,
+                            context=recovery_context, engine=engine,
+                        )
+                        page_state = water_result["page_state"]
+                    leg_result["page_state"] = page_state
+                    if water_due:
+                        leg_result["sparkling_water"] = water_result
+                except Exception as exc:
+                    if not hasattr(exc, "code"):
+                        raise
+                    failure = {"status": "cancelled" if "cancel" in str(exc.code) else "failed",
+                               "reason": str(exc.code), "failed_leg_index": index,
+                               "error": {"code": str(exc.code), "message": str(exc),
+                                         "detail": dict(getattr(exc, "detail", {}) or {})}}
+                    leg_result.update(failure, page_state="unknown")
+                    if auto_black_moon_local_purchase and purchase_visits:
+                        leg_result["black_moon_local_purchase"] = dict(purchase_visits[-1])
+                    leg_results.append(leg_result)
+                    page_state = "unknown"
+                    if reporter is not None:
+                        await reporter.emit("leg", failure["status"], **progress_fields, data=failure)
+                    break
             update = await resonance_pc_trade_route_execution_update(
                 run_key=route_run_key,
                 leg=leg,
@@ -1822,6 +2109,13 @@ async def _execute_route(
         summary["page_state"] = page_state
         summary["leg_results"] = leg_results
         summary["sparkling_water"] = water_result
+        summary["black_moon_local_purchase"] = {
+            "enabled": auto_black_moon_local_purchase, "record_scope": black_moon_purchase_record_scope,
+            "selected_item_ids": list(black_moon_local_purchase_items or []), "visits": purchase_visits,
+            "triggered_count": sum(visit.get("triggered") is True for visit in purchase_visits),
+            "purchased_count": sum(visit.get("purchased_count", 0) for visit in purchase_visits
+                                   if type(visit.get("purchased_count")) is int and visit["purchased_count"] >= 0),
+        }
         # The shared route store uses "ok" for completion. Freight exposes
         # "completed" only after every leg has a confirmed arrival.
         completed_leg_count = sum(
@@ -2620,6 +2914,9 @@ async def resonance_pc_auto_cycle_trade_flow(
     trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_sparkling_water: bool = False,
+    auto_black_moon_local_purchase: bool = False,
+    black_moon_local_purchase_items: list[str] | None = None,
+    black_moon_purchase_record_scope: str = "default",
     auto_bento: bool = False,
     bento_priority: Optional[List[str]] = None,
     base_fatigue_reserve: int = 200,
@@ -2643,13 +2940,33 @@ async def resonance_pc_auto_cycle_trade_flow(
     for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
                         ("auto_trade_goods_investment", auto_trade_goods_investment),
-                        ("auto_rubbish_recycling", auto_rubbish_recycling)):
+                        ("auto_rubbish_recycling", auto_rubbish_recycling),
+                        ("auto_black_moon_local_purchase", auto_black_moon_local_purchase)):
         if type(value) is not bool:
             raise ValueError(f"{name} must be a boolean")
     integer("fatigue_medicine_max_uses", fatigue_medicine_max_uses)
     trade_goods_investment_mode = normalize_investment_mode(trade_goods_investment_mode)
     if auto_trade_goods_investment and (context is None or engine is None):
         raise RuntimeError("Automatic goods investment requires the current execution context and engine")
+    if black_moon_local_purchase_items is not None and (
+            not isinstance(black_moon_local_purchase_items, list)
+            or any(not isinstance(item, str) for item in black_moon_local_purchase_items)):
+        raise ValueError("black_moon_local_purchase_items must be a list of strings or None")
+    if (not isinstance(black_moon_purchase_record_scope, str) or not black_moon_purchase_record_scope.strip()
+            or black_moon_purchase_record_scope != black_moon_purchase_record_scope.strip()):
+        raise ValueError("black_moon_purchase_record_scope must be a nonempty, unpadded string")
+    black_moon_catalog = None
+    selected_black_moon_items = []
+    if auto_black_moon_local_purchase:
+        from ._black_moon_local_shop_policy import (
+            load_black_moon_catalog, normalize_selected_items, normalize_record_scope,
+        )
+
+        black_moon_purchase_record_scope = normalize_record_scope(black_moon_purchase_record_scope)
+        selected_black_moon_items = normalize_selected_items(black_moon_local_purchase_items or [])
+        black_moon_catalog = load_black_moon_catalog()
+        if selected_black_moon_items and (persistent_data is None or context is None or engine is None):
+            raise RuntimeError("Automatic local purchase requires persistent data and the current execution context/engine")
     if type(auto_sparkling_water) is not bool:
         raise ValueError("auto_sparkling_water must be a boolean")
     if type(auto_bento) is not bool:
@@ -2798,6 +3115,18 @@ async def resonance_pc_auto_cycle_trade_flow(
                               if phase["key"] in {"sell", "final_sale"})
             phases.insert(sale_index, {"key": "trade_goods_investment",
                                        "status": "waiting", "reason": None})
+    if auto_black_moon_local_purchase:
+        for visit in plan["city_visits"]:
+            city = resonance_pc_city_shop_data.resolve_city(visit["city_name"])
+            eligible = bool(selected_black_moon_items and city["city_key"] in black_moon_catalog["eligible_cities"]
+                            and _has_recovery_rest_point(visit["city_name"], resonance_pc_city_shop_data))
+            phases = visit["phases"]
+            rest_index = next(index for index, phase in enumerate(phases)
+                              if phase["key"] in {"sparkling_water", "trade_goods_investment", "sell", "final_sale"})
+            phases.insert(rest_index, {"key": "black_moon_local_purchase",
+                                       "status": "waiting" if eligible else "skipped",
+                                       "reason": None if eligible else "empty_selection" if not selected_black_moon_items
+                                       else "not_applicable"})
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -2827,6 +3156,11 @@ async def resonance_pc_auto_cycle_trade_flow(
         "rubbish_recycling_status": "not_triggered",
         "rubbish_recycling_city_id": None,
         "rubbish_recycling_city_name": None,
+        "black_moon_local_purchase": {
+            "enabled": auto_black_moon_local_purchase, "record_scope": black_moon_purchase_record_scope,
+            "selected_item_ids": list(selected_black_moon_items), "visits": [],
+            "triggered_count": 0, "purchased_count": 0,
+        },
     }
     final_sale: Optional[Dict[str, Any]] = None
     reposition_execution = None
@@ -2863,6 +3197,10 @@ async def resonance_pc_auto_cycle_trade_flow(
             auto_rubbish_recycling=bool(auto_rubbish_recycling),
             engine=engine,
             sparkling_water_plan=water_plan,
+            auto_black_moon_local_purchase=auto_black_moon_local_purchase,
+            black_moon_local_purchase_items=selected_black_moon_items,
+            black_moon_purchase_record_scope=black_moon_purchase_record_scope,
+            black_moon_catalog=black_moon_catalog,
             persistent_data=persistent_data,
             recovery_context=context,
             recovery_travel_costs=(resonance_pc_market_data.get_all_travel_fatigue()["costs"] if water_plan.get("planned") else None),
@@ -2998,6 +3336,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             "sparkling_water": execution.get("sparkling_water") or {
                 "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),
             },
+            "black_moon_local_purchase": execution["black_moon_local_purchase"],
             "blocked_at": execution.get("blocked_at"),
             "blocked_leg": execution.get("blocked_leg"),
             "fatigue_medicine_used": list(execution.get("fatigue_medicine_used") or []),

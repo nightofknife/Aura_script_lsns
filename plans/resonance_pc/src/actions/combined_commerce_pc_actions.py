@@ -62,6 +62,9 @@ _TRADE_INPUT_KEYS = {
     "auto_trade_goods_investment",
     "trade_goods_investment_mode",
     "auto_rubbish_recycling",
+    "auto_black_moon_local_purchase",
+    "black_moon_local_purchase_items",
+    "black_moon_purchase_record_scope",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "auto_bento",
@@ -79,6 +82,9 @@ _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "auto_trade_goods_investment",
     "trade_goods_investment_mode",
     "auto_rubbish_recycling",
+    "auto_black_moon_local_purchase",
+    "black_moon_local_purchase_items",
+    "black_moon_purchase_record_scope",
 }
 _PASSENGER_INPUT_KEYS = {
     "passenger_city_a_id",
