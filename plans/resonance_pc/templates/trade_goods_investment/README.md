@@ -9,14 +9,15 @@ screenshots are evaluation fixtures only. `manifest.json` records prefab nodes,
 font/sprite PathIDs, source bundle hashes, scale, preprocessing, and thresholds.
 No extracted font files or AssetBundle decryption keys are saved here.
 
-`entry_available`, `entry_unavailable`, `entry_restriction`, and `entry_lock`
-plus their masks identify the exchange entry before clicking. White and grey
-buttons share a shape, so these assets use masked squared difference and RGB
-color error. Labels and variable conditions are excluded. The native grey
-overlay and lock or condition capsule confirm an unopened feature; missing or
-conflicting evidence does not. These new states are native-generated and have
-not been evaluated on closed-entry screenshots or in the game. Regenerate just
-this bank with the builder's `--entry-only` option.
+`entry_available` and `entry_unavailable` are 169x67 RGB composites of the native
+button background, investment icon and label. Both use `entry_pair_mask.png`,
+excluding pixels outside either opaque contour. The same ROI is searched with
+`1 - TM_SQDIFF_NORMED`, without black/white threshold preprocessing. The higher
+white score permits entry using its matched center; a higher or equal grey score
+skips investment. Neither the lock nor variable condition text is matched.
+The visual pair was approved by the user; scores and live flow remain untested.
+Regenerate just this pair with the builder's `--entry-only` option. Older
+lock/capsule assets are no longer referenced by the runtime manifest.
 
 - `levels/`: complete LV.0-20 tokens, native-size and client-size raster variants.
 - `digits/`: native-font digit templates used to verify the complete-token result.

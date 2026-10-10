@@ -17,24 +17,27 @@ are not read with OCR; native templates recognize controls, cards and levels.
 ## Investment Entry Availability
 
 Before clicking the exchange investment entry, two consecutive frames must
-agree on its availability. The entry name also remains visible when the feature
-is closed, so the label alone never authorizes a click. Native button templates
-use masked shape and RGB color checks: a white available button permits entry;
-a grey restriction overlay plus its lock badge or condition capsule confirms
-that the feature is not open. The capsule also covers the native construction
-state without depending on its variable text or on the lock always being visible.
+agree on its availability. Both native RGB templates contain the investment
+icon, entry label and white or grey background in the same 169x67 crop. They use
+the same ROI and shared opaque-pixel mask, preserving background colors. Scores
+are `1 - TM_SQDIFF_NORMED`: a higher white score means available; a higher or
+equal grey score means unavailable. These are the only two availability states.
+The white template's matched center is reused for entry clicks, without another
+label-only match. Locks and variable condition text are not used.
 
 A confirmed closed entry returns `success=true`, `status=skipped`,
 `triggered=false`, and `reason=investment_not_available` on the exchange menu,
-with no clicks or navigation. Freight resumes selling and buying. Uncertain or
-conflicting evidence is reread for at most five seconds, then fails before any
-entry click. Cancellation and screenshot failures remain failures, not closed
-entry observations.
+with no clicks or navigation. Freight resumes selling and buying. Failure to
+locate either entry template uses the existing bounded entry-location retry and
+timeout; it is a missing-entry error, not a third availability state.
+Cancellation and screenshot failures remain failures, not closed observations.
+Logs record both entry scores and the chosen state.
 
-The entry assets are generated from the native `HomeTrade` prefab and common
-Sprites using `--entry-only`. Their masks exclude labels and icons. These new
-entry states have no screenshot or live verification in this change; no tests
-or validation workflows were run.
+The entry assets are generated from the native `HomeTrade` prefab, button/icon
+Sprites and font using `--entry-only`. The mask excludes transparent contour
+pixels in either version; labels and icons remain included. The user approved
+the native-generated visual pair. No white/grey score comparison or live-flow
+validation was run during this implementation.
 
 ## Freight Integration
 

@@ -53,6 +53,12 @@ $env:TMPDIR = $testTemp
 
 ## Release Smoke
 
+仓库 PR 和普通 `main` 推送只运行现有源码 CI，不再重复构建完整发行包。
+版本标签和手动 `full` 构建运行正式 CPU 打包；构建与源码 CI 并行，生成的包仍执行
+原有冻结运行时、GUI、更新器及干净 ZIP 检查。发布同时等待源码 CI、构建和包校验
+全部成功，任一失败均不会发布。需要在合并前检查冻结包时，可手动运行
+`Package and release Aura Resonance`，选择 `scope=full`、`publish_release=false`。
+
 本地打包统一从高层入口开始，它会按 profile 创建并复用隔离的发布环境：
 
 ```powershell

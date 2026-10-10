@@ -310,7 +310,7 @@ def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
         raise TradeGoodsInvestmentError("investment_back_button_missing", "Could not confirm the back button")
     _click(app, match.center_point)
     _pause(.4)
-    _wait(app, lambda frame: True if reader.match(frame, "entry")["found"] else None)
+    _wait(app, lambda frame: True if reader.match(frame, "entry_available")["found"] else None)
 
 
 def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: Any, vision: Any,
@@ -335,9 +335,11 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             if exc.code != "investment_state_timeout":
                 raise
             raise TradeGoodsInvestmentError(
-                "investment_entry_unconfirmed", "Could not confirm whether investment is available; entry was not clicked",
+                "investment_entry_not_found", "Could not locate the investment entry; entry was not clicked",
                 exc.detail,
             ) from exc
+        logger.info("[TradeGoodsInvestment] entry_state=%s white_score=%.6f gray_score=%.6f",
+                    entry["availability"], entry["white_score"], entry["gray_score"])
         if entry["availability"] == "unavailable":
             result = {"success": True, "triggered": False, "status": "skipped",
                       "reason": "investment_not_available", "city_name": city_name,
@@ -345,7 +347,8 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
                       "transactions": [], "upgraded_levels": 0, "product_count": 0,
                       "scroll_count": 0, "page_state": "shop_page", "entry_state": entry,
                       "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
-            report("skipped", reason=result["reason"], transaction_count=0)
+            report("skipped", reason=result["reason"], transaction_count=0,
+                   white_score=entry["white_score"], gray_score=entry["gray_score"])
             return result
         _click(app, entry["center"])
         _pause(.4)
@@ -426,7 +429,8 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
               "transaction_count": len(transactions), "transactions": transactions,
               "upgraded_levels": sum(row["to_level"] - row["from_level"] for row in transactions),
               "product_count": product_index, "scroll_count": scroll_count,
-              "page_state": "shop_page", "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
+              "page_state": "shop_page", "entry_state": entry,
+              "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
     report("completed" if transactions else "skipped", **{key: value for key, value in result.items() if key not in {"city_name", "mode", "target_level"}})
     return result
 

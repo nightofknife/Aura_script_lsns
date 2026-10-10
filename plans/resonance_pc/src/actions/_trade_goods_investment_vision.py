@@ -175,17 +175,9 @@ class InvestmentVision:
         if w < template.shape[1] or h < template.shape[0]:
             return {"found": False, "score": 0., "center": None, "rect": None, **color_metrics}
         source = self._prepare(image[y:y + h, x:x + w], entry["preprocess"])
-        # Flat native button fills and lock glyphs have no reliable NCC variance.
+        # Masked RGB states retain brightness differences that NCC would discard.
         score, point = _best(source, template, mask, squared_difference=mask is not None)
         found = score >= entry["threshold"]
-        if entry.get("color_mae_limit") is not None:
-            px, py = point
-            observed = source[py:py + template.shape[0], px:px + template.shape[1]]
-            selected = mask > 0 if mask is not None else np.ones(template.shape[:2], dtype=bool)
-            mae = float(np.abs(observed[selected].astype(float) - template[selected].astype(float)).mean())
-            color_metrics["color_mae"] = mae
-            color_metrics["color_consistent"] = mae <= entry["color_mae_limit"]
-            found = found and color_metrics["color_consistent"]
         if name == "confirm_enabled":
             px, py = point
             observed = source[py:py + template.shape[0], px:px + template.shape[1]]
@@ -203,24 +195,18 @@ class InvestmentVision:
         return self._match_box(image, name, self._templates[name]["roi"])
 
     def read_entry_state(self, imageRGBnp: np.ndarray) -> dict:
-        """Confirm an open entry or a native restriction overlay before any click."""
+        """Choose the higher-scoring RGB entry state; equal scores remain closed."""
         image = _image(imageRGBnp)
-        entry = self.match(image, "entry")
         opened = self.match(image, "entry_available")
         restricted = self.match(image, "entry_unavailable")
-        lock = self.match(image, "entry_lock")
-        condition = self.match(image, "entry_restriction")
-        evidence = {"entry": entry, "available": opened, "unavailable": restricted,
-                    "lock": lock, "restriction": condition}
-        if not entry["found"]:
-            raise InvestmentRecognitionError("investment_entry_unknown", "Exchange investment label is unconfirmed")
-        if restricted["found"] and not opened["found"] and (lock["found"] or condition["found"]):
-            return {"availability": "unavailable", "rect": restricted["rect"], "center": None,
-                    "evidence": evidence}
-        if opened["found"] and not restricted["found"] and not lock["found"] and not condition["found"]:
-            return {"availability": "available", "rect": opened["rect"], "center": entry["center"],
-                    "evidence": evidence}
-        raise InvestmentRecognitionError("investment_entry_unknown", "Investment entry state is ambiguous")
+        if not opened["found"] and not restricted["found"]:
+            raise InvestmentRecognitionError("investment_entry_missing", "Exchange investment entry was not located")
+        available = opened["score"] > restricted["score"]
+        winner = opened if available else restricted
+        return {"availability": "available" if available else "unavailable",
+                "rect": winner["rect"], "center": opened["center"] if available else None,
+                "white_score": opened["score"], "gray_score": restricted["score"],
+                "evidence": {"available": opened, "unavailable": restricted}}
 
     def _read_level(self, image, roi, side, preprocess="bright", levels_key="levels", digits_key="digits") -> int:
         levels = self._manifest.get(levels_key, [])

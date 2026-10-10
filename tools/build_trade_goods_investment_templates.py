@@ -93,83 +93,84 @@ def save(name: str, pixels: np.ndarray) -> None:
 
 
 def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None:
-    """Generate only the native exchange-entry states, excluding variable labels."""
+    """Compose comparable native RGB icon/label templates for both entry states."""
     from aura_resonance_devtools.unity_bundle import _logical_sprite_image
 
     prefab_rel = "ui/hometrade/hometrade.asset"
     nodes = {node["path"]: node for node in inspect_prefab(load_bundle(assets / prefab_rel, metadata))["nodes"]}
     prefix = "/HomeTrade/Group_Main/Btn_invest"
-    common_rel = "ui/common.asset"
-    common = load_bundle(assets / common_rel, metadata)
-    sprites = {obj.path_id: obj for obj in common.objects if obj.type.name == "Sprite"}
-    specs = (
-        ("entry_available", prefix, -4532753186095738395),
-        ("entry_unavailable", prefix + "/Img_Rep", -7361993374187006141),
-        ("entry_restriction", prefix + "/Img_Rep/Img_1", -5603365739855698126),
-        ("entry_lock", prefix + "/Img_Rep/Img_2", 142476036342623130),
-    )
-    exclusions = [prefix + suffix for suffix in (
-        "/Txt_Name", "/Img_Icon", "/Img_Rep/Txt_Name", "/Img_Rep/Img_Icon",
-        "/Img_Rep/Img_1", "/Img_Rep/Img_2", "/Img_Rep/Txt_Rep", "/Img_Rep/Txt_loading",
-    )]
-    names = {name for name, _, _ in specs}
+    objects, hashes = {}, {}
+    for relative in ("ui/common.asset", "ui/hometrade.asset", "ui/font/originpack.asset"):
+        bundle = assets / relative
+        hashes[relative] = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        for obj in load_bundle(bundle, metadata).objects:
+            if obj.type.name in ("Sprite", "Font"):
+                objects[obj.path_id] = (obj, relative)
+    crop_box = (734, 456, 903, 523)
+    size = [crop_box[2] - crop_box[0], crop_box[3] - crop_box[1]]
+    roi = [crop_box[0] - 3, crop_box[1] - 3, size[0] + 6, size[1] + 6]
+    names = {"entry_available", "entry_unavailable", "entry_restriction", "entry_lock"}
     manifest["templates"] = [entry for entry in manifest["templates"] if entry["name"] not in names]
-    for name, path, expected_id in specs:
-        node = nodes[path]
-        tree = next(item["tree"] for item in node["components"] if "m_Sprite" in item["tree"])
-        sprite_id = tree["m_Sprite"]["m_PathID"]
-        if sprite_id != expected_id:
-            raise ValueError(f"Native investment entry sprite changed: {path}")
-        obj = sprites[sprite_id]
-        sprite = obj.read()
-        rect = node["rect_client"]
-        raw = _logical_sprite_image(sprite, obj.version).convert("RGBA")
-        rgba = np.array(raw.resize(tuple(rect[2:]), Image.Resampling.BILINEAR))
-        tint = np.array([tree["m_Color"][key] for key in ("r", "g", "b", "a")])
-        rgba = np.clip(rgba.astype(float) * tint, 0, 255).astype(np.uint8)
-        # The thin condition outline is antialiased and sits outside its labels.
-        alpha_cutoff = 200 if name == "entry_restriction" else 250
-        mask = np.where(rgba[:, :, 3] >= alpha_cutoff, 255, 0).astype(np.uint8)
-        excluded = []
-        for child_path in exclusions if name != "entry_lock" else []:
-            if child_path == path:
-                continue
-            child_rect = nodes[child_path]["rect_client"]
-            dx, dy = child_rect[0] - rect[0], child_rect[1] - rect[1]
-            padding = 0 if name == "entry_restriction" else 3
-            left, top = max(0, dx - padding), max(0, dy - padding)
-            right, bottom = min(rect[2], dx + child_rect[2] + padding), min(rect[3], dy + child_rect[3] + padding)
-            if right > left and bottom > top:
-                mask[top:bottom, left:right] = 0
-                excluded.append(child_path)
-        if not mask.any():
-            raise ValueError(f"No opaque investment entry pixels: {path}")
-        backdrop = Image.new("RGBA", tuple(rect[2:]), (0, 0, 0, 255))
-        if name == "entry_restriction":
-            overlay_rect = nodes[prefix + "/Img_Rep"]["rect_client"]
-            overlay_obj = sprites[-7361993374187006141]
-            overlay = _logical_sprite_image(overlay_obj.read(), overlay_obj.version).convert("RGBA")
-            overlay = overlay.resize(tuple(overlay_rect[2:]), Image.Resampling.BILINEAR)
-            dx, dy = rect[0] - overlay_rect[0], rect[1] - overlay_rect[1]
-            backdrop = overlay.crop((dx, dy, dx + rect[2], dy + rect[3]))
-        pixels = np.array(Image.alpha_composite(backdrop, Image.fromarray(rgba)).convert("RGB"))
-        filename, mask_file = f"{name}.png", f"{name}_mask.png"
-        save(filename, pixels)
-        save(mask_file, mask)
+
+    def component(path, field):
+        return next(item["tree"] for item in nodes[path]["components"] if field in item["tree"])
+
+    def sprite(path):
+        tree = component(path, "m_Sprite")
+        obj, relative = objects[tree["m_Sprite"]["m_PathID"]]
+        rect = nodes[path]["rect_client"]
+        image = _logical_sprite_image(obj.read(), obj.version).convert("RGBA").resize(
+            tuple(rect[2:]), Image.Resampling.BILINEAR)
+        image = Image.merge("RGBA", tuple(channel.point(
+            lambda value, factor=tree["m_Color"][key]: round(value * factor))
+            for channel, key in zip(image.split(), ("r", "g", "b", "a"))))
+        return image, {"node": path, "sprite_path_id": obj.path_id, "bundle": relative, "rect": rect}
+
+    pairs = []
+    for name, parent, expected_id in (("entry_available", prefix, -4532753186095738395),
+                                      ("entry_unavailable", prefix + "/Img_Rep", -7361993374187006141)):
+        canvas = Image.new("RGBA", (1280, 720))
+        background, background_source = sprite(parent)
+        if background_source["sprite_path_id"] != expected_id:
+            raise ValueError(f"Native investment entry sprite changed: {parent}")
+        canvas.alpha_composite(background, tuple(nodes[parent]["rect_client"][:2]))
+        icon, icon_source = sprite(parent + "/Img_Icon")
+        canvas.alpha_composite(icon, tuple(nodes[parent + "/Img_Icon"]["rect_client"][:2]))
+        text_node = parent + "/Txt_Name"
+        tree = component(text_node, "m_FontData")
+        style = tree["m_FontData"]
+        if style["m_FontStyle"] != 0:
+            raise ValueError("Entry text requires the native normal font style")
+        font_obj, font_bundle = objects[style["m_Font"]["m_PathID"]]
+        font_bytes = bytes(font_obj.read().m_FontData)
+        alpha = render_text(tree["m_Text"], font_bytes, style["m_FontSize"])
+        alpha = alpha.crop(alpha.getbbox())
+        color = tuple(round(tree["m_Color"][key] * 255) for key in ("r", "g", "b"))
+        glyph = Image.new("RGBA", alpha.size, color + (0,))
+        glyph.putalpha(alpha)
+        canvas.alpha_composite(glyph, tuple(nodes[text_node]["rect_client"][:2]))
+        image = canvas.crop(crop_box)
+        pairs.append((name, image))
+        save(f"{name}.png", np.array(image.convert("RGB")))
         manifest["templates"].append({
-            "name": name, "file": filename, "mask_file": mask_file, "kind": "native_sprite",
-            "sprite": sprite.m_Name, "sprite_path_id": sprite_id, "bundle": common_rel,
-            "bundle_sha256": hashlib.sha256((assets / common_rel).read_bytes()).hexdigest(),
-            "prefab_node": path, "prefab_sha256": hashlib.sha256((assets / prefab_rel).read_bytes()).hexdigest(),
-            "client_node_size": rect[2:], "roi": [rect[0] - 3, rect[1] - 3, rect[2] + 6, rect[3] + 6],
-            "preprocess": "rgb", "threshold": 0.9, "color_mae_limit": 24,
-            "excluded_nodes": excluded, "status": "native_generated_unvalidated",
+            "name": name, "file": f"{name}.png", "mask_file": "entry_pair_mask.png",
+            "kind": "native_sprite_font_composite", "background": background_source, "icon": icon_source,
+            "text": {"node": text_node, "font_path_id": font_obj.path_id, "bundle": font_bundle,
+                     "font_sha256": hashlib.sha256(font_bytes).hexdigest(), "native_size": style["m_FontSize"]},
+            "bundle_sha256": hashes, "prefab_node": parent,
+            "prefab_sha256": hashlib.sha256((assets / prefab_rel).read_bytes()).hexdigest(),
+            "client_crop_box": list(crop_box), "client_node_size": size, "roi": roi,
+            "preprocess": "rgb", "threshold": 0.82,
+            "method": "1 - TM_SQDIFF_NORMED", "status": "native_generated_unvalidated",
         })
+    alpha = np.minimum(*(np.array(image.getchannel("A")) for _, image in pairs))
+    save("entry_pair_mask.png", np.where(alpha >= 250, 255, 0).astype(np.uint8))
     manifest["entry_availability"] = {
         "available": "entry_available", "unavailable": "entry_unavailable",
-        "restriction": "entry_restriction", "lock": "entry_lock",
+        "decision": "available_score > unavailable_score; ties are unavailable",
+        "method": "1 - TM_SQDIFF_NORMED", "shared_mask": "entry_pair_mask.png",
         "status": "native_generated_unvalidated", "stable_frames": 2,
-        "limitations": "No closed-entry screenshot or live interaction was evaluated.",
+        "limitations": "Visual preview approved; no pair-score or live-flow validation was run.",
     }
 
 
