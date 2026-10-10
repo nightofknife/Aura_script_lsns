@@ -26,6 +26,10 @@ def rig(monkeypatch):
     class Reader:
         VIEWPORT = (33, 130, 410, 460)
 
+        def read_entry_state(self, frame):
+            return {"availability": "available", "center": [843, 490],
+                    "white_score": 0.95, "gray_score": 0.7}
+
         def read_levels(self, frame):
             return {"current": state.current, "preview": state.preview}
 
@@ -135,7 +139,7 @@ def execute(rig, monkeypatch, mode=10, product_levels=None, product_caps=None, p
     cards = [{"rect": (50 + index * 120, 150, 114, 128), "partial": False,
               "locked": False, "selected": False} for index in range(3)]
     monkeypatch.setattr(investment, "InvestmentVision", lambda: reader)
-    monkeypatch.setattr(investment, "_wait", lambda app, predicate: (FRAME, {"center": [843, 490]}))
+    monkeypatch.setattr(investment, "_wait", lambda app, predicate: (FRAME, predicate(FRAME)))
     monkeypatch.setattr(investment, "_idle", lambda *args: None)
     monkeypatch.setattr(investment, "_cards", lambda *args: (FRAME, cards))
     monkeypatch.setattr(investment, "_scroll", lambda *args: None)
