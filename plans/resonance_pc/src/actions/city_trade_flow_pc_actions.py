@@ -2066,7 +2066,8 @@ async def _execute_route(
                     if water_due:
                         leg_result["sparkling_water"] = water_result
                 except Exception as exc:
-                    if not hasattr(exc, "code"):
+                    # Preserve the existing drinking-only exception contract.
+                    if not auto_black_moon_local_purchase or not hasattr(exc, "code"):
                         raise
                     failure = {"status": "cancelled" if "cancel" in str(exc.code) else "failed",
                                "reason": str(exc.code), "failed_leg_index": index,
@@ -3336,7 +3337,14 @@ async def resonance_pc_auto_cycle_trade_flow(
             "sparkling_water": execution.get("sparkling_water") or {
                 "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),
             },
-            "black_moon_local_purchase": execution["black_moon_local_purchase"],
+            "black_moon_local_purchase": (
+                execution["black_moon_local_purchase"] if auto_black_moon_local_purchase
+                else execution.get("black_moon_local_purchase", {
+                    "enabled": False, "record_scope": black_moon_purchase_record_scope,
+                    "selected_item_ids": [], "visits": [],
+                    "triggered_count": 0, "purchased_count": 0,
+                })
+            ),
             "blocked_at": execution.get("blocked_at"),
             "blocked_leg": execution.get("blocked_leg"),
             "fatigue_medicine_used": list(execution.get("fatigue_medicine_used") or []),
