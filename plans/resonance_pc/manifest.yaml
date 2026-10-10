@@ -1146,6 +1146,14 @@ exports:
       type: Any
       required: false
       default: 10
+    - name: auto_rubbish_recycling
+      type: Any
+      required: false
+      default: true
+    - name: auto_sparkling_water
+      type: Any
+      required: false
+      default: false
     - name: auto_black_moon_local_purchase
       type: Any
       required: false
@@ -1158,14 +1166,6 @@ exports:
       type: Any
       required: false
       default: default
-    - name: auto_rubbish_recycling
-      type: Any
-      required: false
-      default: true
-    - name: auto_sparkling_water
-      type: Any
-      required: false
-      default: false
     - name: auto_bento
       type: Any
       required: false
