@@ -149,6 +149,7 @@ def trade_goods_investment_detail(data: Mapping[str, Any], state: str) -> str:
             "next_product_locked": "后续商品尚未解锁",
             "no_further_upgrade": "本次无法继续投资",
             "next_product_attempted": "已尝试下一项，结束本次投资",
+            "investment_not_available": "本站交易品投资尚未开放，继续交易",
         }.get(str(reason), str(reason)))
     return " · ".join(parts)
 

@@ -31,6 +31,7 @@ def _resources(root: Path) -> tuple[dict, dict[str, np.ndarray]]:
         manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
         files = {entry["file"] for key in ("templates", "levels", "digits", "max_levels", "max_digits")
                  for entry in manifest.get(key, [])}
+        files.update(entry["mask_file"] for entry in manifest.get("templates", []) if entry.get("mask_file"))
         cards = manifest["cards"]
         files.update(cards["header_variants"])
         files.add(cards["header_mask"])
@@ -91,15 +92,18 @@ def _intersects(a, b) -> bool:
             and max(a[1], b[1]) < min(a[1] + a[3], b[1] + b[3]))
 
 
-def _response(source, template, mask=None) -> np.ndarray:
+def _response(source, template, mask=None, *, squared_difference=False) -> np.ndarray:
     if any(a < b for a, b in zip(source.shape[:2], template.shape[:2])):
         return np.empty((0, 0), dtype=np.float32)
-    result = cv2.matchTemplate(np.ascontiguousarray(source), template, cv2.TM_CCOEFF_NORMED, mask=mask)
+    method = cv2.TM_SQDIFF_NORMED if squared_difference else cv2.TM_CCOEFF_NORMED
+    result = cv2.matchTemplate(np.ascontiguousarray(source), template, method, mask=mask)
+    if squared_difference:
+        result = 1. - result
     return np.nan_to_num(result, nan=-1., posinf=-1., neginf=-1.)
 
 
-def _best(source, template, mask=None) -> tuple[float, tuple[int, int]]:
-    response = _response(source, template, mask)
+def _best(source, template, mask=None, *, squared_difference=False) -> tuple[float, tuple[int, int]]:
+    response = _response(source, template, mask, squared_difference=squared_difference)
     if not response.size:
         return 0., (0, 0)
     _, score, _, point = cv2.minMaxLoc(response)
@@ -164,14 +168,24 @@ class InvestmentVision:
             raise InvestmentRecognitionError("unknown_template", name)
         entry = self._templates[name]
         template = self._pixels[entry["file"]]
+        mask = self._pixels[entry["mask_file"]] if entry.get("mask_file") else None
         x, y, w, h = _clip(box)
         color_metrics = ({"color_mae": None, "color_mean_difference": None, "color_consistent": False}
                          if name == "confirm_enabled" else {})
         if w < template.shape[1] or h < template.shape[0]:
             return {"found": False, "score": 0., "center": None, "rect": None, **color_metrics}
         source = self._prepare(image[y:y + h, x:x + w], entry["preprocess"])
-        score, point = _best(source, template)
+        # Flat native button fills and lock glyphs have no reliable NCC variance.
+        score, point = _best(source, template, mask, squared_difference=mask is not None)
         found = score >= entry["threshold"]
+        if entry.get("color_mae_limit") is not None:
+            px, py = point
+            observed = source[py:py + template.shape[0], px:px + template.shape[1]]
+            selected = mask > 0 if mask is not None else np.ones(template.shape[:2], dtype=bool)
+            mae = float(np.abs(observed[selected].astype(float) - template[selected].astype(float)).mean())
+            color_metrics["color_mae"] = mae
+            color_metrics["color_consistent"] = mae <= entry["color_mae_limit"]
+            found = found and color_metrics["color_consistent"]
         if name == "confirm_enabled":
             px, py = point
             observed = source[py:py + template.shape[0], px:px + template.shape[1]]
@@ -187,6 +201,26 @@ class InvestmentVision:
         if name not in self._templates:
             raise InvestmentRecognitionError("unknown_template", name)
         return self._match_box(image, name, self._templates[name]["roi"])
+
+    def read_entry_state(self, imageRGBnp: np.ndarray) -> dict:
+        """Confirm an open entry or a native restriction overlay before any click."""
+        image = _image(imageRGBnp)
+        entry = self.match(image, "entry")
+        opened = self.match(image, "entry_available")
+        restricted = self.match(image, "entry_unavailable")
+        lock = self.match(image, "entry_lock")
+        condition = self.match(image, "entry_restriction")
+        evidence = {"entry": entry, "available": opened, "unavailable": restricted,
+                    "lock": lock, "restriction": condition}
+        if not entry["found"]:
+            raise InvestmentRecognitionError("investment_entry_unknown", "Exchange investment label is unconfirmed")
+        if restricted["found"] and not opened["found"] and (lock["found"] or condition["found"]):
+            return {"availability": "unavailable", "rect": restricted["rect"], "center": None,
+                    "evidence": evidence}
+        if opened["found"] and not restricted["found"] and not lock["found"] and not condition["found"]:
+            return {"availability": "available", "rect": opened["rect"], "center": entry["center"],
+                    "evidence": evidence}
+        raise InvestmentRecognitionError("investment_entry_unknown", "Investment entry state is ambiguous")
 
     def _read_level(self, image, roi, side, preprocess="bright", levels_key="levels", digits_key="digits") -> int:
         levels = self._manifest.get(levels_key, [])

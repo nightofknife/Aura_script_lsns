@@ -330,6 +330,138 @@
       ],
       "preprocess": "rgb_blur",
       "threshold": 0.9
+    },
+    {
+      "name": "entry_available",
+      "file": "entry_available.png",
+      "mask_file": "entry_available_mask.png",
+      "kind": "native_sprite",
+      "sprite": "common_btn_option",
+      "sprite_path_id": -4532753186095738395,
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_node_size": [
+        471,
+        77
+      ],
+      "roi": [
+        725,
+        452,
+        477,
+        83
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.9,
+      "color_mae_limit": 24,
+      "excluded_nodes": [
+        "/HomeTrade/Group_Main/Btn_invest/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Icon",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_Icon",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_1",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_2",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Rep",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_loading"
+      ],
+      "status": "native_generated_unvalidated"
+    },
+    {
+      "name": "entry_unavailable",
+      "file": "entry_unavailable.png",
+      "mask_file": "entry_unavailable_mask.png",
+      "kind": "native_sprite",
+      "sprite": "HomeSafe_unlock",
+      "sprite_path_id": -7361993374187006141,
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_node_size": [
+        471,
+        77
+      ],
+      "roi": [
+        725,
+        450,
+        477,
+        83
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.9,
+      "color_mae_limit": 24,
+      "excluded_nodes": [
+        "/HomeTrade/Group_Main/Btn_invest/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Icon",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_Icon",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_1",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_2",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Rep",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_loading"
+      ],
+      "status": "native_generated_unvalidated"
+    },
+    {
+      "name": "entry_restriction",
+      "file": "entry_restriction.png",
+      "mask_file": "entry_restriction_mask.png",
+      "kind": "native_sprite",
+      "sprite": "HomeSafe_unlock_di",
+      "sprite_path_id": -5603365739855698126,
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_1",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_node_size": [
+        219,
+        39
+      ],
+      "roi": [
+        902,
+        469,
+        225,
+        45
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.9,
+      "color_mae_limit": 24,
+      "excluded_nodes": [
+        "/HomeTrade/Group_Main/Btn_invest/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Name",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_2",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_Rep",
+        "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Txt_loading"
+      ],
+      "status": "native_generated_unvalidated"
+    },
+    {
+      "name": "entry_lock",
+      "file": "entry_lock.png",
+      "mask_file": "entry_lock_mask.png",
+      "kind": "native_sprite",
+      "sprite": "HomeSafe_lock",
+      "sprite_path_id": 142476036342623130,
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "prefab_node": "/HomeTrade/Group_Main/Btn_invest/Img_Rep/Img_2",
+      "prefab_sha256": "de01219fc51c5528add08e538d1c31b3076cf621d3f869e22f4e898ba8a21d73",
+      "client_node_size": [
+        27,
+        27
+      ],
+      "roi": [
+        918,
+        475,
+        33,
+        33
+      ],
+      "preprocess": "rgb",
+      "threshold": 0.9,
+      "color_mae_limit": 24,
+      "excluded_nodes": [],
+      "status": "native_generated_unvalidated"
     }
   ],
   "levels": [
@@ -1612,5 +1744,14 @@
     "reuses_existing_templates": true,
     "prefab_sha256": "7540c6c357daf497b12244a813d7cfe263f0f37156002cdd1c947bdc48eed4fd",
     "status": "native_generated_unvalidated"
+  },
+  "entry_availability": {
+    "available": "entry_available",
+    "unavailable": "entry_unavailable",
+    "restriction": "entry_restriction",
+    "lock": "entry_lock",
+    "status": "native_generated_unvalidated",
+    "stable_frames": 2,
+    "limitations": "No closed-entry screenshot or live interaction was evaluated."
   }
 }

@@ -14,6 +14,28 @@ The task checks the 1280x720 client resolution and calls the registered
 `resonance_pc.invest_trade_goods_from_shop` action. Commodity names and money
 are not read with OCR; native templates recognize controls, cards and levels.
 
+## Investment Entry Availability
+
+Before clicking the exchange investment entry, two consecutive frames must
+agree on its availability. The entry name also remains visible when the feature
+is closed, so the label alone never authorizes a click. Native button templates
+use masked shape and RGB color checks: a white available button permits entry;
+a grey restriction overlay plus its lock badge or condition capsule confirms
+that the feature is not open. The capsule also covers the native construction
+state without depending on its variable text or on the lock always being visible.
+
+A confirmed closed entry returns `success=true`, `status=skipped`,
+`triggered=false`, and `reason=investment_not_available` on the exchange menu,
+with no clicks or navigation. Freight resumes selling and buying. Uncertain or
+conflicting evidence is reread for at most five seconds, then fails before any
+entry click. Cancellation and screenshot failures remain failures, not closed
+entry observations.
+
+The entry assets are generated from the native `HomeTrade` prefab and common
+Sprites using `--entry-only`. Their masks exclude labels and icons. These new
+entry states have no screenshot or live verification in this change; no tests
+or validation workflows were run.
+
 ## Freight Integration
 
 `auto_trade_goods_investment` defaults to false. The existing freight option

@@ -94,7 +94,7 @@ def _observation_key(value):
             return value["current"], value.get("preview"), value.get("max_level")
         rect = value.get("rect")
         position = tuple(round(int(point) / 4) for point in rect[:2]) if rect is not None else None
-        return position, tuple(value.get(key) for key in ("found", "partial", "occluded", "selected", "locked", "maximum"))
+        return position, tuple(value.get(key) for key in ("found", "partial", "occluded", "selected", "locked", "maximum", "availability"))
     return value
 
 
@@ -329,10 +329,24 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             progress(state, fields)
     report("started")
     try:
-        def entry_match(frame):
-            hit = reader.match(frame, "entry")
-            return hit if hit["found"] else None
-        frame, entry = _wait(app, entry_match)
+        try:
+            frame, entry = _wait(app, reader.read_entry_state)
+        except TradeGoodsInvestmentError as exc:
+            if exc.code != "investment_state_timeout":
+                raise
+            raise TradeGoodsInvestmentError(
+                "investment_entry_unconfirmed", "Could not confirm whether investment is available; entry was not clicked",
+                exc.detail,
+            ) from exc
+        if entry["availability"] == "unavailable":
+            result = {"success": True, "triggered": False, "status": "skipped",
+                      "reason": "investment_not_available", "city_name": city_name,
+                      "mode": mode, "target_level": target, "transaction_count": 0,
+                      "transactions": [], "upgraded_levels": 0, "product_count": 0,
+                      "scroll_count": 0, "page_state": "shop_page", "entry_state": entry,
+                      "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
+            report("skipped", reason=result["reason"], transaction_count=0)
+            return result
         _click(app, entry["center"])
         _pause(.4)
         _idle(app, reader)

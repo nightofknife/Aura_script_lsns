@@ -92,6 +92,87 @@ def save(name: str, pixels: np.ndarray) -> None:
     Image.fromarray(pixels).save(path)
 
 
+def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None:
+    """Generate only the native exchange-entry states, excluding variable labels."""
+    from aura_resonance_devtools.unity_bundle import _logical_sprite_image
+
+    prefab_rel = "ui/hometrade/hometrade.asset"
+    nodes = {node["path"]: node for node in inspect_prefab(load_bundle(assets / prefab_rel, metadata))["nodes"]}
+    prefix = "/HomeTrade/Group_Main/Btn_invest"
+    common_rel = "ui/common.asset"
+    common = load_bundle(assets / common_rel, metadata)
+    sprites = {obj.path_id: obj for obj in common.objects if obj.type.name == "Sprite"}
+    specs = (
+        ("entry_available", prefix, -4532753186095738395),
+        ("entry_unavailable", prefix + "/Img_Rep", -7361993374187006141),
+        ("entry_restriction", prefix + "/Img_Rep/Img_1", -5603365739855698126),
+        ("entry_lock", prefix + "/Img_Rep/Img_2", 142476036342623130),
+    )
+    exclusions = [prefix + suffix for suffix in (
+        "/Txt_Name", "/Img_Icon", "/Img_Rep/Txt_Name", "/Img_Rep/Img_Icon",
+        "/Img_Rep/Img_1", "/Img_Rep/Img_2", "/Img_Rep/Txt_Rep", "/Img_Rep/Txt_loading",
+    )]
+    names = {name for name, _, _ in specs}
+    manifest["templates"] = [entry for entry in manifest["templates"] if entry["name"] not in names]
+    for name, path, expected_id in specs:
+        node = nodes[path]
+        tree = next(item["tree"] for item in node["components"] if "m_Sprite" in item["tree"])
+        sprite_id = tree["m_Sprite"]["m_PathID"]
+        if sprite_id != expected_id:
+            raise ValueError(f"Native investment entry sprite changed: {path}")
+        obj = sprites[sprite_id]
+        sprite = obj.read()
+        rect = node["rect_client"]
+        raw = _logical_sprite_image(sprite, obj.version).convert("RGBA")
+        rgba = np.array(raw.resize(tuple(rect[2:]), Image.Resampling.BILINEAR))
+        tint = np.array([tree["m_Color"][key] for key in ("r", "g", "b", "a")])
+        rgba = np.clip(rgba.astype(float) * tint, 0, 255).astype(np.uint8)
+        # The thin condition outline is antialiased and sits outside its labels.
+        alpha_cutoff = 200 if name == "entry_restriction" else 250
+        mask = np.where(rgba[:, :, 3] >= alpha_cutoff, 255, 0).astype(np.uint8)
+        excluded = []
+        for child_path in exclusions if name != "entry_lock" else []:
+            if child_path == path:
+                continue
+            child_rect = nodes[child_path]["rect_client"]
+            dx, dy = child_rect[0] - rect[0], child_rect[1] - rect[1]
+            padding = 0 if name == "entry_restriction" else 3
+            left, top = max(0, dx - padding), max(0, dy - padding)
+            right, bottom = min(rect[2], dx + child_rect[2] + padding), min(rect[3], dy + child_rect[3] + padding)
+            if right > left and bottom > top:
+                mask[top:bottom, left:right] = 0
+                excluded.append(child_path)
+        if not mask.any():
+            raise ValueError(f"No opaque investment entry pixels: {path}")
+        backdrop = Image.new("RGBA", tuple(rect[2:]), (0, 0, 0, 255))
+        if name == "entry_restriction":
+            overlay_rect = nodes[prefix + "/Img_Rep"]["rect_client"]
+            overlay_obj = sprites[-7361993374187006141]
+            overlay = _logical_sprite_image(overlay_obj.read(), overlay_obj.version).convert("RGBA")
+            overlay = overlay.resize(tuple(overlay_rect[2:]), Image.Resampling.BILINEAR)
+            dx, dy = rect[0] - overlay_rect[0], rect[1] - overlay_rect[1]
+            backdrop = overlay.crop((dx, dy, dx + rect[2], dy + rect[3]))
+        pixels = np.array(Image.alpha_composite(backdrop, Image.fromarray(rgba)).convert("RGB"))
+        filename, mask_file = f"{name}.png", f"{name}_mask.png"
+        save(filename, pixels)
+        save(mask_file, mask)
+        manifest["templates"].append({
+            "name": name, "file": filename, "mask_file": mask_file, "kind": "native_sprite",
+            "sprite": sprite.m_Name, "sprite_path_id": sprite_id, "bundle": common_rel,
+            "bundle_sha256": hashlib.sha256((assets / common_rel).read_bytes()).hexdigest(),
+            "prefab_node": path, "prefab_sha256": hashlib.sha256((assets / prefab_rel).read_bytes()).hexdigest(),
+            "client_node_size": rect[2:], "roi": [rect[0] - 3, rect[1] - 3, rect[2] + 6, rect[3] + 6],
+            "preprocess": "rgb", "threshold": 0.9, "color_mae_limit": 24,
+            "excluded_nodes": excluded, "status": "native_generated_unvalidated",
+        })
+    manifest["entry_availability"] = {
+        "available": "entry_available", "unavailable": "entry_unavailable",
+        "restriction": "entry_restriction", "lock": "entry_lock",
+        "status": "native_generated_unvalidated", "stable_frames": 2,
+        "limitations": "No closed-entry screenshot or live interaction was evaluated.",
+    }
+
+
 def add_maximum_cards(assets: Path, metadata: Path, nodes: dict, manifest: dict,
                       normal_pixels=None, normal_header_pixels=None) -> None:
     from aura_resonance_devtools.unity_bundle import _logical_sprite_image
@@ -307,6 +388,8 @@ def main() -> None:
                         help="Add only native maximum-level assets and metadata to an existing manifest")
     parser.add_argument("--maximum-cards-only", action="store_true",
                         help="Add only native maximum-card localization assets to an existing manifest")
+    parser.add_argument("--entry-only", action="store_true",
+                        help="Add only native open and restricted exchange-entry assets")
     args = parser.parse_args()
     configure(args.pythonlibs, args.devtools_src)
     from aura_resonance_devtools.unity_bundle import _logical_sprite_image
@@ -314,9 +397,15 @@ def main() -> None:
     TEMPLATES.mkdir(parents=True, exist_ok=True)
     metadata = args.game_data / "il2cpp_data/Metadata/global-metadata.dat"
     assets = args.game_data / "Patch/Asset"
+    manifest_path = TEMPLATES / "manifest.json"
+    if args.entry_only:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        add_entry_availability(assets, metadata, manifest)
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({"mode": "entry_only", "status": manifest["entry_availability"]["status"]}))
+        return
     pref_path = assets / "ui/hometrade/hometradeupgrade.asset"
     nodes = {node["path"]: node for node in inspect_prefab(load_bundle(pref_path, metadata))["nodes"]}
-    manifest_path = TEMPLATES / "manifest.json"
     if args.maximum_cards_only:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         add_maximum_cards(assets, metadata, nodes, manifest)
@@ -542,6 +631,7 @@ def main() -> None:
                                 "No live or temporal verification", "Unseen levels generated but not screenshot-validated"]}
     add_max_level(assets, metadata, nodes, manifest)
     add_maximum_cards(assets, metadata, nodes, manifest, normal_pixels, header_pixels["normal"])
+    add_entry_availability(assets, metadata, manifest)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"templates": len(templates), "native_levels": len(levels), "font": fonts[level_font_id][1]}))
 
