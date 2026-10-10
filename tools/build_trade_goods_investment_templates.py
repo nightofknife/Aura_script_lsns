@@ -126,7 +126,6 @@ def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None
             for channel, key in zip(image.split(), ("r", "g", "b", "a"))))
         return image, {"node": path, "sprite_path_id": obj.path_id, "bundle": relative, "rect": rect}
 
-    pairs = []
     for name, parent, expected_id in (("entry_available", prefix, -4532753186095738395),
                                       ("entry_unavailable", prefix + "/Img_Rep", -7361993374187006141)):
         canvas = Image.new("RGBA", (1280, 720))
@@ -150,25 +149,22 @@ def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None
         glyph.putalpha(alpha)
         canvas.alpha_composite(glyph, tuple(nodes[text_node]["rect_client"][:2]))
         image = canvas.crop(crop_box)
-        pairs.append((name, image))
         save(f"{name}.png", np.array(image.convert("RGB")))
         manifest["templates"].append({
-            "name": name, "file": f"{name}.png", "mask_file": "entry_pair_mask.png",
+            "name": name, "file": f"{name}.png",
             "kind": "native_sprite_font_composite", "background": background_source, "icon": icon_source,
             "text": {"node": text_node, "font_path_id": font_obj.path_id, "bundle": font_bundle,
                      "font_sha256": hashlib.sha256(font_bytes).hexdigest(), "native_size": style["m_FontSize"]},
             "bundle_sha256": hashes, "prefab_node": parent,
             "prefab_sha256": hashlib.sha256((assets / prefab_rel).read_bytes()).hexdigest(),
             "client_crop_box": list(crop_box), "client_node_size": size, "roi": roi,
-            "preprocess": "rgb", "threshold": 0.82,
+            "preprocess": "gray", "threshold": 0.8,
             "method": "1 - TM_SQDIFF_NORMED", "status": "native_generated_unvalidated",
         })
-    alpha = np.minimum(*(np.array(image.getchannel("A")) for _, image in pairs))
-    save("entry_pair_mask.png", np.where(alpha >= 250, 255, 0).astype(np.uint8))
     manifest["entry_availability"] = {
         "available": "entry_available", "unavailable": "entry_unavailable",
         "decision": "available_score > unavailable_score; ties are unavailable",
-        "method": "1 - TM_SQDIFF_NORMED", "shared_mask": "entry_pair_mask.png",
+        "method": "1 - TM_SQDIFF_NORMED", "preprocess": "gray", "threshold": 0.8,
         "status": "native_generated_unvalidated", "stable_frames": 2,
         "limitations": "Visual preview approved; no pair-score or live-flow validation was run.",
     }

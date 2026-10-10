@@ -143,6 +143,8 @@ class InvestmentVision:
             return cv2.inRange(cv2.cvtColor(image, cv2.COLOR_RGB2HSV), (16, 160, 170), (40, 255, 255))
         elif mode in ("dark", "dark_blur"):
             image = np.where(image.max(axis=2) < 90, 255, 0).astype(np.uint8)
+        elif mode == "gray":
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         elif mode not in ("rgb", "rgb_blur", None):
             raise InvestmentRecognitionError("template_load_failed", f"Unsupported preprocessing: {mode}")
         return cv2.GaussianBlur(image, (3, 3), 0) if mode and mode.endswith("_blur") else image
@@ -175,8 +177,12 @@ class InvestmentVision:
         if w < template.shape[1] or h < template.shape[0]:
             return {"found": False, "score": 0., "center": None, "rect": None, **color_metrics}
         source = self._prepare(image[y:y + h, x:x + w], entry["preprocess"])
-        # Masked RGB states retain brightness differences that NCC would discard.
-        score, point = _best(source, template, mask, squared_difference=mask is not None)
+        if entry["preprocess"] == "gray":
+            template = cv2.cvtColor(template, cv2.COLOR_RGB2GRAY)
+        # Squared difference preserves the brightness distinction between entry states,
+        # including when the full grayscale templates are matched without a mask.
+        squared_difference = mask is not None or entry.get("method") == "1 - TM_SQDIFF_NORMED"
+        score, point = _best(source, template, mask, squared_difference=squared_difference)
         found = score >= entry["threshold"]
         if name == "confirm_enabled":
             px, py = point
@@ -195,7 +201,7 @@ class InvestmentVision:
         return self._match_box(image, name, self._templates[name]["roi"])
 
     def read_entry_state(self, imageRGBnp: np.ndarray) -> dict:
-        """Choose the higher-scoring RGB entry state; equal scores remain closed."""
+        """Choose the higher-scoring grayscale entry state; equal scores remain closed."""
         image = _image(imageRGBnp)
         opened = self.match(image, "entry_available")
         restricted = self.match(image, "entry_unavailable")
