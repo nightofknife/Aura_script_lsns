@@ -9,7 +9,6 @@ from plans.resonance_pc.src.actions import _deep_dive_layout_semantics as semant
 
 
 FIXTURES = Path(__file__).parents[1] / 'fixtures/deep_dive_anchor'
-NATIVE = Path(semantics.__file__).resolve().parents[2] / 'templates/deep_dive_layout'
 
 
 def read_rgb(path):
@@ -25,15 +24,6 @@ def test_complete_actual_triple_eye_survives_connected_component_changes(frame_i
     result = semantics.classify_icon(image)
     assert result['icon_id'] == 'orange_triple_eye'
     assert result['confidence'] >= .80
-
-
-@pytest.mark.parametrize('name', ['red_single_eye', 'orange_triple_eye',
-                                  'orange_triple_eye_2', 'orange_triple_eye_3'])
-@pytest.mark.parametrize('rotation', [0, 1, 2, 3])
-def test_existing_native_eye_references_keep_their_class_under_right_angle_rotation(name, rotation):
-    image = np.ascontiguousarray(np.rot90(read_rgb(NATIVE / f'icon_{name}.png'), rotation))
-    expected = 'orange_triple_eye' if name.startswith('orange') else 'red_single_eye'
-    assert semantics.classify_icon(image)['icon_id'] == expected
 
 
 def test_actual_boss_glow_does_not_establish_an_eye_glyph():

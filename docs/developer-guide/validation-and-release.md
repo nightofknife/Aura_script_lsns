@@ -59,6 +59,10 @@ $env:TMPDIR = $testTemp
 全部成功，任一失败均不会发布。需要在合并前检查冻结包时，可手动运行
 `Package and release Aura Resonance`，选择 `scope=full`、`publish_release=false`。
 
+行为单元套件输出最慢的 15 项耗时，后续优化以实际慢项和重复断言为依据。
+已合并跨文件的同一几何搜索、原生眼睛素材直角遍历，以及已有精确场景断言覆盖的
+商店负例；保留非直角样本、真实截图、数值边界及故障路径。
+
 本地打包统一从高层入口开始，它会按 profile 创建并复用隔离的发布环境：
 
 ```powershell

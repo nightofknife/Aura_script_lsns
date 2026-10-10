@@ -61,13 +61,14 @@ def test_clear_decisions_and_clipped_confidence_keep_fast_kernel(monkeypatch,bes
 
 @pytest.mark.parametrize('whole',[False,True])
 def test_blank_normalized_shape_has_no_evidence(whole):
-    assert s._eye_correlation_scores(np.zeros((64,64),np.float32),whole)==original_scores(np.zeros((64,64),np.float32),whole)
+    actual=s._eye_correlation_scores(np.zeros((64,64),np.float32),whole)
+    assert actual==original_scores(np.zeros((64,64),np.float32),whole)
+    assert all(score==0. for score,_ in actual)
 
 
-def test_actual_and_native_class_confidence_preserved(monkeypatch):
+def test_actual_class_confidence_preserved(monkeypatch):
     fixtures=Path(__file__).parents[1]/'fixtures/deep_dive_anchor'
-    native=Path(s.__file__).resolve().parents[2]/'templates/deep_dive_layout'
-    paths=list(native.glob('icon_*eye*.png'))+list(fixtures.glob('whole_warm*.png'))+list((fixtures/'orange_support_17').glob('orange_D22*.png'))
+    paths=list(fixtures.glob('whole_warm*.png'))+list((fixtures/'orange_support_17').glob('orange_D22*.png'))
     rgb_cases=[]
     for path in paths:
         rgb=cv2.cvtColor(cv2.imread(str(path)),cv2.COLOR_BGR2RGB)

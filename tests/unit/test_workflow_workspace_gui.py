@@ -125,14 +125,8 @@ def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
     assert window.trade_page.fatigue_budget.isEnabled()
 
 
-@pytest.mark.parametrize("size", [(1440, 860), (1180, 720)])
-@pytest.mark.parametrize("task", ["trade", "passenger", "battle"])
-def test_workspace_restores_three_columns(window, tmp_path, size, task):
-    window.resize(*size)
+def assert_workspace_three_columns(window, tmp_path, size, task):
     page = window.workflow_page
-    page._select_task(task)
-    window.show()
-    QApplication.processEvents()
     assert page.workspace_splitter.orientation() == Qt.Orientation.Horizontal
     assert page.workspace_splitter.widget(0) is page.center_panel
     assert page.workspace_splitter.widget(1) is page.right_panel
@@ -196,7 +190,7 @@ def assert_no_sibling_control_overlap(window):
 @pytest.mark.parametrize("surface", ["startup", "trade-profit", "trade-quick", "trade-fixed", "trade-target",
                                       "passenger", "battle", "close", "settings",
                                       *[f"feature-{key}" for key, _ in SMALL_TASKS]])
-def test_full_window_visual_qa_all_surfaces(window, size, surface):
+def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
     window.resize(*size)
     page = window.workflow_page
     if surface == "settings":
@@ -228,6 +222,13 @@ def test_full_window_visual_qa_all_surfaces(window, size, surface):
                             *window.passenger_page.endpoint_selector_buttons.values()):
                 assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().topLeft()))
                 assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().bottomRight()))
+    if surface in {"trade-profit", "passenger", "battle"}:
+        task = "trade" if surface == "trade-profit" else surface
+        assert_workspace_three_columns(window, tmp_path, size, task)
+    if surface.startswith("trade-"):
+        # Check the default surface before reusing its window for finite inputs.
+        columns = 1 if size == (1180, 720) else 2
+        assert_freight_parameters_reflow(window, size, columns, surface.removeprefix("trade-"))
 
 
 def test_workflow_startup_and_close_parameters_sync_with_settings(window):
@@ -352,9 +353,13 @@ def test_freight_additional_and_bento_buttons_share_compact_rows(window):
     assert window.grab().save(str(folder / "compact-options-1180x720.png"))
 
 
-@pytest.mark.parametrize("size,columns", [((1180, 720), 1), ((1440, 860), 2), ((1920, 1080), 2)])
+@pytest.mark.parametrize("size,columns", [((1920, 1080), 2)])
 @pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
 def test_freight_parameters_reflow_without_changing_values(window, size, columns, mode):
+    assert_freight_parameters_reflow(window, size, columns, mode)
+
+
+def assert_freight_parameters_reflow(window, size, columns, mode):
     window.workflow_page._select_task("trade")
     page = window.trade_page
     page.mode_buttons[mode].click()

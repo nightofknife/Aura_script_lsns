@@ -189,7 +189,7 @@ jobs:
         continue-on-error: true
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest tests/unit -q
+        run: python -m pytest tests/unit -q --durations=15
 
       - name: Run source runtime smoke suite
         id: source_smoke_suite
