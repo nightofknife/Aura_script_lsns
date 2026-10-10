@@ -296,6 +296,22 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: true
+      - name: auto_black_moon_local_purchase
+        type: boolean
+        required: false
+        default: false
+      - name: black_moon_local_purchase_items
+        type: list
+        required: false
+        default: null
+        item:
+          name: black_moon_local_purchase_item
+          type: string
+          required: true
+      - name: black_moon_purchase_record_scope
+        type: string
+        required: false
+        default: default
       - name: auto_sparkling_water
         type: boolean
         required: false
@@ -420,6 +436,9 @@ auto_cycle_trade_pc:
         trade_goods_investment_mode: "{{ inputs.trade_goods_investment_mode | default(10) }}"
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
+        auto_black_moon_local_purchase: "{{ inputs.auto_black_moon_local_purchase | default(false) }}"
+        black_moon_local_purchase_items: "{{ inputs.black_moon_local_purchase_items | default(none) }}"
+        black_moon_purchase_record_scope: "{{ inputs.black_moon_purchase_record_scope | default('default') }}"
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
         auto_bento: "{{ inputs.auto_bento | default(false) }}"
         bento_priority: "{{ inputs.bento_priority | default(['work_meals', 'love_bentos']) }}"
@@ -518,6 +537,7 @@ auto_cycle_trade_pc:
     execution: "{{ nodes.finish.output.execution }}"
     final_sale: "{{ nodes.finish.output.final_sale }}"
     trade_goods_investment: "{{ nodes.finish.output.trade_goods_investment | default(none) }}"
+    black_moon_local_purchase: "{{ nodes.finish.output.black_moon_local_purchase | default(none) }}"
     sparkling_water_plan: "{{ nodes.finish.output.sparkling_water_plan }}"
     sparkling_water: "{{ nodes.finish.output.sparkling_water }}"
     bento_consumption: "{{ nodes.finish.output.bento_consumption }}"

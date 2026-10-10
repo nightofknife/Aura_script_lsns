@@ -283,6 +283,10 @@ class SparklingWaterSession:
         )
         await self.wait_for(lambda: self.match("rest_menu"), lambda hit: hit["found"], label="rest menu")
         self.page = "rest_menu"
+
+    async def enter_drink_menu(self) -> None:
+        await self.wait_for(lambda: self.match("rest_menu"), lambda hit: hit["found"], label="rest menu before drinking")
+        self.page = "rest_menu"
         await self.click_icon_until_gone("drink_entry")
         await self.wait_for(lambda: self.match("sparkling_water"), lambda hit: hit["found"], label="drink menu")
         self.page = "drink_menu"
@@ -315,27 +319,30 @@ class SparklingWaterSession:
             await asyncio.sleep(self.layout["poll_interval_sec"])
         self.fail("sparkling_water_animation_timeout", "Drink animation did not return to a menu")
 
-    async def return_to_city(self, read_city: Callable, city_key: str) -> None:
+    def click_back(self, _hit: dict) -> None:
         from .city_trade_flow_pc_actions import (
             _BACK_BUTTON_REGION, _BACK_BUTTON_TEMPLATE, _NAV_BUTTON_THRESHOLD, _wait_template,
         )
 
-        def back(_hit: dict) -> None:
-            _check_cancelled()
-            hit = _wait_template(
-                self.app, self.vision, _BACK_BUTTON_TEMPLATE, _BACK_BUTTON_REGION,
-                threshold=_NAV_BUTTON_THRESHOLD, timeout_sec=self.layout["timeout_sec"],
-                interval_sec=self.layout["poll_interval_sec"],
-            )
-            if not hit.get("found"):
-                self.fail("sparkling_water_back_not_found", "Return arrow was not found")
-            self.click(hit["center"])
+        _check_cancelled()
+        hit = _wait_template(
+            self.app, self.vision, _BACK_BUTTON_TEMPLATE, _BACK_BUTTON_REGION,
+            threshold=_NAV_BUTTON_THRESHOLD, timeout_sec=self.layout["timeout_sec"],
+            interval_sec=self.layout["poll_interval_sec"],
+        )
+        if not hit.get("found"):
+            self.fail("sparkling_water_back_not_found", "Return arrow was not found")
+        self.click(hit["center"])
 
+    async def return_to_rest_menu(self) -> None:
         if self.page == "drink_menu":
-            await self.click_until_gone(lambda: self.match("sparkling_water"), back, label="back_to_rest_menu")
+            await self.click_until_gone(lambda: self.match("sparkling_water"), self.click_back, label="back_to_rest_menu")
             await self.wait_for(lambda: self.match("rest_menu"), lambda hit: hit["found"], label="rest menu after Back")
             self.page = "rest_menu"
-        await self.click_until_gone(lambda: self.match("rest_menu"), back, label="back_to_city")
+
+    async def return_to_city(self, read_city: Callable, city_key: str) -> None:
+        await self.return_to_rest_menu()
+        await self.click_until_gone(lambda: self.match("rest_menu"), self.click_back, label="back_to_city")
 
         def probe_city() -> dict:
             _check_cancelled()
@@ -349,6 +356,56 @@ class SparklingWaterSession:
 
         await self.wait_for(probe_city, lambda city: city.get("city_key") == city_key, label="original city panel")
         self.page = "city_panel"
+
+
+async def _drink_sparkling_water_from_rest_menu(
+    *, session: SparklingWaterSession, city_name: str, drink_count: int,
+    persistent_data: PersistentDataService,
+) -> dict:
+    """Consume only the preplanned cups and leave the shared rest menu open."""
+    if type(drink_count) is not int or not 1 <= drink_count <= 6:
+        raise ValueError("drink_count must be an integer between 1 and 6")
+    _check_cancelled()
+    started = time.monotonic()
+    player = await asyncio.to_thread(load_pc_user_info, persistent_data)
+    remaining, limit = _water_counts(player)
+    if drink_count > remaining:
+        raise ValueError("Requested sparkling-water cups exceed recorded free uses; refresh player data")
+    cups = []
+    reason = None
+    await session.enter_drink_menu()
+    for cup_index in range(drink_count):
+        await session.click_icon_until_gone(
+            "sparkling_water", before_click=lambda: mark_cup_in_progress(persistent_data),
+        )
+        page, confirmation_seen = await session.finish_cup()
+        session.completed += 1
+        water = await asyncio.to_thread(
+            record_completed_cup, persistent_data,
+            exhausted=page == "rest_menu", city_name=city_name,
+        )
+        remaining = water["remaining_free_uses"]
+        cups.append({"number": cup_index + 1, "confirmation_seen": confirmation_seen, "returned_page": page})
+        logger.info("Sparkling water cup completed city=%s completed=%s/%s remaining=%s page=%s confirmation=%s",
+                    city_name, session.completed, drink_count, remaining, page, confirmation_seen)
+        if page == "rest_menu":
+            if session.completed < drink_count:
+                reason = "free_uses_exhausted"
+                logger.warning("Sparkling water ended early city=%s requested=%s completed=%s",
+                               city_name, drink_count, session.completed)
+            break
+        await asyncio.sleep(session.layout["after_click_sec"])
+    await session.return_to_rest_menu()
+    return {
+        "success": True, "status": "completed", "reason": reason,
+        "city_name": city_name, "requested_count": drink_count,
+        "completed_count": session.completed, "remaining_free_uses": remaining,
+        "daily_free_limit": limit, "recovered_fatigue": session.completed * 50,
+        "cups": cups, "page_state": session.page,
+        "elapsed_ms": int((time.monotonic() - started) * 1000),
+        "uncertain_frames": session.uncertain_frames,
+        "first_uncertain_frame": session.first_uncertain_frame,
+    }
 
 
 @action_info(
@@ -379,32 +436,13 @@ async def resonance_pc_drink_sparkling_water_from_city_panel(
         raise ValueError("Requested sparkling-water cups exceed recorded free uses; refresh player data")
     point = resonance_pc_city_shop_data.resolve_shop_point(city_name=city_name, shop_name="rest")
     session = SparklingWaterSession(app=app, vision=vision, layout=layout)
-    cups = []
-    reason = None
     logger.info("Sparkling water started city=%s requested=%s remaining=%s", city_name, drink_count, remaining)
     try:
         await session.enter_rest(point)
-        for cup_index in range(drink_count):
-            await session.click_icon_until_gone(
-                "sparkling_water", before_click=lambda: mark_cup_in_progress(persistent_data),
-            )
-            page, confirmation_seen = await session.finish_cup()
-            session.completed += 1
-            water = await asyncio.to_thread(
-                record_completed_cup, persistent_data,
-                exhausted=page == "rest_menu", city_name=point["city_name"],
-            )
-            remaining = water["remaining_free_uses"]
-            cups.append({"number": cup_index + 1, "confirmation_seen": confirmation_seen, "returned_page": page})
-            logger.info("Sparkling water cup completed city=%s completed=%s/%s remaining=%s page=%s confirmation=%s",
-                        city_name, session.completed, drink_count, remaining, page, confirmation_seen)
-            if page == "rest_menu":
-                if session.completed < drink_count:
-                    reason = "free_uses_exhausted"
-                    logger.warning("Sparkling water ended early city=%s requested=%s completed=%s",
-                                   city_name, drink_count, session.completed)
-                break
-            await asyncio.sleep(layout["after_click_sec"])
+        result = await _drink_sparkling_water_from_rest_menu(
+            session=session, city_name=point["city_name"], drink_count=drink_count,
+            persistent_data=persistent_data,
+        )
         await session.return_to_city(
             lambda: resonance_pc_read_city_name_on_city_panel(
                 app=app, vision=vision, timeout_sec=0.5,
@@ -419,15 +457,11 @@ async def resonance_pc_drink_sparkling_water_from_city_panel(
                      city_name, getattr(exc, "code", type(exc).__name__), session.stage, session.page,
                      session.completed, session.last_matches, exc)
         raise
-    result = {
-        "success": True, "status": "completed", "reason": reason,
-        "city_name": point["city_name"], "city_key": point["city_key"],
-        "requested_count": drink_count, "completed_count": session.completed,
-        "remaining_free_uses": remaining, "daily_free_limit": limit,
-        "recovered_fatigue": session.completed * 50, "cups": cups,
+    result.update({
+        "city_key": point["city_key"],
         "page_state": session.page, "elapsed_ms": int((time.monotonic() - started) * 1000),
         "uncertain_frames": session.uncertain_frames,
         "first_uncertain_frame": session.first_uncertain_frame,
-    }
+    })
     logger.info("Sparkling water completed result=%s", result)
     return result

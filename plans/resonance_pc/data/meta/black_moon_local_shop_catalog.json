@@ -1,0 +1,2363 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "refresh_policy": {
+    "weekday": 0,
+    "time": "05:00:00",
+    "timezone": "Asia/Shanghai",
+    "source": {
+      "native": {
+        "file": "StoreFactory.bin",
+        "store_ids": [
+          40300015,
+          40300021,
+          40300022,
+          40300023,
+          40300026,
+          40300044,
+          40300131
+        ],
+        "refreshType": "Weekly",
+        "refreshTimeList": [
+          {
+            "refreshTime": "05:00:00"
+          }
+        ],
+        "proves": "Weekly refresh at 05:00; no weekday or timezone is encoded in these fields."
+      },
+      "public_corroboration": [
+        {
+          "url": "https://www.taptap.cn/moment/720046623463311231",
+          "claim": "Black Moon local shops refresh Monday at 05:00.",
+          "kind": "community_guide",
+          "provenance": "public_community_corroboration"
+        },
+        {
+          "url": "https://www.taptap.cn/moment/711009545115144144",
+          "claim": "Local shops refresh Monday at 05:00.",
+          "kind": "community_guide",
+          "provenance": "public_community_corroboration"
+        }
+      ],
+      "weekday_basis": "Public community sources, not the native Weekly enum.",
+      "timezone_basis": "Asia/Shanghai policy for the Chinese client."
+    }
+  },
+  "eligible_cities": [
+    "cape_city",
+    "clarity_data_center_administration_bureau",
+    "freeport",
+    "gronru_city",
+    "lanxin_city",
+    "mander_mine",
+    "shoggolith_city"
+  ],
+  "products": [
+    {
+      "item_id": "blackstone_armor",
+      "name": "黑石护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800105
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/13",
+      "commodity_ids": [
+        40200119
+      ]
+    },
+    {
+      "item_id": "blazing_erosion",
+      "name": "炽焰侵蚀者",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800002
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/10",
+      "commodity_ids": [
+        40200574
+      ]
+    },
+    {
+      "item_id": "cunning_betrayal",
+      "name": "狡诈背叛",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800257
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/09",
+      "commodity_ids": [
+        40201046
+      ]
+    },
+    {
+      "item_id": "enchanted_dagger",
+      "name": "附魔短剑",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800265
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Diguo/Small/02",
+      "commodity_ids": [
+        40201063
+      ]
+    },
+    {
+      "item_id": "endless_incineration",
+      "name": "无尽焚灭",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800089
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/32",
+      "commodity_ids": [
+        40201612
+      ]
+    },
+    {
+      "item_id": "equipment_11800012",
+      "name": "内存清心咒",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800012
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/21",
+      "commodity_ids": [
+        40201278
+      ]
+    },
+    {
+      "item_id": "equipment_11800015",
+      "name": "五雷供电符",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800015
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/23",
+      "commodity_ids": [
+        40201280
+      ]
+    },
+    {
+      "item_id": "equipment_11800016",
+      "name": "战术风水无人机",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800016
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/22",
+      "commodity_ids": [
+        40201275
+      ]
+    },
+    {
+      "item_id": "equipment_11800027",
+      "name": "深红谶言",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800027
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/28",
+      "commodity_ids": [
+        40201287
+      ]
+    },
+    {
+      "item_id": "equipment_11800029",
+      "name": "深海探针",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800029
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/21",
+      "commodity_ids": [
+        40201285
+      ]
+    },
+    {
+      "item_id": "equipment_11800030",
+      "name": "简并黑石",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800030
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/12",
+      "commodity_ids": [
+        40200118
+      ]
+    },
+    {
+      "item_id": "equipment_11800031",
+      "name": "星弧波纹",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800031
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/23",
+      "commodity_ids": [
+        40201284
+      ]
+    },
+    {
+      "item_id": "equipment_11800033",
+      "name": "无限非概率护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800033
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/22",
+      "commodity_ids": [
+        40201289
+      ]
+    },
+    {
+      "item_id": "equipment_11800035",
+      "name": "A77航天手枪",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800035
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Anita/Small/01",
+      "commodity_ids": [
+        40200121
+      ]
+    },
+    {
+      "item_id": "equipment_11800036",
+      "name": "质量投射器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800036
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/01",
+      "commodity_ids": [
+        40201038
+      ]
+    },
+    {
+      "item_id": "equipment_11800037",
+      "name": "引魔法杖",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800037
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Diguo/Small/01",
+      "commodity_ids": [
+        40201062
+      ]
+    },
+    {
+      "item_id": "equipment_11800038",
+      "name": "黑月毒镖",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800038
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/01",
+      "commodity_ids": [
+        40201050
+      ]
+    },
+    {
+      "item_id": "equipment_11800039",
+      "name": "万用起子",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800039
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Anita/Small/02",
+      "commodity_ids": [
+        40200122
+      ]
+    },
+    {
+      "item_id": "equipment_11800043",
+      "name": "荒野猎刀",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800043
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/02",
+      "commodity_ids": [
+        40200108
+      ]
+    },
+    {
+      "item_id": "equipment_11800044",
+      "name": "高热量军粮",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800044
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/04",
+      "commodity_ids": [
+        40200110
+      ]
+    },
+    {
+      "item_id": "equipment_11800046",
+      "name": "特浓功能饮料",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800046
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/05",
+      "commodity_ids": [
+        40200111
+      ]
+    },
+    {
+      "item_id": "equipment_11800047",
+      "name": "破片套",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800047
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/06",
+      "commodity_ids": [
+        40200112
+      ]
+    },
+    {
+      "item_id": "equipment_11800055",
+      "name": "阻燃护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800055
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/25",
+      "commodity_ids": [
+        40201342
+      ]
+    },
+    {
+      "item_id": "equipment_11800056",
+      "name": "黑月叛忍护额",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800056
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/25",
+      "commodity_ids": [
+        40201277
+      ]
+    },
+    {
+      "item_id": "equipment_11800058",
+      "name": "魔抗护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800058
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/25",
+      "commodity_ids": [
+        40201341
+      ]
+    },
+    {
+      "item_id": "equipment_11800059",
+      "name": "外部记忆矩阵",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800059
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/26",
+      "commodity_ids": [
+        40201288
+      ]
+    },
+    {
+      "item_id": "equipment_11800061",
+      "name": "奥尼兰法杖",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800061
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/24",
+      "commodity_ids": [
+        40201274
+      ]
+    },
+    {
+      "item_id": "equipment_11800063",
+      "name": "光谱破碎",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800063
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/23",
+      "commodity_ids": [
+        40201339
+      ]
+    },
+    {
+      "item_id": "equipment_11800064",
+      "name": "液氮喷射器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800064
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/24",
+      "commodity_ids": [
+        40201283
+      ]
+    },
+    {
+      "item_id": "equipment_11800066",
+      "name": "球状闪电",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800066
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/21",
+      "commodity_ids": [
+        40201273
+      ]
+    },
+    {
+      "item_id": "equipment_11800067",
+      "name": "克拉尼弧光",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800067
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/27",
+      "commodity_ids": [
+        40201290
+      ]
+    },
+    {
+      "item_id": "equipment_11800078",
+      "name": "被封印的四重灾厄",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800078
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/26",
+      "commodity_ids": [
+        40201370
+      ]
+    },
+    {
+      "item_id": "equipment_11800081",
+      "name": "使魔护具",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800081
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/29",
+      "commodity_ids": [
+        40201396
+      ]
+    },
+    {
+      "item_id": "equipment_11800084",
+      "name": "自抛光餐刀",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800084
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/33",
+      "commodity_ids": [
+        40201660
+      ]
+    },
+    {
+      "item_id": "equipment_11800090",
+      "name": "受缚之风",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800090
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/33",
+      "commodity_ids": [
+        40201603
+      ]
+    },
+    {
+      "item_id": "equipment_11800093",
+      "name": "返魂光弧",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800093
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/34",
+      "commodity_ids": [
+        40201659
+      ]
+    },
+    {
+      "item_id": "equipment_11800094",
+      "name": "百万吨启示",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800094
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/32",
+      "commodity_ids": [
+        40201658
+      ]
+    },
+    {
+      "item_id": "equipment_11800095",
+      "name": "命运之重",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800095
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/34",
+      "commodity_ids": [
+        40201656
+      ]
+    },
+    {
+      "item_id": "equipment_11800098",
+      "name": "动力伐木斧",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800098
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/08",
+      "commodity_ids": [
+        40200114
+      ]
+    },
+    {
+      "item_id": "equipment_11800102",
+      "name": "北阵防御纤维",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800102
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/09",
+      "commodity_ids": [
+        40200115
+      ]
+    },
+    {
+      "item_id": "equipment_11800103",
+      "name": "动能回收器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800103
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/10",
+      "commodity_ids": [
+        40200116
+      ]
+    },
+    {
+      "item_id": "equipment_11800106",
+      "name": "升构手术器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800106
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/14",
+      "commodity_ids": [
+        40200120
+      ]
+    },
+    {
+      "item_id": "equipment_11800107",
+      "name": "急救护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800107
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/03",
+      "commodity_ids": [
+        40200109
+      ]
+    },
+    {
+      "item_id": "equipment_11800237",
+      "name": "非金属材料镀层",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800237
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Anita/Small/03",
+      "commodity_ids": [
+        40200123
+      ]
+    },
+    {
+      "item_id": "equipment_11800238",
+      "name": "便携除颤器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800238
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Anita/Small/04",
+      "commodity_ids": [
+        40200124
+      ]
+    },
+    {
+      "item_id": "equipment_11800242",
+      "name": "“极坐标”指挥无人机",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800242
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Anita/Small/08",
+      "commodity_ids": [
+        40200898
+      ]
+    },
+    {
+      "item_id": "equipment_11800244",
+      "name": "活火熔岩",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800244
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/10",
+      "commodity_ids": [
+        40201021
+      ]
+    },
+    {
+      "item_id": "equipment_11800246",
+      "name": "单极磁星",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800246
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/12",
+      "commodity_ids": [
+        40201023
+      ]
+    },
+    {
+      "item_id": "equipment_11800250",
+      "name": "二号玩具",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800250
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/02",
+      "commodity_ids": [
+        40201039
+      ]
+    },
+    {
+      "item_id": "equipment_11800251",
+      "name": "标准防御纤维",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800251
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/03",
+      "commodity_ids": [
+        40201040
+      ]
+    },
+    {
+      "item_id": "equipment_11800252",
+      "name": "提神醒脑仪",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800252
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/04",
+      "commodity_ids": [
+        40201041
+      ]
+    },
+    {
+      "item_id": "equipment_11800253",
+      "name": "御敌闪光器",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800253
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/05",
+      "commodity_ids": [
+        40201042
+      ]
+    },
+    {
+      "item_id": "equipment_11800254",
+      "name": "解剖工具C",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800254
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/06",
+      "commodity_ids": [
+        40201043
+      ]
+    },
+    {
+      "item_id": "equipment_11800255",
+      "name": "御险金属",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800255
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/07",
+      "commodity_ids": [
+        40201044
+      ]
+    },
+    {
+      "item_id": "equipment_11800258",
+      "name": "不可见之触",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800258
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/10",
+      "commodity_ids": [
+        40201047
+      ]
+    },
+    {
+      "item_id": "equipment_11800259",
+      "name": "高维构造体",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800259
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/11",
+      "commodity_ids": [
+        40201048
+      ]
+    },
+    {
+      "item_id": "equipment_11800260",
+      "name": "万变眼眸",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800260
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/12",
+      "commodity_ids": [
+        40201049
+      ]
+    },
+    {
+      "item_id": "equipment_11800266",
+      "name": "红铜护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800266
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Diguo/Small/03",
+      "commodity_ids": [
+        40201064
+      ]
+    },
+    {
+      "item_id": "equipment_11800267",
+      "name": "猫纹章",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800267
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Diguo/Small/04",
+      "commodity_ids": [
+        40201065
+      ]
+    },
+    {
+      "item_id": "equipment_11800268",
+      "name": "光明之愿",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800268
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/05",
+      "commodity_ids": [
+        40201066
+      ]
+    },
+    {
+      "item_id": "equipment_11800269",
+      "name": "良夜远星",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800269
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/06",
+      "commodity_ids": [
+        40201067
+      ]
+    },
+    {
+      "item_id": "equipment_11800270",
+      "name": "异界星光",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800270
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/07",
+      "commodity_ids": [
+        40201068
+      ]
+    },
+    {
+      "item_id": "equipment_11800271",
+      "name": "狮子纹章",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800271
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/08",
+      "commodity_ids": [
+        40201069
+      ]
+    },
+    {
+      "item_id": "equipment_11800273",
+      "name": "暗夜寻星",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800273
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/11",
+      "commodity_ids": [
+        40201071
+      ]
+    },
+    {
+      "item_id": "equipment_11800275",
+      "name": "星核余烬",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800275
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/13",
+      "commodity_ids": [
+        40201073
+      ]
+    },
+    {
+      "item_id": "equipment_11800281",
+      "name": "西装凯夫拉",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800281
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/03",
+      "commodity_ids": [
+        40201052
+      ]
+    },
+    {
+      "item_id": "equipment_11800282",
+      "name": "黑月烟雾弹",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800282
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/04",
+      "commodity_ids": [
+        40201053
+      ]
+    },
+    {
+      "item_id": "equipment_11800283",
+      "name": "“罪证”",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800283
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/05",
+      "commodity_ids": [
+        40201054
+      ]
+    },
+    {
+      "item_id": "equipment_11800284",
+      "name": "“清算”",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800284
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/06",
+      "commodity_ids": [
+        40201055
+      ]
+    },
+    {
+      "item_id": "equipment_11800285",
+      "name": "热光学迷彩",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800285
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/07",
+      "commodity_ids": [
+        40201056
+      ]
+    },
+    {
+      "item_id": "equipment_11800286",
+      "name": "“四翼妖龙”",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800286
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/08",
+      "commodity_ids": [
+        40201057
+      ]
+    },
+    {
+      "item_id": "equipment_11800287",
+      "name": "灵狐名弓",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800287
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/09",
+      "commodity_ids": [
+        40201058
+      ]
+    },
+    {
+      "item_id": "equipment_11800288",
+      "name": "雾夜流星",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800288
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/10",
+      "commodity_ids": [
+        40201059
+      ]
+    },
+    {
+      "item_id": "equipment_11800289",
+      "name": "天王宝铠",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800289
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/11",
+      "commodity_ids": [
+        40201060
+      ]
+    },
+    {
+      "item_id": "equipment_11800297",
+      "name": "临界质量",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800297
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/17",
+      "commodity_ids": [
+        40200417
+      ]
+    },
+    {
+      "item_id": "equipment_11800301",
+      "name": "野心",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800301
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/22",
+      "commodity_ids": [
+        40200421
+      ]
+    },
+    {
+      "item_id": "equipment_11800303",
+      "name": "火山",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800303
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/19",
+      "commodity_ids": [
+        40200420
+      ]
+    },
+    {
+      "item_id": "extended_timeline",
+      "name": "延展时间线",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800104
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/11",
+      "commodity_ids": [
+        40200117
+      ]
+    },
+    {
+      "item_id": "garden_guardian",
+      "name": "花园守护",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800274
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/12",
+      "commodity_ids": [
+        40201072
+      ]
+    },
+    {
+      "item_id": "healing_bulletproof_vest",
+      "name": "治愈防弹衣",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800054
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/23",
+      "commodity_ids": [
+        40201282
+      ]
+    },
+    {
+      "item_id": "hunting_revolver",
+      "name": "狩猎左轮",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800028
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/01",
+      "commodity_ids": [
+        40200070
+      ]
+    },
+    {
+      "item_id": "insulated_charge_armor",
+      "name": "绝缘护甲",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800057
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/22",
+      "commodity_ids": [
+        40201340
+      ]
+    },
+    {
+      "item_id": "machine_god_armor",
+      "name": "机神甲胄",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800068
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/28",
+      "commodity_ids": [
+        40201276
+      ]
+    },
+    {
+      "item_id": "mobius",
+      "name": "莫比乌斯",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800315
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/18",
+      "commodity_ids": [
+        40200423
+      ]
+    },
+    {
+      "item_id": "niktar_final_solution",
+      "name": "尼克塔尔最后解",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800065
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/25",
+      "commodity_ids": [
+        40201286
+      ]
+    },
+    {
+      "item_id": "quick_leave_candy",
+      "name": "快速请假糖",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800092
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/24",
+      "commodity_ids": [
+        40201657
+      ]
+    },
+    {
+      "item_id": "radiance_pursuer",
+      "name": "光芒追击者",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800272
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/09",
+      "commodity_ids": [
+        40201070
+      ]
+    },
+    {
+      "item_id": "resonance_fiber",
+      "name": "共振体纤维",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800241
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Anita/Small/07",
+      "commodity_ids": [
+        40200127
+      ]
+    },
+    {
+      "item_id": "reverse_entropy_harsh_winter",
+      "name": "逆熵严冬",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800243
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/09",
+      "commodity_ids": [
+        40201020
+      ]
+    },
+    {
+      "item_id": "seven_string_bow",
+      "name": "七弦弓",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800299
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/21",
+      "commodity_ids": [
+        40200419
+      ]
+    },
+    {
+      "item_id": "simulated_stars",
+      "name": "模拟星辰",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800245
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/11",
+      "commodity_ids": [
+        40201022
+      ]
+    },
+    {
+      "item_id": "spirit_spring",
+      "name": "灵泉",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800314
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/23",
+      "commodity_ids": [
+        40200418
+      ]
+    },
+    {
+      "item_id": "spring_autumn_sincerity_seal",
+      "name": "春秋合诚印",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800290
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/12",
+      "commodity_ids": [
+        40201061
+      ]
+    },
+    {
+      "item_id": "st_elmos_fire",
+      "name": "艾尔摩之火",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800052
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/29",
+      "commodity_ids": [
+        40201343
+      ]
+    },
+    {
+      "item_id": "thunder_god",
+      "name": "雷神",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800302
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/20",
+      "commodity_ids": [
+        40200422
+      ]
+    },
+    {
+      "item_id": "thunder_summoning_coil_mk1",
+      "name": "唤雷线圈MK1",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800239
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Anita/Small/05",
+      "commodity_ids": [
+        40200125
+      ]
+    },
+    {
+      "item_id": "tiangang_demon_suppressing_sword",
+      "name": "天罡伏魔剑",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800062
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/26",
+      "commodity_ids": [
+        40201279
+      ]
+    },
+    {
+      "item_id": "veteran_rifle",
+      "name": "老兵步枪",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800096
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/07",
+      "commodity_ids": [
+        40200113
+      ]
+    },
+    {
+      "item_id": "viscera_collector_mk0",
+      "name": "内脏采集器MK0",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800240
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Anita/Small/06",
+      "commodity_ids": [
+        40200126
+      ]
+    },
+    {
+      "item_id": "yuchang_dagger",
+      "name": "鱼肠短刀",
+      "category": "equipment",
+      "source_kind": "EquipmentFactory",
+      "source_record_ids": [
+        11800280
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/02",
+      "commodity_ids": [
+        40201051
+      ]
+    },
+    {
+      "item_id": "anita_standard_equipment_crate",
+      "name": "阿妮塔标准装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400096
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Anita/Small/Anitaweaponbox",
+      "commodity_ids": [
+        40200672
+      ]
+    },
+    {
+      "item_id": "black_moon_standard_equipment_crate",
+      "name": "黑月标准装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400086
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/Heiyueweaponbox",
+      "commodity_ids": [
+        40200397
+      ]
+    },
+    {
+      "item_id": "imperial_standard_equipment_crate",
+      "name": "帝国标准装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400009
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Diguo/Small/Diguoweaponbox",
+      "commodity_ids": [
+        40200400
+      ]
+    },
+    {
+      "item_id": "iron_alliance_standard_equipment_crate",
+      "name": "铁盟标准装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400093
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/Tiemengweaponbox",
+      "commodity_ids": [
+        40200488
+      ]
+    },
+    {
+      "item_id": "item_11400008",
+      "name": "帝国精良装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400008
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Diguo/Small/Diguoweaponbox",
+      "commodity_ids": [
+        40200398
+      ]
+    },
+    {
+      "item_id": "item_11400010",
+      "name": "帝国新月装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400010
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Diguo/Small/Diguoweaponbox",
+      "commodity_ids": [
+        40200399
+      ]
+    },
+    {
+      "item_id": "item_11400084",
+      "name": "黑月机锋装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400084
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/Heiyueweaponbox",
+      "commodity_ids": [
+        40200296
+      ]
+    },
+    {
+      "item_id": "item_11400085",
+      "name": "黑月精良装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400085
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Heiyue/Small/Heiyueweaponbox",
+      "commodity_ids": [
+        40200396
+      ]
+    },
+    {
+      "item_id": "item_11400087",
+      "name": "学会研思装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400087
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/Xuehuiweaponbox",
+      "commodity_ids": [
+        40200304
+      ]
+    },
+    {
+      "item_id": "item_11400088",
+      "name": "学会精良装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400088
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/Xuehuiweaponbox",
+      "commodity_ids": [
+        40200305
+      ]
+    },
+    {
+      "item_id": "item_11400089",
+      "name": "学会标准装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400089
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/weapon/Xuehui/Small/Xuehuiweaponbox",
+      "commodity_ids": [
+        40200306
+      ]
+    },
+    {
+      "item_id": "item_11400090",
+      "name": "铁盟特制装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400090
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/Tiemengweaponbox",
+      "commodity_ids": [
+        40200295
+      ]
+    },
+    {
+      "item_id": "item_11400092",
+      "name": "铁盟精良装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400092
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Tiemeng/Small/Tiemengweaponbox",
+      "commodity_ids": [
+        40200487
+      ]
+    },
+    {
+      "item_id": "item_11400094",
+      "name": "阿妮塔探索装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400094
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/weapon/Anita/Small/Anitaweaponbox",
+      "commodity_ids": [
+        40200670
+      ]
+    },
+    {
+      "item_id": "item_11400095",
+      "name": "阿妮塔精良装备箱",
+      "category": "equipment_box",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400095
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/weapon/Anita/Small/Anitaweaponbox",
+      "commodity_ids": [
+        40200671
+      ]
+    },
+    {
+      "item_id": "advertising_ticket",
+      "name": "广告投放券",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400072
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/GuangGao",
+      "commodity_ids": [
+        40200509,
+        40201763,
+        40201769,
+        40201780,
+        40201802,
+        40201816,
+        40201841,
+        40201857,
+        40201858,
+        40201868,
+        40201872,
+        40201873,
+        40201876
+      ]
+    },
+    {
+      "item_id": "cardamom_ginger_lily",
+      "name": "“豆蔻姜百合”",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400062
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/Perfume",
+      "commodity_ids": [
+        40200132,
+        40200456
+      ]
+    },
+    {
+      "item_id": "item_11401001",
+      "name": "专属装备泛变装置",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11401001
+      ],
+      "quality": "Orange",
+      "icon_resource_url": "Item/item/Small/zhuanshufb180",
+      "commodity_ids": [
+        40201749,
+        40201755,
+        40201756,
+        40201757
+      ]
+    },
+    {
+      "item_id": "order_request",
+      "name": "订单请求书",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400016
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/DingDan",
+      "commodity_ids": [
+        40200453,
+        40201765,
+        40201775,
+        40201823
+      ]
+    },
+    {
+      "item_id": "purchase_order_book",
+      "name": "进货采买书",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400045
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/JinHuo",
+      "commodity_ids": [
+        40200508,
+        40201782,
+        40201790,
+        40201795,
+        40201798,
+        40201803,
+        40201812,
+        40201840,
+        40201856,
+        40201862,
+        40201869,
+        40201870,
+        40201871
+      ]
+    },
+    {
+      "item_id": "quadratic_one_variable",
+      "name": "“一元二次”",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400105
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/X",
+      "commodity_ids": [
+        40200107,
+        40200458
+      ]
+    },
+    {
+      "item_id": "renegotiation_request",
+      "name": "再交涉请求书",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400044
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/JiaoShe",
+      "commodity_ids": [
+        40201805,
+        40201817,
+        40201851,
+        40201866
+      ]
+    },
+    {
+      "item_id": "self_observation_film_roll",
+      "name": "自观测胶卷",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400031,
+        11400107,
+        11400108,
+        11400109,
+        11400110,
+        11400217
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/EntryChangeItem_Small",
+      "commodity_ids": [
+        40200133,
+        40200140,
+        40200181,
+        40200504,
+        40200505,
+        40200507
+      ]
+    },
+    {
+      "item_id": "silver_branch_mint",
+      "name": "银枝薄荷糖",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400063
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/XianRenNao",
+      "commodity_ids": [
+        40200106,
+        40200457
+      ]
+    },
+    {
+      "item_id": "survey_beacon",
+      "name": "勘测信标",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11401012
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/kancexinbiao180",
+      "commodity_ids": [
+        40201746,
+        40201747,
+        40201748
+      ]
+    },
+    {
+      "item_id": "task_commission_letter",
+      "name": "任务委托书",
+      "category": "item",
+      "source_kind": "ItemFactory",
+      "source_record_ids": [
+        11400047
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/RenWu",
+      "commodity_ids": [
+        40200452,
+        40201793,
+        40201818,
+        40201820
+      ]
+    },
+    {
+      "item_id": "birch_gland",
+      "name": "桦树腺体",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700065
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/gland_S",
+      "commodity_ids": [
+        40200449,
+        40200450,
+        40201779,
+        40201815,
+        40201867
+      ]
+    },
+    {
+      "item_id": "combat_memory_1_titanium",
+      "name": "战斗记忆体（1钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700083
+      ],
+      "quality": "White",
+      "icon_resource_url": "Item/item/Small/bai",
+      "commodity_ids": [
+        40201767,
+        40201771,
+        40201788,
+        40201822
+      ]
+    },
+    {
+      "item_id": "combat_memory_2_titanium",
+      "name": "战斗记忆体（2钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700084
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/lan",
+      "commodity_ids": [
+        40201792,
+        40201819,
+        40201842,
+        40201864
+      ]
+    },
+    {
+      "item_id": "combat_memory_4_titanium",
+      "name": "战斗记忆体（4钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700085
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/zi",
+      "commodity_ids": [
+        40201786,
+        40201809,
+        40201824,
+        40201832
+      ]
+    },
+    {
+      "item_id": "combat_memory_8_titanium",
+      "name": "战斗记忆体（8钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700086
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/item/Small/jin",
+      "commodity_ids": [
+        40201837,
+        40201844,
+        40201847,
+        40201853
+      ]
+    },
+    {
+      "item_id": "digital_thought",
+      "name": "数字化思维",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700121
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/ShuZi",
+      "commodity_ids": [
+        40201791,
+        40201801,
+        40201807,
+        40201810,
+        40201821,
+        40201829,
+        40201834,
+        40201835,
+        40201852,
+        40201860,
+        40201861,
+        40201865
+      ]
+    },
+    {
+      "item_id": "inferior_birch_stone",
+      "name": "劣桦石",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700125
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/liehuashi",
+      "commodity_ids": [
+        40200448,
+        40200451,
+        40201768,
+        40201774,
+        40201845
+      ]
+    },
+    {
+      "item_id": "material_11700247",
+      "name": "联应之弦",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700247
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/item/Small/lianying180",
+      "commodity_ids": [
+        40201927
+      ]
+    },
+    {
+      "item_id": "nebula_matter_1_titanium",
+      "name": "星云物质（1钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700150
+      ],
+      "quality": "White",
+      "icon_resource_url": "Item/item/Small/Exp_R_Small",
+      "commodity_ids": [
+        40201766,
+        40201777,
+        40201797,
+        40201839
+      ]
+    },
+    {
+      "item_id": "nebula_matter_2_titanium",
+      "name": "星云物质（2钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700162
+      ],
+      "quality": "Blue",
+      "icon_resource_url": "Item/item/Small/Exp_R_Small",
+      "commodity_ids": [
+        40201773,
+        40201776,
+        40201806,
+        40201813
+      ]
+    },
+    {
+      "item_id": "nebula_matter_4_titanium",
+      "name": "星云物质（4钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700161
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/Exp_SR_Small",
+      "commodity_ids": [
+        40201764,
+        40201828,
+        40201831,
+        40201855
+      ]
+    },
+    {
+      "item_id": "nebula_matter_8_titanium",
+      "name": "星云物质（8钛）",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700078
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/item/Small/Exp_SSR_Small",
+      "commodity_ids": [
+        40201784,
+        40201811,
+        40201833,
+        40201875
+      ]
+    },
+    {
+      "item_id": "primitive_thought",
+      "name": "原始思维",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700100
+      ],
+      "quality": "Purple",
+      "icon_resource_url": "Item/item/Small/XiWang4",
+      "commodity_ids": [
+        40201778,
+        40201789,
+        40201800,
+        40201808,
+        40201825,
+        40201827,
+        40201830,
+        40201843,
+        40201849,
+        40201850,
+        40201854,
+        40201859
+      ]
+    },
+    {
+      "item_id": "unique_stone_fragment",
+      "name": "独石碎片",
+      "category": "material",
+      "source_kind": "SourceMaterialFactory",
+      "source_record_ids": [
+        11700122
+      ],
+      "quality": "Golden",
+      "icon_resource_url": "Item/item/Small/DuShi",
+      "commodity_ids": [
+        40201772,
+        40201781,
+        40201783,
+        40201794,
+        40201804,
+        40201826,
+        40201846,
+        40201863
+      ]
+    }
+  ],
+  "source": {
+    "native_files": {
+      "CommodityFactory.bin": {
+        "sha256": "5be7a20a7dc5b33b0512f643d4ac50abdde0be121134d7fb7483b275475ddd6e",
+        "content_hash": "7869F9BE0AB13F5AF82F751AF1A2A8FD7B6DEED66BB71AC6ADFFFE58E1B10D60"
+      },
+      "EquipmentFactory.bin": {
+        "sha256": "35d75aec8b1590184470640672fb7823f59060f609b685c3c6d3f4a1735cbbc6",
+        "content_hash": "31681B678B0DA883311A66F87640320B850A75A7A2BA48B7FBAE4051C5A432C5"
+      },
+      "HomeStationFactory.bin": {
+        "sha256": "68ca62ccc10b14053b3f40c7db90751be2b43debe3e620bc89581f1e9801d665",
+        "content_hash": "32BDCBFA185C66468C802CE16FE1DBBDC27C290312EC2F5935A59529DCB943B3"
+      },
+      "ItemFactory.bin": {
+        "sha256": "ba695aaecf687c654098f4a1f764c3129df6f4473e1a2cc760ed61023941a40f",
+        "content_hash": "76E3F81B2FA558ECD018AF98536E3829779C77D5ED5CAC65E84B7A32549A096F"
+      },
+      "ListFactory.bin": {
+        "sha256": "2465a3f32cb02e127d9b7d8e81b3ab11753623e938cafdb3fc42f9f9dbea364b",
+        "content_hash": "8359081C407C5524A37999B3D84703DA7A31E5830C5A59B54BDE13F838AF14EA"
+      },
+      "SourceMaterialFactory.bin": {
+        "sha256": "a94a91084eb0073df1621940adc2812860b960b5ecdc8181fab1f5466e399521",
+        "content_hash": "BB849D1074BB2A5951551E006AA966DCC3FD5BECFC77FC99D63E78CFDF8F2D0E"
+      },
+      "StoreFactory.bin": {
+        "sha256": "055a8fe978726c0248a6e209ea112f192e4f2ec4e3e7004d26e0ab0e77105855",
+        "content_hash": "01BE2D4CD3CCC03AB0532B208046156F1EC55075776EC011C6DD70E13508F569"
+      }
+    },
+    "city_links": [
+      {
+        "city_key": "shoggolith_city",
+        "station_id": 83000001,
+        "store_ids": [
+          40300021
+        ]
+      },
+      {
+        "city_key": "cape_city",
+        "station_id": 83000002,
+        "store_ids": [
+          40300023
+        ]
+      },
+      {
+        "city_key": "lanxin_city",
+        "station_id": 83000006,
+        "store_ids": [
+          40300131
+        ]
+      },
+      {
+        "city_key": "freeport",
+        "station_id": 83000020,
+        "store_ids": [
+          40300015
+        ]
+      },
+      {
+        "city_key": "clarity_data_center_administration_bureau",
+        "station_id": 83000029,
+        "store_ids": [
+          40300044
+        ]
+      },
+      {
+        "city_key": "gronru_city",
+        "station_id": 83000052,
+        "store_ids": [
+          40300026
+        ]
+      },
+      {
+        "city_key": "mander_mine",
+        "station_id": 83000053,
+        "store_ids": [
+          40300022
+        ]
+      }
+    ],
+    "stores": [
+      {
+        "store_id": 40300015,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300021,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300022,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300023,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300026,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300044,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      },
+      {
+        "store_id": 40300131,
+        "commodityFixedList": [
+          80301285,
+          80301285,
+          80301264,
+          80300950,
+          80301019,
+          80301387
+        ],
+        "shopList_count": 119,
+        "specialShopList": [
+          80308790,
+          80308679
+        ],
+        "maxShopNum": 20
+      }
+    ],
+    "reachable_commodity_count": 247,
+    "canonical_metadata": [
+      "inventory_items.json",
+      "inventory_materials.json",
+      "inventory_equipment.json"
+    ],
+    "grouping": {
+      "identity_fields": [
+        "source_kind",
+        "category",
+        "canonical_name",
+        "normalized_icon_resource_url",
+        "quality"
+      ],
+      "native_aliases_added": {
+        "ItemFactory": 0,
+        "SourceMaterialFactory": 0,
+        "EquipmentFactory": 0
+      },
+      "canonical_item_id_aliases": {}
+    },
+    "stock_count_policy": {
+      "native_field": "StoreFactory.maxShopNum",
+      "interpretation": "capacity_only",
+      "does_not_prove_exact_total": true,
+      "reason": "Configured capacity does not establish exact generated or sold-out card counts."
+    }
+  }
+}

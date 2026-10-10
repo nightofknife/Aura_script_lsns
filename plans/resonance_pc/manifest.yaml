@@ -746,6 +746,26 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.purchase_black_moon_local_from_rest_menu
+    module: plans.resonance_pc.src.actions.black_moon_local_shop_pc_actions
+    function: resonance_pc_purchase_black_moon_local_from_rest_menu
+    public: true
+    read_only: false
+    timeout: null
+    description: Purchase selected LOCAL stock once per city/week from an open rest menu and return there.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: selected_item_ids
+      type: Any
+      required: false
+      default: null
+    - name: record_scope
+      type: Any
+      required: false
+      default: default
   - name: resonance_pc.execute_cape_island_investment_from_city_panel
     module: plans.resonance_pc.src.actions.cape_island_investment_pc_actions
     function: resonance_pc_execute_cape_island_investment_from_city_panel
@@ -1134,6 +1154,18 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_black_moon_local_purchase
+      type: Any
+      required: false
+      default: false
+    - name: black_moon_local_purchase_items
+      type: Any
+      required: false
+      default: null
+    - name: black_moon_purchase_record_scope
+      type: Any
+      required: false
+      default: default
     - name: auto_bento
       type: Any
       required: false
@@ -3000,6 +3032,14 @@ exports:
     source: tasks/bento_consumption_pc.yaml
     description: Consume top-position work meals and first love bento until the recovery
       target or fatigue floor.
+  - id: black_moon_local_purchase_pc/black_moon_local_purchase_pc
+    title: Black Moon Local Purchase (PC)
+    source: tasks/black_moon_local_purchase_pc.yaml
+    description: Purchase selected local stock from an open rest menu and return to that menu.
+  - id: black_moon_local_purchase_pc
+    title: Black Moon Local Purchase (PC)
+    source: tasks/black_moon_local_purchase_pc.yaml
+    description: Purchase selected local stock from an open rest menu and return to that menu.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml

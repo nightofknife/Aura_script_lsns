@@ -1,0 +1,43 @@
+black_moon_local_purchase_pc:
+  meta:
+    title: Black Moon Local Purchase (PC)
+    description: Purchase selected local stock from an open rest menu and return to that menu.
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: city_name
+        type: string
+        required: true
+      - name: selected_item_ids
+        type: list
+        required: false
+        default: []
+        item:
+          name: item_id
+          type: string
+          required: true
+      - name: record_scope
+        type: string
+        required: false
+        default: default
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    purchase:
+      action: resonance_pc.purchase_black_moon_local_from_rest_menu
+      depends_on: require_resolution
+      timeout_sec: 300
+      params:
+        city_name: "{{ inputs.city_name }}"
+        selected_item_ids: "{{ inputs.selected_item_ids }}"
+        record_scope: "{{ inputs.record_scope }}"
+  returns:
+    success: "{{ nodes.purchase.output.success }}"
+    status: "{{ nodes.purchase.output.status }}"
+    reason: "{{ nodes.purchase.output.reason }}"
+    city_key: "{{ nodes.purchase.output.city_key }}"
+    week_key: "{{ nodes.purchase.output.week_key }}"
+    completed_this_week: "{{ nodes.purchase.output.completed_this_week }}"
+    purchased_count: "{{ nodes.purchase.output.purchased_count }}"
+    purchased_items: "{{ nodes.purchase.output.purchased_items }}"
+    page_state: "{{ nodes.purchase.output.page_state }}"
