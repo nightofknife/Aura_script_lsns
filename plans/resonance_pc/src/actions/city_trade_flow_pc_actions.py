@@ -42,6 +42,7 @@ from ._operation_progress import (
 )
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button
 from ._city_panel_vision import CityPanelVisionError, open_city_panel, wait_city
+from ._city_shop_entry import CityShopEntryError, enter_city_shop, probe_menu_template, valid_probe
 from .market_data_pc_actions import resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
 from .rubbish_recycling_pc_actions import (
@@ -289,7 +290,6 @@ _SHOP_MENU_READY_STABLE_MATCHES = 2
 _SHOP_NODE_X = 1160
 _SHOP_NODE_FIRST_Y = 324
 _SHOP_NODE_GAP_Y = 83
-_SHOP_ENTRY_SETTLE_SEC = 2.0
 _SETTLEMENT_EXIT_POINT = (640, 620)
 _BUY_SCROLL_START = (670, 450)
 _BUY_SCROLL_END = (670, 200)
@@ -502,6 +502,33 @@ def _wait_template(
         time.sleep(max(float(interval_sec), 0.05))
 
 
+def _probe_shop_menu(app: Any, vision: Any) -> Dict[str, Any]:
+    try:
+        return probe_menu_template(
+            app=app, vision=vision,
+            template=Path(__file__).resolve().parents[2] / _SHOP_MENU_READY_TEMPLATE,
+            region=_SHOP_MENU_READY_REGION, threshold=_SHOP_MENU_READY_THRESHOLD,
+            check_cancelled=_check_trade_cancelled,
+        )
+    except CityShopEntryError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
+
+
+def _enter_exchange(*, city_name: str, app: Any, vision: Any, city_shop_data: Any) -> Dict[str, Any]:
+    point = city_shop_data.resolve_shop_point(city_name=city_name, shop_name="交易所")
+    try:
+        ready = enter_city_shop(
+            app=app, vision=vision, point=point, entry_type="exchange", page_state="shop_page",
+            target_probe=lambda: _probe_shop_menu(app, vision),
+            click=lambda: app.click(x=int(point["x"]), y=int(point["y"])),
+            check_cancelled=_check_trade_cancelled,
+        )
+    except CityShopEntryError as exc:
+        code = "shop_menu_not_ready" if exc.code == "city_shop_entry_timeout" else exc.code
+        _raise_error(code, exc.message, exc.detail)
+    return {"success": True, "page_state": "shop_page", "click": point, "menu_ready": ready}
+
+
 def _wait_for_shop_menu_ready(
     app: Any,
     vision: Any,
@@ -520,15 +547,10 @@ def _wait_for_shop_menu_ready(
         "region": list(_SHOP_MENU_READY_REGION),
     }
     while True:
+        _check_trade_cancelled()
         poll += 1
-        last_match = _match_template(
-            app,
-            vision,
-            _SHOP_MENU_READY_TEMPLATE,
-            _SHOP_MENU_READY_REGION,
-            _SHOP_MENU_READY_THRESHOLD,
-        )
-        if last_match.get("found"):
+        last_match = _probe_shop_menu(app, vision)
+        if valid_probe(last_match) and last_match.get("found"):
             consecutive_matches += 1
         else:
             consecutive_matches = 0
@@ -1367,15 +1389,16 @@ def _execute_city_trade_inside_current_city_scoped(
             {"current_city": current_city},
         )
     if shop_entry is None:
-        enter_shop = resonance_pc_click_city_shop_by_name(
-            city_name=current_city, shop_name="交易所", wait_sec=_SHOP_ENTRY_SETTLE_SEC,
-            app=app, resonance_pc_city_shop_data=city_shop_data,
+        enter_shop = _enter_exchange(
+            city_name=current_city, app=app, vision=vision, city_shop_data=city_shop_data,
         )
+        shop_menu_ready = enter_shop["menu_ready"]
     else:
         if shop_entry.get("success") is not True or shop_entry.get("page_state") != "shop_page":
             _raise_error("trade_shop_entry_unconfirmed", "Cannot reuse an unconfirmed exchange entry", shop_entry)
         enter_shop = shop_entry
-    shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
+        # Investment returns from an inner page; never retry a city coordinate here.
+        shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
     sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
@@ -1533,13 +1556,11 @@ async def _execute_freight_city_trade(*, auto_trade_goods_investment: bool = Fal
         raise RuntimeError("Goods investment requires the current execution context and engine")
     _check_trade_cancelled()
     entry = await asyncio.to_thread(
-        resonance_pc_click_city_shop_by_name, city_name=trade_inputs["current_city"],
-        shop_name="交易所", wait_sec=_SHOP_ENTRY_SETTLE_SEC, app=trade_inputs["app"],
-        resonance_pc_city_shop_data=trade_inputs["city_shop_data"],
+        _enter_exchange, city_name=trade_inputs["current_city"], app=trade_inputs["app"],
+        vision=trade_inputs["vision"], city_shop_data=trade_inputs["city_shop_data"],
     )
     if entry.get("success") is not True or entry.get("page_state") != "shop_page":
         _raise_error("trade_shop_entry_unconfirmed", "Cannot invest before entering the exchange", entry)
-    await asyncio.to_thread(_wait_for_shop_menu_ready, trade_inputs["app"], trade_inputs["vision"])
     _check_trade_cancelled()
     progress_context = dict(trade_inputs.get("progress_context") or {})
     investment = await _run_trade_goods_investment_task(

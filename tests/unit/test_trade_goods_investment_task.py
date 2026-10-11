@@ -113,7 +113,7 @@ def test_invalid_numeric_level_rejected_before_child_or_game_input(task_engine, 
     with pytest.raises(ValueError):
         call_task(task_engine, mode)
     assert state["calls"] == []
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name",
+    monkeypatch.setattr(trade, "_enter_exchange",
                         lambda **params: pytest.fail("Invalid level must not touch the game"))
     with pytest.raises(ValueError):
         asyncio.run(trade._execute_freight_city_trade(
@@ -214,7 +214,7 @@ def test_disabled_wrapper_preserves_old_trade_and_needs_no_engine(monkeypatch):
     result = {"success": True, "page_state": "city_main"}
     monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city",
                         lambda **params: received.append(params) or result)
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name",
+    monkeypatch.setattr(trade, "_enter_exchange",
                         lambda **params: pytest.fail("Disabled wrapper must not enter twice"))
     params = trade_inputs()
     assert asyncio.run(trade._execute_freight_city_trade(**params)) is result
@@ -222,8 +222,9 @@ def test_disabled_wrapper_preserves_old_trade_and_needs_no_engine(monkeypatch):
 
 
 def install_exchange(monkeypatch, operations):
-    entry = {"success": True, "page_state": "shop_page", "shop_name": "交易所"}
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name",
+    entry = {"success": True, "page_state": "shop_page", "shop_name": "交易所",
+             "menu_ready": {"success": True, "stable_matches": 2}}
+    monkeypatch.setattr(trade, "_enter_exchange",
                         lambda **params: operations.append("exchange") or entry)
     monkeypatch.setattr(trade, "_wait_for_shop_menu_ready",
                         lambda *args: operations.append("menu_ready") or {"success": True})
@@ -247,7 +248,7 @@ def test_enabled_wrapper_enters_once_then_passes_confirmed_entry_to_trade(monkey
     result = asyncio.run(trade._execute_freight_city_trade(
         **params, auto_trade_goods_investment=True, context=context, engine=engine,
     ))
-    assert operations == ["exchange", "menu_ready", "sell_buy_return"]
+    assert operations == ["exchange", "sell_buy_return"]
     assert len(state["calls"]) == 1
     assert received == [{**params, "shop_entry": entry}]
     assert result["trade_goods_investment"] == state["result"]
@@ -264,11 +265,11 @@ def test_child_failure_prevents_selling_buying_or_returning(monkeypatch, task_en
         asyncio.run(trade._execute_freight_city_trade(
             **trade_inputs(), auto_trade_goods_investment=True, context=context, engine=engine,
         ))
-    assert operations == ["exchange", "menu_ready"]
+    assert operations == ["exchange"]
 
 
 def test_enabled_wrapper_missing_engine_rejects_before_game_input(monkeypatch):
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name",
+    monkeypatch.setattr(trade, "_enter_exchange",
                         lambda **params: pytest.fail("Missing task engine must not touch the game"))
     with pytest.raises(RuntimeError, match="execution context and engine"):
         asyncio.run(trade._execute_freight_city_trade(**trade_inputs(), auto_trade_goods_investment=True))
@@ -299,7 +300,7 @@ def test_registered_child_then_real_city_trade_does_not_reenter_exchange(monkeyp
     result = asyncio.run(trade._execute_freight_city_trade(
         **trade_inputs(), auto_trade_goods_investment=True, context=context, engine=engine,
     ))
-    assert operations == ["exchange", "menu_ready", "investment", "menu_ready", "node:2", "sell", "node:1", "buy", "main"]
+    assert operations == ["exchange", "investment", "menu_ready", "node:2", "sell", "node:1", "buy", "main"]
     assert result["enter_shop"] is entry
     assert result["trade_goods_investment"]["status"] == "invested"
 
