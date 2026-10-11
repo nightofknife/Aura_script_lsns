@@ -752,7 +752,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Purchase selected LOCAL stock once per city/week from an open rest menu and return there.
+    description: Purchase selected LOCAL stock once per city/week from an open rest
+      menu and return there.
     parameters:
     - name: city_name
       type: Any
@@ -2247,6 +2248,27 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.open_reforming_center_room
+    module: plans.resonance_pc.src.actions.reforming_center_navigation_pc_actions
+    function: resonance_pc_open_reforming_center_room
+    public: true
+    read_only: false
+    timeout: null
+    description: From the ordinary overview, use screenshot templates to locate a
+      room and activate its confirmed entry button.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 0.8
   - name: resonance_pc.enter_reforming_center
     module: plans.resonance_pc.src.actions.reforming_center_pc_actions
     function: resonance_pc_enter_reforming_center
@@ -3035,11 +3057,13 @@ exports:
   - id: black_moon_local_purchase_pc/black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
-    description: Purchase selected local stock from an open rest menu and return to that menu.
+    description: Purchase selected local stock from an open rest menu and return to
+      that menu.
   - id: black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
-    description: Purchase selected local stock from an open rest menu and return to that menu.
+    description: Purchase selected local stock from an open rest menu and return to
+      that menu.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -3224,6 +3248,14 @@ exports:
     source: tasks/navigate_reforming_center_room_pc.yaml
     description: Safely pan the Reforming Center overview until the requested room
       is fully interactable, then click it.
+  - id: open_reforming_center_room_pc/open_reforming_center_room_pc
+    title: Open Reforming Center Room (PC)
+    source: tasks/open_reforming_center_room_pc.yaml
+    description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
+  - id: open_reforming_center_room_pc
+    title: Open Reforming Center Room (PC)
+    source: tasks/open_reforming_center_room_pc.yaml
+    description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
   - id: player_data_pc/player_data_refresh
     title: Resonance Player Data Refresh (PC)
     source: tasks/player_data_pc.yaml
@@ -3283,4 +3315,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-09T15:13:33Z'
+  generated_at: '2026-10-11T03:28:47Z'

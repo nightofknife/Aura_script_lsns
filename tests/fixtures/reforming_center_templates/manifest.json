@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "scan_region": [
+    30,
+    90,
+    1250,
+    490
+  ],
+  "expected_method": "Manual visual annotation, not runtime output",
+  "fixtures": [
+    {
+      "id": "overview_00",
+      "image": "overview_00.png",
+      "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+      "source_filename": "codex-clipboard-666e062d-25fb-4132-ad79-f8a67c43c139.png",
+      "source_sha256": "918b144ae8a364b078593b22f97b122c3c81d5f68c79bbb8b3bc05c5b10f7183",
+      "client_png_sha256": "0ca562d27e5c15686c359b43ea7c17554762811c7dfe15bb366d25c485bf8b0c",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "1号整顿宿舍",
+        "2号整顿宿舍",
+        "1号生产车间",
+        "2号生产车间"
+      ],
+      "excluded_edge_names": []
+    },
+    {
+      "id": "overview_01",
+      "image": "overview_01.png",
+      "source_id": "01591961-4b5e-484f-854f-550b8ba5ce86",
+      "source_filename": "codex-clipboard-01591961-4b5e-484f-854f-550b8ba5ce86.png",
+      "source_sha256": "c0b5f3903ee46d735ac42e30ec6f70c2d0767d6f5eaf075edf604d2326e389d0",
+      "client_png_sha256": "ab38c850554dcc4c948510ebc9dfd0c3cc7c1246a5637e76221027e59a3d98b6",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "植物纤维原料车间",
+        "动物纤维原料车间",
+        "缝纫工具原料车间",
+        "人造纤维原料车间",
+        "研发中心",
+        "电力中心"
+      ],
+      "excluded_edge_names": [
+        "餐厅",
+        "医务室",
+        "假释室"
+      ]
+    },
+    {
+      "id": "overview_02",
+      "image": "overview_02.png",
+      "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+      "source_filename": "codex-clipboard-2307449c-08d1-4dc3-9031-f421a2af431e.png",
+      "source_sha256": "adda2ecc064265a31ebfa091f11acddf3e09339dc89fb0da823e9854e1bb741c",
+      "client_png_sha256": "f414f4f5e2f1a0a652cbb7f26cec0eb03d5c8f6feded73d95cc10e860ea7df24",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "植物纤维原料车间",
+        "动物纤维原料车间",
+        "缝纫工具原料车间",
+        "人造纤维原料车间",
+        "研发中心",
+        "电力中心",
+        "财务中心",
+        "转运中心"
+      ],
+      "excluded_edge_names": []
+    },
+    {
+      "id": "overview_03",
+      "image": "overview_03.png",
+      "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
+      "source_filename": "codex-clipboard-cc6ccd36-5fd8-40dc-b557-2c112e9d524f.png",
+      "source_sha256": "a4e554c9f73656a49509b21736ea32fe0c59ce272557d539c83e6d9747b1b087",
+      "client_png_sha256": "ec509f852c18905e41423618a11c63e96cba507fd62f3f5dc38bc7625b8c3883",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "黑月订单站",
+        "原料采购站"
+      ],
+      "excluded_edge_names": []
+    },
+    {
+      "id": "overview_04",
+      "image": "overview_04.png",
+      "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
+      "source_filename": "codex-clipboard-7e12c250-bccf-439e-a309-99d44cf629e1.png",
+      "source_sha256": "bde5f24c74c877936af14f88289011b354113f69db799117150fec27e5637c29",
+      "client_png_sha256": "66ace3438079e6954eeca499b335f7ac00013621bb52716fc7a39739a069a617",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "成品仓库",
+        "原料仓库",
+        "黑月订单站",
+        "原料采购站"
+      ],
+      "excluded_edge_names": []
+    },
+    {
+      "id": "overview_05",
+      "image": "overview_05.png",
+      "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+      "source_filename": "codex-clipboard-cbef82eb-6cbd-435b-b863-edffbf44f870.png",
+      "source_sha256": "209f89070849901b7e2102e71320e008429ab8c624a2cea6d406b497ea122c55",
+      "client_png_sha256": "6adddef2bbdb91eb78b35ad84a50502768161e1d7e89d80ea4bd29c0f6783bf7",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "禁闭室",
+        "医务室",
+        "探视室",
+        "假释室",
+        "安保中心",
+        "囚犯管理中心"
+      ],
+      "excluded_edge_names": []
+    },
+    {
+      "id": "overview_06",
+      "image": "overview_06.png",
+      "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
+      "source_filename": "codex-clipboard-09d2d6ff-6129-486f-852d-bfbd963f91bf.png",
+      "source_sha256": "3c4085a71c070a4a769b1ed35ac7a64ccf66f4159e95d1983a90cfcebbec70d6",
+      "client_png_sha256": "bba83d14af3fd65533f123afc4fbb5c90ac48c4c77a0253dceaac677ae00d04c",
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ],
+      "expected_names": [
+        "放风场地",
+        "餐厅",
+        "禁闭室",
+        "医务室",
+        "探视室",
+        "假释室"
+      ],
+      "excluded_edge_names": []
+    }
+  ]
+}

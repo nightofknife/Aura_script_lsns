@@ -1,0 +1,41 @@
+open_reforming_center_room_pc:
+  meta:
+    title: Open Reforming Center Room (PC)
+    description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: room_name
+        type: string
+        required: true
+      - name: max_search_steps
+        type: number
+        required: false
+        default: 12
+        min: 1
+        max: 24
+      - name: settle_sec
+        type: number
+        required: false
+        default: 0.8
+        min: 0.05
+        max: 10
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+
+    open_room:
+      action: resonance_pc.open_reforming_center_room
+      params:
+        room_name: "{{ inputs.room_name }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+      depends_on: require_resolution
+  returns:
+    success: "{{ nodes.open_room.output.success }}"
+    status: "{{ nodes.open_room.output.status }}"
+    room_name: "{{ nodes.open_room.output.room_name }}"
+    entry_type: "{{ nodes.open_room.output.entry_type }}"
+    room_entered: "{{ nodes.open_room.output.room_entered }}"
+    reason: "{{ nodes.open_room.output.reason }}"
+    data: "{{ nodes.open_room.output.data }}"

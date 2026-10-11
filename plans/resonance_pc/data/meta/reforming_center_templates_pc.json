@@ -1,0 +1,2776 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "annotation_method": "Manual screenshot visual boxes; no OCR and no generated text",
+  "white_ink_hsv": {
+    "lower": [
+      0,
+      0,
+      170
+    ],
+    "upper": [
+      179,
+      80,
+      255
+    ]
+  },
+  "source_screenshots": {
+    "f81060c5-b490-4b80-8a5e-b802456c7176": {
+      "filename": "codex-clipboard-f81060c5-b490-4b80-8a5e-b802456c7176.png",
+      "sha256": "cf23376159e722dfc40b40fc97b8ee5a6c9903e2ef383e26dc08a432fff0800b",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "f242fc14-93b2-4006-85a1-1a55df25b4f7": {
+      "filename": "codex-clipboard-f242fc14-93b2-4006-85a1-1a55df25b4f7.png",
+      "sha256": "e73da9c611ccc61aaeb3e111619944e47b44b8a3b561967d8d8d24f9e87259a2",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "77cf1072-27f0-40f2-bc3b-a51866c3c61f": {
+      "filename": "codex-clipboard-77cf1072-27f0-40f2-bc3b-a51866c3c61f.png",
+      "sha256": "3e99f4a1385d2cd8c2a11a41c3b9b50f3f2b025f939d52b3000d53df85cf4cb0",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "3bca14b5-ed29-4b16-8e2a-adab68280a41": {
+      "filename": "codex-clipboard-3bca14b5-ed29-4b16-8e2a-adab68280a41.png",
+      "sha256": "a0e106478ecbf3963a587c1a31b8c786ef31ba0742bbcf1893e9ff4a6fe81f10",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "1927e684-9826-45b5-a9ee-5d3a2cb97c42": {
+      "filename": "codex-clipboard-1927e684-9826-45b5-a9ee-5d3a2cb97c42.png",
+      "sha256": "5bdd72ed5364ad1e3c85b7d1094a5e3dafa5ba629aabc0ad7a42e42386e17617",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "b98b7f19-48f7-4344-9e2e-120e85e3fef1": {
+      "filename": "codex-clipboard-b98b7f19-48f7-4344-9e2e-120e85e3fef1.png",
+      "sha256": "60e847b191358652ad1bb45e7f68d72ec3c18f1272a77018e8d6a08fea7a43fb",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "a7f53f8d-51c5-470b-993f-c7c5bee183b2": {
+      "filename": "codex-clipboard-a7f53f8d-51c5-470b-993f-c7c5bee183b2.png",
+      "sha256": "7c8d434807e7052631cc540f4797dcfa9c43d3ca70afcf34d043d9c1a37e85f6",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "d8bb5f12-da83-4ab5-bfff-1944ca583fcf": {
+      "filename": "codex-clipboard-d8bb5f12-da83-4ab5-bfff-1944ca583fcf.png",
+      "sha256": "502f9dcedaf0afabcd462f6a4858b2f408142a4dd474772cdec52eb4269c1c48",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "68445bcb-cc49-4610-9dee-1dfd44af8790": {
+      "filename": "codex-clipboard-68445bcb-cc49-4610-9dee-1dfd44af8790.png",
+      "sha256": "7d43d6e219f4597ff7f40349721fcb55bee9cf462b5d5982abaf2d2193ea0a9f",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "ba7a37e6-07e2-4dcd-857f-c90d276872d3": {
+      "filename": "codex-clipboard-ba7a37e6-07e2-4dcd-857f-c90d276872d3.png",
+      "sha256": "fdedbe8c17f67a15425b756442bf97703298f238bb7f6094bc2a513fd349bba9",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "249b7a0e-253f-4690-ae3e-4f1d574cd508": {
+      "filename": "codex-clipboard-249b7a0e-253f-4690-ae3e-4f1d574cd508.png",
+      "sha256": "bde4d630de6993f05081bdcbc142fe90e80eb5ea64bc10b42271f7879683627c",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "15cb14c9-fa01-4b3f-a5a5-8293e9104b95": {
+      "filename": "codex-clipboard-15cb14c9-fa01-4b3f-a5a5-8293e9104b95.png",
+      "sha256": "8af83ba2ff2d4fbfc8154cbcaf9b05ec05e56082ae5ee7eb58de40a7679e7890",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "a4ef51a2-2751-44d0-adda-8676a68d6849": {
+      "filename": "codex-clipboard-a4ef51a2-2751-44d0-adda-8676a68d6849.png",
+      "sha256": "939ad1a1491661e4058cf81998bee7414265776ac2eb6621dd8195f7cd5f0492",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "61602bd8-7c99-42b2-a7bf-6c829209fbc8": {
+      "filename": "codex-clipboard-61602bd8-7c99-42b2-a7bf-6c829209fbc8.png",
+      "sha256": "baac098e0f1c7b31bd900a075d90dbfddc0753c2473d9e26c211ab2fe4d1dc6e",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "31793e96-0b44-4f99-adf8-194c238fb496": {
+      "filename": "codex-clipboard-31793e96-0b44-4f99-adf8-194c238fb496.png",
+      "sha256": "d34a2759ceb7fc0a6f02945733d4e3aedaf1168cf58bce72d54164160bdcfdf0",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "1f89a7d6-4a2c-4510-adb4-882c4dca38f8": {
+      "filename": "codex-clipboard-1f89a7d6-4a2c-4510-adb4-882c4dca38f8.png",
+      "sha256": "bffd243165880b54e9d88b930f66eb3c246ff70a588a188da93790fb49833e85",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "666e062d-25fb-4132-ad79-f8a67c43c139": {
+      "filename": "codex-clipboard-666e062d-25fb-4132-ad79-f8a67c43c139.png",
+      "sha256": "918b144ae8a364b078593b22f97b122c3c81d5f68c79bbb8b3bc05c5b10f7183",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "09d2d6ff-6129-486f-852d-bfbd963f91bf": {
+      "filename": "codex-clipboard-09d2d6ff-6129-486f-852d-bfbd963f91bf.png",
+      "sha256": "3c4085a71c070a4a769b1ed35ac7a64ccf66f4159e95d1983a90cfcebbec70d6",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "bbad8c0b-b81b-4b91-ab60-1b969a78b0da": {
+      "filename": "codex-clipboard-bbad8c0b-b81b-4b91-ab60-1b969a78b0da.png",
+      "sha256": "08ceeed4711ddb790e37d335a552f3d2c4aa8f4c9ed826cc3a1c208dc3ba827e",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "12707809-50d9-4bcd-b0b2-dce974ce1cff": {
+      "filename": "codex-clipboard-12707809-50d9-4bcd-b0b2-dce974ce1cff.png",
+      "sha256": "fc221701fa62d6f413a6a439d41944a07d26b0ccf723583bbeff6bbaae44379d",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "cbef82eb-6cbd-435b-b863-edffbf44f870": {
+      "filename": "codex-clipboard-cbef82eb-6cbd-435b-b863-edffbf44f870.png",
+      "sha256": "209f89070849901b7e2102e71320e008429ab8c624a2cea6d406b497ea122c55",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "ac03e38e-edb9-4a00-9148-69cb49bfc264": {
+      "filename": "codex-clipboard-ac03e38e-edb9-4a00-9148-69cb49bfc264.png",
+      "sha256": "be78a4d1d4e7365da7e3716a1236313dd3a19820b151a20f83e8b0e02731de85",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "31214f9e-928e-4bbe-904d-6cd9abc7f32c": {
+      "filename": "codex-clipboard-31214f9e-928e-4bbe-904d-6cd9abc7f32c.png",
+      "sha256": "c3ee8032f6f86dad892e982f1d794aff9b332acd5685b9915096239f57d58fe2",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "97c8c3af-7891-456e-ae12-8cae07d70b46": {
+      "filename": "codex-clipboard-97c8c3af-7891-456e-ae12-8cae07d70b46.png",
+      "sha256": "6f613abde3f853903728f37f2455ccf70bd2237a41288256307e92c4f3c872b2",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "a84588ee-d644-4f7d-a65f-88eb412d9ea3": {
+      "filename": "codex-clipboard-a84588ee-d644-4f7d-a65f-88eb412d9ea3.png",
+      "sha256": "a5a6071c85944d0aa2e5bc2259f318f5774f204f800d70682ba1a841e971a241",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "44b52e42-f96a-4988-8e02-bfd0898dbd07": {
+      "filename": "codex-clipboard-44b52e42-f96a-4988-8e02-bfd0898dbd07.png",
+      "sha256": "c2de54a66930305554fdc57e48acf41d2807eadd4a5271bc53914ba925d03e43",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "7e12c250-bccf-439e-a309-99d44cf629e1": {
+      "filename": "codex-clipboard-7e12c250-bccf-439e-a309-99d44cf629e1.png",
+      "sha256": "bde5f24c74c877936af14f88289011b354113f69db799117150fec27e5637c29",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "2307449c-08d1-4dc3-9031-f421a2af431e": {
+      "filename": "codex-clipboard-2307449c-08d1-4dc3-9031-f421a2af431e.png",
+      "sha256": "adda2ecc064265a31ebfa091f11acddf3e09339dc89fb0da823e9854e1bb741c",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "01591961-4b5e-484f-854f-550b8ba5ce86": {
+      "filename": "codex-clipboard-01591961-4b5e-484f-854f-550b8ba5ce86.png",
+      "sha256": "c0b5f3903ee46d735ac42e30ec6f70c2d0767d6f5eaf075edf604d2326e389d0",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "b0ec2014-d352-471d-a5ed-6e481656b87e": {
+      "filename": "codex-clipboard-b0ec2014-d352-471d-a5ed-6e481656b87e.png",
+      "sha256": "ba02902a95ff5eee03a8e301a4e3e79b7550fb1939182e62c90ad9d160b9780f",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "7601cdf5-1c39-4754-a3a2-11a5a5e81944": {
+      "filename": "codex-clipboard-7601cdf5-1c39-4754-a3a2-11a5a5e81944.png",
+      "sha256": "4d965cb49c6011dc44622681a16d43a92a16cc7647bc5af0f51a8c4fbd6ba271",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "a9cf78d6-d85c-4ae2-a169-0866e6e5fcfe": {
+      "filename": "codex-clipboard-a9cf78d6-d85c-4ae2-a169-0866e6e5fcfe.png",
+      "sha256": "9b591f8ef64e49addfdcc827c61b698cbccaf98be5dc7e4f11c81e9a3d87c531",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "f680705d-8d5f-43d0-a8c6-b5ad63399055": {
+      "filename": "codex-clipboard-f680705d-8d5f-43d0-a8c6-b5ad63399055.png",
+      "sha256": "189ca0207454b127f3fe3bf06b2cb890e1d6e7d4d3ee5e934828ad13cc808611",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "8c0ab801-994c-4868-aa4f-b37577673d7b": {
+      "filename": "codex-clipboard-8c0ab801-994c-4868-aa4f-b37577673d7b.png",
+      "sha256": "7d8b5b944416899566320ac59b83bb18cd04019bc048ab1fcbf6e79d9cbe1feb",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "9c1b5a17-183d-46e9-9fff-1cc6c5044e9c": {
+      "filename": "codex-clipboard-9c1b5a17-183d-46e9-9fff-1cc6c5044e9c.png",
+      "sha256": "e792655e2b0eb6571576db8a3d0c98ee36da836a17586f01b03c8b6ac3de70ff",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "85faf0fa-6a0b-4579-a52e-86beefe0d43b": {
+      "filename": "codex-clipboard-85faf0fa-6a0b-4579-a52e-86beefe0d43b.png",
+      "sha256": "eb7ad2eb9816f7aff33f4c52c09b536e5ca9de8ae665ec3436e1c0420b80edae",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "cc6ccd36-5fd8-40dc-b557-2c112e9d524f": {
+      "filename": "codex-clipboard-cc6ccd36-5fd8-40dc-b557-2c112e9d524f.png",
+      "sha256": "a4e554c9f73656a49509b21736ea32fe0c59ce272557d539c83e6d9747b1b087",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    }
+  },
+  "rooms": {
+    "2号整顿宿舍": {
+      "room_key": "2号整顿宿舍",
+      "map_point": [
+        260,
+        185
+      ],
+      "aliases": [
+        "2号宿舍"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_00.png",
+        "kind": "white_text",
+        "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+        "source_bbox_xywh": [
+          177,
+          260,
+          103,
+          21
+        ],
+        "title_center_offset": [
+          51.5,
+          10.5
+        ],
+        "mask": "templates/reforming_center/map_00.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_09_title.png",
+          "kind": "white_text",
+          "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
+          "source_bbox_xywh": [
+            681,
+            22,
+            81,
+            22
+          ],
+          "title_center_offset": [
+            40.5,
+            11.0
+          ],
+          "mask": "templates/reforming_center/destination_09_title.mask.png",
+          "search_region": [
+            669,
+            10,
+            105,
+            46
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_09_dorm_navigation.png",
+          "kind": "white_text",
+          "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
+          "source_bbox_xywh": [
+            118,
+            659,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_09_dorm_navigation.mask.png",
+          "search_region": [
+            106,
+            647,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "dormitory"
+    },
+    "1号整顿宿舍": {
+      "room_key": "1号整顿宿舍",
+      "map_point": [
+        260,
+        300
+      ],
+      "aliases": [
+        "1号宿舍"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_01.png",
+        "kind": "white_text",
+        "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+        "source_bbox_xywh": [
+          177,
+          377,
+          103,
+          21
+        ],
+        "title_center_offset": [
+          51.5,
+          10.5
+        ],
+        "mask": "templates/reforming_center/map_01.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_09_title.png",
+          "kind": "white_text",
+          "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
+          "source_bbox_xywh": [
+            681,
+            22,
+            81,
+            22
+          ],
+          "title_center_offset": [
+            40.5,
+            11.0
+          ],
+          "mask": "templates/reforming_center/destination_09_title.mask.png",
+          "search_region": [
+            669,
+            10,
+            105,
+            46
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_09_dorm_navigation.png",
+          "kind": "white_text",
+          "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
+          "source_bbox_xywh": [
+            118,
+            659,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_09_dorm_navigation.mask.png",
+          "search_region": [
+            106,
+            647,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "dormitory"
+    },
+    "2号生产车间": {
+      "room_key": "2号生产车间",
+      "map_point": [
+        900,
+        185
+      ],
+      "aliases": [
+        "生产车间2"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_02.png",
+        "kind": "white_text",
+        "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+        "source_bbox_xywh": [
+          825,
+          260,
+          103,
+          21
+        ],
+        "title_center_offset": [
+          51.5,
+          10.5
+        ],
+        "mask": "templates/reforming_center/map_02.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_10_title.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            663,
+            22,
+            81,
+            22
+          ],
+          "title_center_offset": [
+            40.5,
+            11.0
+          ],
+          "mask": "templates/reforming_center/destination_10_title.mask.png",
+          "search_region": [
+            651,
+            10,
+            105,
+            46
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop"
+    },
+    "1号生产车间": {
+      "room_key": "1号生产车间",
+      "map_point": [
+        900,
+        300
+      ],
+      "aliases": [
+        "生产车间1"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_03.png",
+        "kind": "white_text",
+        "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+        "source_bbox_xywh": [
+          825,
+          377,
+          103,
+          21
+        ],
+        "title_center_offset": [
+          51.5,
+          10.5
+        ],
+        "mask": "templates/reforming_center/map_03.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_10_title.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            663,
+            22,
+            81,
+            22
+          ],
+          "title_center_offset": [
+            40.5,
+            11.0
+          ],
+          "mask": "templates/reforming_center/destination_10_title.mask.png",
+          "search_region": [
+            651,
+            10,
+            105,
+            46
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop"
+    },
+    "放风场地": {
+      "room_key": "放风场地",
+      "map_point": [
+        -175,
+        525
+      ],
+      "aliases": [
+        "放风区"
+      ],
+      "click_offset": [
+        150,
+        55
+      ],
+      "entry_type": "selection_only",
+      "map_title": {
+        "image": "templates/reforming_center/map_04.png",
+        "kind": "white_text",
+        "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
+        "source_bbox_xywh": [
+          245,
+          237,
+          73,
+          22
+        ],
+        "title_center_offset": [
+          36.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_04.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_04.png",
+        "kind": "white_text",
+        "source_id": "bbad8c0b-b81b-4b91-ab60-1b969a78b0da",
+        "source_bbox_xywh": [
+          65,
+          270,
+          137,
+          37
+        ],
+        "title_center_offset": [
+          68.5,
+          18.5
+        ],
+        "mask": "templates/reforming_center/selected_04.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [],
+      "shared_destination": null
+    },
+    "餐厅": {
+      "room_key": "餐厅",
+      "map_point": [
+        225,
+        525
+      ],
+      "aliases": [
+        "食堂"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "selection_only",
+      "map_title": {
+        "image": "templates/reforming_center/map_05.png",
+        "kind": "white_text",
+        "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
+        "source_bbox_xywh": [
+          672,
+          237,
+          39,
+          22
+        ],
+        "title_center_offset": [
+          19.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_05.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_05.png",
+        "kind": "white_text",
+        "source_id": "12707809-50d9-4bcd-b0b2-dce974ce1cff",
+        "source_bbox_xywh": [
+          108,
+          258,
+          74,
+          39
+        ],
+        "title_center_offset": [
+          37.0,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_05.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [],
+      "shared_destination": null
+    },
+    "禁闭室": {
+      "room_key": "禁闭室",
+      "map_point": [
+        -110,
+        645
+      ],
+      "aliases": [],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "detail",
+      "map_title": {
+        "image": "templates/reforming_center/map_06.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          367,
+          185,
+          56,
+          22
+        ],
+        "title_center_offset": [
+          28.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_06.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_06.png",
+        "kind": "white_text",
+        "source_id": "ac03e38e-edb9-4a00-9148-69cb49bfc264",
+        "source_bbox_xywh": [
+          108,
+          258,
+          106,
+          39
+        ],
+        "title_center_offset": [
+          53.0,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_06.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_06_title.png",
+          "kind": "white_text",
+          "source_id": "a7f53f8d-51c5-470b-993f-c7c5bee183b2",
+          "source_bbox_xywh": [
+            367,
+            9,
+            90,
+            31
+          ],
+          "title_center_offset": [
+            45.0,
+            15.5
+          ],
+          "mask": "templates/reforming_center/destination_06_title.mask.png",
+          "search_region": [
+            355,
+            0,
+            114,
+            55
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_06_view_report.png",
+          "kind": "color",
+          "source_id": "a7f53f8d-51c5-470b-993f-c7c5bee183b2",
+          "source_bbox_xywh": [
+            830,
+            29,
+            72,
+            24
+          ],
+          "title_center_offset": [
+            36.0,
+            12.0
+          ],
+          "search_region": [
+            818,
+            17,
+            96,
+            48
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "医务室": {
+      "room_key": "医务室",
+      "map_point": [
+        225,
+        645
+      ],
+      "aliases": [
+        "医疗室"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "detail",
+      "map_title": {
+        "image": "templates/reforming_center/map_07.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          721,
+          185,
+          56,
+          22
+        ],
+        "title_center_offset": [
+          28.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_07.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_07.png",
+        "kind": "white_text",
+        "source_id": "31214f9e-928e-4bbe-904d-6cd9abc7f32c",
+        "source_bbox_xywh": [
+          108,
+          258,
+          106,
+          39
+        ],
+        "title_center_offset": [
+          53.0,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_07.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_07_title.png",
+          "kind": "white_text",
+          "source_id": "d8bb5f12-da83-4ab5-bfff-1944ca583fcf",
+          "source_bbox_xywh": [
+            426,
+            13,
+            90,
+            31
+          ],
+          "title_center_offset": [
+            45.0,
+            15.5
+          ],
+          "mask": "templates/reforming_center/destination_07_title.mask.png",
+          "search_region": [
+            414,
+            1,
+            114,
+            55
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_07_waiting_queue.png",
+          "kind": "white_text",
+          "source_id": "d8bb5f12-da83-4ab5-bfff-1944ca583fcf",
+          "source_bbox_xywh": [
+            1165,
+            47,
+            90,
+            23
+          ],
+          "title_center_offset": [
+            45.0,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_07_waiting_queue.mask.png",
+          "search_region": [
+            1153,
+            35,
+            114,
+            47
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "探视室": {
+      "room_key": "探视室",
+      "map_point": [
+        -110,
+        765
+      ],
+      "aliases": [],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "selection_only",
+      "map_title": {
+        "image": "templates/reforming_center/map_08.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          367,
+          302,
+          56,
+          23
+        ],
+        "title_center_offset": [
+          28.0,
+          11.5
+        ],
+        "mask": "templates/reforming_center/map_08.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_08.png",
+        "kind": "white_text",
+        "source_id": "97c8c3af-7891-456e-ae12-8cae07d70b46",
+        "source_bbox_xywh": [
+          108,
+          258,
+          106,
+          39
+        ],
+        "title_center_offset": [
+          53.0,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_08.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [],
+      "shared_destination": null
+    },
+    "假释室": {
+      "room_key": "假释室",
+      "map_point": [
+        225,
+        765
+      ],
+      "aliases": [],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "detail",
+      "map_title": {
+        "image": "templates/reforming_center/map_09.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          721,
+          302,
+          56,
+          23
+        ],
+        "title_center_offset": [
+          28.0,
+          11.5
+        ],
+        "mask": "templates/reforming_center/map_09.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_09.png",
+        "kind": "white_text",
+        "source_id": "a84588ee-d644-4f7d-a65f-88eb412d9ea3",
+        "source_bbox_xywh": [
+          108,
+          258,
+          106,
+          39
+        ],
+        "title_center_offset": [
+          53.0,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_09.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_08_title.png",
+          "kind": "white_text",
+          "source_id": "68445bcb-cc49-4610-9dee-1dfd44af8790",
+          "source_bbox_xywh": [
+            478,
+            13,
+            101,
+            32
+          ],
+          "title_center_offset": [
+            50.5,
+            16.0
+          ],
+          "mask": "templates/reforming_center/destination_08_title.mask.png",
+          "search_region": [
+            466,
+            1,
+            125,
+            56
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_08_parole_all.png",
+          "kind": "color",
+          "source_id": "68445bcb-cc49-4610-9dee-1dfd44af8790",
+          "source_bbox_xywh": [
+            876,
+            149,
+            93,
+            27
+          ],
+          "title_center_offset": [
+            46.5,
+            13.5
+          ],
+          "search_region": [
+            864,
+            137,
+            117,
+            51
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "安保中心": {
+      "room_key": "安保中心",
+      "map_point": [
+        -110,
+        885
+      ],
+      "aliases": [
+        "保安中心"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "selection_only",
+      "map_title": {
+        "image": "templates/reforming_center/map_10.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          367,
+          422,
+          74,
+          23
+        ],
+        "title_center_offset": [
+          37.0,
+          11.5
+        ],
+        "mask": "templates/reforming_center/map_10.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_10.png",
+        "kind": "white_text",
+        "source_id": "44b52e42-f96a-4988-8e02-bfd0898dbd07",
+        "source_bbox_xywh": [
+          108,
+          258,
+          143,
+          39
+        ],
+        "title_center_offset": [
+          71.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_10.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [],
+      "shared_destination": null
+    },
+    "囚犯管理中心": {
+      "room_key": "囚犯管理中心",
+      "map_point": [
+        225,
+        885
+      ],
+      "aliases": [
+        "管理中心"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_11.png",
+        "kind": "white_text",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "source_bbox_xywh": [
+          721,
+          422,
+          108,
+          23
+        ],
+        "title_center_offset": [
+          54.0,
+          11.5
+        ],
+        "mask": "templates/reforming_center/map_11.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_14_roster.png",
+          "kind": "white_text",
+          "source_id": "31793e96-0b44-4f99-adf8-194c238fb496",
+          "source_bbox_xywh": [
+            258,
+            21,
+            101,
+            32
+          ],
+          "title_center_offset": [
+            50.5,
+            16.0
+          ],
+          "mask": "templates/reforming_center/destination_14_roster.mask.png",
+          "search_region": [
+            246,
+            9,
+            125,
+            56
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_14_admit.png",
+          "kind": "white_text",
+          "source_id": "31793e96-0b44-4f99-adf8-194c238fb496",
+          "source_bbox_xywh": [
+            1115,
+            673,
+            122,
+            24
+          ],
+          "title_center_offset": [
+            61.0,
+            12.0
+          ],
+          "mask": "templates/reforming_center/destination_14_admit.mask.png",
+          "search_region": [
+            1103,
+            661,
+            146,
+            48
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "成品仓库": {
+      "room_key": "成品仓库",
+      "map_point": [
+        -175,
+        1020
+      ],
+      "aliases": [
+        "成品库"
+      ],
+      "click_offset": [
+        260,
+        75
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_12.png",
+        "kind": "white_text",
+        "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
+        "source_bbox_xywh": [
+          92,
+          217,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_12.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_12_raw_warehouse.png",
+          "kind": "white_text",
+          "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
+          "source_bbox_xywh": [
+            1124,
+            211,
+            89,
+            23
+          ],
+          "title_center_offset": [
+            44.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_12_raw_warehouse.mask.png",
+          "search_region": [
+            1112,
+            199,
+            113,
+            47
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_12_product_warehouse.png",
+          "kind": "white_text",
+          "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
+          "source_bbox_xywh": [
+            1124,
+            544,
+            89,
+            23
+          ],
+          "title_center_offset": [
+            44.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_12_product_warehouse.mask.png",
+          "search_region": [
+            1112,
+            532,
+            113,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "warehouse"
+    },
+    "原料仓库": {
+      "room_key": "原料仓库",
+      "map_point": [
+        -175,
+        1195
+      ],
+      "aliases": [
+        "原料库"
+      ],
+      "click_offset": [
+        260,
+        75
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_13.png",
+        "kind": "white_text",
+        "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
+        "source_bbox_xywh": [
+          92,
+          389,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_13.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_12_raw_warehouse.png",
+          "kind": "white_text",
+          "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
+          "source_bbox_xywh": [
+            1124,
+            211,
+            89,
+            23
+          ],
+          "title_center_offset": [
+            44.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_12_raw_warehouse.mask.png",
+          "search_region": [
+            1112,
+            199,
+            113,
+            47
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_12_product_warehouse.png",
+          "kind": "white_text",
+          "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
+          "source_bbox_xywh": [
+            1124,
+            544,
+            89,
+            23
+          ],
+          "title_center_offset": [
+            44.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_12_product_warehouse.mask.png",
+          "search_region": [
+            1112,
+            532,
+            113,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "warehouse"
+    },
+    "植物纤维原料车间": {
+      "room_key": "植物纤维原料车间",
+      "map_point": [
+        875,
+        525
+      ],
+      "aliases": [
+        "植物纤维车间",
+        "植物纤维原料"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "production",
+      "map_title": {
+        "image": "templates/reforming_center/map_14.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          335,
+          161,
+          139,
+          22
+        ],
+        "title_center_offset": [
+          69.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_14.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [
+        {
+          "image": "templates/reforming_center/map_14_variant_00.png",
+          "kind": "white_text",
+          "source_id": "01591961-4b5e-484f-854f-550b8ba5ce86",
+          "source_bbox_xywh": [
+            665,
+            204,
+            139,
+            22
+          ],
+          "title_center_offset": [
+            69.5,
+            11.0
+          ],
+          "mask": "templates/reforming_center/map_14_variant_00.mask.png",
+          "search_region": [
+            0,
+            90,
+            1280,
+            630
+          ]
+        }
+      ],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_14.png",
+        "kind": "white_text",
+        "source_id": "b0ec2014-d352-471d-a5ed-6e481656b87e",
+        "source_bbox_xywh": [
+          108,
+          258,
+          283,
+          39
+        ],
+        "title_center_offset": [
+          141.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_14.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_00_title.png",
+          "kind": "white_text",
+          "source_id": "f81060c5-b490-4b80-8a5e-b802456c7176",
+          "source_bbox_xywh": [
+            362,
+            22,
+            214,
+            30
+          ],
+          "title_center_offset": [
+            107.0,
+            15.0
+          ],
+          "mask": "templates/reforming_center/destination_00_title.mask.png",
+          "search_region": [
+            350,
+            10,
+            238,
+            54
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_00_select_prisoner.png",
+          "kind": "white_text",
+          "source_id": "f81060c5-b490-4b80-8a5e-b802456c7176",
+          "source_bbox_xywh": [
+            877,
+            656,
+            77,
+            25
+          ],
+          "title_center_offset": [
+            38.5,
+            12.5
+          ],
+          "mask": "templates/reforming_center/destination_00_select_prisoner.mask.png",
+          "search_region": [
+            865,
+            644,
+            101,
+            49
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "动物纤维原料车间": {
+      "room_key": "动物纤维原料车间",
+      "map_point": [
+        1200,
+        525
+      ],
+      "aliases": [
+        "动物纤维车间",
+        "动物纤维原料"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "production",
+      "map_title": {
+        "image": "templates/reforming_center/map_15.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          688,
+          161,
+          139,
+          22
+        ],
+        "title_center_offset": [
+          69.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_15.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_15.png",
+        "kind": "white_text",
+        "source_id": "7601cdf5-1c39-4754-a3a2-11a5a5e81944",
+        "source_bbox_xywh": [
+          65,
+          270,
+          253,
+          37
+        ],
+        "title_center_offset": [
+          126.5,
+          18.5
+        ],
+        "mask": "templates/reforming_center/selected_15.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_01_title.png",
+          "kind": "white_text",
+          "source_id": "f242fc14-93b2-4006-85a1-1a55df25b4f7",
+          "source_bbox_xywh": [
+            362,
+            22,
+            214,
+            30
+          ],
+          "title_center_offset": [
+            107.0,
+            15.0
+          ],
+          "mask": "templates/reforming_center/destination_01_title.mask.png",
+          "search_region": [
+            350,
+            10,
+            238,
+            54
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_01_select_prisoner.png",
+          "kind": "white_text",
+          "source_id": "f242fc14-93b2-4006-85a1-1a55df25b4f7",
+          "source_bbox_xywh": [
+            877,
+            656,
+            77,
+            25
+          ],
+          "title_center_offset": [
+            38.5,
+            12.5
+          ],
+          "mask": "templates/reforming_center/destination_01_select_prisoner.mask.png",
+          "search_region": [
+            865,
+            644,
+            101,
+            49
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "缝纫工具原料车间": {
+      "room_key": "缝纫工具原料车间",
+      "map_point": [
+        875,
+        645
+      ],
+      "aliases": [
+        "缝工具原料车间",
+        "缝纫工具车间"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "production",
+      "map_title": {
+        "image": "templates/reforming_center/map_16.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          335,
+          281,
+          139,
+          22
+        ],
+        "title_center_offset": [
+          69.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_16.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_16.png",
+        "kind": "white_text",
+        "source_id": "a9cf78d6-d85c-4ae2-a169-0866e6e5fcfe",
+        "source_bbox_xywh": [
+          108,
+          258,
+          283,
+          39
+        ],
+        "title_center_offset": [
+          141.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_16.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_02_title.png",
+          "kind": "white_text",
+          "source_id": "77cf1072-27f0-40f2-bc3b-a51866c3c61f",
+          "source_bbox_xywh": [
+            362,
+            22,
+            214,
+            30
+          ],
+          "title_center_offset": [
+            107.0,
+            15.0
+          ],
+          "mask": "templates/reforming_center/destination_02_title.mask.png",
+          "search_region": [
+            350,
+            10,
+            238,
+            54
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_02_select_prisoner.png",
+          "kind": "white_text",
+          "source_id": "77cf1072-27f0-40f2-bc3b-a51866c3c61f",
+          "source_bbox_xywh": [
+            877,
+            656,
+            77,
+            25
+          ],
+          "title_center_offset": [
+            38.5,
+            12.5
+          ],
+          "mask": "templates/reforming_center/destination_02_select_prisoner.mask.png",
+          "search_region": [
+            865,
+            644,
+            101,
+            49
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "人造纤维原料车间": {
+      "room_key": "人造纤维原料车间",
+      "map_point": [
+        1200,
+        645
+      ],
+      "aliases": [
+        "人造纤维车间",
+        "人造纤维原料"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "production",
+      "map_title": {
+        "image": "templates/reforming_center/map_17.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          688,
+          281,
+          139,
+          22
+        ],
+        "title_center_offset": [
+          69.5,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_17.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_17.png",
+        "kind": "white_text",
+        "source_id": "f680705d-8d5f-43d0-a8c6-b5ad63399055",
+        "source_bbox_xywh": [
+          108,
+          258,
+          283,
+          39
+        ],
+        "title_center_offset": [
+          141.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_17.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_03_title.png",
+          "kind": "white_text",
+          "source_id": "3bca14b5-ed29-4b16-8e2a-adab68280a41",
+          "source_bbox_xywh": [
+            362,
+            22,
+            214,
+            30
+          ],
+          "title_center_offset": [
+            107.0,
+            15.0
+          ],
+          "mask": "templates/reforming_center/destination_03_title.mask.png",
+          "search_region": [
+            350,
+            10,
+            238,
+            54
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_03_select_prisoner.png",
+          "kind": "white_text",
+          "source_id": "3bca14b5-ed29-4b16-8e2a-adab68280a41",
+          "source_bbox_xywh": [
+            877,
+            656,
+            77,
+            25
+          ],
+          "title_center_offset": [
+            38.5,
+            12.5
+          ],
+          "mask": "templates/reforming_center/destination_03_select_prisoner.mask.png",
+          "search_region": [
+            865,
+            644,
+            101,
+            49
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "研发中心": {
+      "room_key": "研发中心",
+      "map_point": [
+        875,
+        765
+      ],
+      "aliases": [
+        "研究中心"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "detail",
+      "map_title": {
+        "image": "templates/reforming_center/map_18.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          335,
+          398,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_18.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_18.png",
+        "kind": "white_text",
+        "source_id": "8c0ab801-994c-4868-aa4f-b37577673d7b",
+        "source_bbox_xywh": [
+          108,
+          258,
+          143,
+          39
+        ],
+        "title_center_offset": [
+          71.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_18.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_04_title.png",
+          "kind": "white_text",
+          "source_id": "1927e684-9826-45b5-a9ee-5d3a2cb97c42",
+          "source_bbox_xywh": [
+            525,
+            101,
+            92,
+            28
+          ],
+          "title_center_offset": [
+            46.0,
+            14.0
+          ],
+          "mask": "templates/reforming_center/destination_04_title.mask.png",
+          "search_region": [
+            513,
+            89,
+            116,
+            52
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_04_research_formula.png",
+          "kind": "color",
+          "source_id": "1927e684-9826-45b5-a9ee-5d3a2cb97c42",
+          "source_bbox_xywh": [
+            904,
+            94,
+            73,
+            25
+          ],
+          "title_center_offset": [
+            36.5,
+            12.5
+          ],
+          "search_region": [
+            892,
+            82,
+            97,
+            49
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "电力中心": {
+      "room_key": "电力中心",
+      "map_point": [
+        1200,
+        765
+      ],
+      "aliases": [],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "selection_only",
+      "map_title": {
+        "image": "templates/reforming_center/map_19.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          688,
+          398,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_19.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_19.png",
+        "kind": "white_text",
+        "source_id": "9c1b5a17-183d-46e9-9fff-1cc6c5044e9c",
+        "source_bbox_xywh": [
+          108,
+          258,
+          143,
+          39
+        ],
+        "title_center_offset": [
+          71.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_19.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [],
+      "shared_destination": null
+    },
+    "财务中心": {
+      "room_key": "财务中心",
+      "map_point": [
+        875,
+        885
+      ],
+      "aliases": [],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_20.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          335,
+          518,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_20.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_15_title.png",
+          "kind": "white_text",
+          "source_id": "1f89a7d6-4a2c-4510-adb4-882c4dca38f8",
+          "source_bbox_xywh": [
+            594,
+            174,
+            173,
+            44
+          ],
+          "title_center_offset": [
+            86.5,
+            22.0
+          ],
+          "mask": "templates/reforming_center/destination_15_title.mask.png",
+          "search_region": [
+            582,
+            162,
+            197,
+            68
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_15_deposit.png",
+          "kind": "white_text",
+          "source_id": "1f89a7d6-4a2c-4510-adb4-882c4dca38f8",
+          "source_bbox_xywh": [
+            946,
+            483,
+            96,
+            26
+          ],
+          "title_center_offset": [
+            48.0,
+            13.0
+          ],
+          "mask": "templates/reforming_center/destination_15_deposit.mask.png",
+          "search_region": [
+            934,
+            471,
+            120,
+            50
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "转运中心": {
+      "room_key": "转运中心",
+      "map_point": [
+        1200,
+        885
+      ],
+      "aliases": [
+        "运输中心"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "detail",
+      "map_title": {
+        "image": "templates/reforming_center/map_21.png",
+        "kind": "white_text",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "source_bbox_xywh": [
+          688,
+          518,
+          72,
+          22
+        ],
+        "title_center_offset": [
+          36.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_21.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "selected_title": {
+        "image": "templates/reforming_center/selected_21.png",
+        "kind": "white_text",
+        "source_id": "85faf0fa-6a0b-4579-a52e-86beefe0d43b",
+        "source_bbox_xywh": [
+          108,
+          258,
+          143,
+          39
+        ],
+        "title_center_offset": [
+          71.5,
+          19.5
+        ],
+        "mask": "templates/reforming_center/selected_21.mask.png",
+        "search_region": [
+          0,
+          180,
+          800,
+          350
+        ]
+      },
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_05_title.png",
+          "kind": "white_text",
+          "source_id": "b98b7f19-48f7-4344-9e2e-120e85e3fef1",
+          "source_bbox_xywh": [
+            948,
+            24,
+            140,
+            35
+          ],
+          "title_center_offset": [
+            70.0,
+            17.5
+          ],
+          "mask": "templates/reforming_center/destination_05_title.mask.png",
+          "search_region": [
+            936,
+            12,
+            164,
+            59
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_05_goods_transport.png",
+          "kind": "color",
+          "source_id": "b98b7f19-48f7-4344-9e2e-120e85e3fef1",
+          "source_bbox_xywh": [
+            884,
+            631,
+            92,
+            27
+          ],
+          "title_center_offset": [
+            46.0,
+            13.5
+          ],
+          "search_region": [
+            872,
+            619,
+            116,
+            51
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "黑月订单站": {
+      "room_key": "黑月订单站",
+      "map_point": [
+        875,
+        1015
+      ],
+      "aliases": [
+        "黑月订单"
+      ],
+      "click_offset": [
+        180,
+        70
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_22.png",
+        "kind": "white_text",
+        "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
+        "source_bbox_xywh": [
+          509,
+          217,
+          90,
+          22
+        ],
+        "title_center_offset": [
+          45.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_22.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_13_title.png",
+          "kind": "white_text",
+          "source_id": "61602bd8-7c99-42b2-a7bf-6c829209fbc8",
+          "source_bbox_xywh": [
+            861,
+            156,
+            203,
+            45
+          ],
+          "title_center_offset": [
+            101.5,
+            22.5
+          ],
+          "mask": "templates/reforming_center/destination_13_title.mask.png",
+          "search_region": [
+            849,
+            144,
+            227,
+            69
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_13_transport_orders.png",
+          "kind": "color",
+          "source_id": "61602bd8-7c99-42b2-a7bf-6c829209fbc8",
+          "source_bbox_xywh": [
+            794,
+            309,
+            91,
+            26
+          ],
+          "title_center_offset": [
+            45.5,
+            13.0
+          ],
+          "search_region": [
+            782,
+            297,
+            115,
+            50
+          ]
+        }
+      ],
+      "shared_destination": null
+    },
+    "原料采购站": {
+      "room_key": "原料采购站",
+      "map_point": [
+        875,
+        1185
+      ],
+      "aliases": [
+        "原料采购"
+      ],
+      "click_offset": [
+        250,
+        75
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_23.png",
+        "kind": "white_text",
+        "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
+        "source_bbox_xywh": [
+          509,
+          389,
+          90,
+          22
+        ],
+        "title_center_offset": [
+          45.0,
+          11.0
+        ],
+        "mask": "templates/reforming_center/map_23.mask.png",
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [
+        {
+          "image": "templates/reforming_center/map_23_variant_00.png",
+          "kind": "white_text",
+          "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
+          "source_bbox_xywh": [
+            1106,
+            389,
+            90,
+            22
+          ],
+          "title_center_offset": [
+            45.0,
+            11.0
+          ],
+          "mask": "templates/reforming_center/map_23_variant_00.mask.png",
+          "search_region": [
+            0,
+            90,
+            1280,
+            630
+          ]
+        }
+      ],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/destination_11_purchase_list.png",
+          "kind": "white_text",
+          "source_id": "15cb14c9-fa01-4b3f-a5a5-8293e9104b95",
+          "source_bbox_xywh": [
+            264,
+            546,
+            170,
+            33
+          ],
+          "title_center_offset": [
+            85.0,
+            16.5
+          ],
+          "mask": "templates/reforming_center/destination_11_purchase_list.mask.png",
+          "search_region": [
+            252,
+            534,
+            194,
+            57
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_11_one_click_purchase.png",
+          "kind": "white_text",
+          "source_id": "15cb14c9-fa01-4b3f-a5a5-8293e9104b95",
+          "source_bbox_xywh": [
+            297,
+            654,
+            96,
+            24
+          ],
+          "title_center_offset": [
+            48.0,
+            12.0
+          ],
+          "mask": "templates/reforming_center/destination_11_one_click_purchase.mask.png",
+          "search_region": [
+            285,
+            642,
+            120,
+            48
+          ]
+        }
+      ],
+      "shared_destination": null
+    }
+  },
+  "buttons": {
+    "production": {
+      "image": "templates/reforming_center/button_production.png",
+      "kind": "color",
+      "source_id": "b0ec2014-d352-471d-a5ed-6e481656b87e",
+      "source_bbox_xywh": [
+        721,
+        302,
+        126,
+        36
+      ],
+      "title_center_offset": [
+        63.0,
+        18.0
+      ],
+      "search_region": [
+        650,
+        260,
+        300,
+        210
+      ]
+    },
+    "detail": {
+      "image": "templates/reforming_center/button_detail.png",
+      "kind": "color",
+      "source_id": "31214f9e-928e-4bbe-904d-6cd9abc7f32c",
+      "source_bbox_xywh": [
+        721,
+        302,
+        126,
+        36
+      ],
+      "title_center_offset": [
+        63.0,
+        18.0
+      ],
+      "search_region": [
+        650,
+        260,
+        300,
+        210
+      ]
+    },
+    "construction": {
+      "image": "templates/reforming_center/button_construction.png",
+      "kind": "color",
+      "source_id": "12707809-50d9-4bcd-b0b2-dce974ce1cff",
+      "source_bbox_xywh": [
+        721,
+        333,
+        126,
+        36
+      ],
+      "title_center_offset": [
+        63.0,
+        18.0
+      ],
+      "search_region": [
+        650,
+        260,
+        300,
+        210
+      ]
+    }
+  },
+  "unsupported_rooms": [
+    "6号整顿宿舍",
+    "5号整顿宿舍",
+    "4号整顿宿舍",
+    "3号整顿宿舍",
+    "6号生产车间",
+    "5号生产车间",
+    "4号生产车间",
+    "3号生产车间"
+  ],
+  "scope_note": "3-6 dormitories/workshops have no supplied unlocked screenshots. Shared destination markers do not prove room number independently."
+}
