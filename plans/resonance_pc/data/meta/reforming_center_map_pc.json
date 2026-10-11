@@ -1,0 +1,1157 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "anchor_kind": "template_center",
+  "coordinate_model": "screen_anchor = world_anchor + viewport_offset; x right, y down",
+  "rooms": {
+    "1号整顿宿舍": {
+      "world_anchor": [
+        21.0,
+        -344.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "1号生产车间",
+        "2号整顿宿舍",
+        "2号生产车间",
+        "植物纤维原料车间"
+      ],
+      "source_frames": [
+        "overview_00"
+      ]
+    },
+    "1号生产车间": {
+      "world_anchor": [
+        669.0,
+        -344.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "1号整顿宿舍",
+        "2号整顿宿舍",
+        "2号生产车间",
+        "植物纤维原料车间"
+      ],
+      "source_frames": [
+        "overview_00"
+      ]
+    },
+    "2号整顿宿舍": {
+      "world_anchor": [
+        21.0,
+        -461.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "1号整顿宿舍",
+        "1号生产车间",
+        "2号生产车间",
+        "植物纤维原料车间"
+      ],
+      "source_frames": [
+        "overview_00"
+      ]
+    },
+    "2号生产车间": {
+      "world_anchor": [
+        669.0,
+        -461.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "1号整顿宿舍",
+        "1号生产车间",
+        "2号整顿宿舍",
+        "植物纤维原料车间"
+      ],
+      "source_frames": [
+        "overview_00"
+      ]
+    },
+    "人造纤维原料车间": {
+      "world_anchor": [
+        1042.0,
+        1.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "假释室": {
+      "world_anchor": [
+        0.0,
+        117.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "医务室",
+        "囚犯管理中心",
+        "安保中心",
+        "成品仓库",
+        "探视室",
+        "放风场地",
+        "禁闭室",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_05",
+        "overview_06"
+      ]
+    },
+    "动物纤维原料车间": {
+      "world_anchor": [
+        1042.0,
+        -118.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "医务室": {
+      "world_anchor": [
+        0.0,
+        0.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "囚犯管理中心",
+        "安保中心",
+        "成品仓库",
+        "探视室",
+        "放风场地",
+        "禁闭室",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_05",
+        "overview_06"
+      ]
+    },
+    "原料仓库": {
+      "world_anchor": [
+        -353.0,
+        552.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "原料采购站",
+        "成品仓库",
+        "黑月订单站"
+      ],
+      "source_frames": [
+        "overview_04"
+      ]
+    },
+    "原料采购站": {
+      "world_anchor": [
+        670.0,
+        552.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "原料仓库",
+        "成品仓库",
+        "黑月订单站"
+      ],
+      "source_frames": [
+        "overview_03",
+        "overview_04"
+      ]
+    },
+    "囚犯管理中心": {
+      "world_anchor": [
+        26.0,
+        237.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "安保中心",
+        "成品仓库",
+        "探视室",
+        "放风场地",
+        "禁闭室",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_05",
+        "overview_06"
+      ]
+    },
+    "安保中心": {
+      "world_anchor": [
+        -345.0,
+        237.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "囚犯管理中心",
+        "成品仓库",
+        "探视室",
+        "禁闭室"
+      ],
+      "source_frames": [
+        "overview_05"
+      ]
+    },
+    "成品仓库": {
+      "world_anchor": [
+        -353.0,
+        380.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "原料仓库",
+        "原料采购站",
+        "囚犯管理中心",
+        "安保中心",
+        "探视室",
+        "禁闭室",
+        "黑月订单站"
+      ],
+      "source_frames": [
+        "overview_04",
+        "overview_05"
+      ]
+    },
+    "探视室": {
+      "world_anchor": [
+        -354.0,
+        117.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "囚犯管理中心",
+        "安保中心",
+        "成品仓库",
+        "放风场地",
+        "禁闭室",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_05",
+        "overview_06"
+      ]
+    },
+    "放风场地": {
+      "world_anchor": [
+        -419.0,
+        -119.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "囚犯管理中心",
+        "探视室",
+        "禁闭室",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_06"
+      ]
+    },
+    "植物纤维原料车间": {
+      "world_anchor": [
+        689.0,
+        -119.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "1号整顿宿舍",
+        "1号生产车间",
+        "2号整顿宿舍",
+        "2号生产车间",
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_00",
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "电力中心": {
+      "world_anchor": [
+        1009.0,
+        118.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "研发中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "研发中心": {
+      "world_anchor": [
+        656.0,
+        118.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "禁闭室": {
+      "world_anchor": [
+        -354.0,
+        0.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "假释室",
+        "医务室",
+        "囚犯管理中心",
+        "安保中心",
+        "成品仓库",
+        "探视室",
+        "放风场地",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_05",
+        "overview_06"
+      ]
+    },
+    "缝纫工具原料车间": {
+      "world_anchor": [
+        689.0,
+        1.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "财务中心",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "财务中心": {
+      "world_anchor": [
+        656.0,
+        238.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "缝纫工具原料车间",
+        "转运中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "转运中心": {
+      "world_anchor": [
+        1009.0,
+        238.875
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "动物纤维原料车间",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "缝纫工具原料车间",
+        "财务中心",
+        "餐厅"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_02"
+      ]
+    },
+    "餐厅": {
+      "world_anchor": [
+        -9.0,
+        -119.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "人造纤维原料车间",
+        "假释室",
+        "动物纤维原料车间",
+        "医务室",
+        "囚犯管理中心",
+        "探视室",
+        "放风场地",
+        "植物纤维原料车间",
+        "电力中心",
+        "研发中心",
+        "禁闭室",
+        "缝纫工具原料车间",
+        "财务中心",
+        "转运中心"
+      ],
+      "source_frames": [
+        "overview_01",
+        "overview_06"
+      ]
+    },
+    "黑月订单站": {
+      "world_anchor": [
+        670.0,
+        380.0
+      ],
+      "component": 0,
+      "neighbors": [
+        "原料仓库",
+        "原料采购站",
+        "成品仓库"
+      ],
+      "source_frames": [
+        "overview_03",
+        "overview_04"
+      ]
+    }
+  },
+  "calibration": {
+    "translation_tolerance_px": 5.0,
+    "minimum_shared_anchors": 1,
+    "single_anchor_bridge_cross_validation": "weak; measured identity only",
+    "connected": true,
+    "room_count": 24,
+    "missing_rooms": [],
+    "components": [
+      {
+        "id": 0,
+        "origin_room": "医务室",
+        "frames": [
+          "overview_00",
+          "overview_01",
+          "overview_02",
+          "overview_03",
+          "overview_04",
+          "overview_05",
+          "overview_06"
+        ],
+        "room_count": 24,
+        "maximum_residual_px": 0.875,
+        "rms_residual_px": 0.204124,
+        "frame_offsets": {
+          "overview_00": [
+            207.0,
+            731.125
+          ],
+          "overview_01": [
+            45.0,
+            335.0
+          ],
+          "overview_02": [
+            -285.0,
+            290.25
+          ],
+          "overview_03": [
+            -116.0,
+            -152.0
+          ],
+          "overview_04": [
+            481.0,
+            -152.0
+          ],
+          "overview_05": [
+            749.0,
+            196.0
+          ],
+          "overview_06": [
+            700.0,
+            367.0
+          ]
+        },
+        "anchor_residuals": [
+          {
+            "frame": "overview_00",
+            "room": "2号整顿宿舍",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_00",
+            "room": "1号整顿宿舍",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_00",
+            "room": "2号生产车间",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_00",
+            "room": "1号生产车间",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_00",
+            "room": "植物纤维原料车间",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_01",
+            "room": "植物纤维原料车间",
+            "max_error_px": 0.875
+          },
+          {
+            "frame": "overview_01",
+            "room": "动物纤维原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "缝纫工具原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "人造纤维原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "研发中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "电力中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "财务中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "转运中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_01",
+            "room": "餐厅",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_02",
+            "room": "植物纤维原料车间",
+            "max_error_px": 0.875
+          },
+          {
+            "frame": "overview_02",
+            "room": "动物纤维原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "缝纫工具原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "人造纤维原料车间",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "研发中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "电力中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "财务中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_02",
+            "room": "转运中心",
+            "max_error_px": 0.125
+          },
+          {
+            "frame": "overview_03",
+            "room": "黑月订单站",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_03",
+            "room": "原料采购站",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_04",
+            "room": "成品仓库",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_04",
+            "room": "原料仓库",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_04",
+            "room": "黑月订单站",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_04",
+            "room": "原料采购站",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "禁闭室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "医务室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "探视室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "假释室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "安保中心",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "囚犯管理中心",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_05",
+            "room": "成品仓库",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "放风场地",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "餐厅",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "禁闭室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "医务室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "探视室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "假释室",
+            "max_error_px": 0.0
+          },
+          {
+            "frame": "overview_06",
+            "room": "囚犯管理中心",
+            "max_error_px": 0.0
+          }
+        ]
+      }
+    ],
+    "frame_links": [
+      {
+        "frames": [
+          "overview_00",
+          "overview_01"
+        ],
+        "shared_rooms": [
+          "植物纤维原料车间"
+        ],
+        "delta": [
+          -162.0,
+          -397.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "single_shared_room_bridge"
+      },
+      {
+        "frames": [
+          "overview_00",
+          "overview_02"
+        ],
+        "shared_rooms": [
+          "植物纤维原料车间"
+        ],
+        "delta": [
+          -492.0,
+          -440.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "single_shared_room_bridge"
+      },
+      {
+        "frames": [
+          "overview_01",
+          "overview_02"
+        ],
+        "shared_rooms": [
+          "人造纤维原料车间",
+          "动物纤维原料车间",
+          "植物纤维原料车间",
+          "电力中心",
+          "研发中心",
+          "缝纫工具原料车间",
+          "财务中心",
+          "转运中心"
+        ],
+        "delta": [
+          -330.0,
+          -45.0
+        ],
+        "max_error_px": 2.0,
+        "evidence": "multiple_shared_anchors"
+      },
+      {
+        "frames": [
+          "overview_01",
+          "overview_06"
+        ],
+        "shared_rooms": [
+          "餐厅"
+        ],
+        "delta": [
+          655.0,
+          32.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "single_shared_room_bridge"
+      },
+      {
+        "frames": [
+          "overview_03",
+          "overview_04"
+        ],
+        "shared_rooms": [
+          "原料采购站",
+          "黑月订单站"
+        ],
+        "delta": [
+          597.0,
+          0.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "multiple_shared_anchors"
+      },
+      {
+        "frames": [
+          "overview_04",
+          "overview_05"
+        ],
+        "shared_rooms": [
+          "成品仓库"
+        ],
+        "delta": [
+          268.0,
+          348.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "single_shared_room_bridge"
+      },
+      {
+        "frames": [
+          "overview_05",
+          "overview_06"
+        ],
+        "shared_rooms": [
+          "假释室",
+          "医务室",
+          "囚犯管理中心",
+          "探视室",
+          "禁闭室"
+        ],
+        "delta": [
+          -49.0,
+          171.0
+        ],
+        "max_error_px": 0.0,
+        "evidence": "multiple_shared_anchors"
+      }
+    ],
+    "source_conflicts": [],
+    "missing_sources": [
+      "2248c2f8-52e3-4e86-b54a-3b6f3001f60e",
+      "f0bd1e9c-8fe4-47f4-a558-7e6bbf0bcd51",
+      "411fa13f-37bf-440d-9697-86b7e838dc4c",
+      "bece2ff0-47f6-4cfa-bcc8-ed4895a79e3f",
+      "885922f9-c67b-4698-849e-fd24a19dabb8",
+      "cfa19fd5-ea94-47cb-be7e-c7d722749182",
+      "63de3cd5-91f2-4c6b-bb59-17ef1d3b5325"
+    ],
+    "sources": [
+      {
+        "id": "overview_00",
+        "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
+        "sha256": "0ca562d27e5c15686c359b43ea7c17554762811c7dfe15bb366d25c485bf8b0c",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "2号整顿宿舍": [
+            228,
+            270
+          ],
+          "1号整顿宿舍": [
+            228,
+            387
+          ],
+          "2号生产车间": [
+            876,
+            270
+          ],
+          "1号生产车间": [
+            876,
+            387
+          ],
+          "植物纤维原料车间": [
+            896,
+            612
+          ]
+        }
+      },
+      {
+        "id": "overview_01",
+        "source_id": "01591961-4b5e-484f-854f-550b8ba5ce86",
+        "sha256": "ab38c850554dcc4c948510ebc9dfd0c3cc7c1246a5637e76221027e59a3d98b6",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "植物纤维原料车间": [
+            734,
+            215
+          ],
+          "动物纤维原料车间": [
+            1087,
+            217
+          ],
+          "缝纫工具原料车间": [
+            734,
+            337
+          ],
+          "人造纤维原料车间": [
+            1087,
+            337
+          ],
+          "研发中心": [
+            701,
+            454
+          ],
+          "电力中心": [
+            1054,
+            454
+          ],
+          "财务中心": [
+            701,
+            574
+          ],
+          "转运中心": [
+            1054,
+            574
+          ],
+          "餐厅": [
+            36,
+            216
+          ]
+        },
+        "bridge_measurements": [
+          {
+            "room": "餐厅",
+            "search_region": [
+              0,
+              185,
+              120,
+              50
+            ],
+            "center": [
+              36,
+              216
+            ],
+            "score": 0.940185
+          },
+          {
+            "room": "餐厅",
+            "search_region": [
+              0,
+              185,
+              120,
+              50
+            ],
+            "center": [
+              36,
+              216
+            ],
+            "score": 0.940185
+          }
+        ]
+      },
+      {
+        "id": "overview_02",
+        "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
+        "sha256": "f414f4f5e2f1a0a652cbb7f26cec0eb03d5c8f6feded73d95cc10e860ea7df24",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "植物纤维原料车间": [
+            404,
+            172
+          ],
+          "动物纤维原料车间": [
+            757,
+            172
+          ],
+          "缝纫工具原料车间": [
+            404,
+            292
+          ],
+          "人造纤维原料车间": [
+            757,
+            292
+          ],
+          "研发中心": [
+            371,
+            409
+          ],
+          "电力中心": [
+            724,
+            409
+          ],
+          "财务中心": [
+            371,
+            529
+          ],
+          "转运中心": [
+            724,
+            529
+          ]
+        }
+      },
+      {
+        "id": "overview_03",
+        "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
+        "sha256": "ec509f852c18905e41423618a11c63e96cba507fd62f3f5dc38bc7625b8c3883",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "黑月订单站": [
+            554,
+            228
+          ],
+          "原料采购站": [
+            554,
+            400
+          ]
+        }
+      },
+      {
+        "id": "overview_04",
+        "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
+        "sha256": "66ace3438079e6954eeca499b335f7ac00013621bb52716fc7a39739a069a617",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "成品仓库": [
+            128,
+            228
+          ],
+          "原料仓库": [
+            128,
+            400
+          ],
+          "黑月订单站": [
+            1151,
+            228
+          ],
+          "原料采购站": [
+            1151,
+            400
+          ]
+        }
+      },
+      {
+        "id": "overview_05",
+        "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
+        "sha256": "6adddef2bbdb91eb78b35ad84a50502768161e1d7e89d80ea4bd29c0f6783bf7",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "禁闭室": [
+            395,
+            196
+          ],
+          "医务室": [
+            749,
+            196
+          ],
+          "探视室": [
+            395,
+            313
+          ],
+          "假释室": [
+            749,
+            313
+          ],
+          "安保中心": [
+            404,
+            433
+          ],
+          "囚犯管理中心": [
+            775,
+            433
+          ],
+          "成品仓库": [
+            396,
+            576
+          ]
+        },
+        "manual_visual_annotations": [
+          {
+            "room": "成品仓库",
+            "rect": [
+              360,
+              565,
+              72,
+              22
+            ],
+            "center": [
+              396,
+              576
+            ],
+            "evidence": "manual_visual_annotation",
+            "template_diagnostic_score": 0.818262,
+            "template_threshold": 0.92,
+            "note": "Full room title visually confirmed in original overview fixture; not a matcher pass."
+          }
+        ]
+      },
+      {
+        "id": "overview_06",
+        "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
+        "sha256": "bba83d14af3fd65533f123afc4fbb5c90ac48c4c77a0253dceaac677ae00d04c",
+        "client_crop_xyxy": null,
+        "anchors": {
+          "放风场地": [
+            281,
+            248
+          ],
+          "餐厅": [
+            691,
+            248
+          ],
+          "禁闭室": [
+            346,
+            367
+          ],
+          "医务室": [
+            700,
+            367
+          ],
+          "探视室": [
+            346,
+            484
+          ],
+          "假释室": [
+            700,
+            484
+          ],
+          "囚犯管理中心": [
+            726,
+            604
+          ]
+        }
+      }
+    ]
+  }
+}
