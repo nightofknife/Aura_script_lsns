@@ -269,8 +269,9 @@ def city_rig(monkeypatch):
             return deepcopy(data() if callable(data) else data)
         return invoke
 
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name", result("enter", {}))
-    monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", result("ready", {"ready": True}))
+    monkeypatch.setattr(trade, "_enter_exchange", result("enter", {"menu_ready": {"ready": True}}))
+    monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", lambda *args:
+                        pytest.fail("Confirmed entry must not repeat menu readiness"))
     monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", result("node", {}))
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", result("sell", {
         "success": True, "page_state": "shop_page", "sold_confirmed": False,
@@ -335,7 +336,7 @@ def test_four_modes_continue_route_and_surface_purchase_warnings(
     # Keep the real route leg and city guard; replace only their external UI actions.
     monkeypatch.setattr(trade, "_execute_trade_leg", _REAL_EXECUTE_TRADE_LEG)
     monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city", _REAL_CITY_TRADE)
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name", lambda **kwargs: {})
+    monkeypatch.setattr(trade, "_enter_exchange", lambda **kwargs: {"menu_ready": {"success": True}})
     monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: {})
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", lambda **kwargs: {
         "success": True, "page_state": "shop_page", "sold_confirmed": False,
@@ -371,7 +372,7 @@ def test_passenger_city_trade_uses_new_shared_purchase_without_books_or_negotiat
         "status": "planned", "buy_products": list(buy_rig.requested)})
     monkeypatch.setattr(passenger, "resonance_pc_open_city_panel_from_main", lambda **kwargs: {
         "success": True, "page_state": "city_panel"})
-    monkeypatch.setattr(trade, "resonance_pc_click_city_shop_by_name", lambda **kwargs: {})
+    monkeypatch.setattr(trade, "_enter_exchange", lambda **kwargs: {"menu_ready": {"success": True}})
     monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: {})
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", lambda **kwargs: {
         "success": True, "page_state": "shop_page", "sold_confirmed": False,

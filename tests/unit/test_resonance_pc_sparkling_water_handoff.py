@@ -19,8 +19,7 @@ def recovery_snapshot():
         "status": {"fatigue": {"current": 120, "max": 800}, "clarity": {"current": 80}},
         "recovery": {
             "sparkling_water": {"remaining_free_uses": 3, "daily_free_limit": 6},
-            "work_meals": {"available_count": 2, "slots": [{"count": 2}]},
-            "love_bentos": {"count": 0, "items": []},
+            "bento": {"available_count": 2},
         },
         "metadata": {"persisted": True, "profile_section_updated_at": {"fatigue": "now"}},
         "future_field": {"keep": [1, 2]},
@@ -130,6 +129,14 @@ def test_passenger_failure_never_hands_snapshot_to_trade(harness, recovery_snaps
         **inputs, order="passenger_first", recovery_snapshot=recovery_snapshot,
     ))
     assert result["status"] == "blocked"
+    assert result["reason"] == {
+        "failed": "passenger_failed",
+        "incomplete": "passenger_handoff_invalid",
+        "unsettled": "passenger_handoff_invalid",
+        "mismatch": "passenger_forecast_mismatch",
+    }[failure]
+    assert result["failure_stage"] == ("passenger" if failure == "failed" else "passenger_handoff")
+    assert len(calls["passenger"]) == 1
     assert calls["trade"] == []
     assert recovery_snapshot == original
 
@@ -218,9 +225,9 @@ def test_combined_handoff_enters_real_auto_trade_signature(
             return {"cities": {"11": "City 11", "15": "City 15"}, "costs": {"15": {"11": 0}}}
 
     class Shops:
-        def resolve_shop_point(self, city, shop):
-            assert shop == "rest"
-            return {"x": 1, "y": 2}
+        def resolve_shop_point(self, city_name, shop_name):
+            assert shop_name == "rest"
+            return {"city_key": "key11", "city_name": city_name, "shop_key": "rest", "x": 1, "y": 2}
 
     inputs["resonance_pc_market_data"] = Market()
     inputs["resonance_pc_city_shop_data"] = Shops()

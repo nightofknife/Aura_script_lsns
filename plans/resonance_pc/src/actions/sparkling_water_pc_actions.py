@@ -21,6 +21,7 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ._player_data_persistence import USER_INFO_FILE, load_pc_user_info
+from ._city_shop_entry import CityShopEntryError, enter_city_shop
 
 PLAN_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PLAN_ROOT / "data/meta/sparkling_water.json"
@@ -120,12 +121,13 @@ class SparklingWaterSession:
         self.uncertain_frames = 0
         self.first_uncertain_frame: dict | None = None
 
-    def fail(self, code: str, message: str) -> None:
+    def fail(self, code: str, message: str, detail: dict | None = None) -> None:
         raise SparklingWaterError(code, message, {
             "stage": self.stage, "page_state": self.page,
             "completed_count": self.completed, "matches": copy.deepcopy(self.last_matches),
             "uncertain_frames": self.uncertain_frames,
             "first_uncertain_frame": copy.deepcopy(self.first_uncertain_frame),
+            **(detail or {}),
         })
 
     def record_uncertain_frame(self, key: str, image: np.ndarray, score: float) -> None:
@@ -175,16 +177,21 @@ class SparklingWaterSession:
         )
         _check_cancelled()
         error = (getattr(hit, "debug_info", None) or {}).get("error")
-        if error:
-            self.last_matches[key] = {"valid": False, "error": str(error)}
+        raw_found = getattr(hit, "found", None)
+        if error or type(raw_found) not in (bool, np.bool_):
+            self.last_matches[key] = {"valid": False, "error": str(error or "invalid_found_flag")}
             self.fail("sparkling_water_match_failed", f"Template matching failed: {key}")
-        score = float(hit.confidence)
+        try:
+            score = float(hit.confidence)
+        except (AttributeError, TypeError, ValueError):
+            self.last_matches[key] = {"valid": False, "error": "invalid_confidence"}
+            self.fail("sparkling_water_match_failed", f"Invalid template score: {key}")
         if not math.isfinite(score):
             self.last_matches[key] = {"valid": False, "raw_score": str(score)}
             self.record_uncertain_frame(key, image, score)
             raise _UncertainFrame(key)
         center = getattr(hit, "center_point", None)
-        result = {"found": bool(hit.found), "confidence": float(hit.confidence)}
+        result = {"found": bool(raw_found), "confidence": score}
         if center is not None:
             result["center"] = [roi[0] + int(center[0]), roi[1] + int(center[1])]
         self.last_matches[key] = result
@@ -266,22 +273,23 @@ class SparklingWaterSession:
         return None
 
     async def enter_rest(self, point: dict) -> None:
-        roi = self.layout["city_marker_roi"]
-        city_marker = await asyncio.to_thread(self.capture, roi)
+        self.stage = "enter_rest"
 
-        def city_still_visible() -> dict:
-            hit = self.vision.find_template(
-                source_image=self.capture(roi), template_image=city_marker,
-                use_grayscale=True, threshold=0.90,
+        def rest_menu() -> dict:
+            try:
+                return self.match("rest_menu")
+            except _UncertainFrame:
+                return {"valid": False, "found": False, "confidence": None}
+
+        try:
+            await asyncio.to_thread(
+                enter_city_shop, app=self.app, vision=self.vision, point=point,
+                entry_type="rest_area", page_state="rest_menu", target_probe=rest_menu,
+                click=lambda: self.click([point["x"], point["y"]]), check_cancelled=_check_cancelled,
             )
-            if (getattr(hit, "debug_info", None) or {}).get("error"):
-                self.fail("sparkling_water_city_probe_failed", "City marker matching failed")
-            return {"found": bool(hit.found), "confidence": float(hit.confidence)}
-
-        await self.click_until_gone(
-            city_still_visible, lambda _: self.click([point["x"], point["y"]]), label="enter_rest",
-        )
-        await self.wait_for(lambda: self.match("rest_menu"), lambda hit: hit["found"], label="rest menu")
+        except CityShopEntryError as exc:
+            code = "sparkling_water_transition_timeout" if exc.code == "city_shop_entry_timeout" else exc.code
+            self.fail(code, exc.message, {"entry": exc.detail})
         self.page = "rest_menu"
 
     async def enter_drink_menu(self) -> None:
