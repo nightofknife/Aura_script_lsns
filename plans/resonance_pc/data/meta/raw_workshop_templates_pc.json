@@ -1,0 +1,776 @@
+{
+  "schema_version": 1,
+  "status": "offline_validated_pending_live",
+  "reference_client": [
+    1280,
+    720
+  ],
+  "sources": {
+    "idle_blue": {
+      "source_id": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
+      "filename": "codex-clipboard-bb20fa22-f8b8-4181-b8d0-033e8871ed2f.png",
+      "sha256": "001e424758061f51613955fa1358ea4c7384d655b2270d13a1b820ed64df0d78",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "deposit_dialog": {
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "filename": "codex-clipboard-9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1.png",
+      "sha256": "e07b93fad6854995da783b4372ecb2bbe453c98f46bd077785b006baf2b42959",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "deposit_full": {
+      "source_id": "318ff7c3-ca38-4bd0-ab9c-8296fbe6f98f",
+      "filename": "codex-clipboard-318ff7c3-ca38-4bd0-ab9c-8296fbe6f98f.png",
+      "sha256": "8146caf27f0f0e7526ee4b4a285d871d0d4f282eb1f55ab50e6d7102c84c83ca",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "idle_gray": {
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "filename": "codex-clipboard-3a15c8fd-73a2-42d3-8b29-50457e8022d2.png",
+      "sha256": "7db4e6f890d0889e5fbb4995a896d4b8aa0e009f07e9e2b856f1cc581fc448f3",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "selection_empty": {
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "filename": "codex-clipboard-830fa130-4193-455c-9183-2dc00847b230.png",
+      "sha256": "61d70ab6e68a22b6ce6a67125aaf2e78851c9de5822976e64161c560e93225bb",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "selection_checked": {
+      "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
+      "filename": "codex-clipboard-76ed5e59-122b-47b1-92cd-81a78f2d5aa0.png",
+      "sha256": "65ae02c659e54463b801eadfb633df932dce95be612648735d902ff44dad8b65",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "staff_full": {
+      "source_id": "c36cafc2-1d85-4d13-97cd-824db0eb0b26",
+      "filename": "codex-clipboard-c36cafc2-1d85-4d13-97cd-824db0eb0b26.png",
+      "sha256": "61fed16a4eae5cfaec0d377b7f890c331d3f9e76695bd7136cbe499ac03e37a8",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    },
+    "running": {
+      "source_id": "623785cd-7d53-4a50-8acb-8086f4964f5d",
+      "filename": "codex-clipboard-623785cd-7d53-4a50-8acb-8086f4964f5d.png",
+      "sha256": "dc41ddb6ddb695f791796b883dffe727d2533b75cde5099fa0363a5d51a2e440",
+      "dimensions": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        25,
+        56,
+        1305,
+        776
+      ]
+    }
+  },
+  "method": "Manual pixel boxes cropped from user screenshots; no OCR; no generated template glyphs",
+  "color_contract": "PNG preserves native RGB; OpenCV loading yields BGR; runtime captures must convert RGB to BGR once",
+  "matching_tested": false,
+  "click_points": {
+    "deposit": [
+      400,
+      440
+    ],
+    "deposit_max": [
+      895,
+      380
+    ],
+    "deposit_confirm": [
+      960,
+      535
+    ],
+    "work_tab": [
+      730,
+      300
+    ],
+    "reserve_tab": [
+      1060,
+      300
+    ],
+    "choose_prisoners": [
+      885,
+      670
+    ],
+    "select_all": [
+      935,
+      670
+    ],
+    "staff_confirm": [
+      1150,
+      670
+    ],
+    "start": [
+      265,
+      675
+    ]
+  },
+  "missing_source_states": [
+    "替补页签已选中／工作页签未选中的真实画面",
+    "点击最多之后，滑块位于最大位置的真实画面",
+    "生产中切换到替补名单并出现选择囚犯入口的真实画面"
+  ],
+  "assets": [
+    {
+      "id": "A01",
+      "name": "deposit_button",
+      "label": "预存按钮",
+      "image": "templates/reforming_center/raw_workshop/deposit_button.png",
+      "source": "idle_blue",
+      "source_id": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
+      "client_bbox_xywh": [
+        330,
+        420,
+        140,
+        40
+      ],
+      "screen_bbox_xywh": [
+        355,
+        476,
+        140,
+        40
+      ],
+      "role": "control",
+      "note": "保留黄色背景、图标和文字",
+      "sha256": "0946ff8cd5f25ce13aaaed58303cbd0eb14f2cfb536cbf5933a36b22ed4619c5"
+    },
+    {
+      "id": "A02",
+      "name": "deposit_max",
+      "label": "金额层：最多",
+      "image": "templates/reforming_center/raw_workshop/deposit_max.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        865,
+        350,
+        60,
+        60
+      ],
+      "screen_bbox_xywh": [
+        890,
+        406,
+        60,
+        60
+      ],
+      "role": "control",
+      "note": "保留边框和文字",
+      "sha256": "fe7d4c082fd33fe00c34a7c5196a42dfd5083d6bbe741714fc9e5c2f9780017c"
+    },
+    {
+      "id": "A03",
+      "name": "deposit_confirm",
+      "label": "金额层：确定",
+      "image": "templates/reforming_center/raw_workshop/deposit_confirm.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        905,
+        510,
+        110,
+        50
+      ],
+      "screen_bbox_xywh": [
+        930,
+        566,
+        110,
+        50
+      ],
+      "role": "control",
+      "note": "保留蓝底、确认图标和文字",
+      "sha256": "4085c7f239822b493febcde98c9cf47870812c709eb9b2acd1ee688bf51935a4"
+    },
+    {
+      "id": "A04",
+      "name": "deposit_cancel",
+      "label": "金额层：取消",
+      "image": "templates/reforming_center/raw_workshop/deposit_cancel.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        270,
+        510,
+        110,
+        50
+      ],
+      "screen_bbox_xywh": [
+        295,
+        566,
+        110,
+        50
+      ],
+      "role": "control",
+      "note": "金额层辅助标识／取消入口",
+      "sha256": "7122568c77294c20300628fd9495824a246328cb200bdb5e3f5372243587bfaf"
+    },
+    {
+      "id": "A05",
+      "name": "deposit_currency",
+      "label": "金额层：铁盟币",
+      "image": "templates/reforming_center/raw_workshop/deposit_currency.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        605,
+        305,
+        80,
+        30
+      ],
+      "screen_bbox_xywh": [
+        630,
+        361,
+        80,
+        30
+      ],
+      "role": "marker",
+      "note": "不包含可变金额",
+      "sha256": "74ee2abdb5ef623dd7bb8fa813b5855ed78fd89579c7d28e978bfe3ae09334ef"
+    },
+    {
+      "id": "A06",
+      "name": "deposit_full_toast",
+      "label": "预存已达上限提示",
+      "image": "templates/reforming_center/raw_workshop/deposit_full_toast.png",
+      "source": "deposit_full",
+      "source_id": "318ff7c3-ca38-4bd0-ab9c-8296fbe6f98f",
+      "client_bbox_xywh": [
+        530,
+        345,
+        225,
+        32
+      ],
+      "screen_bbox_xywh": [
+        555,
+        401,
+        225,
+        32
+      ],
+      "role": "marker",
+      "note": "只取黑条固定文字附近",
+      "sha256": "03f6540d2969c2f5b0c59bf68d213cf06c5fff723664b7f7397aabfd9c5f0104"
+    },
+    {
+      "id": "A07",
+      "name": "start_enabled",
+      "label": "开始生产：蓝色可用",
+      "image": "templates/reforming_center/raw_workshop/start_enabled.png",
+      "source": "idle_blue",
+      "source_id": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
+      "client_bbox_xywh": [
+        205,
+        650,
+        125,
+        40
+      ],
+      "screen_bbox_xywh": [
+        230,
+        706,
+        125,
+        40
+      ],
+      "role": "control_state",
+      "note": "保留蓝底、齿轮和文字",
+      "sha256": "c909a9f557a3036d9c520acd95222d5923c69de1b80d82d5741e0f2dbfd947aa"
+    },
+    {
+      "id": "A08",
+      "name": "start_disabled",
+      "label": "开始生产：灰色禁用",
+      "image": "templates/reforming_center/raw_workshop/start_disabled.png",
+      "source": "idle_gray",
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "client_bbox_xywh": [
+        205,
+        650,
+        125,
+        40
+      ],
+      "screen_bbox_xywh": [
+        230,
+        706,
+        125,
+        40
+      ],
+      "role": "control_state",
+      "note": "与蓝色状态同一裁切范围",
+      "sha256": "d69b67538f80279495a1f201b5190a8fb38c4990ff70b8745d4063c1290cd329"
+    },
+    {
+      "id": "A09",
+      "name": "running_stop",
+      "label": "生产中：终止（只观察）",
+      "image": "templates/reforming_center/raw_workshop/running_stop.png",
+      "source": "running",
+      "source_id": "623785cd-7d53-4a50-8acb-8086f4964f5d",
+      "client_bbox_xywh": [
+        115,
+        650,
+        100,
+        40
+      ],
+      "screen_bbox_xywh": [
+        140,
+        706,
+        100,
+        40
+      ],
+      "role": "marker",
+      "note": "保留红底；不是可执行点击",
+      "sha256": "1c3fe5a476f83bde7ce61a4b0ebff7995daa15c774eb9bd605c8239fa97341c1"
+    },
+    {
+      "id": "A10",
+      "name": "running_speed",
+      "label": "生产中：加速（只观察）",
+      "image": "templates/reforming_center/raw_workshop/running_speed.png",
+      "source": "running",
+      "source_id": "623785cd-7d53-4a50-8acb-8086f4964f5d",
+      "client_bbox_xywh": [
+        330,
+        650,
+        100,
+        40
+      ],
+      "screen_bbox_xywh": [
+        355,
+        706,
+        100,
+        40
+      ],
+      "role": "marker",
+      "note": "与终止组合确认生产中",
+      "sha256": "90a0200fccb77a21cd5127ca4c0263222889a4d2adda2b22d158563cfdc9c2da"
+    },
+    {
+      "id": "A11",
+      "name": "slider_track_reference",
+      "label": "滑块初始状态参考",
+      "image": "templates/reforming_center/raw_workshop/slider_track_reference.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        495,
+        375,
+        290,
+        30
+      ],
+      "screen_bbox_xywh": [
+        520,
+        431,
+        290,
+        30
+      ],
+      "role": "reference_only",
+      "note": "非最大值模板，不包含上方金额",
+      "sha256": "51f8a5c9e313917a6c8889e30239049fc3a75bcd8219d84b4322453a1530e45f"
+    },
+    {
+      "id": "A12",
+      "name": "deposit_min_marker",
+      "label": "金额层：最少",
+      "image": "templates/reforming_center/raw_workshop/deposit_min_marker.png",
+      "source": "deposit_dialog",
+      "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
+      "client_bbox_xywh": [
+        360,
+        350,
+        60,
+        60
+      ],
+      "screen_bbox_xywh": [
+        385,
+        406,
+        60,
+        60
+      ],
+      "role": "marker",
+      "note": "辅助确认是预存金额层",
+      "sha256": "da1bf6df97f9b0e2bec2ef43610de2c2cfbbeaabc21a7c9cb75d8b87c5745a25"
+    },
+    {
+      "id": "B01",
+      "name": "work_tab_selected",
+      "label": "工作名单：已选页签",
+      "image": "templates/reforming_center/raw_workshop/work_tab_selected.png",
+      "source": "idle_gray",
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "client_bbox_xywh": [
+        660,
+        280,
+        76,
+        34
+      ],
+      "screen_bbox_xywh": [
+        685,
+        336,
+        76,
+        34
+      ],
+      "role": "tab_state",
+      "note": "排除右侧人数",
+      "sha256": "e5c4bd2af8114b0ee537a5be70d7a237d4303879f423f535481df1e1c73b5555"
+    },
+    {
+      "id": "B02",
+      "name": "reserve_tab_unselected",
+      "label": "替补名单：未选页签",
+      "image": "templates/reforming_center/raw_workshop/reserve_tab_unselected.png",
+      "source": "idle_gray",
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "client_bbox_xywh": [
+        1005,
+        280,
+        73,
+        34
+      ],
+      "screen_bbox_xywh": [
+        1030,
+        336,
+        73,
+        34
+      ],
+      "role": "tab_state",
+      "note": "尚无替补选中状态素材",
+      "sha256": "20de36c9307c6f2f5426978af52d05c81721090ab91d62c22783fcea00115000"
+    },
+    {
+      "id": "B03",
+      "name": "choose_prisoners",
+      "label": "车间：选择囚犯",
+      "image": "templates/reforming_center/raw_workshop/choose_prisoners.png",
+      "source": "idle_gray",
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "client_bbox_xywh": [
+        870,
+        650,
+        100,
+        40
+      ],
+      "screen_bbox_xywh": [
+        895,
+        706,
+        100,
+        40
+      ],
+      "role": "control",
+      "note": "不包含左侧人数框",
+      "sha256": "6a50f01748ca95d3d7d2deae9f129da8be8c30fd55dea8e5688acf1fd2a457c5"
+    },
+    {
+      "id": "B04",
+      "name": "select_all",
+      "label": "选择页：一键选中",
+      "image": "templates/reforming_center/raw_workshop/select_all.png",
+      "source": "selection_empty",
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "client_bbox_xywh": [
+        875,
+        650,
+        120,
+        40
+      ],
+      "screen_bbox_xywh": [
+        900,
+        706,
+        120,
+        40
+      ],
+      "role": "control_state",
+      "note": "只可点击一次",
+      "sha256": "8ec9c44c1d263df898e43288ce0af1196f5c81c4383e3eb513d3784b67967d44"
+    },
+    {
+      "id": "B05",
+      "name": "cancel_all",
+      "label": "选择页：一键取消",
+      "image": "templates/reforming_center/raw_workshop/cancel_all.png",
+      "source": "selection_checked",
+      "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
+      "client_bbox_xywh": [
+        875,
+        650,
+        120,
+        40
+      ],
+      "screen_bbox_xywh": [
+        900,
+        706,
+        120,
+        40
+      ],
+      "role": "marker",
+      "note": "选中后的状态，不执行取消",
+      "sha256": "79c7441ba27a7126583a7ecc243506ce602d8390cdd5dfa75a44ad298d0b6cb5"
+    },
+    {
+      "id": "B06",
+      "name": "staff_confirm",
+      "label": "选择页：确认",
+      "image": "templates/reforming_center/raw_workshop/staff_confirm.png",
+      "source": "selection_empty",
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "client_bbox_xywh": [
+        1110,
+        650,
+        100,
+        40
+      ],
+      "screen_bbox_xywh": [
+        1135,
+        706,
+        100,
+        40
+      ],
+      "role": "control",
+      "note": "保留白底和黑色图标文字",
+      "sha256": "b66fbbaf8e1a6e3b8d132ae1eeef7af48791e7985a17ebb9f96777b868944d12"
+    },
+    {
+      "id": "B07",
+      "name": "prisoner_selected_ribbon",
+      "label": "囚犯卡：选中标记",
+      "image": "templates/reforming_center/raw_workshop/prisoner_selected_ribbon.png",
+      "source": "selection_checked",
+      "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
+      "client_bbox_xywh": [
+        45,
+        226,
+        155,
+        26
+      ],
+      "screen_bbox_xywh": [
+        70,
+        282,
+        155,
+        26
+      ],
+      "role": "marker",
+      "note": "只取黄条，不取人物头像",
+      "sha256": "18dbbbe0ba533f60d3ea3c288a6ee21fac2ad428dae26c6f79e863d6f5f9541b"
+    },
+    {
+      "id": "B08",
+      "name": "selection_footer",
+      "label": "选择页：车间囚犯数量",
+      "image": "templates/reforming_center/raw_workshop/selection_footer.png",
+      "source": "selection_empty",
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "client_bbox_xywh": [
+        30,
+        650,
+        145,
+        35
+      ],
+      "screen_bbox_xywh": [
+        55,
+        706,
+        145,
+        35
+      ],
+      "role": "marker",
+      "note": "排除右侧可变人数",
+      "sha256": "256aade41f378b6de470e6f91f9c4f836db1de0d62e26d9411b19d0ae63fa747"
+    },
+    {
+      "id": "B09",
+      "name": "selection_back",
+      "label": "选择页：返回箭头",
+      "image": "templates/reforming_center/raw_workshop/selection_back.png",
+      "source": "selection_empty",
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "client_bbox_xywh": [
+        70,
+        25,
+        50,
+        30
+      ],
+      "screen_bbox_xywh": [
+        95,
+        81,
+        50,
+        30
+      ],
+      "role": "control",
+      "note": "辅助页面标识",
+      "sha256": "89f5c879cda11afaf752243a9ecd575f10fc76b0e6e4d167bb0293e2dd0806e4"
+    },
+    {
+      "id": "B10",
+      "name": "work_count_0_7_sample",
+      "label": "工作人数样本：0/7",
+      "image": "templates/reforming_center/raw_workshop/work_count_0_7_sample.png",
+      "source": "idle_gray",
+      "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
+      "client_bbox_xywh": [
+        735,
+        282,
+        35,
+        28
+      ],
+      "screen_bbox_xywh": [
+        760,
+        338,
+        35,
+        28
+      ],
+      "role": "counter_sample",
+      "note": "仅人数观察区，不当通用页标识",
+      "sha256": "325d7486c0d3ac71ee034dcc1ce951d3629fdb554b09d5d2f9ff8a126770a1fd"
+    },
+    {
+      "id": "B11",
+      "name": "work_count_7_7_sample",
+      "label": "工作人数样本：7/7",
+      "image": "templates/reforming_center/raw_workshop/work_count_7_7_sample.png",
+      "source": "staff_full",
+      "source_id": "c36cafc2-1d85-4d13-97cd-824db0eb0b26",
+      "client_bbox_xywh": [
+        735,
+        282,
+        35,
+        28
+      ],
+      "screen_bbox_xywh": [
+        760,
+        338,
+        35,
+        28
+      ],
+      "role": "counter_sample",
+      "note": "与0/7使用同一个观察区",
+      "sha256": "d70178b3ac563fd48cddede782b070f8b5b57e2a39c76805150a4f0940cde68b"
+    },
+    {
+      "id": "B12",
+      "name": "reserve_count_0_2_sample",
+      "label": "替补人数样本：0/2",
+      "image": "templates/reforming_center/raw_workshop/reserve_count_0_2_sample.png",
+      "source": "staff_full",
+      "source_id": "c36cafc2-1d85-4d13-97cd-824db0eb0b26",
+      "client_bbox_xywh": [
+        1080,
+        282,
+        40,
+        28
+      ],
+      "screen_bbox_xywh": [
+        1105,
+        338,
+        40,
+        28
+      ],
+      "role": "counter_sample",
+      "note": "不把容量2固定到所有房间",
+      "sha256": "9b19af04680be40ac811ceb4331c3a42ea02d27cee706bd9681fd7e4b5f504d7"
+    },
+    {
+      "id": "B13",
+      "name": "selection_count_0_7_sample",
+      "label": "选择人数样本：0/7",
+      "image": "templates/reforming_center/raw_workshop/selection_count_0_7_sample.png",
+      "source": "selection_empty",
+      "source_id": "830fa130-4193-455c-9183-2dc00847b230",
+      "client_bbox_xywh": [
+        175,
+        650,
+        45,
+        35
+      ],
+      "screen_bbox_xywh": [
+        200,
+        706,
+        45,
+        35
+      ],
+      "role": "counter_sample",
+      "note": "位于选择页底栏",
+      "sha256": "4e6a1902b8d3f4e35113a272060aff0ec8e4818a060cd2d4207a13a1fc049ed4"
+    },
+    {
+      "id": "B14",
+      "name": "selection_count_7_7_sample",
+      "label": "选择人数样本：7/7",
+      "image": "templates/reforming_center/raw_workshop/selection_count_7_7_sample.png",
+      "source": "selection_checked",
+      "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
+      "client_bbox_xywh": [
+        175,
+        650,
+        45,
+        35
+      ],
+      "screen_bbox_xywh": [
+        200,
+        706,
+        45,
+        35
+      ],
+      "role": "counter_sample",
+      "note": "保留选中人数的黄色状态",
+      "sha256": "26ab56c4a737ee45a32a8cb2dbcb96e78e7a0cbf751a4f6a57ff4ec1d37a48a7"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from PIL import Image
 
 
 TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates/trade_goods_investment"
+CITY_CATALOG = Path(__file__).resolve().parents[2] / "data/meta/trade_goods_investment_cities.json"
 
 
 class InvestmentRecognitionError(RuntimeError):
@@ -23,6 +24,30 @@ class InvestmentRecognitionError(RuntimeError):
         self.code = code
         self.detail = detail
         super().__init__(f"{code}: {detail}")
+
+
+@lru_cache(maxsize=1)
+def _city_product_counts() -> dict[str, int]:
+    """Investment-page cities contain all their sell-list goods, including locked ones."""
+    try:
+        payload = json.loads(CITY_CATALOG.read_text(encoding="utf-8"))
+        if payload["schema_version"] != 1 or not payload["cities"]:
+            raise ValueError("Invalid investment city catalog")
+        counts = {}
+        for city_id, city in payload["cities"].items():
+            if not isinstance(city["products"], list):
+                raise ValueError(f"Invalid investment products for {city_id}")
+            count = len(city["products"])
+            for name in (city_id, city["name"], *city.get("aliases", [])):
+                if not isinstance(name, str) or not name.strip():
+                    raise ValueError(f"Invalid investment city alias for {city_id}")
+                name = name.strip()
+                if name in counts and counts[name] != count:
+                    raise ValueError(f"Ambiguous investment city alias: {name}")
+                counts[name] = count
+        return counts
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise InvestmentRecognitionError("investment_city_catalog_invalid", str(exc)) from exc
 
 
 @lru_cache(maxsize=4)
@@ -121,7 +146,14 @@ class InvestmentVision:
     CONFIRM_COLOR_MEAN_LIMIT = 24.
     CONFIRM_COLOR_FILL_MIN_SPREAD = 40
 
-    def __init__(self, template_root: Path | None = None):
+    def __init__(self, template_root: Path | None = None, *, city_name: str = ""):
+        self.city_product_count = None
+        city = city_name.strip()
+        if city:
+            counts = _city_product_counts()
+            if city not in counts:
+                raise InvestmentRecognitionError("investment_city_unknown", city)
+            self.city_product_count = counts[city]
         self.template_root = (TEMPLATE_ROOT if template_root is None else Path(template_root)).resolve()
         self._manifest, self._pixels = _resources(self.template_root)
         self._templates = {entry["name"]: entry for entry in self._manifest["templates"]}
@@ -233,9 +265,10 @@ class InvestmentVision:
         token = np.zeros((ch, cw), dtype=np.uint8)
         ox, oy = (cw - w) // 2, (ch - h) // 2
         token[oy:oy + h, ox:ox + w] = mask[y:y + h, x:x + w]
+        padded_token = np.pad(token, 2)
         scores = {}
         for entry in levels:
-            score, _ = _best(np.pad(token, 2), self._pixels[entry["file"]])
+            score, _ = _best(padded_token, self._pixels[entry["file"]])
             level = entry["level"]
             scores[level] = max(scores.get(level, -1.), score)
         ranked = sorted(scores.items(), key=lambda row: row[1], reverse=True)
@@ -256,9 +289,10 @@ class InvestmentVision:
             gx, gy, gw, gh = cv2.boundingRect(cv2.findNonZero(glyph))
             glyph = cv2.resize(glyph[gy:gy + gh, gx:gx + gw], (14, 26), interpolation=cv2.INTER_AREA)
             observed = np.pad(np.where(glyph >= 128, 255, 0).astype(np.uint8), 3)
+            padded_observed = np.pad(observed, 1)
             digit_scores = {}
             for entry in digits:
-                value, _ = _best(np.pad(observed, 1), self._pixels[entry["file"]])
+                value, _ = _best(padded_observed, self._pixels[entry["file"]])
                 digit = entry["digit"]
                 digit_scores[digit] = max(digit_scores.get(digit, -1.), value)
             digit_ranked = sorted(digit_scores.items(), key=lambda row: row[1], reverse=True)
@@ -345,13 +379,19 @@ class InvestmentVision:
                                   "frame_score": score, "size": (tw, th)})
         return found
 
-    def detect_cards(self, image: np.ndarray) -> list[dict]:
+    def detect_cards(self, image: np.ndarray, *, success_visible: bool | None = None) -> list[dict]:
         image = _image(image)
+        if self.city_product_count == 0:
+            return []
         spec = self._manifest["cards"]
         vx, vy, vw, vh = self.VIEWPORT
         candidates = self._headers(image)
         candidates.extend(self._top_partials(image, candidates))
-        success = self.match(image, "success")["found"]
+        if self.city_product_count is not None:
+            # The page only contains this city's products. Bound expensive frame
+            # and state checks by its full native sell list, not prestige unlocks.
+            candidates.sort(key=lambda row: (round(row["y"] / 20), row["x"]))
+        success = self.match(image, "success")["found"] if success_visible is None else success_visible
         occlusion = spec.get("success_occlusion_roi", (0, 327, 1280, 66))
         cards = []
         for item in candidates:
@@ -397,7 +437,34 @@ class InvestmentVision:
             cards.append({"rect": tuple(map(int, rect)), "partial": bool(partial), "occluded": occluded,
                           "selected": bool(selected), "locked": locked, "maximum": bool(maximum),
                           "header_score": item["header_score"], "frame_score": frame_score})
+            if self.city_product_count is not None and len(cards) >= self.city_product_count:
+                break
         return sorted(cards, key=lambda row: (round(row["rect"][1] / 20), row["rect"][0]))
+
+    def read_card_selection(self, image: np.ndarray, card: dict[str, Any]) -> dict:
+        """Read selection at known bounds; selecting a card does not move the list."""
+        image = _image(image)
+        try:
+            rect = tuple(map(int, card["rect"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise InvestmentRecognitionError("invalid_card", "Missing card rectangle") from exc
+        if len(rect) != 4 or rect[2] <= 0 or rect[3] <= 0:
+            raise InvestmentRecognitionError("invalid_card", "Invalid card dimensions")
+        if card.get("partial") or _clip(rect, self.VIEWPORT) != rect:
+            raise InvestmentRecognitionError("invalid_card", "Selection requires a complete card")
+        x, y, _, _ = rect
+        selected = self._match_box(
+            image, "selected_corner", _clip((x - 3, y + 3, 28, 32), self.VIEWPORT),
+        )["found"]
+        maximum = False
+        badge = self._manifest["cards"].get("maximum", {}).get("badge_box")
+        if badge is not None:
+            bx, by, bw, bh = badge
+            maximum = self._match_box(
+                image, "maximum_card_badge", (x + bx - 3, y + by - 3, bw + 6, bh + 6),
+            )["found"]
+        return {**card, "rect": rect, "selected": bool(selected), "maximum": bool(maximum)}
+
 
     def fingerprint(self, image: np.ndarray, card: dict[str, Any]) -> np.ndarray:
         """A normalized internal commodity patch, not an item identity or action proof."""

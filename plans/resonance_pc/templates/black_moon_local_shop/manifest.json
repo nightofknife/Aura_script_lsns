@@ -121,119 +121,6 @@
       }
     },
     {
-      "name": "shop_entry",
-      "file": "shop_entry.png",
-      "mask_file": "shop_entry.mask.png",
-      "roi": [
-        742,
-        386,
-        201,
-        42
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.88,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/common.asset",
-            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
-            "path_id": 167948608831335952,
-            "name": "talk_xuanxiang",
-            "type": "Sprite",
-            "node": "/BarStore/Group_Main/Btn_Store",
-            "transform_id": -6142908398786988967,
-            "rect": [
-              726,
-              371,
-              471,
-              77
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 6333206172008370989,
-            "name": "icon_buy",
-            "type": "Sprite",
-            "node": "/BarStore/Group_Main/Btn_Store/Img_",
-            "transform_id": -4431355742062398082,
-            "rect": [
-              749,
-              387,
-              40,
-              40
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/font/originpack.asset",
-            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
-            "path_id": -2237384480076949585,
-            "name": "SourceHanSansCN-Bold",
-            "type": "Font",
-            "node": "/BarStore/Group_Main/Btn_Store/Txt_",
-            "transform_id": 7017522147192509655,
-            "rect": [
-              795,
-              398,
-              147,
-              20
-            ],
-            "text": "黑月商店",
-            "native_font_size": 30,
-            "rendered_native_font_size": 30,
-            "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
-            "native_style": {
-              "m_Font": {
-                "m_FileID": 2,
-                "m_PathID": -2237384480076949585
-              },
-              "m_FontSize": 30,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 3,
-              "m_MaxSize": 40,
-              "m_Alignment": 3,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 0,
-              "m_VerticalOverflow": 0,
-              "m_LineSpacing": 1.0
-            },
-            "native_tint": {
-              "r": 0.19607843458652496,
-              "g": 0.19607843458652496,
-              "b": 0.19607843458652496,
-              "a": 1.0
-            },
-            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
-          }
-        ],
-        "crop": [
-          742,
-          386,
-          201,
-          42
-        ]
-      }
-    },
-    {
       "name": "page_back",
       "file": "page_back.png",
       "mask_file": "page_back.mask.png",
@@ -441,532 +328,6 @@
           48
         ]
       }
-    },
-    {
-      "name": "shop_page",
-      "file": "shop_page.png",
-      "mask_file": "shop_page.mask.png",
-      "roi": [
-        604,
-        74,
-        212,
-        54
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.87,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 7456007167632363465,
-            "name": "store_di",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
-            "transform_id": -9135140084996627336,
-            "rect": [
-              584,
-              67,
-              693,
-              639
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": -9032850414787162807,
-            "name": "icon_store",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_Icon",
-            "transform_id": 1311612309207627695,
-            "rect": [
-              607,
-              61,
-              57,
-              77
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/font/originpack.asset",
-            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
-            "path_id": -2237384480076949585,
-            "name": "SourceHanSansCN-Bold",
-            "type": "Font",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Txt_",
-            "transform_id": -7598403641115922062,
-            "rect": [
-              677,
-              94,
-              137,
-              33
-            ],
-            "text": "黑月商店",
-            "native_font_size": 40,
-            "rendered_native_font_size": 40,
-            "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
-            "native_style": {
-              "m_Font": {
-                "m_FileID": 2,
-                "m_PathID": -2237384480076949585
-              },
-              "m_FontSize": 40,
-              "m_FontStyle": 0,
-              "m_BestFit": 1,
-              "m_MinSize": 3,
-              "m_MaxSize": 40,
-              "m_Alignment": 3,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 0,
-              "m_VerticalOverflow": 0,
-              "m_LineSpacing": 1.0
-            },
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated",
-            "localization": {
-              "file": "Patch/BinaryConfig/TextFactory.bin",
-              "sha256": "8ad4323c4a192752c1cf54b8872415c4080d523bcb12c62c781a071d531dc29f",
-              "pool_offset": 664017,
-              "prefab_text": "黑月休息区",
-              "selection": "exact native string observed in user-provided static screenshot; not an ID join"
-            }
-          }
-        ],
-        "crop": [
-          604,
-          74,
-          212,
-          54
-        ]
-      }
-    },
-    {
-      "name": "local_tab_selected",
-      "file": "local_tab_selected.png",
-      "mask_file": "local_tab_selected.mask.png",
-      "roi": [
-        990,
-        85,
-        181,
-        44
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.88,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 7456007167632363465,
-            "name": "store_di",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
-            "transform_id": -9135140084996627336,
-            "rect": [
-              584,
-              67,
-              693,
-              639
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 6491483996824495362,
-            "name": "di_notselect",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
-            "transform_id": 3392260613636870370,
-            "rect": [
-              820,
-              85,
-              351,
-              44
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 8472064852053580216,
-            "name": "di_select",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1",
-            "transform_id": -3565210176678270962,
-            "rect": [
-              990,
-              85,
-              181,
-              44
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": -794263625591193353,
-            "name": "bendi_sel",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1/Img_Select",
-            "transform_id": 6171718954421142290,
-            "rect": [
-              1031,
-              90,
-              33,
-              33
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          }
-        ],
-        "crop": [
-          990,
-          85,
-          181,
-          44
-        ]
-      },
-      "color_mae_limit": 24,
-      "comparison_group": "local_tab",
-      "same_position": true,
-      "minimum_state_margin": 0.035,
-      "text_excluded": "Serialized tab text is outdated; current localization absent from native TextFactory string pool"
-    },
-    {
-      "name": "local_tab_unselected",
-      "file": "local_tab_unselected.png",
-      "mask_file": "local_tab_unselected.mask.png",
-      "roi": [
-        990,
-        85,
-        181,
-        44
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.88,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 7456007167632363465,
-            "name": "store_di",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
-            "transform_id": -9135140084996627336,
-            "rect": [
-              584,
-              67,
-              693,
-              639
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 6491483996824495362,
-            "name": "di_notselect",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
-            "transform_id": 3392260613636870370,
-            "rect": [
-              820,
-              85,
-              351,
-              44
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          },
-          {
-            "bundle": "ui/home/barstore.asset",
-            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
-            "path_id": 1190446655474786635,
-            "name": "bendi",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_Off/Img_Select",
-            "transform_id": -1006733882338081381,
-            "rect": [
-              1031,
-              89,
-              33,
-              33
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          }
-        ],
-        "crop": [
-          990,
-          85,
-          181,
-          44
-        ]
-      },
-      "color_mae_limit": 24,
-      "comparison_group": "local_tab",
-      "same_position": true,
-      "minimum_state_margin": 0.035,
-      "text_excluded": "Serialized tab text is outdated; current localization absent from native TextFactory string pool"
-    },
-    {
-      "name": "batch_on",
-      "file": "batch_on.png",
-      "mask_file": "batch_on.mask.png",
-      "roi": [
-        1171,
-        88,
-        96,
-        33
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.88,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/font/originpack.asset",
-            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
-            "path_id": 6136794397608061395,
-            "name": "SourceHanSansCN-Medium",
-            "type": "Font",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Txt_",
-            "transform_id": 8610489416626178738,
-            "rect": [
-              1152,
-              95,
-              107,
-              20
-            ],
-            "text": "批量",
-            "native_font_size": 24,
-            "rendered_native_font_size": 24,
-            "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
-            "native_style": {
-              "m_Font": {
-                "m_FileID": 2,
-                "m_PathID": 6136794397608061395
-              },
-              "m_FontSize": 24,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 2,
-              "m_MaxSize": 40,
-              "m_Alignment": 4,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 0,
-              "m_VerticalOverflow": 0,
-              "m_LineSpacing": 1.0
-            },
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
-          },
-          {
-            "bundle": "ui/common.asset",
-            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
-            "path_id": 5402986525929916692,
-            "name": "trade_btn_type2",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Img_",
-            "transform_id": 8867285597686981405,
-            "rect": [
-              1232,
-              93,
-              24,
-              24
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          }
-        ],
-        "crop": [
-          1171,
-          88,
-          96,
-          33
-        ]
-      },
-      "color_mae_limit": 24,
-      "comparison_group": "batch",
-      "same_position": true,
-      "minimum_state_margin": 0.035
-    },
-    {
-      "name": "batch_off",
-      "file": "batch_off.png",
-      "mask_file": "batch_off.mask.png",
-      "roi": [
-        1171,
-        88,
-        96,
-        33
-      ],
-      "preprocess": "rgb",
-      "method": "1-TM_SQDIFF_NORMED",
-      "threshold": 0.88,
-      "status": "native_generated_unvalidated",
-      "source": {
-        "prefab": "ui/home/barstore/barstore.asset",
-        "nodes": [
-          {
-            "bundle": "ui/font/originpack.asset",
-            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
-            "path_id": 6136794397608061395,
-            "name": "SourceHanSansCN-Medium",
-            "type": "Font",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Txt_",
-            "transform_id": 3928061740533749693,
-            "rect": [
-              1152,
-              95,
-              107,
-              20
-            ],
-            "text": "批量",
-            "native_font_size": 24,
-            "rendered_native_font_size": 24,
-            "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
-            "native_style": {
-              "m_Font": {
-                "m_FileID": 2,
-                "m_PathID": 6136794397608061395
-              },
-              "m_FontSize": 24,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 2,
-              "m_MaxSize": 40,
-              "m_Alignment": 4,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 0,
-              "m_VerticalOverflow": 0,
-              "m_LineSpacing": 1.0
-            },
-            "native_tint": {
-              "r": 0.6823529601097107,
-              "g": 0.6823529601097107,
-              "b": 0.6823529601097107,
-              "a": 1.0
-            },
-            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
-          },
-          {
-            "bundle": "ui/common.asset",
-            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
-            "path_id": 4045235153397676137,
-            "name": "trade_btn_type1",
-            "type": "Sprite",
-            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Img_",
-            "transform_id": 7459157953938509606,
-            "rect": [
-              1232,
-              93,
-              24,
-              24
-            ],
-            "native_tint": {
-              "r": 1.0,
-              "g": 1.0,
-              "b": 1.0,
-              "a": 1.0
-            },
-            "native_image_type": 0
-          }
-        ],
-        "crop": [
-          1171,
-          88,
-          96,
-          33
-        ]
-      },
-      "color_mae_limit": 24,
-      "comparison_group": "batch",
-      "same_position": true,
-      "minimum_state_margin": 0.035
     },
     {
       "name": "confirm_enabled",
@@ -1438,6 +799,592 @@
         107,
         65
       ]
+    },
+    {
+      "name": "shop_entry",
+      "file": "shop_entry.png",
+      "roi": [
+        734,
+        378,
+        217,
+        58
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/common.asset",
+            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+            "path_id": 167948608831335952,
+            "name": "talk_xuanxiang",
+            "type": "Sprite",
+            "node": "/BarStore/Group_Main/Btn_Store",
+            "transform_id": -6142908398786988967,
+            "rect": [
+              726,
+              371,
+              471,
+              77
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 6333206172008370989,
+            "name": "icon_buy",
+            "type": "Sprite",
+            "node": "/BarStore/Group_Main/Btn_Store/Img_",
+            "transform_id": -4431355742062398082,
+            "rect": [
+              749,
+              387,
+              40,
+              40
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/font/originpack.asset",
+            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+            "path_id": -2237384480076949585,
+            "name": "SourceHanSansCN-Bold",
+            "type": "Font",
+            "node": "/BarStore/Group_Main/Btn_Store/Txt_",
+            "transform_id": 7017522147192509655,
+            "rect": [
+              795,
+              398,
+              147,
+              20
+            ],
+            "text": "黑月商店",
+            "native_font_size": 30,
+            "rendered_native_font_size": 30,
+            "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+            "native_style": {
+              "m_Font": {
+                "m_FileID": 2,
+                "m_PathID": -2237384480076949585
+              },
+              "m_FontSize": 30,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 3,
+              "m_MaxSize": 40,
+              "m_Alignment": 3,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 0,
+              "m_VerticalOverflow": 0,
+              "m_LineSpacing": 1.0
+            },
+            "native_tint": {
+              "r": 0.19607843458652496,
+              "g": 0.19607843458652496,
+              "b": 0.19607843458652496,
+              "a": 1.0
+            },
+            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+          }
+        ],
+        "crop": [
+          742,
+          386,
+          201,
+          42
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": true
+      }
+    },
+    {
+      "name": "shop_page",
+      "file": "shop_page.png",
+      "roi": [
+        599,
+        53,
+        73,
+        93
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 7456007167632363465,
+            "name": "store_di",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
+            "transform_id": -9135140084996627336,
+            "rect": [
+              584,
+              67,
+              693,
+              639
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": -9032850414787162807,
+            "name": "icon_store",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_Icon",
+            "transform_id": 1311612309207627695,
+            "rect": [
+              607,
+              61,
+              57,
+              77
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          }
+        ],
+        "crop": [
+          607,
+          61,
+          57,
+          77
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": false
+      },
+      "mask_file": "shop_page.mask.png"
+    },
+    {
+      "name": "local_tab_selected",
+      "file": "local_tab_selected.png",
+      "roi": [
+        988,
+        83,
+        176,
+        45
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 7456007167632363465,
+            "name": "store_di",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
+            "transform_id": -9135140084996627336,
+            "rect": [
+              584,
+              67,
+              693,
+              639
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 6491483996824495362,
+            "name": "di_notselect",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
+            "transform_id": 3392260613636870370,
+            "rect": [
+              820,
+              85,
+              351,
+              44
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 8472064852053580216,
+            "name": "di_select",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1",
+            "transform_id": -3565210176678270962,
+            "rect": [
+              990,
+              85,
+              181,
+              44
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": -794263625591193353,
+            "name": "bendi_sel",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_On/Img_1/Img_Select",
+            "transform_id": 6171718954421142290,
+            "rect": [
+              1031,
+              90,
+              33,
+              33
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          }
+        ],
+        "crop": [
+          996,
+          91,
+          160,
+          29
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": false
+      },
+      "mask_file": "local_tab_selected.mask.png",
+      "color_mae_limit": 24
+    },
+    {
+      "name": "local_tab_unselected",
+      "file": "local_tab_unselected.png",
+      "roi": [
+        988,
+        83,
+        176,
+        45
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 7456007167632363465,
+            "name": "store_di",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Img_BG",
+            "transform_id": -9135140084996627336,
+            "rect": [
+              584,
+              67,
+              693,
+              639
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 6491483996824495362,
+            "name": "di_notselect",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Img_",
+            "transform_id": 3392260613636870370,
+            "rect": [
+              820,
+              85,
+              351,
+              44
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          },
+          {
+            "bundle": "ui/home/barstore.asset",
+            "bundle_sha256": "3b503098c6206e93dbb99cd36aedbda206a29d3809f06e612b6dad28bff51747",
+            "path_id": 1190446655474786635,
+            "name": "bendi",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Group_Tab/Group_Local/Group_Off/Img_Select",
+            "transform_id": -1006733882338081381,
+            "rect": [
+              1031,
+              89,
+              33,
+              33
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          }
+        ],
+        "crop": [
+          996,
+          91,
+          160,
+          29
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": false
+      },
+      "mask_file": "local_tab_unselected.mask.png",
+      "color_mae_limit": 24
+    },
+    {
+      "name": "batch_on",
+      "file": "batch_on.png",
+      "roi": [
+        1163,
+        80,
+        112,
+        49
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/font/originpack.asset",
+            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+            "path_id": 6136794397608061395,
+            "name": "SourceHanSansCN-Medium",
+            "type": "Font",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Txt_",
+            "transform_id": 8610489416626178738,
+            "rect": [
+              1152,
+              95,
+              107,
+              20
+            ],
+            "text": "批量",
+            "native_font_size": 24,
+            "rendered_native_font_size": 24,
+            "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+            "native_style": {
+              "m_Font": {
+                "m_FileID": 2,
+                "m_PathID": 6136794397608061395
+              },
+              "m_FontSize": 24,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 2,
+              "m_MaxSize": 40,
+              "m_Alignment": 4,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 0,
+              "m_VerticalOverflow": 0,
+              "m_LineSpacing": 1.0
+            },
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+          },
+          {
+            "bundle": "ui/common.asset",
+            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+            "path_id": 5402986525929916692,
+            "name": "trade_btn_type2",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_On/Img_",
+            "transform_id": 8867285597686981405,
+            "rect": [
+              1232,
+              93,
+              24,
+              24
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          }
+        ],
+        "crop": [
+          1171,
+          88,
+          96,
+          33
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": false
+      },
+      "mask_file": "batch_on.mask.png",
+      "color_mae_limit": 24
+    },
+    {
+      "name": "batch_off",
+      "file": "batch_off.png",
+      "roi": [
+        1163,
+        80,
+        112,
+        49
+      ],
+      "preprocess": "rgb",
+      "method": "1-TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "status": "supplied_screenshots_validated_no_live_clicks",
+      "source": {
+        "prefab": "ui/home/barstore/barstore.asset",
+        "nodes": [
+          {
+            "bundle": "ui/font/originpack.asset",
+            "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+            "path_id": 6136794397608061395,
+            "name": "SourceHanSansCN-Medium",
+            "type": "Font",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Txt_",
+            "transform_id": 3928061740533749693,
+            "rect": [
+              1152,
+              95,
+              107,
+              20
+            ],
+            "text": "批量",
+            "native_font_size": 24,
+            "rendered_native_font_size": 24,
+            "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+            "native_style": {
+              "m_Font": {
+                "m_FileID": 2,
+                "m_PathID": 6136794397608061395
+              },
+              "m_FontSize": 24,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 2,
+              "m_MaxSize": 40,
+              "m_Alignment": 4,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 0,
+              "m_VerticalOverflow": 0,
+              "m_LineSpacing": 1.0
+            },
+            "native_tint": {
+              "r": 0.6823529601097107,
+              "g": 0.6823529601097107,
+              "b": 0.6823529601097107,
+              "a": 1.0
+            },
+            "font_renderer": "Pillow native font memory; Unity rasterization unvalidated"
+          },
+          {
+            "bundle": "ui/common.asset",
+            "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+            "path_id": 4045235153397676137,
+            "name": "trade_btn_type1",
+            "type": "Sprite",
+            "node": "/BarStore/Group_LocalStore/Group_StoreList/Btn_PL/Group_Off/Img_",
+            "transform_id": 7459157953938509606,
+            "rect": [
+              1232,
+              93,
+              24,
+              24
+            ],
+            "native_tint": {
+              "r": 1.0,
+              "g": 1.0,
+              "b": 1.0,
+              "a": 1.0
+            },
+            "native_image_type": 0
+          }
+        ],
+        "crop": [
+          1171,
+          88,
+          96,
+          33
+        ],
+        "position_tolerance": 8,
+        "opaque_matching": false
+      },
+      "mask_file": "batch_off.mask.png",
+      "color_mae_limit": 24
     }
   ],
   "source": {
@@ -1472,7 +1419,8 @@
     "Thresholds are manufacturing defaults, not calibrated scores",
     "Native font memory rendered by Pillow, not Unity's text rasterizer",
     "Darkening observed statically; selected runtime alpha/tint unavailable in serialized prefab. Native sold dark overlay reused, not calibrated.",
-    "Local tab text omitted/masked: serialized label is outdated and current label absent from native TextFactory string pool"
+    "Local tab text omitted/masked: serialized label is outdated and current label absent from native TextFactory string pool",
+    "Only six preparation controls have four real-frame ROI checks; stock, purchase and live transitions remain unvalidated."
   ],
   "blockers": [
     {
@@ -27002,10 +26950,10 @@
       "on": "local_tab_selected",
       "off": "local_tab_unselected",
       "roi": [
-        990,
-        85,
-        181,
-        44
+        996,
+        91,
+        160,
+        29
       ],
       "preprocess": "rgb",
       "method": "1-TM_SQDIFF_NORMED",
@@ -28783,16 +28731,16 @@
       "sha256": "be0f81189dce69d0ae724b9108a872ca18f7a17b2731cebf4fa6f605443c864e"
     },
     "local_tab_selected.mask.png": {
-      "sha256": "15c68185e82f4b404ccb7e3dcb9007b4ec4f90cff8fd7b4e299561edccc6c2f9"
+      "sha256": "e7b57b3f4d76aca6044ce327aaa14bd9a3e3fd6a667e6a1c7d71c444389a1bb9"
     },
     "local_tab_selected.png": {
-      "sha256": "308abd72656825d776c794b8eea70b59b908e433748a85b73709da9573a5dd6c"
+      "sha256": "d8006404411941f819cc51d41c08a3556257e0426f024679057a31e23c9529f7"
     },
     "local_tab_unselected.mask.png": {
-      "sha256": "15c68185e82f4b404ccb7e3dcb9007b4ec4f90cff8fd7b4e299561edccc6c2f9"
+      "sha256": "e7b57b3f4d76aca6044ce327aaa14bd9a3e3fd6a667e6a1c7d71c444389a1bb9"
     },
     "local_tab_unselected.png": {
-      "sha256": "2d0173700b2fd50baadcbc9ecc0e33c91be77b6cb353a793e8448de5be9f2bdd"
+      "sha256": "1ae891a278a744f25cc0b0e094339e64673a4ebf5d576a78b4b2c6f321cdd3d6"
     },
     "main_nav.mask.png": {
       "sha256": "0b15cfb3e9a2132410894c4c78f48e49852ad7ac9f7cd76ddf6a5ba2e1d0d3bf"
@@ -28837,10 +28785,10 @@
       "sha256": "b0db1b1aaf741d876495dbb9b71e6307ee929caaa447150603519fb1780bd96a"
     },
     "shop_page.mask.png": {
-      "sha256": "ed30f51cc7296f8dc5edbf14717068e0b00a7b6465d9c847b348a534943c4fb8"
+      "sha256": "965c99513ef1943c0cbd419df40c3b1192c7484f254ae1f36e193706a51a3619"
     },
     "shop_page.png": {
-      "sha256": "9d28cb9c4d325a6c3bc22022d0470fa76fd0551d71e2be6cf6e67591cb34ec97"
+      "sha256": "0f6214697bd73e3a5add2e9609c38d7e6360f7e6d720cbf942a7bb57867f8f00"
     },
     "sold_out.mask.png": {
       "sha256": "b0e072bc05b65bbc969457d7486280dceb8ea698ab8a79022c8e515007e681bf"
@@ -28848,5 +28796,24 @@
     "sold_out.png": {
       "sha256": "73e194e58beabb6175cc62806ab658de197fc6aabd5bab043690210263a24336"
     }
+  },
+  "prepare_controls": {
+    "names": [
+      "shop_entry",
+      "shop_page",
+      "local_tab_selected",
+      "local_tab_unselected",
+      "batch_on",
+      "batch_off"
+    ],
+    "threshold": 0.9,
+    "position_tolerance": 8,
+    "reference_client": [
+      1280,
+      720
+    ],
+    "validation": "four supplied screenshots, 24 positive/negative control checks; no live input",
+    "fixture": "tests/fixtures/black_moon_prepare/manifest.json",
+    "source_prefab_sha256": "2c0671dd8c12c94792d53b904b697ce225349c0f9430be8eb997b64df66c7aed"
   }
 }

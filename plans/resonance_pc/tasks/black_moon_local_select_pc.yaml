@@ -1,0 +1,749 @@
+black_moon_local_select_pc:
+  meta:
+    title: Black Moon Local Goods Selection (PC)
+    description: Start at LOCAL shop, select wishlist goods, and optionally submit once without exiting.
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: purchase_table
+        type: dict
+        required: true
+        properties:
+          blackstone_armor:
+            name: blackstone_armor
+            type: boolean
+            required: false
+            default: false
+          blazing_erosion:
+            name: blazing_erosion
+            type: boolean
+            required: false
+            default: false
+          cunning_betrayal:
+            name: cunning_betrayal
+            type: boolean
+            required: false
+            default: false
+          enchanted_dagger:
+            name: enchanted_dagger
+            type: boolean
+            required: false
+            default: false
+          endless_incineration:
+            name: endless_incineration
+            type: boolean
+            required: false
+            default: false
+          equipment_11800012:
+            name: equipment_11800012
+            type: boolean
+            required: false
+            default: false
+          equipment_11800015:
+            name: equipment_11800015
+            type: boolean
+            required: false
+            default: false
+          equipment_11800016:
+            name: equipment_11800016
+            type: boolean
+            required: false
+            default: false
+          equipment_11800027:
+            name: equipment_11800027
+            type: boolean
+            required: false
+            default: false
+          equipment_11800029:
+            name: equipment_11800029
+            type: boolean
+            required: false
+            default: false
+          equipment_11800030:
+            name: equipment_11800030
+            type: boolean
+            required: false
+            default: false
+          equipment_11800031:
+            name: equipment_11800031
+            type: boolean
+            required: false
+            default: false
+          equipment_11800033:
+            name: equipment_11800033
+            type: boolean
+            required: false
+            default: false
+          equipment_11800035:
+            name: equipment_11800035
+            type: boolean
+            required: false
+            default: false
+          equipment_11800036:
+            name: equipment_11800036
+            type: boolean
+            required: false
+            default: false
+          equipment_11800037:
+            name: equipment_11800037
+            type: boolean
+            required: false
+            default: false
+          equipment_11800038:
+            name: equipment_11800038
+            type: boolean
+            required: false
+            default: false
+          equipment_11800039:
+            name: equipment_11800039
+            type: boolean
+            required: false
+            default: false
+          equipment_11800043:
+            name: equipment_11800043
+            type: boolean
+            required: false
+            default: false
+          equipment_11800044:
+            name: equipment_11800044
+            type: boolean
+            required: false
+            default: false
+          equipment_11800046:
+            name: equipment_11800046
+            type: boolean
+            required: false
+            default: false
+          equipment_11800047:
+            name: equipment_11800047
+            type: boolean
+            required: false
+            default: false
+          equipment_11800055:
+            name: equipment_11800055
+            type: boolean
+            required: false
+            default: false
+          equipment_11800056:
+            name: equipment_11800056
+            type: boolean
+            required: false
+            default: false
+          equipment_11800058:
+            name: equipment_11800058
+            type: boolean
+            required: false
+            default: false
+          equipment_11800059:
+            name: equipment_11800059
+            type: boolean
+            required: false
+            default: false
+          equipment_11800061:
+            name: equipment_11800061
+            type: boolean
+            required: false
+            default: false
+          equipment_11800063:
+            name: equipment_11800063
+            type: boolean
+            required: false
+            default: false
+          equipment_11800064:
+            name: equipment_11800064
+            type: boolean
+            required: false
+            default: false
+          equipment_11800066:
+            name: equipment_11800066
+            type: boolean
+            required: false
+            default: false
+          equipment_11800067:
+            name: equipment_11800067
+            type: boolean
+            required: false
+            default: false
+          equipment_11800078:
+            name: equipment_11800078
+            type: boolean
+            required: false
+            default: false
+          equipment_11800081:
+            name: equipment_11800081
+            type: boolean
+            required: false
+            default: false
+          equipment_11800084:
+            name: equipment_11800084
+            type: boolean
+            required: false
+            default: false
+          equipment_11800090:
+            name: equipment_11800090
+            type: boolean
+            required: false
+            default: false
+          equipment_11800093:
+            name: equipment_11800093
+            type: boolean
+            required: false
+            default: false
+          equipment_11800094:
+            name: equipment_11800094
+            type: boolean
+            required: false
+            default: false
+          equipment_11800095:
+            name: equipment_11800095
+            type: boolean
+            required: false
+            default: false
+          equipment_11800098:
+            name: equipment_11800098
+            type: boolean
+            required: false
+            default: false
+          equipment_11800102:
+            name: equipment_11800102
+            type: boolean
+            required: false
+            default: false
+          equipment_11800103:
+            name: equipment_11800103
+            type: boolean
+            required: false
+            default: false
+          equipment_11800106:
+            name: equipment_11800106
+            type: boolean
+            required: false
+            default: false
+          equipment_11800107:
+            name: equipment_11800107
+            type: boolean
+            required: false
+            default: false
+          equipment_11800237:
+            name: equipment_11800237
+            type: boolean
+            required: false
+            default: false
+          equipment_11800238:
+            name: equipment_11800238
+            type: boolean
+            required: false
+            default: false
+          equipment_11800242:
+            name: equipment_11800242
+            type: boolean
+            required: false
+            default: false
+          equipment_11800244:
+            name: equipment_11800244
+            type: boolean
+            required: false
+            default: false
+          equipment_11800246:
+            name: equipment_11800246
+            type: boolean
+            required: false
+            default: false
+          equipment_11800250:
+            name: equipment_11800250
+            type: boolean
+            required: false
+            default: false
+          equipment_11800251:
+            name: equipment_11800251
+            type: boolean
+            required: false
+            default: false
+          equipment_11800252:
+            name: equipment_11800252
+            type: boolean
+            required: false
+            default: false
+          equipment_11800253:
+            name: equipment_11800253
+            type: boolean
+            required: false
+            default: false
+          equipment_11800254:
+            name: equipment_11800254
+            type: boolean
+            required: false
+            default: false
+          equipment_11800255:
+            name: equipment_11800255
+            type: boolean
+            required: false
+            default: false
+          equipment_11800258:
+            name: equipment_11800258
+            type: boolean
+            required: false
+            default: false
+          equipment_11800259:
+            name: equipment_11800259
+            type: boolean
+            required: false
+            default: false
+          equipment_11800260:
+            name: equipment_11800260
+            type: boolean
+            required: false
+            default: false
+          equipment_11800266:
+            name: equipment_11800266
+            type: boolean
+            required: false
+            default: false
+          equipment_11800267:
+            name: equipment_11800267
+            type: boolean
+            required: false
+            default: false
+          equipment_11800268:
+            name: equipment_11800268
+            type: boolean
+            required: false
+            default: false
+          equipment_11800269:
+            name: equipment_11800269
+            type: boolean
+            required: false
+            default: false
+          equipment_11800270:
+            name: equipment_11800270
+            type: boolean
+            required: false
+            default: false
+          equipment_11800271:
+            name: equipment_11800271
+            type: boolean
+            required: false
+            default: false
+          equipment_11800273:
+            name: equipment_11800273
+            type: boolean
+            required: false
+            default: false
+          equipment_11800275:
+            name: equipment_11800275
+            type: boolean
+            required: false
+            default: false
+          equipment_11800281:
+            name: equipment_11800281
+            type: boolean
+            required: false
+            default: false
+          equipment_11800282:
+            name: equipment_11800282
+            type: boolean
+            required: false
+            default: false
+          equipment_11800283:
+            name: equipment_11800283
+            type: boolean
+            required: false
+            default: false
+          equipment_11800284:
+            name: equipment_11800284
+            type: boolean
+            required: false
+            default: false
+          equipment_11800285:
+            name: equipment_11800285
+            type: boolean
+            required: false
+            default: false
+          equipment_11800286:
+            name: equipment_11800286
+            type: boolean
+            required: false
+            default: false
+          equipment_11800287:
+            name: equipment_11800287
+            type: boolean
+            required: false
+            default: false
+          equipment_11800288:
+            name: equipment_11800288
+            type: boolean
+            required: false
+            default: false
+          equipment_11800289:
+            name: equipment_11800289
+            type: boolean
+            required: false
+            default: false
+          equipment_11800297:
+            name: equipment_11800297
+            type: boolean
+            required: false
+            default: false
+          equipment_11800301:
+            name: equipment_11800301
+            type: boolean
+            required: false
+            default: false
+          equipment_11800303:
+            name: equipment_11800303
+            type: boolean
+            required: false
+            default: false
+          extended_timeline:
+            name: extended_timeline
+            type: boolean
+            required: false
+            default: false
+          garden_guardian:
+            name: garden_guardian
+            type: boolean
+            required: false
+            default: false
+          healing_bulletproof_vest:
+            name: healing_bulletproof_vest
+            type: boolean
+            required: false
+            default: false
+          hunting_revolver:
+            name: hunting_revolver
+            type: boolean
+            required: false
+            default: false
+          insulated_charge_armor:
+            name: insulated_charge_armor
+            type: boolean
+            required: false
+            default: false
+          machine_god_armor:
+            name: machine_god_armor
+            type: boolean
+            required: false
+            default: false
+          mobius:
+            name: mobius
+            type: boolean
+            required: false
+            default: false
+          niktar_final_solution:
+            name: niktar_final_solution
+            type: boolean
+            required: false
+            default: false
+          quick_leave_candy:
+            name: quick_leave_candy
+            type: boolean
+            required: false
+            default: false
+          radiance_pursuer:
+            name: radiance_pursuer
+            type: boolean
+            required: false
+            default: false
+          resonance_fiber:
+            name: resonance_fiber
+            type: boolean
+            required: false
+            default: false
+          reverse_entropy_harsh_winter:
+            name: reverse_entropy_harsh_winter
+            type: boolean
+            required: false
+            default: false
+          seven_string_bow:
+            name: seven_string_bow
+            type: boolean
+            required: false
+            default: false
+          simulated_stars:
+            name: simulated_stars
+            type: boolean
+            required: false
+            default: false
+          spirit_spring:
+            name: spirit_spring
+            type: boolean
+            required: false
+            default: false
+          spring_autumn_sincerity_seal:
+            name: spring_autumn_sincerity_seal
+            type: boolean
+            required: false
+            default: false
+          st_elmos_fire:
+            name: st_elmos_fire
+            type: boolean
+            required: false
+            default: false
+          thunder_god:
+            name: thunder_god
+            type: boolean
+            required: false
+            default: false
+          thunder_summoning_coil_mk1:
+            name: thunder_summoning_coil_mk1
+            type: boolean
+            required: false
+            default: false
+          tiangang_demon_suppressing_sword:
+            name: tiangang_demon_suppressing_sword
+            type: boolean
+            required: false
+            default: false
+          veteran_rifle:
+            name: veteran_rifle
+            type: boolean
+            required: false
+            default: false
+          viscera_collector_mk0:
+            name: viscera_collector_mk0
+            type: boolean
+            required: false
+            default: false
+          yuchang_dagger:
+            name: yuchang_dagger
+            type: boolean
+            required: false
+            default: false
+          anita_standard_equipment_crate:
+            name: anita_standard_equipment_crate
+            type: boolean
+            required: false
+            default: false
+          black_moon_standard_equipment_crate:
+            name: black_moon_standard_equipment_crate
+            type: boolean
+            required: false
+            default: false
+          imperial_standard_equipment_crate:
+            name: imperial_standard_equipment_crate
+            type: boolean
+            required: false
+            default: false
+          iron_alliance_standard_equipment_crate:
+            name: iron_alliance_standard_equipment_crate
+            type: boolean
+            required: false
+            default: false
+          item_11400008:
+            name: item_11400008
+            type: boolean
+            required: false
+            default: false
+          item_11400010:
+            name: item_11400010
+            type: boolean
+            required: false
+            default: false
+          item_11400084:
+            name: item_11400084
+            type: boolean
+            required: false
+            default: false
+          item_11400085:
+            name: item_11400085
+            type: boolean
+            required: false
+            default: false
+          item_11400087:
+            name: item_11400087
+            type: boolean
+            required: false
+            default: false
+          item_11400088:
+            name: item_11400088
+            type: boolean
+            required: false
+            default: false
+          item_11400089:
+            name: item_11400089
+            type: boolean
+            required: false
+            default: false
+          item_11400090:
+            name: item_11400090
+            type: boolean
+            required: false
+            default: false
+          item_11400092:
+            name: item_11400092
+            type: boolean
+            required: false
+            default: false
+          item_11400094:
+            name: item_11400094
+            type: boolean
+            required: false
+            default: false
+          item_11400095:
+            name: item_11400095
+            type: boolean
+            required: false
+            default: false
+          advertising_ticket:
+            name: advertising_ticket
+            type: boolean
+            required: false
+            default: false
+          cardamom_ginger_lily:
+            name: cardamom_ginger_lily
+            type: boolean
+            required: false
+            default: false
+          item_11401001:
+            name: item_11401001
+            type: boolean
+            required: false
+            default: false
+          order_request:
+            name: order_request
+            type: boolean
+            required: false
+            default: false
+          purchase_order_book:
+            name: purchase_order_book
+            type: boolean
+            required: false
+            default: false
+          quadratic_one_variable:
+            name: quadratic_one_variable
+            type: boolean
+            required: false
+            default: false
+          renegotiation_request:
+            name: renegotiation_request
+            type: boolean
+            required: false
+            default: false
+          self_observation_film_roll:
+            name: self_observation_film_roll
+            type: boolean
+            required: false
+            default: false
+          silver_branch_mint:
+            name: silver_branch_mint
+            type: boolean
+            required: false
+            default: false
+          survey_beacon:
+            name: survey_beacon
+            type: boolean
+            required: false
+            default: false
+          task_commission_letter:
+            name: task_commission_letter
+            type: boolean
+            required: false
+            default: false
+          birch_gland:
+            name: birch_gland
+            type: boolean
+            required: false
+            default: false
+          combat_memory_1_titanium:
+            name: combat_memory_1_titanium
+            type: boolean
+            required: false
+            default: false
+          combat_memory_2_titanium:
+            name: combat_memory_2_titanium
+            type: boolean
+            required: false
+            default: false
+          combat_memory_4_titanium:
+            name: combat_memory_4_titanium
+            type: boolean
+            required: false
+            default: false
+          combat_memory_8_titanium:
+            name: combat_memory_8_titanium
+            type: boolean
+            required: false
+            default: false
+          digital_thought:
+            name: digital_thought
+            type: boolean
+            required: false
+            default: false
+          inferior_birch_stone:
+            name: inferior_birch_stone
+            type: boolean
+            required: false
+            default: false
+          material_11700247:
+            name: material_11700247
+            type: boolean
+            required: false
+            default: false
+          nebula_matter_1_titanium:
+            name: nebula_matter_1_titanium
+            type: boolean
+            required: false
+            default: false
+          nebula_matter_2_titanium:
+            name: nebula_matter_2_titanium
+            type: boolean
+            required: false
+            default: false
+          nebula_matter_4_titanium:
+            name: nebula_matter_4_titanium
+            type: boolean
+            required: false
+            default: false
+          nebula_matter_8_titanium:
+            name: nebula_matter_8_titanium
+            type: boolean
+            required: false
+            default: false
+          primitive_thought:
+            name: primitive_thought
+            type: boolean
+            required: false
+            default: false
+          unique_stone_fragment:
+            name: unique_stone_fragment
+            type: boolean
+            required: false
+            default: false
+      - name: submit_purchase
+        type: boolean
+        required: false
+        default: false
+  steps:
+    validate_table:
+      action: resonance_pc.validate_black_moon_purchase_table
+      params:
+        purchase_table: "{{ inputs.purchase_table }}"
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+      depends_on: validate_table
+    enable_batch:
+      action: resonance_pc.prepare_black_moon_local_shop_step
+      depends_on: require_resolution
+      when: "{{ nodes.validate_table.output.candidate_count > 0 }}"
+      timeout_sec: 75
+      params:
+        step: enable_batch
+    select_goods:
+      action: resonance_pc.select_black_moon_local_goods
+      depends_on:
+        enable_batch: success|skipped
+      timeout_sec: 300
+      params:
+        purchase_table: "{{ inputs.purchase_table }}"
+        require_empty_selection: "{{ inputs.submit_purchase }}"
+    submit:
+      action: resonance_pc.submit_black_moon_local_selection
+      depends_on: select_goods
+      when: "{{ inputs.submit_purchase }}"
+      timeout_sec: 15
+      params:
+        selection: "{{ nodes.select_goods.output }}"
+  returns:
+    success: "{{ nodes.select_goods.output.success }}"
+    selection: "{{ nodes.select_goods.output }}"
+    submission: "{{ nodes.submit.output | default({}) }}"

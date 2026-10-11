@@ -25,10 +25,12 @@ def rig(monkeypatch):
 
     class Reader:
         VIEWPORT = (33, 130, 410, 460)
+        city_product_count = None
 
         def read_entry_state(self, frame):
             return {"availability": "available", "center": [843, 490],
                     "white_score": 0.95, "gray_score": 0.7}
+
 
         def read_levels(self, frame):
             return {"current": state.current, "preview": state.preview}
@@ -39,9 +41,9 @@ def rig(monkeypatch):
 
     reader = Reader()
 
-    def adjust(app, reader, name, current, previous):
-        state.adjustments.append((name, previous))
-        state.preview = min(previous + 1, state.cap) if name == "plus" else previous - 1
+    def adjust(app, reader, name, current, previous, *, clicks=1):
+        state.adjustments.append((name, previous, clicks))
+        state.preview = min(previous + clicks, state.cap) if name == "plus" else previous - clicks
         return FRAME, reader.read_levels(FRAME)
 
     monkeypatch.setattr(investment, "_capture", lambda app: FRAME)
@@ -62,7 +64,7 @@ def test_valid_partial_preview_commits_once_then_requests_exit(rig, target):
     operation = prepare(rig, target)
     assert operation == {"current_level": 0, "upgrade_level": 6, "center": [1001, 561],
                          "stop_after_commit": True}
-    assert rig[2].adjustments == [("plus", value) for value in range(1, 7)]
+    assert rig[2].adjustments == [("plus", 1, target - 1), ("plus", 6, target - 6)]
 
 
 @pytest.mark.parametrize("current", [0, 1, 6])
@@ -72,7 +74,7 @@ def test_default_next_level_with_no_plus_progress_gets_one_submission(rig, curre
     operation = prepare(rig)
     assert operation["current_level"] == current and operation["upgrade_level"] == current + 1
     assert operation["stop_after_commit"] is True
-    assert state.adjustments == [("plus", current + 1)]
+    assert state.adjustments == [("plus", current + 1, 10 - (current + 1))]
 
 
 def test_default_preview_at_target_can_be_submitted_without_extra_plus(rig):
@@ -88,14 +90,14 @@ def test_reaching_target_keeps_normal_next_product_processing(rig, target):
     rig[2].cap = target
     operation = prepare(rig, target)
     assert operation["upgrade_level"] == target and not operation["stop_after_commit"]
-    assert ("plus", target) not in rig[2].adjustments
+    assert rig[2].adjustments == ([] if target == 1 else [("plus", 1, target - 1)])
 
 
 def test_oversized_preview_is_reduced_to_target_without_claiming_plus_limit(rig):
     rig[2].preview = 12
     operation = prepare(rig)
     assert operation["upgrade_level"] == 10 and not operation["stop_after_commit"]
-    assert rig[2].adjustments == [("minus", 12), ("minus", 11)]
+    assert rig[2].adjustments == [("minus", 12, 2)]
 
 
 def test_disabled_confirmation_cannot_submit_partial_preview(rig):
@@ -105,7 +107,7 @@ def test_disabled_confirmation_cannot_submit_partial_preview(rig):
 
 @pytest.mark.parametrize("preview", [None, 0])
 def test_invalid_plus_feedback_still_raises_not_normal_limit(rig, monkeypatch, preview):
-    monkeypatch.setattr(investment, "_adjust", lambda *args: (FRAME, {"current": 0, "preview": preview}))
+    monkeypatch.setattr(investment, "_adjust", lambda *args, **kwargs: (FRAME, {"current": 0, "preview": preview}))
     with pytest.raises(investment.TradeGoodsInvestmentError) as error:
         prepare(rig)
     assert error.value.code == "investment_preview_invalid"
@@ -116,7 +118,7 @@ def test_invalid_plus_feedback_still_raises_not_normal_limit(rig, monkeypatch, p
 ])
 def test_plus_limit_has_readback_but_no_second_click(monkeypatch, kind, delayed_preview, clicks, reads):
     app = App()
-    reader = SimpleNamespace(read_levels=lambda frame: {"current": 6},
+    reader = SimpleNamespace(read_levels=lambda frame: {"current": 6, "preview": 7},
                              match=lambda frame, name: {"found": True, "center": [1146, 239]})
     observations = []
 
@@ -138,9 +140,8 @@ def execute(rig, monkeypatch, mode=10, product_levels=None, product_caps=None, p
     events = []
     cards = [{"rect": (50 + index * 120, 150, 114, 128), "partial": False,
               "locked": False, "selected": False} for index in range(3)]
-    monkeypatch.setattr(investment, "InvestmentVision", lambda: reader)
+    monkeypatch.setattr(investment, "InvestmentVision", lambda **kwargs: reader)
     monkeypatch.setattr(investment, "_wait", lambda app, predicate: (FRAME, predicate(FRAME)))
-    monkeypatch.setattr(investment, "_idle", lambda *args: None)
     monkeypatch.setattr(investment, "_cards", lambda *args: (FRAME, cards))
     monkeypatch.setattr(investment, "_scroll", lambda *args: None)
 
@@ -294,7 +295,8 @@ def commit_rig(monkeypatch):
     monkeypatch.setattr(investment, "_COMMIT_TIMEOUT", .9)
     monkeypatch.setattr(investment, "_cancel_check", lambda: None)
     reader = Reader()
-    operation = lambda: {"current_level": state.current, "upgrade_level": state.preview}
+    operation = lambda: {"current_level": state.current, "upgrade_level": state.preview,
+                         "center": [1001, 561]}
     state.run = lambda: investment._commit(app, reader, operation())
     return app, state
 

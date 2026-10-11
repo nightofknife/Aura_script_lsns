@@ -32,15 +32,23 @@ def _entries(value):
 
 
 @lru_cache(maxsize=4)
-def _resources(root: Path):
+def _resources(root: Path, template_names: tuple[str, ...] | None = None):
     try:
         manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
         if manifest["reference_client"] != [1280, 720]:
             raise ValueError("Only RGB 1280x720 is supported")
-        cards = manifest["cards"]
         entries = _entries(manifest["templates"])
-        entries += cards.get("anchors", []) + cards.get("frame_variants", [])
-        entries += cards.get("items", manifest.get("items", []))
+        if template_names is None:
+            cards = manifest["cards"]
+            entries += cards.get("anchors", []) + cards.get("frame_variants", [])
+            entries += cards.get("items", manifest.get("items", []))
+            if len(cards["columns"]) != 2 or not cards["anchors"] or not cards["frame_variants"]:
+                raise ValueError("Native two-column geometry, anchors, and frames are required")
+        else:
+            entries = [entry for entry in entries if entry["name"] in template_names]
+            if {entry["name"] for entry in entries} != set(template_names):
+                raise ValueError("Preparation control templates are incomplete")
+            manifest = {**manifest, "templates": entries}
         files = {entry["file"] for entry in entries}
         files.update(entry["mask_file"] for entry in entries if entry.get("mask_file"))
         pixels = {}
@@ -53,8 +61,6 @@ def _resources(root: Path):
                 array = np.array(asset.convert(mode))
             array.setflags(write=False)
             pixels[filename] = array
-        if len(cards["columns"]) != 2 or not cards["anchors"] or not cards["frame_variants"]:
-            raise ValueError("Native two-column geometry, anchors, and frames are required")
         return manifest, pixels
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise BlackMoonLocalShopRecognitionError("template_load_failed", str(exc)) from exc

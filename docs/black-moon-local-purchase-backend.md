@@ -1,5 +1,10 @@
 # Black Moon Local Purchase Backend
 
+The standalone first-phase preparation task and its limited screenshot
+validation are documented in [Black Moon Local Shopping Preparation](black-moon-local-shopping-preparation.md).
+It does not purchase stock or change freight integration. The full-purchase
+limitations below still apply; six preparation controls now have offline evidence.
+
 ## Scope
 
 The PC freight executor purchases selected LOCAL-store products at the freight

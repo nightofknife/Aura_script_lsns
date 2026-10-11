@@ -1,0 +1,1151 @@
+{
+  "records": [
+    {
+      "name": "work_empty",
+      "image": "work_empty.png",
+      "kind": "real_client_crop",
+      "style": "list",
+      "expected": "0/7",
+      "sha256": "325d7486c0d3ac71ee034dcc1ce951d3629fdb554b09d5d2f9ff8a126770a1fd",
+      "source_asset": "work_count_0_7_sample"
+    },
+    {
+      "name": "work_full",
+      "image": "work_full.png",
+      "kind": "real_client_crop",
+      "style": "list",
+      "expected": "7/7",
+      "sha256": "d70178b3ac563fd48cddede782b070f8b5b57e2a39c76805150a4f0940cde68b",
+      "source_asset": "work_count_7_7_sample"
+    },
+    {
+      "name": "reserve_empty",
+      "image": "reserve_empty.png",
+      "kind": "real_client_crop",
+      "style": "list",
+      "expected": "0/2",
+      "sha256": "9b19af04680be40ac811ceb4331c3a42ea02d27cee706bd9681fd7e4b5f504d7",
+      "source_asset": "reserve_count_0_2_sample"
+    },
+    {
+      "name": "selection_empty",
+      "image": "selection_empty.png",
+      "kind": "real_client_crop",
+      "style": "selection",
+      "expected": "0/7",
+      "sha256": "4e6a1902b8d3f4e35113a272060aff0ec8e4818a060cd2d4207a13a1fc049ed4",
+      "source_asset": "selection_count_0_7_sample"
+    },
+    {
+      "name": "selection_full",
+      "image": "selection_full.png",
+      "kind": "real_client_crop",
+      "style": "selection",
+      "expected": "7/7",
+      "sha256": "26ab56c4a737ee45a32a8cb2dbcb96e78e7a0cbf751a4f6a57ff4ec1d37a48a7",
+      "source_asset": "selection_count_7_7_sample"
+    },
+    {
+      "name": "animal_work",
+      "image": "animal_work.png",
+      "kind": "real_client_crop",
+      "style": "list",
+      "expected": "0/6",
+      "sha256": "0747eb350c212c7ac22bbeeed28369cb16786261b1f23040b4785e9f670962c8",
+      "source_frame_sha256": "5d7bfda0477c6f6cacc06f6c11eb4268666fd2acfa927d211f60d8f953506d59",
+      "source_region": [
+        735,
+        282,
+        40,
+        28
+      ]
+    },
+    {
+      "name": "animal_reserve",
+      "image": "animal_reserve.png",
+      "kind": "real_client_crop",
+      "style": "list",
+      "expected": "0/1",
+      "sha256": "1fda54ce8622fe8096c62959eab66fb5d79dfb744bcfa6050f30e669081f3612",
+      "source_frame_sha256": "5d7bfda0477c6f6cacc06f6c11eb4268666fd2acfa927d211f60d8f953506d59",
+      "source_region": [
+        1080,
+        282,
+        40,
+        28
+      ]
+    },
+    {
+      "name": "synth_list_white_0_1",
+      "image": "synth_list_white_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/1",
+      "sha256": "1c34350319ed08a050efdd7c0487f2e76cb315305d8b64ad285885d1126c00d3"
+    },
+    {
+      "name": "synth_list_white_1_1",
+      "image": "synth_list_white_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "1/1",
+      "sha256": "3d3333a9e51fb1a3f4e528c39c33091fd940344530e20527cb5e4046bad612ba"
+    },
+    {
+      "name": "synth_list_white_0_6",
+      "image": "synth_list_white_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/6",
+      "sha256": "0e8e8540cc102bd74137c799cdf89b20b0f0455a089125a7b6fa6aa72e1fe01a"
+    },
+    {
+      "name": "synth_list_white_6_6",
+      "image": "synth_list_white_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "6/6",
+      "sha256": "c94f1fd675a62e079758ebdc0894e42cd8c5b426df0f0301c6136512ad63544a"
+    },
+    {
+      "name": "synth_list_white_0_7",
+      "image": "synth_list_white_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/7",
+      "sha256": "e4af58bbd2928d70ce36488fbe62ab4a0a851e8aec902e26b29677767c2cf21c"
+    },
+    {
+      "name": "synth_list_white_7_7",
+      "image": "synth_list_white_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/7",
+      "sha256": "dda24386a9a4969a19f542fbf6d4353b2aa55313ad4d6e96a3d1f77a5aacde01"
+    },
+    {
+      "name": "synth_list_white_7_8",
+      "image": "synth_list_white_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/8",
+      "sha256": "6c545bb3b56c7d50f468479560f4b83607b90c0922f18ac7125f6167dca282d3"
+    },
+    {
+      "name": "synth_list_white_8_8",
+      "image": "synth_list_white_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "8/8",
+      "sha256": "6a23cf87b8753e7f58341812290beb2dc497a4b8f38d703b45344271e562f3c3"
+    },
+    {
+      "name": "synth_list_white_2_3",
+      "image": "synth_list_white_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "2/3",
+      "sha256": "6bf725c208ed7ba539871af61ac8a35e4f5e26e73a04bf89666888f090d5d693"
+    },
+    {
+      "name": "synth_list_white_3_4",
+      "image": "synth_list_white_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "3/4",
+      "sha256": "908f183130dc79d2717aa0af74c62599962de24156aef3cd21f78f416825245f"
+    },
+    {
+      "name": "synth_list_white_4_5",
+      "image": "synth_list_white_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "4/5",
+      "sha256": "31294ef930d4e751ea5af93e4b699b04806fe147c55654c612d5d5222a18a6df"
+    },
+    {
+      "name": "synth_list_white_5_6",
+      "image": "synth_list_white_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "5/6",
+      "sha256": "79c3d7e943f25cc1619722c26eb4a1908d3f1466cedadf9806ed15d3c6d2cb4f"
+    },
+    {
+      "name": "synth_list_white_9_10",
+      "image": "synth_list_white_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "9/10",
+      "sha256": "6b65f24733bc2ac7bab7c7462f491f30f62eb721d502e3f158b1ee5bf2870108"
+    },
+    {
+      "name": "synth_list_white_10_10",
+      "image": "synth_list_white_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "10/10",
+      "sha256": "d89a52dcc5f1213998bb96343e455cd7bdc3c6a415c2b736f1a9e37efedcf61d"
+    },
+    {
+      "name": "synth_list_white_11_12",
+      "image": "synth_list_white_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "11/12",
+      "sha256": "b388d215663ecfcb1be1625c10e9545c2da6b532afc60518481c95c5518e8641"
+    },
+    {
+      "name": "synth_list_white_12_13",
+      "image": "synth_list_white_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "12/13",
+      "sha256": "f7ddef4bc10d615df0516c46ee823fadac07059512abc6632f1d34417feace1c"
+    },
+    {
+      "name": "synth_list_white_13_14",
+      "image": "synth_list_white_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "13/14",
+      "sha256": "46a7b9a757943fa8bac1467fde7d9ff3f6cbd500f947ce04c3145486d9d48ddc"
+    },
+    {
+      "name": "synth_list_white_14_15",
+      "image": "synth_list_white_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "14/15",
+      "sha256": "da7faa31ff35ed44fd1e9492b5616b8db42fda6c61a31f07f59beab340a2d38e"
+    },
+    {
+      "name": "synth_list_white_15_15",
+      "image": "synth_list_white_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "15/15",
+      "sha256": "783471a6e0333adfce180a6ea34064d940160ce661150fed46013c468be60a1f"
+    },
+    {
+      "name": "synth_list_white_0_2",
+      "image": "synth_list_white_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/2",
+      "sha256": "fc07c83ef0ded80b8bd99632fd69a368fafd7aba3f52a744d1a25cfc3593a53f"
+    },
+    {
+      "name": "synth_list_black_0_1",
+      "image": "synth_list_black_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/1",
+      "sha256": "98a594f7fd6bd30e6fbd47ac318f0a174afe17a5ce41ecf555f095b68f19d9a4"
+    },
+    {
+      "name": "synth_list_black_1_1",
+      "image": "synth_list_black_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "1/1",
+      "sha256": "e31bf9ded032ef528df6588231a03360cd3a677063185b2e3e1a93dfac4ff7e1"
+    },
+    {
+      "name": "synth_list_black_0_6",
+      "image": "synth_list_black_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/6",
+      "sha256": "85803a183cf74aa67d38d6e1717e96ce0cd166fbe5e402de2ff1b0938402a915"
+    },
+    {
+      "name": "synth_list_black_6_6",
+      "image": "synth_list_black_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "6/6",
+      "sha256": "9fe9dd0ddab3e7c6562bf3e2d35fb54e6554513cdc13f160c360a9c67acb4dc3"
+    },
+    {
+      "name": "synth_list_black_0_7",
+      "image": "synth_list_black_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/7",
+      "sha256": "24038cc9586a40e5406e331d40e23365fe6abf17c612dd2926d5da04899033e6"
+    },
+    {
+      "name": "synth_list_black_7_7",
+      "image": "synth_list_black_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/7",
+      "sha256": "62bd82db58a2ffc7d5185d9d3a0982adfe8a514bcdb43ccf88e8ddb20b422417"
+    },
+    {
+      "name": "synth_list_black_7_8",
+      "image": "synth_list_black_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/8",
+      "sha256": "3e94573df67e3480a92db9563fd25f901e45f6af7760987e1f7d13e591be826e"
+    },
+    {
+      "name": "synth_list_black_8_8",
+      "image": "synth_list_black_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "8/8",
+      "sha256": "589f2862fcfe44324dcd693bc53d847bc55be29098191a8b4be9403f6c69fe67"
+    },
+    {
+      "name": "synth_list_black_2_3",
+      "image": "synth_list_black_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "2/3",
+      "sha256": "9ba1cf5b9fdc63b59be7747547ffe53f320162571d21af032ba43fe711f183ac"
+    },
+    {
+      "name": "synth_list_black_3_4",
+      "image": "synth_list_black_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "3/4",
+      "sha256": "6834a59e43993918d31b8b7df099f97ebf8195821e5a102950e77446f8ec6ac4"
+    },
+    {
+      "name": "synth_list_black_4_5",
+      "image": "synth_list_black_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "4/5",
+      "sha256": "a3f1cd6067c7e617d746a1cd2a360b93e8dad18de44fda1f30079d4d0054f71c"
+    },
+    {
+      "name": "synth_list_black_5_6",
+      "image": "synth_list_black_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "5/6",
+      "sha256": "f70ee08ff0f5180e56e68026262e077c2c400a67be227bbcca4a9be932af18e3"
+    },
+    {
+      "name": "synth_list_black_9_10",
+      "image": "synth_list_black_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "9/10",
+      "sha256": "e28a91c6fb39093923d22b15c5d65b691659b6bbaab88c268d9f1c6f2c6fb05f"
+    },
+    {
+      "name": "synth_list_black_10_10",
+      "image": "synth_list_black_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "10/10",
+      "sha256": "41aea87abd1335153650d57bfcb7708c7f1919b711e21fbb7506150a841edbc5"
+    },
+    {
+      "name": "synth_list_black_11_12",
+      "image": "synth_list_black_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "11/12",
+      "sha256": "ed8bb29e3f24e24b2f6cbf21ee33969eff7f8d3a285d09fdcd6faed7ac16ca32"
+    },
+    {
+      "name": "synth_list_black_12_13",
+      "image": "synth_list_black_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "12/13",
+      "sha256": "0028e5503d64067b0ca982e5178ea1c46dc517318eab580383f8d37de4499e66"
+    },
+    {
+      "name": "synth_list_black_13_14",
+      "image": "synth_list_black_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "13/14",
+      "sha256": "099392fc409ddd9c38fcb5e7eed64a45d4a2021dd05375848c34a9700f71bad4"
+    },
+    {
+      "name": "synth_list_black_14_15",
+      "image": "synth_list_black_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "14/15",
+      "sha256": "908ea85933386178c9e3c6ab94b3bf8353a2ae63cf815990514359dce9b6a4c8"
+    },
+    {
+      "name": "synth_list_black_15_15",
+      "image": "synth_list_black_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "15/15",
+      "sha256": "3ff34e2e07bac47c62abf7068fe217d1a47cc6906fedc78dde3254467ec06793"
+    },
+    {
+      "name": "synth_list_black_0_2",
+      "image": "synth_list_black_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/2",
+      "sha256": "2e16df7d2431568085343900c0da419ac3ca5290d386d98186a9da03729a59dc"
+    },
+    {
+      "name": "synth_list_yellow_0_1",
+      "image": "synth_list_yellow_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/1",
+      "sha256": "d4727f52933244312441a367ce1f59d7d82db33bde5ba21eceee298c164702c6"
+    },
+    {
+      "name": "synth_list_yellow_1_1",
+      "image": "synth_list_yellow_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "1/1",
+      "sha256": "d6057819f4637de30ae24dfca8d9abd806b3413b9265b0a23e756f3bc49735b9"
+    },
+    {
+      "name": "synth_list_yellow_0_6",
+      "image": "synth_list_yellow_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/6",
+      "sha256": "8a9ef3e3a3e6d5cd27b125edbba84669a2f0d18bee341ddadde6fc18d994ad41"
+    },
+    {
+      "name": "synth_list_yellow_6_6",
+      "image": "synth_list_yellow_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "6/6",
+      "sha256": "1b0ea353ee168a28701b9f3abf0088b9773267ef742faabaf2dc8c6984b1ef49"
+    },
+    {
+      "name": "synth_list_yellow_0_7",
+      "image": "synth_list_yellow_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/7",
+      "sha256": "dbd9fda052098d78cc480e9dc758ecdfaea1a94f088abb7de8ada940480660e8"
+    },
+    {
+      "name": "synth_list_yellow_7_7",
+      "image": "synth_list_yellow_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/7",
+      "sha256": "acde055e172bf7a43141a65b605777bab7b087ca43695ae6f02adfe93b065502"
+    },
+    {
+      "name": "synth_list_yellow_7_8",
+      "image": "synth_list_yellow_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "7/8",
+      "sha256": "bedee4ff4edace7752a43414588b99934549f6314a80bcc054395f79b3db9a7d"
+    },
+    {
+      "name": "synth_list_yellow_8_8",
+      "image": "synth_list_yellow_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "8/8",
+      "sha256": "e6eba7824b13cf1c3b16b3dfc6e28c14140ec3dbd42607fe25339d234c2bdf66"
+    },
+    {
+      "name": "synth_list_yellow_2_3",
+      "image": "synth_list_yellow_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "2/3",
+      "sha256": "9c7e551600a5862149b1c1154ec48de9c05e0ee1d67da1aa55f95debd359c1bb"
+    },
+    {
+      "name": "synth_list_yellow_3_4",
+      "image": "synth_list_yellow_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "3/4",
+      "sha256": "ee1648444b72fbd007c52caec4348130b6fe15a26a4608c85961102c45647a73"
+    },
+    {
+      "name": "synth_list_yellow_4_5",
+      "image": "synth_list_yellow_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "4/5",
+      "sha256": "bd1242e1edaa53e03736fe25002ed6875c835ce9a3391154cb694f0828024741"
+    },
+    {
+      "name": "synth_list_yellow_5_6",
+      "image": "synth_list_yellow_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "5/6",
+      "sha256": "9f0ff18f8ce42ae2ae23343a8edb1dca2c1f3667789eff2fcf0c21425386a95d"
+    },
+    {
+      "name": "synth_list_yellow_9_10",
+      "image": "synth_list_yellow_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "9/10",
+      "sha256": "dcaf600bdf5596c7a32cfdaae98dccc797efa9c11bd96ea952ea3c5c96c13970"
+    },
+    {
+      "name": "synth_list_yellow_10_10",
+      "image": "synth_list_yellow_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "10/10",
+      "sha256": "85bbf86f980fdbb13aca0c2ff2c72e4750639e602a74f02a1ccb63ea054e11dd"
+    },
+    {
+      "name": "synth_list_yellow_11_12",
+      "image": "synth_list_yellow_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "11/12",
+      "sha256": "d40c06e33400ede4e0efbae6925b236645435e9669088b87aa27e93d61b8ed78"
+    },
+    {
+      "name": "synth_list_yellow_12_13",
+      "image": "synth_list_yellow_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "12/13",
+      "sha256": "0ed40179e3e2ecf85657a891b6bc9bd8d93bf1702ec3d0fee58baaf357ed6b61"
+    },
+    {
+      "name": "synth_list_yellow_13_14",
+      "image": "synth_list_yellow_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "13/14",
+      "sha256": "c751283e33035dac29a8012b60ff89a9a72809c0420347de7142297ccde4c822"
+    },
+    {
+      "name": "synth_list_yellow_14_15",
+      "image": "synth_list_yellow_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "14/15",
+      "sha256": "1b8779da3aecb6db1128dc070e87ffaaa49f203f2091715f7f2d5b95795ce69f"
+    },
+    {
+      "name": "synth_list_yellow_15_15",
+      "image": "synth_list_yellow_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "15/15",
+      "sha256": "d055f3222ada117b3e1e296a4080ff02f3596652deeef9c3783e0043d76974da"
+    },
+    {
+      "name": "synth_list_yellow_0_2",
+      "image": "synth_list_yellow_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "list",
+      "expected": "0/2",
+      "sha256": "d414837b1d1b6d5e05bc5debf191bedcb22bb4d699177aa2eddec146ec1722e5"
+    },
+    {
+      "name": "synth_selection_white_0_1",
+      "image": "synth_selection_white_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/1",
+      "sha256": "730e8d5f39ce6c59bf0c1afac1adc21a217d8b26b81dd840c7423f79a7c89578"
+    },
+    {
+      "name": "synth_selection_white_1_1",
+      "image": "synth_selection_white_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "1/1",
+      "sha256": "f67a870f184d24bbab810697e2ea224b52cb524a842fdaf086c8a2b6d3daf8a1"
+    },
+    {
+      "name": "synth_selection_white_0_6",
+      "image": "synth_selection_white_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/6",
+      "sha256": "da835e0d8dfd03054494ad9ef5d6bfc3e06abe065e72f871ba5084c158a6fcb9"
+    },
+    {
+      "name": "synth_selection_white_6_6",
+      "image": "synth_selection_white_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "6/6",
+      "sha256": "106b1222d5b18720db9dea5eef7302601d18828d914b7d0c5738536689761c87"
+    },
+    {
+      "name": "synth_selection_white_0_7",
+      "image": "synth_selection_white_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/7",
+      "sha256": "878b37a2ee5489d0e1d9bcdd91e89e7292dc230fdbb58c5fa227853594c02d44"
+    },
+    {
+      "name": "synth_selection_white_7_7",
+      "image": "synth_selection_white_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/7",
+      "sha256": "cb1e3f39768858248e5f673607cf3aa113eeca2413990fd2ee5adb7659ef1550"
+    },
+    {
+      "name": "synth_selection_white_7_8",
+      "image": "synth_selection_white_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/8",
+      "sha256": "a0fcb2ef4490eea7126da518df6ef7736cc71667f1b468860f97186d2e79f96e"
+    },
+    {
+      "name": "synth_selection_white_8_8",
+      "image": "synth_selection_white_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "8/8",
+      "sha256": "d27d64201fa3a84f6b536b120961b7f75f26dc9188ab5b7052a90c0e43c40204"
+    },
+    {
+      "name": "synth_selection_white_2_3",
+      "image": "synth_selection_white_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "2/3",
+      "sha256": "b9b0332b61e993bb35c4940ea78b87c52f89002c3634b667d1116bd50c286e3e"
+    },
+    {
+      "name": "synth_selection_white_3_4",
+      "image": "synth_selection_white_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "3/4",
+      "sha256": "60fab1dc871f7dc7a90de618e36cd0ea3ef6b539e7e09e4dabebf22683c052bf"
+    },
+    {
+      "name": "synth_selection_white_4_5",
+      "image": "synth_selection_white_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "4/5",
+      "sha256": "384114abcf2b109c13c476c7d9482c03fbb5e34dad1f4abf5933519c99c8e766"
+    },
+    {
+      "name": "synth_selection_white_5_6",
+      "image": "synth_selection_white_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "5/6",
+      "sha256": "f0d3ee12515a941086f9101424fa9ea3070cc7bb15784167aae5b02b6d743493"
+    },
+    {
+      "name": "synth_selection_white_9_10",
+      "image": "synth_selection_white_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "9/10",
+      "sha256": "15edb11af933d97f8b4e411c318431c1a2e74ba09c2a0f1d2709e0d031ee16c4"
+    },
+    {
+      "name": "synth_selection_white_10_10",
+      "image": "synth_selection_white_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "10/10",
+      "sha256": "be82cc195711a1675114474d5b16bccc174434ebf5c52838d88f8ce99330c36f"
+    },
+    {
+      "name": "synth_selection_white_11_12",
+      "image": "synth_selection_white_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "11/12",
+      "sha256": "f655cc2b90cdcb732f24c305488a92e82ce25777862412384c6696e63335c6bb"
+    },
+    {
+      "name": "synth_selection_white_12_13",
+      "image": "synth_selection_white_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "12/13",
+      "sha256": "d968789a95d036e6313a8296919c6de972ea67e1c7bcc4726851f26684d4224c"
+    },
+    {
+      "name": "synth_selection_white_13_14",
+      "image": "synth_selection_white_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "13/14",
+      "sha256": "d325e5d931f3693bacd95b0177250d6db06d6e77ddbe18bde33ff4877a49787e"
+    },
+    {
+      "name": "synth_selection_white_14_15",
+      "image": "synth_selection_white_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "14/15",
+      "sha256": "8375aa8eded574da0c693c80da83853d04aceafe1b9471b0d6426391a630d6d8"
+    },
+    {
+      "name": "synth_selection_white_15_15",
+      "image": "synth_selection_white_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "15/15",
+      "sha256": "2c4c8521e3800b01b1d989b540cb1a921e9bc432a7fece1ad70d14c16a6f487d"
+    },
+    {
+      "name": "synth_selection_white_0_2",
+      "image": "synth_selection_white_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/2",
+      "sha256": "662b2d0e68a32cb374525b81bbd11ba63a153c2dc7c313979b5e527b92e7df4e"
+    },
+    {
+      "name": "synth_selection_black_0_1",
+      "image": "synth_selection_black_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/1",
+      "sha256": "68bd1d399872b7967ef702eeab298789e9abe1e9a37c588ae92c65a210369f51"
+    },
+    {
+      "name": "synth_selection_black_1_1",
+      "image": "synth_selection_black_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "1/1",
+      "sha256": "ce75acdfb279e29185a0a40febcb2790a5152f3b9696bb47a6e9a56462a5851c"
+    },
+    {
+      "name": "synth_selection_black_0_6",
+      "image": "synth_selection_black_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/6",
+      "sha256": "ee2cf327280595039bc00c94f8465209bc7adfadf8e453a97bab5edff10f358c"
+    },
+    {
+      "name": "synth_selection_black_6_6",
+      "image": "synth_selection_black_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "6/6",
+      "sha256": "bc9eb8c242468091615e43ff7ef35bcf749c5a981439451ec94b79ecf7979285"
+    },
+    {
+      "name": "synth_selection_black_0_7",
+      "image": "synth_selection_black_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/7",
+      "sha256": "d4992dd1acf2a54a0799e5e1c28b3f0a8675fca72150079e2ded93c68c07d6e2"
+    },
+    {
+      "name": "synth_selection_black_7_7",
+      "image": "synth_selection_black_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/7",
+      "sha256": "bc01531b6481ab75283e64b655b80f812e725ee928f098b477e946afb48f4851"
+    },
+    {
+      "name": "synth_selection_black_7_8",
+      "image": "synth_selection_black_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/8",
+      "sha256": "7407843b1b2bb3693a1f47f7aa65cba5892d3eacabb67e6e1fb567961d3be688"
+    },
+    {
+      "name": "synth_selection_black_8_8",
+      "image": "synth_selection_black_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "8/8",
+      "sha256": "ca8a3679fdd5426f4b70b540b1c01c4c39428e78493a45fb9c0e8ffe5fe01377"
+    },
+    {
+      "name": "synth_selection_black_2_3",
+      "image": "synth_selection_black_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "2/3",
+      "sha256": "90039ac16c26be68160ebb148c700ee800042ba7971ac7bd1f0fca808ea5fc8a"
+    },
+    {
+      "name": "synth_selection_black_3_4",
+      "image": "synth_selection_black_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "3/4",
+      "sha256": "127fc6dc6b5495c8189939991ef57eae9350d4a03eb51c776310ddf732d81300"
+    },
+    {
+      "name": "synth_selection_black_4_5",
+      "image": "synth_selection_black_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "4/5",
+      "sha256": "20fd0423d218cd2130384dfb419f9bdf73c00e46e05a236878559e566fe66f3b"
+    },
+    {
+      "name": "synth_selection_black_5_6",
+      "image": "synth_selection_black_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "5/6",
+      "sha256": "577f2e8239131990036a4a6a30302e8a4f5200cef636ada1e4e93c20c0dc1872"
+    },
+    {
+      "name": "synth_selection_black_9_10",
+      "image": "synth_selection_black_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "9/10",
+      "sha256": "84dff1b0c4a547a13abdb2f8c1d4e1c5103f3cb056c62c2de2147001493ecff5"
+    },
+    {
+      "name": "synth_selection_black_10_10",
+      "image": "synth_selection_black_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "10/10",
+      "sha256": "73e63e4faab9bdf156713c01798df1c5e543923caa71f9ac25ec07c3870e0543"
+    },
+    {
+      "name": "synth_selection_black_11_12",
+      "image": "synth_selection_black_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "11/12",
+      "sha256": "5ad1e1aa03e3bfc23dafb24a159e646f2075d90abaa99b66f711bedabb58d049"
+    },
+    {
+      "name": "synth_selection_black_12_13",
+      "image": "synth_selection_black_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "12/13",
+      "sha256": "0125deea731dd2111a028aefadcdb1374bb3b5772bf0f0e81e53b6e7c3dfb340"
+    },
+    {
+      "name": "synth_selection_black_13_14",
+      "image": "synth_selection_black_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "13/14",
+      "sha256": "a65bdf1946b2229f9e6588c93eddc02c718010ed50473901a584cff59d0ee2b4"
+    },
+    {
+      "name": "synth_selection_black_14_15",
+      "image": "synth_selection_black_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "14/15",
+      "sha256": "079b657bc175ad6e2c22563f3cc8ff12da952d06db4f66b8312333b41b92c758"
+    },
+    {
+      "name": "synth_selection_black_15_15",
+      "image": "synth_selection_black_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "15/15",
+      "sha256": "7462deca670508aeea015cc1ce536e30b99c3705397f5cd25b7a63964e4ee910"
+    },
+    {
+      "name": "synth_selection_black_0_2",
+      "image": "synth_selection_black_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/2",
+      "sha256": "e1e34d4f6cc3d219bd15820d39589b5a4650a12e4d0a22d389d6773ef2743667"
+    },
+    {
+      "name": "synth_selection_yellow_0_1",
+      "image": "synth_selection_yellow_0_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/1",
+      "sha256": "28f9a110f949d91fe2e3ba031d0f0dae1c9ec8b6e299a657146e1588cd95ec87"
+    },
+    {
+      "name": "synth_selection_yellow_1_1",
+      "image": "synth_selection_yellow_1_1.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "1/1",
+      "sha256": "de3fa3a4373d097a4459118c046a52556788b648309b7f7a069f08d192572030"
+    },
+    {
+      "name": "synth_selection_yellow_0_6",
+      "image": "synth_selection_yellow_0_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/6",
+      "sha256": "de066033704416727aa2ca7915328df13dd0ae164fb2e90d7f6409ebafa35762"
+    },
+    {
+      "name": "synth_selection_yellow_6_6",
+      "image": "synth_selection_yellow_6_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "6/6",
+      "sha256": "9c4c1ac5a7394e679407990d6e7f156f47138bdcfe4c7e894f81c30cd55422c3"
+    },
+    {
+      "name": "synth_selection_yellow_0_7",
+      "image": "synth_selection_yellow_0_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/7",
+      "sha256": "797e41ec54ef308265aaf058e6145ec94ccc743fc73e27df306c92982a6ffe36"
+    },
+    {
+      "name": "synth_selection_yellow_7_7",
+      "image": "synth_selection_yellow_7_7.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/7",
+      "sha256": "027ec04a3b57481bd5f3e3e3df4c05f0ffaea8b8b5d06f450b85a1e02e932657"
+    },
+    {
+      "name": "synth_selection_yellow_7_8",
+      "image": "synth_selection_yellow_7_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "7/8",
+      "sha256": "c863069ac4efff6359c68d36c8da98adb0a6767aa1ed32b376662e1fe7c28d90"
+    },
+    {
+      "name": "synth_selection_yellow_8_8",
+      "image": "synth_selection_yellow_8_8.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "8/8",
+      "sha256": "c7f8d00fffe8ee66e224286516ae2fdd9d20cb6e31667d5966e81c71ba7a20c5"
+    },
+    {
+      "name": "synth_selection_yellow_2_3",
+      "image": "synth_selection_yellow_2_3.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "2/3",
+      "sha256": "ea90260ff2303bf16436a66d7455fea844456b5a7352749e6cd3f1a9a1a2e911"
+    },
+    {
+      "name": "synth_selection_yellow_3_4",
+      "image": "synth_selection_yellow_3_4.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "3/4",
+      "sha256": "5a149e36b0300877ca87606e4f68e7bdee7b7b902f7037957f5d207a01d4deea"
+    },
+    {
+      "name": "synth_selection_yellow_4_5",
+      "image": "synth_selection_yellow_4_5.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "4/5",
+      "sha256": "8594241e049fcb51895c8f664175832ea5fac0b0af0855c57afa713819afcdef"
+    },
+    {
+      "name": "synth_selection_yellow_5_6",
+      "image": "synth_selection_yellow_5_6.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "5/6",
+      "sha256": "58c7054d5afa5e78ab08180d33049da40fe1c54703e61f51b1829d94c95d56e1"
+    },
+    {
+      "name": "synth_selection_yellow_9_10",
+      "image": "synth_selection_yellow_9_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "9/10",
+      "sha256": "1b55b24699b417fc0a61e8b11ae968f5a7e7e1a248e8adc9fa30d975624b43cb"
+    },
+    {
+      "name": "synth_selection_yellow_10_10",
+      "image": "synth_selection_yellow_10_10.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "10/10",
+      "sha256": "2ea8ed8294f21a7bee861795969753b7926eb5c37cde8126347b0732f3fdb2a2"
+    },
+    {
+      "name": "synth_selection_yellow_11_12",
+      "image": "synth_selection_yellow_11_12.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "11/12",
+      "sha256": "680cedf149ab9249a5e38585125030baf648364090deb9a7b49e3b8a910c6156"
+    },
+    {
+      "name": "synth_selection_yellow_12_13",
+      "image": "synth_selection_yellow_12_13.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "12/13",
+      "sha256": "ce0c7e635fc102fdaa470429a273b834a1889bb315f87280fc35fd82cd625ea5"
+    },
+    {
+      "name": "synth_selection_yellow_13_14",
+      "image": "synth_selection_yellow_13_14.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "13/14",
+      "sha256": "f889f5c14042f650a8d91caba7c3f95a1a1760c5881983c160b769ea640f1402"
+    },
+    {
+      "name": "synth_selection_yellow_14_15",
+      "image": "synth_selection_yellow_14_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "14/15",
+      "sha256": "eea667c37dca78be26a66e53cba2c327e5a5750d337d247637f908453840c982"
+    },
+    {
+      "name": "synth_selection_yellow_15_15",
+      "image": "synth_selection_yellow_15_15.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "15/15",
+      "sha256": "8dc89e0e65c5227ffcab6f535332cf2219b3aae1a6a26d9336da19dadd5a3ecb"
+    },
+    {
+      "name": "synth_selection_yellow_0_2",
+      "image": "synth_selection_yellow_0_2.png",
+      "kind": "synthetic_native_font",
+      "style": "selection",
+      "expected": "0/2",
+      "sha256": "943de67530c2a8d8210a378de53a24f62e36e5f2e36974e0cac8997e4284fd7d"
+    },
+    {
+      "name": "invalid_list_0_0",
+      "image": "invalid_list_0_0.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "b5bd7ac635ceaa2429547e1d6b9ccb5367f8b998bc51e326a6a4ffaceb3d6bd2"
+    },
+    {
+      "name": "invalid_list_8_2",
+      "image": "invalid_list_8_2.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "c733d1805d2edb85ddfe7d9141bb672e76df4c0f767042cb78b9e6a393ec05a8"
+    },
+    {
+      "name": "invalid_list_123_15",
+      "image": "invalid_list_123_15.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "1e85a4cd73c40de3edd4ebeed1de81d6be7ff5687d74d311322668ebdea6e023"
+    },
+    {
+      "name": "invalid_list_1_2_3",
+      "image": "invalid_list_1_2_3.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "02bd07796b7ede1f304110325f35cdb3e84610c376001a68c7547ef9d942beee"
+    },
+    {
+      "name": "invalid_list_01_7",
+      "image": "invalid_list_01_7.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "1d0893f7f413ff417c8b6d0011ec6ccd50302a188e0381f32a1061e683f9a306"
+    },
+    {
+      "name": "invalid_list_7",
+      "image": "invalid_list_7.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "aa15bdb6b162595e568fd8f9c2e5731de62cff65ef269688baa07eb72939a0a4"
+    },
+    {
+      "name": "invalid_list_AB_15",
+      "image": "invalid_list_AB_15.png",
+      "kind": "invalid_synthetic",
+      "style": "list",
+      "expected": null,
+      "sha256": "9aa4ca5af2f57b5bb99fdc8adffdf47d422dbdbafce2803e22162e8749ca477a"
+    },
+    {
+      "name": "invalid_selection_0_0",
+      "image": "invalid_selection_0_0.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "511fd65895469b00b05afb2cdc91de7453e31683a56863d63df010acc21f300d"
+    },
+    {
+      "name": "invalid_selection_8_2",
+      "image": "invalid_selection_8_2.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "1a74374c95e74563421689000f9d4fd2adba022a119c391819fe69cf41389099"
+    },
+    {
+      "name": "invalid_selection_123_15",
+      "image": "invalid_selection_123_15.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "68bf051632c5fd1f5405961b3211fd45d52a08947c88a3167ce6f652db009f27"
+    },
+    {
+      "name": "invalid_selection_1_2_3",
+      "image": "invalid_selection_1_2_3.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "8bd2058588cb372e28ff5bd16c574ed035779b5e645813f065f8377d5f9107f2"
+    },
+    {
+      "name": "invalid_selection_01_7",
+      "image": "invalid_selection_01_7.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "dac4c144c93d7a067a78059694e4663268b8c9145d1d7db07624c8f68727f20e"
+    },
+    {
+      "name": "invalid_selection_7",
+      "image": "invalid_selection_7.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "678bf49266ec33e85b1a5245630c68d966c2786285653e2df48698e1e22e3555"
+    },
+    {
+      "name": "invalid_selection_AB_15",
+      "image": "invalid_selection_AB_15.png",
+      "kind": "invalid_synthetic",
+      "style": "selection",
+      "expected": null,
+      "sha256": "07f494f210ba6d63bc57b32463b2bc6f6037c06347c19f6fc041521d06fd7b53"
+    }
+  ]
+}

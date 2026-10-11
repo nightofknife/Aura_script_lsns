@@ -1,0 +1,154 @@
+{
+  "reference_client": [
+    1280,
+    720
+  ],
+  "source_client_crop": [
+    25,
+    56,
+    1280,
+    720
+  ],
+  "scope": "Real screenshot control ROIs only; reconstructed black surroundings are not game pixels",
+  "no_live_input": true,
+  "frames": [
+    {
+      "number": 1,
+      "source_sha256": "141443c0fd3f4328f00abb87ba4ea495824e0ecf0ccb262808bb1465020c4ffd",
+      "patches": [
+        {
+          "file": "frame_1_header.png",
+          "rect": [
+            584,
+            53,
+            695,
+            94
+          ],
+          "sha256": "5ed59084f0c39b6ffa5cbc0c85b2900e553a0fd8dd2cb330329942c43edfe27a"
+        },
+        {
+          "file": "frame_1_entry.png",
+          "rect": [
+            734,
+            378,
+            217,
+            58
+          ],
+          "sha256": "ca17d43bfdac57b110c80acb77fdee5823812a098f69d805280ee24db078bcbb"
+        }
+      ],
+      "expected_matches": [
+        "shop_entry"
+      ],
+      "page_state": "unknown",
+      "local_selected": null,
+      "batch_enabled": null,
+      "ready": false
+    },
+    {
+      "number": 2,
+      "source_sha256": "315c3f504c87ae74ca2c0a8e44783837ff5f8a9356b64b429e39e94c92815a04",
+      "patches": [
+        {
+          "file": "frame_2_header.png",
+          "rect": [
+            584,
+            53,
+            695,
+            94
+          ],
+          "sha256": "1675be1051df4291647bd643598ff0d2b3cf4bd26b0fe2a38ca75e8ac61cb599"
+        },
+        {
+          "file": "frame_2_entry.png",
+          "rect": [
+            734,
+            378,
+            217,
+            58
+          ],
+          "sha256": "bbe939110eee7d7802a043d2853ec226f085bbd4f7082336a55ebfa840e92b41"
+        }
+      ],
+      "expected_matches": [
+        "shop_page",
+        "local_tab_unselected",
+        "batch_off"
+      ],
+      "page_state": "shop_page",
+      "local_selected": false,
+      "batch_enabled": false,
+      "ready": false
+    },
+    {
+      "number": 3,
+      "source_sha256": "8125488488296d7f46a447ecaef42e7de0ee7c690ca0af7fc55f20bbfecb4873",
+      "patches": [
+        {
+          "file": "frame_3_header.png",
+          "rect": [
+            584,
+            53,
+            695,
+            94
+          ],
+          "sha256": "3f56df99f0150584a660c6022c357320ef331543457b4cedc1d15e3b8c3123b7"
+        },
+        {
+          "file": "frame_3_entry.png",
+          "rect": [
+            734,
+            378,
+            217,
+            58
+          ],
+          "sha256": "1cc8c97592c04dfe5d8b03774bb75611786ef291694b5a7b9037ecbefc5e37fc"
+        }
+      ],
+      "expected_matches": [
+        "shop_page",
+        "local_tab_selected",
+        "batch_off"
+      ],
+      "page_state": "local_shop",
+      "local_selected": true,
+      "batch_enabled": false,
+      "ready": false
+    },
+    {
+      "number": 4,
+      "source_sha256": "2ebd7629d52642962ae02da1f6f6ba5ffcc5d10ad721e487c8b24d7f32dae586",
+      "patches": [
+        {
+          "file": "frame_4_header.png",
+          "rect": [
+            584,
+            53,
+            695,
+            94
+          ],
+          "sha256": "a0a0fc47f10b1a294b55972f4e5f982a746f5300a7d8b2462dab5e4cc954dfe3"
+        },
+        {
+          "file": "frame_4_entry.png",
+          "rect": [
+            734,
+            378,
+            217,
+            58
+          ],
+          "sha256": "1cc8c97592c04dfe5d8b03774bb75611786ef291694b5a7b9037ecbefc5e37fc"
+        }
+      ],
+      "expected_matches": [
+        "shop_page",
+        "local_tab_selected",
+        "batch_on"
+      ],
+      "page_state": "local_shop",
+      "local_selected": true,
+      "batch_enabled": true,
+      "ready": true
+    }
+  ]
+}
