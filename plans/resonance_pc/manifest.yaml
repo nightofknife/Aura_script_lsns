@@ -746,6 +746,61 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.prepare_black_moon_local_shop_step
+    module: plans.resonance_pc.src.actions.black_moon_local_prepare_pc_actions
+    function: resonance_pc_prepare_black_moon_local_shop_step
+    public: true
+    read_only: false
+    timeout: null
+    description: Verify one preparation transition without selecting, buying, refreshing,
+      or recording stock.
+    parameters:
+    - name: step
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.validate_black_moon_purchase_table
+    module: plans.resonance_pc.src.actions.black_moon_local_select_pc_actions
+    function: resonance_pc_validate_black_moon_purchase_table
+    public: true
+    read_only: true
+    timeout: null
+    description: Validate the item-id to boolean purchase table before any input.
+    parameters:
+    - name: purchase_table
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.select_black_moon_local_goods
+    module: plans.resonance_pc.src.actions.black_moon_local_select_pc_actions
+    function: resonance_pc_select_black_moon_local_goods
+    public: true
+    read_only: false
+    timeout: null
+    description: Select wishlist stock from LOCAL batch shop without purchasing or
+      refreshing.
+    parameters:
+    - name: purchase_table
+      type: Any
+      required: true
+      default: null
+    - name: require_empty_selection
+      type: Any
+      required: false
+      default: false
+  - name: resonance_pc.submit_black_moon_local_selection
+    module: plans.resonance_pc.src.actions.black_moon_local_select_pc_actions
+    function: resonance_pc_submit_black_moon_local_selection
+    public: true
+    read_only: false
+    timeout: null
+    description: Submit a verified wishlist selection once; do not handle dialogs
+      or exit.
+    parameters:
+    - name: selection
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.purchase_black_moon_local_from_rest_menu
     module: plans.resonance_pc.src.actions.black_moon_local_shop_pc_actions
     function: resonance_pc_purchase_black_moon_local_from_rest_menu
@@ -2248,6 +2303,124 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.raw_workshop_observe
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_observe
+    public: true
+    read_only: true
+    timeout: null
+    description: Read stable raw-workshop production and dynamic staffing without
+      OCR or input.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.raw_workshop_deposit_max
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_deposit_max
+    public: true
+    read_only: false
+    timeout: null
+    description: 'Once: select maximum deposit or recognize full; never terminate
+      running production.'
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.raw_workshop_fill_list_once
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_fill_list_once
+    public: true
+    read_only: false
+    timeout: null
+    description: 'Once: fill work or reserve list using native one-click selection
+      and verified confirmation.'
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: list_kind
+      type: Any
+      required: false
+      default: work
+  - name: resonance_pc.raw_workshop_reserve_round
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_reserve_round
+    public: true
+    read_only: false
+    timeout: null
+    description: One reserve refill/transfer observation round; task YAML owns the
+      finite round chain.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.raw_workshop_start_once
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_start_once
+    public: true
+    read_only: false
+    timeout: null
+    description: Start current recipe at most once when enabled; never stop or accelerate
+      existing production.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.raw_workshop_summarize
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_summarize
+    public: true
+    read_only: true
+    timeout: null
+    description: Summarize actual business snapshots and confirmations, never framework
+      node success.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: navigation
+      type: Any
+      required: false
+      default: null
+    - name: observation
+      type: Any
+      required: false
+      default: null
+    - name: deposit
+      type: Any
+      required: false
+      default: null
+    - name: work
+      type: Any
+      required: false
+      default: null
+    - name: reserve_rounds
+      type: Any
+      required: false
+      default: null
+    - name: start
+      type: Any
+      required: false
+      default: null
+    - name: max_reserve_rounds
+      type: Any
+      required: false
+      default: 8
+    - name: before_start
+      type: Any
+      required: false
+      default: null
+    - name: final_observe
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.open_reforming_center_room
     module: plans.resonance_pc.src.actions.reforming_center_navigation_pc_actions
     function: resonance_pc_open_reforming_center_room
@@ -3054,6 +3227,16 @@ exports:
     source: tasks/bento_consumption_pc.yaml
     description: Consume top-position work meals and first love bento until the recovery
       target or fatigue floor.
+  - id: black_moon_local_prepare_pc/black_moon_local_prepare_pc
+    title: Black Moon Local Shopping Preparation (PC)
+    source: tasks/black_moon_local_prepare_pc.yaml
+    description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch
+      mode without purchasing.
+  - id: black_moon_local_prepare_pc
+    title: Black Moon Local Shopping Preparation (PC)
+    source: tasks/black_moon_local_prepare_pc.yaml
+    description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch
+      mode without purchasing.
   - id: black_moon_local_purchase_pc/black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
@@ -3064,6 +3247,16 @@ exports:
     source: tasks/black_moon_local_purchase_pc.yaml
     description: Purchase selected local stock from an open rest menu and return to
       that menu.
+  - id: black_moon_local_select_pc/black_moon_local_select_pc
+    title: Black Moon Local Goods Selection (PC)
+    source: tasks/black_moon_local_select_pc.yaml
+    description: Start at LOCAL shop, select wishlist goods, and optionally submit
+      once without exiting.
+  - id: black_moon_local_select_pc
+    title: Black Moon Local Goods Selection (PC)
+    source: tasks/black_moon_local_select_pc.yaml
+    description: Start at LOCAL shop, select wishlist goods, and optionally submit
+      once without exiting.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -3238,6 +3431,14 @@ exports:
     title: Close Resonance Game (PC)
     source: tasks/game_startup_pc.yaml
     description: Close the verified Resonance PC window and process.
+  - id: maintain_raw_material_workshop_pc/maintain_raw_material_workshop_pc
+    title: 原料车间维护（PC）
+    source: tasks/maintain_raw_material_workshop_pc.yaml
+    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产；不终止、不加速、不改配方、不领取、不建设、不返回总览。
+  - id: maintain_raw_material_workshop_pc
+    title: 原料车间维护（PC）
+    source: tasks/maintain_raw_material_workshop_pc.yaml
+    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产；不终止、不加速、不改配方、不领取、不建设、不返回总览。
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -3315,4 +3516,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-11T03:28:47Z'
+  generated_at: '2026-10-11T15:47:32Z'

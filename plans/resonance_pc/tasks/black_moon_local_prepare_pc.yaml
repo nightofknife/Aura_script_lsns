@@ -1,0 +1,42 @@
+black_moon_local_prepare_pc:
+  meta:
+    title: Black Moon Local Shopping Preparation (PC)
+    description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch mode without purchasing.
+    entry_point: true
+    concurrency: exclusive
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    enter_shop:
+      action: resonance_pc.prepare_black_moon_local_shop_step
+      depends_on: require_resolution
+      timeout_sec: 75
+      params:
+        step: enter_shop
+    select_local:
+      action: resonance_pc.prepare_black_moon_local_shop_step
+      depends_on: enter_shop
+      timeout_sec: 75
+      params:
+        step: select_local
+    enable_batch:
+      action: resonance_pc.prepare_black_moon_local_shop_step
+      depends_on: select_local
+      timeout_sec: 75
+      params:
+        step: enable_batch
+    verify_ready:
+      action: resonance_pc.prepare_black_moon_local_shop_step
+      depends_on: enable_batch
+      timeout_sec: 10
+      params:
+        step: verify_ready
+  returns:
+    success: "{{ nodes.verify_ready.output.success }}"
+    page_state: "{{ nodes.verify_ready.output.page_state }}"
+    local_selected: "{{ nodes.verify_ready.output.local_selected }}"
+    batch_enabled: "{{ nodes.verify_ready.output.batch_enabled }}"
+    ready: "{{ nodes.verify_ready.output.ready }}"
+    enter_shop: "{{ nodes.enter_shop.output }}"
+    select_local: "{{ nodes.select_local.output }}"
+    enable_batch: "{{ nodes.enable_batch.output }}"

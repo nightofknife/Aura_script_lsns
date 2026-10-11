@@ -1,6 +1,7 @@
 """Template-only room entry contracts; ordinary overview is supplied by caller."""
 
 import inspect
+from pathlib import Path
 from types import SimpleNamespace
 
 import cv2
@@ -43,6 +44,7 @@ class App:
 @pytest.fixture(autouse=True)
 def no_wait(monkeypatch):
     monkeypatch.setattr(nav, "_settle", lambda seconds: None)
+    monkeypatch.setattr(nav.checked, "_sleep", lambda seconds: None)
 
 
 def patch_flow(monkeypatch, app, room=ROOM, *, button=True, destination=True):
@@ -51,7 +53,9 @@ def patch_flow(monkeypatch, app, room=ROOM, *, button=True, destination=True):
 
     def locate(*args, **kwargs):
         located.append((args, kwargs))
-        return {"point": [640, 355], "score": .99, "drag_count": 0, "trace": []}
+        return {"point": [640, 355], "score": .99, "drag_count": 0, "trace": [],
+                "click": {"control": "room", "point": [640, 355],
+                          "input_attempted": True, "call_returned": True}}
 
     def entry(image, spec, button_spec):
         assert located, "No initial page classification or already-in-room check"
@@ -98,11 +102,11 @@ def test_four_entry_types_without_initial_recognition(monkeypatch, room):
     assert result["success"] and result["entry_type"] == kind
     assert result["room_entered"] == (kind != "selection_only")
     assert len(located) == 1
-    assert len(buttons) == (0 if kind == "direct" else 2)
+    assert len(buttons) == (0 if kind == "direct" else 3)
     if buttons:
         button_kind = "construction" if kind == "selection_only" else kind
         assert all(spec == nav.vision.load_catalog()["buttons"][button_kind] for spec in buttons)
-    assert len(destinations) == (0 if kind == "selection_only" else 2)
+    assert len(destinations) == (0 if kind == "selection_only" else 3)
     assert app.clicks == ([(795, 325)] if kind in {"production", "detail"} else [])
 
 
@@ -127,7 +131,7 @@ def test_second_button_absent_stops_without_click(monkeypatch):
     _, _, buttons, destinations = patch_flow(monkeypatch, app, button=False)
     result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
     assert not result["success"] and result["reason"] == "target_selection_not_confirmed"
-    assert len(buttons) == 6 and destinations == [] and app.clicks == []
+    assert len(buttons) == 10 and destinations == [] and app.clicks == []
 
 
 def test_destination_absent_does_not_retry_second_button(monkeypatch):
@@ -135,7 +139,7 @@ def test_destination_absent_does_not_retry_second_button(monkeypatch):
     _, _, buttons, destinations = patch_flow(monkeypatch, app, destination=False)
     result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
     assert not result["success"] and not result["room_entered"]
-    assert len(buttons) == 2 and len(destinations) == 6
+    assert len(buttons) == 3 and len(destinations) == 10
     assert app.clicks == [(795, 325)]
 
 
@@ -145,6 +149,57 @@ def test_second_click_failure_stops_before_destination(monkeypatch):
     result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
     assert result["reason"] == "entry_click_failed" and not result["success"]
     assert app.clicks == [(795, 325)] and destinations == []
+
+
+def test_room_and_entry_click_coordinates_are_multiples_of_five(monkeypatch):
+    app = App()
+    rooms = nav.layout._load_reforming_center_room_layout()
+    monkeypatch.setattr(nav.room_map, "load_map", lambda: {})
+    monkeypatch.setattr(nav.room_map, "locate_viewport", lambda hits, model: {"anchors": [ROOM]})
+    monkeypatch.setattr(nav.vision, "room_hits", lambda *args: [hit(center=(523, 302))])
+    located = nav._locate_and_click(app, ROOM, rooms, {}, 1, .05)
+    assert located["point"] == [645, 355]
+    assert app.clicks == [(645, 355)]
+    assert located["click"]["input_attempted"] and located["click"]["call_returned"]
+    patch_flow(monkeypatch, app)
+    monkeypatch.setattr(nav.vision, "entry_button", lambda *args: {"center": [797, 327], "score": .99})
+    result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+    assert result["success"] and app.clicks[-1] == (795, 325)
+    assert all(coordinate % 5 == 0 for point in app.clicks for coordinate in point)
+    entry = result["data"]["entry_button"]
+    assert entry["effect_confirmed"] and entry["transition_ready"]
+
+
+@pytest.mark.parametrize("stage", ["room", "entry"])
+def test_explicit_false_input_stops_without_confirmation_or_retry(monkeypatch, stage):
+    app = App()
+    def rejected_click(*, x, y):
+        app.clicks.append((x, y))
+        return False
+    monkeypatch.setattr(app, "click", rejected_click)
+    if stage == "room":
+        with pytest.raises(nav.layout.ReformingCenterNavigationError) as exc:
+            run_locator(monkeypatch, app, [[hit()]])
+        assert exc.value.code == "room_click_failed"
+        assert len(app.captures) == 1  # only locate frame, no UI success probe
+    else:
+        _, _, buttons, destinations = patch_flow(monkeypatch, app)
+        result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+        assert result["reason"] == "entry_click_failed" and not result["success"]
+        assert len(buttons) == 3 and destinations == []
+        assert result["data"]["entry_button"]["input_acknowledged"] is False
+    assert len(app.clicks) == 1 and app.drags == []
+
+
+def test_running_workshop_original_frame_confirms_destination_without_choose_button():
+    fixture = Path(__file__).resolve().parents[1] / "fixtures/raw_workshop_ui/running.png"
+    image = cv2.imread(str(fixture))
+    assert image is not None and image.shape == (720, 1280, 3)
+    room = nav.vision.load_catalog()["rooms"][ROOM]
+    assert nav.vision.match_asset(image, room["destination_markers"][1]) is None
+    assert nav.vision.destination_confirmed(image, room)
+    other = nav.vision.load_catalog()["rooms"]["动物纤维原料车间"]
+    assert not nav.vision.destination_confirmed(image, other)
 
 
 @pytest.mark.parametrize("room", [f"{number}号{kind}" for number in range(3, 7) for kind in ("整顿宿舍", "生产车间")])
@@ -267,11 +322,42 @@ def test_failed_room_click_is_not_navigation_success(monkeypatch):
     assert error.value.code == "room_click_failed" and app.drags == []
 
 
-@pytest.mark.parametrize("image", [None, np.zeros((480, 640, 3), np.uint8)])
+@pytest.mark.parametrize("image", [None, np.zeros((480, 640, 3), np.uint8),
+                                 np.zeros((720, 1280), np.uint8),
+                                 np.zeros((720, 1280, 4), np.uint8)])
 def test_capture_invalid_shape_stops_before_template_matching(image):
     app = SimpleNamespace(capture=lambda **kwargs: SimpleNamespace(success=True, image=image))
     with pytest.raises(nav.layout.ReformingCenterNavigationError):
         nav._read_frame(app)
+
+
+def test_capture_rgb_is_converted_once_to_bgr_without_mutation():
+    rgb = np.full((720, 1280, 3), (255, 190, 0), np.uint8)
+    app = App(images=[rgb])
+    bgr = nav._read_frame(app)
+    assert bgr[0, 0].tolist() == [0, 190, 255]
+    assert rgb[0, 0].tolist() == [255, 190, 0]
+    assert not np.shares_memory(rgb, bgr)
+    assert app.captures == [(0, 0, 1280, 720)]
+
+
+def test_rgb_capture_confirms_selected_animal_room_and_production_button():
+    catalog = nav.vision.load_catalog()
+    room = catalog["rooms"]["动物纤维原料车间"]
+    button = catalog["buttons"]["production"]
+    bgr = np.zeros((720, 1280, 3), np.uint8)
+    cv2.rectangle(bgr, (90, 250), (649, 439), (0, 190, 255), 6)
+    for spec, x, y in [(room["selected_title"], 110, 265), (button, 710, 310)]:
+        asset = nav.vision._asset(spec["image"])
+        h, w = asset.shape[:2]
+        bgr[y:y+h, x:x+w] = asset
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    assert nav.vision.selected_rectangles(rgb) == []
+    normalized = nav._read_frame(App(images=[rgb]))
+    assert len(nav.vision.selected_rectangles(normalized)) == 1
+    found = nav.vision.entry_button(normalized, room, button)
+    assert found is not None and found["score"] >= .92
+    assert found["rect"][:2] == [710, 310]
 
 
 def texture():

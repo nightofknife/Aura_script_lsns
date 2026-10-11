@@ -1,4 +1,4 @@
-"""Screenshot-derived room/entry templates. No text recognition or font guessing."""
+"""Screenshot-derived templates; all input images are BGR. No OCR."""
 from __future__ import annotations
 
 import json
@@ -100,5 +100,10 @@ def entry_button(image, room_spec, button_spec):
 
 
 def destination_confirmed(image, spec):
+    if spec.get("room_key") in {"植物纤维原料车间", "动物纤维原料车间", "缝纫工具原料车间", "人造纤维原料车间"}:
+        # Lazy import avoids a module cycle. A running work page deliberately
+        # lacks the choose-prisoners marker required by the old idle-only rule.
+        from . import _raw_workshop_ui
+        return _raw_workshop_ui.room_ready(image, spec["room_key"])
     markers = spec.get("destination_markers", [])
     return len(markers) >= 2 and all(match_asset(image, marker) for marker in markers)

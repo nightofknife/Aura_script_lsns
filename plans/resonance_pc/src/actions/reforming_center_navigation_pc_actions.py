@@ -5,12 +5,14 @@ import math
 import time
 from typing import Any, Dict
 
+import cv2
 import numpy as np
 
 from packages.aura_core.api import action_info, requires_services
 from . import reforming_center_pc_actions as layout
 from . import _reforming_center_room_templates as vision
 from . import _reforming_center_map_navigation as room_map
+from . import _reforming_center_clicks as checked
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
 
 _SAFE_MAP_REGION = (420, 170, 520, 360)
@@ -24,9 +26,11 @@ def _read_frame(app):
     captured = app.capture(rect=(0, 0, 1280, 720))
     if (not getattr(captured, "success", False)
             or not isinstance(captured.image, np.ndarray)
-            or captured.image.shape[:2] != (720, 1280)):
-        layout._raise_error("capture_failed", "A fresh 1280x720 client image is required")
-    return captured.image
+            or captured.image.shape != (720, 1280, 3)):
+        layout._raise_error("capture_failed", "A fresh 1280x720 RGB client image is required")
+    # CaptureResult.image is RGB; OpenCV-loaded assets and vision helpers use
+    # BGR. Convert once at this boundary, without mutating the captured frame.
+    return cv2.cvtColor(captured.image, cv2.COLOR_RGB2BGR)
 
 
 def _wait_confirmed(app, settle_sec, probe):
@@ -58,13 +62,16 @@ def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
         if target:
             center = target["center"]
             offset = rooms[room]["click_offset"]
-            point = [center[0]+offset[0], center[1]+offset[1]]
+            point = [int(round((center[0]+offset[0])/5)*5), int(round((center[1]+offset[1])/5)*5)]
             if (layout._point_in_region(center, _SAFE_MAP_REGION, margin=10)
                     and layout._point_in_region(point, _SAFE_MAP_REGION, margin=10)):
-                clicked = app.click(x=point[0], y=point[1])
-                if clicked is not None and not getattr(clicked, "success", True):
-                    layout._raise_error("room_click_failed", "Room click was not delivered")
-                return {"point": point, "score": target["score"], "drag_count": len(trace), "trace": trace}
+                record = {"control": "room"}
+                try:
+                    checked.send_click(app, point, record)
+                except checked.CheckedClickError as exc:
+                    layout._raise_error("room_click_failed", "Room click was not delivered", exc.data)
+                return {"point": point, "score": target["score"], "drag_count": len(trace), "trace": trace,
+                        "click": record}
         if len(trace) >= max_search_steps:
             break
         if previous_pose is not None:
@@ -121,20 +128,36 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
                 hit = vision.entry_button(image, spec, catalog["buttons"][button_key])
                 return tuple(hit["center"]) if hit else None
 
-            point = _wait_confirmed(app, settle_sec, button_point)
-            if point is None:
+            try:
+                selected = checked.confirm_click(app, data["navigation"]["click"], button_point, button_point)
+            except checked.CheckedClickError as exc:
+                data["error"] = {"code": exc.reason, "detail": exc.data}
                 return result("failed", "target_selection_not_confirmed")
+            point = checked.rounded_point(selected["ready_evidence"])
             if kind == "selection_only":
                 return result("selected_only")
-            data["entry_button"] = {"type": kind, "point": list(point)}
-            clicked = app.click(x=point[0], y=point[1])
-            if clicked is not None and not getattr(clicked, "success", True):
+            record = {"control": "entry", "type": kind}
+            data["entry_button"] = record
+            try:
+                checked.send_click(app, point, record)
+            except checked.CheckedClickError as exc:
+                data["error"] = {"code": exc.reason, "detail": exc.data}
                 return result("failed", "entry_click_failed")
-        entered = _wait_confirmed(app, settle_sec, lambda image: vision.destination_confirmed(image, spec))
-        return result("completed") if entered else result("failed", "room_entry_not_confirmed")
+        else:
+            record = data["navigation"]["click"]
+        try:
+            checked.confirm_click(app, record, lambda image: vision.destination_confirmed(image, spec),
+                                  lambda image: vision.destination_confirmed(image, spec))
+            return result("completed")
+        except checked.CheckedClickError as exc:
+            data["error"] = {"code": exc.reason, "detail": exc.data}
+            return result("failed", "room_entry_not_confirmed")
     except room_map.RoomMapError as exc:
         data["error"] = {"code": exc.code, "detail": exc.detail}
         return result("failed", exc.code)
     except layout.ReformingCenterNavigationError as exc:
         data["error"] = exc.to_dict()
         return result("failed", exc.code)
+    except checked.CheckedClickError as exc:
+        data["error"] = {"code": exc.reason, "detail": exc.data}
+        return result("failed", exc.reason)

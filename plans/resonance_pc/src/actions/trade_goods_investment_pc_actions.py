@@ -21,6 +21,8 @@ _INVESTMENT_PROGRESS_CALLBACK: ContextVar[Optional[Callable]] = ContextVar(
 )
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _POLL_SECONDS = 0.2
+_ADJUST_CLICK_INTERVAL = 0.08
+_UNCHANGED_ADJUST_REREAD_DELAY = 0.9
 _STATE_TIMEOUT = 5.0
 _COMMIT_TIMEOUT = 8.0
 _MAX_SCROLLS = 40
@@ -87,7 +89,7 @@ def _wait(app: Any, predicate: Callable, *, timeout: float = _STATE_TIMEOUT, sta
 
 
 def _observation_key(value):
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return tuple(_observation_key(item) for item in value)
     if isinstance(value, dict):
         if "current" in value:
@@ -125,11 +127,12 @@ def _levels(app: Any, reader: InvestmentVision, current: Optional[int] = None):
 
 
 def _cards(app: Any, reader: InvestmentVision):
-    _idle(app, reader)
     def read(frame):
         if reader.match(frame, "success")["found"]:
             return None
-        cards = reader.detect_cards(frame)
+        if not reader.match(frame, "page_anchor")["found"]:
+            return None
+        cards = reader.detect_cards(frame, success_visible=False)
         if not cards or any(card.get("occluded") for card in cards):
             return None
         return cards
@@ -145,33 +148,47 @@ def _select(app: Any, reader: InvestmentVision, card: dict):
     _click(app, (x + width // 2, y + height // 2))
     _pause(.4)
     def selected(frame):
-        candidates = [row for row in reader.detect_cards(frame) if _same_position(row, card)]
-        if len(candidates) != 1:
+        if reader.match(frame, "success")["found"]:
             return None
-        candidate = candidates[0]
+        candidate = reader.read_card_selection(frame, card)
+        if not candidate.get("selected") and not candidate.get("maximum"):
+            return None
+        levels = reader.read_levels(frame)
         # The native maximum overlay can obscure the selection marker.
-        if candidate.get("maximum"):
-            return candidate if reader.read_levels(frame).get("max_level") else None
-        return candidate if candidate.get("selected") else None
-    frame, selected_card = _wait(app, selected)
-    frame, levels = _levels(app, reader)
+        if candidate.get("maximum") and not levels.get("max_level"):
+            return None
+        return candidate, levels
+    frame, (selected_card, levels) = _wait(app, selected)
     return frame, selected_card, levels
 
 
-def _adjust(app: Any, reader: InvestmentVision, name: str, current: int, previous: int):
+def _adjust(app: Any, reader: InvestmentVision, name: str, current: int, previous: int,
+            *, clicks: int = 1):
+    if type(clicks) is not int or not 1 <= clicks <= 20:
+        raise TradeGoodsInvestmentError("investment_adjustment_count_invalid", "Adjustment batch requires 1-20 clicks")
     frame = _capture(app)
-    if reader.read_levels(frame)["current"] != current:
+    fresh = reader.read_levels(frame)
+    if fresh["current"] != current:
         raise TradeGoodsInvestmentError("investment_actual_level_changed", "Selected product changed during level adjustment")
+    if fresh.get("preview") != previous:
+        # Late feedback from an earlier batch changes the remaining click count.
+        frame, levels = _levels(app, reader, current)
+        return frame, {**levels, "adjustment_skipped": True}
     button = reader.match(frame, name)
     if not button["found"]:
         raise TradeGoodsInvestmentError("investment_adjust_button_missing", "Required level adjustment button was not matched", {"button": name})
-    _click(app, button["center"])
-    _pause(.35)
+    for index in range(clicks):
+        _click(app, button["center"])
+        if index + 1 < clicks:
+            _pause(_ADJUST_CLICK_INTERVAL)
+    clicked_at = time.monotonic()
     frame, levels = _levels(app, reader, current)
     if levels["preview"] != previous:
         return frame, levels
     # Recheck delayed feedback before declaring the plus limit or retrying minus.
-    _pause(.35)
+    # Keep the old no-progress window: the delayed read began at ~0.9 seconds
+    # and required two samples. Only successful feedback takes the fast path.
+    _pause(max(.35, _UNCHANGED_ADJUST_REREAD_DELAY - (time.monotonic() - clicked_at)))
     frame, levels = _levels(app, reader, current)
     if levels["preview"] != previous:
         return frame, levels
@@ -189,21 +206,31 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
     current, preview = int(levels["current"]), levels.get("preview")
     if preview is None:
         raise TradeGoodsInvestmentError("investment_preview_missing", "No upgrade preview for an unfinished product", levels)
-    frame = _capture(app)
+    frame, fresh = None, None
     stop_after_commit = False
     for _ in range(45):
         update(current_level=current, preview_level=preview)
         if preview > target:
-            frame, next_levels = _adjust(app, reader, "minus", current, preview)
+            frame, next_levels = _adjust(app, reader, "minus", current, preview,
+                                         clicks=preview - target)
+            fresh = next_levels
             next_preview = next_levels.get("preview")
+            if next_levels.get("adjustment_skipped") and next_preview is not None:
+                preview = next_preview
+                continue
             if next_preview is None or next_preview >= preview:
                 raise TradeGoodsInvestmentError("investment_preview_cannot_reduce", "Could not reduce an oversized upgrade preview", next_levels)
             preview = next_preview
             continue
         if preview == target:
             break
-        frame, next_levels = _adjust(app, reader, "plus", current, preview)
+        frame, next_levels = _adjust(app, reader, "plus", current, preview,
+                                     clicks=target - preview)
+        fresh = next_levels
         next_preview = next_levels.get("preview")
+        if next_levels.get("adjustment_skipped") and next_preview is not None:
+            preview = next_preview
+            continue
         if next_preview is None or next_preview < preview:
             raise TradeGoodsInvestmentError("investment_preview_invalid", "Unexpected preview after plus", next_levels)
         if next_preview == preview:
@@ -213,7 +240,10 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
     else:
         raise TradeGoodsInvestmentError("investment_adjustment_limit", "Level adjustment made no bounded progress")
     # No money/allowance is read. The UI supplies the highest selectable preview.
-    frame, fresh = _levels(app, reader, current)
+    # A batch already supplied stable feedback; use that same frame to confirm
+    # the button. With no adjustment, obtain the single pre-submit observation.
+    if frame is None:
+        frame, fresh = _levels(app, reader, current)
     if fresh.get("preview") != preview or preview > target:
         raise TradeGoodsInvestmentError("investment_preview_changed", "Upgrade preview changed before submission", fresh)
     enabled = reader.match(frame, "confirm_enabled")
@@ -224,13 +254,9 @@ def _prepare_upgrade(app: Any, reader: InvestmentVision, levels: dict, target: i
 
 
 def _commit(app: Any, reader: InvestmentVision, operation: dict):
-    frame, levels = _levels(app, reader, operation["current_level"])
-    if levels.get("preview") != operation["upgrade_level"]:
-        raise TradeGoodsInvestmentError("investment_commit_preview_changed", "The pending upgrade no longer matches the requested submission", levels)
-    button = reader.match(frame, "confirm_enabled")
-    if not button["found"]:
-        return None
-    _click(app, button["center"])
+    # Preparation already checked stable levels and the enabled button together.
+    # No input occurs between preparation and this single submission.
+    _click(app, operation.get("center"))
     deadline, seen_success, stable = time.monotonic() + _COMMIT_TIMEOUT, False, 0
     unchanged = 0
     last = None
@@ -318,7 +344,8 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
     mode = normalize_investment_mode(mode)
     if app is None or vision is None:
         raise RuntimeError("app and vision services are required")
-    reader, target = InvestmentVision(), mode
+    reader, target = InvestmentVision(city_name=city_name), mode
+    product_limit = reader.city_product_count
     started_at, transactions, product_index, scroll_count = time.monotonic(), [], 0, 0
     done, reason = [], "all_products_at_target"
     single_next_attempt = False
@@ -350,10 +377,10 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             report("skipped", reason=result["reason"], transaction_count=0,
                    white_score=entry["white_score"], gray_score=entry["gray_score"])
             return result
-        _click(app, entry["center"])
-        _pause(.4)
-        _idle(app, reader)
-        while True:
+        if product_limit != 0:
+            _click(app, entry["center"])
+            _pause(.4)
+        while product_limit != 0:
             frame, cards = _cards(app, reader)
             viewport_top = reader.VIEWPORT[1]
             if scroll_count == 0 and any(card["partial"] and card["rect"][1] < viewport_top for card in cards):
@@ -420,7 +447,10 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             if blocked:
                 reason = "no_further_upgrade"
                 single_next_attempt = True
-        _return_shop(app, vision, reader)
+            if product_limit is not None and product_index >= product_limit:
+                break
+        if product_limit != 0:
+            _return_shop(app, vision, reader)
     except Exception as exc:
         report("failed", reason=getattr(exc, "code", type(exc).__name__), message=str(exc), transaction_count=len(transactions))
         raise

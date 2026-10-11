@@ -1,0 +1,1394 @@
+{
+  "schema_version": 1,
+  "source": {
+    "kind": "native_game_config",
+    "mapping": "HomeStationFactory.sellList -> HomeGoodsQuotationFactory.goodsId -> HomeGoodsFactory",
+    "product_order": "native_sell_list_order; runtime uses screen order",
+    "sha256": {
+      "Patch/BinaryConfig/HomeStationFactory.bin": "2ee912d839edee54b121a88ae60eb0b9ff25122216dabb03cc74cd8f192bb575",
+      "Patch/BinaryConfig/HomeGoodsQuotationFactory.bin": "6e1212822cb24b3119dd0240cbc974c1914b3ba262610a445c4b7d3601c92f28",
+      "Patch/BinaryConfig/HomeGoodsFactory.bin": "d5a6c5371e14a9d59a3379a57ad3a712947e62ff1f4126de736f606a5638ca5f"
+    },
+    "plan_sha256": {
+      "data/meta/cities.json": "2a83e6c3e7392e817e4f00139eb7a47367e0f280e34bd7aa87d8812a946c8bf5",
+      "data/meta/products.json": "404f6342677959e8d573cae81c55d66beed60d7d3aa15b27138f33965e80dbfe",
+      "src/services/city_shop_data_pc_service.py": "cc6abccff107eee71aa6853c50e7526eec8c7ffcf613cb1962c39be6838eb8f9"
+    }
+  },
+  "cities": {
+    "1": {
+      "name": "修格里城",
+      "aliases": [
+        "修格里城",
+        "shoggolith_city",
+        "修格果城",
+        "修格男城"
+      ],
+      "native_station_id": 83000001,
+      "status": "known",
+      "products": [
+        {
+          "name": "沃德山泉",
+          "native_goods_id": 82900050,
+          "native_quotation_id": 84700493,
+          "product_id": "10"
+        },
+        {
+          "name": "家电",
+          "native_goods_id": 82900044,
+          "native_quotation_id": 84700163,
+          "product_id": "3"
+        },
+        {
+          "name": "弹丸加速装置",
+          "native_goods_id": 82900007,
+          "native_quotation_id": 84700010,
+          "product_id": "2"
+        },
+        {
+          "name": "汽配零件",
+          "native_goods_id": 82900045,
+          "native_quotation_id": 84700079,
+          "product_id": "5"
+        },
+        {
+          "name": "红茶",
+          "native_goods_id": 82900046,
+          "native_quotation_id": 84700154,
+          "product_id": "6"
+        },
+        {
+          "name": "沃德烤鸡",
+          "native_goods_id": 82900048,
+          "native_quotation_id": 84700501,
+          "product_id": "8"
+        },
+        {
+          "name": "发动机",
+          "native_goods_id": 82900043,
+          "native_quotation_id": 84700368,
+          "product_id": "1"
+        },
+        {
+          "name": "纯棉布料",
+          "native_goods_id": 82900228,
+          "native_quotation_id": 84701818,
+          "product_id": "4"
+        },
+        {
+          "name": "罐头",
+          "native_goods_id": 82900049,
+          "native_quotation_id": 84700597,
+          "product_id": "9"
+        },
+        {
+          "name": "高档餐具",
+          "native_goods_id": 82900047,
+          "native_quotation_id": 84700389,
+          "product_id": "7"
+        }
+      ]
+    },
+    "2": {
+      "name": "铁盟哨站",
+      "aliases": [
+        "铁盟哨站",
+        "brcl_outpost"
+      ],
+      "native_station_id": 83000026,
+      "status": "known",
+      "products": [
+        {
+          "name": "子弹",
+          "native_goods_id": 82900168,
+          "native_quotation_id": 84700998,
+          "product_id": "18"
+        },
+        {
+          "name": "汽油",
+          "native_goods_id": 82900169,
+          "native_quotation_id": 84700999,
+          "product_id": "19"
+        },
+        {
+          "name": "防弹背心",
+          "native_goods_id": 82900164,
+          "native_quotation_id": 84700993,
+          "product_id": "14"
+        },
+        {
+          "name": "弹丸加速装置",
+          "native_goods_id": 82900007,
+          "native_quotation_id": 84700994,
+          "product_id": "2"
+        },
+        {
+          "name": "炮弹",
+          "native_goods_id": 82900166,
+          "native_quotation_id": 84700995,
+          "product_id": "15"
+        },
+        {
+          "name": "精钢",
+          "native_goods_id": 82900162,
+          "native_quotation_id": 84700996,
+          "product_id": "16"
+        },
+        {
+          "name": "靛红五月军用食品",
+          "native_goods_id": 82900013,
+          "native_quotation_id": 84700465,
+          "product_id": "20"
+        },
+        {
+          "name": "塑胶炸药",
+          "native_goods_id": 82900167,
+          "native_quotation_id": 84700997,
+          "product_id": "17"
+        }
+      ]
+    },
+    "3": {
+      "name": "七号自由港",
+      "aliases": [
+        "七号自由港",
+        "freeport",
+        "7号自由港",
+        "7号自由电港",
+        "7号直电港",
+        "7号直由港",
+        "7号自电港"
+      ],
+      "native_station_id": 83000020,
+      "status": "known",
+      "products": [
+        {
+          "name": "海盐",
+          "native_goods_id": 82900011,
+          "native_quotation_id": 84700443,
+          "product_id": "30"
+        },
+        {
+          "name": "人工晶花",
+          "native_goods_id": 82900033,
+          "native_quotation_id": 84700330,
+          "product_id": "23"
+        },
+        {
+          "name": "坚果",
+          "native_goods_id": 82900004,
+          "native_quotation_id": 84700215,
+          "product_id": "28"
+        },
+        {
+          "name": "纯棉T恤",
+          "native_goods_id": 82900165,
+          "native_quotation_id": 84701679,
+          "product_id": "27"
+        },
+        {
+          "name": "石墨烯",
+          "native_goods_id": 82900032,
+          "native_quotation_id": 84700199,
+          "product_id": "22"
+        },
+        {
+          "name": "电子配件",
+          "native_goods_id": 82900083,
+          "native_quotation_id": 84700509,
+          "product_id": "24"
+        },
+        {
+          "name": "航天纪念品",
+          "native_goods_id": 82900082,
+          "native_quotation_id": 84700094,
+          "product_id": "25"
+        },
+        {
+          "name": "啤酒",
+          "native_goods_id": 82900001,
+          "native_quotation_id": 84700563,
+          "product_id": "29"
+        },
+        {
+          "name": "斑节虾",
+          "native_goods_id": 82900081,
+          "native_quotation_id": 84700311,
+          "product_id": "26"
+        },
+        {
+          "name": "桦石发财树",
+          "native_goods_id": 82900031,
+          "native_quotation_id": 84700182,
+          "product_id": "21"
+        }
+      ]
+    },
+    "4": {
+      "name": "澄明数据中心",
+      "aliases": [
+        "澄明数据中心",
+        "clarity_data_center_administration_bureau"
+      ],
+      "native_station_id": 83000029,
+      "status": "known",
+      "products": [
+        {
+          "name": "花呢上衣",
+          "native_goods_id": 82900225,
+          "native_quotation_id": 84701761,
+          "product_id": "33"
+        },
+        {
+          "name": "银矿石",
+          "native_goods_id": 82900146,
+          "native_quotation_id": 84700540,
+          "product_id": "32"
+        },
+        {
+          "name": "游戏机",
+          "native_goods_id": 82900153,
+          "native_quotation_id": 84700460,
+          "product_id": "31"
+        },
+        {
+          "name": "录音带",
+          "native_goods_id": 82900137,
+          "native_quotation_id": 84700105,
+          "product_id": "39"
+        },
+        {
+          "name": "扬声器",
+          "native_goods_id": 82900154,
+          "native_quotation_id": 84700342,
+          "product_id": "34"
+        },
+        {
+          "name": "录像带",
+          "native_goods_id": 82900136,
+          "native_quotation_id": 84700291,
+          "product_id": "36"
+        },
+        {
+          "name": "荧光棒",
+          "native_goods_id": 82900135,
+          "native_quotation_id": 84700453,
+          "product_id": "37"
+        },
+        {
+          "name": "游戏卡带",
+          "native_goods_id": 82900152,
+          "native_quotation_id": 84700420,
+          "product_id": "35"
+        },
+        {
+          "name": "火车玩具",
+          "native_goods_id": 82900155,
+          "native_quotation_id": 84700423,
+          "product_id": "38"
+        }
+      ]
+    },
+    "5": {
+      "name": "阿妮塔战备工厂",
+      "aliases": [
+        "阿妮塔战备工厂",
+        "anita_weapon_research_institute"
+      ],
+      "native_station_id": 83000012,
+      "status": "known",
+      "products": [
+        {
+          "name": "火澄石",
+          "native_goods_id": 82900163,
+          "native_quotation_id": 84701167,
+          "product_id": "43"
+        },
+        {
+          "name": "阿妮塔202军用无人机",
+          "native_goods_id": 82900171,
+          "native_quotation_id": 84701168,
+          "product_id": "45"
+        },
+        {
+          "name": "负片炮弹",
+          "native_goods_id": 82900172,
+          "native_quotation_id": 84701169,
+          "product_id": "44"
+        },
+        {
+          "name": "抗污染防护服",
+          "native_goods_id": 82900173,
+          "native_quotation_id": 84701170,
+          "product_id": "46"
+        },
+        {
+          "name": "碳纤维",
+          "native_goods_id": 82900174,
+          "native_quotation_id": 84701171,
+          "product_id": "48"
+        },
+        {
+          "name": "形态共振瞄准器",
+          "native_goods_id": 82900175,
+          "native_quotation_id": 84701163,
+          "product_id": "49"
+        },
+        {
+          "name": "高导磁硅钢片",
+          "native_goods_id": 82900176,
+          "native_quotation_id": 84701173,
+          "product_id": "50"
+        },
+        {
+          "name": "黄铜线圈",
+          "native_goods_id": 82900177,
+          "native_quotation_id": 84701174,
+          "product_id": "51"
+        },
+        {
+          "name": "钛合金",
+          "native_goods_id": 82900181,
+          "native_quotation_id": 84701536,
+          "product_id": "47"
+        }
+      ]
+    },
+    "6": {
+      "name": "阿妮塔能源研究所",
+      "aliases": [
+        "阿妮塔能源研究所",
+        "anita_energy_research_institute"
+      ],
+      "native_station_id": 83000014,
+      "status": "known",
+      "products": [
+        {
+          "name": "无纺布",
+          "native_goods_id": 82900224,
+          "native_quotation_id": 84701707,
+          "product_id": "57"
+        },
+        {
+          "name": "阿妮塔101民用无人机",
+          "native_goods_id": 82900142,
+          "native_quotation_id": 84700106,
+          "product_id": "54"
+        },
+        {
+          "name": "锂电池",
+          "native_goods_id": 82900144,
+          "native_quotation_id": 84700053,
+          "product_id": "56"
+        },
+        {
+          "name": "石墨烯电池",
+          "native_goods_id": 82900141,
+          "native_quotation_id": 84700548,
+          "product_id": "53"
+        },
+        {
+          "name": "阿妮塔小型桦树发电机",
+          "native_goods_id": 82900140,
+          "native_quotation_id": 84700059,
+          "product_id": "52"
+        },
+        {
+          "name": "充电电池",
+          "native_goods_id": 82900145,
+          "native_quotation_id": 84700195,
+          "product_id": "58"
+        },
+        {
+          "name": "家用太阳能电池组",
+          "native_goods_id": 82900143,
+          "native_quotation_id": 84700530,
+          "product_id": "55"
+        }
+      ]
+    },
+    "7": {
+      "name": "荒原站",
+      "aliases": [
+        "荒原站",
+        "wilderness_station"
+      ],
+      "native_station_id": 83000003,
+      "status": "known",
+      "products": [
+        {
+          "name": "孔雀石",
+          "native_goods_id": 82900006,
+          "native_quotation_id": 84700232,
+          "product_id": "61"
+        },
+        {
+          "name": "土豆",
+          "native_goods_id": 82900014,
+          "native_quotation_id": 84700135,
+          "product_id": "66"
+        },
+        {
+          "name": "棉花",
+          "native_goods_id": 82900204,
+          "native_quotation_id": 84701644,
+          "product_id": "63"
+        },
+        {
+          "name": "琥珀",
+          "native_goods_id": 82900005,
+          "native_quotation_id": 84700624,
+          "product_id": "60"
+        },
+        {
+          "name": "绿松石",
+          "native_goods_id": 82900008,
+          "native_quotation_id": 84700675,
+          "product_id": "62"
+        },
+        {
+          "name": "石墨",
+          "native_goods_id": 82900010,
+          "native_quotation_id": 84700408,
+          "product_id": "65"
+        },
+        {
+          "name": "铅矿石",
+          "native_goods_id": 82900009,
+          "native_quotation_id": 84700615,
+          "product_id": "64"
+        }
+      ]
+    },
+    "8": {
+      "name": "曼德矿场",
+      "aliases": [
+        "曼德矿场",
+        "mander_mine"
+      ],
+      "native_station_id": 83000053,
+      "status": "known",
+      "products": [
+        {
+          "name": "曼德工具箱",
+          "native_goods_id": 82900091,
+          "native_quotation_id": 84700395,
+          "product_id": "71"
+        },
+        {
+          "name": "建材",
+          "native_goods_id": 82900087,
+          "native_quotation_id": 84700221,
+          "product_id": "74"
+        },
+        {
+          "name": "钢筋混凝土轨枕",
+          "native_goods_id": 82900060,
+          "native_quotation_id": 84700511,
+          "product_id": "73"
+        },
+        {
+          "name": "石材",
+          "native_goods_id": 82900090,
+          "native_quotation_id": 84700381,
+          "product_id": "76"
+        },
+        {
+          "name": "钛矿石",
+          "native_goods_id": 82900198,
+          "native_quotation_id": 84701612,
+          "product_id": "69"
+        },
+        {
+          "name": "黄铜",
+          "native_goods_id": 82900086,
+          "native_quotation_id": 84700690,
+          "product_id": "72"
+        },
+        {
+          "name": "铁轨用特种钢材",
+          "native_goods_id": 82900084,
+          "native_quotation_id": 84700610,
+          "product_id": "70"
+        },
+        {
+          "name": "铁矿石",
+          "native_goods_id": 82900088,
+          "native_quotation_id": 84700262,
+          "product_id": "75"
+        },
+        {
+          "name": "砂石",
+          "native_goods_id": 82900085,
+          "native_quotation_id": 84700392,
+          "product_id": "77"
+        },
+        {
+          "name": "图形加速卡",
+          "native_goods_id": 82900159,
+          "native_quotation_id": 84700481,
+          "product_id": "68"
+        }
+      ]
+    },
+    "9": {
+      "name": "淘金乐园",
+      "aliases": [
+        "淘金乐园",
+        "onederland"
+      ],
+      "native_station_id": 83000004,
+      "status": "known",
+      "products": [
+        {
+          "name": "石英砂",
+          "native_goods_id": 82900089,
+          "native_quotation_id": 84700307,
+          "product_id": "83"
+        },
+        {
+          "name": "漆黑矿渣",
+          "native_goods_id": 82900157,
+          "native_quotation_id": 84700440,
+          "product_id": "81"
+        },
+        {
+          "name": "青金石",
+          "native_goods_id": 82900147,
+          "native_quotation_id": 84700816,
+          "product_id": "79"
+        },
+        {
+          "name": "沙金",
+          "native_goods_id": 82900015,
+          "native_quotation_id": 84700019,
+          "product_id": "78"
+        },
+        {
+          "name": "玛瑙",
+          "native_goods_id": 82900030,
+          "native_quotation_id": 84700103,
+          "product_id": "80"
+        },
+        {
+          "name": "铁矿石",
+          "native_goods_id": 82900088,
+          "native_quotation_id": 84701611,
+          "product_id": "75"
+        },
+        {
+          "name": "牛仔裤",
+          "native_goods_id": 82900248,
+          "native_quotation_id": 84701980,
+          "product_id": "82"
+        }
+      ]
+    },
+    "10": {
+      "name": "阿妮塔发射中心",
+      "aliases": [
+        "阿妮塔发射中心",
+        "anita_rocket_base"
+      ],
+      "native_station_id": 83000010,
+      "status": "known",
+      "products": [
+        {
+          "name": "液氧甲烷燃料",
+          "native_goods_id": 82900183,
+          "native_quotation_id": 84701538,
+          "product_id": "91"
+        },
+        {
+          "name": "航天半导体",
+          "native_goods_id": 82900184,
+          "native_quotation_id": 84701539,
+          "product_id": "86"
+        },
+        {
+          "name": "火箭拼装玩具",
+          "native_goods_id": 82900178,
+          "native_quotation_id": 84701175,
+          "product_id": "93"
+        },
+        {
+          "name": "太阳电池阵",
+          "native_goods_id": 82900179,
+          "native_quotation_id": 84701534,
+          "product_id": "87"
+        },
+        {
+          "name": "蜂窝防热烧蚀材料",
+          "native_goods_id": 82900180,
+          "native_quotation_id": 84701535,
+          "product_id": "88"
+        },
+        {
+          "name": "镍基高温合金",
+          "native_goods_id": 82900182,
+          "native_quotation_id": 84701537,
+          "product_id": "90"
+        },
+        {
+          "name": "无刷电机",
+          "native_goods_id": 82900185,
+          "native_quotation_id": 84701540,
+          "product_id": "92"
+        },
+        {
+          "name": "高导热陶瓷",
+          "native_goods_id": 82900199,
+          "native_quotation_id": 84701029,
+          "product_id": "89"
+        }
+      ]
+    },
+    "11": {
+      "name": "海角城",
+      "aliases": [
+        "海角城",
+        "cape_city"
+      ],
+      "native_station_id": 83000002,
+      "status": "known",
+      "products": [
+        {
+          "name": "行李箱包",
+          "native_goods_id": 82900029,
+          "native_quotation_id": 84700678,
+          "product_id": "99"
+        },
+        {
+          "name": "海角辣椒",
+          "native_goods_id": 82900026,
+          "native_quotation_id": 84700267,
+          "product_id": "103"
+        },
+        {
+          "name": "蕾丝连衣裙",
+          "native_goods_id": 82900239,
+          "native_quotation_id": 84702090,
+          "product_id": "95"
+        },
+        {
+          "name": "学会书籍",
+          "native_goods_id": 82900080,
+          "native_quotation_id": 84700626,
+          "product_id": "98"
+        },
+        {
+          "name": "珍珠",
+          "native_goods_id": 82900024,
+          "native_quotation_id": 84700285,
+          "product_id": "94"
+        },
+        {
+          "name": "单晶硅",
+          "native_goods_id": 82900079,
+          "native_quotation_id": 84700479,
+          "product_id": "96"
+        },
+        {
+          "name": "鱿鱼",
+          "native_goods_id": 82900027,
+          "native_quotation_id": 84700263,
+          "product_id": "102"
+        },
+        {
+          "name": "带鱼",
+          "native_goods_id": 82900028,
+          "native_quotation_id": 84700616,
+          "product_id": "101"
+        },
+        {
+          "name": "户外用品",
+          "native_goods_id": 82900092,
+          "native_quotation_id": 84700582,
+          "product_id": "100"
+        },
+        {
+          "name": "大龙虾",
+          "native_goods_id": 82900025,
+          "native_quotation_id": 84700637,
+          "product_id": "97"
+        }
+      ]
+    },
+    "12": {
+      "name": "云岫桥基地",
+      "aliases": [
+        "云岫桥基地",
+        "yunxiuqiao_base"
+      ],
+      "native_station_id": 83000017,
+      "status": "known",
+      "products": [
+        {
+          "name": "绣线",
+          "native_goods_id": 82900244,
+          "native_quotation_id": 84702534,
+          "product_id": "110"
+        },
+        {
+          "name": "法兰绒",
+          "native_goods_id": 82900219,
+          "native_quotation_id": 84704524,
+          "product_id": "106"
+        },
+        {
+          "name": "牛仔布",
+          "native_goods_id": 82900245,
+          "native_quotation_id": 84702535,
+          "product_id": "111"
+        },
+        {
+          "name": "绵羊",
+          "native_goods_id": 82900246,
+          "native_quotation_id": 84702536,
+          "product_id": "112"
+        },
+        {
+          "name": "涤纶",
+          "native_goods_id": 82900247,
+          "native_quotation_id": 84702537,
+          "product_id": "113"
+        },
+        {
+          "name": "亚麻",
+          "native_goods_id": 82900234,
+          "native_quotation_id": 84702538,
+          "product_id": "107"
+        },
+        {
+          "name": "鸭",
+          "native_goods_id": 82900249,
+          "native_quotation_id": 84702539,
+          "product_id": "114"
+        },
+        {
+          "name": "肥皂",
+          "native_goods_id": 82900250,
+          "native_quotation_id": 84702540,
+          "product_id": "115"
+        },
+        {
+          "name": "缝纫工具包",
+          "native_goods_id": 82900242,
+          "native_quotation_id": 84702532,
+          "product_id": "108"
+        },
+        {
+          "name": "尼龙",
+          "native_goods_id": 82900243,
+          "native_quotation_id": 84702533,
+          "product_id": "109"
+        }
+      ]
+    },
+    "13": {
+      "name": "汇流塔",
+      "aliases": [
+        "汇流塔",
+        "confluence_tower",
+        "沃德镇"
+      ],
+      "native_station_id": 83000030,
+      "status": "known",
+      "products": [
+        {
+          "name": "马鲛鱼",
+          "native_goods_id": 82900295,
+          "native_quotation_id": 84704226,
+          "product_id": "152"
+        },
+        {
+          "name": "贻贝",
+          "native_goods_id": 82900296,
+          "native_quotation_id": 84704227,
+          "product_id": "153"
+        },
+        {
+          "name": "香薰蜡烛",
+          "native_goods_id": 82900290,
+          "native_quotation_id": 84704221,
+          "product_id": "150"
+        },
+        {
+          "name": "帝王蟹",
+          "native_goods_id": 82900221,
+          "native_quotation_id": 84704222,
+          "product_id": "147"
+        },
+        {
+          "name": "芳纶纤维",
+          "native_goods_id": 82900256,
+          "native_quotation_id": 84704223,
+          "product_id": "148"
+        },
+        {
+          "name": "鱼肝油",
+          "native_goods_id": 82900284,
+          "native_quotation_id": 84704219,
+          "product_id": "145"
+        },
+        {
+          "name": "水银",
+          "native_goods_id": 82900294,
+          "native_quotation_id": 84704224,
+          "product_id": "149"
+        },
+        {
+          "name": "山羊",
+          "native_goods_id": 82900257,
+          "native_quotation_id": 84704225,
+          "product_id": "151"
+        },
+        {
+          "name": "学会纪念品",
+          "native_goods_id": 82900287,
+          "native_quotation_id": 84704220,
+          "product_id": "146"
+        }
+      ]
+    },
+    "14": {
+      "name": "远星大桥",
+      "aliases": [
+        "远星大桥",
+        "farstar_bridge"
+      ],
+      "native_station_id": 83000023,
+      "status": "known",
+      "products": [
+        {
+          "name": "玄武岩",
+          "native_goods_id": 82900299,
+          "native_quotation_id": 84705803,
+          "product_id": "161"
+        },
+        {
+          "name": "碳纤维索",
+          "native_goods_id": 82900218,
+          "native_quotation_id": 84705797,
+          "product_id": "155"
+        },
+        {
+          "name": "复合钢索",
+          "native_goods_id": 82900235,
+          "native_quotation_id": 84705798,
+          "product_id": "156"
+        },
+        {
+          "name": "玄武岩纤维",
+          "native_goods_id": 82900238,
+          "native_quotation_id": 84705800,
+          "product_id": "157"
+        },
+        {
+          "name": "索具",
+          "native_goods_id": 82900297,
+          "native_quotation_id": 84705801,
+          "product_id": "159"
+        },
+        {
+          "name": "象拔蚌",
+          "native_goods_id": 82900240,
+          "native_quotation_id": 84705799,
+          "product_id": "158"
+        },
+        {
+          "name": "陨铁矿",
+          "native_goods_id": 82900298,
+          "native_quotation_id": 84705802,
+          "product_id": "160"
+        },
+        {
+          "name": "水泥",
+          "native_goods_id": 82900300,
+          "native_quotation_id": 84705804,
+          "product_id": "164"
+        },
+        {
+          "name": "竹荚鱼",
+          "native_goods_id": 82900265,
+          "native_quotation_id": 84704428,
+          "product_id": "162"
+        },
+        {
+          "name": "扇贝",
+          "native_goods_id": 82900276,
+          "native_quotation_id": 84704429,
+          "product_id": "163"
+        }
+      ]
+    },
+    "15": {
+      "name": "岚心城",
+      "aliases": [
+        "岚心城",
+        "lanxin_city"
+      ],
+      "native_station_id": 83000006,
+      "status": "known",
+      "products": [
+        {
+          "name": "金箔酒",
+          "native_goods_id": 82900131,
+          "native_quotation_id": 84700799,
+          "product_id": "167"
+        },
+        {
+          "name": "杯面",
+          "native_goods_id": 82900139,
+          "native_quotation_id": 84700107,
+          "product_id": "173"
+        },
+        {
+          "name": "纳豆",
+          "native_goods_id": 82900138,
+          "native_quotation_id": 84700088,
+          "product_id": "172"
+        },
+        {
+          "name": "折扇",
+          "native_goods_id": 82900133,
+          "native_quotation_id": 84700147,
+          "product_id": "170"
+        },
+        {
+          "name": "画材",
+          "native_goods_id": 82900134,
+          "native_quotation_id": 84700503,
+          "product_id": "171"
+        },
+        {
+          "name": "刀具",
+          "native_goods_id": 82900132,
+          "native_quotation_id": 84700118,
+          "product_id": "168"
+        },
+        {
+          "name": "岚心锦服",
+          "native_goods_id": 82900231,
+          "native_quotation_id": 84704774,
+          "product_id": "165"
+        },
+        {
+          "name": "黑毛牛排",
+          "native_goods_id": 82900285,
+          "native_quotation_id": 84704775,
+          "product_id": "166"
+        },
+        {
+          "name": "随身听",
+          "native_goods_id": 82900160,
+          "native_quotation_id": 84700102,
+          "product_id": "169"
+        }
+      ]
+    },
+    "16": {
+      "name": "栖羽站",
+      "aliases": [
+        "栖羽站",
+        "qiyu_station"
+      ],
+      "native_station_id": 83000018,
+      "status": "known",
+      "products": [
+        {
+          "name": "碳钢匕首",
+          "native_goods_id": 82900302,
+          "native_quotation_id": 84705711,
+          "product_id": "175"
+        },
+        {
+          "name": "鹅绒被",
+          "native_goods_id": 82900303,
+          "native_quotation_id": 84705712,
+          "product_id": "176"
+        },
+        {
+          "name": "鹅绒",
+          "native_goods_id": 82900304,
+          "native_quotation_id": 84705713,
+          "product_id": "178"
+        },
+        {
+          "name": "羽绒睡袋",
+          "native_goods_id": 82900305,
+          "native_quotation_id": 84705714,
+          "product_id": "177"
+        },
+        {
+          "name": "牛",
+          "native_goods_id": 82900306,
+          "native_quotation_id": 84705715,
+          "product_id": "179"
+        },
+        {
+          "name": "羽绒",
+          "native_goods_id": 82900272,
+          "native_quotation_id": 84705716,
+          "product_id": "180"
+        },
+        {
+          "name": "鹅",
+          "native_goods_id": 82900308,
+          "native_quotation_id": 84705717,
+          "product_id": "181"
+        },
+        {
+          "name": "鸭",
+          "native_goods_id": 82900249,
+          "native_quotation_id": 84705718,
+          "product_id": "114"
+        },
+        {
+          "name": "树脂",
+          "native_goods_id": 82900313,
+          "native_quotation_id": 84705810,
+          "product_id": "215"
+        }
+      ]
+    },
+    "17": {
+      "name": "塔图站",
+      "aliases": [
+        "塔图站",
+        "tatu_station"
+      ],
+      "native_station_id": 83000015,
+      "status": "known",
+      "products": [
+        {
+          "name": "硅矿石",
+          "native_goods_id": 82900312,
+          "native_quotation_id": 84706311,
+          "product_id": "185"
+        },
+        {
+          "name": "黄铁矿",
+          "native_goods_id": 82900314,
+          "native_quotation_id": 84706312,
+          "product_id": "186"
+        },
+        {
+          "name": "石灰岩",
+          "native_goods_id": 82900315,
+          "native_quotation_id": 84706313,
+          "product_id": "187"
+        },
+        {
+          "name": "石蜡",
+          "native_goods_id": 82900271,
+          "native_quotation_id": 84706309,
+          "product_id": "184"
+        },
+        {
+          "name": "石油",
+          "native_goods_id": 82900274,
+          "native_quotation_id": 84706310,
+          "product_id": "183"
+        },
+        {
+          "name": "全合成基础油",
+          "native_goods_id": 82900336,
+          "native_quotation_id": 84707788,
+          "product_id": "182"
+        }
+      ]
+    },
+    "18": {
+      "name": "黑月游乐城",
+      "aliases": [
+        "黑月游乐城",
+        "black_moon_amusement_park"
+      ],
+      "native_station_id": 83000007,
+      "status": "known",
+      "products": [
+        {
+          "name": "纪念卫衣",
+          "native_goods_id": 82900318,
+          "native_quotation_id": 84706783,
+          "product_id": "192"
+        },
+        {
+          "name": "城堡摆件",
+          "native_goods_id": 82900322,
+          "native_quotation_id": 84706784,
+          "product_id": "193"
+        },
+        {
+          "name": "限定公仔",
+          "native_goods_id": 82900319,
+          "native_quotation_id": 84706779,
+          "product_id": "188"
+        },
+        {
+          "name": "游乐城纪念徽章",
+          "native_goods_id": 82900323,
+          "native_quotation_id": 84706786,
+          "product_id": "195"
+        },
+        {
+          "name": "毛绒玩具",
+          "native_goods_id": 82900200,
+          "native_quotation_id": 84706785,
+          "product_id": "194"
+        },
+        {
+          "name": "游乐城主题配饰",
+          "native_goods_id": 82900317,
+          "native_quotation_id": 84706780,
+          "product_id": "189"
+        },
+        {
+          "name": "限定典藏游戏卡带",
+          "native_goods_id": 82900320,
+          "native_quotation_id": 84706781,
+          "product_id": "190"
+        },
+        {
+          "name": "游乐城纪念唱片",
+          "native_goods_id": 82900321,
+          "native_quotation_id": 84706782,
+          "product_id": "191"
+        },
+        {
+          "name": "游乐城纪念文具",
+          "native_goods_id": 82900324,
+          "native_quotation_id": 84706787,
+          "product_id": "196"
+        }
+      ]
+    },
+    "19": {
+      "name": "贡露城",
+      "aliases": [
+        "贡露城",
+        "gronru_city",
+        "格罗努城"
+      ],
+      "native_station_id": 83000052,
+      "status": "known",
+      "products": [
+        {
+          "name": "鱼子酱",
+          "native_goods_id": 82900022,
+          "native_quotation_id": 84700354,
+          "product_id": "197"
+        },
+        {
+          "name": "化妆品",
+          "native_goods_id": 82900017,
+          "native_quotation_id": 84700190,
+          "product_id": "204"
+        },
+        {
+          "name": "水晶工艺品",
+          "native_goods_id": 82900016,
+          "native_quotation_id": 84700024,
+          "product_id": "202"
+        },
+        {
+          "name": "高端护肤品",
+          "native_goods_id": 82900023,
+          "native_quotation_id": 84700537,
+          "product_id": "198"
+        },
+        {
+          "name": "日化用品",
+          "native_goods_id": 82900019,
+          "native_quotation_id": 84700497,
+          "product_id": "206"
+        },
+        {
+          "name": "橄榄油",
+          "native_goods_id": 82900069,
+          "native_quotation_id": 84700450,
+          "product_id": "205"
+        },
+        {
+          "name": "白兰地",
+          "native_goods_id": 82900002,
+          "native_quotation_id": 84700335,
+          "product_id": "203"
+        },
+        {
+          "name": "轻奢女装",
+          "native_goods_id": 82900018,
+          "native_quotation_id": 84700276,
+          "product_id": "200"
+        },
+        {
+          "name": "香水",
+          "native_goods_id": 82900021,
+          "native_quotation_id": 84700679,
+          "product_id": "201"
+        },
+        {
+          "name": "火腿",
+          "native_goods_id": 82900020,
+          "native_quotation_id": 84700317,
+          "product_id": "199"
+        }
+      ]
+    },
+    "20": {
+      "name": "维蒂林场",
+      "aliases": [
+        "维蒂林场",
+        "vitilin_forest"
+      ],
+      "native_station_id": 83000005,
+      "status": "known",
+      "products": [
+        {
+          "name": "精钢伐木斧",
+          "native_goods_id": 82900332,
+          "native_quotation_id": 84707001,
+          "product_id": "210"
+        },
+        {
+          "name": "胡桃木",
+          "native_goods_id": 82900329,
+          "native_quotation_id": 84707002,
+          "product_id": "211"
+        },
+        {
+          "name": "烟熏橡木",
+          "native_goods_id": 82900334,
+          "native_quotation_id": 84707003,
+          "product_id": "212"
+        },
+        {
+          "name": "精密木构件",
+          "native_goods_id": 82900330,
+          "native_quotation_id": 84707005,
+          "product_id": "214"
+        },
+        {
+          "name": "白蜡木",
+          "native_goods_id": 82900328,
+          "native_quotation_id": 84707004,
+          "product_id": "213"
+        },
+        {
+          "name": "优质松木",
+          "native_goods_id": 82900327,
+          "native_quotation_id": 84707006,
+          "product_id": "216"
+        },
+        {
+          "name": "树脂",
+          "native_goods_id": 82900313,
+          "native_quotation_id": 84707007,
+          "product_id": "215"
+        },
+        {
+          "name": "松香",
+          "native_goods_id": 82900335,
+          "native_quotation_id": 84707008,
+          "product_id": "218"
+        },
+        {
+          "name": "树脂复合木板",
+          "native_goods_id": 82900331,
+          "native_quotation_id": 84707009,
+          "product_id": "217"
+        },
+        {
+          "name": "高山云杉",
+          "native_goods_id": 82900333,
+          "native_quotation_id": 84707000,
+          "product_id": "209"
+        },
+        {
+          "name": "黑胡桃木座钟",
+          "native_goods_id": 82900326,
+          "native_quotation_id": 84706999,
+          "product_id": "208"
+        }
+      ]
+    },
+    "21": {
+      "name": "武林源",
+      "aliases": [
+        "武林源",
+        "wulin_source"
+      ],
+      "native_station_id": 83000046,
+      "status": "known",
+      "products": [
+        {
+          "name": "家用机器人",
+          "native_goods_id": 82900347,
+          "native_quotation_id": 84707300,
+          "product_id": "220"
+        },
+        {
+          "name": "笋干",
+          "native_goods_id": 82900345,
+          "native_quotation_id": 84707320,
+          "product_id": "229"
+        },
+        {
+          "name": "武林丝绸",
+          "native_goods_id": 82900338,
+          "native_quotation_id": 84707303,
+          "product_id": "222"
+        },
+        {
+          "name": "羽纸扇",
+          "native_goods_id": 82900339,
+          "native_quotation_id": 84707306,
+          "product_id": "223"
+        },
+        {
+          "name": "临安山核桃",
+          "native_goods_id": 82900340,
+          "native_quotation_id": 84707309,
+          "product_id": "224"
+        },
+        {
+          "name": "龙井茶",
+          "native_goods_id": 82900337,
+          "native_quotation_id": 84706967,
+          "product_id": "221"
+        },
+        {
+          "name": "西湖醋鱼",
+          "native_goods_id": 82900341,
+          "native_quotation_id": 84707315,
+          "product_id": "225"
+        },
+        {
+          "name": "西湖藕粉",
+          "native_goods_id": 82900342,
+          "native_quotation_id": 84707308,
+          "product_id": "226"
+        },
+        {
+          "name": "叫化童鸡",
+          "native_goods_id": 82900343,
+          "native_quotation_id": 84707317,
+          "product_id": "227"
+        },
+        {
+          "name": "杭白菊",
+          "native_goods_id": 82900344,
+          "native_quotation_id": 84707310,
+          "product_id": "228"
+        },
+        {
+          "name": "明前龙井",
+          "native_goods_id": 82900346,
+          "native_quotation_id": 84707079,
+          "product_id": "219"
+        }
+      ]
+    }
+  }
+}

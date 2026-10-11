@@ -8,7 +8,9 @@ returns to that menu. It has no standalone GUI entry.
 
 - `mode`: integer target level from 1 to 20 (default 10). Old string modes,
   booleans, floats, and out-of-range values are rejected without conversion.
-- `city_name`: optional label for results and logs; it does not navigate cities.
+- `city_name`: optional current-city name, alias, or catalog ID; it does not
+  navigate cities. When provided, it bounds scans and processing by that city's
+  full investable product count. Unknown non-empty names fail before input.
 
 The task checks the 1280x720 client resolution and calls the registered
 `resonance_pc.invest_trade_goods_from_shop` action. Commodity names and money
@@ -38,6 +40,44 @@ Sprites and font using `--entry-only`. The mask excludes transparent contour
 pixels in either version; labels and icons remain included. The user approved
 the native-generated visual pair. No white/grey score comparison or live-flow
 validation was run during this implementation.
+
+## Investment Speed and City Bounds
+
+The investment page lists only the current city's products. The native catalog
+`data/meta/trade_goods_investment_cities.json` joins station sell lists to goods
+quotations and goods, including initial products rather than only prestige
+unlocks. Expensive card frame/state checks are limited to the city's product
+count, and visiting that many products ends processing without another scan or
+end-of-list drag. Screen order remains authoritative; native sell-list order is
+not interpreted as investment order. Omitting the city retains unbounded visual
+discovery. Regenerate the catalog with
+`tools/build_trade_goods_investment_cities.py` from an installed game package.
+
+Page readiness and card stability share one observation loop. Each frame's
+success-banner result is reused by card detection. Upgrade preparation checks
+the stable actual/preview levels and enabled confirmation button once, followed
+directly by one submit click using that confirmed point. No input occurs between
+those checks and submission. The submission observation window is unchanged.
+
+Level adjustments use batches sized by `abs(target - preview)`, not by
+`target - current`: the default preview already includes the first pending
+upgrade. Each batch checks the actual level and adjustment button once, clicks
+at the confirmed point with a short interval and cancellation checks, then reads
+stable feedback. There is no per-click recognition or fixed post-batch pause
+when feedback progresses. The final stable batch frame also supplies the
+pre-submit button check, without another level-read loop. Partial progress recalculates the remaining count;
+overshoot is corrected with minus. Unchanged feedback gets the delayed stable
+reread before the existing plus-limit stopping rule, preserving the earlier
+no-progress observation window (delayed reread at least 0.9 seconds after the
+last click, followed by stable sampling). Late feedback observed
+before a new batch is returned without clicking so its count can be recalculated.
+
+Selecting a product does not move the list. After the initial full-list scan,
+selection checks only the selected-corner marker and maximum badge at that
+product's known rectangle, without relocating it or falling back to a full-list
+scan. Selection and right-panel levels must stabilize together in the same
+observation loop. A maximum badge still requires the confirmed right-panel
+maximum layout. Unconfirmed selection times out without another click.
 
 ## Freight Integration
 
@@ -93,5 +133,7 @@ The October 9 trials first exposed the old stopping-condition failure after a
 under the intermediate stop rule. The subsequent single-submit/no-effect rule
 and freight sub-task integration are covered by offline tests, not live runs.
 Numeric targets and the unlock-level/final-attempt rules have offline coverage
-only; city-specific product identity and persistent investment records remain
-a separate planned change.
+only. City count bounds, local selection, merged observation loops, batch
+feedback, and the single pre-submit check have offline coverage only.
+Per-product identity and persistent investment records remain a separate
+planned change.

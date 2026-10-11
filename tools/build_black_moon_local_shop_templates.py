@@ -19,6 +19,9 @@ LIBRARIES = ("ui/common.asset", "ui/home.asset", "ui/home/barstore.asset", "ui/s
              "ui/hometrade.asset", "ui/hometrade/update.asset", "ui/font.asset", "ui/font/originpack.asset",
              "ui/mainui.asset")
 STATUS = "native_generated_unvalidated"
+PREPARE_NAMES = ("shop_entry", "shop_page", "local_tab_selected", "local_tab_unselected", "batch_on", "batch_off")
+PREPARE_TAB_RECT = [996, 91, 160, 29]
+PREPARE_BATCH_RECT = [1171, 88, 96, 33]
 STORE_PREFAB = "ui/home/barstore/barstore.asset"
 STORE = "/BarStore/Group_LocalStore/Group_StoreList"
 CARD = STORE + "/ScrollGrid_Commodity/Viewport/Grid/Group_Item_000"
@@ -217,6 +220,79 @@ def save_image(file, image):
     return file
 
 
+def manufacture_prepare_controls(native):
+    """Bounded control-only recipe calibrated on the four supplied client frames."""
+    from PIL import Image, ImageDraw
+
+    entries = []
+
+    def compose(paths, background=None):
+        canvas = background.copy() if background is not None else Image.new("RGBA", (1280, 720))
+        sources = [native.layer(canvas, node) for path in paths for node in native.nodes(path)]
+        return canvas, sources
+
+    def entry(name, canvas, rect, sources, mask=None, opaque=False):
+        image = canvas.crop(box(rect))
+        row = {"name": name, "file": save_image(f"{name}.png", image.convert("RGB")),
+               "roi": [max(0, rect[0] - 8), max(0, rect[1] - 8),
+                       min(1280, rect[0] + rect[2] + 8) - max(0, rect[0] - 8),
+                       min(720, rect[1] + rect[3] + 8) - max(0, rect[1] - 8)],
+               "preprocess": "rgb", "method": "1-TM_SQDIFF_NORMED", "threshold": .90,
+               "status": "supplied_screenshots_validated_no_live_clicks",
+               "source": {"prefab": STORE_PREFAB, "nodes": sources, "crop": rect,
+                          "position_tolerance": 8, "opaque_matching": opaque}}
+        if not opaque:
+            mask = mask.crop(box(rect)) if mask is not None else image.getchannel("A").point(lambda value: 255 if value >= 240 else 0)
+            row["mask_file"] = save_image(f"{name}.mask.png", mask)
+        if name.startswith(("local_tab", "batch_")):
+            row["color_mae_limit"] = 24
+        entries.append(row)
+
+    parent = "/BarStore/Group_Main/Btn_Store"
+    canvas, sources = compose([parent, parent + "/Img_", parent + "/Txt_"])
+    entry("shop_entry", canvas, [742, 386, 201, 42], sources, opaque=True)
+    panel, panel_sources = compose([STORE + "/Img_BG"])
+    canvas, sources = compose([STORE + "/Img_Icon"], panel)
+    entry("shop_page", canvas, native.node(STORE + "/Img_Icon")["rect_client"], panel_sources + sources)
+    for state, group in (("selected", "Group_On/Img_1"), ("unselected", "Group_Off")):
+        prefix = STORE + "/Group_Tab/Group_Local/" + group
+        paths = [STORE + "/Group_Tab/Img_"]
+        if state == "selected":
+            paths.append(prefix)
+        canvas, sources = compose(paths + [prefix + "/Img_Select"], panel)
+        mask = Image.new("L", (1280, 720))
+        ImageDraw.Draw(mask).rectangle(box(PREPARE_TAB_RECT), fill=255)
+        ImageDraw.Draw(mask).rectangle((1064, 91, 1156, 122), fill=0)
+        entry("local_tab_" + state, canvas, PREPARE_TAB_RECT, panel_sources + sources, mask)
+    for state in ("on", "off"):
+        prefix = STORE + "/Btn_PL/Group_" + state.title()
+        canvas, sources = compose([prefix + "/Txt_", prefix + "/Img_"])
+        entry("batch_" + state, canvas, PREPARE_BATCH_RECT, sources)
+    return entries
+
+
+def update_prepare_controls(assets, metadata, records):
+    manifest_path = OUTPUT / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    native = Native(assets, metadata, records)
+    entries = manufacture_prepare_controls(native)
+    manifest["templates"] = [row for row in manifest["templates"] if row["name"] not in PREPARE_NAMES] + entries
+    for group, rect in (("local_tab", PREPARE_TAB_RECT), ("batch", PREPARE_BATCH_RECT)):
+        manifest["state_comparisons"][group]["roi"] = list(rect)
+    manifest["prepare_controls"] = {"names": list(PREPARE_NAMES), "threshold": .90,
+        "position_tolerance": 8, "reference_client": [1280, 720],
+        "validation": "four supplied screenshots, 24 positive/negative control checks; no live input",
+        "fixture": "tests/fixtures/black_moon_prepare/manifest.json",
+        "source_prefab_sha256": records[STORE_PREFAB]["bundle_sha256"]}
+    note = "Only six preparation controls have four real-frame ROI checks; stock, purchase and live transitions remain unvalidated."
+    if note not in manifest["limitations"]:
+        manifest["limitations"].append(note)
+    manifest["files"] = {path.relative_to(OUTPUT).as_posix(): {"sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+                         for path in sorted(OUTPUT.rglob("*.png"))}
+    write_json(manifest_path, manifest)
+    print(json.dumps({"mode": "prepare_only", "templates": list(PREPARE_NAMES)}))
+
+
 def manufacturing(assets, metadata, records, catalog_path):
     from PIL import Image, ImageDraw
 
@@ -256,7 +332,6 @@ def manufacturing(assets, metadata, records, catalog_path):
     # Invariant menu and page navigation, with dynamic NPC/currency regions absent.
     for name, parent, rect in (
         ("rest_menu", "/BarStore/Group_Main/Btn_Talk", [742, 470, 201, 41]),
-        ("shop_entry", "/BarStore/Group_Main/Btn_Store", [742, 386, 201, 42]),
     ):
         canvas, sources = compose([parent, parent + "/Img_", parent + "/Txt_"])
         entry(name, canvas, rect, sources=sources, threshold=.88)
@@ -271,31 +346,8 @@ def manufacturing(assets, metadata, records, catalog_path):
     row["source"]["prefab"] = main_prefab
 
     panel, panel_sources = compose([STORE + "/Img_BG"])
-    canvas, sources = compose([STORE + "/Img_Icon", STORE + "/Txt_"], background=panel)
-    entry("shop_page", canvas, [604, 74, 212, 54], sources=panel_sources + sources, threshold=.87)
-
-    tab_rect = [990, 85, 181, 44]
-    for state, group in (("selected", "Group_On/Img_1"), ("unselected", "Group_Off")):
-        paths = [STORE + "/Group_Tab/Img_"]
-        prefix = STORE + "/Group_Tab/Group_Local/" + group
-        if state == "selected":
-            paths.append(prefix)
-        paths += [prefix + "/Img_Select"]
-        canvas, sources = compose(paths, background=panel)
-        tab_mask = Image.new("L", (1280, 720))
-        ImageDraw.Draw(tab_mask).rectangle(box(tab_rect), fill=255)
-        ImageDraw.Draw(tab_mask).rectangle((1064, 94, 1150, 122), fill=0)
-        entry("local_tab_" + state, canvas, tab_rect, sources=panel_sources + sources,
-              threshold=.88, mask=tab_mask, color_mae_limit=24, comparison_group="local_tab",
-              same_position=True, minimum_state_margin=.035,
-              text_excluded="Serialized tab text is outdated; current localization absent from native TextFactory string pool")
-    batch_rect = [1171, 88, 96, 33]
-    for state in ("on", "off"):
-        prefix = STORE + "/Btn_PL/Group_" + state.title()
-        canvas, sources = compose([prefix + "/Txt_", prefix + "/Img_"])
-        entry("batch_" + state, canvas, batch_rect, sources=sources,
-              threshold=.88, color_mae_limit=24, comparison_group="batch",
-              same_position=True, minimum_state_margin=.035)
+    manifest["templates"].extend(manufacture_prepare_controls(native))
+    tab_rect, batch_rect = PREPARE_TAB_RECT, PREPARE_BATCH_RECT
     canvas, sources = compose([STORE + "/Group_PL/Img_", STORE + "/Group_PL/Btn_Buy",
                                STORE + "/Group_PL/Btn_Buy/Txt_"], background=panel)
     entry("confirm_enabled", canvas, [1139, 651, 120, 36], sources=panel_sources + sources,
@@ -604,9 +656,9 @@ def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def extract(assets: Path, metadata: Path) -> dict:
+def extract(assets: Path, metadata: Path, prefabs=PREFABS) -> dict:
     records = {}
-    for relative in PREFABS:
+    for relative in prefabs:
         path = assets / relative
         if not path.exists():
             continue
@@ -644,10 +696,15 @@ def main() -> None:
     parser.add_argument("--devtools-src", type=Path, default=Path("D:/project/Aura_script_lsns_devtools/src"))
     parser.add_argument("--catalog", type=Path, default=ROOT / "plans/resonance_pc/data/meta/black_moon_local_shop_catalog.json")
     parser.add_argument("--extract-only", action="store_true")
+    parser.add_argument("--prepare-only", action="store_true", help="Regenerate only the six calibrated preparation controls")
     args = parser.parse_args()
     configure(args.pythonlibs, args.devtools_src)
     assets = args.game_data / "Patch/Asset"
     metadata = args.game_data / "il2cpp_data/Metadata/global-metadata.dat"
+    if args.prepare_only:
+        records = extract(assets, metadata, prefabs=(STORE_PREFAB,))
+        update_prepare_controls(assets, metadata, records)
+        return
     records = extract(assets, metadata)
     if args.extract_only:
         paths = (CARD, STORE + "/ScrollGrid_Commodity/Viewport",
