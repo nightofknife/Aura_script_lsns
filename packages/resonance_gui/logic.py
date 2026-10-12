@@ -1170,7 +1170,12 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the four-mode freight task contract."""
-    normalized = dict(inputs or {})
+    normalized = copy.deepcopy(dict(inputs or {}))
+    # Execution-only extras share one snapshot across all freight modes.
+    from .black_moon_catalog import EXECUTION_KEYS, normalize_black_moon_settings
+    if any(key in normalized for key in EXECUTION_KEYS):
+        normalized.update(normalize_black_moon_settings(normalized, require_catalog=True))
+    normalized.pop("black_moon_local_purchase_items", None)
     if "auto_trade_goods_investment" in normalized:
         normalized["auto_trade_goods_investment"] = bool(normalized["auto_trade_goods_investment"])
     investment_mode = validate_trade_goods_investment_level(normalized.get("trade_goods_investment_mode", 10))

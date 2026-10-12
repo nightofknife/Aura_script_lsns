@@ -7,7 +7,7 @@ import pytest
 from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtWidgets import QApplication
 
-from packages.resonance_gui.config_repository import ResonanceConfigRepository
+from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
 from packages.resonance_gui.logic import normalize_trade_task_inputs, trade_result_summary
 from packages.resonance_gui.widgets.trade_page import TradePage, ProductUnlockDialog
 from packages.resonance_gui.widgets.toggle_button import ToggleButton
@@ -147,7 +147,8 @@ def test_multiple_endpoints_and_preview_run_share_parameters(page):
     preview = page.collect_task_inputs(preview=True)
     assert run["required_end_city_ids"] == ["1", "11"]
     assert preview.pop("start_city_id") == "1"
-    assert preview == run
+    # Execution extras (including Black Moon purchases) are not planning inputs.
+    assert preview == {key: value for key, value in run.items() if key in TRADE_PREVIEW_INPUT_KEYS}
 
 
 def test_normalization_preserves_null_and_drops_only_ui_and_inapplicable_fields():

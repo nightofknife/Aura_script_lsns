@@ -11,6 +11,7 @@ from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
 from .logic import validate_trade_goods_investment_level
+from .black_moon_catalog import normalize_black_moon_settings
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -97,6 +98,9 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "auto_trade_goods_investment": False,
     "trade_goods_investment_mode": 10,
     "auto_rubbish_recycling": True,
+    "auto_black_moon_local_purchase": False,
+    "black_moon_purchase_table": {},
+    "black_moon_purchase_record_scope": "default",
 }
 
 # Planning inputs declared by preview_trade_plan_pc.yaml.
@@ -261,6 +265,8 @@ class ResonanceConfigRepository:
                 parsed = None
             if isinstance(parsed, dict):
                 validate_trade_goods_investment_level(parsed.get("trade_goods_investment_mode", 10))
+                # Invalid purchase settings must not silently reset all freight fields.
+                normalize_black_moon_settings(parsed)
                 try:
                     parsed = self._migrate_trade_city_defaults(parsed)
                     return _merge_trade_inputs(parsed)
@@ -272,9 +278,27 @@ class ResonanceConfigRepository:
 
     def save_trade_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_trade_inputs(inputs)
+        keys = ("trade/inputs_json", "trade/city_defaults_version")
+        previous = {key: self.settings.value(key) for key in keys}
         self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
         self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
-        self.settings.sync()
+        try:
+            self.sync_checked()
+        except OSError:
+            for key, value in previous.items():
+                if value is None:
+                    self.settings.remove(key)
+                else:
+                    self.settings.setValue(key, value)
+            self.settings.sync()
+            raise
+
+    def save_black_moon_settings(self, values: dict[str, Any]) -> None:
+        """Commit this tool only; do not collect or overwrite unsaved mode fields."""
+        normalized = normalize_black_moon_settings(values, require_catalog=True)
+        current = self.load_trade_inputs()
+        current.update(normalized)
+        self.save_trade_inputs(current)
 
     def load_trade_preview_inputs(self) -> dict[str, Any]:
         """Load independent planning inputs, seeding normal trade inputs once."""
@@ -499,6 +523,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     if type(reserve) is not int or reserve < 0:
         raise ValueError("基础疲劳保留必须为非负整数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
+    merged.update(normalize_black_moon_settings(merged))
     return merged
 
 

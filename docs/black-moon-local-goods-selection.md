@@ -18,8 +18,35 @@ variants. No deduplication by product identity occurs.
 before scanning, avoiding submission of unrelated preselected goods. A successful
 complete scan with newly selected goods permits exactly one purchase-button click.
 The returned `purchase_submitted` is not automatic proof of purchase: handling
-network loading, dialogs, receipt verification and exit belongs to a later stage.
-Failure never retries purchase, clears selection, or closes the game.
+network loading is followed by an explicit read-only settling step. It requires
+two consecutive stable LOCAL batch frames with zero total within 30 seconds.
+`purchase_verified` at this stage means this UI settling evidence, not an inventory
+or server receipt audit. Failure never retries purchase, clears selection, exits
+from an unknown page, or closes the game.
+
+## Exit Destinations
+
+`exit_target` accepts `rest_menu` (default) and `main`. With `submit_purchase=true`,
+the task chains `submit -> wait_purchase -> exit_shop`. Return uses the existing
+back-button template; main uses the existing train-button template. Both click
+buttons use 0.90. Rest completion requires the shop-entry menu template and no
+shop-page marker. Main completion reuses the departure-button RGB SQDIFF template
+at 0.90. Contradictory page markers are unknown.
+
+The exit source must be a stable LOCAL batch shop with zero total, confirmed in
+two newly captured frames along with a stable matched button point. After each
+click, wait for two target-page observations. Unknown or loading states allow no
+input. Each of at most three supplemental clicks requires freshly confirmed
+source state; a late destination match suppresses that click. Already at the
+requested destination succeeds without a click. Failure does not fall back to a
+different destination.
+
+With `submit_purchase=false`, purchase settling and exit nodes are skipped, so
+the selection-only workflow stays in the shop. A submitted task with zero newly
+selected cards also skips payment and exit. Results include `purchase_completion`,
+`exit`, `page_state`, and aggregate `success`; failed exit cannot report aggregate
+business success merely because selection succeeded. There is still no GUI or
+freight integration change.
 
 ## Recognition
 
@@ -69,3 +96,8 @@ Batch mode was already on and its control was not clicked. One purchase submissi
 was made. A later read-only screenshot confirmed all four stock cards sold out:
 seven stones and four books, with currency dropping from 73,038,307 to 72,939,422,
 matching the 98,885 total. No further game input or exit followed.
+
+The subsequent exit implementation is verified with offline fake-app transitions
+and actual retained navigation/header/footer control crops. Both destination
+detectors have offline evidence; exit clicking has not been tested in the live
+client. No new live purchase or input was performed for this exit implementation.
