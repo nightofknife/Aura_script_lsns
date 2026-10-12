@@ -746,6 +746,35 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.wait_black_moon_local_purchase
+    module: plans.resonance_pc.src.actions.black_moon_local_exit_pc_actions
+    function: resonance_pc_wait_black_moon_local_purchase
+    public: true
+    read_only: true
+    timeout: null
+    description: Wait for stable LOCAL shop and zero total without clicking or resubmitting.
+    parameters:
+    - name: submission
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.exit_black_moon_local_shop
+    module: plans.resonance_pc.src.actions.black_moon_local_exit_pc_actions
+    function: resonance_pc_exit_black_moon_local_shop
+    public: true
+    read_only: false
+    timeout: null
+    description: Exit settled LOCAL shopping to rest menu or main screen using bounded
+      feedback.
+    parameters:
+    - name: purchase_result
+      type: Any
+      required: true
+      default: null
+    - name: exit_target
+      type: Any
+      required: false
+      default: rest_menu
   - name: resonance_pc.prepare_black_moon_local_shop_step
     module: plans.resonance_pc.src.actions.black_moon_local_prepare_pc_actions
     function: resonance_pc_prepare_black_moon_local_shop_step
@@ -771,6 +800,10 @@ exports:
       type: Any
       required: true
       default: null
+    - name: exit_target
+      type: Any
+      required: false
+      default: rest_menu
   - name: resonance_pc.select_black_moon_local_goods
     module: plans.resonance_pc.src.actions.black_moon_local_select_pc_actions
     function: resonance_pc_select_black_moon_local_goods
@@ -822,6 +855,81 @@ exports:
       type: Any
       required: false
       default: default
+  - name: resonance_pc.begin_black_moon_local_visit
+    module: plans.resonance_pc.src.actions.black_moon_local_visit_pc_actions
+    function: resonance_pc_begin_black_moon_local_visit
+    public: true
+    read_only: false
+    timeout: null
+    description: Validate and freeze a weekly purchase table before opening the shop.
+    parameters:
+    - name: city_name
+      type: Any
+      required: true
+      default: null
+    - name: purchase_table
+      type: Any
+      required: true
+      default: null
+    - name: record_scope
+      type: Any
+      required: false
+      default: default
+    - name: exit_target
+      type: Any
+      required: false
+      default: rest_menu
+  - name: resonance_pc.submit_black_moon_local_visit
+    module: plans.resonance_pc.src.actions.black_moon_local_visit_pc_actions
+    function: resonance_pc_submit_black_moon_local_visit
+    public: true
+    read_only: false
+    timeout: null
+    description: Journal verified purchase intent immediately before the single confirmation
+      click.
+    parameters:
+    - name: visit
+      type: Any
+      required: true
+      default: null
+    - name: selection
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.complete_black_moon_local_visit
+    module: plans.resonance_pc.src.actions.black_moon_local_visit_pc_actions
+    function: resonance_pc_complete_black_moon_local_visit
+    public: true
+    read_only: false
+    timeout: null
+    description: Wait read-only for purchase settlement and persist the wishlist check
+      before exit.
+    parameters:
+    - name: visit
+      type: Any
+      required: true
+      default: null
+    - name: submission
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.finish_black_moon_local_visit
+    module: plans.resonance_pc.src.actions.black_moon_local_visit_pc_actions
+    function: resonance_pc_finish_black_moon_local_visit
+    public: true
+    read_only: false
+    timeout: null
+    description: Restore the requested endpoint after a processed or skipped weekly
+      visit.
+    parameters:
+    - name: visit
+      type: Any
+      required: true
+      default: null
+    - name: completion
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.execute_cape_island_investment_from_city_panel
     module: plans.resonance_pc.src.actions.cape_island_investment_pc_actions
     function: resonance_pc_execute_cape_island_investment_from_city_panel
@@ -1214,7 +1322,7 @@ exports:
       type: Any
       required: false
       default: false
-    - name: black_moon_local_purchase_items
+    - name: black_moon_purchase_table
       type: Any
       required: false
       default: null
@@ -3240,23 +3348,23 @@ exports:
   - id: black_moon_local_purchase_pc/black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
-    description: Purchase selected local stock from an open rest menu and return to
-      that menu.
+    description: Process a weekly wishlist from the rest menu and restore the requested
+      endpoint.
   - id: black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
-    description: Purchase selected local stock from an open rest menu and return to
-      that menu.
+    description: Process a weekly wishlist from the rest menu and restore the requested
+      endpoint.
   - id: black_moon_local_select_pc/black_moon_local_select_pc
     title: Black Moon Local Goods Selection (PC)
     source: tasks/black_moon_local_select_pc.yaml
-    description: Start at LOCAL shop, select wishlist goods, and optionally submit
-      once without exiting.
+    description: Select LOCAL wishlist goods; optional purchase waits for settlement
+      and exits to rest menu or main.
   - id: black_moon_local_select_pc
     title: Black Moon Local Goods Selection (PC)
     source: tasks/black_moon_local_select_pc.yaml
-    description: Start at LOCAL shop, select wishlist goods, and optionally submit
-      once without exiting.
+    description: Select LOCAL wishlist goods; optional purchase waits for settlement
+      and exits to rest menu or main.
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
@@ -3516,4 +3624,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-11T15:47:32Z'
+  generated_at: '2026-10-12T14:13:48Z'

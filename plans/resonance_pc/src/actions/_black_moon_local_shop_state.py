@@ -17,6 +17,7 @@ import threading
 import time as monotonic_time
 import uuid
 import weakref
+from collections import Counter
 from collections.abc import Mapping
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, time, timedelta, timezone
@@ -258,6 +259,10 @@ def _validate_record(record: Any) -> None:
     pending_count = 0
     for visit in [*history, record]:
         _validate_visit(visit)
+        if (visit is not record and isinstance(visit.get("completion"), dict)
+                and isinstance(visit["completion"].get("evidence"), dict)
+                and visit["completion"]["evidence"].get("type") == "wishlist_scan"):
+            _validate_record(visit | {"previous_visits": []})
         if visit["visit_id"] in visit_ids or batch_ids.intersection(visit["batches"]):
             raise ValueError("Ledger visit and batch IDs must be unique per city/week")
         visit_ids.add(visit["visit_id"])
@@ -272,7 +277,8 @@ def _validate_record(record: Any) -> None:
         if _name(completion.get("reason"), "completion.reason").lower() in _INCOMPLETE_REASONS:
             raise ValueError("Failed or skipped visits cannot be marked completed")
         _timestamp(completion.get("completed_at"))
-        _completion_evidence(record, completion.get("evidence"))
+        proof = _completion_evidence(record, completion.get("evidence"))
+        _wishlist_completion_reason(completion["reason"], proof)
     elif completion is not None:
         raise ValueError("Incomplete record cannot contain completion evidence")
 
@@ -378,6 +384,43 @@ def begin_visit(persistent_data: Any, *, scope: str = "default", week_key: str,
     return _mutate(persistent_data, scope, week_key, city_key, mutation)
 
 
+def selection_visit_completed(record: dict | None, selected_item_ids: list[str]) -> bool:
+    """A completed check applies only to the exact current wishlist snapshot."""
+    selected = _item_ids(selected_item_ids, allow_empty=False)
+    if record is None:
+        return False
+    _validate_record(record)
+    if _has_pending(record):
+        raise ValueError("Unresolved pending batch must be reconciled before another visit")
+    return record["completed"] and set(record["selected_item_ids"]) == set(selected)
+
+
+def begin_selection_visit(persistent_data: Any, *, scope: str = "default", week_key: str,
+                          city_key: str, selected_item_ids: list[str]) -> dict:
+    """Archive changed wishes or incomplete paid visits; never replay payment intent."""
+    selected = _item_ids(selected_item_ids, allow_empty=False)
+
+    def mutation(record: dict | None) -> dict:
+        history = []
+        if record is not None:
+            if _has_pending(record):
+                raise ValueError("Unresolved pending batch must be reconciled before another visit")
+            has_confirmed = any(batch["status"] == "confirmed"
+                                for batch in record["batches"].values())
+            if (set(record["selected_item_ids"]) == set(selected)
+                    and (record["completed"] or not has_confirmed)):
+                return record
+            previous = copy.deepcopy(record)
+            history = previous.pop("previous_visits")
+            history.append(previous)
+        stamp = _stamp()
+        return {"completed": False, "visit_id": uuid.uuid4().hex,
+                "selected_item_ids": selected, "started_at": stamp, "updated_at": stamp,
+                "batches": {}, "previous_visits": history, "completion": None}
+
+    return _mutate(persistent_data, scope, week_key, city_key, mutation)
+
+
 def _batch_items(items: Any, selected: list[str]) -> list[dict]:
     if not isinstance(items, list) or not items:
         raise ValueError("Batch items must be a nonempty list of objects")
@@ -441,6 +484,11 @@ def mark_pending_batch(persistent_data: Any, *, scope: str = "default", week_key
 
 def _confirmation_evidence(value: Any) -> dict:
     evidence = _evidence(value)
+    if evidence.get("type") == "wishlist_purchase_settled":
+        if any(evidence.get(flag) is not True
+               for flag in ("recognized", "purchase_applied", "ui_settled")):
+            raise ValueError("Wishlist confirmation requires recognized, applied and settled evidence")
+        return evidence
     if evidence.get("confirmed") is not True or evidence.get("recognized") is not True:
         raise ValueError("Confirmation requires confirmed=true and recognized=true evidence")
     return evidence
@@ -514,10 +562,12 @@ def resolve_pending_batch(persistent_data: Any, *, scope: str = "default", week_
 
 def _completion_evidence(record: dict, value: Any) -> dict:
     proof = _evidence(value)
-    if proof.get("scan_status") != "COMPLETE" or proof.get("recognized") is not True:
-        raise ValueError("Completion requires a COMPLETE recognized shop scan")
     if any(proof.get(flag) not in (None, False) for flag in ("cancelled", "canceled", "disabled", "error")):
         raise ValueError("Cancellation, disabled actions and errors cannot complete a visit")
+    if proof.get("type") == "wishlist_scan":
+        return _wishlist_completion_evidence(record, proof)
+    if proof.get("scan_status") != "COMPLETE" or proof.get("recognized") is not True:
+        raise ValueError("Completion requires a COMPLETE recognized shop scan")
     _stock_counts(proof)
     if "stock_snapshot" in proof:
         if not isinstance(proof["stock_snapshot"], dict):
@@ -542,6 +592,39 @@ def _completion_evidence(record: dict, value: Any) -> dict:
     return proof
 
 
+def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
+    if any(proof.get(flag) is not True
+           for flag in ("recognized", "bottom_confirmed", "started_empty")):
+        raise ValueError("Wishlist completion requires a recognized bottom-confirmed empty-start scan")
+    if set(_item_ids(proof.get("selected_item_ids"), allow_empty=False)) != set(record["selected_item_ids"]):
+        raise ValueError("Wishlist completion must match the visit selection snapshot")
+    count = proof.get("selected_card_count")
+    if type(count) is not int or count < 0:
+        raise ValueError("selected_card_count must be a nonnegative integer")
+    items = proof.get("selected_items")
+    if not isinstance(items, list) or len(items) != count:
+        raise ValueError("Wishlist completion must account for each selected card")
+    if items:
+        _batch_items(items, record["selected_item_ids"])
+    if _has_pending(record):
+        raise ValueError("Unresolved purchase intent prevents visit completion")
+    confirmed = [batch for batch in record["batches"].values()
+                 if batch["status"] == "confirmed"]
+    if any(batch["evidence"].get("type") != "wishlist_purchase_settled" for batch in confirmed):
+        raise ValueError("Wishlist completion requires settled wishlist payment evidence")
+    purchased = Counter(item["item_id"] for batch in confirmed for item in batch["items"])
+    selected = Counter(item["item_id"] for item in items)
+    if purchased != selected:
+        raise ValueError("Each selected card requires current-visit confirmed payment evidence")
+    return proof
+
+
+def _wishlist_completion_reason(reason: str, proof: dict) -> None:
+    if (proof.get("type") == "wishlist_scan" and proof["selected_card_count"] == 0
+            and reason != "no_matching_goods"):
+        raise ValueError("An empty wishlist scan must use reason no_matching_goods")
+
+
 def complete_visit(persistent_data: Any, *, scope: str = "default", week_key: str,
                    city_key: str, reason: str, evidence: dict,
                    visit_id: str | None = None) -> dict:
@@ -555,6 +638,7 @@ def complete_visit(persistent_data: Any, *, scope: str = "default", week_key: st
         if record["completed"]:
             return record
         proof = _completion_evidence(record, evidence)
+        _wishlist_completion_reason(reason, proof)
         stamp = _stamp()
         record.update(completed=True, updated_at=stamp, completion={
             "visit_id": record["visit_id"], "reason": reason,
@@ -566,5 +650,6 @@ def complete_visit(persistent_data: Any, *, scope: str = "default", week_key: st
 
 
 __all__ = ["PURCHASES_FILE", "SCHEMA_VERSION", "resolve_purchase_week", "read_city_record",
-           "begin_visit", "mark_pending_batch", "confirm_batch", "complete_visit",
+           "begin_visit", "begin_selection_visit", "selection_visit_completed",
+           "mark_pending_batch", "confirm_batch", "complete_visit",
            "resolve_pending_batch", "purchase_session_lock"]

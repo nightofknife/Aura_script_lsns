@@ -1,7 +1,7 @@
 black_moon_local_select_pc:
   meta:
     title: Black Moon Local Goods Selection (PC)
-    description: Start at LOCAL shop, select wishlist goods, and optionally submit once without exiting.
+    description: Select LOCAL wishlist goods; optional purchase waits for settlement and exits to rest menu or main.
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -713,11 +713,17 @@ black_moon_local_select_pc:
         type: boolean
         required: false
         default: false
+      - name: exit_target
+        type: string
+        required: false
+        default: rest_menu
+        enum: [rest_menu, main]
   steps:
     validate_table:
       action: resonance_pc.validate_black_moon_purchase_table
       params:
         purchase_table: "{{ inputs.purchase_table }}"
+        exit_target: "{{ inputs.exit_target }}"
     require_resolution:
       action: resonance_pc.require_client_resolution
       depends_on: validate_table
@@ -743,7 +749,27 @@ black_moon_local_select_pc:
       timeout_sec: 15
       params:
         selection: "{{ nodes.select_goods.output }}"
+    wait_purchase:
+      action: resonance_pc.wait_black_moon_local_purchase
+      depends_on:
+        submit: success|skipped
+      when: "{{ inputs.submit_purchase }}"
+      timeout_sec: 40
+      params:
+        submission: "{{ nodes.submit.output }}"
+    exit_shop:
+      action: resonance_pc.exit_black_moon_local_shop
+      depends_on:
+        wait_purchase: success|skipped
+      when: "{{ inputs.submit_purchase }}"
+      timeout_sec: 75
+      params:
+        purchase_result: "{{ nodes.wait_purchase.output }}"
+        exit_target: "{{ inputs.exit_target }}"
   returns:
-    success: "{{ nodes.select_goods.output.success }}"
+    success: "{{ nodes.select_goods.output.success and (not inputs.submit_purchase or (nodes.exit_shop.output.success | default(false))) }}"
+    page_state: "{{ nodes.exit_shop.output.page_state | default('local_shop') }}"
     selection: "{{ nodes.select_goods.output }}"
     submission: "{{ nodes.submit.output | default({}) }}"
+    purchase_completion: "{{ nodes.wait_purchase.output | default({}) }}"
+    exit: "{{ nodes.exit_shop.output | default({}) }}"

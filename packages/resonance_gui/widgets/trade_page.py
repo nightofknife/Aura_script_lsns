@@ -62,6 +62,8 @@ from ..logic import (
     average_book_profit_text,
 )
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
+from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
+from .black_moon_purchase_dialog import BlackMoonPurchaseDialog
 from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
 from .toggle_button import ToggleButton as QCheckBox
@@ -356,6 +358,16 @@ class TradePage(QWidget):
         self._product_groups = load_trade_product_groups()
         self._all_product_ids = set(trade_product_ids(self._product_groups))
         self._unlocked_product_ids: set[str] | None = None
+        self._black_moon_catalog = None
+        self._black_moon_error = ""
+        self._black_moon_table: dict[str, bool] = {}
+        self._black_moon_record_scope = "default"
+        self._black_moon_dialog: BlackMoonPurchaseDialog | None = None
+        if not self.preview_mode:
+            try:
+                self._black_moon_catalog = load_black_moon_catalog()
+            except BlackMoonCatalogError as exc:
+                self._black_moon_error = str(exc)
         self._elapsed_timer = QTimer(self)
         self._elapsed_timer.setInterval(1000)
         self._elapsed_timer.timeout.connect(self._tick_elapsed)
@@ -384,6 +396,7 @@ class TradePage(QWidget):
             "auto_cape_island_investment": "货运到达蜃息岛时尝试投资；不会为投资额外改变货运线路。",
             "auto_trade_goods_investment": "到站交易前按目标等级投资交易品；实际等级不足 10 时停止，受阻后最多尝试下一商品一次。",
             "auto_rubbish_recycling": "到达符合条件的城市时尝试垃圾回收，不为回收额外改变线路。",
+            "auto_black_moon_local_purchase": "到达黑月本地商店时采购已选商品；关闭保留商品选择，保存设置不会立即购买。",
             "bargain_rates": "每次砍价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
             "raise_rates": "每次抬价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
             "bargain_step": "每次砍价的降价幅度，100 个 bps 等于 1%。",
@@ -638,6 +651,21 @@ class TradePage(QWidget):
             options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
         recovery_layout.addWidget(self.additional_options)
         recovery_layout.addWidget(self.trade_goods_investment_panel)
+        self.black_moon_panel = QWidget(content)
+        black_moon_row = QHBoxLayout(self.black_moon_panel)
+        black_moon_row.setContentsMargins(0, 0, 0, 0)
+        black_moon_row.setSpacing(8)
+        self.auto_black_moon_local_purchase = QCheckBox("自动黑月本地采购", self.black_moon_panel)
+        self.black_moon_settings_button = QPushButton("设置…", self.black_moon_panel)
+        self.black_moon_settings_button.setAutoDefault(False)
+        self.black_moon_selection_label = QLabel(self.black_moon_panel)
+        black_moon_row.addWidget(self.auto_black_moon_local_purchase)
+        black_moon_row.addWidget(self.black_moon_settings_button)
+        black_moon_row.addWidget(self.black_moon_selection_label)
+        black_moon_row.addStretch(1)
+        recovery_layout.addWidget(self.black_moon_panel)
+        self.auto_black_moon_local_purchase.toggled.connect(self._save_black_moon_toggle)
+        self.black_moon_settings_button.clicked.connect(self._open_black_moon_settings)
         medicine_form = QFormLayout()
         medicine_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
         self.fatigue_medicine_max_uses.setMaximumWidth(220)
@@ -646,6 +674,7 @@ class TradePage(QWidget):
         recovery_layout.addLayout(medicine_form)
 
         if self.preview_mode:
+            self.black_moon_panel.hide()
             self.recovery_section.hide()
             self.additional_options.hide()
             self.recovery_heading.hide()
@@ -1303,6 +1332,13 @@ class TradePage(QWidget):
         self.auto_rubbish_recycling.setChecked(
             bool(values.get("auto_rubbish_recycling", True))
         )
+        black_moon = normalize_black_moon_settings(values)
+        self._black_moon_table = black_moon["black_moon_purchase_table"]
+        self._black_moon_record_scope = black_moon["black_moon_purchase_record_scope"]
+        blocked = self.auto_black_moon_local_purchase.blockSignals(True)
+        self.auto_black_moon_local_purchase.setChecked(black_moon["auto_black_moon_local_purchase"])
+        self.auto_black_moon_local_purchase.blockSignals(blocked)
+        self._sync_black_moon_controls()
         self._sync_city_controls()
         self._sync_book_controls()
         self._sync_mode_controls()
@@ -1381,6 +1417,8 @@ class TradePage(QWidget):
             "trade_goods_investment_mode": self.trade_goods_investment_mode.value(),
             "auto_rubbish_recycling": self.auto_rubbish_recycling.isChecked(),
         })
+        if not self.preview_mode:
+            inputs.update(self._black_moon_values())
         return normalize_trade_task_inputs(inputs)
 
     @staticmethod
@@ -1390,6 +1428,8 @@ class TradePage(QWidget):
 
     def collect_task_inputs(self, *, preview: bool = False) -> dict[str, Any]:
         inputs = self.collect_inputs(require_start_city=preview)
+        if preview:
+            return {key: value for key, value in inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS}
         if not preview:
             inputs.pop("start_city_id", None)
         return inputs
@@ -1424,10 +1464,10 @@ class TradePage(QWidget):
     def _request_action(self, signal: Signal, *, require_start_city: bool = False) -> None:
         try:
             inputs = self.collect_inputs(require_start_city=require_start_city)
-        except ValueError as exc:
+            self._save_inputs(self.collect_ui_state())
+        except (ValueError, OSError) as exc:
             QMessageBox.warning(self, "参数错误", str(exc))
             return
-        self._save_inputs(self.collect_ui_state())
         self._last_inputs = normalize_trade_task_inputs(inputs)
         if self.preview_mode:
             self._last_inputs = {
@@ -1440,6 +1480,66 @@ class TradePage(QWidget):
         self.trade_goods_investment_mode.setEnabled(
             not self._busy and self.auto_trade_goods_investment.isChecked()
         )
+
+    def _black_moon_values(self) -> dict[str, Any]:
+        return {
+            "auto_black_moon_local_purchase": self.auto_black_moon_local_purchase.isChecked(),
+            "black_moon_purchase_table": dict(self._black_moon_table),
+            "black_moon_purchase_record_scope": self._black_moon_record_scope,
+        }
+
+    def _sync_black_moon_controls(self) -> None:
+        available = self._black_moon_catalog is not None and not self.preview_mode
+        self.auto_black_moon_local_purchase.setEnabled(available and not self._busy)
+        self.black_moon_settings_button.setEnabled(available)
+        if available:
+            self.black_moon_settings_button.setToolTip(
+                "选择黑月本地采购商品。保存设置不会购买；勾选共用商品的折扣、不同包装库存卡片，不是数量上限。")
+            self.black_moon_selection_label.setText(
+                f"已选 {sum(self._black_moon_table.values())} / {len(self._black_moon_catalog.products)}")
+        else:
+            self.black_moon_selection_label.setText("商品目录不可用")
+            self.black_moon_selection_label.setToolTip(self._black_moon_error)
+            self.black_moon_settings_button.setToolTip(self._black_moon_error)
+        if self._black_moon_dialog is not None:
+            self._black_moon_dialog.set_read_only(self._busy)
+
+    def _save_black_moon_toggle(self, enabled: bool) -> None:
+        if self.preview_mode:
+            return
+        if self._busy or self._black_moon_catalog is None:
+            blocked = self.auto_black_moon_local_purchase.blockSignals(True)
+            self.auto_black_moon_local_purchase.setChecked(not enabled)
+            self.auto_black_moon_local_purchase.blockSignals(blocked)
+            return
+        try:
+            self._settings.save_black_moon_settings(self._black_moon_values())
+        except (OSError, ValueError) as exc:
+            blocked = self.auto_black_moon_local_purchase.blockSignals(True)
+            self.auto_black_moon_local_purchase.setChecked(not enabled)
+            self.auto_black_moon_local_purchase.blockSignals(blocked)
+            QMessageBox.warning(self, "采购设置保存失败", str(exc))
+
+    def _commit_black_moon_table(self, table: dict[str, bool]) -> None:
+        if self._busy:
+            raise ValueError("运行期间不能修改采购商品")
+        values = self._black_moon_values()
+        values["black_moon_purchase_table"] = dict(table)
+        self._settings.save_black_moon_settings(values)
+        self._black_moon_table = dict(table)
+        self._sync_black_moon_controls()
+
+    def _open_black_moon_settings(self) -> None:
+        if self.preview_mode or self._black_moon_catalog is None:
+            return
+        dialog = BlackMoonPurchaseDialog(self._black_moon_catalog, self._black_moon_table, self,
+                                        save=self._commit_black_moon_table, read_only=self._busy)
+        self._black_moon_dialog = dialog
+        try:
+            dialog.exec()
+        finally:
+            self._black_moon_dialog = None
+            dialog.deleteLater()
 
     def set_target_status(self, payload: Mapping[str, Any]) -> None:
         if self.target_value is None:
@@ -1710,6 +1810,7 @@ class TradePage(QWidget):
         self._sync_end_city_options()
         self._sync_mode_controls()
         self._sync_goods_investment_controls()
+        self._sync_black_moon_controls()
         self._sync_actions()
 
     def set_end_city_constraint_available(self, available: bool) -> None:

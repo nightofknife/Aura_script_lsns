@@ -1,155 +1,119 @@
-# Black Moon Local Purchase Backend
+# Black Moon Local Purchase Integration
 
-The standalone first-phase preparation task and its limited screenshot
-validation are documented in [Black Moon Local Shopping Preparation](black-moon-local-shopping-preparation.md).
-It does not purchase stock or change freight integration. The full-purchase
-limitations below still apply; six preparation controls now have offline evidence.
+## Scope And Inputs
 
-## Scope
+PC freight checks local shopping at its start city after reposition and at each
+confirmed route arrival, including the endpoint. Existing arrival extras remain
+first; shopping and the already-planned sparkling-water cups share one rest visit.
+Shopping does not change the planner, passenger trips, fatigue estimates, book
+budgets, or cash budgets. Headquarters shopping and manual refresh are excluded.
 
-The PC freight executor purchases selected LOCAL-store products at the freight
-start city (after any existing reposition) and every confirmed route arrival,
-including the endpoint. No detours or reposition-only stops are added. Arrival
-extras run first, then shopping, existing planned sparkling-water cups, and the
-exchange visit. Shopping and drinking share one rest-area visit. Fatigue refresh
-and cup planning happen before entering rest.
-
-GUI settings, priorities, money limits, headquarters purchases, manual refreshes,
-and refresh-coupon consumption are out of scope. The feature defaults to off.
-
-## Inputs
-
-The `auto_cycle_trade_pc` task and combined commerce execution accept:
+Execution inputs, shared across all four freight modes and combined commerce:
 
 ```yaml
-auto_black_moon_local_purchase: true
-black_moon_local_purchase_items:
-  - self_observation_film_roll
-  - purchase_order_book
-  - advertising_ticket
-  - item_11400084
+auto_black_moon_local_purchase: false
+black_moon_purchase_table:
+  purchase_order_book: true
+  item_11400084: true
 black_moon_purchase_record_scope: default
 ```
 
-Use canonical `item_id` values from
-`plans/resonance_pc/data/meta/black_moon_local_shop_catalog.json`. The catalogue
-contains equipment, equipment boxes, items, and materials, with quality and native
-source IDs for later GUI grouping. All available discount/pack variants of a
-selected product are selected; separate stock cards are never collapsed by name.
-Combined commerce forwards these inputs only to execution, not route previews.
+The saved GUI map contains all 140 canonical IDs from
+`plans/resonance_pc/data/meta/black_moon_local_shop_catalog.json`; missing known
+keys default to false and unknown keys are rejected. The former
+`black_moon_local_purchase_items` field is removed, with no list-format fallback.
+Task boolean properties use the framework's normal boolean input normalization;
+direct action inputs and GUI configuration require genuine boolean values.
 
-## Child Contract
+`tools/black_moon_purchase_schema.py` generates the repeated input metadata from
+the catalogue. Its contract tests prevent child/freight/combined schema drift.
+These three settings are execution-only and excluded from route preview.
+
+## Standalone Child And Reuse
 
 `tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc` starts at
-an already-open `rest_menu`. Inputs are `city_name`, `selected_item_ids`, and
-`record_scope`. Its `purchase` node calls
-`resonance_pc.purchase_black_moon_local_from_rest_menu` using the parent engine.
-Successful output has `success: true`, `status: completed|skipped`, `reason`,
-canonical `city_key`, `week_key`, `completed_this_week`, `purchased_count`,
-`purchased_items`, and `page_state: rest_menu`. Failure does not authorize the
-exchange/departure to continue. Per-city visits are exposed under
-`execution.black_moon_local_purchase` and the top-level field of that name.
+the guaranteed rest menu, with `city_name`, `purchase_table`, `record_scope`, and
+`exit_target` (`rest_menu` default, or `main`). Freight always requests `rest_menu`.
+It is independently runnable without adding another GUI small-task entry.
 
-## Durable Records
+The YAML owns the ordered stages:
 
-`core/persistent_data` stores `black-moon-shop-purchases.json` under its own
-`user-data` root. Keys are explicit account scope, refresh week, and canonical
-city. Change the scope when changing accounts; no account UID is inferred.
-The reset policy is Monday 05:00 Asia/Shanghai. The native configuration proves
-weekly/05:00; weekday corroboration is separately attributed in the catalogue.
+1. Validate/freeze the purchase table and obtain the city/week visit.
+2. Require client resolution, enter the shop, select LOCAL, and enable batch.
+3. Reuse wishlist selection: reset the retained scroll once, scan overlapping
+   pages, select only desired identities, verify each yellow selected state.
+4. Submit once, journaling pending intent synchronously immediately before the
+   validated confirmation click, not before UI validation.
+5. Wait read-only for stable LOCAL shop plus zero total; persist evidence and
+   complete the wishlist check before navigation.
+6. Restore the requested endpoint with fresh state/button checks and at most
+   three supplemental exit clicks.
 
-Completed records skip shopping before rest navigation. Empty selections never
-mark a city completed. An interrupted visit retains its frozen selection.
-Completion requires a recognized full scan and no desired available stock.
-Unrecognized available cards, ambiguous list boundaries, and failed purchases
-leave the week incomplete. A desired product with no available recognized card
-has no outstanding purchase, whether absent or already sold out; the backend
-does not invent identities for cards obscured by the sold-out sign.
+Preparation, selection, settlement and exits reuse the same actions as the
+independent preparation/selection tasks. The obsolete monolithic scanner is not
+called by the freight child. See the preparation and goods-selection documents
+for native template generation and screenshot matching details.
 
-Before the single confirmation click, a pending batch records its stock counts
-and selected stock rows. A known pre-submit cancellation closes that intent as
-not purchased. An attempted click with no confirmed result remains pending.
-Restarts reconcile the full available-product counts and sold-out count change;
-they never replay unresolved confirmation. Reward evidence is recorded even if
-cancellation arrives, but a full post-purchase sold-out reconciliation is still
-required for weekly completion. Return-navigation failure cannot erase confirmed
-purchase facts or a completed week. Cooperative file locks serialize sessions and
-ledger writes across tasks/processes; malformed ledger data is an error.
+The final `finish_visit` node returns `success`, `status`, `reason`, `city_key`,
+`week_key`, `completed_this_week`, `selected_card_count`, `selected_items`,
+`purchase_verified`, and the confirmed `page_state`. Card counts are not pack
+quantities, book counts, or a verified inventory delta.
 
-## Recognition Assets
+An empty wishlist skips shop entry. No matching goods is a completed wishlist
+check with zero selected cards, not a fabricated purchase. It still exits the
+shop so freight can drink water and continue. A skipped standalone visit requesting
+`main` uses a verified rest-menu-to-main transition.
 
-Templates and catalogue builders read native Unity/config resources offline.
-Runtime reads the bundled JSON/PNG assets only and performs no OCR of prices,
-balances, quotas, or pack quantities. Card identity uses native item art, sold-out
-state uses the hanging sign, and partial cards are never clicked. Scroll overlap
-is positional evidence only, not item identity or purchase proof.
+## Durable Evidence And Failure Policy
 
-Native font rendering and template thresholds remain uncalibrated. Selected
-darkening reuses a native overlay because its runtime tint is not serialized;
-asset provenance and limitations are recorded in the template manifest. No
-tests, import/compile checks, screenshot matching, GUI, or live game runs were
-performed for this implementation, per the current working rules.
+Continue using `core/persistent_data`'s existing
+`black-moon-shop-purchases.json`. Account scope, weekly reset and canonical city
+remain the keys. No new user record file is introduced. Default account scope is
+`default`; callers must select another scope when switching accounts.
 
-## Implementation Plan And Handoff
+Same completed wishlist skips before rest navigation. A changed true-ID set starts
+a new visit and archives prior evidence. Unresolved pending intent in that city/
+week, including historical visits, blocks another purchase. It is never replayed
+automatically. Corrupt/unreadable records stop freight before shop input.
 
-### Completed Backend Phase
+Two explicit new evidence kinds avoid weakening previous full-stock proof:
 
-- Native candidate catalogue: seven cities, 140 canonical products, 247 commodity
-  variants. Native template bank: 280 normal/selected item variants plus controls,
-  frames, anchors, and source provenance.
-- Execution-only task inputs, combined-commerce forwarding, and child task/action
-  registration. The feature is disabled by default and has no GUI controls.
-- Freight-start and confirmed-arrival integration, including the endpoint; one
-  shared rest visit preserves the existing planned drinking count.
-- Weekly city gates, frozen selections, pending batches, receipt persistence,
-  sold-out reconciliation, and per-city execution/progress output.
-- Static source review only. Runtime recognition and the full purchase flow are
-  not verified; completion of this phase is not a claim of live readiness.
+- `wishlist_purchase_settled`: recognized UI settlement after the single submit;
+  it does not assert actual units received or independently read the server.
+- `wishlist_scan`: complete initially-empty list traversal, frozen desired IDs,
+  selected card count and per-card selected IDs. Current-visit confirmed batches
+  must account for their exact multiplicity. Unrecognized card identities are not
+  fabricated as missing/sold-out products.
 
-### Repository Integration Phase
+Payment timeout/cancellation keeps unresolved intent and does not exit or click
+again. Successful evidence is persisted before exit, so an exit failure cannot
+erase the check or cause another submit on the next run. If confirmation persisted
+but completion writing failed, a later visit archives that confirmed attempt and
+checks remaining stock; the previous confirmed batch is never replayed.
 
-Submit the feature code, complete template directory, catalogue, both native
-builders, task registrations, and this plan together. Preserve the latest main
-investment-entry behavior and unrelated changes in other worktrees. Keep the
-feature disabled by default and do not add GUI, version bumps, tags, or a release
-solely for this handoff. User authorization currently covers commit, push, and
-merge, not additional testing or live game operations.
+Task exclusivity owns the UI workflow; cooperative file locks serialize ledger
+read/modify/write. No async session lock is left held across YAML nodes. The old
+record validator remains strict for existing stock-scan evidence.
 
-### Next Implementation Phase
+## GUI Contract
 
-1. Wait for the user's revised GUI requirements before editing any GUI. Reuse the
-   catalogue category and quality metadata for grouping, with buy/not-buy
-   selections only; do not add priorities or money limits.
-2. Bind the GUI to the three existing execution inputs. Persist selections in the
-   existing settings mechanism, keep the default disabled, and expose an explicit
-   account record scope without guessing the account UID.
-3. Reuse the existing progress stage and per-city output. Distinguish a completed
-   weekly check from a failed visit; do not clear purchase facts when return
-   navigation fails. Midweek settings changes do not invalidate a completed city
-   record or replace an interrupted visit's frozen selection.
-4. Only after explicit authorization, measure native template scores and perform
-   the real-game acceptance work below. Do not start this workflow merely because
-   the implementation plan lists it.
-5. Resolve recognition limitations before advertising the feature as verified or
-   enabling it by default. Package/release only under a separate user request.
+Freight exposes an off-by-default automatic-purchase toggle, Settings, and saved
+selection count. A resizable selector displays 140 canonical items grouped as
+equipment (100), equipment boxes (15), items (11), materials (14), with native
+icons, name search, quality filters, selected-only filtering and filtered bulk
+selection. Discount/pack variants share one choice but remain independent stock
+cards during purchase.
 
-### Outstanding Recognition Work
+The dialog edits a draft. Save updates configuration atomically; cancel/Esc/close
+discard it. Disabling shopping retains choices. All four modes and combined
+commerce use one saved map and a deep-copied run snapshot. Running tasks allow
+viewing but not editing. No quantities, budget or discount-threshold controls.
 
-- The native yellow selected-banner sprite reference `5556224950374819097` could
-  not be resolved. Current selection evidence uses native-font text with negative
-  background space; geometry/item variants reuse a native dark overlay. Its
-  selected-state runtime tint and alpha remain unconfirmed.
-- Visible card bounds are `327x120`, columns `599/937`, with a safe viewport
-  ending at client `y=643`. Serialized bottom padding is 60 native pixels, but the
-  runtime final-row fit is not established. Never mark a week complete by treating
-  a clipped or unrecognized row as absent.
-- Thresholds, Pillow-versus-Unity font rendering, and complete-flow timing remain
-  uncalibrated. Record source/threshold changes in the native builder and manifest,
-  not only in generated pixels.
+## Validation Boundary
 
-Authorized future acceptance should cover headquarters-to-LOCAL switching,
-batch on/off, normal/selected/sold-out cards, overlapping scroll pages, duplicated
-discount/pack stock, reorder after purchase, reward exit, weekly skips/reset,
-pre-submit cancellation, pending restart reconciliation, receipt retention after
-return failure, and shared shopping/drinking visits. None of these checks has been
-executed for this feature.
+Targeted unit/contract tests cover schema forwarding, weekly policy, pre-click
+journaling, uncertainty, no-stock exits, endpoint navigation, shared rest/water
+handoff and GUI drafts/snapshots. Package sync/check/validate and Plan Doctor are
+separate from runtime tests. Earlier preparation/selection live evidence does
+not certify the new complete freight integration; this integration change has
+not initiated another game purchase.

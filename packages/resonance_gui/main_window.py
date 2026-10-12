@@ -912,10 +912,14 @@ class ResonanceMainWindow(QMainWindow):
                 QMessageBox.warning(self, "客运参数错误", str(exc))
                 return
 
-        if "trade" in snapshots:
-            self._settings.save_trade_inputs(snapshots["trade"])
-        if "passenger" in snapshots:
-            self._settings.save_passenger_inputs(snapshots["passenger"])
+        try:
+            if "trade" in snapshots:
+                self._settings.save_trade_inputs(snapshots["trade"])
+            if "passenger" in snapshots:
+                self._settings.save_passenger_inputs(snapshots["passenger"])
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "流程配置保存失败", str(exc))
+            return
 
         trade = snapshots.get("trade", {})
         if trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False):

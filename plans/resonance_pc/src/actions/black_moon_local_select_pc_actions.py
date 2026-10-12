@@ -160,7 +160,7 @@ async def execute_black_moon_select(purchase_table, app, reader=None, require_em
     raise BlackMoonLocalSelectError("black_moon_select_scroll_limit", "LOCAL list scan exceeded bounded drag count")
 
 
-async def execute_black_moon_submit(selection, app, reader=None):
+async def execute_black_moon_submit(selection, app, reader=None, before_submit=None):
     _cancel_check()
     if not isinstance(selection, dict) or not selection.get("success"):
         raise ValueError("Successful selection result is required")
@@ -182,6 +182,9 @@ async def execute_black_moon_submit(selection, app, reader=None):
             point = current
             if stable >= 2:
                 _cancel_check()
+                if before_submit is not None:
+                    before_submit()
+                    _cancel_check()
                 app.click(x=int(point[0]), y=int(point[1]))
                 await asyncio.sleep(_SETTLE_SECONDS)
                 return {"success": True, "status": "purchase_submitted", "purchase_submitted": True,
@@ -194,7 +197,9 @@ async def execute_black_moon_submit(selection, app, reader=None):
 
 @action_info(name="resonance_pc.validate_black_moon_purchase_table", public=True, read_only=True,
              description="Validate the item-id to boolean purchase table before any input.")
-def resonance_pc_validate_black_moon_purchase_table(purchase_table: dict) -> dict:
+def resonance_pc_validate_black_moon_purchase_table(purchase_table: dict, exit_target: str = "rest_menu") -> dict:
+    if not isinstance(exit_target, str) or exit_target not in {"rest_menu", "main"}:
+        raise ValueError("Exit target must be rest_menu or main")
     table = normalize_purchase_table(purchase_table)
     return {"candidate_count": sum(table.values())}
 
