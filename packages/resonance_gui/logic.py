@@ -10,7 +10,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
-from plans.resonance_pc.src.services.resonance_pc_freight_parameters import effective_freight_inputs
+from packages.resonance_shared.freight_parameters import effective_freight_inputs
 
 GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"

@@ -33,7 +33,7 @@
 
 ## GUI 联动与提交
 
-共享纯规则位于 `plans/resonance_pc/src/services/resonance_pc_freight_parameters.py`：
+共享纯规则位于 `packages/resonance_shared/freight_parameters.py`，原计划服务路径仅保留兼容导出。GUI不得静态导入 `plans`，以保证冻结包的计划保持外置：
 
 - `FREIGHT_MODES` 定义两个模式。
 - `FREIGHT_PLANNING_KEYS` 标识影响规划的字段。

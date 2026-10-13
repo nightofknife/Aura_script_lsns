@@ -9,7 +9,7 @@
 - fill为独立用书策略，不再强制协商；有限/无限书及单本严格正且>=阈值规则保持。
 - 不用书时无效 book_policy/book_profit_threshold 不影响计算或缓存；固定模式忽略目标收益、自由城市和终点。
 - auto_cycle_trade_pc、preview_trade_plan_pc、auto_combined_commerce_pc 的模式枚举/default以及nullable目标均已同步，manifest已通过源码生成器同步。
-- 共享模块 `services/resonance_pc_freight_parameters.py` 提供 `FREIGHT_MODES / FREIGHT_PLANNING_KEYS / effective_freight_inputs / freight_control_state`。GUI可以直接依赖纯模块，不需要导入actions。
+- 共享模块 `packages/resonance_shared/freight_parameters.py` 提供 `FREIGHT_MODES / FREIGHT_PLANNING_KEYS / effective_freight_inputs / freight_control_state`。GUI直接依赖此公共包，不导入外置计划；`services/resonance_pc_freight_parameters.py` 保留同一对象的兼容导出。公共包在 CLI 和 GUI 构建中都明确收集，计划本身仍外置。
 - `target_profit_enabled`是GUI保存字段，不是后端任务参数。GUI关掉目标后提交null/省略；正目标按原精确算法处理。
 - 返回字段、定位、访问索引、状态与停止原因保持现行执行契约。目标不可达状态仍叫target_unreachable，不表示第三种模式。
 
