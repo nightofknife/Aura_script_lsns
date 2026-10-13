@@ -18,6 +18,30 @@ ACTIONS = ROOT / "plans/resonance_pc/src/actions/eternal_scuffle_pc_actions.py"
 FIXTURE = ROOT / "tests/fixtures/eternal_scuffle_replay/scripted_surface.py"
 
 
+@pytest.fixture(autouse=True)
+def isolated_replay_log_session(monkeypatch):
+    """Each replay project represents a separate application process/session."""
+    from packages.aura_core.observability.logging import log_session
+    from packages.aura_core.observability.logging.core_logger import logger
+
+    with monkeypatch.context() as isolated:
+        isolated.setattr(log_session, "_SESSION", None)
+        # Register both original environment values with monkeypatch so changes
+        # made by startup are restored too, including when a key was absent.
+        isolated.setenv("AURA_LOG_ROOT", "")
+        isolated.setenv("AURA_LOG_SESSION_ID", "")
+        try:
+            yield
+        finally:
+            session = log_session.get_log_session()
+            if session is not None:
+                handler = logger._get_handler("task_file")
+                if handler is not None:
+                    logger.logger.removeHandler(handler)
+                    handler.close()
+                session.close()
+
+
 def build_replay_project(tmp_path, *, missing_finish=False, failed_action=False, cancellation=False):
     base = tmp_path / "project"
     plan = base / "plans/scuffle_replay"
