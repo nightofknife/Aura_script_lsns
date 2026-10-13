@@ -751,10 +751,8 @@ class ResonanceMainWindow(QMainWindow):
 
     def _save_auto_bento(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()
-        if enabled and not inputs["bento_priority"]:
-            self.trade_page.auto_bento.setChecked(False)
-            QMessageBox.warning(self, "货运参数错误", "自动吃便当开启时，便当类型至少选择一种。")
-            return
+        # Keep incomplete drafts editable; the shared form/task validation
+        # blocks execution until at least one bento type is selected.
         inputs["auto_bento"] = bool(enabled)
         self._settings.save_trade_inputs(inputs)
 

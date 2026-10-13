@@ -336,3 +336,74 @@ def test_updater_remains_present_across_interruption_and_recovery(tmp_path, monk
     assert updater.recover_pending_updates(root) is True
     assert snapshot(root) == before
     assert updater.recover_pending_updates(root) is False
+
+
+@pytest.mark.parametrize("winerror", [5, 32, 33])
+def test_journal_write_retries_only_atomic_replace_on_transient_windows_lock(tmp_path, monkeypatch, winerror):
+    journal = tmp_path / "transaction.json"
+    journal.write_text('{"status":"old"}', encoding="utf-8")
+    original_replace = os.replace
+    attempts, waits = [], []
+    error = PermissionError("temporary journal lock")
+    error.winerror = winerror
+
+    def replace(source, target):
+        attempts.append((source, target))
+        assert json.loads(journal.read_text(encoding="utf-8")) == {"status": "old"}
+        assert json.loads(Path(source).read_text(encoding="utf-8")) == {"status": "new"}
+        if len(attempts) < 3:
+            raise error
+        return original_replace(source, target)
+
+    monkeypatch.setattr(updater.os, "replace", replace)
+    monkeypatch.setattr(updater.time, "sleep", waits.append)
+    updater._journal_write(journal, {"status": "new"})
+    assert attempts == [(journal.with_suffix(".tmp"), journal)] * 3
+    assert waits == [.05, .05]
+    assert json.loads(journal.read_text(encoding="utf-8")) == {"status": "new"}
+    assert not journal.with_suffix(".tmp").exists()
+
+
+@pytest.mark.parametrize("winerror", [5, 32, 33])
+def test_journal_write_preserves_original_error_and_files_after_bounded_lock_retries(tmp_path, monkeypatch, winerror):
+    journal = tmp_path / "transaction.json"
+    journal.write_text('{"status":"old"}', encoding="utf-8")
+    attempts, waits = [], []
+    error = PermissionError("persistent journal lock")
+    error.winerror = winerror
+
+    def blocked(source, target):
+        attempts.append((source, target))
+        raise error
+
+    monkeypatch.setattr(updater.os, "replace", blocked)
+    monkeypatch.setattr(updater.time, "sleep", waits.append)
+    with pytest.raises(PermissionError) as caught:
+        updater._journal_write(journal, {"status": "new"})
+    assert caught.value is error
+    assert attempts == [(journal.with_suffix(".tmp"), journal)] * 5
+    assert waits == [.05] * 4
+    assert json.loads(journal.read_text(encoding="utf-8")) == {"status": "old"}
+    assert json.loads(journal.with_suffix(".tmp").read_text(encoding="utf-8")) == {"status": "new"}
+
+
+@pytest.mark.parametrize("winerror", [None, 2, 87])
+def test_journal_write_non_lock_failure_is_not_retried(tmp_path, monkeypatch, winerror):
+    journal = tmp_path / "transaction.json"
+    attempts, waits = [], []
+    error = OSError("non-lock replacement error")
+    if winerror is not None:
+        error.winerror = winerror
+
+    def failed(source, target):
+        attempts.append((source, target))
+        raise error
+
+    monkeypatch.setattr(updater.os, "replace", failed)
+    monkeypatch.setattr(updater.time, "sleep", waits.append)
+    with pytest.raises(OSError) as caught:
+        updater._journal_write(journal, {"status": "new"})
+    assert caught.value is error
+    assert len(attempts) == 1 and waits == []
+    assert not journal.exists()
+    assert json.loads(journal.with_suffix(".tmp").read_text(encoding="utf-8")) == {"status": "new"}

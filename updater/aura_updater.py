@@ -531,7 +531,16 @@ def _journal_write(path: Path, state: dict) -> None:
         json.dump(state, stream, ensure_ascii=False, indent=2)
         stream.flush()
         os.fsync(stream.fileno())
-    os.replace(temporary, path)
+    # Retry only this atomic journal replacement, never the update transaction.
+    # Windows watchers can briefly deny delete sharing on the existing journal.
+    for attempt in range(5):
+        try:
+            os.replace(temporary, path)
+            break
+        except OSError as exc:
+            if getattr(exc, "winerror", None) not in (5, 32, 33) or attempt == 4:
+                raise
+            time.sleep(0.05)
 
 
 def _tree_hash(path: Path) -> dict[str, str]:

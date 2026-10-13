@@ -336,11 +336,22 @@ def install_open_map(monkeypatch, states, confirmed=True):
 
 def test_open_map_requires_two_absent_frames_after_click_and_keeps_one_second(monkeypatch, clock):
     install_open_map(monkeypatch, [False, False])
+    probe_times = []
+
+    def absent(**kwargs):
+        probe_times.append(clock.now)
+        return match(False)
+
+    monkeypatch.setattr(travel, "probe_depart_button", absent)
     app = App()
     result = travel._open_intercity_map(app, object())
     assert result["transitioned"] and result["click_attempts"] == 1
     assert app.clicks == [{"x": 1200, "y": 670}]
-    assert clock.sleeps == [1., .15]
+    # The full initial settling delay and distinct confirmation frames remain;
+    # only sleep granularity changes to make cancellation responsive.
+    assert probe_times == pytest.approx([1., 1.15])
+    assert sum(clock.sleeps) == pytest.approx(1.15)
+    assert all(0 < duration <= .05 for duration in clock.sleeps)
 
 
 def test_open_map_lost_click_retries_once_on_two_present_frames(monkeypatch):
