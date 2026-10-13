@@ -1,5 +1,11 @@
 # Project Working Rules
 
+## Release Naming
+
+- Application version strings, Git release tags, and GitHub Release titles must use only `vX.X.X`, for example `v1.11.8`.
+- A GitHub Release title must exactly match its release tag. Do not append Chinese text, feature summaries, product names, platform names, or CPU/GPU labels.
+- Put feature summaries and other descriptive text in the release notes. Keep downloadable artifact filenames aligned with the existing release contract.
+
 ## Test Execution
 
 - Run every test, validation, smoke check, and packaging check from the repository root.
