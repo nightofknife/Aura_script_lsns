@@ -1929,7 +1929,7 @@ async def _execute_freight_rest_stop(
         cancelled = "cancel" in str(getattr(exc, "code", ""))
         if not cancelled:
             await capture_failure(exc, origin="source", metadata={
-                "stage": session.stage if session is not None else "rest_entry",
+                "stage": getattr(session, "stage", "rest_entry"),
                 "error_code": getattr(exc, "code", type(exc).__name__),
             })
         if not purchase_finished or restoring_city:
