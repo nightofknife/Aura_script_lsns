@@ -63,7 +63,7 @@ from ..logic import (
     normalize_trade_task_inputs,
     average_book_profit_text,
 )
-from plans.resonance_pc.src.services.resonance_pc_freight_parameters import FREIGHT_PLANNING_KEYS, freight_control_state
+from packages.resonance_shared.freight_parameters import FREIGHT_PLANNING_KEYS, freight_control_state
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
 from .black_moon_purchase_dialog import BlackMoonPurchaseDialog

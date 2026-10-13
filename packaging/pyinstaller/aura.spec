@@ -65,6 +65,8 @@ datas.append((str(ROOT / "docs" / "schemas" / "task-schema.json"), "docs/schemas
 # than chasing each delayed import one by one.
 hiddenimports += collect_submodules("packages.aura_core")
 hiddenimports += collect_submodules("packages.aura_game")
+# External plans also import these pure contracts in CLI-only builds.
+hiddenimports += collect_submodules("packages.resonance_shared")
 hiddenimports += [
     "PIL.ImageGrab",
     "wave",
