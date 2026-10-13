@@ -21,6 +21,9 @@ from packages.aura_core.engine.action_injector import ActionInjector
 from packages.aura_core.config.template import TemplateRenderer
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.failure_evidence import (
+    attach_evidence, evidence_from, capture_failure, collect_node_evidence,
+)
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService, CityShopDataError
@@ -221,6 +224,12 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
 
             with operation_progress(operation_observer if reporter is not None else None):
                 result = await func(*args, **kwargs)
+            if (isinstance(result, dict) and result.get("success") is False
+                    and str(result.get("status") or "").lower() in {"failed", "error"}
+                    and "preview" not in func.__name__):
+                await capture_failure(result, origin="business_result", metadata={
+                    "error_code": result.get("reason") or "trade_failed",
+                })
             if reporter is not None:
                 if result.get("bento_pending"):
                     result["bento_progress_sequence"] = reporter.sequence
@@ -238,6 +247,8 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
                                         data={"status": result.get("status")})
             return result
         except Exception as exc:
+            if "preview" not in func.__name__:
+                await capture_failure(exc, origin="action_boundary")
             if reporter is not None:
                 await reporter.emit(
                     "task",
@@ -1839,6 +1850,7 @@ async def _execute_freight_rest_stop(
     water_started = False
     purchase_finished = not purchase["triggered"]
     restoring_city = False
+    session = None
     try:
         if reporter is not None:
             await reporter.emit("black_moon_local_purchase", "started" if purchase["triggered"] else "skipped",
@@ -1915,6 +1927,11 @@ async def _execute_freight_rest_stop(
         raise
     except Exception as exc:
         cancelled = "cancel" in str(getattr(exc, "code", ""))
+        if not cancelled:
+            await capture_failure(exc, origin="source", metadata={
+                "stage": session.stage if session is not None else "rest_entry",
+                "error_code": getattr(exc, "code", type(exc).__name__),
+            })
         if not purchase_finished or restoring_city:
             child = (getattr(exc, "detail", {}) or {}).get("result")
             if isinstance(child, dict):
@@ -2036,6 +2053,8 @@ async def _execute_route(
                            "reason": str(exc.code), "failed_leg_index": index,
                            "error": {"code": str(exc.code), "message": str(exc),
                                      "detail": dict(getattr(exc, "detail", {}) or {})}}
+                attach_evidence(failure["error"], evidence_from(exc))
+                attach_evidence(failure, evidence_from(exc))
                 leg_results.append({"leg": leg, **failure})
                 page_state = "unknown"
                 if reporter:
@@ -2085,6 +2104,8 @@ async def _execute_route(
                                "reason": str(exc.code), "failed_leg_index": index,
                                "error": {"code": str(exc.code), "message": str(exc),
                                          "detail": dict(getattr(exc, "detail", {}) or {})}}
+                    attach_evidence(failure["error"], evidence_from(exc))
+                    attach_evidence(failure, evidence_from(exc))
                     leg_result.update(failure, page_state="unknown")
                     if auto_black_moon_local_purchase and purchase_visits:
                         leg_result["black_moon_local_purchase"] = dict(purchase_visits[-1])
@@ -2658,10 +2679,13 @@ async def _execute_freight_reposition(
         except Exception as exc:
             if not hasattr(exc, "code"):
                 raise
-            return {"success": False, "status": "cancelled" if "cancel" in str(exc.code) else "failed",
+            failure = {"success": False, "status": "cancelled" if "cancel" in str(exc.code) else "failed",
                     "reason": str(exc.code), "page_state": "unknown", "leg_results": results,
                     "blocked_leg": leg, "error": {"code": str(exc.code), "message": str(exc),
                                                   "detail": dict(getattr(exc, "detail", {}) or {})}}
+            attach_evidence(failure["error"], evidence_from(exc))
+            attach_evidence(failure, evidence_from(exc))
+            return failure
         results.append({"leg": dict(leg), "travel": travel})
         blocked = travel.get("status") == "blocked"
         confirmed = travel.get("success") is True and not blocked
@@ -3264,6 +3288,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                 final_sale = {"success": False, "page_state": "unknown", "reason": str(exc.code),
                               "error": {"code": str(exc.code), "message": str(exc),
                                         "detail": dict(getattr(exc, "detail", {}) or {})}}
+                attach_evidence(final_sale["error"], evidence_from(exc))
+                attach_evidence(final_sale, evidence_from(exc))
             page_state = str(final_sale.get("page_state") or "unknown")
             sale_confirmed = final_sale.get("success") is True and page_state == "city_main"
             sale_log = logger.info if sale_confirmed else logger.error
@@ -3385,6 +3411,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     )
     if execution.get("error") or (final_sale or {}).get("error"):
         result["error"] = execution.get("error") or final_sale["error"]
+    attach_evidence(result, evidence_from(execution) + evidence_from(final_sale))
     if reporter is not None:
         if bento_pending:
             await reporter.emit("bento", "started", city_index=len(route),
@@ -3445,6 +3472,8 @@ async def resonance_pc_finish_auto_cycle_trade(
             "reason": "disabled" if not auto_bento else "not_at_freight_end",
             "page_state": result.get("page_state", "unknown"),
         }
+        if result.get("success") is False and result.get("status") in {"failed", "error"}:
+            await capture_failure(result, origin="business_result", metadata={"error_code": result.get("reason")})
         _log_trade_outcome(result)
         return result
 
@@ -3471,6 +3500,7 @@ async def resonance_pc_finish_auto_cycle_trade(
     else:
         child_result = {**child, "triggered": True}
     result["bento_consumption"] = child_result
+    attach_evidence(result, collect_node_evidence(bento_framework))
     resources = dict(result.get("resources") or {})
     resources["bento_basic_recovered_fatigue"] = child_result.get("recovered_fatigue")
     resources["bento_computed_fatigue"] = child_result.get("computed_fatigue")
@@ -3500,5 +3530,7 @@ async def resonance_pc_finish_auto_cycle_trade(
                             data={"result": child_result})
         await reporter.emit("task", "completed" if result["success"] else "cancelled" if result["status"] == "cancelled" else "failed",
                             data={"status": result["status"], "reason": result.get("reason")})
+    if result.get("success") is False and result.get("status") in {"failed", "error"}:
+        await capture_failure(result, origin="business_result", metadata={"error_code": result.get("reason")})
     _log_trade_outcome(result)
     return result

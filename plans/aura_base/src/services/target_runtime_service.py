@@ -35,6 +35,36 @@ class TargetRuntimeService:
         self._session_key: Optional[str] = None
         self._emitted_runtime_warnings: set[str] = set()
         self._debug_artifacts = DebugArtifactsManager(config)
+        from packages.aura_core.observability.failure_evidence import register_capture_provider
+        register_capture_provider(self._capture_failure_png)
+
+    def _capture_failure_png(self, request: dict) -> dict:
+        """Diagnostic provider must not create/rebind a session on an error path."""
+        if not self._lock.acquire(blocking=False):
+            raise TargetRuntimeError("diagnostic_busy", "Runtime session is busy.")
+        try:
+            session = self._session
+            if session is None:
+                raise TargetRuntimeError("diagnostic_target_unbound", "No existing target session.")
+            bound_plan = json.loads(self._session_key or "{}").get("game_scope")
+            requested_plan = request.get("plan") or current_plan_name.get()
+            if not requested_plan or bound_plan != requested_plan:
+                raise TargetRuntimeError("diagnostic_plan_mismatch", "Diagnostic target belongs to another plan.")
+            capture = getattr(session, "capture_diagnostic", None)
+            if not callable(capture):
+                raise TargetRuntimeError("diagnostic_unsupported", "This target has no read-only diagnostic capture.")
+        finally:
+            self._lock.release()
+        result = capture()
+        if not result.success or result.image is None:
+            raise TargetRuntimeError("diagnostic_capture_failed", "Target frame is unavailable.")
+        import cv2
+        image = result.image
+        ok, encoded = cv2.imencode(".png", cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        if not ok:
+            raise TargetRuntimeError("diagnostic_encode_failed", "Could not encode diagnostic PNG.")
+        return {"png": encoded.tobytes(), "width": int(image.shape[1]),
+                "height": int(image.shape[0]), "backend": result.backend}
 
     def list_capture_backends(self) -> dict[str, Any]:
         resolved = self._resolve_runtime_config()

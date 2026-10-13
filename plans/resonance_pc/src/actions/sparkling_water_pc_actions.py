@@ -461,6 +461,10 @@ async def resonance_pc_drink_sparkling_water_from_city_panel(
                     city_name, session.completed, session.stage, session.page)
         raise
     except Exception as exc:
+        from packages.aura_core.observability.failure_evidence import capture_failure
+        await capture_failure(exc, origin="source", metadata={
+            "stage": session.stage, "error_code": getattr(exc, "code", type(exc).__name__),
+        })
         logger.error("Sparkling water failed city=%s code=%s stage=%s page=%s completed=%s matches=%s error=%s",
                      city_name, getattr(exc, "code", type(exc).__name__), session.stage, session.page,
                      session.completed, session.last_matches, exc)

@@ -21,6 +21,9 @@ from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.config.template import TemplateRenderer
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.observability.failure_evidence import (
+    failure_scope, capture_failure, attach_evidence, evidence_from,
+)
 
 if TYPE_CHECKING:
     from .execution_engine import ExecutionEngine, StepState
@@ -77,6 +80,15 @@ class NodeExecutor:
         execution_success = False
         action_result = None
         loop_info: Dict[str, Any] = {}
+        parent_scope = failure_scope.get()
+        scope = {"cid": node_context.data.get("cid"),
+                 "parent_cid": self.engine.root_context.data.get("parent_cid"),
+                 "task": self.engine.root_context.data.get("task_name"), "node": node_id,
+                 "plan": getattr(self.engine.orchestrator, "plan_name", None),
+                 "execution_count": metadata["execution_count"], "retry_count": 0,
+                 "ancestor_may_retry": bool(parent_scope.get("ancestor_may_retry") or parent_scope.get("may_retry")),
+                 "may_retry": False}
+        scope_token = failure_scope.set(scope)
         try:
             loop_info = getattr(node_context, "data", {}).get("loop", {}) or {}
         except Exception:
@@ -139,6 +151,7 @@ class NodeExecutor:
 
             attempt = 1
             while attempt <= max_attempts:
+                failure_scope.set({**scope, "retry_count": attempt - 1, "may_retry": attempt < max_attempts})
                 await self.engine._check_pause()
                 try:
                     async def _run_action():
@@ -157,10 +170,10 @@ class NodeExecutor:
 
                     if cond_expr:
                         renderer = TemplateRenderer(node_context, self.engine.state_store)
-                        scope = {"result": action_result, "attempt": attempt}
+                        render_scope = {"result": action_result, "attempt": attempt}
                         should_retry = bool(
                             await renderer._render_recursive(
-                                cond_expr, {**scope, **(await renderer.get_render_scope())}
+                                cond_expr, {**render_scope, **(await renderer.get_render_scope())}
                             )
                         )
                         if should_retry:
@@ -243,6 +256,7 @@ class NodeExecutor:
                 "message": str(e),
                 "severity": getattr(e, 'severity', 'error')
             }
+            attach_evidence(error_details, await capture_failure(e, terminal=True))
             if self.engine.debug_mode:
                 error_details["traceback"] = getattr(
                     e, 'get_full_traceback', lambda: traceback.format_exc()
@@ -256,6 +270,7 @@ class NodeExecutor:
                     'duration_ms': round((end_ts - start_time) * 1000, 3),
                     'exception_type': type(e).__name__,
                     'exception_message': str(e),
+                    'failure_evidence': error_details.get('failure_evidence', []),
                     'is_control_flow_exception': True
                 })
 
@@ -264,6 +279,7 @@ class NodeExecutor:
             logger.error(f"节点'{node_id}'执行失败: {e}", exc_info=True)
             self.engine.step_states[node_id] = self.engine.StepState.FAILED
             error_details = {"type": type(e).__name__, "message": str(e)}
+            attach_evidence(error_details, await capture_failure(e, terminal=True))
             if self.engine.debug_mode:
                 error_details["traceback"] = traceback.format_exc()
 
@@ -275,10 +291,12 @@ class NodeExecutor:
                     'duration_ms': round((end_ts - start_time) * 1000, 3),
                     'exception_type': type(e).__name__,
                     'exception_message': str(e),
+                    'failure_evidence': error_details.get('failure_evidence', []),
                     'is_control_flow_exception': False
                 })
 
         finally:
+            failure_scope.reset(scope_token)
             # 验证状态一致性
             if execution_success and error_details is not None:
                 logger.error(
@@ -296,6 +314,8 @@ class NodeExecutor:
                 error=error_details
             )
             final_node_output = {"run_state": run_state, **node_result}
+            # Preserve evidence even when YAML outputs rename/drop result keys.
+            attach_evidence(final_node_output, evidence_from(error_details) + evidence_from(action_result))
             node_context.add_node_result(node_id, final_node_output)
             self.engine.root_context.add_node_result(node_id, final_node_output)
 

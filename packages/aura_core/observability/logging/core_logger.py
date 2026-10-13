@@ -22,6 +22,8 @@ import asyncio
 from contextvars import ContextVar
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
+from uuid import uuid4
+from .log_session import get_log_session, flush_session_diagnostics
 
 
 class QueueLogHandler(logging.Handler):
@@ -267,6 +269,9 @@ class Logger:
 
         # --- 文件处理器 ---
         if log_dir and task_name:
+            session = get_log_session()
+            if session is not None:
+                log_dir = str(session.root)
             old_file_handler = self._get_handler("task_file")
             if old_file_handler:
                 self.logger.removeHandler(old_file_handler)
@@ -276,7 +281,8 @@ class Logger:
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             base_task_name = os.path.basename(task_name)
             safe_base_name = base_task_name.replace('/', '_').replace('\\', '_')
-            log_file_path = os.path.join(log_dir, f"{safe_base_name}_{timestamp}.log")
+            suffix = f"_{session.session_id}_{os.getpid()}" if session else ""
+            log_file_path = os.path.join(log_dir, f"{safe_base_name}_{timestamp}{suffix}_{uuid4().hex[:8]}.log")
 
             file_handler = RotatingFileHandler(
                 log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8'
@@ -288,6 +294,9 @@ class Logger:
             )
             file_handler.setFormatter(file_formatter)
             self.logger.addHandler(file_handler)
+            if session is not None:
+                session.register_log(log_file_path)
+            flush_session_diagnostics(self.logger)
             self.info(f"File logging is configured. Log file: {log_file_path}")
 
     def update_api_queue(self, new_queue: Union[queue.Queue, asyncio.Queue]):

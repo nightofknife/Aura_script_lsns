@@ -108,6 +108,10 @@ class MuMuSession:
         self.ensure_ready()
         return self.capture_backend.capture(rect=rect)
 
+    def capture_diagnostic(self) -> CaptureResult:
+        """Read an already-running stream; never start/reconnect ADB or input."""
+        return self.capture_backend.capture_diagnostic()
+
     def get_client_rect(self) -> Tuple[int, int, int, int] | None:
         self.ensure_ready()
         return self.capture_backend.get_client_rect()

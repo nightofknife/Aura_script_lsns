@@ -197,7 +197,10 @@ class ActionInjector:
             raise asyncio.CancelledError()
         if tfr.get("status") in ("FAILED", "ERROR"):
             error_info = tfr.get("error", {"message": "Unknown error in sub-task."})
-            raise Exception(f"Sub-task '{task_ref}' failed. Reason: {error_info}")
+            from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from
+            error = Exception(f"Sub-task '{task_ref}' failed. Reason: {error_info}")
+            attach_evidence(error, evidence_from(tfr) + evidence_from(error_info))
+            raise error
 
         return tfr.get("framework_data")
 

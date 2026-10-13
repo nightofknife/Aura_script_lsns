@@ -15,6 +15,8 @@ from PySide6.QtWidgets import QApplication
 
 from packages.aura_game import SubprocessGameRunner
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.config.loader import get_config_value
+from packages.aura_core.observability.logging.log_session import resolve_log_root, start_log_session
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
@@ -92,8 +94,13 @@ def _import_required_wgc_module() -> object:
 
 def launch_resonance_gui() -> int:
     # GUI shutdown outlives the worker's session log; keep a separate parent log.
+    base = resolve_application_root()
+    session = start_log_session(resolve_log_root(
+        base, os.environ.get("AURA_LOG_ROOT") or
+        get_config_value("logging.log_dir", "logs", base_path=str(base)),
+    ), cleanup=True)
     logger.setup(
-        log_dir=str(resolve_application_root() / "logs"),
+        log_dir=str(session.root),
         task_name=f"aura_gui_{os.getpid()}",
     )
     app = QApplication.instance() or QApplication(sys.argv)
@@ -106,6 +113,7 @@ def launch_resonance_gui() -> int:
     finally:
         logger.info("[GuiShutdown] phase=gui_event_loop_exited pid=%s", os.getpid())
         logging.shutdown()
+        session.close()
 
 
 def _close_window_and_wait(window: ResonanceMainWindow) -> None:

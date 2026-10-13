@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,21 @@ def aura() -> None:
         ensure_admin_startup("Aura CLI")
     except AdminPrivilegeRequiredError as exc:
         raise click.ClickException(str(exc)) from exc
+    from packages.aura_core.config.loader import get_config_value
+    from packages.aura_core.observability.logging.log_session import resolve_log_root, start_log_session
+    base = Path(os.environ["AURA_BASE_PATH"]) if os.environ.get("AURA_BASE_PATH") else (
+        Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
+        else Path(__file__).resolve().parent
+    )
+    if getattr(sys, "frozen", False) and not os.environ.get("AURA_BASE_PATH"):
+        for candidate in (base, base.parent):
+            if (candidate / "config.yaml").is_file() or (candidate / "plans").is_dir():
+                base = candidate
+                break
+    start_log_session(resolve_log_root(
+        base, os.environ.get("AURA_LOG_ROOT") or
+        get_config_value("logging.log_dir", "logs", base_path=str(base)),
+    ), cleanup=True)
 
 
 @aura.command("tui")

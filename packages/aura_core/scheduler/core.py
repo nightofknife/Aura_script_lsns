@@ -31,6 +31,9 @@ from packages.aura_core.context.persistence.persistent_data_service import Persi
 from packages.aura_core.config.service import ConfigService
 from packages.aura_core.scheduler.queues.task_queue import TaskQueue, Tasklet
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.log_session import (
+    get_log_session, resolve_log_root, start_log_session,
+)
 from packages.aura_core.api.registries import service_registry
 from packages.aura_core.utils.id_generator import SnowflakeGenerator
 from packages.aura_core.config.loader import get_config_value
@@ -174,8 +177,12 @@ class Scheduler:
         self.tasklet_identity = TaskletIdentityService(self)
 
         # --- 初始化日志和核心服务 ---
+        log_session = get_log_session() or start_log_session(resolve_log_root(
+            self.base_path, os.environ.get("AURA_LOG_ROOT") or
+            get_config_value("logging.log_dir", "logs", base_path=str(self.base_path)),
+        ), cleanup=False)
         logger.setup(
-            log_dir=str(get_config_value("logging.log_dir", "logs")),
+            log_dir=str(log_session.root),
             task_name=str(get_config_value("logging.task_name.default", "aura_session")),
             api_log_queue=self.api_log_queue
         )

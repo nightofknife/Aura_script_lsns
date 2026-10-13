@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import multiprocessing
 import os
 import queue
@@ -15,6 +16,7 @@ from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.runtime.bootstrap import create_runtime, peek_runtime, start_runtime, stop_runtime
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.log_session import get_log_session, start_log_session
 
 _TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 _DEFAULT_PROFILE = "embedded_full"
@@ -423,6 +425,8 @@ class EmbeddedGameRunner:
 
 
 def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> None:
+    if os.environ.get("AURA_LOG_ROOT"):
+        start_log_session(os.environ["AURA_LOG_ROOT"], cleanup=False)
     runner = EmbeddedGameRunner(profile=profile, startup_timeout_sec=startup_timeout_sec)
     try:
         while True:
@@ -462,11 +466,17 @@ def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> Non
                 except (EOFError, BrokenPipeError, OSError):
                     break
     finally:
-        runner.close()
         try:
-            connection.close()
-        except Exception:
-            pass
+            runner.close()
+        finally:
+            logging.shutdown()
+            session = get_log_session()
+            if session is not None:
+                session.close()
+            try:
+                connection.close()
+            except Exception:
+                pass
 
 
 class SubprocessGameRunner:

@@ -6,6 +6,9 @@ import os
 import time
 import traceback
 import uuid
+from packages.aura_core.observability.failure_evidence import (
+    collect_node_evidence, attach_evidence, capture_failure, task_completion_scope,
+)
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -329,6 +332,8 @@ class Orchestrator:
                 cid=cid,
                 plan_context=self.plan_context,
             )
+            root_context.data["task_name"] = full_task_id
+            root_context.data["parent_cid"] = parent_cid
 
             async def step_event_callback(event_name: str, payload: Dict):
                 payload['cid'] = cid
@@ -386,6 +391,10 @@ class Orchestrator:
         except Exception as exc:
             final_status = 'ERROR'
             error_details = {'message': str(exc), 'type': type(exc).__name__}
+            attach_evidence(error_details, await capture_failure(
+                exc, metadata={"cid": cid, "parent_cid": parent_cid,
+                                             "plan": self.plan_name, "task": event_task_name},
+            ))
             if getattr(self, 'debug_mode', False):
                 error_details['traceback'] = traceback.format_exc()
             logger.critical(
@@ -394,13 +403,23 @@ class Orchestrator:
             )
 
         finally:
+            refs = collect_node_evidence(framework_data)
+            if isinstance(error_details, dict):
+                from packages.aura_core.observability.failure_evidence import evidence_from
+                refs += evidence_from(error_details)
+                attach_evidence(error_details, refs)
+            if isinstance(user_data, dict):
+                attach_evidence(user_data, refs)
+            if isinstance(framework_data, dict):
+                attach_evidence(framework_data, refs)
             tfr_object = {
                 'status': final_status,
                 'user_data': user_data,
                 'framework_data': framework_data,
                 'error': error_details,
             }
-            await self.event_bus.publish(Event(
+            attach_evidence(tfr_object, refs)
+            completion_event = Event(
                 name='task.finished',
                 payload={
                     'cid': cid,
@@ -415,7 +434,16 @@ class Orchestrator:
                     'final_status': final_status,
                     'final_result': tfr_object,
                 },
-            ))
+            )
+            completion = task_completion_scope.get()
+            deadline = completion.get("deadline") if completion else None
+            if (completion and completion.get("cid") == cid and final_status == "CANCELLED"
+                    and deadline is not None and deadline.expired()):
+                # The enclosing manager must distinguish timeout from an
+                # explicit cancellation before emitting the single final event.
+                completion["deferred_event"] = completion_event
+            else:
+                await self.event_bus.publish(completion_event)
             current_plan_name.reset(token)
             logger.debug(f"Configuration context reset (was: '{self.plan_name}')")
 

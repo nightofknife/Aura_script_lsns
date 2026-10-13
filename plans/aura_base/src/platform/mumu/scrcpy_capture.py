@@ -67,6 +67,19 @@ class MuMuScrcpyCaptureBackend:
         self.ensure_ready()
         return True
 
+    def capture_diagnostic(self) -> CaptureResult:
+        if not self._lock.acquire(blocking=False):
+            raise TargetRuntimeError("diagnostic_busy", "scrcpy frame cache is busy.")
+        try:
+            if self._client is None or self._frame is None or self.frame_age_ms() > min(self.max_stale_ms, 1500):
+                raise TargetRuntimeError("diagnostic_frame_unavailable", "No recent scrcpy frame is available.")
+            frame = self._frame.copy()
+        finally:
+            self._lock.release()
+        height, width = frame.shape[:2]
+        return CaptureResult(success=True, image=frame, window_rect=(0, 0, width, height),
+                             relative_rect=(0, 0, width, height), backend=self.BACKEND_NAME)
+
     def capture(self, rect: Optional[Tuple[int, int, int, int]] = None) -> CaptureResult:
         self.ensure_ready()
         with self._lock:

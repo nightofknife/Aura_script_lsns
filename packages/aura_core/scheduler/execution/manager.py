@@ -29,6 +29,9 @@ from ...types import TaskRefResolver
 from packages.aura_core.scheduler.queues.task_queue import Tasklet
 from packages.aura_core.scheduler.cancellation import request_task_cancel
 from packages.aura_core.observability.logging.core_logger import logger, set_cid, reset_cid
+from packages.aura_core.observability.failure_evidence import (
+    task_completion_scope, capture_failure, attach_evidence, evidence_from,
+)
 from packages.aura_core.config.loader import get_config_value
 
 if TYPE_CHECKING:
@@ -57,6 +60,22 @@ class ExecutionManager:
         self._global_sem = asyncio.Semaphore(max_concurrent_tasks)
         self._resource_sems: Dict[str, asyncio.Semaphore] = {}
         self._resource_sem_lock = asyncio.Lock()
+        self._terminal_publish_tasks: set[asyncio.Task] = set()
+
+    def _dispatch_terminal_event(self, event) -> asyncio.Task:
+        """One tracked sender owns a deferred terminal event, even on cancel."""
+        task = asyncio.create_task(self.scheduler.event_bus.publish(event), name="aura-terminal-event")
+        self._terminal_publish_tasks.add(task)
+
+        def finished(sender: asyncio.Task) -> None:
+            self._terminal_publish_tasks.discard(sender)
+            if sender.cancelled():
+                logger.warning("Deferred terminal event sender was cancelled (cid=%s).", event.payload.get("cid"))
+            elif sender.exception() is not None:
+                logger.error("Deferred terminal event sender failed (cid=%s): %s", event.payload.get("cid"), sender.exception())
+
+        task.add_done_callback(finished)
+        return task
 
     def set_ui_update_queue(self, q: queue.Queue):
         """设置用于向UI发送更新的队列。
@@ -142,6 +161,8 @@ class ExecutionManager:
 
         # ✅ 修复：使用手动信号量管理，更精确的异常控制
         acquired_sems = []
+        completion = {"cid": tasklet.cid, "deadline": None}
+        completion_token = task_completion_scope.set(completion)
         try:
             # 手动获取所有信号量
             for sem in semaphores:
@@ -155,7 +176,8 @@ class ExecutionManager:
                 if not planning_success:
                     raise StatePlanningError(f"任务 '{task_name_for_log}' 的初始状态规划失败。")
 
-            async with asyncio.timeout(tasklet.timeout):
+            completion["deadline"] = asyncio.timeout(tasklet.timeout)
+            async with completion["deadline"]:
                 logger.info(f"开始执行主任务: '{task_name_for_log}' (模式: {tasklet.execution_mode})")
                 await hook_manager.trigger('before_task_run', task_context=task_context)
                 result = await self._run_execution_chain(tasklet)
@@ -190,6 +212,22 @@ class ExecutionManager:
                     )
                 logger.error(f"任务 '{task_name_for_log}' 超时 (超过 {tasklet.timeout} 秒)。")
                 status_update['result'] = 'timeout'
+                event = completion.get("deferred_event")
+                result = event.payload["final_result"] if event else {
+                    "status": "TIMEOUT", "user_data": None, "framework_data": None,
+                }
+                attach_evidence(e, evidence_from(result))
+                refs = await capture_failure(e, terminal=True, metadata={
+                    "cid": tasklet.cid, "task": tasklet.task_name, "plan": plan_name_for_meta,
+                    "stage": "task_timeout", "error_code": "task_timeout",
+                })
+                result.update(status="TIMEOUT", error={"type": "TimeoutError",
+                              "message": f"Task exceeded {tasklet.timeout} seconds."})
+                attach_evidence(result["error"], refs)
+                attach_evidence(result, refs)
+                task_context['result'] = result
+                if event is not None:
+                    event.payload.update(final_status="TIMEOUT", final_result=result)
             elif isinstance(e, asyncio.CancelledError):
                 if tasklet.cid and request_task_cancel(tasklet.cid):
                     logger.info(
@@ -214,6 +252,10 @@ class ExecutionManager:
                                                  {'status': 'idle', 'last_run': now, 'result': 'failure'})
             await hook_manager.trigger('after_task_failure', task_context=task_context)
         finally:
+            # A concurrent explicit cancel can prevent asyncio.timeout from
+            # converting CancelledError; in that case preserve cancellation.
+            deferred = completion.pop("deferred_event", None)
+            task_completion_scope.reset(completion_token)
             # ✅ 修复：确保所有已获取的信号量都被释放
             for sem in reversed(acquired_sems):
                 try:
@@ -232,9 +274,16 @@ class ExecutionManager:
                 except Exception as lock_e:
                     logger.warning(f"清理 running_tasks 时发生异常 (cid: {tasklet.cid}): {lock_e}")
 
-            await hook_manager.trigger('after_task_run', task_context=task_context)
-            logger.debug(f"任务 '{task_name_for_log}' 执行完毕，资源已释放。")
-            reset_cid(cid_token)
+            try:
+                if deferred is not None:
+                    # Transfer ownership once, after resources are released.
+                    # Shield stops a second user cancel from cancelling the
+                    # publisher and its event subscribers along with submit.
+                    await asyncio.shield(self._dispatch_terminal_event(deferred))
+                await hook_manager.trigger('after_task_run', task_context=task_context)
+                logger.debug(f"任务 '{task_name_for_log}' 执行完毕，资源已释放。")
+            finally:
+                reset_cid(cid_token)
 
     async def _handle_state_planning(self, tasklet: Tasklet) -> bool:
         """(私有) 处理状态规划逻辑。
