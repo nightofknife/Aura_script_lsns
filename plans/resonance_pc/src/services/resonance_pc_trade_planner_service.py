@@ -149,7 +149,7 @@ class ResonancePcTradePlannerService:
         fatigue_budget: int = 700,
         cargo_capacity: int = 750,
         book_budget: Optional[int] = 0,
-        trade_mode: str = "profit",
+        trade_mode: str = "free",
         book_policy: str = "profit",
         negotiation_policy: str = "auto",
         fixed_route_city_ids: Optional[List[str]] = None,
@@ -173,11 +173,11 @@ class ResonancePcTradePlannerService:
         """Return the exact best complete route for one frozen market snapshot."""
 
         mode = str(trade_mode).strip().lower()
-        if mode not in {"profit", "quick", "fixed", "target"}:
+        if mode not in {"free", "fixed"}:
             raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
-                                              message="trade_mode must be profit, quick, fixed, or target")
-        if mode == "quick":
-            book_policy, negotiation_policy = "fill", "required"
+                                              message="trade_mode must be free or fixed")
+        if type(book_budget) is int and book_budget == 0:
+            book_policy, book_profit_threshold = "profit", DEFAULT_BOOK_PROFIT_THRESHOLD
         if mode == "fixed":
             if not isinstance(fixed_route_city_ids, list) or len(fixed_route_city_ids) < 2:
                 raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
@@ -188,7 +188,7 @@ class ResonancePcTradePlannerService:
             required_end_city_ids = None
         else:
             fixed_route_city_ids, reposition_to_route = None, False
-        if mode != "target":
+        if mode == "fixed":
             target_profit = None
 
         constraints = self._load_trade_constraints_payload()

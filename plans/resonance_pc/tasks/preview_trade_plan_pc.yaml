@@ -7,8 +7,8 @@ preview_trade_plan_pc:
       - name: trade_mode
         type: string
         required: false
-        default: profit
-        enum: [profit, quick, fixed, target]
+        default: free
+        enum: [free, fixed]
       - name: book_policy
         type: string
         required: false
@@ -32,6 +32,8 @@ preview_trade_plan_pc:
         default: false
       - name: target_profit
         type: number
+        nullable: true
+        default: null
         strict_integer: true
         required: false
         min: 1

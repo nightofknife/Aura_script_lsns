@@ -8,7 +8,8 @@ import time
 import fnmatch
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from pathlib import Path
-from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.core_logger import logger, set_cid, reset_cid
+from packages.aura_core.observability.runtime_trace import log_event
 from packages.aura_core.observability.events import Event
 from packages.aura_core.api import service_registry
 from packages.aura_core.context.plan import current_plan_name
@@ -55,15 +56,23 @@ class TaskDispatcher:
             if "/" in task_name:
                 plan_name = task_name.split("/", 1)[0]
         if not plan_name:
+            log_event("input.release.skipped", cid=cid, reason="plan_unknown")
             return
 
         token = current_plan_name.set(plan_name)
+        cid_token = set_cid(cid)
         try:
             target_runtime = service_registry.get_service_instance("target_runtime")
             if hasattr(target_runtime, "release_all"):
+                log_event("input.release.requested", cid=cid, plan=plan_name)
                 target_runtime.release_all()
-                logger.info("Released all inputs for cancelled task '%s' in plan '%s'.", cid, plan_name)
+                log_event("input.release.returned", cid=cid, plan=plan_name,
+                          result="call_returned", os_state_verified=False)
+            else:
+                log_event("input.release.skipped", cid=cid, plan=plan_name, reason="method_unavailable")
         except Exception as exc:  # noqa: BLE001
+            log_event("input.release.failed", cid=cid, plan=plan_name,
+                      error_type=type(exc).__name__, error=str(exc))
             logger.warning(
                 "Failed to release inputs for cancelled task '%s' in plan '%s': %s",
                 cid,
@@ -71,6 +80,7 @@ class TaskDispatcher:
                 exc,
             )
         finally:
+            reset_cid(cid_token)
             current_plan_name.reset(token)
 
     def run_manual_task(self, task_id: str):
@@ -345,7 +355,7 @@ class TaskDispatcher:
                     request_task_cancel(cid)
                     self._release_inputs_for_cancelled_task(cid)
                     task.cancel()
-                    logger.info(f"Task with cid '{cid}' has been cancelled.")
+                    log_event("task.cancel_dispatched", cid=cid, task_done=task.done())
                     return {"status": "success", "message": f"Task '{cid}' cancellation initiated."}
                 return {"status": "error", "message": f"Task '{cid}' is already finished or cannot be cancelled."}
 

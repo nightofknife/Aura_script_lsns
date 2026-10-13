@@ -269,7 +269,7 @@ def assert_safe_input(app):
         assert nav.layout._point_in_region((drag["start_x"], drag["start_y"]), nav._SAFE_MAP_REGION, margin=20)
         assert nav.layout._point_in_region((drag["end_x"], drag["end_y"]), nav._SAFE_MAP_REGION, margin=20)
     for point in app.clicks:
-        assert nav.layout._point_in_region(point, nav._SAFE_MAP_REGION, margin=10)
+        assert nav.layout._point_in_region(point, nav._ROOM_CLICK_REGION, margin=10)
 
 
 def test_real_locator_drags_edge_target_before_safe_click(monkeypatch):
@@ -283,9 +283,42 @@ def test_real_locator_drags_edge_target_before_safe_click(monkeypatch):
 
 def test_room_title_inside_region_but_click_offset_outside_still_drags(monkeypatch):
     app = App()
-    run_locator(monkeypatch, app, [[hit(center=(850, 300))], [hit()]])
+    run_locator(monkeypatch, app, [[hit(center=(1030, 300))], [hit()]])
     assert len(app.drags) == 1 and app.clicks == [(640, 355)]
     assert_safe_input(app)
+
+
+@pytest.mark.parametrize("center,point", [((756, 172), (875, 225)),
+                                        ((850, 300), (970, 355)),
+                                        ((350, 150), (470, 205)),
+                                        ((900, 500), (1020, 555))])
+def test_expanded_click_region_selects_visible_room_without_drag(monkeypatch, center, point):
+    app = App()
+    result = run_locator(monkeypatch, app, [[hit(center=center)]])
+    assert result["drag_count"] == 0 and app.clicks == [point]
+    assert app.drags == app.moves == []
+    assert_safe_input(app)
+
+
+@pytest.mark.parametrize("point", [(500, 80), (1120, 140), (400, 620), (329, 300), (1071, 300)])
+def test_expanded_click_region_still_excludes_fixed_controls_and_edges(point):
+    assert not nav.layout._point_in_region(point, nav._ROOM_CLICK_REGION, margin=10)
+    assert nav._SAFE_MAP_REGION == (420, 170, 520, 360)
+
+
+def test_saved_animal_left_limit_frame_selects_without_redundant_drag(monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "fixtures/reforming_center_templates/safety_boundary_20261013/animal_left_limit.png"
+    image = cv2.imread(str(path))
+    assert image is not None and image.shape == (720, 1280, 3)
+    app = App(images=[cv2.cvtColor(image, cv2.COLOR_BGR2RGB)])
+    room = "动物纤维原料车间"
+    catalog = nav.vision.load_catalog()
+    target = next(item for item in nav.vision.room_hits(image, catalog) if item["room_name"] == room)
+    assert target["center"] == [756, 172] and target["score"] >= .92
+    assert not nav.layout._point_in_region(target["center"], nav._SAFE_MAP_REGION, margin=10)
+    result = nav._locate_and_click(app, room, nav.layout._load_reforming_center_room_layout(), catalog, 1, .05)
+    assert result["drag_count"] == 0 and result["point"] == [875, 225]
+    assert app.clicks == [(875, 225)] and app.drags == app.moves == []
 
 
 def test_anchor_translation_drives_target_search_not_blind_drag(monkeypatch):

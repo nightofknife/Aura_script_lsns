@@ -137,3 +137,18 @@ only. City count bounds, local selection, merged observation loops, batch
 feedback, and the single pre-submit check have offline coverage only.
 Per-product identity and persistent investment records remain a separate
 planned change.
+
+## Return to the Exchange After Investment
+
+Return uses a fresh screenshot to distinguish the investment page from the
+exchange menu. Two consecutive investment observations authorize a back click;
+page identity and the button are refreshed immediately before each click.
+There are at most three clicks, at least three seconds apart, within a
+20-second deadline. Unknown, ambiguous, success-overlay, or invalid-template
+observations do not authorize a click. Once the exchange menu is seen, retries
+are disabled; two consecutive exchange observations confirm completion.
+
+A return timeout retains all confirmed transactions in the error and progress
+report. It does not submit another investment. White/grey entry availability
+checks remain in force. These return changes have offline fake-input coverage;
+no game execution was performed for this integration.

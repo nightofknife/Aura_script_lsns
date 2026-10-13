@@ -494,6 +494,7 @@ class WorkflowPage(QWidget):
         super().__init__(parent)
         self._settings = settings
         self._busy = False
+        self._freight_validation_error = ""
         self._loading_state = False
         self._task_status: dict[str, QLabel] = {}
         self._task_checks: dict[str, QCheckBox] = {}
@@ -1256,7 +1257,7 @@ class WorkflowPage(QWidget):
     def _toggle_run(self) -> None:
         if self._busy:
             self.stopRequested.emit()
-        else:
+        elif self.run_button.isEnabled():
             self.runRequested.emit()
 
     def workflow_steps(self) -> list[str]:
@@ -1308,7 +1309,7 @@ class WorkflowPage(QWidget):
         self.current_operation_label.setText("当前操作：准备开始")
         self.operation_elapsed_label.clear()
         self._busy = True
-        self.run_button.setEnabled(True)
+        self._sync_run_availability()
         self.run_button.setText("停止")
         self.run_button.setObjectName("dangerButton")
         self.run_button.style().unpolish(self.run_button)
@@ -1512,7 +1513,7 @@ class WorkflowPage(QWidget):
         self._busy = False
         self._stopping = False
         self._active_runtime_kind = ""
-        self.run_button.setEnabled(True)
+        self._sync_run_availability()
         self.run_button.setText("运行流程")
         self.run_button.setObjectName("primaryButton")
         self.run_button.style().unpolish(self.run_button)
@@ -1635,7 +1636,7 @@ class WorkflowPage(QWidget):
     def _render_runtime_trade_plan(self) -> None:
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
-        mode = {"profit": "收益跑商", "quick": "快速跑商", "fixed": "固定线路", "target": "指定收益"}.get(str(summary.get("trade_mode")), "货运")
+        mode = {"free": "不定线路", "fixed": "固定线路"}.get(str(summary.get("trade_mode")), "货运")
         notes = [mode, "预计值来自规划，不代表实测收益或疲劳"]
         reposition = summary.get("reposition")
         if isinstance(reposition, Mapping) and reposition.get("required"):
@@ -2012,3 +2013,17 @@ class WorkflowPage(QWidget):
         enabled = [task_id for task_id in order if self._task_checks[task_id].isChecked()]
         self._settings.set_value("workflow/task_order", ",".join(order))
         self._settings.set_value("workflow/enabled", ",".join(enabled))
+        self._sync_run_availability()
+
+    def set_freight_validation_error(self, error: str) -> None:
+        self._freight_validation_error = str(error)
+        self._sync_run_availability()
+
+
+    def _sync_run_availability(self) -> None:
+        if not hasattr(self, "run_button"):
+            return
+        trade_check = self._task_checks.get("trade")
+        blocked = not self._busy and trade_check is not None and trade_check.isChecked() and bool(self._freight_validation_error)
+        self.run_button.setEnabled(not blocked)
+        self.run_button.setToolTip(f"货运参数：{self._freight_validation_error}" if blocked else "")

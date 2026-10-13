@@ -19,6 +19,7 @@ except ImportError:
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.logging.core_logger import current_cid
+from packages.aura_core.observability.runtime_trace import activity, bind_activity, end_activity, start_activity
 from packages.aura_core.scheduler.cancellation import request_task_cancel, begin_sync_action, end_sync_action
 from packages.aura_core.config.loader import get_config_value
 
@@ -88,23 +89,36 @@ class ActionInjector:
     ) -> Any:
         call_args = self._prepare_action_arguments(action_def, rendered_params)
         if action_def.is_async:
-            return await action_def.func(**call_args)
+            with activity("async_action", action_def.name):
+                return await action_def.func(**call_args)
 
         loop = asyncio.get_running_loop()
         context_snapshot = contextvars.copy_context()
         cid = current_cid()
         begin_sync_action(cid)
+        activity_id = start_activity("sync_action", action_def.name, cid=cid)
 
         def run_sync_action():
+            status = "completed"
+
+            def invoke():
+                with bind_activity(activity_id):
+                    return action_def.func(**call_args)
+
             try:
-                return context_snapshot.run(action_def.func, **call_args)
+                return context_snapshot.run(invoke)
+            except BaseException as exc:
+                status = "cancelled" if isinstance(exc, asyncio.CancelledError) else "failed"
+                raise
             finally:
                 end_sync_action(cid)
+                end_activity(activity_id, status=status)
 
         try:
             future = loop.run_in_executor(None, run_sync_action)
         except BaseException:
             end_sync_action(cid)
+            end_activity(activity_id, status="schedule_failed")
             raise
         try:
             return await asyncio.shield(future)

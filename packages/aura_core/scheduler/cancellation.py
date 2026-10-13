@@ -50,7 +50,11 @@ def request_task_cancel(cid: Optional[str]) -> bool:
     if not normalized or normalized == "-":
         return False
     with _lock:
+        first_request = normalized not in _cancelled_cids
         _cancelled_cids.add(normalized)
+    if first_request:
+        from packages.aura_core.observability.runtime_trace import request_stop
+        request_stop(normalized)
     return True
 
 
@@ -60,6 +64,8 @@ def clear_task_cancel(cid: Optional[str]) -> None:
         return
     with _lock:
         _cancelled_cids.discard(normalized)
+    from packages.aura_core.observability.runtime_trace import clear_stop
+    clear_stop(normalized)
 
 
 def is_task_cancel_requested(cid: Optional[str]) -> bool:
@@ -71,4 +77,9 @@ def is_task_cancel_requested(cid: Optional[str]) -> bool:
 
 
 def is_current_task_cancel_requested() -> bool:
-    return is_task_cancel_requested(current_cid())
+    cid = current_cid()
+    requested = is_task_cancel_requested(cid)
+    if requested:
+        from packages.aura_core.observability.runtime_trace import note_cancel_observed
+        note_cancel_observed(cid)
+    return requested

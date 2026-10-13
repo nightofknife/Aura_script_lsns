@@ -1136,7 +1136,7 @@ exports:
     - name: trade_mode
       type: Any
       required: false
-      default: profit
+      default: free
     - name: book_policy
       type: Any
       required: false
@@ -1219,7 +1219,7 @@ exports:
     - name: trade_mode
       type: Any
       required: false
-      default: profit
+      default: free
     - name: book_policy
       type: Any
       required: false
@@ -1350,6 +1350,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -1511,6 +1515,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
@@ -1552,6 +1560,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.auto_combined_commerce_flow
     module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
     function: resonance_pc_auto_combined_commerce_flow
@@ -2480,6 +2492,19 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.raw_workshop_return_overview
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_return_overview
+    public: true
+    read_only: false
+    timeout: null
+    description: From a confirmed target workshop, click back once and confirm overview;
+      no selection-outline checks or background clicks.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.raw_workshop_summarize
     module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
     function: resonance_pc_raw_workshop_summarize
@@ -2529,6 +2554,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: return_overview
+      type: Any
+      required: false
+      default: null
+    - name: require_return
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.open_reforming_center_room
     module: plans.resonance_pc.src.actions.reforming_center_navigation_pc_actions
     function: resonance_pc_open_reforming_center_room
@@ -2757,7 +2790,7 @@ exports:
     - name: trade_mode
       type: Any
       required: false
-      default: profit
+      default: free
     - name: book_policy
       type: Any
       required: false
@@ -3542,11 +3575,11 @@ exports:
   - id: maintain_raw_material_workshop_pc/maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产；不终止、不加速、不改配方、不领取、不建设、不返回总览。
+    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
   - id: maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产；不终止、不加速、不改配方、不领取、不建设、不返回总览。
+    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -3624,4 +3657,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-12T14:13:48Z'
+  generated_at: '2026-10-13T16:57:52Z'

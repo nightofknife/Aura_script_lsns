@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.runtime_trace import log_poll
 from packages.aura_core.scheduler.queues.task_queue import Tasklet
 
 
@@ -35,13 +36,10 @@ class DispatchService:
                     running_keys = list(self._scheduler.running_tasks.keys())
                 queue_size = self._scheduler.task_queue.qsize()
                 if current_running_count > 0 or queue_size > 0:
-                    logger.debug(  # 改为DEBUG级别，避免过多INFO日志
-                        f"[Queue Consumer] current status running={current_running_count}/{max_cc}, "
-                        f"queue_size={queue_size}, keys={running_keys}"
-                    )
+                    log_poll("scheduler.queue", {"running": running_keys, "queued": queue_size},
+                             concurrency_limit=max_cc)
 
                 if current_running_count >= max_cc:
-                    logger.debug("[Queue Consumer] concurrency limit reached, waiting...")  # 改为DEBUG级别
                     await asyncio.sleep(queue_full_sleep)
                     continue
 

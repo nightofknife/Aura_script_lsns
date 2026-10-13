@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextvars import ContextVar
+import math
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -27,6 +28,10 @@ _STATE_TIMEOUT = 5.0
 _COMMIT_TIMEOUT = 8.0
 _MAX_SCROLLS = 40
 _MAX_TRANSACTIONS = 500
+_RETURN_TIMEOUT = 20.0
+_RETURN_RETRY_INTERVAL = 3.0
+_RETURN_POLL_SECONDS = 0.25
+_RETURN_MAX_CLICKS = 3
 
 
 class TradeGoodsInvestmentError(RuntimeError):
@@ -327,16 +332,92 @@ def _scroll(app: Any, reader: InvestmentVision, before: np.ndarray, previous_car
     return None
 
 
-def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
+def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dict:
+    """Observe both pages from one frame; only a known investment page permits input."""
     image = _capture(app)
-    match = vision.find_template(source_image=image[:80, :170],
-                                 template_image=str(_PLAN_ROOT / "templates/nav_back_button.png"),
-                                 threshold=.86, use_grayscale=True)
-    if not match.found or match.center_point is None:
-        raise TradeGoodsInvestmentError("investment_back_button_missing", "Could not confirm the back button")
-    _click(app, match.center_point)
-    _pause(.4)
-    _wait(app, lambda frame: True if reader.match(frame, "entry_available")["found"] else None)
+    menu = vision.find_template(
+        source_image=image[350:470, 720:940],
+        template_image=str(_PLAN_ROOT / "templates/trade_shop_menu_ready.png"),
+        threshold=.86, use_grayscale=True,
+    )
+    score = getattr(menu, "confidence", None)
+    valid = (isinstance(score, (int, float)) and math.isfinite(score)
+             and not (getattr(menu, "debug_info", None) or {}).get("error"))
+    result = {"page": "unknown", "shop_seen": bool(valid and menu.found),
+              "menu_score": score if valid else None, "back_point": None}
+    if not valid:
+        return result
+    try:
+        investment = reader.match(image, "page_anchor")["found"]
+        success = reader.match(image, "success")["found"]
+        if result["shop_seen"]:
+            result["page"] = "shop" if not investment and not success else "ambiguous"
+        elif investment and not success:
+            reader.read_levels(image)
+            back = vision.find_template(
+                source_image=image[:80, :170],
+                template_image=str(_PLAN_ROOT / "templates/nav_back_button.png"),
+                threshold=.86, use_grayscale=True,
+            )
+            if (back.found and back.center_point is not None
+                    and math.isfinite(back.confidence)
+                    and not (getattr(back, "debug_info", None) or {}).get("error")):
+                result.update(page="investment", back_point=list(back.center_point))
+    except InvestmentRecognitionError as exc:
+        result["recognition_error"] = exc.code
+    return result
+
+
+
+def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
+    started = time.monotonic()
+    deadline = started + _RETURN_TIMEOUT
+    last_click = None
+    clicks = shop_streak = investment_streak = 0
+    shop_seen = False
+    observation = {}
+
+    def observe():
+        nonlocal observation, shop_seen, shop_streak, investment_streak
+        observation = _observe_shop_return(app, vision, reader)
+        _cancel_check()
+        # Latch even a single destination observation: a late return must never
+        # turn a retry into another back click from the exchange.
+        shop_seen = shop_seen or observation["shop_seen"]
+        shop_streak = shop_streak + 1 if observation["page"] == "shop" else 0
+        investment_streak = investment_streak + 1 if observation["page"] == "investment" else 0
+
+    def details():
+        now = time.monotonic()
+        return {"click_attempts": clicks, "elapsed_sec": round(now - started, 3),
+                "since_last_click_sec": None if last_click is None else round(now - last_click, 3),
+                "shop_seen": shop_seen, "last_observation": observation}
+
+    while time.monotonic() < deadline:
+        observe()
+        if time.monotonic() >= deadline:
+            break
+        if shop_streak >= 2:
+            logger.info("[TradeGoodsInvestmentReturn] state=completed detail=%s", details())
+            return
+        if (not shop_seen and investment_streak >= 2 and clicks < _RETURN_MAX_CLICKS
+                and (last_click is None or time.monotonic() - last_click >= _RETURN_RETRY_INTERVAL)):
+            # Recognition takes time. Refresh both page and button immediately
+            # before every click, including retries; never reuse a saved point.
+            observe()
+            if not shop_seen and observation["page"] == "investment" and time.monotonic() < deadline:
+                _click(app, observation["back_point"])
+                clicks += 1
+                last_click = time.monotonic()
+                investment_streak = 0
+                logger.info("[TradeGoodsInvestmentReturn] state=clicked detail=%s", details())
+        logger.debug("[TradeGoodsInvestmentReturn] state=waiting detail=%s", details())
+        _pause(min(_RETURN_POLL_SECONDS, max(0.0, deadline - time.monotonic())))
+    detail = details()
+    logger.warning("[TradeGoodsInvestmentReturn] state=timeout detail=%s", detail)
+    raise TradeGoodsInvestmentError(
+        "investment_return_shop_timeout", "投资处理完成后返回交易所超时", detail,
+    )
 
 
 def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: Any, vision: Any,
@@ -452,7 +533,11 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
         if product_limit != 0:
             _return_shop(app, vision, reader)
     except Exception as exc:
-        report("failed", reason=getattr(exc, "code", type(exc).__name__), message=str(exc), transaction_count=len(transactions))
+        if isinstance(exc, TradeGoodsInvestmentError):
+            exc.detail.update(transaction_count=len(transactions), transactions=list(transactions))
+        report("failed", reason=getattr(exc, "code", type(exc).__name__), message=str(exc),
+               transaction_count=len(transactions), transactions=list(transactions),
+               detail=getattr(exc, "detail", {}))
         raise
     result = {"success": True, "triggered": True, "status": "invested" if transactions else "skipped",
               "reason": reason, "city_name": city_name, "mode": mode, "target_level": target,

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple
 
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 
 _CAP_REGION = (980, 430, 90, 50)
@@ -46,6 +48,22 @@ class NegotiationExecutionError(RuntimeError):
         self.detail = dict(detail or {})
 
 
+def _check_cancelled() -> None:
+    if is_current_task_cancel_requested():
+        raise asyncio.CancelledError("Trade negotiation cancelled")
+
+
+def _cancelable_sleep(seconds: float) -> None:
+    deadline = time.monotonic() + max(float(seconds), 0.0)
+    while True:
+        _check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        time.sleep(min(0.05, remaining))
+
+
+
 def _template_path(relative_path: str) -> Path:
     return Path(__file__).resolve().parents[2] / relative_path
 
@@ -58,7 +76,9 @@ def _match_template(
     region: Tuple[int, int, int, int],
     threshold: float,
 ) -> Dict[str, Any]:
+    _check_cancelled()
     capture = app.capture(rect=region)
+    _check_cancelled()
     if not capture.success:
         raise NegotiationExecutionError(
             "negotiation_page_lost",
@@ -71,6 +91,7 @@ def _match_template(
         threshold=float(threshold),
         use_grayscale=True,
     )
+    _check_cancelled()
     center = getattr(match, "center_point", None)
     result: Dict[str, Any] = {
         "found": bool(getattr(match, "found", False)),
@@ -104,6 +125,7 @@ def _wait_for_template_state(
     }
     exhausted_stable = 0
     while True:
+        _check_cancelled()
         last = _match_template(
             app=app,
             vision=vision,
@@ -137,7 +159,7 @@ def _wait_for_template_state(
                 # label has been seen but has not yet reached two frames.
                 return {**last, "found": False, "exhausted_match": exhausted}
             return last
-        time.sleep(max(float(poll_interval_sec), 0.05))
+        _cancelable_sleep(max(float(poll_interval_sec), 0.05))
 
 
 def _confirm_cap(
@@ -156,7 +178,7 @@ def _confirm_cap(
     )
     if not first.get("found"):
         return {"confirmed": False, "confidence": float(first.get("confidence") or 0.0), "matches": [first]}
-    time.sleep(max(float(confirmation_interval_sec), 0.05))
+    _cancelable_sleep(max(float(confirmation_interval_sec), 0.05))
     second = _match_template(
         app=app,
         vision=vision,
@@ -187,7 +209,7 @@ def _confirm_attempts_exhausted(
     )
     if not first.get("found"):
         return first
-    time.sleep(max(float(interval_sec), 0.05))
+    _cancelable_sleep(max(float(interval_sec), 0.05))
     second = _match_template(
         app=app, vision=vision, template=template,
         region=_BUTTON_REGION, threshold=_EXHAUSTED_THRESHOLD,
@@ -310,6 +332,7 @@ def _execute_negotiation_to_cap(
         )
 
     while time.monotonic() < deadline:
+        _check_cancelled()
         # 再交涉 is a terminal state regardless of configured attempts or cap.
         if exhausted_template:
             exhausted = _confirm_attempts_exhausted(
@@ -385,6 +408,7 @@ def _execute_negotiation_to_cap(
         if time.monotonic() >= deadline:
             break
 
+        _check_cancelled()
         app.click(x=int(center[0]), y=int(center[1]))
         attempts_used += 1
         logger.info(

@@ -1,9 +1,12 @@
 """Single safe workshop operations; public task owns order and round budget."""
 from __future__ import annotations
 
+import asyncio
+
 from typing import Any
 
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from . import _raw_workshop_ui as ui
 from . import _reforming_center_clicks as clicks
 from . import reforming_center_pc_actions as layout
@@ -14,6 +17,7 @@ POINTS = {
     "work_tab": (730, 300), "reserve_tab": (1060, 300), "choose_prisoners": (885, 670),
     "select_all": (935, 670), "staff_confirm": (1150, 670), "start": (265, 675),
     "selection_back": (95, 40),
+    "return_overview": (95, 40),
 }
 RAW_ROOMS = {"植物纤维原料车间", "动物纤维原料车间", "缝纫工具原料车间", "人造纤维原料车间"}
 
@@ -289,11 +293,40 @@ def resonance_pc_raw_workshop_start_once(room_name: str, app: Any = None):
         return _failed(room, data, exc)
 
 
+def _check_return_cancelled():
+    if is_current_task_cancel_requested():
+        raise asyncio.CancelledError("Raw-workshop overview return cancelled")
+
+
+@action_info(name="resonance_pc.raw_workshop_return_overview", public=True, read_only=False,
+             description="From a confirmed target workshop, click back once and confirm overview; no selection-outline checks or background clicks.")
+@requires_services(app="plans/aura_base/app")
+def resonance_pc_raw_workshop_return_overview(room_name: str, app: Any = None):
+    with clicks.cancellation_checks(_check_return_cancelled):
+        room, data = _room(room_name, app), {"clicks": []}
+        try:
+            data["before"] = _snapshot(app, room)
+            _check_return_cancelled()
+            _require(app, lambda image: ui.room_ready(image, room)
+                     and ui.control_visible(image, "selection_back"), "workshop_back_not_ready")
+            _check_return_cancelled()
+            returned = _click(app, "return_overview", data,
+                              lambda image: ui.overview_state(image),
+                              lambda image: ui.overview_state(image))
+            _check_return_cancelled()
+            data["overview"] = returned["ready_evidence"]
+            return _result(room, "completed", None, data, returned_to_overview=True,
+                           page_after="reforming_center_overview")
+        except clicks.CheckedClickError as exc:
+            return _failed(room, data, exc, returned_to_overview=False, page_after=None)
+
+
 @action_info(name="resonance_pc.raw_workshop_summarize", public=True, read_only=True,
              description="Summarize actual business snapshots and confirmations, never framework node success.")
 def resonance_pc_raw_workshop_summarize(room_name: str, navigation=None, observation=None,
                                       deposit=None, work=None, reserve_rounds=None, start=None,
-                                      max_reserve_rounds: int = 8, before_start=None, final_observe=None):
+                                      max_reserve_rounds: int = 8, before_start=None, final_observe=None,
+                                      return_overview=None, require_return: bool = False):
     if (isinstance(max_reserve_rounds, bool) or not isinstance(max_reserve_rounds, int)
             or not 1 <= max_reserve_rounds <= 8):
         raise ValueError("max_reserve_rounds must be an integer from 1 to 8")
@@ -317,9 +350,20 @@ def resonance_pc_raw_workshop_summarize(room_name: str, navigation=None, observa
     else:
         exhausted = len(rounds) >= max_reserve_rounds and rounds[-1].get("continue_reserve", False)
         status, reason = "partial", "reserve_round_limit" if exhausted else "staff_not_full"
+    maintenance = {"success": status == "completed", "status": status,
+                   "reason": reason, "snapshot": snapshot}
+    returned = (isinstance(return_overview, dict) and return_overview.get("success") is True
+                and return_overview.get("returned_to_overview") is True)
+    page_after = "reforming_center_overview" if returned else ("raw_material_workshop" if snapshot is not None else None)
+    if require_return and status != "failed" and not returned:
+        status = "failed"
+        reason = (return_overview or {}).get("reason") or "overview_return_not_confirmed"
+        snapshot, page_after = None, None
     return {"success": status == "completed", "status": status, "room_name": room_name, "reason": reason,
             "room_entered": navigation_ok, "snapshot": snapshot,
+            "returned_to_overview": returned, "page_after": page_after,
             "data": {"navigation": navigation, "deposit": deposit,
                      "work": work, "reserve_rounds": rounds, "reserve_round_count": len(rounds),
                      "before_start": before_start, "start": start, "final_observe": final_observe,
-                     "last_confirmed_snapshot": last}}
+                     "last_confirmed_snapshot": last, "maintenance": maintenance,
+                     "return_overview": return_overview}}

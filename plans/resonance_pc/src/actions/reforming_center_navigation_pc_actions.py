@@ -16,6 +16,9 @@ from . import _reforming_center_clicks as checked
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
 
 _SAFE_MAP_REGION = (420, 170, 520, 360)
+# Room selection is safe beyond the central drag corridor. Keep the top HUD,
+# right-side event button and bottom shortcut bar outside this larger region.
+_ROOM_CLICK_REGION = (320, 130, 760, 450)
 
 
 def _settle(seconds):
@@ -63,8 +66,8 @@ def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
             center = target["center"]
             offset = rooms[room]["click_offset"]
             point = [int(round((center[0]+offset[0])/5)*5), int(round((center[1]+offset[1])/5)*5)]
-            if (layout._point_in_region(center, _SAFE_MAP_REGION, margin=10)
-                    and layout._point_in_region(point, _SAFE_MAP_REGION, margin=10)):
+            if (layout._point_in_region(center, _ROOM_CLICK_REGION, margin=10)
+                    and layout._point_in_region(point, _ROOM_CLICK_REGION, margin=10)):
                 record = {"control": "room"}
                 try:
                     checked.send_click(app, point, record)

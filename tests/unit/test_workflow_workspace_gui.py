@@ -187,7 +187,7 @@ def assert_no_sibling_control_overlap(window):
 
 
 @pytest.mark.parametrize("size", [(1180, 720), (1440, 860)])
-@pytest.mark.parametrize("surface", ["startup", "trade-profit", "trade-quick", "trade-fixed", "trade-target",
+@pytest.mark.parametrize("surface", ["startup", "trade-free", "trade-fixed",
                                       "passenger", "battle", "close", "settings",
                                       *[f"feature-{key}" for key, _ in SMALL_TASKS]])
 def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
@@ -222,8 +222,8 @@ def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
                             *window.passenger_page.endpoint_selector_buttons.values()):
                 assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().topLeft()))
                 assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().bottomRight()))
-    if surface in {"trade-profit", "passenger", "battle"}:
-        task = "trade" if surface == "trade-profit" else surface
+    if surface in {"trade-free", "passenger", "battle"}:
+        task = "trade" if surface == "trade-free" else surface
         assert_workspace_three_columns(window, tmp_path, size, task)
     if surface.startswith("trade-"):
         # Check the default surface before reusing its window for finite inputs.
@@ -250,7 +250,7 @@ def test_workflow_startup_and_close_parameters_sync_with_settings(window):
     assert workflow.close_force.isChecked()
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_freight_trial_link_navigates_without_changing_parameters_or_calculating(window, mode):
     trade = window.trade_page
     trade.mode_buttons[mode].click()
@@ -284,10 +284,11 @@ def test_freight_trial_link_navigates_without_changing_parameters_or_calculating
     assert window._workflow_pending == []
 
 
-@pytest.mark.parametrize("mode", ["fixed", "target"])
+@pytest.mark.parametrize("mode", ["fixed", "free"])
 def test_freight_trial_link_accepts_incomplete_parameters_without_validation(window, mode):
     window.trade_page.mode_buttons[mode].click()
     window.trade_page.fixed_route.clear()
+    window.trade_page.target_profit_enabled.setChecked(mode == "free")
     window.trade_page.target_profit.setValue(0)
     requests = []
     window.requestPreviewPcTrade.connect(lambda *_args: requests.append(True))
@@ -302,7 +303,7 @@ def test_populated_freight_result_keeps_readable_rows_and_can_scroll(window, siz
     page = window.trade_preview_page
     route = [{"from_city": "修格里城", "to_city": "岚心城", "from_city_id": "1", "to_city_id": "11"}]
     page._render_route(route)
-    page._render_result({"status": "planned", "trade_mode": "profit", "planning_status": "ok",
+    page._render_result({"status": "planned", "trade_mode": "free", "planning_status": "ok",
                          "expected_profit": 3347181, "expected_fatigue_used": 700,
                          "books_used": 7, "route": route,
                          "warnings": ["该结果为预计收益，实际收益需要在交易后确认。"]})
@@ -354,7 +355,7 @@ def test_freight_additional_and_bento_buttons_share_compact_rows(window):
 
 
 @pytest.mark.parametrize("size,columns", [((1920, 1080), 2)])
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_freight_parameters_reflow_without_changing_values(window, size, columns, mode):
     assert_freight_parameters_reflow(window, size, columns, mode)
 
@@ -377,19 +378,20 @@ def assert_freight_parameters_reflow(window, size, columns, mode):
     QApplication.processEvents()
     grid = page.common_parameters
     assert grid.column_count == columns
-    editors = [page.fatigue_budget, page.cargo_capacity, page.book_usage, page.book_budget,
+    editors = [page.fatigue_budget, page.cargo_capacity, page.book_usage, page.book_count_field,
                page.book_profit_threshold, page.book_policy, page.negotiation_policy,
-               page.start_city, page.target_profit]
+               page.start_city, page.target_profit_enabled, page.target_profit]
     visible = [editor for editor in editors if editor.isVisible()]
     assert all(editor.width() <= 220 for editor in visible)
     assert len({editor.parentWidget().y() for editor in visible}) == (len(visible) + columns - 1) // columns
-    assert grid.height() <= (360 if columns == 1 else 210)
+    assert grid.height() <= (440 if columns == 1 else 260)
     assert page.collect_task_inputs(preview=True) == expected
     assert_no_sibling_control_overlap(window)
     page.book_usage.setCurrentIndex(page.book_usage.findData("none"))
     QApplication.processEvents()
-    assert page.book_budget.parentWidget().isHidden()
-    assert page.target_profit.parentWidget().isHidden() is (mode != "target")
+    assert not page.book_budget.isHidden()
+    assert not page.book_budget.isEnabled()
+    assert page.target_profit.parentWidget().isHidden() is (mode != "free")
     folder = Path(".pytest_tmp/gui-layout-restore/visual-compact-fields")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / f"{mode}-{size[0]}x{size[1]}.png"))

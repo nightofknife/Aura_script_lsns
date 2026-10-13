@@ -1,6 +1,9 @@
 """Plan-local confirmed clicks. No exception is not evidence of UI success."""
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
 import math
 import time
 
@@ -15,15 +18,46 @@ class CheckedClickError(RuntimeError):
         self.data = dict(data or {})
 
 
+_CANCEL_CHECK = ContextVar("reforming_center_cancel_check", default=None)
+
+
+@contextmanager
+def cancellation_checks(check_cancelled):
+    """Opt-in cancellation for one operation; leave existing callers unchanged."""
+    token = _CANCEL_CHECK.set(check_cancelled)
+    try:
+        _check_cancelled()
+        yield
+    finally:
+        _CANCEL_CHECK.reset(token)
+
+
+def _check_cancelled():
+    check = _CANCEL_CHECK.get()
+    if check is not None:
+        check()
+
+
 def _sleep(seconds):
-    time.sleep(seconds)
+    if _CANCEL_CHECK.get() is None:
+        time.sleep(seconds)
+        return
+    remaining = max(float(seconds), 0.0)
+    _check_cancelled()
+    while remaining > 0:
+        interval = min(remaining, .05)
+        time.sleep(interval)
+        _check_cancelled()
+        remaining -= interval
 
 
 def read_frame(app):
+    _check_cancelled()
     try:
         captured = app.capture(rect=(0, 0, 1280, 720))
     except Exception as exc:
         raise CheckedClickError("capture_failed", {"error": str(exc)}) from exc
+    _check_cancelled()
     image = getattr(captured, "image", None)
     if (not getattr(captured, "success", False) or not isinstance(image, np.ndarray)
             or image.shape != (720, 1280, 3) or image.dtype != np.uint8):
@@ -46,6 +80,7 @@ def send_click(app, point, record=None):
     record.update(point=rounded_point(point), input_attempted=False,
                   input_acknowledged=None, effect_confirmed=False, transition_ready=False)
     try:
+        _check_cancelled()
         record["input_attempted"] = True
         returned = app.click(x=record["point"][0], y=record["point"][1])
         explicit = returned if isinstance(returned, bool) else getattr(returned, "success", None)
@@ -69,8 +104,10 @@ def wait_confirmed(app, probe, timeout_sec=5, poll_sec=.5, consecutive=2):
         raise ValueError("Invalid bounded confirmation timing")
     previous, count = None, 0
     for _ in range(math.ceil(timeout_sec/poll_sec)):
+        _check_cancelled()
         _sleep(poll_sec)
         value = probe(read_frame(app))
+        _check_cancelled()
         if value is None or value is False:
             previous, count = None, 0
             continue

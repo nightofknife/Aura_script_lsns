@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import io
 import threading
 import time
 from typing import Any, Optional
@@ -9,7 +10,10 @@ from typing import Any, Optional
 from packages.aura_core.api import service_info
 from packages.aura_core.config.service import ConfigService
 from packages.aura_core.context.plan import current_plan_name
-from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.core_logger import logger, current_cid
+from packages.aura_core.observability.runtime_trace import (
+    activity, current_root_cid, log_event, update_runtime, register_diagnostic_provider,
+)
 
 from ..platform.contracts import CaptureResult, RuntimeAdapter, TargetRuntimeError
 from ..platform.windows.debug_artifacts import DebugArtifactsManager
@@ -25,6 +29,10 @@ from ..platform.runtime_config import (
 )
 from ..platform.windows import WindowsDesktopAdapter
 
+_INPUT_METHODS = {"click", "move_to", "move_relative", "mouse_down", "mouse_up", "drag_to",
+                  "look_delta", "look_hold", "scroll", "press_key", "key_down", "key_up",
+                  "type_text", "release_all", "focus", "focus_with_input", "test_focus_activation"}
+
 
 @service_info(alias="target_runtime", public=False, singleton=True, deps={"config": "core/config"})
 class TargetRuntimeService:
@@ -35,6 +43,9 @@ class TargetRuntimeService:
         self._session_key: Optional[str] = None
         self._emitted_runtime_warnings: set[str] = set()
         self._debug_artifacts = DebugArtifactsManager(config)
+        self._trace_runtime: dict[str, Any] = {}
+        self._trace_cids: set[str] = set()
+        register_diagnostic_provider("target_runtime", self._diagnostic_snapshot)
         from packages.aura_core.observability.failure_evidence import register_capture_provider
         register_capture_provider(self._capture_failure_png)
 
@@ -216,7 +227,7 @@ class TargetRuntimeService:
         return self._call_session("key_up", key)
 
     def type_text(self, text: str, interval: float | None = None):
-        self._record_debug_input_event("type_text", {"text": text, "interval": interval})
+        self._record_debug_input_event("type_text", {"text_length": len(text or ""), "interval": interval})
         return self._call_session("type_text", text, interval)
 
     def release_all(self):
@@ -284,8 +295,26 @@ class TargetRuntimeService:
         }
 
     def _call_session(self, method_name: str, *args, **kwargs):
+        if method_name in _INPUT_METHODS:
+            with activity("input", method_name, plan=current_plan_name.get(),
+                          parameters=self._trace_parameters(method_name, args, kwargs)):
+                return self._invoke_session(method_name, *args, **kwargs)
+        # Repeated capture/geometry reads belong only in the bounded detail ring.
+        log_event("runtime.read", detail=True, method=method_name)
+        return self._invoke_session(method_name, *args, **kwargs)
+
+    @staticmethod
+    def _trace_parameters(method_name, args, kwargs):
+        if method_name == "type_text":
+            return {"text_length": len(args[0] or "") if args else 0,
+                    "interval": args[1] if len(args) > 1 else kwargs.get("interval")}
+        return {"args": list(args), "kwargs": dict(kwargs)}
+
+    def _invoke_session(self, method_name: str, *args, **kwargs):
         resolved = self._resolve_runtime_config()
         session = self._get_or_create_session(resolved=resolved)
+        if method_name in _INPUT_METHODS:
+            log_event("input.target", method=method_name, **self._trace_runtime)
         last_error: TargetRuntimeError | None = None
         try:
             return getattr(session, method_name)(*args, **kwargs)
@@ -295,7 +324,7 @@ class TargetRuntimeService:
                     method_name=method_name,
                     exc=exc,
                     session=session,
-                    extra={"args": list(args), "kwargs": dict(kwargs)},
+                    extra=self._trace_parameters(method_name, args, kwargs),
                 )
                 raise
             last_error = exc
@@ -320,7 +349,7 @@ class TargetRuntimeService:
                         method_name=method_name,
                         exc=retry_exc,
                         session=rebuilt,
-                        extra={"args": list(args), "kwargs": dict(kwargs), "rebind_attempted": True},
+                        extra={**self._trace_parameters(method_name, args, kwargs), "rebind_attempted": True},
                     )
                     raise
         assert last_error is not None
@@ -328,7 +357,7 @@ class TargetRuntimeService:
             method_name=method_name,
             exc=last_error,
             session=self._session,
-            extra={"args": list(args), "kwargs": dict(kwargs), "rebind_attempted": True},
+            extra={**self._trace_parameters(method_name, args, kwargs), "rebind_attempted": True},
         )
         raise last_error
 
@@ -359,14 +388,98 @@ class TargetRuntimeService:
                 self._close_session_locked()
                 self._session = self._build_session(resolved)
                 self._session_key = session_key
+                self._trace_cids.clear()
+            owners = {cid for cid in (current_cid(), current_root_cid()) if cid and cid != "-"}
+            if len(self._trace_cids | owners) > 64:
+                self._trace_cids.clear()
+            self._trace_cids.update(owners)
+            binding = getattr(getattr(self._session, "target", None), "binding", None)
+            backend = getattr(self._session, "input_backend", None)
+            runtime = {"plan": current_plan_name.get(), "provider": resolved.provider,
+                       "input_backend": getattr(backend, "backend_name", resolved.input.backend),
+                       "capture_backend": resolved.capture.backend,
+                       "target_pid": getattr(binding, "pid", None), "target_hwnd": getattr(binding, "hwnd", None),
+                       "focus_before_input": getattr(backend, "focus_before_input", resolved.input.focus_before_input),
+                       "input_activation": resolved.input.activation.to_dict()}
+            if runtime != self._trace_runtime:
+                self._trace_runtime = runtime
+                log_event("runtime.bound", **runtime)
+            update_runtime(runtime)
             return self._session
+
+    def _diagnostic_snapshot(self, request: dict) -> dict:
+        """Read existing state only: never bind, recover, focus, or start capture."""
+        if not self._lock.acquire(blocking=False):
+            return {"status": "busy"}
+        try:
+            cid = request.get("cid")
+            plan = request.get("plan") or request.get("plan_name") or request.get("runtime", {}).get("plan")
+            if not cid or cid not in self._trace_cids or (plan and plan != self._trace_runtime.get("plan")):
+                return {"status": "unavailable", "reason": "request_does_not_own_session"}
+            session = self._session
+            if session is None:
+                return {"status": "unavailable", "reason": "session_not_bound"}
+            result = {"status": "ok", "runtime": dict(self._trace_runtime), "screenshot_status": "unavailable"}
+            backend = getattr(session, "input_backend", None)
+            result.update(held_mouse_buttons=sorted(getattr(backend, "_held_mouse_buttons", set()).copy()),
+                          held_keys=sorted(getattr(backend, "_held_keys", set()).copy()))
+            target = getattr(session, "target", None)
+            capture_backend = getattr(session, "capture_backend", None)
+            result["snapshot_best_effort"] = True
+        finally:
+            # Native read/PNG encoding must never hold a runtime lifecycle lock.
+            self._lock.release()
+        if result["runtime"].get("provider") != "windows":
+            return result
+        import win32api
+        import win32gui
+        import win32process
+        foreground = int(win32gui.GetForegroundWindow() or 0)
+        result["foreground_hwnd"] = foreground
+        if foreground:
+            result["foreground_thread"], result["foreground_pid"] = win32process.GetWindowThreadProcessId(foreground)
+        point = win32api.GetCursorPos()
+        result["cursor_position"] = list(point)
+        result["window_at_cursor"] = int(win32gui.WindowFromPoint(point) or 0)
+        stream = getattr(capture_backend, "capture_stream_frame", None)
+        if not callable(stream):
+            result["screenshot_status"] = "cache_unsupported"
+            return result
+        try:
+            expected_hwnd = result["runtime"].get("target_hwnd")
+            if expected_hwnd is not None and getattr(target, "hwnd", None) != expected_hwnd:
+                result["screenshot_status"] = "target_changed"
+                return result
+            frame = stream()
+            if expected_hwnd is not None and getattr(target, "hwnd", None) != expected_hwnd:
+                result["screenshot_status"] = "target_changed"
+                return result
+            if frame is None:
+                result["screenshot_status"] = "cache_empty_or_busy"
+                return result
+            age = time.monotonic() - float(frame["arrived_at_monotonic"])
+            result["screenshot_age_ms"] = round(age * 1000, 1)
+            if not 0 <= age <= 2:
+                result["screenshot_status"] = "cache_stale"
+                return result
+            from PIL import Image
+            image = frame["capture"].image
+            if not isinstance(image, Image.Image):
+                image = Image.fromarray(image)
+            output = io.BytesIO()
+            image.save(output, format="PNG")
+            result.update(png=output.getvalue(), screenshot_status="cached_frame",
+                          screenshot_generation=frame.get("generation"))
+        except Exception as exc:
+            result.update(screenshot_status="cache_error", screenshot_error=type(exc).__name__)
+        return result
 
     def _close_session_locked(self):
         if self._session is not None:
             try:
                 self._session.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log_event("runtime.close_failed", error_type=type(exc).__name__, **self._trace_runtime)
         self._session = None
         self._session_key = None
 

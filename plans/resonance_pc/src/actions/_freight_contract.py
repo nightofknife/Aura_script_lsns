@@ -5,14 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-
-PLANNING_KEYS = (
-    "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget",
-    "book_profit_threshold", "book_policy", "negotiation_policy",
-    "fixed_route_city_ids", "reposition_to_route", "target_profit",
-    "available_city_ids", "required_end_city_ids", "city_prestige",
-    "product_unlocks", "bargain_success_rates_bps", "bargain_step_bps",
-    "raise_success_rates_bps", "raise_step_bps",
+from ..services.resonance_pc_freight_parameters import (
+    FREIGHT_PLANNING_KEYS as PLANNING_KEYS, effective_freight_inputs,
 )
 
 
@@ -40,10 +34,11 @@ def _city_ids(name: str, value: Any, *, minimum: int, ordered: bool = False) -> 
 
 
 def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
+    source = effective_freight_inputs(source)
     result = {key: deepcopy(source[key]) for key in PLANNING_KEYS if key in source}
-    mode = result.get("trade_mode", "profit")
-    if mode not in {"profit", "quick", "fixed", "target"}:
-        raise ValueError("trade_mode must be profit, quick, fixed, or target")
+    mode = result.get("trade_mode", "free")
+    if mode not in {"free", "fixed"}:
+        raise ValueError("trade_mode must be free or fixed")
     result["trade_mode"] = mode
     for key, default, minimum in (("fatigue_budget", 700, 0), ("cargo_capacity", 750, 1),
                                    ("book_profit_threshold", 500000, 0)):
@@ -54,8 +49,8 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
     negotiation = result.get("negotiation_policy", "auto")
     if policy not in {"profit", "fill"} or negotiation not in {"auto", "required", "disabled"}:
         raise ValueError("Invalid book_policy or negotiation_policy")
-    result["book_policy"] = "fill" if mode == "quick" else policy
-    result["negotiation_policy"] = "required" if mode == "quick" else negotiation
+    result["book_policy"] = policy
+    result["negotiation_policy"] = negotiation
     for side in ("bargain", "raise"):
         key = f"{side}_success_rates_bps"
         rates = result.get(key)
@@ -87,7 +82,7 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
             if cities is not None and any(city not in cities for city in ends):
                 raise ValueError("required_end_city_ids must be selected planning cities")
             result["required_end_city_ids"] = ends
-    if mode == "target":
+    if mode == "free" and result.get("target_profit") is not None:
         result["target_profit"] = integer("target_profit", result.get("target_profit"), minimum=1)
     else:
         result.pop("target_profit", None)

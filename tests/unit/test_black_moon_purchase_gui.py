@@ -82,37 +82,37 @@ def test_canonical_catalog_complete_and_defaults(catalog, repository):
                                   {"blackstone_armor": "false"}, {1: True}])
 def test_invalid_map_rejected_without_overwriting(table, catalog, repository):
     repository.save_trade_inputs({"cargo_capacity": 837})
-    before = repository.settings.value("trade/inputs_json")
+    before = repository.settings.value("trade/two_mode_inputs_json")
     with pytest.raises(ValueError):
         normalize_purchase_table(table, catalog)
     with pytest.raises(ValueError):
         repository.save_trade_inputs({"black_moon_purchase_table": table})
-    assert repository.settings.value("trade/inputs_json") == before
+    assert repository.settings.value("trade/two_mode_inputs_json") == before
 
 
 def test_invalid_stored_table_does_not_reset_other_settings(repository):
     raw = json.dumps({"cargo_capacity": 837, "black_moon_purchase_table": {"unknown": True}})
-    repository.settings.setValue("trade/inputs_json", raw)
+    repository.settings.setValue("trade/two_mode_inputs_json", raw)
     with pytest.raises(ValueError, match="未知商品"):
         repository.load_trade_inputs()
-    assert repository.settings.value("trade/inputs_json") == raw
+    assert repository.settings.value("trade/two_mode_inputs_json") == raw
 
 
 @pytest.mark.parametrize("scope", [None, 0, True, "", " ", " default", "default ", "\tdefault", "default\n", "x" * 129])
 def test_invalid_record_scope_rejected_without_trimming_or_overwriting(repository, scope):
     repository.save_trade_inputs({"cargo_capacity": 837})
-    before = repository.settings.value("trade/inputs_json")
+    before = repository.settings.value("trade/two_mode_inputs_json")
     inputs = {"black_moon_purchase_record_scope": scope}
     for validator in (normalize_black_moon_settings, normalize_trade_task_inputs,
                       repository.save_trade_inputs, repository.save_black_moon_settings):
         with pytest.raises(ValueError, match="记录范围"):
             validator(inputs)
-    assert repository.settings.value("trade/inputs_json") == before
+    assert repository.settings.value("trade/two_mode_inputs_json") == before
     raw = json.dumps({"cargo_capacity": 837, **inputs})
-    repository.settings.setValue("trade/inputs_json", raw)
+    repository.settings.setValue("trade/two_mode_inputs_json", raw)
     with pytest.raises(ValueError, match="记录范围"):
         repository.load_trade_inputs()
-    assert repository.settings.value("trade/inputs_json") == raw
+    assert repository.settings.value("trade/two_mode_inputs_json") == raw
 
 
 @pytest.mark.parametrize("scope", ["default", "a", "scope name", "x" * 128, "汉" * 128])
@@ -249,7 +249,7 @@ def test_save_updates_page_only_after_persist_and_restart(page, repository, cata
 
 def test_save_failure_retains_draft_and_rolls_back_page(page, repository, catalog, monkeypatch, app):
     repository.save_trade_inputs({"cargo_capacity": 837})
-    previous = repository.settings.value("trade/inputs_json")
+    previous = repository.settings.value("trade/two_mode_inputs_json")
     previous_table = dict(page._black_moon_table)
     errors = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: errors.append(args[2]))
@@ -264,11 +264,11 @@ def test_save_failure_retains_draft_and_rolls_back_page(page, repository, catalo
         assert sum(widget.product_model.purchase_table().values()) == 140
         assert page._black_moon_table == previous_table
         assert page.black_moon_selection_label.text() == "已选 0 / 140"
-        assert repository.settings.value("trade/inputs_json") == previous
+        assert repository.settings.value("trade/two_mode_inputs_json") == previous
         assert errors == ["不可写"]
         page.auto_black_moon_local_purchase.setChecked(True)
         assert not page.auto_black_moon_local_purchase.isChecked()
-        assert repository.settings.value("trade/inputs_json") == previous
+        assert repository.settings.value("trade/two_mode_inputs_json") == previous
     finally:
         dispose(widget)
 
@@ -327,8 +327,8 @@ def test_toggle_off_retains_selection_and_settings_remain_available(page, reposi
     assert page.black_moon_settings_button.isEnabled()
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
-def test_four_modes_share_configuration_and_snapshot_is_independent(page, catalog, mode):
+@pytest.mark.parametrize("mode", ["free", "fixed"])
+def test_two_modes_share_configuration_and_snapshot_is_independent(page, catalog, mode):
     values = page._settings.load_trade_inputs()
     values.update(trade_mode=mode, fixed_route_city_ids=["1", "2"], target_profit=100000,
                   auto_black_moon_local_purchase=True,

@@ -45,7 +45,7 @@ def plan(service, **kwargs):
 
 def test_public_contract_removes_auto_book_and_repeat_count():
     signature = inspect.signature(module.ResonancePcTradePlannerService.plan_optimal_route).parameters
-    assert signature["trade_mode"].default == "profit"
+    assert signature["trade_mode"].default == "free"
     assert signature["fatigue_budget"].default == 700
     assert signature["cargo_capacity"].default == 750
     assert signature["book_budget"].default == 0
@@ -71,8 +71,8 @@ def test_finite_and_infinite_cache_keys_are_distinct_and_results_are_deep_copied
 
 def test_modes_targets_full_fixed_order_and_reposition_participate_in_cache(service):
     api, calls = service
-    requests = [dict(trade_mode="profit"), dict(trade_mode="quick"),
-                dict(trade_mode="target", target_profit=10), dict(trade_mode="target", target_profit=20),
+    requests = [dict(trade_mode="free"), dict(trade_mode="free", negotiation_policy="required", book_policy="fill", book_budget=1),
+                dict(trade_mode="free", target_profit=10), dict(trade_mode="free", target_profit=20),
                 dict(trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"]),
                 dict(trade_mode="fixed", fixed_route_city_ids=["A", "B", "A", "B", "A"]),
                 dict(trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"], reposition_to_route=True)]
@@ -87,10 +87,27 @@ def test_modes_targets_full_fixed_order_and_reposition_participate_in_cache(serv
 
 def test_irrelevant_mode_fields_are_excluded_from_cache(service):
     api, calls = service
-    first = plan(api, target_profit=999, fixed_route_city_ids=["A", "B"], reposition_to_route=True)
-    second = plan(api, target_profit=123, fixed_route_city_ids=["B", "A"])
+    first = plan(api, fixed_route_city_ids=["A", "B"], reposition_to_route=True)
+    second = plan(api, fixed_route_city_ids=["B", "A"])
     assert len(calls) == 1
     assert first == second
+
+
+def test_fixed_ignores_saved_goal_and_unused_book_settings_in_cache(service):
+    api, calls = service
+    kwargs = dict(trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"], book_budget=0)
+    first = plan(api, target_profit=100, book_policy="fill", book_profit_threshold=1, **kwargs)
+    second = plan(api, target_profit=None, book_policy="profit", book_profit_threshold=500000, **kwargs)
+    assert len(calls) == 1
+    assert first == second
+    assert "target_profit" not in second and "target_profit_exact" not in second["request"]
+
+
+@pytest.mark.parametrize("mode", ["profit", "quick", "target"])
+def test_removed_modes_rejected_by_service(service, mode):
+    api, _ = service
+    with pytest.raises(module.ResonancePcTradePlannerError, match="free or fixed"):
+        plan(api, trade_mode=mode)
 
 
 def test_fixed_ignores_free_route_city_scope_but_keeps_current_city_for_reposition(service):
@@ -104,7 +121,7 @@ def test_fixed_ignores_free_route_city_scope_but_keeps_current_city_for_repositi
 
 
 @pytest.mark.parametrize("inputs", [{"book_budget": -1}, {"book_budget": True},
-    {"trade_mode": "unknown"}, {"trade_mode": "target", "target_profit": 0},
+    {"trade_mode": "unknown"}, {"trade_mode": "free", "target_profit": 0},
     {"trade_mode": "fixed", "fixed_route_city_ids": "AB"},
     {"trade_mode": "fixed", "fixed_route_city_ids": ["B", "C"]}])
 def test_invalid_inputs_raise_structured_error(service, inputs):

@@ -175,7 +175,7 @@ class ResonancePcExactTradeSolver:
         cargo_capacity: int,
         book_budget: Optional[int] = 0,
         book_profit_threshold: Any = 500000,
-        trade_mode: str = "profit",
+        trade_mode: str = "free",
         book_policy: str = "profit",
         negotiation_policy: str = "auto",
         negotiation_budget: Optional[int] = None,
@@ -193,12 +193,12 @@ class ResonancePcExactTradeSolver:
     ) -> Dict[str, Any]:
         """Plan one complete freight request without compatibility aliases."""
         mode = str(trade_mode).strip().lower()
-        if mode not in {"profit", "quick", "fixed", "target"}:
-            raise ValueError("trade_mode must be profit, quick, fixed, or target")
+        if mode not in {"free", "fixed"}:
+            raise ValueError("trade_mode must be free or fixed")
         policy = str(book_policy).strip().lower()
         negotiation = str(negotiation_policy).strip().lower()
-        if mode == "quick":
-            policy, negotiation = "fill", "required"
+        if type(book_budget) is int and book_budget == 0:
+            policy, book_profit_threshold = "profit", 500000
         if policy not in {"profit", "fill"}:
             raise ValueError("book_policy must be profit or fill")
         if negotiation not in {"auto", "required", "disabled"}:
@@ -210,6 +210,8 @@ class ResonancePcExactTradeSolver:
                              _as_non_negative_int("negotiation_budget", negotiation_budget))
         plan_mode = int(negotiation_budget is None)
         negotiation_cap = None if plan_mode else negotiation_limit
+        if isinstance(book_profit_threshold, bool):
+            raise ValueError("book_profit_threshold must be an amount, not a boolean")
         threshold = _fraction(book_profit_threshold)
         if threshold < 0:
             raise ValueError("book_profit_threshold must be >= 0")
@@ -254,11 +256,12 @@ class ResonancePcExactTradeSolver:
                 end_ids = tuple(dict.fromkeys(str(city).strip() for city in required_end_city_ids))
                 if not end_ids or any(city not in planning_cities for city in end_ids):
                     raise ValueError("required end cities must be selected planning cities")
+        has_target = mode == "free" and target_profit is not None
         target = None
         target_integer = None
-        if mode == "target":
-            if target_profit is None:
-                raise ValueError("target_profit is required in target mode")
+        if has_target:
+            if isinstance(target_profit, bool):
+                raise ValueError("target_profit must be an amount, not a boolean")
             target = _fraction(target_profit)
             if target <= 0:
                 raise ValueError("target_profit must be greater than 0")
@@ -327,7 +330,7 @@ class ResonancePcExactTradeSolver:
                 maximum = solve_prepared_search(prepared, backend=_backend)
                 if maximum is not None:
                     maximum_profit = maximum.expected_profit
-                if mode != "target":
+                if not has_target:
                     result = maximum
                 elif maximum is not None and maximum_profit >= target:
                     base_options = {}
@@ -342,7 +345,7 @@ class ResonancePcExactTradeSolver:
                                           target=target_integer, incumbent=maximum)
         status = "ok" if result is not None and (mode == "fixed" or result.expected_profit > 0) else (
                  "fixed_route_infeasible" if mode == "fixed" else
-                 "target_unreachable" if mode == "target" else "no_plan")
+                 "target_unreachable" if has_target else "no_plan")
         actual_profit = Fraction(0) if status != "ok" else result.expected_profit
         route_fatigue_used = Fraction(0) if status != "ok" else result.expected_fatigue_used
         fatigue_used = route_fatigue_used + (reposition_fatigue if status == "ok" else 0)
@@ -383,7 +386,7 @@ class ResonancePcExactTradeSolver:
                    "product_unlocks": None if unlocked is None else sorted(unlocked, key=self._sort_key)}
         if mode == "fixed":
             request.update(fixed_route_city_ids=list(fixed_path), reposition_to_route=reposition_to_route)
-        if mode == "target":
+        if has_target:
             request["target_profit_exact"] = self._fraction_text(target)
         response = {
             "status": status, "reason": None if status == "ok" else status,
@@ -417,7 +420,7 @@ class ResonancePcExactTradeSolver:
             "diagnostics": {}, "solver_backend": None if result is None else result.backend,
             "solver_stats": {} if result is None else dict(result.stats),
         }
-        if mode == "target":
+        if has_target:
             response.update(target_profit=self._fraction_number(target),
                             target_profit_exact=self._fraction_text(target), target_reached=status == "ok",
                             target_gap=self._fraction_number(max(target - (actual_profit if status == "ok" else maximum_profit), Fraction(0))),

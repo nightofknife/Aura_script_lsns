@@ -68,6 +68,9 @@ def run_dag(production="idle", overrides=None, budget=8, continue_rounds=False):
             if node_id == "finish":
                 summaries.append(params)
                 return resonance_pc_raw_workshop_summarize(**params)
+            if node_id == "return_overview":
+                return {"success": True, "safe_to_continue": True, "returned_to_overview": True,
+                        "status": "completed", "reason": "", "page_after": "reforming_center_overview"}
             if node_id in ROUNDS:
                 return atom(production, continue_reserve=continue_rounds, round=node_id)
             if node_id == "start":
@@ -99,7 +102,7 @@ def test_public_task_schema_and_metadata():
     steps = spec["steps"]
     assert list(steps) == [
         "navigate", "observe", "deposit", "work", *ROUNDS,
-        "before_start", "start", "final_observe", "finish",
+        "before_start", "start", "final_observe", "return_overview", "finish",
     ]
     assert steps["navigate"]["action"] == "aura.run_task"
     assert steps["navigate"]["params"]["task_ref"] == (
@@ -125,6 +128,7 @@ def test_scope_has_no_implicit_retry_shared_state_or_out_of_scope_action():
         "resonance_pc.raw_workshop_deposit_max", "resonance_pc.raw_workshop_fill_list_once",
         "resonance_pc.raw_workshop_reserve_round", "resonance_pc.raw_workshop_start_once",
         "resonance_pc.raw_workshop_summarize",
+        "resonance_pc.raw_workshop_return_overview",
     }
     assert {node["action"] for node in steps.values()} == allowed
     for node in steps.values():
@@ -170,7 +174,7 @@ def test_idle_orders_deposit_work_reserve_start_then_final_observation():
     calls, summaries, states, result = run_dag()
     assert [name for name, _ in calls] == [
         "navigate", "observe", "deposit", "work", "reserve_round_1",
-        "before_start", "start", "final_observe", "finish",
+        "before_start", "start", "final_observe", "return_overview", "finish",
     ]
     assert all(states[name] == StepState.SKIPPED for name in ROUNDS[1:])
     assert summaries[0]["work"]["safe_to_continue"]
@@ -304,8 +308,42 @@ def test_returns_are_business_summary_not_execution_status():
             "success": False, "status": "partial", "reason": "no_candidates",
             "room_name": ROOM, "snapshot": {"production": "running"},
             "data": {"reserve_rounds": 1},
+            "returned_to_overview": True, "page_after": "reforming_center_overview",
         }
         context = ExecutionContext()
         context.add_node_result("finish", {"output": business, "run_state": {"status": "SUCCESS"}})
         assert await TemplateRenderer(context, None).render(task()["returns"]) == business
     asyncio.run(render())
+
+
+def test_return_overview_runs_once_after_final_observation_without_outline_actions():
+    calls, summaries, _, result = run_dag("running")
+    names = [name for name, _ in calls]
+    assert names[-3:] == ["final_observe", "return_overview", "finish"]
+    assert names.count("return_overview") == 1
+    assert summaries[0]["require_return"] is True
+    assert result.data["nodes"]["finish"]["output"]["returned_to_overview"]
+    assert task()["steps"]["return_overview"]["params"] == {"room_name": "{{ inputs.room_name }}"}
+
+
+def test_known_partial_maintenance_still_returns_without_masking_shortage():
+    partial = atom("running")
+    partial["snapshot"]["reserve"]["current"] = 0
+    partial["snapshot"]["reserve"]["full"] = False
+    calls, _, _, result = run_dag("running", overrides={"final_observe": partial})
+    assert "return_overview" in [name for name, _ in calls]
+    outcome = result.data["nodes"]["finish"]["output"]
+    assert outcome["status"] == "partial" and outcome["returned_to_overview"]
+    assert outcome["data"]["maintenance"]["status"] == "partial"
+
+
+def test_return_unknown_result_is_reported_without_retry_or_background_click():
+    failure = {"success": False, "returned_to_overview": False, "safe_to_continue": False,
+               "reason": "click_transition_not_confirmed"}
+    calls, _, _, result = run_dag(overrides={"return_overview": failure})
+    names = [name for name, _ in calls]
+    assert names[names.index("return_overview"):] == ["return_overview", "finish"]
+    outcome = result.data["nodes"]["finish"]["output"]
+    assert outcome["status"] == "failed" and not outcome["returned_to_overview"]
+    assert outcome["reason"] == "click_transition_not_confirmed"
+    assert outcome["data"]["maintenance"]["status"] == "completed"

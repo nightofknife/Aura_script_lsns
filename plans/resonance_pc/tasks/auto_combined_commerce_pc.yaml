@@ -23,8 +23,8 @@ auto_combined_commerce_pc:
             name: trade_mode
             type: string
             required: false
-            default: profit
-            enum: [profit, quick, fixed, target]
+            default: free
+            enum: [free, fixed]
           book_policy:
             name: book_policy
             type: string
@@ -50,6 +50,8 @@ auto_combined_commerce_pc:
           target_profit:
             name: target_profit
             type: number
+            nullable: true
+            default: null
             strict_integer: true
             required: false
             min: 1
@@ -391,6 +393,13 @@ auto_combined_commerce_pc:
             type: boolean
             required: false
             default: false
+          auto_pickup_interval_sec:
+            name: auto_pickup_interval_sec
+            type: number
+            required: false
+            default: 0.5
+            min: 0.1
+            max: 60
           auto_rubbish_recycling:
             name: auto_rubbish_recycling
             type: boolean

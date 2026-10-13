@@ -24,6 +24,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.failure_evidence import (
     attach_evidence, evidence_from, capture_failure, collect_node_evidence,
 )
+from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService, CityShopDataError
@@ -39,7 +40,7 @@ from .cape_island_investment_pc_actions import (
 from .trade_goods_investment_pc_actions import (
     _INVESTMENT_PROGRESS_CALLBACK, normalize_investment_mode,
 )
-from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
+from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait, _normalize_pickup_interval
 from ._operation_progress import (
     observe_operation, observe_worker_future, operation_progress, utc_timestamp,
 )
@@ -198,6 +199,28 @@ _WORKER_PROGRESS_CONTEXT: contextvars.ContextVar[Dict[str, Any]] = contextvars.C
 )
 
 
+def _sleep_with_cancel(duration: float) -> None:
+    """Keep UI settling waits responsive without interrupting held gestures."""
+    remaining = max(float(duration), 0.0)
+    _check_trade_cancelled()
+    while remaining > 0:
+        interval = min(remaining, 0.05)
+        time.sleep(interval)
+        _check_trade_cancelled()
+        remaining -= interval
+
+
+async def _sleep_with_cancel_async(duration: float) -> None:
+    remaining = max(float(duration), 0.0)
+    _check_trade_cancelled()
+    while remaining > 0:
+        interval = min(remaining, 0.05)
+        await asyncio.sleep(interval)
+        _check_trade_cancelled()
+        remaining -= interval
+
+
+
 def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -211,7 +234,7 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
             reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop())
         token = _ACTIVE_PROGRESS_REPORTER.set(reporter)
         if reporter is not None:
-            reporter.fields.update(trade_mode=kwargs.get("trade_mode", "profit"),
+            reporter.fields.update(trade_mode=kwargs.get("trade_mode", "free"),
                                    request_kind="preview" if "preview" in func.__name__ else "run")
         try:
             if reporter is not None:
@@ -426,7 +449,7 @@ def _wait_for_text_hit(
                 return hit
         if time.monotonic() >= deadline:
             return None
-        time.sleep(max(float(interval_sec), 0.05))
+        _sleep_with_cancel(max(float(interval_sec), 0.05))
 
 
 def _click_hit(app: Any, hit: Dict[str, Any]) -> Dict[str, Any]:
@@ -510,7 +533,7 @@ def _wait_template(
             return last
         if time.monotonic() >= deadline:
             return last
-        time.sleep(max(float(interval_sec), 0.05))
+        _sleep_with_cancel(max(float(interval_sec), 0.05))
 
 
 def _probe_shop_menu(app: Any, vision: Any) -> Dict[str, Any]:
@@ -599,7 +622,7 @@ def _wait_for_shop_menu_ready(
                     "last_match": last_match,
                 },
             )
-        time.sleep(max(float(interval_sec), 0.05))
+        _sleep_with_cancel(max(float(interval_sec), 0.05))
 
 
 def _close_settlement(
@@ -647,7 +670,7 @@ def _close_settlement(
     )
     _check_trade_cancelled()
     app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
-    time.sleep(0.8)
+    _sleep_with_cancel(0.8)
     recheck = _wait_template(
         app,
         vision,
@@ -670,7 +693,7 @@ def _close_settlement(
         _check_trade_cancelled()
         app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
         retried = True
-        time.sleep(0.8)
+        _sleep_with_cancel(0.8)
         try:
             final_match = _match_template(
                 app,
@@ -784,7 +807,7 @@ def _click_required_nav_button(
     x, y = int(center[0]), int(center[1])
     _check_trade_cancelled()
     app.click(x=x, y=y)
-    time.sleep(max(float(wait_sec), 0.0))
+    _sleep_with_cancel(max(float(wait_sec), 0.0))
     logger.info(
         "[TradeNavigation] phase=clicked target_page_state=%s x=%s y=%s match=%s context=%s",
         page_state,
@@ -804,7 +827,9 @@ def _click_required_nav_button(
 
 
 def _drag_buy_list(app: Any) -> None:
+    _check_trade_cancelled()
     app.move_to(x=_BUY_SCROLL_START[0], y=_BUY_SCROLL_START[1], duration=0.1)
+    _check_trade_cancelled()
     app.drag(
         start_x=_BUY_SCROLL_START[0],
         start_y=_BUY_SCROLL_START[1],
@@ -813,7 +838,7 @@ def _drag_buy_list(app: Any) -> None:
         duration=0.5,
         hold_before_release_sec=0.5,
     )
-    time.sleep(0.2)
+    _sleep_with_cancel(0.2)
 
 
 @action_info(
@@ -945,8 +970,9 @@ def resonance_pc_click_city_shop_by_name(
         shop_name=shop_name,
         location_file_path=location_file_path,
     )
+    _check_trade_cancelled()
     app.click(x=int(point["x"]), y=int(point["y"]))
-    time.sleep(max(float(wait_sec), 0.0))
+    _sleep_with_cancel(max(float(wait_sec), 0.0))
     return {"success": True, "page_state": "shop_page", "click": point}
 
 
@@ -965,8 +991,9 @@ def resonance_pc_click_shop_menu_node(node_index: int, wait_sec: float = 1.0, ap
         _raise_error("invalid_node_index", "node_index must be between 1 and 6", {"node_index": node_index})
     x = _SHOP_NODE_X
     y = _SHOP_NODE_FIRST_Y + (index - 1) * _SHOP_NODE_GAP_Y
+    _check_trade_cancelled()
     app.click(x=x, y=y)
-    time.sleep(max(float(wait_sec), 0.0))
+    _sleep_with_cancel(max(float(wait_sec), 0.0))
     return {"success": True, "page_state": "shop_node_page", "node_index": index, "x": x, "y": y}
 
 
@@ -1126,7 +1153,7 @@ def resonance_pc_buy_goods_on_buy_page(
             buy_button,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        time.sleep(0.5)
+        _sleep_with_cancel(0.5)
 
         settlement = _close_settlement(app, vision, "buy", timeout_sec=3.0)
         confirm_panel = None
@@ -1150,7 +1177,7 @@ def resonance_pc_buy_goods_on_buy_page(
                     timeout_sec=2.0,
                     interval_sec=0.3,
                 )
-                time.sleep(0.8)
+                _sleep_with_cancel(0.8)
                 settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
 
         bought = bool(settlement.get("closed")) or bool(
@@ -1560,13 +1587,15 @@ async def _run_trade_goods_investment_task(*, mode: int, city_name: str, progres
 async def _execute_freight_city_trade(*, auto_trade_goods_investment: bool = False,
                                     trade_goods_investment_mode: int = 10,
                                     context=None, engine=None, **trade_inputs) -> dict:
+    _check_trade_cancelled()
     if not auto_trade_goods_investment:
-        return await asyncio.to_thread(_execute_city_trade_inside_current_city, **trade_inputs)
+        _check_trade_cancelled()
+        return await tracked_to_thread(_execute_city_trade_inside_current_city, **trade_inputs)
     mode = normalize_investment_mode(trade_goods_investment_mode)
     if context is None or engine is None:
         raise RuntimeError("Goods investment requires the current execution context and engine")
     _check_trade_cancelled()
-    entry = await asyncio.to_thread(
+    entry = await tracked_to_thread(
         _enter_exchange, city_name=trade_inputs["current_city"], app=trade_inputs["app"],
         vision=trade_inputs["vision"], city_shop_data=trade_inputs["city_shop_data"],
     )
@@ -1584,7 +1613,8 @@ async def _execute_freight_city_trade(*, auto_trade_goods_investment: bool = Fal
             and progress_context.get("city_index") == progress_context.get("leg_count")):
         await reporter.emit("final_sale", "started", **progress_context,
                             data={"raise_to_cap": bool(trade_inputs.get("sell_raise_to_cap"))})
-    result = await asyncio.to_thread(_execute_city_trade_inside_current_city, **trade_inputs, shop_entry=entry)
+    _check_trade_cancelled()
+    result = await tracked_to_thread(_execute_city_trade_inside_current_city, **trade_inputs, shop_entry=entry)
     return {**result, "trade_goods_investment": investment}
 
 
@@ -1875,7 +1905,8 @@ async def _execute_freight_rest_stop(
         elif page_state != "city_panel":
             _raise_error("black_moon_rest_invalid_start_page", "Expected a city page before rest", {"page_state": page_state})
         point = city_shop_data.resolve_shop_point(city_name=city_name, shop_name="rest")
-        layout = await asyncio.to_thread(load_sparkling_water_layout, vision)
+        _check_trade_cancelled()
+        layout = await tracked_to_thread(load_sparkling_water_layout, vision)
         session = SparklingWaterSession(app=app, vision=vision, layout=layout)
         await session.enter_rest(point)
         if purchase["triggered"]:
@@ -1981,6 +2012,7 @@ async def _execute_route(
     persistent_data: PersistentDataService | None = None,
     recovery_context: ExecutionContext | None = None,
     recovery_travel_costs: Optional[Dict[str, Any]] = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -2030,6 +2062,7 @@ async def _execute_route(
                     negotiation_max_attempts=negotiation_max_attempts,
                     arrival_timeout_seconds=arrival_timeout_seconds,
                     auto_pickup=auto_pickup,
+                    auto_pickup_interval_sec=auto_pickup_interval_sec,
                     app=app,
                     ocr=ocr,
                     vision=vision,
@@ -2136,7 +2169,7 @@ async def _execute_route(
                 )
             if blocked:
                 break
-            await asyncio.sleep(2.0)
+            await _sleep_with_cancel_async(2.0)
         summary = await resonance_pc_trade_route_execution_summary(route_run_key, state_store=state_store)
         if failure:
             summary.update(failure)
@@ -2231,11 +2264,13 @@ async def _execute_trade_leg(
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
     context: ExecutionContext | None = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
     if page_state == "city_main":
-        await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
+        _check_trade_cancelled()
+        await tracked_to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
         page_state = "city_panel"
     elif page_state != "city_panel":
         _raise_error(
@@ -2266,12 +2301,14 @@ async def _execute_trade_leg(
 
     if reporter is not None:
         await reporter.emit("travel", "started", **progress_fields)
-    travel = await asyncio.to_thread(
+    _check_trade_cancelled()
+    travel = await tracked_to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
         from_city_name=str(leg.get("from_city") or ""),
         enter_station_timeout_seconds=arrival_timeout_seconds,
         auto_pickup=auto_pickup,
+        auto_pickup_interval_sec=auto_pickup_interval_sec,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
         drag_center=[640, 360],
@@ -2440,7 +2477,8 @@ async def _execute_cape_island_investment_after_arrival(
         leg.get("to_city_id"),
     )
     try:
-        open_city = await asyncio.to_thread(
+        _check_trade_cancelled()
+        open_city = await tracked_to_thread(
             resonance_pc_open_city_panel_from_main,
             app=app,
             vision=vision,
@@ -2457,7 +2495,8 @@ async def _execute_cape_island_investment_after_arrival(
                           status=investment.get("status"), reason=investment.get("reason"),
                           selected_option=investment.get("selected_option"))
         observe_operation("investment.return_main", "投资后返回城市", "started")
-        return_main = await asyncio.to_thread(
+        _check_trade_cancelled()
+        return_main = await tracked_to_thread(
             resonance_pc_go_city_main_direct,
             app=app,
             vision=vision,
@@ -2522,13 +2561,15 @@ async def _execute_rubbish_recycling_after_arrival(
         leg.get("to_city_id"),
     )
     try:
-        open_city = await asyncio.to_thread(
+        _check_trade_cancelled()
+        open_city = await tracked_to_thread(
             resonance_pc_open_city_panel_from_main,
             app=app,
             vision=vision,
         )
         observe_operation("rubbish_recycling.execute", "垃圾回收子任务", "started")
-        recycling = await asyncio.to_thread(
+        _check_trade_cancelled()
+        recycling = await tracked_to_thread(
             resonance_pc_execute_rubbish_recycling_from_city_panel,
             city_name=arrival_city,
             app=app,
@@ -2651,7 +2692,8 @@ async def _execute_freight_reposition(
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     results: List[Dict[str, Any]] = []
     if page_state == "city_panel":
-        restored = await asyncio.to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
+        _check_trade_cancelled()
+        restored = await tracked_to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
         if restored.get("success") is not True or restored.get("page_state") != "city_main":
             _raise_error("reposition_main_not_restored", "Cannot depart for route start", restored)
     elif page_state != "city_main":
@@ -2664,7 +2706,8 @@ async def _execute_freight_reposition(
         if reporter:
             await reporter.emit("reposition", "started", **fields)
         try:
-            travel = await asyncio.to_thread(
+            _check_trade_cancelled()
+            travel = await tracked_to_thread(
                 resonance_pc_intercity_depart_and_wait,
                 to_city_name=leg["to_city"], from_city_name=leg["from_city"],
                 enter_station_timeout_seconds=arrival_timeout_seconds,
@@ -2699,7 +2742,8 @@ async def _execute_freight_reposition(
                     "reason": travel.get("reason") or "reposition_arrival_not_confirmed",
                     "leg_results": results, "page_state": travel.get("page_state", "unknown"),
                     "blocked_at": travel.get("blocked_at"), "blocked_leg": leg}
-    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
+    _check_trade_cancelled()
+    opened = await tracked_to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
     if opened.get("success") is not True:
         _raise_error("reposition_panel_not_opened", "Cannot confirm route starting city", opened)
     current = opened["city"]
@@ -2714,7 +2758,7 @@ async def _preview_trade_plan_from_start_city(
     fatigue_budget: int = 700,
     cargo_capacity: int = 750,
     book_budget: Optional[int] = 0,
-    trade_mode: str = "profit",
+    trade_mode: str = "free",
     book_policy: str = "profit",
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
@@ -2762,7 +2806,8 @@ async def _preview_trade_plan_from_start_city(
             current_city=normalized_start_city_id,
             data={"source": "refresh"},
         )
-    market = await asyncio.to_thread(
+    _check_trade_cancelled()
+    market = await tracked_to_thread(
         resonance_pc_market_refresh,
         force=True,
         resonance_pc_market_data=resonance_pc_market_data,
@@ -2801,7 +2846,8 @@ async def _preview_trade_plan_from_start_city(
         )
     )
     with trade_solver_progress(solver_progress_callback):
-        plan = await asyncio.to_thread(
+        _check_trade_cancelled()
+        plan = await tracked_to_thread(
             resonance_pc_trade_plan_optimal_route,
             current_city_id=normalized_start_city_id,
             **request,
@@ -2857,7 +2903,7 @@ async def resonance_pc_preview_trade_plan_flow(
     fatigue_budget: int = 700,
     cargo_capacity: int = 750,
     book_budget: Optional[int] = 0,
-    trade_mode: str = "profit",
+    trade_mode: str = "free",
     book_policy: str = "profit",
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
@@ -2926,7 +2972,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     fatigue_budget: int = 700,
     cargo_capacity: int = 750,
     book_budget: Optional[int] = 0,
-    trade_mode: str = "profit",
+    trade_mode: str = "free",
     book_policy: str = "profit",
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
@@ -2970,10 +3016,12 @@ async def resonance_pc_auto_cycle_trade_flow(
     context: ExecutionContext | None = None,
     engine: ExecutionEngine | None = None,
     persistent_data: PersistentDataService | None = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     request = normalize_planning_inputs(locals())
+    auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
     for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
                         ("auto_trade_goods_investment", auto_trade_goods_investment),
@@ -3059,7 +3107,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     if reporter is not None:
         await reporter.emit("target", "started")
         await reporter.emit("city", "started")
-    opened = await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
+    _check_trade_cancelled()
+    opened = await tracked_to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
     current = opened["city"]
     page_state = "city_panel"
     if reporter is not None:
@@ -3073,7 +3122,8 @@ async def resonance_pc_auto_cycle_trade_flow(
 
     if reporter is not None:
         await reporter.emit("market", "started", current_city=str(current.get("city_name") or ""))
-    refresh = await asyncio.to_thread(
+    _check_trade_cancelled()
+    refresh = await tracked_to_thread(
         resonance_pc_market_refresh,
         force=True,
         resonance_pc_market_data=resonance_pc_market_data,
@@ -3108,7 +3158,8 @@ async def resonance_pc_auto_cycle_trade_flow(
         plan = fixed_start_stop(request)
     else:
         with trade_solver_progress(solver_progress_callback):
-            plan = await asyncio.to_thread(
+            _check_trade_cancelled()
+            plan = await tracked_to_thread(
                 resonance_pc_trade_plan_optimal_route,
                 current_city=str(current.get("city_name") or ""),
                 current_city_key=str(current.get("city_key") or ""),
@@ -3220,6 +3271,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             negotiation_max_attempts=normalized_negotiation_max_attempts,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             auto_pickup=auto_pickup,
+            auto_pickup_interval_sec=auto_pickup_interval_sec,
             app=app,
             ocr=ocr,
             vision=vision,
@@ -3245,7 +3297,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             endpoint_city = str(route[-1].get("to_city") or "")
             logger.info("[FinalSale] phase=started city=%s page_state=%s", endpoint_city, page_state)
             if page_state == "city_main":
-                await asyncio.to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
+                _check_trade_cancelled()
+                await tracked_to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
                 page_state = "city_panel"
             if reporter is not None and not auto_trade_goods_investment:
                 await reporter.emit(
@@ -3312,7 +3365,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                     data={"final_sale": final_sale},
                 )
     elif page_state == "city_panel" and reposition_execution is None:
-        cleanup = await asyncio.to_thread(
+        _check_trade_cancelled()
+        cleanup = await tracked_to_thread(
             resonance_pc_go_city_main_direct,
             app=app,
             vision=vision,
@@ -3517,7 +3571,7 @@ async def resonance_pc_finish_auto_cycle_trade(
     cid = str(context.data.get("cid") or "") if isinstance(context, ExecutionContext) else ""
     if event_bus is not None and cid:
         reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop(), progress_sequence)
-        reporter.fields.update(trade_mode=result.get("trade_mode", "profit"), request_kind="run")
+        reporter.fields.update(trade_mode=result.get("trade_mode", "free"), request_kind="run")
         reporter.resources.update(resources)
         if isinstance(checkpoint, dict):
             reporter._total_units = checkpoint["total_units"]

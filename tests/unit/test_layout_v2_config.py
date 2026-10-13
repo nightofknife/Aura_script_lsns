@@ -56,7 +56,7 @@ def test_existing_defaults_are_preserved_in_clean_namespace(tmp_path):
     assert trade["cargo_capacity"] == 750
     assert trade["arrival_timeout_seconds"] == 3600
     assert trade["book_budget"] == 0
-    assert trade["trade_mode"] == "profit"
+    assert trade["trade_mode"] == "free"
     assert trade["auto_cape_island_investment"] is True
     assert trade["auto_rubbish_recycling"] is True
     assert passenger["arrival_timeout_seconds"] == 1800

@@ -8,7 +8,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QCoreApplication, QEvent
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication, QLineEdit, QMessageBox, QPushButton, QScrollArea
 from packages.resonance_gui.widgets.toggle_button import ToggleButton as QCheckBox
@@ -46,6 +46,8 @@ def window(tmp_path, monkeypatch):
     widget._finish_workflow(False, "test finished")
     widget._close_ready = True
     widget.close()
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     app.processEvents()
 
 
@@ -369,8 +371,10 @@ def test_failure_keeps_only_existing_configured_close_cleanup(window, monkeypatc
 def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled, bento_enabled, kinds):
     configure(window, kinds)
     window.trade_page.auto_sparkling_water.setChecked(enabled)
-    window.trade_page.auto_bento.setChecked(bento_enabled)
+    # Edit the draft while its controls are enabled, then retain it when disabled.
+    window.trade_page.auto_bento.setChecked(True)
     window.trade_page.bento_move_buttons["love_bentos", -1].click()
+    window.trade_page.auto_bento.setChecked(bento_enabled)
     refreshes, calls, passengers = [], [], []
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window.requestRunPcTrade.connect(lambda inputs, _timeout: calls.append(inputs))
@@ -392,7 +396,11 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
             assert inputs["recovery_snapshot"] == result["user_data"]["player_data"]
             assert inputs["auto_sparkling_water"] is enabled
             assert inputs["auto_bento"] is bento_enabled
-            assert inputs["bento_priority"] == ["love_bentos", "work_meals"]
+            if bento_enabled:
+                assert inputs["bento_priority"] == ["love_bentos", "work_meals"]
+            else:
+                assert "bento_priority" not in inputs
+            assert saved["bento_priority"] == ["love_bentos", "work_meals"]
             assert inputs["use_fatigue_medicine"] is False
             assert window._workflow_current == pending[0]
             inputs["recovery_snapshot"]["metadata"].clear()
@@ -469,7 +477,11 @@ def test_opted_in_standalone_freight_refreshes_before_actual_run(window, entry, 
     trade = trades[0]
     assert trade["auto_sparkling_water"] is water
     assert trade["auto_bento"] is bento
-    assert trade["bento_priority"] == ["work_meals", "love_bentos"]
+    if bento:
+        assert trade["bento_priority"] == ["work_meals", "love_bentos"]
+    else:
+        assert "bento_priority" not in trade
+    assert saved["bento_priority"] == ["work_meals", "love_bentos"]
     assert trades[0]["recovery_snapshot"] == payload()["user_data"]["player_data"]
     assert window._settings.load_trade_inputs() == saved
 
@@ -631,6 +643,8 @@ def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_n
     assert window.workflow_page.task_progress_bar.maximum() == 1
     window._finish_workflow(True, "done")
     assert check.isEnabled() and bento.isEnabled()
+    assert page.bento_priority_panel.isEnabled() is bento.isChecked()
+    bento.setChecked(True)
     assert all(button.isEnabled() for button in page.bento_type_checks.values())
 
 
@@ -640,7 +654,8 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
     assert full.text() == "自动吃便当"
     assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_bento"] is False
-    assert page.collect_inputs()["bento_priority"] == ["work_meals", "love_bentos"]
+    assert "bento_priority" not in page.collect_inputs()
+    assert page.collect_ui_state()["bento_priority"] == ["work_meals", "love_bentos"]
     passenger_before = window.passenger_page.collect_inputs()
     calls = []
     for signal in (window.requestRunPcTask, window.requestRunPcTrade,
@@ -665,7 +680,8 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
 
     restored = TradePage(reloaded)
     try:
-        assert restored.collect_inputs()["bento_priority"] == saved["bento_priority"]
+        assert "bento_priority" not in restored.collect_inputs()
+        assert restored.collect_ui_state()["bento_priority"] == saved["bento_priority"]
         assert not restored.auto_bento.isChecked()
         restored.bento_type_checks["work_meals"].setChecked(False)
         assert reloaded.load_trade_inputs()["bento_priority"] == ["love_bentos"]
@@ -679,10 +695,13 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
         assert restored.collect_inputs()["bento_priority"] == ["work_meals"]
         assert reloaded.load_trade_inputs()["bento_priority"] == ["work_meals"]
         restored.auto_bento.setChecked(False)
+        assert not restored.bento_type_checks["work_meals"].isEnabled()
         restored.bento_type_checks["work_meals"].click()
-        assert reloaded.load_trade_inputs()["bento_priority"] == []
+        assert reloaded.load_trade_inputs()["bento_priority"] == ["work_meals"]
     finally:
         restored.close()
+        restored.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     assert window.passenger_page.collect_inputs() == passenger_before
     assert not any("便当" in check.text() for check in window.passenger_page.findChildren(QCheckBox))
     assert calls == []
@@ -697,19 +716,23 @@ def test_invalid_bento_priority_rejected_without_overwriting_settings(window, pr
     assert window._settings.load_trade_inputs() == before
 
 
-def test_empty_priority_is_saved_only_when_disabled(window, monkeypatch):
+def test_empty_priority_draft_can_be_repaired_after_enabling_bento(window, monkeypatch):
     page = window.trade_page
-    for check in page.bento_type_checks.values():
-        check.click()
+    values = window._settings.load_trade_inputs()
+    values.update(auto_bento=False, bento_priority=[])
+    window._settings.save_trade_inputs(values)
+    page.set_inputs(values)
     assert window._settings.load_trade_inputs()["bento_priority"] == []
     warnings = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: warnings.append(args[2]))
     window.trade_page.auto_bento.click()
-    assert warnings
-    assert not page.auto_bento.isChecked()
-    assert not window.trade_page.auto_bento.isChecked()
+    assert not warnings
+    assert page.auto_bento.isChecked()
+    assert not page.start_button.isEnabled()
     with pytest.raises(ValueError, match="至少选择一种"):
-        window._settings.save_trade_inputs({"auto_bento": True, "bento_priority": []})
+        page.collect_task_inputs()
+    page.bento_type_checks["work_meals"].click()
+    assert page.collect_task_inputs()["bento_priority"] == ["work_meals"]
 
 
 def freight_event(sequence, stage, state, **fields):

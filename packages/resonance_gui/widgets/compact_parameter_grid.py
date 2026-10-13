@@ -37,6 +37,9 @@ class CompactParameterGrid(QWidget):
         row.addWidget(editor)
         row.addStretch(1)
         label.show()
+        if isinstance(caption, str) and not caption:
+            label.setMinimumWidth(0)
+            label.hide()
         editor.show()
         self._fields.append((editor, cell))
         self._enabled_fields[editor] = True

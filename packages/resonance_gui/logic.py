@@ -7,8 +7,10 @@ DEEP_DIVE_LOOP_PROGRESS_EVENT = 'task.resonance_pc_deep_dive_loop_progress'
 
 import copy
 import json
+import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
+from plans.resonance_pc.src.services.resonance_pc_freight_parameters import effective_freight_inputs
 
 GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
@@ -114,6 +116,12 @@ def validate_trade_goods_investment_level(value: Any) -> int:
     if type(value) is not int or not 1 <= value <= 20:
         raise ValueError("交易品投资目标等级必须为 1～20 的整数。")
     return value
+
+
+def validate_pickup_click_interval(value: Any) -> float:
+    if type(value) not in (int, float) or not 0.1 <= value <= 60.0 or not math.isfinite(value):
+        raise ValueError("拣货点击间隔必须是 0.1～60 秒的有限数值。")
+    return float(value)
 
 
 def trade_goods_investment_detail(data: Mapping[str, Any], state: str) -> str:
@@ -1169,8 +1177,10 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 
 
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Project UI state onto the four-mode freight task contract."""
+    """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
+    if "auto_pickup_interval_sec" in normalized:
+        normalized["auto_pickup_interval_sec"] = validate_pickup_click_interval(normalized["auto_pickup_interval_sec"])
     # Execution-only extras share one snapshot across all freight modes.
     from .black_moon_catalog import EXECUTION_KEYS, normalize_black_moon_settings
     if any(key in normalized for key in EXECUTION_KEYS):
@@ -1185,19 +1195,7 @@ def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, A
                 "negotiation_budget_ignored", "fixed_route_repeat_count", "trade_level",
                 "active_events", "books_enabled", "books_unlimited", "finite_book_budget"):
         normalized.pop(key, None)
-    mode = str(normalized.get("trade_mode") or "profit")
-    normalized["trade_mode"] = mode
-    if mode == "quick":
-        normalized.update(book_policy="fill", negotiation_policy="required")
-    if mode == "fixed":
-        for key in ("available_city_ids", "required_end_city_ids", "target_profit"):
-            normalized.pop(key, None)
-    else:
-        normalized.pop("fixed_route_city_ids", None)
-        normalized.pop("reposition_to_route", None)
-        if mode != "target":
-            normalized.pop("target_profit", None)
-    return normalized
+    return effective_freight_inputs(normalized)
 
 
 def average_book_profit_text(summary: Mapping[str, Any]) -> str | None:

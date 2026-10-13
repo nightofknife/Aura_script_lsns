@@ -7,8 +7,8 @@ auto_cycle_trade_pc:
       - name: trade_mode
         type: string
         required: false
-        default: profit
-        enum: [profit, quick, fixed, target]
+        default: free
+        enum: [free, fixed]
       - name: book_policy
         type: string
         required: false
@@ -32,6 +32,8 @@ auto_cycle_trade_pc:
         default: false
       - name: target_profit
         type: number
+        nullable: true
+        default: null
         strict_integer: true
         required: false
         min: 1
@@ -292,6 +294,13 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: false
+      - name: auto_pickup_interval_sec
+        type: number
+        required: false
+        default: 0.5
+        min: 0.1
+        max: 60
+        description: "自动拣货两次点击之间的最短间隔（秒），不改变鼠标按住时长。"
       - name: auto_rubbish_recycling
         type: boolean
         required: false
@@ -1272,6 +1281,7 @@ auto_cycle_trade_pc:
         auto_trade_goods_investment: "{{ inputs.auto_trade_goods_investment | default(false) }}"
         trade_goods_investment_mode: "{{ inputs.trade_goods_investment_mode | default(10) }}"
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
+        auto_pickup_interval_sec: "{{ inputs.auto_pickup_interval_sec | default(0.5) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_black_moon_local_purchase: "{{ inputs.auto_black_moon_local_purchase | default(false) }}"
         black_moon_purchase_table: "{{ inputs.black_moon_purchase_table }}"

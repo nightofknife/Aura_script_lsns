@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
+import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -15,6 +16,19 @@ from packages.resonance_gui.widgets.trade_page import TradePage
 
 def _application() -> QApplication:
     return QApplication.instance() or QApplication(["aura-trade-page-smoke"])
+
+
+@pytest.fixture(autouse=True)
+def close_trade_pages():
+    app = _application()
+    previous = set(app.topLevelWidgets())
+    yield
+    for widget in app.topLevelWidgets():
+        if widget not in previous and isinstance(widget, TradePage):
+            widget.close()
+            widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
 
 
 def test_trade_page_end_city_defaults_to_no_constraint(tmp_path) -> None:
@@ -57,13 +71,16 @@ def test_trade_page_end_city_selection_tracks_available_cities(tmp_path) -> None
     )
     page.city_checks["11"].setChecked(False)
 
-    assert not page.end_city_checks["11"].isChecked()
-    assert not page.end_city_checks["11"].isEnabled()
+    assert page.end_city_checks["11"].isChecked()
+    assert page.end_city_checks["11"].isEnabled()  # allow removing the invalid selection
+    with pytest.raises(ValueError, match="终点"):
+        page.collect_inputs()
+    assert not page.start_button.isEnabled()
     page.automatic_end.setChecked(True)
     assert page.collect_inputs()["required_end_city_ids"] is None
 
 
-def test_trade_inputs_drop_end_city_outside_available_cities(tmp_path) -> None:
+def test_trade_inputs_retain_invalid_end_city_for_explicit_correction(tmp_path) -> None:
     settings = QSettings(str(tmp_path / "trade.ini"), QSettings.Format.IniFormat)
     repository = ResonanceConfigRepository(settings)
 
@@ -76,7 +93,7 @@ def test_trade_inputs_drop_end_city_outside_available_cities(tmp_path) -> None:
 
     loaded = repository.load_trade_inputs()
     assert loaded["available_city_ids"] == ["1", "2"]
-    assert loaded["required_end_city_ids"] is None
+    assert loaded["required_end_city_ids"] == ["11"]
 
 
 def test_trade_end_city_buttons_availability_preserves_selection(tmp_path) -> None:

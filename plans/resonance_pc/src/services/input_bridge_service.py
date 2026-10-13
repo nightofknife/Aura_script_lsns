@@ -12,6 +12,11 @@ import threading
 import time
 
 from packages.aura_core.api import service_info
+from packages.aura_core.context.plan import current_plan_name
+from packages.aura_core.observability.logging.core_logger import current_cid
+from packages.aura_core.observability.runtime_trace import (
+    activity, current_root_cid, log_event, update_runtime, register_diagnostic_provider, tracked_to_thread,
+)
 from ....aura_base.src.platform.contracts import TargetRuntimeError
 from ....aura_base.src.platform.runtime_config import resolve_runtime_config
 from ..bridge.client import BridgeClient
@@ -58,10 +63,15 @@ class ResonancePcInputBridgeService:
         self._identity = None
         self._needs_hello = True
         self._capabilities = {}
+        self._trace_mode = None
+        self._trace_cids = set()
+        self._trace_plan = current_plan_name.get()
+        register_diagnostic_provider("input_bridge", self._diagnostic_snapshot)
 
     @property
     def enabled(self):
         mode = str(self.config.get("resonance_pc.input.mode", "system")).strip().lower()
+        configured_mode = mode
         # GUI workers explicitly opt in; standalone runners retain plan config.
         gui_override = os.environ.get("AURA_GUI_INPUT_BRIDGE")
         if gui_override is not None:
@@ -87,7 +97,41 @@ class ResonancePcInputBridgeService:
             finally:
                 with self._state_lock:
                     self._switching = False
+        owners = {cid for cid in (current_cid(), current_root_cid()) if cid and cid != "-"}
+        if len(self._trace_cids | owners) > 64:
+            self._trace_cids.clear()
+        self._trace_cids.update(owners)
+        self._trace_plan = current_plan_name.get()
+        settings = {"input_mode": mode, "configured_input_mode": configured_mode,
+                    "gui_bridge_override": gui_override, "bridge_enabled": mode == "bridge"}
+        if settings != self._trace_mode:
+            self._trace_mode = settings
+            log_event("input.mode", **settings)
+        update_runtime(settings)
         return mode == "bridge"
+
+    def _diagnostic_snapshot(self, request):
+        cid = request.get("cid")
+        plan = request.get("plan") or request.get("plan_name") or request.get("runtime", {}).get("plan")
+        if not cid or cid not in self._trace_cids or (plan and plan != self._trace_plan):
+            return {"status": "unavailable", "reason": "request_does_not_own_bridge"}
+        if not self._state_lock.acquire(blocking=False):
+            return {"status": "busy"}
+        try:
+            result = {"status": "ok", "mode": self._mode, "active": self._active,
+                      "system_active": self._system_active, "cancel_epoch": self._cancel_epoch}
+        finally:
+            self._state_lock.release()
+        if not self._lock.acquire(blocking=False):
+            result["gesture_state"] = "busy"
+            return result
+        try:
+            result.update(held_mouse_buttons=sorted(self._held.copy()), identity=self._identity,
+                          client_connected=self._client is not None,
+                          result_uncertain=bool(getattr(self._client, "uncertain", False)))
+            return result
+        finally:
+            self._lock.release()
 
     def system_call(self, function, *args, **kwargs):
         with self.system_scope():
@@ -150,6 +194,8 @@ class ResonancePcInputBridgeService:
             generation = int(self._viewport.get("generation", 0)) + 1
             self._viewport = {"width": identity[2], "height": identity[3], "generation": generation}
             self._identity = identity
+            log_event("input.bridge_bound", target_pid=pid, target_hwnd=hwnd, viewport=dict(self._viewport))
+            update_runtime({"bridge_pid": pid, "bridge_hwnd": hwnd})
             self._position = self._clip(*(self._position or (identity[2] // 2, identity[3] // 2)))
         def hello(client, *, wait_for_pipe=False):
             deadline = time.monotonic() + 10.0
@@ -214,6 +260,13 @@ class ResonancePcInputBridgeService:
         return self._clip(x, y)
 
     def _execute(self, op, args, capability="absolute_pointer", endpoint=None, timeout=10.0, complete=False):
+        parameters = {key: value for key, value in args.items()
+                      if key in {"x", "y", "to_x", "to_y", "button", "clicks", "interval", "post_delay",
+                                 "duration", "hold", "stop_inertia", "signed_detents"}}
+        with activity("input", op, backend="bridge", parameters=parameters, target=self._identity):
+            return self._execute_request(op, args, capability, endpoint, timeout, complete)
+
+    def _execute_request(self, op, args, capability, endpoint, timeout, complete):
         with self._lock:
             self._ready()
             token = _CANCEL_TOKEN.get()
@@ -303,14 +356,18 @@ class ResonancePcInputBridgeService:
         self._execute("scroll", {"signed_detents": signed}, "scroll")
 
     def release_all(self):
-        with self._lock:
+        with activity("input", "release_all", backend="bridge"), self._lock:
             if self._client:
-                try:
-                    self._accept(self._client.request("release_all", viewport=self._viewport))
-                finally:
-                    self._held.clear()
+                self._accept(self._client.request("release_all", viewport=self._viewport))
+                self._held.clear()
+            log_event("input.release_result", backend="bridge", success=not self._held,
+                      remaining_mouse_buttons=sorted(self._held))
 
     def cancel_input(self):
+        with activity("input", "cancel_input", backend="bridge"):
+            return self._cancel_input()
+
+    def _cancel_input(self):
         with self._state_lock:
             self._cancel_epoch += 1
             client = self._client
@@ -318,6 +375,7 @@ class ResonancePcInputBridgeService:
             self._accept(client.request("cancel", viewport=self._viewport))
             client.uncertain = False
         self._held.clear()
+        log_event("input.release_result", backend="bridge", success=True, remaining_mouse_buttons=[])
 
     async def run_async(self, function, *args, **kwargs):
         # Shield keeps the worker alive until native cancellation and cleanup complete.
@@ -332,12 +390,12 @@ class ResonancePcInputBridgeService:
             finally:
                 _CANCEL_TOKEN.reset(marker)
 
-        task = asyncio.create_task(asyncio.to_thread(invoke))
+        task = asyncio.create_task(tracked_to_thread(invoke))
         try:
             return await asyncio.shield(task)
         except asyncio.CancelledError:
             token.set()
-            cleanup = asyncio.create_task(asyncio.to_thread(self.cancel_input))
+            cleanup = asyncio.create_task(tracked_to_thread(self.cancel_input))
             try:
                 await asyncio.shield(cleanup)
             finally:
@@ -348,7 +406,7 @@ class ResonancePcInputBridgeService:
             raise
 
     def close(self):
-        with self._lock:
+        with activity("input", "close", backend="bridge"), self._lock:
             if self._client:
                 self._client.request("close", viewport=self._viewport)
             self._client = None

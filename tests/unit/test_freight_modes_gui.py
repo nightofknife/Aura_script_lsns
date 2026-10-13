@@ -1,10 +1,10 @@
-"""Four-mode freight form contracts; no game client or runner actions."""
+"""Two-mode freight form contracts; no game client or runner actions."""
 import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QPoint, QSettings, Qt
+from PySide6.QtCore import QPoint, QSettings, Qt, QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
@@ -21,16 +21,18 @@ def page(tmp_path):
     widget = TradePage(repository)
     yield widget
     widget.close()
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     app.processEvents()
 
 
 def test_default_contract(page):
     inputs = page.collect_task_inputs()
-    assert inputs["trade_mode"] == "profit"
+    assert inputs["trade_mode"] == "free"
     assert inputs["fatigue_budget"] == 700
     assert inputs["cargo_capacity"] == 750
     assert inputs["book_budget"] == 0
-    assert inputs["book_profit_threshold"] == 500000
+    assert "book_profit_threshold" not in inputs
     assert inputs["arrival_timeout_seconds"] == 3600
     assert inputs["auto_cape_island_investment"] is True
     assert not {"start_city_id", "auto_book", "trade_level", "active_events"} & inputs.keys()
@@ -64,6 +66,8 @@ def test_key_parameters_precede_collapsed_city_grid_in_both_forms(page, preview)
     assert widget.selected_city_ids() == [city for city in before if city != "1"]
     if preview:
         widget.close()
+        widget.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 @pytest.mark.parametrize("key,value", [("fatigue_budget", True), ("cargo_capacity", 1.5),
@@ -95,29 +99,34 @@ def test_book_limit_unlimited_and_restore(page):
 
 
 def test_money_uses_four_decimals_and_decimal_conversion(page):
+    page.book_usage.setCurrentIndex(page.book_usage.findData("unlimited"))
     page.book_profit_threshold.setValue(50.0001)
     assert page.collect_task_inputs()["book_profit_threshold"] == 500001
-    page.mode_buttons["target"].setChecked(True)
-    with pytest.raises(ValueError, match="正的目标"):
+    page.mode_buttons["free"].setChecked(True)
+    page.target_profit_enabled.setChecked(True)
+    with pytest.raises(ValueError, match="正的预计收益目标"):
         page.collect_task_inputs()
     page.target_profit.setValue(123.4567)
     assert page.collect_task_inputs()["target_profit"] == 1234567
-    page.mode_buttons["profit"].setChecked(True)
+    page.target_profit_enabled.setChecked(False)
     assert "target_profit" not in page.collect_task_inputs()
-    page.mode_buttons["target"].setChecked(True)
+    page.mode_buttons["free"].setChecked(True)
+    page.target_profit_enabled.setChecked(True)
     assert page.collect_task_inputs()["target_profit"] == 1234567
 
 
-def test_quick_overrides_policies_but_retains_other_mode_preferences(page):
+def test_fill_does_not_force_negotiation_and_preferences_survive_mode_switch(page):
+    page.book_usage.setCurrentIndex(page.book_usage.findData("unlimited"))
+    page.book_policy.setCurrentIndex(page.book_policy.findData("fill"))
     page.negotiation_policy.setCurrentIndex(page.negotiation_policy.findData("disabled"))
-    page.mode_buttons["quick"].setChecked(True)
     inputs = page.collect_task_inputs()
     assert inputs["book_policy"] == "fill"
-    assert inputs["negotiation_policy"] == "required"
-    assert inputs["book_profit_threshold"] == 500000
-    assert not page.book_policy.isEnabled()
-    page.mode_buttons["profit"].setChecked(True)
-    assert page.book_policy.currentData() == "profit"
+    assert inputs["negotiation_policy"] == "disabled"
+    assert page.book_policy.currentText() == "尽量满仓"
+    assert page.book_policy.isEnabled()
+    page.mode_buttons["fixed"].setChecked(True)
+    page.mode_buttons["free"].setChecked(True)
+    assert page.book_policy.currentData() == "fill"
     assert page.negotiation_policy.currentData() == "disabled"
 
 
@@ -147,7 +156,6 @@ def test_multiple_endpoints_and_preview_run_share_parameters(page):
     preview = page.collect_task_inputs(preview=True)
     assert run["required_end_city_ids"] == ["1", "11"]
     assert preview.pop("start_city_id") == "1"
-    # Execution extras (including Black Moon purchases) are not planning inputs.
     assert preview == {key: value for key, value in run.items() if key in TRADE_PREVIEW_INPUT_KEYS}
 
 
@@ -162,7 +170,7 @@ def test_normalization_preserves_null_and_drops_only_ui_and_inapplicable_fields(
 
 
 def test_result_distinguishes_plan_actual_reposition_and_error(page):
-    page._render_result({"status": "planned", "trade_mode": "target", "planning_status": "target_unreachable",
+    page._render_result({"status": "planned", "trade_mode": "free", "planning_status": "target_unreachable",
                          "expected_profit": 500, "expected_fatigue_used": 20,
                          "reposition": {"expected_fatigue": 5}, "actual_profit": None,
                          "error": {"code": "target_unreachable", "message": "预算不足"}})
@@ -182,16 +190,16 @@ def test_new_result_fields_survive_summary_projection():
         assert summary[field] == result[field]
 
 
-def test_legacy_auto_book_is_extracted_only_to_ui_state(page):
+def test_legacy_auto_book_does_not_enable_unlimited_books(page):
     page._settings.save_trade_inputs({"auto_book": True, "book_budget": 17})
     state = page._settings.load_trade_inputs()
     assert state["books_enabled"] is True
-    assert state["books_unlimited"] is True
+    assert state["books_unlimited"] is False
     assert state["finite_book_budget"] == 17
-    assert state["book_budget"] is None
+    assert state["book_budget"] == 17
     assert "auto_book" not in state
     page.restore_inputs(state)
-    assert page.collect_task_inputs()["book_budget"] is None
+    assert page.collect_task_inputs()["book_budget"] == 17
 
 
 def test_inactive_mode_state_persists_and_restores(page):
@@ -203,7 +211,8 @@ def test_inactive_mode_state_persists_and_restores(page):
     page.restore_inputs(page._settings.load_trade_inputs())
     page.mode_buttons["fixed"].setChecked(True)
     assert page.collect_task_inputs()["fixed_route_city_ids"] == ["1", "2"]
-    page.mode_buttons["target"].setChecked(True)
+    page.mode_buttons["free"].setChecked(True)
+    page.target_profit_enabled.setChecked(True)
     assert page.collect_task_inputs()["target_profit"] == 250001
     assert page.book_budget.value() == 13
 
@@ -231,3 +240,5 @@ def test_product_unlock_buttons_sync_shared_products_and_city_counts(page):
     assert dialog._city_items[1].isHidden()
     assert not dialog._city_items[0].isHidden()
     dialog.close()
+    dialog.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

@@ -244,3 +244,55 @@ def test_ledger_and_evidence_must_stay_inside_repo(case, tmp_path):
     row = run(1)
     row["sources"][0]["path"] = "../outside.png"
     assert "evidence file must stay in repository" in ledger.record_run(row)["failures"]
+
+
+@pytest.mark.parametrize("winerror", [5, 32, 33])
+def test_atomic_save_retries_transient_windows_lock_without_duplicate_run(case, monkeypatch, winerror):
+    from tools import deep_dive_acceptance as module
+    ledger, _, _, run, _ = case
+    replace = module.os.replace
+    attempts, sleeps = [], []
+
+    def temporarily_locked(source, destination):
+        attempts.append((source, destination))
+        if len(attempts) < 3:
+            error = PermissionError("temporarily locked")
+            error.winerror = winerror
+            raise error
+        return replace(source, destination)
+
+    monkeypatch.setattr(module.os, "replace", temporarily_locked)
+    monkeypatch.setattr(module.time, "sleep", sleeps.append)
+    assert ledger.record_run(run(1))["passed"]
+    assert len(attempts) == 3 and sleeps == [.05, .05]
+    reloaded = AcceptanceLedger(ledger.path, ledger.root)
+    assert reloaded.summary() == ledger.summary()
+    assert reloaded.summary()["attempts"] == reloaded.summary()["consecutive_passes"] == 1
+    assert not ledger.path.with_suffix(".json.writing").exists()
+
+
+@pytest.mark.parametrize("winerror, expected_attempts", [(5, 5), (112, 1), (None, 1)])
+def test_atomic_save_exhaustion_or_unrelated_error_keeps_last_persisted_ledger(
+        case, monkeypatch, winerror, expected_attempts):
+    from tools import deep_dive_acceptance as module
+    ledger, _, _, run, _ = case
+    before = ledger.path.read_bytes()
+    attempts, sleeps = [], []
+    error = OSError("persistent failure")
+    if winerror is not None:
+        error.winerror = winerror
+
+    def fail(source, destination):
+        attempts.append((source, destination))
+        raise error
+
+    monkeypatch.setattr(module.os, "replace", fail)
+    monkeypatch.setattr(module.time, "sleep", sleeps.append)
+    with pytest.raises(OSError) as caught:
+        ledger.record_run(run(1))
+    assert caught.value is error
+    assert len(attempts) == expected_attempts
+    assert sleeps == [.05] * (expected_attempts - 1)
+    assert ledger.path.read_bytes() == before
+    pending = json.loads(ledger.path.with_suffix(".json.writing").read_text(encoding="utf-8"))
+    assert len(pending["runs"]) == 1

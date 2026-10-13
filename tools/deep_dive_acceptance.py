@@ -15,6 +15,7 @@ import json
 import math
 import os
 from pathlib import Path
+import time
 from typing import Any
 
 FACES = ("U", "R", "F", "D", "L", "B")
@@ -95,7 +96,16 @@ class AcceptanceLedger:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(self.path.suffix + ".writing")
         temporary.write_text(json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(temporary, self.path)
+        # Windows file watchers can briefly hold the destination without delete
+        # sharing. Keep the atomic replacement and preserve both files on error.
+        for attempt in range(5):
+            try:
+                os.replace(temporary, self.path)
+                break
+            except OSError as exc:
+                if getattr(exc, "winerror", None) not in (5, 32, 33) or attempt == 4:
+                    raise
+                time.sleep(0.05)
 
     def initialize(self, fingerprint: dict, *, initial_environment_sec: float | None = None):
         if self.data is not None:
