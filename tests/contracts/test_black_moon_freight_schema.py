@@ -62,7 +62,7 @@ def test_known_partial_table_expands_but_unknown_id_rejected(combined_task):
     )[0]
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_freight_map_forwarding_all_modes(mode):
     spec = task("auto_cycle_trade_pc")
     ok, inputs = InputValidator(None).validate_inputs_against_meta(

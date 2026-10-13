@@ -172,3 +172,24 @@ def test_missing_selection_confirmation_or_fraction_fails_closed():
     image = frame('selection_empty')
     image[650:685, 175:255] = 0
     assert ui.selection_state(image) is None
+
+
+def test_return_overview_state_reuses_saved_map_without_outline_detection(monkeypatch):
+    path = FIXTURES.parent / "reforming_center_templates/safety_boundary_20261013/animal_left_limit.png"
+    image = cv2.imread(str(path))
+    monkeypatch.setattr(ui.rooms, "selected_rectangles", lambda *args: pytest.fail("No outline checks requested"))
+    state = ui.overview_state(image)
+    assert state["page"] == "reforming_center_overview"
+    assert "动物纤维原料车间" in state["anchors"]
+    assert state == ui.overview_state(image.copy())
+    assert "score" not in str(state)
+
+
+@pytest.mark.parametrize("name", ["idle_gray", "running", "deposit_dialog", "selection_empty"])
+def test_return_overview_state_rejects_workshop_and_overlay_pages(name):
+    assert ui.overview_state(frame(name)) is None
+
+
+def test_return_overview_state_rejects_blank_and_bad_shape():
+    assert ui.overview_state(np.zeros((720, 1280, 3), np.uint8)) is None
+    assert ui.overview_state(None) is None

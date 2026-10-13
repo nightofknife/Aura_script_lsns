@@ -10,6 +10,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
+from plans.resonance_pc.src.services.resonance_pc_freight_parameters import effective_freight_inputs
 
 GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
@@ -1176,7 +1177,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
 
 
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Project UI state onto the four-mode freight task contract."""
+    """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
     if "auto_pickup_interval_sec" in normalized:
         normalized["auto_pickup_interval_sec"] = validate_pickup_click_interval(normalized["auto_pickup_interval_sec"])
@@ -1194,19 +1195,7 @@ def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, A
                 "negotiation_budget_ignored", "fixed_route_repeat_count", "trade_level",
                 "active_events", "books_enabled", "books_unlimited", "finite_book_budget"):
         normalized.pop(key, None)
-    mode = str(normalized.get("trade_mode") or "profit")
-    normalized["trade_mode"] = mode
-    if mode == "quick":
-        normalized.update(book_policy="fill", negotiation_policy="required")
-    if mode == "fixed":
-        for key in ("available_city_ids", "required_end_city_ids", "target_profit"):
-            normalized.pop(key, None)
-    else:
-        normalized.pop("fixed_route_city_ids", None)
-        normalized.pop("reposition_to_route", None)
-        if mode != "target":
-            normalized.pop("target_profit", None)
-    return normalized
+    return effective_freight_inputs(normalized)
 
 
 def average_book_profit_text(summary: Mapping[str, Any]) -> str | None:

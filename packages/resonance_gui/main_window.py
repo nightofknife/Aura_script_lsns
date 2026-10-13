@@ -400,6 +400,8 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
         self.trade_page.auto_pickup_interval_sec.valueChanged.connect(self._save_auto_pickup_interval)
+        self.trade_page.validationChanged.connect(self.workflow_page.set_freight_validation_error)
+        self.workflow_page.set_freight_validation_error(self.trade_page._form_error())
         self.trade_page.set_end_city_constraint_available(
             self.workflow_page.trade_end_city_constraint_available()
         )
@@ -928,7 +930,7 @@ class ResonanceMainWindow(QMainWindow):
 
         try:
             if "trade" in snapshots:
-                self._settings.save_trade_inputs(snapshots["trade"])
+                self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
             if "passenger" in snapshots:
                 self._settings.save_passenger_inputs(snapshots["passenger"])
         except (ValueError, OSError) as exc:
@@ -1739,6 +1741,8 @@ class ResonanceMainWindow(QMainWindow):
             small_task_owns_result = self._small_task_active_ref == task_ref
             if isinstance(player_data, dict):
                 if task_ref == PC_PLAYER_DATA_REFRESH_TASK_REF:
+                    if extract_status(payload) == "success" and player_data_result.get("success") is not False:
+                        self.trade_preview_page.invalidate_preview("账号数据已更新")
                     self.small_tasks_page.apply_refresh_result(
                         player_data,
                         mark_complete=small_task_owns_result,

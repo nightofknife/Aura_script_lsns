@@ -52,6 +52,8 @@ _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS = (
 )
 _CITY_DEFAULTS_VERSION = 2
 PORTABLE_SETTINGS_FILENAME = "gui-settings-layout-v2.ini"
+TRADE_INPUTS_KEY = "trade/two_mode_inputs_json"
+TRADE_PREVIEW_INPUTS_KEY = "trade_preview/two_mode_inputs_json"
 
 
 @dataclass(frozen=True)
@@ -66,7 +68,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
-    "trade_mode": "profit",
+    "trade_mode": "free",
     "book_policy": "profit",
     "negotiation_policy": "auto",
     "books_enabled": False,
@@ -75,6 +77,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fixed_route_city_ids": [],
     "reposition_to_route": False,
     "target_profit": None,
+    "target_profit_enabled": False,
     "book_profit_threshold": 500000,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
@@ -119,6 +122,7 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "fixed_route_city_ids",
     "reposition_to_route",
     "target_profit",
+    "target_profit_enabled",
     "book_profit_threshold",
     "bargain_success_rates_bps",
     "bargain_step_bps",
@@ -258,7 +262,7 @@ class ResonanceConfigRepository:
             raise
 
     def load_trade_inputs(self) -> dict[str, Any]:
-        raw = self.settings.value("trade/inputs_json", "")
+        raw = self.settings.value(TRADE_INPUTS_KEY, "")
         if raw:
             try:
                 parsed = json.loads(str(raw))
@@ -270,19 +274,16 @@ class ResonanceConfigRepository:
                 # Invalid purchase settings must not silently reset all freight fields.
                 normalize_black_moon_settings(parsed)
                 try:
-                    parsed = self._migrate_trade_city_defaults(parsed)
                     return _merge_trade_inputs(parsed)
                 except (TypeError, ValueError):
                     pass
-        self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
-        self.settings.sync()
         return _merge_trade_inputs({})
 
     def save_trade_inputs(self, inputs: dict[str, Any]) -> None:
         normalized = _merge_trade_inputs(inputs)
-        keys = ("trade/inputs_json", "trade/city_defaults_version")
+        keys = (TRADE_INPUTS_KEY, "trade/city_defaults_version")
         previous = {key: self.settings.value(key) for key in keys}
-        self.settings.setValue("trade/inputs_json", json.dumps(normalized, ensure_ascii=False))
+        self.settings.setValue(TRADE_INPUTS_KEY, json.dumps(normalized, ensure_ascii=False))
         self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
         try:
             self.sync_checked()
@@ -304,7 +305,7 @@ class ResonanceConfigRepository:
 
     def load_trade_preview_inputs(self) -> dict[str, Any]:
         """Load independent planning inputs, seeding normal trade inputs once."""
-        key = "trade_preview/inputs_json"
+        key = TRADE_PREVIEW_INPUTS_KEY
         if not self.settings.contains(key):
             normalized = _merge_trade_preview_inputs(self.load_trade_inputs())
             self.save_trade_preview_inputs(normalized)
@@ -324,33 +325,9 @@ class ResonanceConfigRepository:
         """Persist only preview planning inputs without changing trade settings."""
         normalized = _merge_trade_preview_inputs(inputs)
         self.settings.setValue(
-            "trade_preview/inputs_json", json.dumps(normalized, ensure_ascii=False)
+            TRADE_PREVIEW_INPUTS_KEY, json.dumps(normalized, ensure_ascii=False)
         )
         self.settings.sync()
-
-    def _migrate_trade_city_defaults(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        try:
-            defaults_version = int(self.settings.value("trade/city_defaults_version", 1))
-        except (TypeError, ValueError):
-            defaults_version = 1
-        if defaults_version >= _CITY_DEFAULTS_VERSION:
-            return inputs
-
-        migrated = dict(inputs)
-        raw_city_ids = migrated.get("available_city_ids")
-        selected = {
-            str(city_id)
-            for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
-        }
-        if selected == set(ALL_PC_TRADE_CITY_IDS):
-            migrated["available_city_ids"] = list(DEFAULT_PC_TRADE_CITY_IDS)
-            self.settings.setValue(
-                "trade/inputs_json",
-                json.dumps(migrated, ensure_ascii=False),
-            )
-        self.settings.setValue("trade/city_defaults_version", _CITY_DEFAULTS_VERSION)
-        self.settings.sync()
-        return migrated
 
     def load_passenger_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("passenger/inputs_json", "")
@@ -459,6 +436,9 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    if merged["trade_mode"] not in ("free", "fixed"):
+        raise ValueError("货运模式必须为 free 或 fixed。")
+    merged["target_profit_enabled"] = bool(values.get("target_profit_enabled", False))
     for key, minimum, maximum in (("fatigue_budget", 0, None), ("cargo_capacity", 1, None),
                                   ("negotiation_max_attempts", 1, 6),
                                   ("fatigue_medicine_max_uses", 0, None),
@@ -474,32 +454,23 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
             if str(city_id) in ALL_PC_TRADE_CITY_IDS
         )
     )
-    raw_city_id_set = frozenset(
-        str(city_id)
-        for city_id in (raw_city_ids if isinstance(raw_city_ids, list) else [])
-    )
-    if (
-        len(normalized_city_ids) < 2
-        or raw_city_id_set in _LEGACY_DEFAULT_PC_TRADE_CITY_ID_SETS
-    ):
-        normalized_city_ids = list(DEFAULT_PC_TRADE_CITY_IDS)
+    # Incomplete selections are drafts, not a request to restore defaults.
+    # Execution validation belongs to the task boundary.
     merged["available_city_ids"] = normalized_city_ids
     raw_end_city_ids = merged.get("required_end_city_ids")
     normalized_end_city_ids = list(
         dict.fromkeys(
             str(city_id)
             for city_id in (raw_end_city_ids if isinstance(raw_end_city_ids, list) else [])
-            if str(city_id) in normalized_city_ids
+            if str(city_id) in ALL_PC_TRADE_CITY_IDS
         )
     )
-    merged["required_end_city_ids"] = normalized_end_city_ids if normalized_end_city_ids else None
+    merged["required_end_city_ids"] = None if raw_end_city_ids is None else normalized_end_city_ids
     budget = merged["book_budget"]
     if budget is not None and (type(budget) is not int or budget < 0):
         raise ValueError("进货书必须为非负整数或无限。")
-    # Old persisted Auto Book was an unbounded UI choice, never a new task alias.
-    legacy_unlimited = bool(values.get("auto_book", False)) and "books_unlimited" not in values
-    merged["books_enabled"] = bool(values.get("books_enabled", legacy_unlimited or budget is None or budget > 0))
-    merged["books_unlimited"] = bool(values.get("books_unlimited", legacy_unlimited or budget is None))
+    merged["books_enabled"] = bool(values.get("books_enabled", budget is None or budget > 0))
+    merged["books_unlimited"] = bool(values.get("books_unlimited", budget is None))
     finite = values.get("finite_book_budget", budget if budget is not None else 0)
     if type(finite) is not int or finite < 0:
         raise ValueError("有限进货书数量必须为非负整数。")
@@ -518,8 +489,6 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         or len(priority) != len(set(priority))
     ):
         raise ValueError("便当类型顺序至少选择一种，只允许工作餐和爱心便当，且不能重复。")
-    if merged["auto_bento"] and not priority:
-        raise ValueError("自动吃便当开启时，便当类型至少选择一种。")
     merged["bento_priority"] = list(priority)
     reserve = merged["base_fatigue_reserve"]
     if type(reserve) is not int or reserve < 0:

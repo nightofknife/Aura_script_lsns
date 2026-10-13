@@ -165,17 +165,17 @@ def assert_oracle(actual, expected):
                  for leg in actual["route"]) == signatures
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode,goal", [("free", None), ("free", 25), ("fixed", None)])
 @pytest.mark.parametrize("budget", [0, 1, None])
-def test_all_modes_honor_unique_finite_or_unlimited_book_budget(mode, budget):
+def test_all_modes_honor_unique_finite_or_unlimited_book_budget(mode, goal, budget):
     model = solver()
     result = solve(model, trade_mode=mode, book_budget=budget, fatigue_budget=3,
-                   fixed_route_city_ids=["A", "B"], target_profit=25)
+                   fixed_route_city_ids=["A", "B"], target_profit=goal)
     assert result["book_budget"] is budget
     assert "auto_book" not in result
     if result["status"] == "ok" and budget is not None:
         assert result["books_used"] <= budget
-    if mode == "target":
+    if goal is not None:
         assert result["status"] == ("ok" if budget is None else "target_unreachable")
 
 
@@ -208,7 +208,7 @@ def test_fill_stops_at_first_full_load_not_product_replacement():
                              "q": product("q", {"A": 1}, {"B": 3})},
                    lots={"A": {"p": 1, "q": 3}})
     profit = solve(model, book_budget=None, cargo_capacity=4)
-    quick = solve(model, trade_mode="quick", book_budget=None, cargo_capacity=4, fatigue_budget=3)
+    quick = solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", book_budget=None, cargo_capacity=4, fatigue_budget=3)
     assert profit["books_used"] == 3
     assert quick["books_used"] == 0
     assert quick["route"][0]["book_stop_reason"] == "already_full_without_books"
@@ -220,7 +220,7 @@ def test_quick_globally_allocates_books_to_later_higher_profit_leg():
                    products={"p": product("p", {"A": 1}, {"B": 11}),
                              "q": product("q", {"B": 1}, {"C": 101})},
                    lots={"A": {"p": 1}, "B": {"q": 1}})
-    result = solve(model, trade_mode="quick", fatigue_budget=6, book_budget=1,
+    result = solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", fatigue_budget=6, book_budget=1,
                    cargo_capacity=2, required_end_city_ids=["C"])
     assert [leg["books_used"] for leg in result["route"]] == [0, 1]
     assert result["route"][0]["loaded_quantity"] == 1
@@ -229,15 +229,15 @@ def test_quick_globally_allocates_books_to_later_higher_profit_leg():
 
 def test_required_negotiation_never_falls_back_to_unnegotiated_trade():
     model = solver()
-    assert solve(model, trade_mode="quick", fatigue_budget=2)["status"] == "no_plan"
-    assert solve(model, trade_mode="quick", fatigue_budget=9,
+    assert solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", fatigue_budget=2)["status"] == "no_plan"
+    assert solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", fatigue_budget=9,
                  bargain_success_rates_bps=[0])["status"] == "no_plan"
 
 
 def test_large_unlimited_curves_are_exact_and_target_keeps_low_book_candidate():
     model = solver()
     profit = solve(model, book_budget=None, cargo_capacity=1000000)
-    target = solve(model, trade_mode="target", book_budget=None, cargo_capacity=1000000, target_profit=25)
+    target = solve(model, trade_mode="free", book_budget=None, cargo_capacity=1000000, target_profit=25)
     assert profit["books_used"] == 999999
     assert profit["expected_profit_exact"] == "10000000"
     assert target["books_used"] == 2
@@ -271,7 +271,7 @@ def test_target_preserves_lower_profit_shorter_label_at_the_same_intermediate_st
                   "cb": product("cb", {"C": 1}, {"B": 7}),
                   "bd": product("bd", {"B": 1}, {"D": 6})},
         lots={"A": {"ab": 1, "ac": 1}, "C": {"cb": 1}, "B": {"bd": 1}})
-    result = solve(model, trade_mode="target", cargo_capacity=1, fatigue_budget=3,
+    result = solve(model, trade_mode="free", cargo_capacity=1, fatigue_budget=3,
                    target_profit=10, required_end_city_ids=["D"])
     assert result["city_path_ids"] == ["A", "B", "D"]
     assert result["expected_profit"] == 10
@@ -285,7 +285,7 @@ def test_target_preserves_lower_profit_stable_path_when_all_resources_tie():
                   "b": product("b", {"B": 1, "C": 1}, {"D": 5}),
                   "d": product("d", {"D": 1}, {"E": 5})},
         lots={"A": {"a": 1}, "B": {"b": 1}, "C": {"b": 1}, "D": {"d": 1}})
-    result = solve(model, trade_mode="target", cargo_capacity=1, fatigue_budget=3,
+    result = solve(model, trade_mode="free", cargo_capacity=1, fatigue_budget=3,
                    target_profit=12, required_end_city_ids=["E"])
     assert result["city_path_ids"] == ["A", "B", "D", "E"]
     assert result["expected_profit"] == 12
@@ -293,7 +293,7 @@ def test_target_preserves_lower_profit_stable_path_when_all_resources_tie():
 
 def test_navigation_after_reaching_target_does_not_fabricate_trades_or_sell_flags():
     model = solver(cities=("A", "B", "C"), costs={"A": {"B": 1}, "B": {"C": 1}, "C": {}})
-    result = solve(model, trade_mode="target", cargo_capacity=1, fatigue_budget=2,
+    result = solve(model, trade_mode="free", cargo_capacity=1, fatigue_budget=2,
                    target_profit=10, required_end_city_ids=["C"])
     assert result["city_path_ids"] == ["A", "B", "C"]
     assert result["route"][-1]["leg_type"] == "navigation"
@@ -314,9 +314,9 @@ def test_target_fatigue_then_books_not_excess_profit_and_endpoint_is_required():
     model = solver(cities=("A", "B", "C"), costs={"A": {"B": 2, "C": 1}, "B": {}, "C": {"B": 1}},
                    products={"p": product("p", {"A": 1}, {"B": 101, "C": 51})},
                    lots={"A": {"p": 2}})
-    target = solve(model, trade_mode="target", fatigue_budget=2, target_profit=100)
+    target = solve(model, trade_mode="free", fatigue_budget=2, target_profit=100)
     assert target["city_path_ids"] == ["A", "C"]
-    endpoint = solve(model, trade_mode="target", fatigue_budget=2, target_profit=100,
+    endpoint = solve(model, trade_mode="free", fatigue_budget=2, target_profit=100,
                      required_end_city_ids=["B"])
     assert endpoint["city_path_ids"] == ["A", "B"]
     assert endpoint["city_visits"][-1]["buy_intent"] is None
@@ -324,7 +324,7 @@ def test_target_fatigue_then_books_not_excess_profit_and_endpoint_is_required():
 
 
 def test_unreachable_returns_actual_maximum_but_no_executable_route():
-    result = solve(solver(), trade_mode="target", target_profit=100,
+    result = solve(solver(), trade_mode="free", target_profit=100,
                    book_budget=1, required_end_city_ids=["B"])
     assert result["status"] == "target_unreachable"
     assert result["maximum_reachable_profit_exact"] == "20"
@@ -401,19 +401,19 @@ def test_reposition_is_separate_pure_navigation_and_charged_to_total_budget():
 
 def test_fractional_expected_fatigue_retains_exact_budget_boundary():
     model = solver()
-    result = solve(model, trade_mode="quick", fatigue_budget=4,
+    result = solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", fatigue_budget=4,
                    bargain_success_rates_bps=[6000], raise_success_rates_bps=[7500])
     assert result["expected_fatigue_used_exact"] == "4"
     assert expected_fatigue_to_cap(success_rates_bps=[6000], step_bps=2000, attempt_fatigue=1) == Fraction(5, 3)
-    assert solve(model, trade_mode="quick", fatigue_budget=3,
+    assert solve(model, trade_mode="free", book_policy="fill", negotiation_policy="required", fatigue_budget=3,
                  bargain_success_rates_bps=[6000], raise_success_rates_bps=[7500])["status"] == "no_plan"
 
 
 def test_inputs_are_not_mutated_and_invalid_mode_inputs_do_not_silently_coerce():
     model = solver()
     original = deepcopy((model.snapshot, model.fatigue_costs, model.buy_lot))
-    for kwargs in ({"book_budget": True}, {"cargo_capacity": 0}, {"target_profit": 0, "trade_mode": "target"},
-                   {"book_policy": "bogus"}, {"negotiation_policy": "bogus"}):
+    for kwargs in ({"book_budget": True}, {"cargo_capacity": 0}, {"target_profit": 0, "trade_mode": "free"},
+                   {"book_policy": "bogus", "book_budget": 1}, {"negotiation_policy": "bogus"}):
         with pytest.raises((TypeError, ValueError)):
             solve(model, **kwargs)
     solve(model, book_budget=None)
@@ -449,9 +449,10 @@ def test_randomized_all_objectives_and_complete_tie_order_against_exhaustive_ora
             expected, maximum = enumerate_oracle(model, mode=mode, capacity=capacity, books=books,
                          threshold=threshold, negotiation=negotiation, budget=budget, target=target,
                          endpoints=endpoints, fixed=fixed, negotiation_budget=neg_budget)
-            args = dict(trade_mode=mode, fatigue_budget=budget, cargo_capacity=capacity, book_budget=books,
-                        book_profit_threshold=threshold, negotiation_policy=negotiation,
-                        negotiation_budget=neg_budget, target_profit=target,
+            args = dict(trade_mode="fixed" if mode == "fixed" else "free", fatigue_budget=budget, cargo_capacity=capacity, book_budget=books,
+                        book_profit_threshold=threshold, negotiation_policy="required" if mode == "quick" else negotiation,
+                        book_policy="fill" if mode == "quick" else "profit",
+                        negotiation_budget=neg_budget, target_profit=target if mode == "target" else None,
                         required_end_city_ids=endpoints, fixed_route_city_ids=fixed)
             actual = solve(model, **args)
             try:

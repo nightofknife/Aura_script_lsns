@@ -15,6 +15,7 @@ import numpy as np
 
 from . import _raw_workshop_digits as digits
 from . import _reforming_center_room_templates as rooms
+from . import _reforming_center_map_navigation as room_map
 
 PLAN = Path(__file__).resolve().parents[2]
 
@@ -135,6 +136,22 @@ def room_ready(image, room_name):
     # Running work pages intentionally have no choose_prisoners button.
     return bool(_room_title(image, room_name) and _labels(image)
                 and production_state(image) is not None)
+
+
+def overview_state(image):
+    """Post-back destination evidence only; never inspect selection outlines.
+
+    Reuse real room-title templates and measured-map consensus. Match scores
+    are excluded so fresh stable frames compare semantic viewport evidence.
+    """
+    if not _valid(image) or _labels(image) is not None:
+        return None
+    try:
+        pose = room_map.locate_viewport(rooms.room_hits(image, rooms.load_catalog()), room_map.load_map())
+    except room_map.RoomMapError:
+        return None
+    return {"page": "reforming_center_overview", "anchors": sorted(pose["anchors"]),
+            "offset": pose["offset"], "component": pose["component"]}
 
 
 def _fraction_after(image, label, *, style="list"):

@@ -136,9 +136,11 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
         for task in ("startup", "trade", "passenger", "battle", "close"):
             page._select_task(task)
             app.processEvents()
-        for mode in ("profit", "quick", "fixed", "target", "profit"):
+        for mode in ("free", "fixed", "free"):
             window.trade_page.mode_buttons[mode].click()
+            window.trade_page.target_profit_enabled.setChecked(mode == "free")
             app.processEvents()
+    window.trade_page.target_profit_enabled.setChecked(False)
     page._drop_task("close", 0)
     page._drop_task("close", 5)
     page._select_task("trade")

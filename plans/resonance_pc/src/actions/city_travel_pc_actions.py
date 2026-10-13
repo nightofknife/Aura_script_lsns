@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.runtime_trace import log_event, log_poll
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 from ._operation_progress import observe_operation
@@ -49,6 +50,18 @@ _TRAVEL_HORN_REGION = [960, 640, 80, 80]
 _TRAVEL_HORN_THRESHOLD = 0.90
 _AUTO_PICKUP_POINT = (770, 400)
 _AUTO_PICKUP_INTERVAL = 0.5
+
+
+def _sleep_with_cancel(duration: float) -> None:
+    """Keep UI settling waits responsive without interrupting held gestures."""
+    remaining = max(float(duration), 0.0)
+    _check_intercity_cancelled()
+    while remaining > 0:
+        interval = min(remaining, 0.05)
+        time.sleep(interval)
+        _check_intercity_cancelled()
+        remaining -= interval
+
 
 
 def _normalize_pickup_interval(value: Any) -> float:
@@ -356,6 +369,7 @@ def _capture_and_ocr_city_labels(
     ocr: Any,
     city_search_region: List[int],
 ) -> List[Dict[str, Any]]:
+    _check_intercity_cancelled()
     capture = app.capture(rect=tuple(city_search_region))
     if not capture.success:
         _raise_error(
@@ -394,24 +408,16 @@ def _capture_and_ocr_text_items(
     diagnostic_label: Optional[str] = None,
     diagnostic_poll: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
+    _check_intercity_cancelled()
     capture_started = time.monotonic()
     if diagnostic_label:
-        logger.info(
-            "[%s] poll=%s phase=capture_start region=%s",
-            diagnostic_label,
-            diagnostic_poll,
-            region,
-        )
+        log_event("vision.capture", detail=True, label=diagnostic_label,
+                  poll=diagnostic_poll, phase="started", region=region)
     capture = app.capture(rect=tuple(region))
     if diagnostic_label:
-        logger.info(
-            "[%s] poll=%s phase=capture_done elapsed_ms=%s success=%s image_shape=%s",
-            diagnostic_label,
-            diagnostic_poll,
-            round((time.monotonic() - capture_started) * 1000.0, 1),
-            bool(capture.success),
-            list(getattr(capture.image, "shape", ()) or ()),
-        )
+        log_event("vision.capture", detail=True, label=diagnostic_label, poll=diagnostic_poll,
+                  phase="finished", elapsed_ms=round((time.monotonic() - capture_started) * 1000, 1),
+                  success=bool(capture.success), image_shape=list(getattr(capture.image, "shape", ()) or ()))
     if not capture.success:
         _raise_error(
             code="capture_failed",
@@ -421,11 +427,7 @@ def _capture_and_ocr_text_items(
 
     ocr_started = time.monotonic()
     if diagnostic_label:
-        logger.info(
-            "[%s] poll=%s phase=ocr_start",
-            diagnostic_label,
-            diagnostic_poll,
-        )
+        log_event("vision.ocr", detail=True, label=diagnostic_label, poll=diagnostic_poll, phase="started")
     multi = ocr.recognize_all(source_image=capture.image)
     observed: List[Dict[str, Any]] = []
     for item in getattr(multi, "results", []) or []:
@@ -445,14 +447,9 @@ def _capture_and_ocr_text_items(
         )
     observed.sort(key=lambda x: x["confidence"], reverse=True)
     if diagnostic_label:
-        logger.info(
-            "[%s] poll=%s phase=ocr_result elapsed_ms=%s count=%s observed=%s",
-            diagnostic_label,
-            diagnostic_poll,
-            round((time.monotonic() - ocr_started) * 1000.0, 1),
-            len(observed),
-            json.dumps(observed, ensure_ascii=False, separators=(",", ":")),
-        )
+        log_event("vision.ocr", detail=True, label=diagnostic_label, poll=diagnostic_poll,
+                  phase="finished", elapsed_ms=round((time.monotonic() - ocr_started) * 1000, 1),
+                  count=len(observed), observed=observed)
     return observed
 
 
@@ -687,7 +684,9 @@ def _perform_drag_with_hold(
     drag_duration_sec: float,
     drag_hold_sec: float,
 ) -> None:
+    _check_intercity_cancelled()
     app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
+    _check_intercity_cancelled()
     app.drag(
         start_x=int(start[0]),
         start_y=int(start[1]),
@@ -713,6 +712,7 @@ def _match_template_in_region(
     threshold: float,
     use_grayscale: bool = True,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     capture = app.capture(rect=tuple(region))
     if not capture.success:
         return {"found": False, "template": template, "region": list(region), "reason": "capture_failed"}
@@ -747,6 +747,7 @@ def _click_template_match(app: Any, match: Dict[str, Any]) -> bool:
     center = match.get("center")
     if not match.get("found") or not isinstance(center, list) or len(center) != 2:
         return False
+    _check_intercity_cancelled()
     app.click(x=int(center[0]), y=int(center[1]))
     return True
 
@@ -770,15 +771,8 @@ def _click_arrival_template_until_absent(
         region=region,
         threshold=threshold,
     )
-    if match.get("found") or poll_count <= 3 or poll_count % 10 == 0:
-        logger.info(
-            "[IntercityArrivalTemplate] poll=%s phase=detect found=%s confidence=%.4f center=%s region=%s",
-            poll_count,
-            bool(match.get("found")),
-            float(match.get("confidence") or 0.0),
-            match.get("center"),
-            region,
-        )
+    log_poll("travel.arrival_template", bool(match.get("found")), poll=poll_count,
+             confidence=float(match.get("confidence") or 0.0), center=match.get("center"), region=region)
     if not match.get("found"):
         return {
             "confirmed": False,
@@ -804,6 +798,7 @@ def _click_arrival_template_until_absent(
             )
 
         x, y = int(center[0]), int(center[1])
+        _check_intercity_cancelled()
         app.click(x=x, y=y)
         click_record = {
             "attempt": attempt,
@@ -822,7 +817,7 @@ def _click_arrival_template_until_absent(
         )
 
         if verify_interval > 0:
-            time.sleep(verify_interval)
+            _sleep_with_cancel(verify_interval)
         _check_intercity_cancelled()
         match = _match_template_in_region(
             app=app,
@@ -841,7 +836,7 @@ def _click_arrival_template_until_absent(
         )
         if not match.get("found"):
             if verify_interval > 0:
-                time.sleep(verify_interval)
+                _sleep_with_cancel(verify_interval)
             _check_intercity_cancelled()
             confirmation = _match_template_in_region(
                 app=app,
@@ -896,21 +891,15 @@ def _detect_city_main_entry(app: Any, ocr: Any, *, poll_count: int) -> Dict[str,
         "markers": list(_CITY_MAIN_ENTRY_MARKERS),
         "ocr_items": items[:10],
     }
-    if hit is not None or poll_count <= 3 or poll_count % 10 == 0:
-        logger.info(
-            "[IntercityArrivalCityMain] poll=%s found=%s hit_text=%s center=%s region=%s",
-            poll_count,
-            bool(hit is not None),
-            hit.get("text") if isinstance(hit, dict) else None,
-            hit.get("center") if isinstance(hit, dict) else None,
-            _CITY_MAIN_ENTRY_REGION,
-        )
+    log_poll("travel.arrival_city", bool(hit is not None), poll=poll_count,
+             hit_text=hit.get("text") if isinstance(hit, dict) else None,
+             center=hit.get("center") if isinstance(hit, dict) else None, region=_CITY_MAIN_ENTRY_REGION)
     return evidence
 
 
 def _check_intercity_cancelled() -> None:
     if is_current_task_cancel_requested():
-        raise asyncio.CancelledError("Resonance PC intercity arrival wait was cancelled")
+        raise asyncio.CancelledError("Resonance PC intercity operation was cancelled")
 
 
 def _open_intercity_map(app: Any, vision: Any) -> Dict[str, Any]:
@@ -925,7 +914,7 @@ def _open_intercity_map(app: Any, vision: Any) -> Dict[str, Any]:
             _check_intercity_cancelled()
             app.click(x=int(match["center"][0]), y=int(match["center"][1]))
             logger.info("[IntercityDeparture] phase=depart_clicked attempt=%s match=%s", attempt, match)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             _check_intercity_cancelled()
             present = absent = 0
             for poll in range(5):
@@ -939,7 +928,7 @@ def _open_intercity_map(app: Any, vision: Any) -> Dict[str, Any]:
                 if present >= 2:
                     break
                 if poll < 4:
-                    time.sleep(POLL_INTERVAL)
+                    _sleep_with_cancel(POLL_INTERVAL)
                     _check_intercity_cancelled()
             if present < 2:
                 break
@@ -958,15 +947,17 @@ def _wait_for_marker_hit(
     interval_sec: float,
     region: Optional[List[int]] = None,
 ) -> Optional[Dict[str, Any]]:
+    _check_intercity_cancelled()
     screen_region = _coerce_region(region, _DEFAULT_FULL_SCREEN_REGION)
     deadline = time.monotonic() + max(float(timeout_sec), 0.0)
     interval = max(float(interval_sec), 0.1)
     while time.monotonic() <= deadline:
+        _check_intercity_cancelled()
         items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=screen_region)
         hit = _find_marker_hit(items, markers)
         if hit is not None:
             return hit
-        time.sleep(interval)
+        _sleep_with_cancel(interval)
     return None
 
 
@@ -974,6 +965,7 @@ def _click_marker_hit(app: Any, hit: Dict[str, Any]) -> bool:
     center = hit.get("center")
     if not isinstance(center, list) or len(center) != 2:
         return False
+    _check_intercity_cancelled()
     app.click(x=int(center[0]), y=int(center[1]))
     return True
 
@@ -1044,6 +1036,7 @@ def _click_fatigue_back(app: Any, vision: Any, threshold: float = 0.95) -> Dict[
     )
     if _click_template_match(app, match):
         return {"clicked": True, "method": "template", "match": match}
+    _check_intercity_cancelled()
     app.click(x=int(_FATIGUE_BACK_FALLBACK_POINT[0]), y=int(_FATIGUE_BACK_FALLBACK_POINT[1]))
     return {"clicked": True, "method": "fallback", "match": match}
 
@@ -1057,10 +1050,12 @@ def _wait_and_click_fatigue_medicine_confirm(
     timeout_sec: float = 3.0,
     interval_sec: float = 0.3,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     deadline = time.monotonic() + max(float(timeout_sec), 0.1)
     interval = max(float(interval_sec), 0.1)
     last_match: Dict[str, Any] = {"found": False}
     while time.monotonic() <= deadline:
+        _check_intercity_cancelled()
         match = _match_template_in_region(
             app=app,
             vision=vision,
@@ -1072,7 +1067,7 @@ def _wait_and_click_fatigue_medicine_confirm(
         last_match = match
         if _click_template_match(app, match):
             return {"clicked": True, "method": "template", "match": match}
-        time.sleep(interval)
+        _sleep_with_cancel(interval)
 
     text_hit = _wait_for_marker_hit(
         app=app,
@@ -1131,9 +1126,11 @@ def _wait_and_click_go_destination(
     template_timeout_sec: float,
     interval_sec: float,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     deadline = time.monotonic() + max(float(template_timeout_sec), 0.1)
     template_match: Dict[str, Any] = {"found": False}
     while time.monotonic() <= deadline:
+        _check_intercity_cancelled()
         template_match = _match_template_in_region(
             app=app,
             vision=vision,
@@ -1144,7 +1141,7 @@ def _wait_and_click_go_destination(
         )
         if _click_template_match(app, template_match):
             return {"clicked": True, "method": "template", "match": template_match}
-        time.sleep(max(float(interval_sec), 0.1))
+        _sleep_with_cancel(max(float(interval_sec), 0.1))
 
     text_hit = _wait_for_marker_hit(
         app=app,
@@ -1167,11 +1164,13 @@ def _wait_departure_gate(
     timeout_sec: float,
     interval_sec: float,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     deadline = time.monotonic() + max(float(timeout_sec), 0.1)
     interval = max(float(interval_sec), 0.1)
     last_panel_match: Dict[str, Any] = {"found": False}
     last_confirm_hit: Optional[Dict[str, Any]] = None
     while time.monotonic() <= deadline:
+        _check_intercity_cancelled()
         panel_match = _match_template_in_region(
             app=app,
             vision=vision,
@@ -1194,11 +1193,13 @@ def _wait_departure_gate(
         )
         last_confirm_hit = confirm_hit
         if confirm_hit is not None:
+            _check_intercity_cancelled()
             app.click(x=int(_WEEKLY_NOTICE_CHECKBOX[0]), y=int(_WEEKLY_NOTICE_CHECKBOX[1]))
-            time.sleep(0.2)
+            _sleep_with_cancel(0.2)
+            _check_intercity_cancelled()
             app.click(x=int(_DEPART_CONFIRM_POINT[0]), y=int(_DEPART_CONFIRM_POINT[1]))
             return {"state": "confirm_clicked", "confirm_hit": confirm_hit}
-        time.sleep(interval)
+        _sleep_with_cancel(interval)
     return {
         "state": "assume_traveling",
         "panel_match": last_panel_match,
@@ -1232,6 +1233,7 @@ def resonance_pc_select_intercity_destination(
     ocr: Any = None,
     from_city_name: Optional[str] = None,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     if app is None or ocr is None:
         raise RuntimeError("app/ocr services are required for select_intercity_destination.")
 
@@ -1266,10 +1268,12 @@ def resonance_pc_select_intercity_destination(
 
     # Each allowed drag gets a subsequent observation, including the final drag.
     for step in range(max_steps + 1):
+        _check_intercity_cancelled()
         observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
         stabilization_retries = 0
         if has_dragged:
             while stabilization_retries < _POST_DRAG_OCR_RETRIES:
+                _check_intercity_cancelled()
                 current_mappable = _build_mappable_city_points(
                     observed=observed,
                     alias_lookup=alias_lookup,
@@ -1278,7 +1282,7 @@ def resonance_pc_select_intercity_destination(
                 if current_mappable:
                     break
                 stabilization_retries += 1
-                time.sleep(_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS)
+                _sleep_with_cancel(_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS)
                 observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
         last_seen_texts = [str(item.get("text", "")) for item in observed[:20]]
         observed_log = [
@@ -1303,6 +1307,7 @@ def resonance_pc_select_intercity_destination(
             click_x = int(hit["center"][0])
             click_y = int(hit["center"][1] + int(click_y_offset))
             click_x, click_y = _clamp_point((click_x, click_y), width, height)
+            _check_intercity_cancelled()
             app.click(x=click_x, y=click_y)
             selected_point = (click_x, click_y)
             selected_mode = "direct" if step == 0 else (selected_mode or "directional")
@@ -1521,7 +1526,7 @@ def resonance_pc_select_intercity_destination(
         last_drag_end = end
         has_dragged = True
         total_drag_count += 1
-        time.sleep(_POST_DRAG_STABILIZE_SECONDS)
+        _sleep_with_cancel(_POST_DRAG_STABILIZE_SECONDS)
 
     _raise_error(
         code="destination_not_found_after_drag",
@@ -1576,6 +1581,7 @@ def resonance_pc_intercity_depart_and_wait(
     auto_pickup: bool = False,
     auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
+    _check_intercity_cancelled()
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
 
@@ -1590,6 +1596,7 @@ def resonance_pc_intercity_depart_and_wait(
     departure_attempts = 0
 
     while True:
+        _check_intercity_cancelled()
         observe_operation("travel.destination", "进入地图并选择目的地", "started", to_city_name=to_city_name)
         _open_intercity_map(app, vision)
 
@@ -1684,7 +1691,7 @@ def resonance_pc_intercity_depart_and_wait(
         observe_operation("travel.fatigue_recovery", "处理疲劳恢复面板", "started")
         if not bool(use_fatigue_medicine):
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             return _blocked_departure_result(
                 reason="fatigue_recovery_required",
                 selected=selected,
@@ -1697,7 +1704,7 @@ def resonance_pc_intercity_depart_and_wait(
 
         if not allowed_names:
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             return _blocked_departure_result(
                 reason="fatigue_medicine_not_allowed",
                 selected=selected,
@@ -1710,7 +1717,7 @@ def resonance_pc_intercity_depart_and_wait(
 
         if sum(int(v) for v in medicine_usage.values()) >= medicine_limit:
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             return _blocked_departure_result(
                 reason="fatigue_medicine_limit_reached",
                 selected=selected,
@@ -1730,7 +1737,7 @@ def resonance_pc_intercity_depart_and_wait(
         )
         if medicine is None:
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             return _blocked_departure_result(
                 reason="fatigue_medicine_unavailable",
                 selected=selected,
@@ -1748,7 +1755,7 @@ def resonance_pc_intercity_depart_and_wait(
             continue
         logger.info("[IntercityDeparture] selected fatigue medicine: %s", medicine_name)
 
-        time.sleep(0.5)
+        _sleep_with_cancel(0.5)
         confirm = _wait_and_click_fatigue_medicine_confirm(
             app=app,
             vision=vision,
@@ -1757,7 +1764,7 @@ def resonance_pc_intercity_depart_and_wait(
         )
         if not confirm.get("clicked"):
             back = _click_fatigue_back(app=app, vision=vision, threshold=medicine_button_threshold)
-            time.sleep(1.0)
+            _sleep_with_cancel(1.0)
             return _blocked_departure_result(
                 reason="fatigue_medicine_confirm_not_found",
                 selected=selected,
@@ -1775,7 +1782,7 @@ def resonance_pc_intercity_depart_and_wait(
         logger.info("[IntercityDeparture] confirmed fatigue medicine: %s", medicine_name)
 
         # Confirming the default 1x use returns to the city main screen.
-        time.sleep(1.5)
+        _sleep_with_cancel(1.5)
         try:
             main_ready = wait_depart_button(app=app, vision=vision, check_cancelled=_check_intercity_cancelled,
                                             timeout_sec=5.0)
@@ -1849,6 +1856,7 @@ class _TravelPickup:
         if time.monotonic() >= deadline:
             return
         if present:
+            _check_intercity_cancelled()
             self.app.click(x=_AUTO_PICKUP_POINT[0], y=_AUTO_PICKUP_POINT[1])
             self.click_count += 1
         self.next_click_at = time.monotonic() + self.interval_sec
@@ -1858,7 +1866,7 @@ class _TravelPickup:
         until = min(deadline, self.next_click_at, time.monotonic() + max_wait_sec)
         while time.monotonic() < until:
             _check_intercity_cancelled()
-            time.sleep(min(0.05, max(0.0, until - time.monotonic())))
+            _sleep_with_cancel(min(0.05, max(0.0, until - time.monotonic())))
 
 
 @action_info(
@@ -2007,7 +2015,7 @@ def _wait_intercity_arrival_loop(
             pickup.tick(deadline)
             pickup.wait(deadline, max_wait_sec=interval)
         else:
-            time.sleep(interval)
+            _sleep_with_cancel(interval)
 
     pickup.end_reason = "timeout"
     _raise_error(

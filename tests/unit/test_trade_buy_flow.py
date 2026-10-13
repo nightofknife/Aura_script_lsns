@@ -322,9 +322,9 @@ def test_city_trade_accepts_confirmed_second_settlement(city_rig):
     assert city_rig.run()["success"] is True
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 @pytest.mark.parametrize("empty", [False, True], ids=["partial", "skipped"])
-def test_four_modes_continue_route_and_surface_purchase_warnings(
+def test_two_modes_continue_route_and_surface_purchase_warnings(
         harness, buy_rig, monkeypatch, mode, empty):
     operations, _ = harness
     partial_selection(buy_rig, empty=empty)

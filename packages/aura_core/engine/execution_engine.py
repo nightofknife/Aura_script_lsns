@@ -17,6 +17,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Callable
 
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.runtime_trace import bind_activity, end_activity, start_activity
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.utils.exceptions import StopTaskException
@@ -236,16 +237,35 @@ class ExecutionEngine:
         except Exception as e:
             logger.critical(f"DAG节点执行任务发生未捕获异常: {e}", exc_info=True)
 
-        async def reschedule_and_maybe_finish():
-            try:
-                for downstream_id in self.reverse_dependencies.get(node_id, set()):
-                    await self.dag_scheduler.enqueue_ready_node(downstream_id)
-                await self.dag_scheduler.drain_ready_queue()
-            finally:
-                if not self.running_tasks and not self.ready_queue and self.completion_event:
-                    self.completion_event.set()
+        activity_id = start_activity("node_dispatch", node_id)
 
-        asyncio.create_task(reschedule_and_maybe_finish())
+        async def reschedule_and_maybe_finish():
+            with bind_activity(activity_id):
+                try:
+                    for downstream_id in self.reverse_dependencies.get(node_id, set()):
+                        await self.dag_scheduler.enqueue_ready_node(downstream_id)
+                    await self.dag_scheduler.drain_ready_queue()
+                finally:
+                    if not self.running_tasks and not self.ready_queue and self.completion_event:
+                        self.completion_event.set()
+
+        coroutine = reschedule_and_maybe_finish()
+        try:
+            sender = asyncio.create_task(coroutine)
+        except BaseException:
+            coroutine.close()
+            end_activity(activity_id, status="schedule_failed")
+            raise
+        def dispatch_completed(done):
+            error = None if done.cancelled() else done.exception()
+            if error is not None:
+                logger.error("DAG successor scheduling failed for node '%s': %s", node_id, error,
+                             exc_info=(type(error), error, error.__traceback__))
+            end_activity(activity_id,
+                         status="cancelled" if done.cancelled() else "failed" if error else "completed",
+                         error_type=type(error).__name__ if error is not None else None)
+
+        sender.add_done_callback(dispatch_completed)
 
     def _create_run_state(
         self,

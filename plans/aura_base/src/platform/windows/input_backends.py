@@ -11,6 +11,8 @@ import win32api
 import win32con
 import win32gui
 
+from packages.aura_core.observability.runtime_trace import log_event, request_diagnostic
+
 from ..contracts import TargetRuntimeError
 from .window_target import WindowTarget
 
@@ -237,6 +239,31 @@ class BaseWindowsInputBackend:
     def close(self) -> None:
         self.release_all()
 
+    def _release_tracked(self, release_mouse, release_key) -> dict[str, Any]:
+        """Keep failed releases tracked so a later stop/close can retry them."""
+        results = []
+        for kind, held, release in (("mouse", self._held_mouse_buttons, release_mouse),
+                                    ("key", self._held_keys, release_key)):
+            for value in list(held):
+                result = {"device": kind, "value": value, "success": False}
+                try:
+                    release(value)
+                except Exception as exc:
+                    result["error_type"] = type(exc).__name__
+                    result["error_code"] = getattr(exc, "code", None)
+                else:
+                    held.discard(value)
+                    result["success"] = True
+                results.append(result)
+                log_event("input.release_item", backend=self.backend_name, **result)
+        report = {"success": not self._held_keys and not self._held_mouse_buttons, "results": results,
+                  "remaining_mouse_buttons": sorted(self._held_mouse_buttons),
+                  "remaining_keys": sorted(self._held_keys)}
+        log_event("input.release_result", backend=self.backend_name, **report)
+        if not report["success"]:
+            request_diagnostic("input_release_failed", backend=self.backend_name)
+        return report
+
     def capabilities(self) -> dict[str, Any]:
         return {
             "absolute_pointer": True,
@@ -438,7 +465,9 @@ class WindowsSendInputBackend(BaseWindowsInputBackend):
         wait_interval = self._resolve_interval(interval)
         for index in range(max(int(clicks), 1)):
             _send_mouse_input(flags=down_flag)
+            self._held_mouse_buttons.add(str(button).lower())
             _send_mouse_input(flags=up_flag)
+            self._held_mouse_buttons.discard(str(button).lower())
             self._apply_click_post_delay()
             if index < max(int(clicks), 1) - 1 and wait_interval > 0:
                 time.sleep(wait_interval)
@@ -511,7 +540,9 @@ class WindowsSendInputBackend(BaseWindowsInputBackend):
         wait_interval = self._resolve_interval(interval)
         for index in range(max(int(presses), 1)):
             _send_key_input(vk_code, key_up=False)
+            self._held_keys.add(vk_code)
             _send_key_input(vk_code, key_up=True)
+            self._held_keys.discard(vk_code)
             if index < max(int(presses), 1) - 1 and wait_interval > 0:
                 time.sleep(wait_interval)
 
@@ -587,20 +618,11 @@ class WindowsSendInputBackend(BaseWindowsInputBackend):
             if sleep_sec > 0 and step < steps - 1:
                 time.sleep(sleep_sec)
 
-    def release_all(self) -> None:
-        for button in list(self._held_mouse_buttons):
-            try:
-                _, up_flag = _resolve_sendinput_button_flags(button)
-                _send_mouse_input(flags=up_flag)
-            except Exception:
-                pass
-        for vk_code in list(self._held_keys):
-            try:
-                _send_key_input(vk_code, key_up=True)
-            except Exception:
-                pass
-        self._held_mouse_buttons.clear()
-        self._held_keys.clear()
+    def release_all(self) -> dict[str, Any]:
+        return self._release_tracked(
+            lambda button: _send_mouse_input(flags=_resolve_sendinput_button_flags(button)[1]),
+            lambda vk_code: _send_key_input(vk_code, key_up=True),
+        )
 
 
 class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
@@ -634,8 +656,10 @@ class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
         lparam = win32api.MAKELONG(client_x, client_y)
         wait_interval = self._resolve_interval(interval)
         for index in range(max(int(clicks), 1)):
-            win32gui.SendMessage(self.target.hwnd, down_msg, key_flag, lparam)
-            win32gui.SendMessage(self.target.hwnd, up_msg, 0, lparam)
+            _send_window_message(self.target.hwnd, down_msg, key_flag, lparam)
+            self._held_mouse_buttons.add(str(button).lower())
+            _send_window_message(self.target.hwnd, up_msg, 0, lparam)
+            self._held_mouse_buttons.discard(str(button).lower())
             self._apply_click_post_delay()
             if index < max(int(clicks), 1) - 1 and wait_interval > 0:
                 time.sleep(wait_interval)
@@ -649,7 +673,7 @@ class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
             progress = step / steps
             next_x = int(round(start_x + (client_x - start_x) * progress))
             next_y = int(round(start_y + (client_y - start_y) * progress))
-            win32gui.SendMessage(self.target.hwnd, win32con.WM_MOUSEMOVE, 0, win32api.MAKELONG(next_x, next_y))
+            _send_window_message(self.target.hwnd, win32con.WM_MOUSEMOVE, 0, win32api.MAKELONG(next_x, next_y))
             if duration_sec > 0 and step < steps:
                 time.sleep(duration_sec / steps)
         self._cursor_position = (client_x, client_y)
@@ -661,13 +685,13 @@ class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
     def mouse_down(self, *, button: str = "left") -> None:
         client_x, client_y = self._resolve_point(None, None)
         down_msg, _, key_flag = _resolve_window_message_button(button)
-        win32gui.SendMessage(self.target.hwnd, down_msg, key_flag, win32api.MAKELONG(client_x, client_y))
+        _send_window_message(self.target.hwnd, down_msg, key_flag, win32api.MAKELONG(client_x, client_y))
         self._held_mouse_buttons.add(str(button).lower())
 
     def mouse_up(self, *, button: str = "left") -> None:
         client_x, client_y = self._resolve_point(None, None)
         _, up_msg, _ = _resolve_window_message_button(button)
-        win32gui.SendMessage(self.target.hwnd, up_msg, 0, win32api.MAKELONG(client_x, client_y))
+        _send_window_message(self.target.hwnd, up_msg, 0, win32api.MAKELONG(client_x, client_y))
         self._held_mouse_buttons.discard(str(button).lower())
 
     def drag_to(self, x: int, y: int, *, button: str = "left", duration: float | None = None) -> None:
@@ -691,25 +715,27 @@ class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
         if str(direction or "down").lower() == "down":
             delta = -delta
         wparam = win32api.MAKELONG(0, ctypes.c_ushort(delta & 0xFFFF).value)
-        win32gui.SendMessage(self.target.hwnd, win32con.WM_MOUSEWHEEL, wparam, win32api.MAKELONG(client_x, client_y))
+        _send_window_message(self.target.hwnd, win32con.WM_MOUSEWHEEL, wparam, win32api.MAKELONG(client_x, client_y))
 
     def press_key(self, key: str, presses: int = 1, interval: float | None = None) -> None:
         vk_code = _resolve_vk_code(key)
         wait_interval = self._resolve_interval(interval)
         for index in range(max(int(presses), 1)):
-            win32gui.SendMessage(self.target.hwnd, win32con.WM_KEYDOWN, vk_code, 0)
-            win32gui.SendMessage(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0)
+            _send_window_message(self.target.hwnd, win32con.WM_KEYDOWN, vk_code, 0)
+            self._held_keys.add(vk_code)
+            _send_window_message(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0)
+            self._held_keys.discard(vk_code)
             if index < max(int(presses), 1) - 1 and wait_interval > 0:
                 time.sleep(wait_interval)
 
     def key_down(self, key: str) -> None:
         vk_code = _resolve_vk_code(key)
-        win32gui.SendMessage(self.target.hwnd, win32con.WM_KEYDOWN, vk_code, 0)
+        _send_window_message(self.target.hwnd, win32con.WM_KEYDOWN, vk_code, 0)
         self._held_keys.add(vk_code)
 
     def key_up(self, key: str) -> None:
         vk_code = _resolve_vk_code(key)
-        win32gui.SendMessage(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0)
+        _send_window_message(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0)
         self._held_keys.discard(vk_code)
 
     def type_text(self, text: str, interval: float | None = None) -> None:
@@ -724,26 +750,18 @@ class WindowsWindowMessageInputBackend(BaseWindowsInputBackend):
                 if code_point > 0xFFFF:
                     raise TargetRuntimeError(
                         "text_input_unsupported",
-                        f"window_message backend cannot type non-BMP character '{char}'.",
-                        {"character": char},
+                        "window_message backend cannot type a non-BMP character.",
+                        {"text_length": 1},
                     )
-                win32gui.SendMessage(self.target.hwnd, win32con.WM_CHAR, code_point, 0)
+                _send_window_message(self.target.hwnd, win32con.WM_CHAR, code_point, 0)
             if wait_interval > 0:
                 time.sleep(wait_interval)
 
-    def release_all(self) -> None:
-        for button in list(self._held_mouse_buttons):
-            try:
-                self.mouse_up(button=button)
-            except Exception:
-                pass
-        for vk_code in list(self._held_keys):
-            try:
-                win32gui.SendMessage(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0)
-            except Exception:
-                pass
-        self._held_mouse_buttons.clear()
-        self._held_keys.clear()
+    def release_all(self) -> dict[str, Any]:
+        return self._release_tracked(
+            lambda button: self.mouse_up(button=button),
+            lambda vk_code: _send_window_message(self.target.hwnd, win32con.WM_KEYUP, vk_code, 0),
+        )
 
     def _validate_window_target(self) -> None:
         class_name = str(self.target.binding.class_name or "").strip()
@@ -818,6 +836,21 @@ def _resolve_vk_code(key: str) -> int:
     )
 
 
+
+def _send_window_message(hwnd: int, message: int, wparam: int, lparam: int):
+    # WM_CHAR contains user text; its value is intentionally never logged.
+    fields = {"backend": "window_message", "target_hwnd": int(hwnd), "message": int(message)}
+    if message != win32con.WM_CHAR:
+        fields.update(wparam=int(wparam), lparam=int(lparam))
+    try:
+        result = win32gui.SendMessage(hwnd, message, wparam, lparam)
+    except Exception as exc:
+        log_event("input.edge", success=False, error_type=type(exc).__name__, **fields)
+        raise
+    log_event("input.edge", detail=message == win32con.WM_MOUSEMOVE, success=True, **fields)
+    return result
+
+
 def _send_mouse_input(*, flags: int, mouse_data: int = 0, dx: int = 0, dy: int = 0) -> None:
     command = _INPUT(
         type=0,
@@ -833,6 +866,9 @@ def _send_mouse_input(*, flags: int, mouse_data: int = 0, dx: int = 0, dy: int =
         ),
     )
     sent = ctypes.windll.user32.SendInput(1, ctypes.byref(command), ctypes.sizeof(command))
+    # Motion can run at 60 Hz; keep it in the bounded detail buffer only.
+    log_event("input.edge", detail=flags == win32con.MOUSEEVENTF_MOVE, device="mouse",
+              flags=int(flags), mouse_data=int(mouse_data), dx=int(dx), dy=int(dy), success=sent == 1)
     if sent != 1:
         raise TargetRuntimeError(
             "windows_input_failed",
@@ -856,6 +892,7 @@ def _send_key_input(vk_code: int, *, key_up: bool) -> None:
         ),
     )
     sent = ctypes.windll.user32.SendInput(1, ctypes.byref(command), ctypes.sizeof(command))
+    log_event("input.edge", device="key", vk_code=int(vk_code), edge="up" if key_up else "down", success=sent == 1)
     if sent != 1:
         raise TargetRuntimeError(
             "windows_input_failed",
@@ -869,8 +906,8 @@ def _send_unicode_char(char: str) -> None:
     if code_point > 0xFFFF:
         raise TargetRuntimeError(
             "text_input_unsupported",
-            f"sendinput backend cannot type non-BMP character '{char}'.",
-            {"character": char},
+            "sendinput backend cannot type a non-BMP character.",
+            {"text_length": 1},
         )
     down = _INPUT(
         type=1,
@@ -898,9 +935,11 @@ def _send_unicode_char(char: str) -> None:
     )
     commands = (_INPUT * 2)(down, up)
     sent = ctypes.windll.user32.SendInput(2, commands, ctypes.sizeof(_INPUT))
+    log_event("input.edge", device="unicode", edge="down", success=sent >= 1)
+    log_event("input.edge", device="unicode", edge="up", success=sent == 2)
     if sent != 2:
         raise TargetRuntimeError(
             "windows_input_failed",
             "SendInput failed to send a unicode character.",
-            {"character": char},
+            {"text_length": 1},
         )

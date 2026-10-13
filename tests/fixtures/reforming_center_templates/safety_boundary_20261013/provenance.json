@@ -1,0 +1,12 @@
+{
+  "source_kind": "authorized_live_run_capture",
+  "source_file": ".pytest_tmp/raw_workshop_live_animal_20261013_01/frame_002_map.png",
+  "run_cid": "765173814886666240",
+  "image": "animal_left_limit.png",
+  "sha256": "d951a54e6d4d61dc39f4afae550ffe19623fa921bb9aa3c3898367aa63b2cd79",
+  "client_size": [1280, 720],
+  "room_name": "动物纤维原料车间",
+  "title_center": [756, 172],
+  "click_point": [875, 225],
+  "note": "Saved unmodified BGR-encoded screenshot. Offline fake input regression only; no post-fix live run."
+}

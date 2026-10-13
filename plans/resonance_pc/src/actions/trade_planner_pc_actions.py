@@ -31,7 +31,7 @@ def resonance_pc_trade_plan_optimal_route(
     fatigue_budget: int = 700,
     cargo_capacity: int = 750,
     book_budget: Optional[int] = 0,
-    trade_mode: str = "profit",
+    trade_mode: str = "free",
     book_policy: str = "profit",
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,

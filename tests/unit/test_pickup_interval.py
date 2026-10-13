@@ -251,7 +251,7 @@ def test_invalid_saved_interval_does_not_overwrite_config(repo, value):
     assert repo.load_trade_inputs() == before
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_mode_snapshot_and_combined_payload_preserve_interval(mode):
     values = {"trade_mode": mode, "auto_pickup": True, "auto_pickup_interval_sec": 2.75}
     snapshot = normalize_trade_task_inputs(values)

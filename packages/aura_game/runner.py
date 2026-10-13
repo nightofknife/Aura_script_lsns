@@ -307,11 +307,13 @@ class EmbeddedGameRunner:
     def get_run(self, cid: str) -> Dict[str, Any]:
         runtime = self._ensure_runtime()
         from packages.aura_core.scheduler.cancellation import has_pending_sync_actions
+        from packages.aura_core.observability.runtime_trace import pending_activities
 
         row = _normalize_run_row(runtime.get_run_detail(cid))
-        # Terminal observability status does not imply a thread-pool action
-        # has exited. Carry this live flag through the subprocess response.
-        row["execution_pending"] = has_pending_sync_actions(cid)
+        # A terminal scheduler status can precede async nodes and raw workers.
+        pending = pending_activities(cid)
+        row["pending_activities"] = pending
+        row["execution_pending"] = bool(pending) or has_pending_sync_actions(cid)
         return row
 
     def _ensure_running_runtime(self):

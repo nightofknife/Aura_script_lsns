@@ -33,7 +33,7 @@ def test_freight_tasks_load_with_nullable_and_strict_integer_schema():
     assert loader.get_task_load_errors() == []
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 @pytest.mark.parametrize("books", [0, 2, None])
 def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
     for name, action in (("auto_cycle_trade_pc", trade.resonance_pc_auto_cycle_trade_flow),
@@ -85,11 +85,11 @@ def test_integer_task_fields_are_not_silently_coerced(value):
 def test_invalid_planning_inputs_are_rejected_before_game(harness, field, value):
     operations, _ = harness
     with pytest.raises(ValueError):
-        run_full(**{"trade_mode": "target", "target_profit": 1000000, field: value})
+        run_full(**{"trade_mode": "free", "book_budget": 1, "target_profit": 1000000, field: value})
     assert operations == []
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_runtime_forwards_canonical_request_without_old_fields(harness, monkeypatch, mode):
     calls = []
     def planner(**kwargs):
@@ -102,8 +102,6 @@ def test_runtime_forwards_canonical_request_without_old_fields(harness, monkeypa
     assert calls[0]["trade_mode"] == mode and calls[0]["book_budget"] is None
     assert result["remaining_books"] is None and result["book_budget_unlimited"] is True
     assert "auto_book" not in calls[0] and "all_plan" not in calls[0]
-    if mode == "quick":
-        assert calls[0]["book_policy"] == "fill" and calls[0]["negotiation_policy"] == "required"
 
 
 def test_planner_action_matches_new_service_signature():
@@ -113,12 +111,12 @@ def test_planner_action_matches_new_service_signature():
             calls.append(kwargs)
             return {"status": "ok"}
     planner_action.resonance_pc_trade_plan_optimal_route(
-        book_budget=None, trade_mode="quick", resonance_pc_trade_planner=Planner())
+        book_budget=None, trade_mode="free", book_policy="fill", negotiation_policy="required", resonance_pc_trade_planner=Planner())
     assert calls[0]["book_budget"] is None and calls[0]["negotiation_budget"] is None
     assert not {"auto_book", "all_plan", "trade_level", "active_events"} & calls[0].keys()
 
 
-@pytest.mark.parametrize("mode,status", [("profit", "no_plan"), ("target", "target_unreachable"),
+@pytest.mark.parametrize("mode,status", [("free", "no_plan"), ("free", "target_unreachable"),
                                        ("fixed", "fixed_route_infeasible")])
 def test_unreachable_is_stopped_without_sale_or_recovery(harness, monkeypatch, mode, status):
     operations, _ = harness
@@ -181,7 +179,7 @@ def test_preview_is_planned_and_matches_execution_request(monkeypatch):
         return {"status": "ok", "route": routes(), "book_budget": None}
     monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", planner)
     result = asyncio.run(trade.resonance_pc_preview_trade_plan_flow(
-        start_city_id="15", trade_mode="quick", book_budget=None,
+        start_city_id="15", trade_mode="free", book_policy="fill", negotiation_policy="required", book_budget=None,
         resonance_pc_market_data=object(), resonance_pc_trade_planner=object()))
     assert result["status"] == "planned" and result["planning_status"] == "ok"
     assert result["success"] is True and calls[0]["book_budget"] is None
@@ -225,8 +223,8 @@ def test_unconfirmed_books_stop_before_selecting_products(monkeypatch):
     assert error.value.code == "purchase_books_not_confirmed"
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
-def test_real_service_is_wired_to_preview_and_execution(service, harness, monkeypatch, mode):
+@pytest.mark.parametrize("mode,target", [("free", None), ("free", 20), ("fixed", None)])
+def test_real_service_is_wired_to_preview_and_execution(service, harness, monkeypatch, mode, target):
     api, _ = service
     _, state = harness
     state["city"] = {"success": True, "city_name": "A", "city_key": "A"}
@@ -235,7 +233,7 @@ def test_real_service_is_wired_to_preview_and_execution(service, harness, monkey
                         planner_action.resonance_pc_trade_plan_optimal_route)
     request = {"trade_mode": mode, "fatigue_budget": 100, "cargo_capacity": 3,
                "book_budget": None, "book_profit_threshold": 0,
-               "fixed_route_city_ids": ["A", "B", "A"], "target_profit": 20,
+               "fixed_route_city_ids": ["A", "B", "A"], "target_profit": target,
                "resonance_pc_market_data": api.market_data, "resonance_pc_trade_planner": api,
                "bargain_success_rates_bps": [10000], "raise_success_rates_bps": [10000]}
     preview = asyncio.run(trade.resonance_pc_preview_trade_plan_flow(start_city_id="A", **request))
@@ -275,5 +273,5 @@ def test_first_station_sale_does_not_raise_but_incoming_goods_do(harness, monkey
         seen.append(kwargs["sell_raise_to_cap"])
         return await original(**kwargs)
     monkeypatch.setattr(trade, "_execute_trade_leg", leg)
-    run_full(trade_mode="quick", auto_sparkling_water=False)
+    run_full(trade_mode="free", book_policy="fill", negotiation_policy="required", auto_sparkling_water=False)
     assert seen == [False, True]

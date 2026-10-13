@@ -251,7 +251,7 @@ def test_snapshot_canonicalization_ignores_volatile_digit_match_scores(monkeypat
 
 
 def test_public_atoms_do_not_inject_ocr_and_points_are_multiples_of_five():
-    names = ("observe", "deposit_max", "fill_list_once", "reserve_round", "start_once")
+    names = ("observe", "deposit_max", "fill_list_once", "reserve_round", "start_once", "return_overview")
     for name in names:
         function = getattr(actions, f"resonance_pc_raw_workshop_{name}")
         assert "ocr" not in inspect.signature(function).parameters
@@ -373,3 +373,161 @@ def test_summary_reports_explicit_reserve_round_budget_exhaustion():
     assert result["status"] == "partial"
     assert result["reason"] == "reserve_round_limit"
     assert result["data"]["reserve_round_count"] == 8
+
+
+@pytest.mark.parametrize("production", ["idle", "running"])
+def test_return_overview_clicks_once_then_confirms_effect_and_two_ready_frames(monkeypatch, production):
+    app = App()
+    patch_snapshot(monkeypatch, snapshot(production))
+    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
+    monkeypatch.setattr(actions.ui, "control_visible", lambda image, name: name == "selection_back")
+    probes = []
+    monkeypatch.setattr(actions.ui, "overview_state", lambda image: probes.append(True) or {
+        "page": "reforming_center_overview", "anchors": [ROOM], "offset": [0, 0]})
+    result = actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert result["success"] and result["returned_to_overview"]
+    assert result["page_after"] == "reforming_center_overview"
+    assert app.clicks == [(95, 40)] and len(probes) == 3
+    assert result["data"]["clicks"][0]["effect_confirmed"]
+    assert result["data"]["clicks"][0]["transition_ready"]
+
+
+def test_return_overview_unknown_room_does_not_click(monkeypatch):
+    app = App()
+    def unknown(*args):
+        raise actions.clicks.CheckedClickError("confirmation_timeout")
+    monkeypatch.setattr(actions, "_snapshot", unknown)
+    result = actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert not result["returned_to_overview"] and not result["safe_to_continue"]
+    assert app.clicks == []
+
+
+@pytest.mark.parametrize("back_visible", [False, True])
+def test_return_overview_missing_arrow_or_missing_destination_never_retries(monkeypatch, back_visible):
+    app = App()
+    patch_snapshot(monkeypatch, snapshot("running"))
+    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
+    monkeypatch.setattr(actions.ui, "control_visible", lambda *args: back_visible)
+    monkeypatch.setattr(actions.ui, "overview_state", lambda image: None)
+    result = actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert not result["safe_to_continue"] and not result["returned_to_overview"]
+    assert app.clicks == ([(95, 40)] if back_visible else [])
+
+
+def test_return_overview_unknown_after_effect_stops_without_second_click(monkeypatch):
+    app = App()
+    patch_snapshot(monkeypatch, snapshot())
+    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
+    monkeypatch.setattr(actions.ui, "control_visible", lambda *args: True)
+    values = iter([{"page": "reforming_center_overview"}] + [None] * 10)
+    monkeypatch.setattr(actions.ui, "overview_state", lambda image: next(values))
+    result = actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert result["reason"] == "click_transition_not_confirmed"
+    assert app.clicks == [(95, 40)]
+
+
+@pytest.mark.parametrize("complete", [True, False])
+def test_summary_return_success_preserves_maintenance_completion_or_shortage(complete):
+    observed = {"safe_to_continue": True, "snapshot": snapshot("running", (7, 7), (2 if complete else 0, 2))}
+    result = actions.resonance_pc_raw_workshop_summarize(
+        ROOM, navigation={"room_entered": True}, final_observe=observed, require_return=True,
+        return_overview={"success": True, "returned_to_overview": True})
+    assert result["returned_to_overview"]
+    assert result["page_after"] == "reforming_center_overview"
+    assert result["status"] == ("completed" if complete else "partial")
+    assert result["data"]["maintenance"]["status"] == result["status"]
+
+
+@pytest.mark.parametrize("returned", [None, {"success": False, "returned_to_overview": False,
+                                          "reason": "click_effect_not_confirmed"}])
+def test_summary_return_failure_is_not_hidden_by_successful_maintenance(returned):
+    result = actions.resonance_pc_raw_workshop_summarize(
+        ROOM, navigation={"room_entered": True}, require_return=True, return_overview=returned,
+        final_observe={"safe_to_continue": True, "snapshot": snapshot("running", (7, 7), (2, 2))})
+    assert result["status"] == "failed" and not result["success"]
+    assert not result["returned_to_overview"] and result["snapshot"] is None
+    assert result["page_after"] is None
+    assert result["data"]["maintenance"]["status"] == "completed"
+
+
+@pytest.mark.parametrize("stage", ["before", "snapshot", "require"])
+def test_return_overview_cancellation_before_click_never_inputs(monkeypatch, stage):
+    import asyncio
+
+    state = {"cancelled": stage == "before"}
+    app = App()
+    monkeypatch.setattr(actions, "is_current_task_cancel_requested", lambda: state["cancelled"])
+    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    captures = []
+    original_capture = app.capture
+
+    def capture(**kwargs):
+        captures.append(True)
+        if stage == "require":
+            state["cancelled"] = True
+        return original_capture(**kwargs)
+
+    app.capture = capture
+    if stage != "snapshot":
+        patch_snapshot(monkeypatch, snapshot())
+    else:
+        def probe(*args):
+            state["cancelled"] = True
+            return snapshot()
+        monkeypatch.setattr(actions, "_probe", probe)
+    monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
+    monkeypatch.setattr(actions.ui, "control_visible", lambda *args: True)
+    with pytest.raises(asyncio.CancelledError):
+        actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert app.clicks == []
+    if stage == "before":
+        assert captures == []
+    assert actions.clicks._CANCEL_CHECK.get() is None
+
+
+@pytest.mark.parametrize("cancel_probe", [1, 2])
+def test_return_overview_cancellation_during_effect_or_ready_stops_confirmation(monkeypatch, cancel_probe):
+    import asyncio
+
+    app = App()
+    state = {"cancelled": False, "probes": 0}
+    monkeypatch.setattr(actions, "is_current_task_cancel_requested", lambda: state["cancelled"])
+    patch_snapshot(monkeypatch, snapshot())
+    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
+    monkeypatch.setattr(actions.ui, "control_visible", lambda *args: True)
+
+    def overview(image):
+        state["probes"] += 1
+        if state["probes"] == cancel_probe:
+            state["cancelled"] = True
+        return {"page": "reforming_center_overview"}
+
+    monkeypatch.setattr(actions.ui, "overview_state", overview)
+    with pytest.raises(asyncio.CancelledError):
+        actions.resonance_pc_raw_workshop_return_overview(ROOM, app=app)
+    assert app.clicks == [(95, 40)]
+    assert state["probes"] == cancel_probe
+    assert actions.clicks._CANCEL_CHECK.get() is None
+
+
+def test_return_confirmation_wait_polls_cancellation_at_fifty_ms(monkeypatch):
+    import asyncio
+
+    state = {"cancelled": False}
+    sleeps = []
+    monkeypatch.setattr(actions, "is_current_task_cancel_requested", lambda: state["cancelled"])
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        state["cancelled"] = True
+
+    monkeypatch.setattr(actions.clicks.time, "sleep", sleep)
+    with pytest.raises(asyncio.CancelledError):
+        with actions.clicks.cancellation_checks(actions._check_return_cancelled):
+            actions.clicks.wait_confirmed(App(), lambda image: True)
+    assert sleeps == [.05]
+    assert actions.clicks._CANCEL_CHECK.get() is None

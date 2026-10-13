@@ -126,3 +126,48 @@ scheduler 当前公开了若干查询接口：
 - 看不到任务进度：先确认 `task.started` / `task.finished` 是否正常发布
 - 运行历史缺失：检查 TTL 清理和 persist 配置
 - `trace_id` 找不到对应 run：先确认 `task.started` 是否进入 `RunStore`
+
+## 9. 输入与停止的运行证据
+
+`[RuntimeTrace]` 后是 JSON。每条记录包含 `session_id`、进程 PID、`cid`、
+`root_cid`、线程 ID/名称、UTC 时间与进程单调时钟；跨进程用墙钟与 CID 关联，
+同一进程的耗时使用单调时钟。`operation_id` 标识一次执行，`parent_activity_id`
+连接节点、动作、工作线程与输入。进程 PID 与游戏 `target_pid` 不同。
+
+| 事件 | 含义 |
+| --- | --- |
+| `runtime.config` / `runtime.bound` / `input.mode` | 应用版本、实际目标 PID/HWND、截图和输入后端、激活配置、桥接配置与 GUI 覆盖值 |
+| `activity.queued` / `started` / `finished` | 节点、后继调度、动作、工作线程或输入操作的生命周期；queued.fields 含参数摘要，finished 含状态和耗时 |
+| `input.edge` | 实际发送的鼠标/键盘边沿及 API 返回结果；这不是游戏业务操作成功的证明 |
+| `input.release_item` / `input.release_result` | 各按键释放结果与仍跟踪的按下状态；失败保留记录，允许后续释放重试 |
+| `input.focus_attach` / `input.focus_detach` | Windows 输入线程关联和解除的结果 |
+| `stop.requested` / `stop.observed` | 取消请求已设置，以及动作首次实际检测到取消 |
+| `task.terminal` | 调度入口结束，可能仍有执行单元存活 |
+| `stop.slow` / `stop.pending` | 请求超过 2 秒仍未退出，列出仍存活的执行单元及耗时 |
+| `stop.drained` | 根任务已结束，已登记的节点/线程/输入活动全部退出；需另外查看释放结果，不能据此认定游戏已恢复响应 |
+| `diagnostic.saved` | 诊断 JSON 的实际保存路径 |
+
+同步 action、异步 action、DAG 节点及后继调度均登记。跑商内部的线程工作通过
+`tracked_to_thread()` 登记：取消等待者不会提前注销仍在运行的线程。新加的后台工作
+应使用这一入口或 `activity()`，禁止仅凭线程池里是否还有线程判断任务是否停止。
+`runner.get_run()` 的 `execution_pending` 和 `pending_activities` 返回这些活动，供 GUI
+保持停止中状态。这些记录用于观察真实生命周期，不强制终止 Python 线程。
+
+### 自动诊断与日志量
+
+- 最近 2048 条结构化事件保存在进程内存环形缓冲区。输入操作和阶段变化进入常规日志；
+  高频移动、截图读取和 OCR 细节保留在缓冲区。队列与到站轮询在状态变化时记录，并每 10 秒汇总。
+- 停止超过 2 秒、输入异常、释放失败或输入线程解除失败会异步请求诊断。诊断包含该任务
+  最近 256 条事件、活动列表、线程调用栈（不含局部变量）、实际配置、前台窗口、光标位置、
+  光标命中的窗口以及内部跟踪的按键状态。
+- 截图只读取所属目标已有的 WGC 缓存帧，帧龄不超过 2 秒；不可用、忙碌、陈旧或目标归属不符
+  都记录原因。不会为了诊断创建会话、切换窗口、激活游戏或执行普通截图恢复路径。
+- 诊断请求有界排队（8 个），同任务同原因至少间隔 10 秒。每个提供器最多运行一个采集线程，
+  等待最多 0.5 秒；超时后记录 timeout，仍忙时不重复启动采集。取证不能阻塞输入执行线程。
+- 文件保存在当前日志目录的 `diagnostics/`，优先使用 `AURA_LOG_ROOT`。仅自动清理
+  `aura-trace-*` 自有文件，保留 72 小时且最多 128 组；其他日志与人工文件不受影响。
+- 输入正文不写入运行证据，只记录长度；密码、密钥等命名字段脱敏。目标缓存截图可能含游戏画面。
+
+排查“停止后游戏点不了”时，先按 CID 找到 `stop.requested`，再核对是否出现新的
+`input.edge`、哪些活动尚未 `finished`、释放或 detach 是否失败。若已有 `stop.drained`，
+再结合诊断里的窗口和按键快照分析；不要将 `task.terminal` 当作全部工作已经退出。

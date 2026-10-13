@@ -7,11 +7,11 @@ from copy import deepcopy
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QSettings
+from PySide6.QtCore import QSettings, QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from packages.resonance_gui.bridge import RunnerBridge
-from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
+from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS, TRADE_INPUTS_KEY
 from packages.resonance_gui.logic import (
     PC_TRADE_PREVIEW_TASK_REF, PC_TRADE_TASK_REF, average_book_profit_text,
     normalize_trade_task_inputs, trade_result_summary, TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA,
@@ -36,7 +36,6 @@ def window(repository, monkeypatch):
     widget._busy = False
     widget._workflow_active = False
     widget._commerce_active = False
-    # The mocked bridge has no shutdown callback to complete closeEvent.
     widget._close_ready = True
     widget.close()
     widget.deleteLater()
@@ -60,10 +59,11 @@ def recording_bridge(monkeypatch):
     return runner, bridge
 
 
-def test_defaults_seed_and_legacy_preview_state(repository):
+def test_defaults_seed_and_new_unlimited_preview_state(repository):
     assert repository.load_trade_inputs()["book_budget"] == 0
     assert repository.load_trade_inputs()["book_profit_threshold"] == 500000
-    repository.save_trade_inputs({"auto_book": True, "book_budget": 17, "book_profit_threshold": 15000})
+    repository.save_trade_inputs({"books_enabled": True, "books_unlimited": True,
+                                  "finite_book_budget": 17, "book_budget": None, "book_profit_threshold": 15000})
     preview = repository.load_trade_preview_inputs()
     assert preview["book_budget"] is None
     assert preview["finite_book_budget"] == 17
@@ -75,14 +75,17 @@ def test_defaults_seed_and_legacy_preview_state(repository):
 
 @pytest.mark.parametrize("budget", [0, 17, None])
 def test_normalize_preserves_total_book_budget_without_mutating_source(budget):
-    inputs = {"trade_mode": "quick", "book_budget": budget,
-              "book_policy": "profit", "negotiation_policy": "disabled",
+    inputs = {"trade_mode": "free", "book_budget": budget,
+              "book_policy": "fill", "negotiation_policy": "disabled",
               "recovery_snapshot": {"sentinel": [1]}}
     before = deepcopy(inputs)
     output = normalize_trade_task_inputs(inputs)
     assert output["book_budget"] == budget
-    assert output["book_policy"] == "fill"
-    assert output["negotiation_policy"] == "required"
+    if budget == 0:
+        assert "book_policy" not in output
+    else:
+        assert output["book_policy"] == "fill"
+    assert output["negotiation_policy"] == "disabled"
     assert inputs == before
 
 
@@ -100,7 +103,7 @@ def test_base_fatigue_reserve_save_reload_and_formal_dispatch(window, monkeypatc
     window.requestRunPcTrade.connect(bridge.run_pc_trade)
     page._request_start()
     assert runner.calls[0]["task_ref"] == PC_TRADE_TASK_REF
-    assert runner.calls[0]["inputs"]["base_fatigue_reserve"] == reserve
+    assert "base_fatigue_reserve" not in runner.calls[0]["inputs"]
 
 
 def test_base_fatigue_reserve_rejects_negative_without_overwriting_saved_zero(window):
@@ -108,18 +111,18 @@ def test_base_fatigue_reserve_rejects_negative_without_overwriting_saved_zero(wi
     page.base_fatigue_reserve.setValue(0)
     page.save_ui_state()
     saved = window._settings.load_trade_inputs()
-    raw = window._settings.settings.value("trade/inputs_json")
+    raw = window._settings.settings.value(TRADE_INPUTS_KEY)
     with pytest.raises(ValueError, match="基础疲劳保留必须为非负整数"):
         window._settings.save_trade_inputs({**saved, "base_fatigue_reserve": -1})
-    assert window._settings.settings.value("trade/inputs_json") == raw
+    assert window._settings.settings.value(TRADE_INPUTS_KEY) == raw
 
 
-@pytest.mark.parametrize("mode", ["profit", "quick", "fixed", "target"])
+@pytest.mark.parametrize("mode", ["free", "fixed"])
 @pytest.mark.parametrize("budget", [0, 17, None])
-def test_actual_bridge_dispatch_covers_four_modes_and_book_limits(window, monkeypatch, mode, budget):
+def test_actual_bridge_dispatch_covers_two_modes_and_book_limits(window, monkeypatch, mode, budget):
     page = window.trade_page
     page.restore_inputs({"trade_mode": mode, "book_budget": budget, "fixed_route_city_ids": ["1", "2", "1"],
-                         "target_profit": 1000000, "start_city_id": "11"})
+                         "target_profit": 1000000, "target_profit_enabled": True, "start_city_id": "11"})
     runner, bridge = recording_bridge(monkeypatch)
     inputs = page.collect_task_inputs()
     bridge.run_pc_trade(inputs)
@@ -152,7 +155,7 @@ def test_unlimited_recovery_dispatch_keeps_validated_projection(window, monkeypa
     snapshot = {"status": {"fatigue": {"current": 120, "max": 800}, "unrelated": 123},
                 "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6}},
                 "metadata": {"persisted": True, "unrelated": "private"}}
-    source = {"trade_mode": "profit", "book_budget": None, "auto_sparkling_water": True,
+    source = {"trade_mode": "free", "book_budget": None, "auto_sparkling_water": True,
               "recovery_snapshot": snapshot}
     before = deepcopy(source)
     bridge.run_pc_trade(source)
@@ -171,7 +174,7 @@ def test_unlimited_recovery_dispatch_keeps_validated_projection(window, monkeypa
     (None, None, False), (2, True, False),
 ])
 def test_optional_average_history_and_planning(window, books, value, visible):
-    fields = {"trade_mode": "quick", "book_budget": None, "remaining_books": None, "books_used": books,
+    fields = {"trade_mode": "free", "book_budget": None, "remaining_books": None, "books_used": books,
               "book_incremental_profit": 1000002.5, "book_incremental_profit_exact": "2000005/2",
               "average_book_profit": value, "average_book_profit_exact": "2000005/4"}
     summary = trade_result_summary(fields)
@@ -196,7 +199,7 @@ def test_formal_planning_event_updates_visible_workflow(window):
     page.apply_progress_event("trade", {"name": TRADE_PROGRESS_EVENT, "payload": {
         "schema": TRADE_PROGRESS_SCHEMA, "cid": "offline-plan", "sequence": 1,
         "stage": "planning", "state": "completed", "data": {
-            "summary": {"trade_mode": "quick", "books_used": 2, "average_book_profit": 600000},
+            "summary": {"trade_mode": "free", "books_used": 2, "average_book_profit": 600000},
             "route": [{"from_city": "修格里城", "to_city": "铁盟哨站", "books_used": 2,
                        "expected_profit": 1500000, "expected_fatigue_cost": 20}]}}})
     QApplication.processEvents()

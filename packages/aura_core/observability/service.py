@@ -14,6 +14,7 @@ from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.run_store import RunStore
+from packages.aura_core.observability.runtime_trace import log_poll
 
 
 class ObservabilityService:
@@ -662,7 +663,7 @@ class ObservabilityService:
                 if run_data and run_data.get("status") == "running":
                     active_list.append(run_data)
                 else:
-                    logger.debug(f"[get_active_runs_snapshot] Task {cid} is running but not in _obs_runs yet")
+                    log_poll("task.snapshot_pending", "awaiting_observation", cid=cid)
 
                     ready_item = self._obs_ready.get(cid, {})
 
@@ -697,7 +698,7 @@ class ObservabilityService:
                         }
                     )
 
-            logger.debug(f"[get_active_runs_snapshot] Returning {len(active_list)} active runs")
+            log_poll("task.active_snapshot", [(row.get("cid"), row.get("status")) for row in active_list])
             return active_list
 
     def get_batch_task_status(self, cids: List[str]) -> List[Dict[str, Any]]:

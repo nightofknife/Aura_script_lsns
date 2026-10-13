@@ -32,6 +32,9 @@ from packages.aura_core.observability.logging.core_logger import logger, set_cid
 from packages.aura_core.observability.failure_evidence import (
     task_completion_scope, capture_failure, attach_evidence, evidence_from,
 )
+from packages.aura_core.observability.runtime_trace import (
+    bind_activity, end_activity, start_activity, mark_task_terminal, pending_activities,
+)
 from packages.aura_core.config.loader import get_config_value
 
 if TYPE_CHECKING:
@@ -64,15 +67,32 @@ class ExecutionManager:
 
     def _dispatch_terminal_event(self, event) -> asyncio.Task:
         """One tracked sender owns a deferred terminal event, even on cancel."""
-        task = asyncio.create_task(self.scheduler.event_bus.publish(event), name="aura-terminal-event")
+        activity_id = start_activity("terminal_event", event.name, cid=event.payload.get("cid"))
+
+        async def publish():
+            with bind_activity(activity_id):
+                return await self.scheduler.event_bus.publish(event)
+
+        coroutine = publish()
+        try:
+            task = asyncio.create_task(coroutine, name="aura-terminal-event")
+        except BaseException:
+            coroutine.close()
+            end_activity(activity_id, status="schedule_failed")
+            raise
         self._terminal_publish_tasks.add(task)
 
         def finished(sender: asyncio.Task) -> None:
             self._terminal_publish_tasks.discard(sender)
-            if sender.cancelled():
-                logger.warning("Deferred terminal event sender was cancelled (cid=%s).", event.payload.get("cid"))
-            elif sender.exception() is not None:
-                logger.error("Deferred terminal event sender failed (cid=%s): %s", event.payload.get("cid"), sender.exception())
+            error = None if sender.cancelled() else sender.exception()
+            try:
+                if sender.cancelled():
+                    logger.warning("Deferred terminal event sender was cancelled (cid=%s).", event.payload.get("cid"))
+                elif error is not None:
+                    logger.error("Deferred terminal event sender failed (cid=%s): %s", event.payload.get("cid"), error)
+            finally:
+                end_activity(activity_id,
+                             status="cancelled" if sender.cancelled() else "failed" if error else "completed")
 
         task.add_done_callback(finished)
         return task
@@ -281,8 +301,23 @@ class ExecutionManager:
                     # publisher and its event subscribers along with submit.
                     await asyncio.shield(self._dispatch_terminal_event(deferred))
                 await hook_manager.trigger('after_task_run', task_context=task_context)
-                logger.debug(f"任务 '{task_name_for_log}' 执行完毕，资源已释放。")
             finally:
+                error = task_context.get('exception')
+                result = task_context.get('result')
+                if isinstance(error, asyncio.CancelledError):
+                    status = "cancelled"
+                elif isinstance(error, asyncio.TimeoutError):
+                    status = "timeout"
+                elif error is not None:
+                    status = "failed"
+                elif isinstance(result, dict):
+                    status = str(result.get('status') or result.get('final_status') or 'completed').lower()
+                else:
+                    status = "completed"
+                mark_task_terminal(tasklet.cid, task=task_name_for_log, status=status,
+                                   scheduler_semaphores_released=len(acquired_sems))
+                logger.debug("任务 '%s' 调度入口已结束，仍跟踪 %d 个执行活动。",
+                             task_name_for_log, len(pending_activities(tasklet.cid)))
                 reset_cid(cid_token)
 
     async def _handle_state_planning(self, tasklet: Tasklet) -> bool:

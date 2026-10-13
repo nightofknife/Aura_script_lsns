@@ -1,7 +1,7 @@
 maintain_raw_material_workshop_pc:
   meta:
     title: 原料车间维护（PC）
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产；不终止、不加速、不改配方、不领取、不建设、不返回总览。
+    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -98,15 +98,22 @@ maintain_raw_material_workshop_pc:
       depends_on: {start: "success|skipped"}
       when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and (nodes.start.output is none or nodes.start.output.safe_to_continue) }}"
       params: {room_name: "{{ inputs.room_name }}"}
+    return_overview:
+      action: resonance_pc.raw_workshop_return_overview
+      depends_on: {final_observe: "success|skipped"}
+      when: "{{ nodes.final_observe.output is not none and nodes.final_observe.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}"}
     finish:
       action: resonance_pc.raw_workshop_summarize
-      depends_on: {final_observe: "success|skipped"}
+      depends_on: {return_overview: "success|skipped"}
       params:
         room_name: "{{ inputs.room_name }}"
         navigation: "{{ nodes.navigate.output.nodes.open_room.output | default(none) }}"
         observation: "{{ nodes.observe.output }}"
         before_start: "{{ nodes.before_start.output }}"
         final_observe: "{{ nodes.final_observe.output }}"
+        return_overview: "{{ nodes.return_overview.output }}"
+        require_return: true
         deposit: "{{ nodes.deposit.output }}"
         work: "{{ nodes.work.output }}"
         reserve_rounds:
@@ -126,4 +133,6 @@ maintain_raw_material_workshop_pc:
     reason: "{{ nodes.finish.output.reason }}"
     room_name: "{{ nodes.finish.output.room_name }}"
     snapshot: "{{ nodes.finish.output.snapshot }}"
+    returned_to_overview: "{{ nodes.finish.output.returned_to_overview }}"
+    page_after: "{{ nodes.finish.output.page_after }}"
     data: "{{ nodes.finish.output.data }}"

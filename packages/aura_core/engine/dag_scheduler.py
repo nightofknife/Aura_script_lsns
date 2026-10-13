@@ -2,6 +2,9 @@
 """DAG scheduler module."""
 import asyncio
 from typing import Any, TYPE_CHECKING
+from packages.aura_core.observability.runtime_trace import (
+    bind_activity, end_activity, start_activity,
+)
 
 if TYPE_CHECKING:
     from .execution_engine import ExecutionEngine
@@ -52,13 +55,31 @@ class DAGScheduler:
             node_context = self.engine._prepare_node_context(node_id)
             self.engine.node_contexts[node_id] = node_context
 
-            task = asyncio.create_task(
-                self.engine.node_executor.execute_dag_node(node_id, node_context)
-            )
+            activity_id = start_activity("node", node_id,
+                                         node_cid=getattr(node_context, "data", {}).get("cid"))
+
+            async def run_node(nid=node_id, context=node_context, aid=activity_id):
+                with bind_activity(aid):
+                    return await self.engine.node_executor.execute_dag_node(nid, context)
+
+            def completed(task, nid=node_id, aid=activity_id):
+                status = "cancelled" if task.cancelled() else "failed" if task.exception() else "completed"
+                try:
+                    # Register successor scheduling before retiring this node so
+                    # a stopped task never appears drained between callbacks.
+                    self.engine._on_task_completed(task, nid)
+                finally:
+                    end_activity(aid, status=status)
+
+            coroutine = run_node()
+            try:
+                task = asyncio.create_task(coroutine)
+            except BaseException:
+                coroutine.close()
+                end_activity(activity_id, status="schedule_failed")
+                raise
             self.engine.running_tasks.add(task)
-            task.add_done_callback(
-                lambda t, nid=node_id: self.engine._on_task_completed(t, nid)
-            )
+            task.add_done_callback(completed)
 
     async def are_dependencies_met(self, node_id: str) -> bool:
         """Return whether node dependency spec is currently satisfied."""

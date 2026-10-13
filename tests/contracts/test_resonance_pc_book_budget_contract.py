@@ -28,7 +28,7 @@ def test_canonical_budget_contract_is_exposed_by_both_tasks(name):
     assert inputs["book_budget"]["nullable"] is True
     assert inputs["book_budget"]["default"] == 0
     assert inputs["book_profit_threshold"]["default"] == 500000
-    assert inputs["trade_mode"]["enum"] == ["profit", "quick", "fixed", "target"]
+    assert inputs["trade_mode"]["enum"] == ["free", "fixed"]
     assert "auto_book" not in inputs and "auto_book" not in spec["returns"]
     assert {"book_budget", "book_budget_unlimited", "book_profit_threshold",
             "book_incremental_profit", "average_book_profit", "planning_status",
@@ -48,6 +48,21 @@ def test_old_auto_book_is_not_an_accepted_task_field():
     assert not ok
 
 
+@pytest.mark.parametrize("mode", ["profit", "quick", "target"])
+def test_old_modes_are_not_runtime_aliases(mode):
+    ok, _ = InputValidator(None).validate_inputs_against_meta(
+        task("preview_trade_plan_pc")["meta"]["inputs"], {"start_city_id": "1", "trade_mode": mode})
+    assert not ok
+
+
+@pytest.mark.parametrize("goal", [None, 5000000])
+def test_free_mode_accepts_optional_target(goal):
+    ok, inputs = InputValidator(None).validate_inputs_against_meta(
+        task("preview_trade_plan_pc")["meta"]["inputs"],
+        {"start_city_id": "1", "trade_mode": "free", "target_profit": goal})
+    assert ok and inputs["target_profit"] == goal
+
+
 def test_public_signatures_match_modes_and_default_baseline():
     for callable_ in (ResonancePcTradePlannerService.plan_optimal_route,
                       planner.resonance_pc_trade_plan_optimal_route,
@@ -55,7 +70,7 @@ def test_public_signatures_match_modes_and_default_baseline():
                       trade.resonance_pc_preview_trade_plan_flow,
                       trade.resonance_pc_auto_cycle_trade_flow):
         params = inspect.signature(callable_).parameters
-        assert params["trade_mode"].default == "profit"
+        assert params["trade_mode"].default == "free"
         assert params["book_budget"].default == 0
         assert params["book_profit_threshold"].default == 500000
         assert params["fatigue_budget"].default == 700 and params["cargo_capacity"].default == 750
@@ -69,7 +84,7 @@ def test_generated_registration_has_new_inputs_not_old_aliases():
                  "resonance_pc.auto_cycle_trade_flow"):
         params = {row["name"]: row for row in actions[name]["parameters"]}
         assert "auto_book" not in params
-        assert params["trade_mode"]["default"] == "profit"
+        assert params["trade_mode"]["default"] == "free"
         assert params["book_profit_threshold"]["default"] == 500000
         assert params["fatigue_budget"]["default"] == 700 and params["cargo_capacity"]["default"] == 750
 
@@ -85,7 +100,7 @@ def test_retained_combined_task_forwards_canonical_budget_and_recovery(order, bu
     ok, inputs = InputValidator(None).validate_inputs_against_meta(
         task("auto_combined_commerce_pc")["meta"]["inputs"],
         {"order": order, "total_fatigue_budget": 700,
-         "trade_inputs": {"book_budget": budget, "trade_mode": "profit",
+         "trade_inputs": {"book_budget": budget, "trade_mode": "free",
                           "auto_sparkling_water": True, "required_end_city_ids": ["15"]},
          "passenger_inputs": {"passenger_city_a_id": "11", "passenger_city_b_id": "15", "trip_count": 1},
          "recovery_snapshot": snapshot})

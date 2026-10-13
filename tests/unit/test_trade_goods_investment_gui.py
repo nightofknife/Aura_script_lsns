@@ -90,21 +90,21 @@ def test_invalid_mode_rejected(page, repository, value):
     with pytest.raises(ValueError, match="交易品投资目标等级"):
         normalize_trade_task_inputs({"trade_goods_investment_mode": value})
     page.save_ui_state()
-    previous = repository.settings.value("trade/inputs_json")
+    previous = repository.settings.value("trade/two_mode_inputs_json")
     with pytest.raises(ValueError, match="交易品投资目标等级"):
         repository.save_trade_inputs({"trade_goods_investment_mode": value})
-    assert repository.settings.value("trade/inputs_json") == previous
+    assert repository.settings.value("trade/two_mode_inputs_json") == previous
     with pytest.raises(ValueError, match="交易品投资目标等级"):
         page.set_inputs({"trade_goods_investment_mode": value})
-    repository.settings.setValue("trade/inputs_json", json.dumps({"trade_goods_investment_mode": value}))
+    repository.settings.setValue("trade/two_mode_inputs_json", json.dumps({"trade_goods_investment_mode": value}))
     with pytest.raises(ValueError, match="交易品投资目标等级"):
         repository.load_trade_inputs()
 
 
 def test_missing_level_loads_default_and_malformed_json_keeps_existing_fallback(repository):
-    repository.settings.setValue("trade/inputs_json", "{}")
+    repository.settings.setValue("trade/two_mode_inputs_json", "{}")
     assert repository.load_trade_inputs()["trade_goods_investment_mode"] == 10
-    repository.settings.setValue("trade/inputs_json", "malformed json")
+    repository.settings.setValue("trade/two_mode_inputs_json", "malformed json")
     assert repository.load_trade_inputs()["trade_goods_investment_mode"] == 10
 
 

@@ -23,8 +23,8 @@ auto_combined_commerce_pc:
             name: trade_mode
             type: string
             required: false
-            default: profit
-            enum: [profit, quick, fixed, target]
+            default: free
+            enum: [free, fixed]
           book_policy:
             name: book_policy
             type: string
@@ -50,6 +50,8 @@ auto_combined_commerce_pc:
           target_profit:
             name: target_profit
             type: number
+            nullable: true
+            default: null
             strict_integer: true
             required: false
             min: 1

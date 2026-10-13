@@ -12,6 +12,7 @@ import win32gui
 import win32process
 
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.runtime_trace import log_event, request_diagnostic
 
 from ..contracts import TargetRuntimeError
 from ..runtime_config import RuntimeTargetConfig
@@ -221,13 +222,18 @@ class WindowTarget:
             current_thread = win32api.GetCurrentThreadId()
             foreground_thread = win32process.GetWindowThreadProcessId(foreground)[0] if foreground else 0
             target_thread = win32process.GetWindowThreadProcessId(hwnd)[0]
+            trace_fields = {"target_hwnd": hwnd, "target_pid": self.binding.pid, "foreground_hwnd": foreground,
+                            "foreground_thread": foreground_thread, "current_thread": current_thread,
+                            "target_thread": target_thread}
             attached = False
             if foreground_thread and foreground_thread != current_thread:
                 try:
                     win32process.AttachThreadInput(foreground_thread, current_thread, True)
                     attached = True
-                except Exception:
+                    log_event("input.focus_attach", success=True, **trace_fields)
+                except Exception as exc:
                     attached = False
+                    log_event("input.focus_attach", success=False, error_type=type(exc).__name__, **trace_fields)
             try:
                 win32gui.BringWindowToTop(hwnd)
                 win32gui.SetForegroundWindow(hwnd)
@@ -236,8 +242,10 @@ class WindowTarget:
                 if attached:
                     try:
                         win32process.AttachThreadInput(foreground_thread, current_thread, False)
-                    except Exception:
-                        pass
+                        log_event("input.focus_detach", success=True, **trace_fields)
+                    except Exception as exc:
+                        log_event("input.focus_detach", success=False, error_type=type(exc).__name__, **trace_fields)
+                        request_diagnostic("focus_detach_failed", **trace_fields)
         except Exception:
             try:
                 win32gui.SetForegroundWindow(hwnd)
@@ -245,7 +253,10 @@ class WindowTarget:
                 pass
 
         time.sleep(0.05)
-        return self.is_foreground()
+        focused = self.is_foreground()
+        log_event("input.focus_result", target_hwnd=hwnd, target_pid=self.binding.pid, success=focused,
+                  foreground_hwnd=int(win32gui.GetForegroundWindow() or 0))
+        return focused
 
     def is_foreground(self) -> bool:
         self.ensure_alive()

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 
 class PurchaseBookUseError(RuntimeError):
@@ -53,6 +55,23 @@ _CONFIRM_POINT = (960, 538)
 _DEFAULT_TEMPLATE_THRESHOLD = 0.8
 _STATE_STABLE_COUNT = 2
 _ITEM_MODAL_OPEN_ATTEMPTS = 3
+
+
+def _check_cancelled() -> None:
+    if is_current_task_cancel_requested():
+        # Cancellation must bypass failure recovery, which can click the UI.
+        raise asyncio.CancelledError("Purchase-book input cancelled")
+
+
+def _cancelable_sleep(seconds: float) -> None:
+    deadline = time.monotonic() + max(float(seconds), 0.0)
+    while True:
+        _check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        time.sleep(min(0.05, remaining))
+
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
@@ -145,12 +164,14 @@ def _find_template(
     use_grayscale: bool = True,
     preprocess: str = "none",
 ) -> Any:
+    _check_cancelled()
     region_tuple = _coerce_region(region)
     template_path = _resolve_template_path(template)
     if not template_path.is_file():
         _raise_error("template_not_found", "purchase book button template not found", {"template": str(template_path)})
 
     capture = app.capture(rect=region_tuple)
+    _check_cancelled()
     if not capture.success:
         _raise_error("capture_failed", "failed to capture screen region", {"region": list(region_tuple)})
 
@@ -161,6 +182,7 @@ def _find_template(
         use_grayscale=use_grayscale,
         preprocess=preprocess,
     )
+    _check_cancelled()
     return _offset_template_result(result, region_tuple)
 
 
@@ -225,6 +247,7 @@ def _wait_for_template_state(
     observations: Dict[str, Dict[str, Any]] = {}
 
     while True:
+        _check_cancelled()
         attempts += 1
         observations = {}
         for spec in [*all_of, *required_absent]:
@@ -279,7 +302,7 @@ def _wait_for_template_state(
                 "observations": observations,
                 "best_confidences": best_confidences,
             }
-        time.sleep(min(interval, remaining))
+        _cancelable_sleep(min(interval, remaining))
 
 
 def _click_template_or_point(
@@ -303,6 +326,7 @@ def _click_template_or_point(
     best_confidence = 0.0
 
     while True:
+        _check_cancelled()
         attempts += 1
         result = _find_template(app, vision, template, region, threshold=threshold)
         confidence = float(getattr(result, "confidence", 0.0) or 0.0)
@@ -317,7 +341,9 @@ def _click_template_or_point(
                 confidence,
                 attempts,
             )
+            _check_cancelled()
             app.move_to(int(x), int(y), duration=0.1)
+            _check_cancelled()
             app.click(x=int(x), y=int(y))
             return {
                 "clicked": True,
@@ -332,7 +358,7 @@ def _click_template_or_point(
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             break
-        time.sleep(min(retry_interval, remaining))
+        _cancelable_sleep(min(retry_interval, remaining))
 
     logger.warning(
         "限定时间内未能在区域 %s 找到模板 '%s' "
@@ -444,6 +470,7 @@ def _use_purchase_book_batch(
         item_modal_state: Dict[str, Any] = {"matched": False}
         open_click: Dict[str, Any] = {}
         for open_attempt in range(1, _ITEM_MODAL_OPEN_ATTEMPTS + 1):
+            _check_cancelled()
             open_click = _click_template_or_point(
                 app,
                 vision,
@@ -560,8 +587,9 @@ def _use_purchase_book_batch(
         state = "set_quantity"
         plus_clicks = max(batch_size - 1, 0)
         for _ in range(plus_clicks):
+            _check_cancelled()
             app.click(x=_PLUS_ONE_POINT[0], y=_PLUS_ONE_POINT[1])
-            time.sleep(max(float(click_interval_sec), 0.1))
+            _cancelable_sleep(max(float(click_interval_sec), 0.1))
 
         quantity_stable_state = _wait_for_template_state(
             app,
@@ -725,6 +753,7 @@ def resonance_pc_use_purchase_books(
     completed_batches: List[Dict[str, Any]] = []
     used = 0
     for batch_index, batch_size in enumerate(batch_sizes, start=1):
+        _check_cancelled()
         logger.info(
             "开始使用 %s 批次 %d/%d：数量=%d。",
             item_name,
