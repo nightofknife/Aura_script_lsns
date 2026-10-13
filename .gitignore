@@ -6,6 +6,7 @@
 .pytest_cache/
 .pytest_tmp/
 .codex_tmp/
+.cleanup/
 .playwright-cli/
 .test-tmp/
 .mypy_cache/
