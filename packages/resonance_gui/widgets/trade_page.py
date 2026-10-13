@@ -48,6 +48,7 @@ from ..config_repository import (
     ResonanceConfigRepository,
 )
 from ..logic import (
+    validate_pickup_click_interval,
     validate_trade_goods_investment_level,
     TradeProgressState,
     expected_profit_per_fatigue,
@@ -391,6 +392,7 @@ class TradePage(QWidget):
             "base_fatigue_reserve": "气泡水恢复时保留的基础疲劳下限，避免恢复后低于此值。",
             "auto_bento": "最终清仓后使用已勾选的便当，按下面的优先级尝试；完成便当收尾后才算货运完成。",
             "auto_pickup": "行车过程中启用沿途拣货，会增加行车中的操作。",
+            "auto_pickup_interval_sec": "两次拣货点击之间至少等待的秒数，范围 0.1～60 秒；不改变按住时长，到站检查和停止响应不随此间隔延迟。",
             "use_fatigue_medicine": "行车任务允许使用疲劳药；默认关闭，开启后仍受使用上限限制。",
             "fatigue_medicine_max_uses": "本次行车允许使用疲劳药的次数上限；仅在允许使用疲劳药时生效。",
             "auto_cape_island_investment": "货运到达蜃息岛时尝试投资；不会为投资额外改变货运线路。",
@@ -625,6 +627,23 @@ class TradePage(QWidget):
         self.bento_priority_panel = self._build_bento_priority_panel(content)
         recovery_layout.addWidget(self.bento_priority_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
+        self.pickup_timing_panel = QWidget(content)
+        pickup_row = QHBoxLayout(self.pickup_timing_panel)
+        pickup_row.setContentsMargins(0, 0, 0, 0)
+        pickup_row.setSpacing(8)
+        pickup_row.addWidget(self.auto_pickup)
+        pickup_row.addWidget(QLabel("点击间隔", self.pickup_timing_panel))
+        self.auto_pickup_interval_sec = QDoubleSpinBox(self.pickup_timing_panel)
+        self.auto_pickup_interval_sec.setRange(0.1, 60.0)
+        self.auto_pickup_interval_sec.setDecimals(2)
+        self.auto_pickup_interval_sec.setSingleStep(0.1)
+        self.auto_pickup_interval_sec.setSuffix(" 秒")
+        self.auto_pickup_interval_sec.setMaximumWidth(120)
+        self.auto_pickup_interval_sec.setAccessibleName("拣货点击间隔（秒）")
+        pickup_row.addWidget(self.auto_pickup_interval_sec)
+        pickup_row.addStretch(1)
+        recovery_layout.addWidget(self.pickup_timing_panel)
+        self.auto_pickup.toggled.connect(self._sync_pickup_controls)
         self.use_fatigue_medicine = QCheckBox("行车使用疲劳药", content)
         self.fatigue_medicine_max_uses = self._spin(0, 100000)
         self.allowed_fatigue_medicines: list[str] = []
@@ -644,7 +663,7 @@ class TradePage(QWidget):
         options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.setSpacing(8)
-        for index, button in enumerate((self.auto_pickup, self.use_fatigue_medicine,
+        for index, button in enumerate((self.use_fatigue_medicine,
                        self.auto_cape_island_investment, self.auto_rubbish_recycling,
                        self.auto_trade_goods_investment)):
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
@@ -686,6 +705,7 @@ class TradePage(QWidget):
             self.bento_priority_panel.hide()
             self.water_reserve_panel.hide()
             self.auto_pickup.hide()
+            self.pickup_timing_panel.hide()
             self.auto_cape_island_investment.hide()
             self.auto_trade_goods_investment.hide()
             self.trade_goods_investment_panel.hide()
@@ -1319,6 +1339,11 @@ class TradePage(QWidget):
         self._sync_bento_type_checks()
         self.base_fatigue_reserve.setValue(self._input_integer(values, "base_fatigue_reserve", 200))
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
+        interval = validate_pickup_click_interval(values.get("auto_pickup_interval_sec", 0.5))
+        blocked = self.auto_pickup_interval_sec.blockSignals(True)
+        self.auto_pickup_interval_sec.setValue(interval)
+        self.auto_pickup_interval_sec.blockSignals(blocked)
+        self._sync_pickup_controls()
         self.use_fatigue_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
         self.allowed_fatigue_medicines = list(values.get("allowed_fatigue_medicines") or [])
         self.fatigue_medicine_max_uses.setValue(self._input_integer(values, "fatigue_medicine_max_uses", 4))
@@ -1409,6 +1434,7 @@ class TradePage(QWidget):
             "bento_priority": self._selected_bento_priority(),
             "base_fatigue_reserve": self.base_fatigue_reserve.value(),
             "auto_pickup": self.auto_pickup.isChecked(),
+            "auto_pickup_interval_sec": self.auto_pickup_interval_sec.value(),
             "use_fatigue_medicine": self.use_fatigue_medicine.isChecked(),
             "allowed_fatigue_medicines": list(self.allowed_fatigue_medicines),
             "fatigue_medicine_max_uses": self.fatigue_medicine_max_uses.value(),
@@ -1480,6 +1506,9 @@ class TradePage(QWidget):
         self.trade_goods_investment_mode.setEnabled(
             not self._busy and self.auto_trade_goods_investment.isChecked()
         )
+
+    def _sync_pickup_controls(self, *_args: object) -> None:
+        self.auto_pickup_interval_sec.setEnabled(self.auto_pickup.isChecked() and not self._busy)
 
     def _black_moon_values(self) -> dict[str, Any]:
         return {
@@ -1811,6 +1840,7 @@ class TradePage(QWidget):
         self._sync_mode_controls()
         self._sync_goods_investment_controls()
         self._sync_black_moon_controls()
+        self._sync_pickup_controls()
         self._sync_actions()
 
     def set_end_city_constraint_available(self, available: bool) -> None:

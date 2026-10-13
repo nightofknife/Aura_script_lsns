@@ -39,7 +39,7 @@ from .cape_island_investment_pc_actions import (
 from .trade_goods_investment_pc_actions import (
     _INVESTMENT_PROGRESS_CALLBACK, normalize_investment_mode,
 )
-from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait
+from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait, _normalize_pickup_interval
 from ._operation_progress import (
     observe_operation, observe_worker_future, operation_progress, utc_timestamp,
 )
@@ -1981,6 +1981,7 @@ async def _execute_route(
     persistent_data: PersistentDataService | None = None,
     recovery_context: ExecutionContext | None = None,
     recovery_travel_costs: Optional[Dict[str, Any]] = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -2030,6 +2031,7 @@ async def _execute_route(
                     negotiation_max_attempts=negotiation_max_attempts,
                     arrival_timeout_seconds=arrival_timeout_seconds,
                     auto_pickup=auto_pickup,
+                    auto_pickup_interval_sec=auto_pickup_interval_sec,
                     app=app,
                     ocr=ocr,
                     vision=vision,
@@ -2231,6 +2233,7 @@ async def _execute_trade_leg(
     auto_pickup: bool = False,
     engine: ExecutionEngine | None = None,
     context: ExecutionContext | None = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -2272,6 +2275,7 @@ async def _execute_trade_leg(
         from_city_name=str(leg.get("from_city") or ""),
         enter_station_timeout_seconds=arrival_timeout_seconds,
         auto_pickup=auto_pickup,
+        auto_pickup_interval_sec=auto_pickup_interval_sec,
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
         drag_center=[640, 360],
@@ -2970,10 +2974,12 @@ async def resonance_pc_auto_cycle_trade_flow(
     context: ExecutionContext | None = None,
     engine: ExecutionEngine | None = None,
     persistent_data: PersistentDataService | None = None,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     request = normalize_planning_inputs(locals())
+    auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
     for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
                         ("auto_trade_goods_investment", auto_trade_goods_investment),
@@ -3220,6 +3226,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             negotiation_max_attempts=normalized_negotiation_max_attempts,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             auto_pickup=auto_pickup,
+            auto_pickup_interval_sec=auto_pickup_interval_sec,
             app=app,
             ocr=ocr,
             vision=vision,

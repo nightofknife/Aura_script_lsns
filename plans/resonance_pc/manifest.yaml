@@ -1350,6 +1350,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -1511,6 +1515,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
@@ -1552,6 +1560,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_pickup_interval_sec
+      type: Any
+      required: false
+      default: 0.5
   - name: resonance_pc.auto_combined_commerce_flow
     module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
     function: resonance_pc_auto_combined_commerce_flow
@@ -3624,4 +3636,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-12T14:13:48Z'
+  generated_at: '2026-10-13T15:21:30Z'

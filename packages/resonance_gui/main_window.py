@@ -399,6 +399,7 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
         self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
+        self.trade_page.auto_pickup_interval_sec.valueChanged.connect(self._save_auto_pickup_interval)
         self.trade_page.set_end_city_constraint_available(
             self.workflow_page.trade_end_city_constraint_available()
         )
@@ -732,6 +733,19 @@ class ResonanceMainWindow(QMainWindow):
         inputs = self._settings.load_trade_inputs()
         inputs["auto_pickup"] = bool(enabled)
         self._settings.save_trade_inputs(inputs)
+
+    def _save_auto_pickup_interval(self, interval_sec: float) -> None:
+        previous = None
+        try:
+            inputs = self._settings.load_trade_inputs()
+            previous = inputs["auto_pickup_interval_sec"]
+            inputs["auto_pickup_interval_sec"] = float(interval_sec)
+            self._settings.save_trade_inputs(inputs)
+        except (ValueError, OSError) as exc:
+            if previous is not None:
+                with QSignalBlocker(self.trade_page.auto_pickup_interval_sec):
+                    self.trade_page.auto_pickup_interval_sec.setValue(previous)
+            QMessageBox.warning(self, "拣货间隔保存失败", str(exc))
 
     def _save_auto_bento(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()

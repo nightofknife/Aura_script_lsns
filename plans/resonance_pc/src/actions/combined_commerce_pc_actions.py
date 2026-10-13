@@ -27,11 +27,13 @@ from .passenger_flow_pc_actions import (
     resonance_pc_auto_passenger_trips_flow,
 )
 from .rubbish_recycling_pc_actions import is_rubbish_recycling_arrival
+from .city_travel_pc_actions import _normalize_pickup_interval
 
 
 _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
     "auto_pickup",
+    "auto_pickup_interval_sec",
     "trade_mode",
     "book_policy",
     "negotiation_policy",
@@ -71,6 +73,7 @@ _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "bento_priority",
     "base_fatigue_reserve",
     "auto_pickup",
+    "auto_pickup_interval_sec",
     "auto_sparkling_water",
     "recovery_snapshot",
     "negotiation_max_attempts",
@@ -448,6 +451,11 @@ async def resonance_pc_auto_combined_commerce_flow(
     if raw_trade.get("auto_bento") is not None and raw_trade.get("auto_bento") is not False:
         return _blocked(result, "combined_auto_bento_unsupported", "preflight")
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
+    if "auto_pickup_interval_sec" in effective_trade:
+        try:
+            effective_trade["auto_pickup_interval_sec"] = _normalize_pickup_interval(effective_trade["auto_pickup_interval_sec"])
+        except ValueError as exc:
+            return _blocked(result, "invalid_trade_inputs", "preflight", detail=_exception_detail(exc))
     trade_services = {"persistent_data": persistent_data}
     if recovery_snapshot is not None:
         effective_trade["recovery_snapshot"] = copy.deepcopy(recovery_snapshot)

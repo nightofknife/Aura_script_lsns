@@ -49,6 +49,14 @@ _TRAVEL_HORN_REGION = [960, 640, 80, 80]
 _TRAVEL_HORN_THRESHOLD = 0.90
 _AUTO_PICKUP_POINT = (770, 400)
 _AUTO_PICKUP_INTERVAL = 0.5
+
+
+def _normalize_pickup_interval(value: Any) -> float:
+    if type(value) not in (int, float) or not 0.1 <= value <= 60.0 or not math.isfinite(value):
+        raise ValueError("auto_pickup_interval_sec must be a finite number between 0.1 and 60 seconds")
+    return float(value)
+
+
 _FATIGUE_PANEL_TEMPLATE = "templates/fatigue_recovery_panel_title.png"
 _FATIGUE_BACK_TEMPLATE = "templates/fatigue_recovery_back_button.png"
 _FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.png"
@@ -1566,10 +1574,12 @@ def resonance_pc_intercity_depart_and_wait(
     vision: Any = None,
     from_city_name: Optional[str] = None,
     auto_pickup: bool = False,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
 
+    pickup_interval = _normalize_pickup_interval(auto_pickup_interval_sec)
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
     if auto_pickup and not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
         _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
@@ -1639,7 +1649,7 @@ def resonance_pc_intercity_depart_and_wait(
                 app=app,
                 ocr=ocr,
                 vision=vision,
-                **({"auto_pickup": True} if auto_pickup else {}),
+                **({"auto_pickup": True, "auto_pickup_interval_sec": pickup_interval} if auto_pickup else {}),
             )
             observe_operation("travel.wait_arrival", "到站等待返回", "completed",
                               arrival_status=arrival.get("status"),
@@ -1795,10 +1805,11 @@ def resonance_pc_intercity_depart_and_wait(
 class _TravelPickup:
     """Own one leg's pickup state; no clicks can outlive its arrival loop."""
 
-    def __init__(self, app: Any, vision: Any, *, enabled: bool) -> None:
+    def __init__(self, app: Any, vision: Any, *, enabled: bool, interval_sec: float = _AUTO_PICKUP_INTERVAL) -> None:
         self.app = app
         self.vision = vision
         self.enabled = bool(enabled)
+        self.interval_sec = _normalize_pickup_interval(interval_sec)
         self.click_count = 0
         self.next_click_at = 0.0
         self.horn_present: Optional[bool] = None
@@ -1808,7 +1819,7 @@ class _TravelPickup:
         if self.enabled:
             if not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
                 _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
-            logger.info("[AutoPickup] started point=%s interval=%.1f", _AUTO_PICKUP_POINT, _AUTO_PICKUP_INTERVAL)
+            logger.info("[AutoPickup] started point=%s interval=%.2f", _AUTO_PICKUP_POINT, self.interval_sec)
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
@@ -1840,10 +1851,11 @@ class _TravelPickup:
         if present:
             self.app.click(x=_AUTO_PICKUP_POINT[0], y=_AUTO_PICKUP_POINT[1])
             self.click_count += 1
-        self.next_click_at = time.monotonic() + _AUTO_PICKUP_INTERVAL
+        self.next_click_at = time.monotonic() + self.interval_sec
 
-    def wait(self, deadline: float) -> None:
-        until = min(deadline, self.next_click_at)
+    def wait(self, deadline: float, max_wait_sec: float = 3.0) -> None:
+        # A long pickup cooldown must not postpone the next arrival check.
+        until = min(deadline, self.next_click_at, time.monotonic() + max_wait_sec)
         while time.monotonic() < until:
             _check_intercity_cancelled()
             time.sleep(min(0.05, max(0.0, until - time.monotonic())))
@@ -1872,12 +1884,13 @@ def resonance_pc_wait_intercity_arrival(
     ocr: Any = None,
     vision: Any = None,
     auto_pickup: bool = False,
+    auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
     """Wait until the station prompt is detected and handled."""
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
 
-    with _TravelPickup(app, vision, enabled=auto_pickup) as pickup:
+    with _TravelPickup(app, vision, enabled=auto_pickup, interval_sec=auto_pickup_interval_sec) as pickup:
         return _wait_intercity_arrival_loop(
             timeout_sec, interval_sec, arrival_template, arrival_template_region,
             arrival_template_threshold, arrival_click_max_attempts,
@@ -1992,7 +2005,7 @@ def _wait_intercity_arrival_loop(
         _check_intercity_cancelled()
         if pickup.enabled:
             pickup.tick(deadline)
-            pickup.wait(deadline)
+            pickup.wait(deadline, max_wait_sec=interval)
         else:
             time.sleep(interval)
 

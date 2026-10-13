@@ -10,7 +10,7 @@ from typing import Any
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
-from .logic import validate_trade_goods_investment_level
+from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval
 from .black_moon_catalog import normalize_black_moon_settings
 
 
@@ -90,6 +90,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "bento_priority": ["work_meals", "love_bentos"],
     "base_fatigue_reserve": 200,
     "auto_pickup": False,
+    "auto_pickup_interval_sec": 0.5,
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
@@ -265,6 +266,7 @@ class ResonanceConfigRepository:
                 parsed = None
             if isinstance(parsed, dict):
                 validate_trade_goods_investment_level(parsed.get("trade_goods_investment_mode", 10))
+                validate_pickup_click_interval(parsed.get("auto_pickup_interval_sec", 0.5))
                 # Invalid purchase settings must not silently reset all freight fields.
                 normalize_black_moon_settings(parsed)
                 try:
@@ -523,6 +525,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     if type(reserve) is not int or reserve < 0:
         raise ValueError("基础疲劳保留必须为非负整数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
+    merged["auto_pickup_interval_sec"] = validate_pickup_click_interval(merged["auto_pickup_interval_sec"])
     merged.update(normalize_black_moon_settings(merged))
     return merged
 
