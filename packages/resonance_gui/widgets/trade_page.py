@@ -391,9 +391,9 @@ class TradePage(QWidget):
         descriptions = {
             "fatigue_budget": "本次货运的规划疲劳上限；固定线路的起点导航消耗也计入预算。",
             "cargo_capacity": "规划时使用的货舱总容量，请填写游戏中实际可用的容量。",
-            "book_usage": "不用书、有限书数或不限书数；不限书数不会跳过单本收益阈值。",
+            "book_usage": "不用书、有限书数或不限书数；不用书仍购买基础库存中的盈利商品，有限书数是整趟任务的总额度。",
             "book_budget": "本次完整货运最多使用的进货书数量，不是每座城市的额度。",
-            "book_policy": "尽量满仓：在书数和每本收益下限内增加装载，首次满仓后停止加书；不保证每站满仓。",
+            "book_policy": "优先满仓：忽略单本收益阈值，在整趟用书额度内补足盈利商品，首次满仓后停止加书；额度不足时允许未满仓。收益优先仍受单本收益阈值限制。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
             "target_profit": "填写预计目标收益，以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
             "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
@@ -553,7 +553,8 @@ class TradePage(QWidget):
         self.book_usage.currentIndexChanged.connect(self._sync_book_controls)
         self.book_policy = QComboBox(content)
         self.book_policy.addItem("收益优先", "profit")
-        self.book_policy.addItem("尽量满仓", "fill")
+        self.book_policy.addItem("优先满仓", "fill")
+        self.book_policy.currentIndexChanged.connect(self._sync_book_controls)
         self.negotiation_policy = QComboBox(content)
         for caption, value in (("程序决定", "auto"), ("每次买卖都协商", "required"), ("不协商", "disabled")):
             self.negotiation_policy.addItem(caption, value)
@@ -605,9 +606,16 @@ class TradePage(QWidget):
         self.book_profit_threshold.setRange(0, 1_000_000_000)
         self.book_profit_threshold.setDecimals(4)
         self.book_profit_threshold.setSuffix(" 万")
-        self.book_profit_threshold.setToolTip("单本新增收益下限，所有用书模式都生效；50 万提交为 500000。")
+        self.book_profit_threshold.setToolTip("单本新增收益下限，仅收益优先策略生效；优先满仓忽略此阈值。50 万提交为 500000。")
         common_form.add_field("单本收益阈值", self.book_profit_threshold)
         common_form.add_field("用书策略", self.book_policy)
+        self.book_threshold_note = QLabel(
+            "优先满仓不使用单本收益阈值；仅在整趟用书额度内补货，首次满仓后停止加书。",
+            content,
+        )
+        self.book_threshold_note.setProperty("caption", True)
+        self.book_threshold_note.setWordWrap(True)
+        common_form.add_field("", self.book_threshold_note)
         common_form.add_field("协商策略", self.negotiation_policy)
         common_form.add_field("试算当前城市", self.start_city)
         common_form.set_field_visible(self.start_city, self.preview_mode)
@@ -833,6 +841,7 @@ class TradePage(QWidget):
         if not self._form_ready:
             return
         state = freight_control_state(mode=self.trade_mode(), book_usage=str(self.book_usage.currentData()),
+            book_policy=str(self.book_policy.currentData()),
             target_enabled=self.target_profit_enabled.isChecked(),
             negotiation=str(self.negotiation_policy.currentData()), water=self.auto_sparkling_water.isChecked(),
             bento=self.auto_bento.isChecked(), medicine=self.use_fatigue_medicine.isChecked())
@@ -841,9 +850,12 @@ class TradePage(QWidget):
         self.fixed_panel.setVisible(state["fixed"])
         self.common_parameters.set_field_visible(self.target_profit_enabled, state["free"])
         self.common_parameters.set_field_visible(self.target_profit, state["free"])
+        self.common_parameters.set_field_visible(
+            self.book_threshold_note, state["book_rules"] and self.book_policy.currentData() == "fill",
+        )
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
-            (self.book_profit_threshold, state["book_rules"]), (self.negotiation_policy, True),
+            (self.book_profit_threshold, state["book_threshold"]), (self.negotiation_policy, True),
             (self.target_profit_enabled, state["free"]), (self.target_profit, state["target"]),
             (self.negotiation_max_attempts, state["negotiation_attempts"]),
             (self.base_fatigue_reserve, state["recovery_reserve"]),
@@ -2073,7 +2085,10 @@ class TradePage(QWidget):
     def _render_route(self, route: list[dict[str, Any]]) -> None:
         self.route_tree.clear()
         for index, leg in enumerate(route):
-            products = ", ".join(route_product_lines(leg)) or "仅迁移"
+            products = ", ".join(route_product_lines(leg)) or (
+                "无盈利商品导航" if leg.get("selection_reason") == "no_profitable_products_transition"
+                else "仅迁移"
+            )
             fatigue = self._display(leg.get("expected_fatigue_cost"))
             resources = f"疲劳 {fatigue} / 书 {int(leg.get('books_used') or 0)}"
             negotiations = []
@@ -2092,11 +2107,44 @@ class TradePage(QWidget):
                 ]
             )
             item.setData(0, Qt.ItemDataRole.UserRole, index)
-            item.setToolTip(0, f"{leg.get('from_city', '--')} -> {leg.get('to_city', '--')}")
-            item.setToolTip(1, products)
+            notes = self._route_planning_notes(leg)
+            detail = "\n".join(notes)
+            item.setToolTip(0, "\n".join(
+                [f"{leg.get('from_city', '--')} -> {leg.get('to_city', '--')}", *notes]
+            ))
+            item.setToolTip(1, "\n".join([products, *notes]))
+            item.setToolTip(2, "\n".join([resources, *notes]))
+            item.setToolTip(4, detail)
             item.setTextAlignment(5, Qt.AlignmentFlag.AlignCenter)
             self.route_tree.addTopLevelItem(item)
         self._apply_route_statuses()
+
+    @staticmethod
+    def _route_planning_notes(leg: Mapping[str, Any]) -> list[str]:
+        notes = []
+        selection = {
+            "profitable_goods_require_purchase": "有盈利商品，安排买入。",
+            "no_profitable_products_transition": "本段没有盈利商品，仅导航过渡至后续盈利交易；不用于凑疲劳。",
+            "navigation_only": "本段仅导航，不安排买入。",
+        }.get(str(leg.get("selection_reason") or ""))
+        if selection:
+            notes.append(selection)
+        purchase = {
+            "base_stock_without_books": "不使用进货书，仍购买基础库存中的盈利商品。",
+            "planned_book_allocation": "按全程用书分配购买盈利商品；各站累计不超过整趟总额度。",
+        }.get(str(leg.get("purchase_reason") or ""))
+        if purchase:
+            notes.append(purchase)
+        if leg.get("cargo_capacity") is not None and leg.get("loaded_quantity") is not None:
+            notes.append(f"计划装载：{leg['loaded_quantity']} / {leg['cargo_capacity']}。")
+        if "remaining_book_budget_before" in leg and "remaining_book_budget_after" in leg:
+            before, after = leg["remaining_book_budget_before"], leg["remaining_book_budget_after"]
+            notes.append("整趟用书额度：无限。" if before is None
+                         else f"整趟剩余用书额度：本段前 {before} 本 → 本段后 {after} 本。")
+            if before is not None and leg.get("is_full_load") is False and leg.get("buy_products"):
+                notes.append("整趟用书额度不足，本段未满仓。" if leg.get("book_stop_reason") == "total_book_budget"
+                             else "用书按整趟总额度分配，本段未满仓。")
+        return notes
 
     def _apply_route_statuses(self) -> None:
         labels = {
@@ -2134,6 +2182,16 @@ class TradePage(QWidget):
 
     def _render_planning_summary(self, summary: Mapping[str, Any]) -> None:
         self._render_overview(summary, route=self._progress.route)
+        stop_text = self._planning_stop_text(summary)
+        if stop_text:
+            self.reason_label.setText(stop_text)
+
+    @staticmethod
+    def _planning_stop_text(summary: Mapping[str, Any]) -> str:
+        return {
+            "fatigue_budget": "剩余疲劳不足以继续完成交易及行车，在当前站结束；不改为空载继续走。",
+            "no_further_trade_within_budget": "预算内没有后续盈利交易，结束路线；不追加纯空载尾段消耗疲劳。",
+        }.get(str(summary.get("stop_reason") or ""), "")
 
     def _render_result(self, summary: Mapping[str, Any]) -> None:
         status = str(summary.get("status") or "")
@@ -2151,6 +2209,9 @@ class TradePage(QWidget):
             messages.append(f"{error.get('code', '')}：{error.get('message', '')}".strip("："))
         if summary.get("planning_status") == "target_unreachable":
             messages.append("指定收益不可达；诊断路线不是可执行方案。")
+        stop_text = self._planning_stop_text(summary)
+        if stop_text:
+            messages.append(stop_text)
         messages.extend(str(item) for item in (summary.get("warnings") or []) if str(item).strip())
         self.reason_label.setText("\n".join(messages))
         self.result_values["status"].style().unpolish(self.result_values["status"])

@@ -50,6 +50,8 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
     if policy not in {"profit", "fill"} or negotiation not in {"auto", "required", "disabled"}:
         raise ValueError("Invalid book_policy or negotiation_policy")
     result["book_policy"] = policy
+    if policy == "fill":
+        result["book_profit_threshold"] = 0
     result["negotiation_policy"] = negotiation
     for side in ("bargain", "raise"):
         key = f"{side}_success_rates_bps"
@@ -166,8 +168,14 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
                                          and water_plan.get("city_index") == index))
         phase("sell" if following else "final_sale", True)
         if following:
-            phase("books", bool(following.get("books_used")), "no_books_planned")
-            phase("buy", bool(following.get("buy_products")), "no_goods_planned")
+            books_reason = ("book_budget_exhausted" if following.get("buy_products")
+                            and following.get("remaining_book_budget_before") == 0
+                            else "already_full_without_books" if following.get("is_full_load")
+                            else "global_book_allocation" if following.get("buy_products")
+                            else "no_goods_planned")
+            phase("books", bool(following.get("books_used")), books_reason)
+            phase("buy", bool(following.get("buy_products")),
+                  following.get("selection_reason") or "no_goods_planned")
             phase("travel", True)
         else:
             phase("bento", auto_bento, "disabled")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import json
 from copy import deepcopy
 from pathlib import Path
 
@@ -242,6 +243,44 @@ def test_real_service_is_wired_to_preview_and_execution(service, harness, monkey
     assert preview["route"] == actual["route"]
     assert preview["expected_fatigue_used_exact"] == actual["expected_fatigue_used_exact"]
     assert preview["book_budget"] is None and actual["resources"]["actual_profit"] is None
+
+
+@pytest.mark.parametrize("books", [0, 1, 3, None])
+def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
+        service, harness, monkeypatch, books):
+    api, _ = service
+    _, state = harness
+    state["city"] = {"success": True, "city_name": "A", "city_key": "A"}
+    monkeypatch.setattr(api.market_data, "get_snapshot", lambda **kw: api.market_data.get_latest(), raising=False)
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route",
+                        planner_action.resonance_pc_trade_plan_optimal_route)
+    logs = []
+    monkeypatch.setattr(trade.logger, "info", lambda message, *args, **kwargs: logs.append(message % args))
+    request = dict(trade_mode="fixed", fatigue_budget=5, cargo_capacity=3,
+                   book_budget=books, book_policy="fill", book_profit_threshold=10**12,
+                   negotiation_policy="disabled", fixed_route_city_ids=["A", "B", "A"],
+                   resonance_pc_market_data=api.market_data, resonance_pc_trade_planner=api)
+    preview = asyncio.run(trade.resonance_pc_preview_trade_plan_flow(start_city_id="A", **request))
+    actual = run_full(auto_sparkling_water=False, **request)
+    assert preview["status"] == "planned" and actual["status"] == "completed"
+    assert preview["route"] == actual["route"]
+    assert preview["route"][0]["buy_products"] == ["p"]
+    assert preview["route"][-1]["leg_type"] == "trade"
+    traded = [leg for leg in preview["route"] if leg["from_city_id"] == "A"]
+    assert all(leg["buy_products"] == ["p"] and leg["loaded_quantity"] > 0 for leg in traded)
+    used = sum(leg["books_used"] for leg in preview["route"])
+    assert used == preview["books_used"]
+    if books is None:
+        assert all(leg["is_full_load"] for leg in traded)
+    else:
+        assert used <= books
+        assert all(leg["remaining_book_budget_after"] >= 0 for leg in preview["route"])
+    if books == 0:
+        assert all(leg["books_used"] == 0 for leg in actual["route"])
+    leg_logs = [entry for entry in logs if "[FreightPlan] phase=leg kind=run" in entry]
+    assert len(leg_logs) == len(actual["route"])
+    for entry, expected in zip(leg_logs, actual["route"]):
+        assert json.loads(entry.split("detail=", 1)[1]) == expected
 
 
 @pytest.mark.parametrize("code,status", [("buy_transaction_not_confirmed", "failed"), ("trade_cancelled", "cancelled")])

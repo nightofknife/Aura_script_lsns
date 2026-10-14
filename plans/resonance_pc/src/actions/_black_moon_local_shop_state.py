@@ -27,6 +27,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from packages.aura_core.context.persistence.persistent_data_errors import PersistentDataNotFoundError
 
+from ._black_moon_local_scan_contract import validated_scan_completion
+
 
 PURCHASES_FILE = "black-moon-shop-purchases.json"
 SCHEMA_VERSION = 1
@@ -594,8 +596,9 @@ def _completion_evidence(record: dict, value: Any) -> dict:
 
 def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
     if any(proof.get(flag) is not True
-           for flag in ("recognized", "bottom_confirmed", "started_empty")):
-        raise ValueError("Wishlist completion requires a recognized bottom-confirmed empty-start scan")
+           for flag in ("recognized", "started_empty")):
+        raise ValueError("Wishlist completion requires a recognized empty-start scan")
+    validated_scan_completion(proof)
     if set(_item_ids(proof.get("selected_item_ids"), allow_empty=False)) != set(record["selected_item_ids"]):
         raise ValueError("Wishlist completion must match the visit selection snapshot")
     count = proof.get("selected_card_count")

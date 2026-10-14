@@ -122,7 +122,7 @@ def test_fill_does_not_force_negotiation_and_preferences_survive_mode_switch(pag
     inputs = page.collect_task_inputs()
     assert inputs["book_policy"] == "fill"
     assert inputs["negotiation_policy"] == "disabled"
-    assert page.book_policy.currentText() == "尽量满仓"
+    assert page.book_policy.currentText() == "优先满仓"
     assert page.book_policy.isEnabled()
     page.mode_buttons["fixed"].setChecked(True)
     page.mode_buttons["free"].setChecked(True)

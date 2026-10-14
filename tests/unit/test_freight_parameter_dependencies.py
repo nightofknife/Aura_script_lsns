@@ -34,7 +34,21 @@ def test_fill_policy_remains_independent_of_negotiation_and_books(mode, books):
     assert result["book_budget"] == books
     assert result["book_policy"] == "fill"
     assert result["negotiation_policy"] == "disabled"
-    assert result["book_profit_threshold"] == 500000
+    assert result["book_profit_threshold"] == 0
+
+
+@pytest.mark.parametrize("books", [1, 2, None])
+def test_fill_removes_inactive_threshold_without_mutating_saved_form(books):
+    draft = dict(trade_mode="free", book_budget=books, book_policy="fill",
+                 book_profit_threshold=10**12)
+    original = deepcopy(draft)
+    assert "book_profit_threshold" not in effective_freight_inputs(draft)
+    result = normalize_planning_inputs(draft)
+    assert result["book_profit_threshold"] == 0
+    assert result["book_budget"] == books
+    assert draft == original
+    draft["book_policy"] = "profit"
+    assert normalize_planning_inputs(draft)["book_profit_threshold"] == 10**12
 
 
 def test_target_is_optional_for_free_and_irrelevant_to_fixed():

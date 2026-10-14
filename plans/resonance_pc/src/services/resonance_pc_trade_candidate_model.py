@@ -3,7 +3,8 @@
 For sorted integer unit profits p[i] and cumulative lots L[i],
 P(k) = sum((p[i] - p[i+1]) * min(capacity, L[i] * (k+1))).
 This is concave, so discrete marginal profits are nonincreasing. Both the
-saturation bound and a threshold-prefix binary search are therefore exact.
+saturation bound and the profit-policy threshold-prefix search are exact.
+Fill policy stops at the first full load and never applies a profit threshold.
 """
 
 from __future__ import annotations
@@ -78,6 +79,10 @@ class EdgeBookCurve:
         saturation = max((capacity + limiting_lot - 1) // limiting_lot - 1, 0)
         curve = cls(baseline, candidates, capacity, policy, threshold, saturation,
                     saturation, "capacity_reached" if policy == "fill" else "profit_saturated")
+        if policy == "fill":
+            reason = ("already_full_without_books" if saturation == 0
+                      and baseline.loaded_quantity == capacity else "capacity_reached")
+            return replace(curve, limit_reason=reason)
         low, high = 1, saturation
         last = 0
         while low <= high:

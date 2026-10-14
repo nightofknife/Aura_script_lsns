@@ -1,7 +1,7 @@
 maintain_raw_material_workshop_pc:
   meta:
     title: 原料车间维护（PC）
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -9,6 +9,10 @@ maintain_raw_material_workshop_pc:
         type: enum
         enum: [植物纤维原料车间, 动物纤维原料车间, 缝纫工具原料车间, 人造纤维原料车间]
         required: true
+      - name: max_work_rounds
+        type: enum
+        enum: [1, 2, 3, 4, 5, 6, 7, 8]
+        default: 8
       - name: max_reserve_rounds
         type: enum
         enum: [1, 2, 3, 4, 5, 6, 7, 8]
@@ -36,67 +40,44 @@ maintain_raw_material_workshop_pc:
       when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and nodes.observe.output.snapshot.production == 'idle' }}"
       params: {room_name: "{{ inputs.room_name }}"}
     work:
-      action: resonance_pc.raw_workshop_fill_list_once
+      action: resonance_pc.raw_workshop_fill_list_until_full
       depends_on: {deposit: "success|skipped"}
       when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and nodes.observe.output.snapshot.production == 'idle' and nodes.deposit.output is not none and nodes.deposit.output.safe_to_continue }}"
-      params: {room_name: "{{ inputs.room_name }}", list_kind: work}
-    # The framework while-loop exposes no previous iteration output. A finite
-    # sequential chain provides early stop from returned business flags without
-    # shared state or changes to the scheduler. Skipped rounds retain null output.
-    reserve_round_1:
-      action: resonance_pc.raw_workshop_reserve_round
+      params:
+        room_name: "{{ inputs.room_name }}"
+        list_kind: work
+        max_rounds: "{{ inputs.max_work_rounds | int }}"
+    reserve:
+      action: resonance_pc.raw_workshop_fill_list_until_full
       depends_on: {work: "success|skipped"}
-      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.observe.output.snapshot.production == 'running' or (nodes.work.output is not none and nodes.work.output.safe_to_continue)) }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_2:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_1: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 2 and nodes.reserve_round_1.output is not none and nodes.reserve_round_1.output.safe_to_continue and nodes.reserve_round_1.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_3:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_2: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 3 and nodes.reserve_round_2.output is not none and nodes.reserve_round_2.output.safe_to_continue and nodes.reserve_round_2.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_4:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_3: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 4 and nodes.reserve_round_3.output is not none and nodes.reserve_round_3.output.safe_to_continue and nodes.reserve_round_3.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_5:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_4: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 5 and nodes.reserve_round_4.output is not none and nodes.reserve_round_4.output.safe_to_continue and nodes.reserve_round_4.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_6:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_5: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 6 and nodes.reserve_round_5.output is not none and nodes.reserve_round_5.output.safe_to_continue and nodes.reserve_round_5.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_7:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_6: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 7 and nodes.reserve_round_6.output is not none and nodes.reserve_round_6.output.safe_to_continue and nodes.reserve_round_6.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
-    reserve_round_8:
-      action: resonance_pc.raw_workshop_reserve_round
-      depends_on: {reserve_round_7: "success|skipped"}
-      when: "{{ inputs.max_reserve_rounds >= 8 and nodes.reserve_round_7.output is not none and nodes.reserve_round_7.output.safe_to_continue and nodes.reserve_round_7.output.continue_reserve }}"
-      params: {room_name: "{{ inputs.room_name }}"}
+      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.work.output is none or (nodes.work.output.safe_to_continue and not (nodes.work.output.stop_staff_fill | default(false)))) and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) }}"
+      params:
+        room_name: "{{ inputs.room_name }}"
+        list_kind: reserve
+        max_rounds: "{{ inputs.max_reserve_rounds | int }}"
     before_start:
       action: resonance_pc.raw_workshop_observe
-      depends_on: {reserve_round_8: "success|skipped"}
-      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) and (nodes.work.output is none or nodes.work.output.safe_to_continue) and (nodes.reserve_round_1.output is none or nodes.reserve_round_1.output.safe_to_continue) and (nodes.reserve_round_2.output is none or nodes.reserve_round_2.output.safe_to_continue) and (nodes.reserve_round_3.output is none or nodes.reserve_round_3.output.safe_to_continue) and (nodes.reserve_round_4.output is none or nodes.reserve_round_4.output.safe_to_continue) and (nodes.reserve_round_5.output is none or nodes.reserve_round_5.output.safe_to_continue) and (nodes.reserve_round_6.output is none or nodes.reserve_round_6.output.safe_to_continue) and (nodes.reserve_round_7.output is none or nodes.reserve_round_7.output.safe_to_continue) and (nodes.reserve_round_8.output is none or nodes.reserve_round_8.output.safe_to_continue) }}"
+      depends_on: {reserve: "success|skipped"}
+      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) and (nodes.work.output is none or nodes.work.output.safe_to_continue) and (nodes.reserve.output is none or nodes.reserve.output.safe_to_continue) }}"
       params: {room_name: "{{ inputs.room_name }}"}
     start:
       action: resonance_pc.raw_workshop_start_once
       depends_on: {before_start: "success|skipped"}
-      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and nodes.before_start.output.snapshot.production == 'idle' }}"
+      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and nodes.before_start.output.snapshot.production == 'idle' and (nodes.work.output is none or not (nodes.work.output.stop_staff_fill | default(false))) and (nodes.reserve.output is none or not (nodes.reserve.output.stop_staff_fill | default(false))) }}"
       params: {room_name: "{{ inputs.room_name }}"}
+    reserve_after_start:
+      action: resonance_pc.raw_workshop_fill_list_until_full
+      depends_on: {start: "success|skipped"}
+      when: "{{ nodes.start.output is not none and nodes.start.output.safe_to_continue and nodes.start.output.snapshot.production == 'running' and nodes.reserve.output is not none and nodes.reserve.output.safe_to_continue and not (nodes.reserve.output.stop_staff_fill | default(false)) }}"
+      params:
+        room_name: "{{ inputs.room_name }}"
+        list_kind: reserve
+        max_rounds: "{{ inputs.max_reserve_rounds | int }}"
+        previous_result: "{{ nodes.reserve.output }}"
     final_observe:
       action: resonance_pc.raw_workshop_observe
-      depends_on: {start: "success|skipped"}
-      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and (nodes.start.output is none or nodes.start.output.safe_to_continue) }}"
+      depends_on: {reserve_after_start: "success|skipped"}
+      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and (nodes.start.output is none or nodes.start.output.safe_to_continue) and (nodes.reserve_after_start.output is none or nodes.reserve_after_start.output.safe_to_continue) }}"
       params: {room_name: "{{ inputs.room_name }}"}
     return_overview:
       action: resonance_pc.raw_workshop_return_overview
@@ -116,15 +97,8 @@ maintain_raw_material_workshop_pc:
         require_return: true
         deposit: "{{ nodes.deposit.output }}"
         work: "{{ nodes.work.output }}"
-        reserve_rounds:
-          - "{{ nodes.reserve_round_1.output }}"
-          - "{{ nodes.reserve_round_2.output }}"
-          - "{{ nodes.reserve_round_3.output }}"
-          - "{{ nodes.reserve_round_4.output }}"
-          - "{{ nodes.reserve_round_5.output }}"
-          - "{{ nodes.reserve_round_6.output }}"
-          - "{{ nodes.reserve_round_7.output }}"
-          - "{{ nodes.reserve_round_8.output }}"
+        reserve_rounds: ["{{ nodes.reserve.output }}"]
+        reserve_after_start: "{{ nodes.reserve_after_start.output }}"
         start: "{{ nodes.start.output }}"
         max_reserve_rounds: "{{ inputs.max_reserve_rounds | int }}"
   returns:

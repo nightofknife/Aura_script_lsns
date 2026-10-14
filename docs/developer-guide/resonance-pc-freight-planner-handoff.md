@@ -14,8 +14,8 @@
 | fatigue_budget | int = 700（服务） | 整个任务预计疲劳上限，固定模式含定位 |
 | cargo_capacity | int = 750（服务） | 正整数，每航段的货舱 |
 | book_budget | int 或 None = 0 | 唯一全路线书总上限；None 无限；0 禁书 |
-| book_profit_threshold | 精确金额 = 500000 | 每本 >0 且 >= 下限，逐本前缀均达标 |
-| book_policy | str = profit | profit 允许满仓后优化商品组成；fill 首次满仓停止 |
+| book_profit_threshold | 精确金额 = 500000 | 仅 profit 生效：每本 >0 且 >= 下限，逐本前缀均达标；fill 忽略 |
+| book_policy | str = profit | profit 允许满仓后优化商品组成；fill 不受单本阈值限制，首次满仓停止；两者均遵守整趟书总额度 |
 | negotiation_policy | str = auto | auto / required / disabled；required 仅双协商贸易 |
 | negotiation_budget | int 或 None = None | 可选全路线完整协商次数上限；None 不限次数 |
 | fixed_route_city_ids | 有序 list[str] 或 None | 固定模式保留顺序及重复；闭环循环，开放线路只推进一次 |
@@ -35,11 +35,11 @@
 
 - profit / quick：收益最多、疲劳最少、书最少、协商最少、航段最少、稳定城市路径和边签名。
 - target：达标后疲劳最少、书最少、协商最少、航段最少、稳定路径；超额利润不参与平局。不同利润标签不能只凭更高利润合并，尤其更少航段或更早稳定路径的标签。收益可达性截到目标，真实收益保留用于输出。
-- fixed：沿指定顺序合法前缀中疲劳最多，其后收益最多、少书、少协商、少航段、稳定顺序。允许部分最后一圈；开放线路走完停止。不同疲劳值均保留，不使用最大收益模式的跨疲劳支配。至少要有一段有效贸易；纯空载耗预算不作为可执行货运计划。
+- fixed：沿指定顺序合法前缀中疲劳最多，其后收益最多、少书、少协商、少航段、稳定顺序。有盈利商品的航段必须交易，不能为消耗疲劳改选空载；交易疲劳不足时结束前缀。无盈利航段仅可连接后续有效交易，选定路线不能以空载尾段结束。允许部分最后一圈；开放线路最多走一次。不同疲劳值均保留，不使用最大收益模式的跨疲劳支配。至少要有一段有效贸易。
 
 商品模型、满20%定价、JavaScript取整和 Fraction 期望疲劳不变。最大协商尝试次数仍属于执行，不扩展为概率分布模型。首站原有货物不在模型收益内。
 
-书曲线 P(k) 由排序整数单位利润及每批数量累积求值，是离散凹函数。profit 饱和边界由最高单位利润商品的总进货量推导；fill 由全部盈利商品的总量推导。阈值采用二分寻找合法前缀，零增量永不使用。全路线有限书数进一步有严格上界 floor(F * max(K_edge / cost_edge))；超过此界的有限预算与无限在可达资源上等价，外部预算仍保留。单航段的巨大有限预算也直接使用精确曲线，不逐本构造一百万条候选。绑定的多航段有限预算仍保留合法书数用于全局分配。
+书曲线 P(k) 由排序整数单位利润及每批数量累积求值，是离散凹函数。profit 饱和边界由最高单位利润商品的总进货量推导，并以阈值二分寻找合法前缀；fill 由全部盈利商品的总量推导首次满仓所需最少书数，不筛选单本收益阈值。不用书或书额耗尽时仍购买盈利基础库存；有限书数保留部分装载候选，按整趟分配，不保证每站满仓。全路线有限书数进一步有严格上界 floor(F * max(K_edge / cost_edge))；超过此界的有限预算与无限在可达资源上等价，外部预算仍保留。单航段的巨大有限预算也直接使用精确曲线，不逐本构造一百万条候选。
 
 无限书的 profit/fixed 可以取每种协商配置的最大合法收益候选，因为书不影响疲劳且边收益严格递增；target 保留少书候选并按需展开，目标转换可二分求最小用书。未采用 Beam、Top-K、随机截断或伪造巨大书预算。循环展开边界来自预算和最小正移动消耗；固定线路零/负消耗航段显式拒绝。
 
@@ -55,6 +55,7 @@
 8. target 输出 target_profit、target_reached、target_gap、maximum_reachable_profit，均有适用 exact 字段。不可达的最大收益是同约束实际可达结果，不是上界，也不附可执行诊断路线；target_gap 在不可达时为目标减最高可达收益。
 9. `request` 为有效模式、约束、账号参数快照；assumptions 保留模型说明；solver_backend / solver_stats 为规划诊断。旧 books_budget 保留与 book_budget 同值，remaining_books 在无限时为 None。
 10. 缓存包含全部冻结数据、模式、有限/无限书预算、策略、目标、完整有序固定线路与定位开关；忽略非当前模式参数。保持8项LRU及深拷贝隔离；不接受水/便当等执行参数。
+11. 2026-10-14 规则修订：fill 的有效阈值归零，GUI 保存原值但禁用阈值控件，切回 profit 后恢复。route 增加 selection_reason、purchase_reason、remaining_book_budget_before/after；fixed diagnostics 增加 fixed_edge_rules。预览与运行均记录 `[FreightPlan]` 的 inputs、summary 和逐段 leg；`no_further_trade_within_budget` 表示没有后续预算内有效交易，不追加空载尾段。相关回归覆盖 19 个测试文件，结果为 554 passed（17.54 秒），报告 `.pytest_tmp/reports/freight_fill_regression.xml`；新增用例覆盖高阈值补满、全程书额度、固定盈利航段禁止空载及空载尾段裁剪，未进行实机验收。
 
 ## 验证与边界
 

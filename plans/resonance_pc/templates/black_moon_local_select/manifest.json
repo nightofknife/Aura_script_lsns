@@ -12419,6 +12419,40 @@
     "normal_corner.png": "7d978cd9bb27f4c6c59455db21b199af5a6a517318282ce7f222ea21d2b03737",
     "selected.png": "d5b753da5b823487b890dc3e5b95c70f33d1fb3f4f77bfcf49225ba2b1de9bc6",
     "selected_corner.png": "cca7057ff55995d822f5a5879303c73e1e39c0b0c4372a7156ef746187e8bcd7",
-    "total_zero.png": "4078df8798f21a69fc2e521f31f6c91613a38397fe0020f187aad58ed244df81"
+    "total_zero.png": "4078df8798f21a69fc2e521f31f6c91613a38397fe0020f187aad58ed244df81",
+    "sold_out_badge.png": "467614c5c48f2cce0229756159b26310a34100c164d8c0dd3e0dd4fb5ea06035"
+  },
+  "sold_out_boundary": {
+    "file": "sold_out_badge.png",
+    "threshold": 0.9,
+    "preprocess": "gray",
+    "method": "1-TM_SQDIFF_NORMED",
+    "card_relative_roi": [
+      119,
+      53,
+      90,
+      36
+    ],
+    "row_pitch": 130.66666666666666,
+    "source": {
+      "type": "user_client_crop",
+      "source_sha256": "810f3d6f2386808e3a2f4db19254ec3c663f64a00a45e038c99a353193f9c5a4",
+      "client_box": [
+        1,
+        38,
+        1280,
+        720
+      ],
+      "client_badge_box": [
+        719,
+        178,
+        90,
+        36
+      ],
+      "client_card_origin": [
+        600,
+        125
+      ]
+    }
   }
 }

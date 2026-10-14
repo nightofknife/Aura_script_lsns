@@ -207,11 +207,11 @@ def test_start_unknown_effect_stops_without_retry(scene):
 
 @pytest.mark.parametrize("after,expected_continue", [
     (snapshot("running", work=(3, 7), reserve=(0, 2)), True),
-    (snapshot("running", work=(2, 7), reserve=(0, 2)), False),
+    (snapshot("running", work=(2, 7), reserve=(0, 2)), True),
     (snapshot("running", work=(2, 7), reserve=(2, 2)), False),
     (snapshot("running", work=(7, 7), reserve=(2, 2)), False),
 ])
-def test_reserve_continues_only_after_actual_progress_with_vacancy(monkeypatch, after, expected_continue):
+def test_reserve_reports_vacancy_for_bounded_loop_to_decide_progress(monkeypatch, after, expected_continue):
     app = App()
     before = snapshot("running", work=(2, 7), reserve=(0, 2))
     patch_snapshot(monkeypatch, before)
@@ -222,6 +222,8 @@ def test_reserve_continues_only_after_actual_progress_with_vacancy(monkeypatch, 
     result = actions.resonance_pc_raw_workshop_reserve_round(ROOM, app=app)
     assert result["safe_to_continue"]
     assert result["continue_reserve"] is expected_continue
+    assert result["data"]["progress"] is (after["work"]["current"] > before["work"]["current"]
+                                           or after["reserve"]["current"] > before["reserve"]["current"])
     assert app.clicks == []
 
 
@@ -234,7 +236,7 @@ def test_idle_reserve_does_not_loop_for_transfer(monkeypatch):
         "safe_to_continue": True, "snapshot": deepcopy(state), "data": data})
     monkeypatch.setattr(actions, "_transfer_window", lambda *args: pytest.fail("Idle must not wait for a running transfer"))
     result = actions.resonance_pc_raw_workshop_reserve_round(ROOM, app=app)
-    assert result["continue_reserve"] is False
+    assert result["continue_reserve"] is True
 
 
 def test_snapshot_canonicalization_ignores_volatile_digit_match_scores(monkeypatch):
@@ -251,7 +253,7 @@ def test_snapshot_canonicalization_ignores_volatile_digit_match_scores(monkeypat
 
 
 def test_public_atoms_do_not_inject_ocr_and_points_are_multiples_of_five():
-    names = ("observe", "deposit_max", "fill_list_once", "reserve_round", "start_once", "return_overview")
+    names = ("observe", "deposit_max", "fill_list_once", "fill_list_until_full", "reserve_round", "start_once", "return_overview")
     for name in names:
         function = getattr(actions, f"resonance_pc_raw_workshop_{name}")
         assert "ocr" not in inspect.signature(function).parameters
@@ -366,10 +368,10 @@ def test_failed_navigation_cannot_be_overridden_by_later_success():
 
 def test_summary_reports_explicit_reserve_round_budget_exhaustion():
     state = snapshot("running", (6, 7), (0, 2))
-    round_result = {"success": False, "safe_to_continue": True, "snapshot": state,
-                    "continue_reserve": True}
+    round_result = {"success": False, "status": "partial", "safe_to_continue": True, "snapshot": state,
+                    "reason": "reserve_round_limit", "data": {"round_count": 8}}
     result = actions.resonance_pc_raw_workshop_summarize(
-        ROOM, navigation={"room_entered": True}, reserve_rounds=[round_result] * 8)
+        ROOM, navigation={"room_entered": True}, reserve_rounds=[round_result])
     assert result["status"] == "partial"
     assert result["reason"] == "reserve_round_limit"
     assert result["data"]["reserve_round_count"] == 8

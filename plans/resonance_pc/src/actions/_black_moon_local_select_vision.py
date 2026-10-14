@@ -52,7 +52,12 @@ class BlackMoonLocalSelectVision:
 
     def _hit(self, frame, entry, box):
         template, mask = self._pair(entry)
-        response = _response(_crop(frame, box), template, mask, "1-TM_SQDIFF_NORMED")
+        source = _crop(frame, box)
+        if entry.get("preprocess") == "gray":
+            source = cv2.cvtColor(source, cv2.COLOR_RGB2GRAY)
+            if template.ndim == 3:
+                template = cv2.cvtColor(template, cv2.COLOR_RGB2GRAY)
+        response = _response(source, template, mask, "1-TM_SQDIFF_NORMED")
         if not response.size:
             return {"found": False, "score": 0., "center": None}
         _, score, _, point = cv2.minMaxLoc(response)
@@ -71,7 +76,37 @@ class BlackMoonLocalSelectVision:
         entry = self.meta["confirm_purchase"]
         return self._hit(frame, entry, tuple(entry["roi"]))
 
-    def cards(self, frame):
+    def sold_out_markers(self, frame):
+        """Find the independent SOLD OUT plates, including dark/clipped cards."""
+        _image(frame)
+        entry = self.meta["sold_out_boundary"]
+        template, _ = self._pair(entry)
+        vx, vy, vw, vh = self.VIEWPORT
+        rx, ry, width, height = entry["card_relative_roi"]
+        found = []
+        for column in self.meta["card_columns"]:
+            box = (column + rx - 6, vy, width + 12, vh)
+            gray = cv2.cvtColor(_crop(frame, box), cv2.COLOR_RGB2GRAY)
+            response = _response(gray, template, None, "1-TM_SQDIFF_NORMED").copy()
+            while response.size:
+                _, score, _, (px, py) = cv2.minMaxLoc(response)
+                if score < entry["threshold"]:
+                    break
+                rect = (box[0] + px, vy + py, width, height)
+                found.append({"row_top": int(rect[1] - ry), "column": int(column),
+                              "score": float(score), "marker_rect": list(rect)})
+                response[max(0, py - height):min(response.shape[0], py + height + 1), :] = -1.
+        # Group equal physical rows despite one-pixel matching offsets; within
+        # a row use the leftmost plate as a reproducible boundary witness.
+        ordered = sorted(found, key=lambda hit: hit["row_top"])
+        rows = []
+        for hit in ordered:
+            if not rows or hit["row_top"] - rows[-1][0]["row_top"] > 6:
+                rows.append([])
+            rows[-1].append(hit)
+        return [hit for row in rows for hit in sorted(row, key=lambda value: value["column"])]
+
+    def cards(self, frame, row_limit=None):
         _image(frame)
         vx, vy, vw, vh = self.VIEWPORT
         width, height = self.meta["card_size"]
@@ -80,7 +115,8 @@ class BlackMoonLocalSelectVision:
             for name in ("normal_corner", "selected_corner"):
                 entry = self.meta["geometry"][name]
                 template, mask = self._pair(entry)
-                box = (column - 3, vy, template.shape[1] + 6, vh)
+                search_height = vh if row_limit is None else min(vh, max(0, row_limit + height + 6 - vy))
+                box = (column - 3, vy, template.shape[1] + 6, search_height)
                 response = _response(_crop(frame, box), template, mask, "1-TM_SQDIFF_NORMED")
                 if not response.size:
                     continue
@@ -92,8 +128,9 @@ class BlackMoonLocalSelectVision:
                     if score < entry.get("threshold", .9):
                         break
                     rect = (column, vy + int(py), width, height)
-                    found.append({"rect": rect, "partial": rect[1] + height > vy + vh,
-                                  "geometry_score": float(score)})
+                    if row_limit is None or rect[1] <= row_limit + 6:
+                        found.append({"rect": rect, "partial": rect[1] + height > vy + vh,
+                                      "geometry_score": float(score)})
                     response[max(0, py - 100):min(response.shape[0], py + 101), :] = -1.
         unique = []
         for card in sorted(found, key=lambda c: c["geometry_score"], reverse=True):
@@ -108,6 +145,10 @@ class BlackMoonLocalSelectVision:
         vx, vy, vw, vh = self.VIEWPORT
         if card.get("partial") or x < vx or y < vy or x + w > vx + vw or y + h > vy + vh:
             return "unknown"
+        sold = self.meta["sold_out_boundary"]
+        sx, sy, sw, sh = sold["card_relative_roi"]
+        if self._hit(frame, sold, (x + sx - 6, y + sy - 6, sw + 12, sh + 12))["found"]:
+            return "sold_out"
         entry = self.meta["selected"]
         rx, ry, rw, rh = entry["roi_relative"]
         selected = self._hit(frame, entry, (x + rx - 2, y + ry - 2, rw + 4, rh + 4))

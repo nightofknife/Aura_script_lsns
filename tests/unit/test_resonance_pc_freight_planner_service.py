@@ -93,6 +93,23 @@ def test_irrelevant_mode_fields_are_excluded_from_cache(service):
     assert first == second
 
 
+@pytest.mark.parametrize("mode", ["free", "fixed"])
+def test_fill_cache_ignores_threshold_but_keeps_complete_route_book_budget(service, mode):
+    api, calls = service
+    request = dict(trade_mode=mode, book_policy="fill", book_budget=2,
+                   fixed_route_city_ids=["A", "B", "A"])
+    first = plan(api, book_profit_threshold=0, **request)
+    second = plan(api, book_profit_threshold=10**12, **request)
+    assert first == second
+    assert len(calls) == 1
+    assert calls[0]["book_profit_threshold"] == 0
+    assert first["books_used"] == sum(leg["books_used"] for leg in first["route"])
+    assert first["books_used"] <= 2
+    plan(api, book_profit_threshold=10**12, **dict(request, book_budget=1))
+    assert len(calls) == 2
+    assert calls[1]["book_budget"] == 1
+
+
 def test_fixed_ignores_saved_goal_and_unused_book_settings_in_cache(service):
     api, calls = service
     kwargs = dict(trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"], book_budget=0)

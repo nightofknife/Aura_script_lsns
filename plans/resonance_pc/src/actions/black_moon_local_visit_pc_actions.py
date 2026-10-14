@@ -8,6 +8,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 
 from ._black_moon_local_shop_policy import load_black_moon_catalog, normalize_record_scope
+from ._black_moon_local_scan_contract import validated_scan_completion
 from ._black_moon_local_shop_state import (
     begin_selection_visit, selection_visit_completed, read_city_record,
     mark_pending_batch, confirm_batch, complete_visit, resolve_purchase_week,
@@ -44,11 +45,12 @@ def _selection_proof(visit, selection):
         raise ValueError("Successful selection is required")
     count, items = selection.get("selected_new_count"), selection.get("selected_items")
     if (type(count) is not int or count < 0 or not isinstance(items, list) or len(items) != count
-            or selection.get("bottom_confirmed") is not True or selection.get("started_empty") is not True):
+            or selection.get("started_empty") is not True):
         raise ValueError("A complete initially-empty wishlist scan is required")
+    completion = validated_scan_completion(selection)
     if any(not isinstance(item, dict) or item.get("item_id") not in visit["selected_item_ids"] for item in items):
         raise ValueError("Selected cards must belong to the frozen purchase table")
-    return {"type": "wishlist_scan", "recognized": True, "bottom_confirmed": True,
+    return {"type": "wishlist_scan", "recognized": True, **completion,
             "started_empty": True, "selected_item_ids": list(visit["selected_item_ids"]),
             "selected_card_count": count, "selected_items": deepcopy(items)}
 
