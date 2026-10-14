@@ -208,7 +208,8 @@ def solve_fixed(prepared: PreparedSearch, *, city_path: Sequence[str],
     """Maximize legal-prefix fatigue, then profit and the complete tie order.
 
     An open route is traversed at most once. A closed route repeats in its
-    specified order, bounded by budget/minimum positive travel cost.
+    specified order, bounded by budget/minimum positive travel cost. Empty
+    transitions may lead to another trade but cannot finish the selected route.
     """
     start = city_path[0]
     labels = [_Label(start, 0, 0, 0, 0, (), (start,), ())]
@@ -246,7 +247,9 @@ def solve_fixed(prepared: PreparedSearch, *, city_path: Sequence[str],
         if not next_labels:
             break
         labels = next_labels
-        tradable = [label for label in labels if label.profit > 0]
+        # Do not reward a navigation-only tail for consuming more fatigue.
+        # Keep these labels for a possible profitable continuation, however.
+        tradable = [label for label in labels if label.profit > 0 and label.route[-1].buys]
         if tradable:
             candidate_best = min(tradable, key=lambda item: (-item.ticks, -item.profit, item.tie))
             if best is None or (-candidate_best.ticks, -candidate_best.profit, candidate_best.tie) < (
@@ -257,6 +260,18 @@ def solve_fixed(prepared: PreparedSearch, *, city_path: Sequence[str],
         progress.emit(position + 1, **stats)
     if best is None:
         return None
+    next_position = len(best.route)
+    stats["stop_reason"] = "fatigue_budget"
+    if not closed and next_position == len(pairs):
+        stats["stop_reason"] = "open_route_completed"
+    else:
+        next_pair = pairs[next_position % len(pairs)]
+        if any(not option.buys
+               and best.ticks + _ticks(prepared, option) <= prepared.scale.budget_ticks
+               and _resources_fit(prepared, best.books + option.books_used,
+                                  best.negotiations + option.full_negotiation_used)
+               for option in options.get(next_pair, ())):
+            stats["stop_reason"] = "no_further_trade_within_budget"
     progress.emit(leg_limit, force=True, **stats)
     return _result(prepared, best, "fixed_sparse", stats)
 

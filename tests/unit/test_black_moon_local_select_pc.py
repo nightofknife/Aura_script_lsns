@@ -12,12 +12,40 @@ from plans.resonance_pc.src.actions import black_moon_local_select_pc_actions as
 
 
 def card(item="a", *, x=600, y=150, state="unselected", partial=False):
-    return {"item_id": item, "rect": (x, y, 320, 120), "state": state, "partial": partial}
+    return {"item_id": item, "rect": (x, y, 320, 120), "state": state,
+            "partial": partial, "geometry_score": .99}
 
 
 class App:
-    def __init__(self, pages, *, fail_clicks=0, unknown_after_click=False):
-        self.pages = deepcopy(pages)
+    def __init__(self, pages, *, fail_clicks=0, unknown_after_click=False, grid_top=150):
+        # Logical pages advance two rows. The viewport retains the next full
+        # row, so scroll registration observes the same physical stock cards.
+        stock = {}
+        for page_index, rows in enumerate(deepcopy(pages)):
+            for current in rows:
+                x, y, _, _ = current["rect"]
+                row = page_index * 2 + round((y - 150) / 131)
+                stock[row, x] = current
+        last_row = max([len(pages) * 2] + [row for row, _ in stock]) if stock else -1
+        for row in range(last_row + 1):
+            for column in (600, 940):
+                current = stock.setdefault((row, column), card("b", x=column))
+                current["instance"] = row * 2 + (column == 940)
+        self.pages = []
+        self.pixels = {}
+        for page_index in range(len(pages)):
+            visible = []
+            for (row, column), original in sorted(stock.items()):
+                top = grid_top + row * 131 - page_index * 262
+                if top + 120 <= 139 or top >= 650:
+                    continue
+                current = deepcopy(original)
+                current["rect"] = (column, top, 320, 120)
+                current["partial"] |= top < 139 or top + 120 > 650
+                visible.append(current)
+                self.pixels.setdefault(current["instance"], np.random.default_rng(
+                    current["instance"]).integers(0, 180, (120, 320, 3), dtype=np.uint8))
+            self.pages.append(visible)
         self.page = 0
         self.captures = 0
         self.snapshots = {}
@@ -35,11 +63,13 @@ class App:
         self.snapshots[token] = {"cards": deepcopy(self.pages[self.page]), "ready": self.ready,
                                  "page": self.page}
         frame = np.zeros((720, 1280, 3), np.uint8)
-        frame[139:650, 590:1270] = self.page * 10 + 30
+        frame[139:650, 590:1270] = 30
         for current in self.pages[self.page]:
             x, y, w, h = current["rect"]
-            frame[max(139, y):min(650, y + h), x:x + w] = {
-                "selected": 180, "unselected": 80, "unknown": 120}[current["state"]]
+            top, bottom = max(139, y), min(650, y + h)
+            pixels = self.pixels[current["instance"]] // 2 + {
+                "selected": 120, "unselected": 0, "unknown": 70}[current["state"]]
+            frame[top:bottom, x:x + w] = pixels[top - y:bottom - y]
         frame[0, 0] = token
         return SimpleNamespace(success=not self.capture_error, image=frame)
 
@@ -52,9 +82,15 @@ class App:
             cx, cy, w, h = current["rect"]
             if cx <= x < cx + w and cy <= y < cy + h:
                 if self.unknown_after_click:
-                    current["state"] = "unknown"
+                    state = "unknown"
                 elif len(self.clicks) > self.fail_clicks:
-                    current["state"] = "selected"
+                    state = "selected"
+                else:
+                    return
+                for page in self.pages:
+                    for same in page:
+                        if same["instance"] == current["instance"]:
+                            same["state"] = state
                 return
         raise AssertionError(f"Unexpected click outside a card: {(x, y)}")
 
@@ -69,6 +105,8 @@ class App:
 class Reader:
     VIEWPORT = (590, 139, 680, 511)
     known_ids = {"a", "b", "c"}
+    meta = {"card_size": (320, 120), "card_columns": (600, 940),
+            "sold_out_boundary": {"row_pitch": 131}}
 
     def __init__(self, app):
         self.app = app
@@ -91,9 +129,10 @@ class Reader:
         return self.zero if self.zero is not None else not any(
             row["state"] == "selected" for row in self.snapshot(frame)["cards"])
 
-    def cards(self, frame):
+    def cards(self, frame, row_limit=None):
         self.card_calls.append(self.app.captures)
-        return deepcopy(self.snapshot(frame)["cards"])
+        return [deepcopy(current) for current in self.snapshot(frame)["cards"]
+                if row_limit is None or current["rect"][1] <= row_limit + 6]
 
     def identify(self, frame, current, candidates=None):
         self.identity_calls.append((self.app.captures, current["item_id"], candidates))
@@ -176,8 +215,12 @@ def test_same_item_on_two_independent_cards_is_selected_twice():
 
 
 def test_partial_and_unknown_cards_never_click_or_match_identity():
-    result, app, reader = run_selection([[card(partial=True), card(x=940, state="unknown")], [card("b")]])
-    assert result["selected_new_count"] == 0 and not app.clicks
+    app = App([[card(partial=True), card(x=940, state="unknown")], [card("b")]])
+    reader = Reader(app)
+    with pytest.raises(select.BlackMoonLocalSelectError) as error:
+        run_selection([], app=app, reader=reader)
+    assert error.value.code == "black_moon_select_page_incomplete"
+    assert not app.clicks
     assert not any(item == "a" for _, item, _ in reader.identity_calls)
 
 
@@ -221,7 +264,7 @@ def test_delayed_selected_feedback_waits_without_supplemental_click():
 
     def state(frame, current):
         observed = original_state(frame, current)
-        return "unselected" if len(reader.state_calls) < 5 else observed
+        return "unselected" if app.clicks and len(reader.state_calls) < 5 else observed
 
     reader.state = state
     result, app, _ = run_selection([], app=app, reader=reader)
@@ -233,15 +276,26 @@ def test_selected_arriving_during_fresh_retry_probe_prevents_reclick():
     app = App([[card()]])
     reader = Reader(app)
     original_state = reader.state
+    original_cards = reader.cards
+    retry_seen = False
+
+    def cards(frame, row_limit=None):
+        nonlocal retry_seen
+        rows = original_cards(frame, row_limit=row_limit)
+        if app.clicks:
+            retry_seen = True
+        return rows
 
     def state(frame, current):
-        original_state(frame, current)
-        return "unselected"
+        observed = original_state(frame, current)
+        return observed if retry_seen else "unselected"
 
+    reader.cards = cards
     reader.state = state
     result, app, _ = run_selection([], app=app, reader=reader)
     assert result["selected_new_count"] == 1 and len(app.clicks) == 1
     assert result["selected_items"][0]["click_count"] == 1
+    assert retry_seen
 
 
 def test_unknown_state_after_click_never_allows_blind_reclick():
@@ -284,11 +338,11 @@ def test_selection_does_not_submit_purchase():
 def test_after_click_confirmation_does_not_rematch_item_identity():
     result, app, reader = run_selection([[card()]])
     assert result["selected_new_count"] == 1
-    assert all(capture <= app.clicks[0][2] for capture, _, _ in reader.identity_calls)
-    assert reader.state_calls and min(reader.state_calls) > app.clicks[0][2]
+    assert all(capture <= app.clicks[0][2] for capture, item, _ in reader.identity_calls if item == "a")
+    assert reader.state_calls and max(reader.state_calls) > app.clicks[0][2]
 
 
-def test_fresh_local_identity_mismatch_skips_card_without_click():
+def test_fresh_local_identity_mismatch_rejects_scan_without_click():
     app = App([[card()]])
     reader = Reader(app)
     original_identify = reader.identify
@@ -298,8 +352,10 @@ def test_fresh_local_identity_mismatch_skips_card_without_click():
         return None if candidates is not None else hit
 
     reader.identify = identify
-    result, app, _ = run_selection([], app=app, reader=reader)
-    assert result["selected_new_count"] == 0 and not app.clicks
+    with pytest.raises(select.BlackMoonLocalSelectError) as error:
+        run_selection([], app=app, reader=reader)
+    assert error.value.code == "black_moon_select_upper_identity_changed"
+    assert not app.clicks
 
 
 def test_retained_scroll_position_is_reset_before_scan():
@@ -311,8 +367,11 @@ def test_retained_scroll_position_is_reset_before_scan():
 
 
 def test_top_clipped_card_at_bottom_does_not_prevent_completion():
-    result, app, _ = run_selection([[card("b")], [card("b", y=90, partial=True), card(y=300)]])
+    app = App([[card("b")], [card("b"), card(y=281)]], grid_top=90)
+    result, app, _ = run_selection([], app=app)
     assert result["bottom_confirmed"] and result["selected_new_count"] == 1
+    assert any(current["partial"] and current["rect"][1] < Reader.VIEWPORT[1]
+               for current in app.pages[-1])
 
 
 def test_bottom_clipped_card_at_stopped_list_is_not_complete():

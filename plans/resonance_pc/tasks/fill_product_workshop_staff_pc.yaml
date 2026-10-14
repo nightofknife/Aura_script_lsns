@@ -1,0 +1,34 @@
+fill_product_workshop_staff_pc:
+  meta:
+    title: 生产车间补人（PC）
+    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: room_name
+        type: enum
+        enum: [1号生产车间, 2号生产车间]
+        default: 1号生产车间
+      - {name: max_search_steps, type: number, default: 12, min: 1, max: 24}
+      - {name: settle_sec, type: number, default: 0.8, min: 0.05, max: 10}
+  steps:
+    navigate:
+      action: aura.run_task
+      params:
+        task_ref: tasks:open_reforming_center_room_pc.yaml:open_reforming_center_room_pc
+        inputs:
+          room_name: "{{ inputs.room_name }}"
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+    fill:
+      action: resonance_pc.product_workshop_quick_fill
+      depends_on: navigate
+      when: "{{ nodes.navigate.output.nodes.open_room.output.success and nodes.navigate.output.nodes.open_room.output.room_entered }}"
+      params: {room_name: "{{ inputs.room_name }}"}
+  returns:
+    success: "{{ nodes.fill.output is not none and nodes.fill.output.success }}"
+    status: "{{ nodes.fill.output.status if nodes.fill.output is not none else 'navigation_failed' }}"
+    room_name: "{{ inputs.room_name }}"
+    returned_to_overview: "{{ nodes.fill.output is not none and nodes.fill.output.returned_to_overview }}"
+    reason: "{{ nodes.fill.output.reason if nodes.fill.output is not none else nodes.navigate.output.nodes.open_room.output.reason }}"
+    data: "{{ nodes.fill.output.data if nodes.fill.output is not none else nodes.navigate.output.nodes.open_room.output.data }}"

@@ -42,8 +42,9 @@ requested destination succeeds without a click. Failure does not fall back to a
 different destination.
 
 With `submit_purchase=false`, purchase settling and exit nodes are skipped, so
-the selection-only workflow stays in the shop. A submitted task with zero newly
-selected cards also skips payment and exit. Results include `purchase_completion`,
+the selection-only workflow stays in the shop. A submitted task with a completed
+zero-selection scan skips payment and returns normally. An all-false wishlist is
+explicit no-work and does not authorize navigation. Results include `purchase_completion`,
 `exit`, `page_state`, and aggregate `success`; failed exit cannot report aggregate
 business success merely because selection succeeded. There is still no GUI or
 freight integration change.
@@ -78,8 +79,52 @@ allows at most three supplements, each requiring a new positive source check.
 Scrolling waits for the viewport to stabilize; overlapping selected cards are
 recognized from the new image rather than stale coordinates. Boundary checks use
 a non-row-sized supplemental drag, with bounded top/down drag loops. No target on
-a page is not an end condition. A lower-boundary clipped card prevents completion;
-an upper-boundary clipped card does not.
+a page is not an end condition. A lower-boundary clipped card prevents completion.
+
+### Sold-out boundary
+
+The user-confirmed LOCAL sort order puts sold-out goods after available stock.
+An independent grayscale SOLD OUT plate is observed in two fresh stable frames.
+It defines the last row that needs processing, not an immediate return condition:
+both columns of all preceding rows and the boundary row are handled before any
+successful early return. No product identity matching is performed below it.
+An entirely sold-out screen can establish this boundary without ordinary card
+corners. Empty card detection without a positive boundary remains an error.
+
+Above-boundary missing geometry/unknown state or changed target feedback cannot
+complete a scan. Every earlier page must account for each fully visible two-column
+row before scrolling; a target whose fresh identity check fails is not silently
+skipped. Counted targets are checked again for selected state before scrolling or
+completing. A clipped upper card needs visible-pixel evidence from the corresponding
+full card already processed on an overlapping page. One unambiguous full-row
+registration establishes scroll displacement before that instance is credited;
+an arbitrary matching fragment of a duplicate product is insufficient. Missing or
+ambiguous overlap is a conservative failure. A clipped lower companion card
+is brought into view before completion. If that evidence cannot be established,
+the action fails conservatively rather than silently skipping available stock.
+Short lists without a sold-out marker first prove the physical bottom using two
+different drag spans before limiting the grid to its observed final row. Only a
+trailing empty right slot of that dense last row is permitted; interior gaps,
+missing left slots and unknown detected cards remain failures.
+The same physical-bottom confirmation is required when the boundary row contains
+only a positively recognized left sold-out card and an empty right slot. This
+does not exempt any preceding row or skip the boundary's final feedback check.
+
+Results distinguish `scan_complete` and `end_reason` (`list_bottom` or
+`sold_out_boundary`) from physical `bottom_confirmed`. Boundary proof includes a
+confirmed top, stable marker position/score, and `upper_region_processed=true`.
+Submission and weekly-ledger validation share this contract. Old records with
+only `bottom_confirmed=true` remain readable; explicit incomplete new results
+cannot fall back to that old proof. Payment journaling and confirmation rules
+are unchanged. Zero selected goods skip payment but allow normal return navigation
+after a completed empty-start scan, without claiming a successful purchase.
+
+The new plate is cropped from the user-supplied 2026-10-14 screenshot; only the
+anonymous SOLD OUT label enters the bank. The source first row is clipped: its
+card top is 125 in client coordinates, not the viewport top 143. The plate origin
+is at 719,178. `tools/build_black_moon_sold_out_template.py` regenerates the plate
+and provenance; the main icon generator preserves this independent resource.
+This change has not been template-match calibrated or live-run tested.
 
 ## Validation Boundary
 

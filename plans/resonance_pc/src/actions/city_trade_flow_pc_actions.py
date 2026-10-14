@@ -6,6 +6,7 @@ import time
 import asyncio
 import contextvars
 import functools
+import json
 import math
 import threading
 from fractions import Fraction
@@ -100,6 +101,23 @@ class CityTradeFlowError(RuntimeError):
 
 _TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 _TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
+
+
+def _log_freight_plan(plan: dict, request: dict, *, kind: str) -> None:
+    """Keep the effective inputs and every buy/skip decision in the session log."""
+    logger.info("[FreightPlan] phase=inputs kind=%s inputs=%s", kind,
+                json.dumps(request, ensure_ascii=False, sort_keys=True, default=str))
+    summary = {key: plan.get(key) for key in (
+        "planning_status", "snapshot_id", "expected_profit_exact", "expected_fatigue_used_exact",
+        "remaining_expected_fatigue_exact", "books_used", "remaining_books", "stop_reason",
+        "assumptions", "diagnostics", "solver_stats",
+    )}
+    logger.info("[FreightPlan] phase=completed kind=%s summary=%s", kind,
+                json.dumps(summary, ensure_ascii=False, sort_keys=True, default=str))
+    for index, leg in enumerate(plan.get("route") or []):
+        logger.info("[FreightPlan] phase=leg kind=%s index=%s detail=%s", kind, index,
+                    json.dumps(leg, ensure_ascii=False, sort_keys=True, default=str))
+
 
 class _TradeProgressReporter:
     def __init__(self, event_bus: EventBus, cid: str, loop: asyncio.AbstractEventLoop,
@@ -2855,6 +2873,7 @@ async def _preview_trade_plan_from_start_city(
             resonance_pc_trade_planner=resonance_pc_trade_planner,
         )
     plan = plan_view(plan, request, kind="preview")
+    _log_freight_plan(plan, request, kind="preview")
     route = plan["route"]
     if reporter is not None:
         await reporter.emit(
@@ -3169,6 +3188,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             )
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento,
                      investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
+    _log_freight_plan(plan, request, kind="run")
     current.setdefault("city_id", plan.get("start_city_id"))
     route = plan["route"]
     water_plan = {

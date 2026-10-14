@@ -2391,6 +2391,19 @@ exports:
     timeout: null
     description: Get latest cached Resonance PC player data.
     parameters: []
+  - name: resonance_pc.product_workshop_quick_fill
+    module: plans.resonance_pc.src.actions.product_workshop_pc_actions
+    function: resonance_pc_product_workshop_quick_fill
+    public: true
+    read_only: false
+    timeout: null
+    description: Use templates only to quick-select production workers and confirm
+      save on exit, then return to the overview; no OCR, Apply or scheduling.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.use_purchase_books
     module: plans.resonance_pc.src.actions.purchase_book_pc_actions
     function: resonance_pc_use_purchase_books
@@ -2472,12 +2485,37 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: One reserve refill/transfer observation round; task YAML owns the
-      finite round chain.
+    description: One reserve refill and stable transfer observation; the staffing
+      loop owns retries.
     parameters:
     - name: room_name
       type: Any
       required: true
+      default: null
+  - name: resonance_pc.raw_workshop_fill_list_until_full
+    module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
+    function: resonance_pc_raw_workshop_fill_list_until_full
+    public: true
+    read_only: false
+    timeout: null
+    description: Fill a staffing list with stable rereads, a shared round budget and
+      bounded no-progress retries.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: list_kind
+      type: Any
+      required: false
+      default: work
+    - name: max_rounds
+      type: Any
+      required: false
+      default: 8
+    - name: previous_result
+      type: Any
+      required: false
       default: null
   - name: resonance_pc.raw_workshop_start_once
     module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
@@ -2562,6 +2600,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: reserve_after_start
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.open_reforming_center_room
     module: plans.resonance_pc.src.actions.reforming_center_navigation_pc_actions
     function: resonance_pc_open_reforming_center_room
@@ -3564,6 +3606,14 @@ exports:
     title: 无垠乱斗共用开箱与返回
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+  - id: fill_product_workshop_staff_pc/fill_product_workshop_staff_pc
+    title: 生产车间补人（PC）
+    source: tasks/fill_product_workshop_staff_pc.yaml
+    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
+  - id: fill_product_workshop_staff_pc
+    title: 生产车间补人（PC）
+    source: tasks/fill_product_workshop_staff_pc.yaml
+    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
   - id: game_startup_pc/enter_main
     title: Enter Resonance Main Screen (PC)
     source: tasks/game_startup_pc.yaml
@@ -3575,11 +3625,11 @@ exports:
   - id: maintain_raw_material_workshop_pc/maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
   - id: maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、补工作和替补、必要时开始生产，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设、不检查黄框。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -3657,4 +3707,4 @@ exports:
       to that menu.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-13T16:57:52Z'
+  generated_at: '2026-10-14T11:00:12Z'

@@ -150,7 +150,7 @@ def test_book_controls_follow_usage_without_changing_negotiation(page, usage, co
     choose(page.book_usage, usage)
     assert page.book_budget.isEnabled() is count
     assert page.book_policy.isEnabled() is rules
-    assert page.book_profit_threshold.isEnabled() is rules
+    assert not page.book_profit_threshold.isEnabled()
     assert page.negotiation_policy.currentData() == "disabled"
     if usage == "unlimited":
         assert page.book_count_note.text() == "无限"
@@ -158,6 +158,40 @@ def test_book_controls_follow_usage_without_changing_negotiation(page, usage, co
     choose(page.book_usage, "finite")
     assert page.book_budget.value() == 12
     assert page.book_policy.currentData() == "fill"
+
+
+@pytest.mark.parametrize("usage", ["finite", "unlimited"])
+def test_fill_disables_threshold_retains_saved_value_and_restores_profit(page, usage):
+    choose(page.book_usage, usage)
+    page.book_budget.setValue(7)
+    page.book_profit_threshold.setValue(123.4567)
+    choose(page.book_policy, "fill")
+    assert not page.book_profit_threshold.isEnabled()
+    assert "不使用单本收益阈值" in page.book_threshold_note.text()
+    inputs = page.collect_task_inputs()
+    assert "book_profit_threshold" not in inputs
+    assert inputs["book_budget"] == (7 if usage == "finite" else None)
+    page.save_ui_state()
+    saved = page._settings.load_trade_inputs()
+    assert saved["book_profit_threshold"] == 1234567
+    page.set_inputs(saved)
+    assert not page.book_profit_threshold.isEnabled()
+    assert page.book_profit_threshold.value() == 123.4567
+    choose(page.book_policy, "profit")
+    assert page.book_profit_threshold.isEnabled()
+    assert page.collect_task_inputs()["book_profit_threshold"] == 1234567
+
+
+def test_fill_plan_fingerprint_ignores_threshold_but_not_total_book_limit(page):
+    choose(page.book_usage, "finite")
+    choose(page.book_policy, "fill")
+    page.book_budget.setValue(3)
+    page._current_plan = {"route": [{"from_city": "A", "to_city": "B"}]}
+    page._plan_fingerprint = page._planning_key()
+    page.book_profit_threshold.setValue(9999)
+    assert not page._plan_stale
+    page.book_budget.setValue(4)
+    assert page._plan_stale
 
 
 @pytest.mark.parametrize("water,bento", [(False, False), (False, True), (True, False), (True, True)])

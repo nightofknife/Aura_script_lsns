@@ -114,6 +114,13 @@ def main() -> None:
     manifest["confirm_purchase"]["roi"] = [1136, 646, 128, 48]
     manifest["total_zero"] = crop("total_zero", "normal", [1000, 652, 47, 37])
     manifest["total_zero"]["roi"] = [1000, 652, 47, 37]
+    # The independently supplied SOLD OUT crop is not reconstructed from a
+    # normal/selected frame. Preserve it when regenerating the icon bank.
+    previous_path = OUTPUT / "manifest.json"
+    if previous_path.is_file():
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
+        if "sold_out_boundary" in previous:
+            manifest["sold_out_boundary"] = previous["sold_out_boundary"]
     manifest["files"] = {path.relative_to(OUTPUT).as_posix(): digest(path)
                          for path in sorted(OUTPUT.rglob("*.png"))}
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

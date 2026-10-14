@@ -10,6 +10,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from ._black_moon_local_exit_vision import BlackMoonLocalExitVision
 from .black_moon_local_prepare_pc_actions import _capture, _cancel_check, _validated_center
 from .black_moon_local_select_pc_actions import _same_view
+from ._black_moon_local_scan_contract import validated_scan_completion
 
 
 _WAIT_SECONDS = 7.
@@ -39,6 +40,13 @@ async def execute_black_moon_wait_purchase(submission, app, reader=None):
     if not isinstance(submission, dict) or submission.get("success") is not True:
         raise ValueError("Successful submission result is required")
     if submission.get("purchase_submitted") is False and submission.get("status") == "skipped":
+        scan = submission.get("scan")
+        if scan is not None:
+            validated_scan_completion(scan)
+            if scan.get("started_empty") is not True or scan.get("selected_card_count") != 0:
+                raise ValueError("No-goods exit requires a complete initially-empty zero-selection scan")
+            return {"success": True, "status": "skipped", "reason": "no_new_selected_goods",
+                    "ready_to_exit": True, "purchase_verified": False, "page_state": "local_shop"}
         return {"success": True, "status": "skipped", "reason": "no_purchase_submitted",
                 "ready_to_exit": False, "purchase_verified": False}
     if submission.get("purchase_submitted") is not True:

@@ -201,13 +201,31 @@ def _fill_list(app, room, kind, data):
     data["staff_submission_attempted"] = True
     saved = _click(app, "staff_confirm", data, lambda image: ui.room_ready(image, room),
                    lambda image: _probe(image, room, tab=kind))
-    after = saved["ready_evidence"]
+    data["submission_snapshot"] = saved["ready_evidence"]
+    # Re-read both counters from new stable frames after confirmation.
+    after = _snapshot(app, room)
     data.update(after=after, submitted=True,
                 progress=(after[kind]["current"] > before[kind]["current"]
                           or after["work"]["current"] > before["work"]["current"]))
+    decrease = _staff_decrease(before, after)
+    if decrease:
+        return _result(room, "partial", after, data, decrease, stop_staff_fill=True)
     if after[kind]["full"]:
         return _result(room, "completed", after, data)
     return _result(room, "partial", after, data, "staff_not_full")
+
+
+def _staff_decrease(before, after):
+    for kind in ("work", "reserve"):
+        if before[kind]["capacity"] != after[kind]["capacity"]:
+            raise clicks.CheckedClickError("staff_capacity_changed", {"before": before, "after": after})
+    # Reserve -> work is an expected transition during production. A loss of
+    # workers, or moving reserve workers while idle, must not trigger retries.
+    if after["work"]["current"] < before["work"]["current"]:
+        return "work_staff_decreased"
+    if after["production"] == "idle" and after["reserve"]["current"] < before["reserve"]["current"]:
+        return "reserve_staff_decreased"
+    return ""
 
 
 @action_info(name="resonance_pc.raw_workshop_fill_list_once", public=True, read_only=False,
@@ -240,7 +258,7 @@ def _transfer_window(app, room, previous):
 
 
 @action_info(name="resonance_pc.raw_workshop_reserve_round", public=True, read_only=False,
-             description="One reserve refill/transfer observation round; task YAML owns the finite round chain.")
+             description="One reserve refill and stable transfer observation; the staffing loop owns retries.")
 @requires_services(app="plans/aura_base/app")
 def resonance_pc_raw_workshop_reserve_round(room_name: str, app: Any = None):
     room, data = _room(room_name, app), {"clicks": [], "list_kind": "reserve"}
@@ -251,24 +269,132 @@ def resonance_pc_raw_workshop_reserve_round(room_name: str, app: Any = None):
             return _result(room, "completed", before, data, continue_reserve=False)
         result = _fill_list(app, room, "reserve", data)
         after = result["snapshot"]
-        if after["production"] == "idle":
+        if result.get("stop_staff_fill") or result["reason"] in {"no_available_prisoners", "selection_would_reduce_staff"}:
             result["continue_reserve"] = False
             return result
-        if result["reason"] in {"no_available_prisoners", "selection_would_reduce_staff"}:
-            result["continue_reserve"] = False
-            return result
-        after = _transfer_window(app, room, after)
-        data["after_transfer"] = after
+        if after["production"] == "running":
+            after = _transfer_window(app, room, after)
+            data["after_transfer"] = after
+        decrease = _staff_decrease(before, after)
+        if decrease:
+            return _result(room, "partial", after, data, decrease,
+                           continue_reserve=False, stop_staff_fill=True)
         progressed = (after["work"]["current"] > before["work"]["current"]
                       or after["reserve"]["current"] > before["reserve"]["current"])
-        complete = after["work"]["full"] and after["reserve"]["full"]
-        again = (not complete and after["production"] == "running"
-                 and not after["reserve"]["full"] and progressed)
-        reason = "" if complete else ("staff_not_full" if again else "staff_no_progress")
+        data.update(after=after, progress=progressed)
+        complete = after["reserve"]["full"]
+        again = not complete
+        reason = "" if complete else "staff_not_full"
         return _result(room, "completed" if complete else "partial", after, data, reason,
                        continue_reserve=again)
     except clicks.CheckedClickError as exc:
         return _failed(room, data, exc, continue_reserve=False)
+
+
+@action_info(name="resonance_pc.raw_workshop_fill_list_until_full", public=True, read_only=False,
+             description="Fill a staffing list with stable rereads, a shared round budget and bounded no-progress retries.")
+@requires_services(app="plans/aura_base/app")
+def resonance_pc_raw_workshop_fill_list_until_full(room_name: str, list_kind: str = "work",
+                                                  max_rounds: int = 8, previous_result=None,
+                                                  app: Any = None):
+    with clicks.cancellation_checks(_check_return_cancelled):
+        return _fill_staffing_list(room_name, list_kind, max_rounds, previous_result, app)
+
+
+def _fill_staffing_list(room_name, list_kind, max_rounds, previous_result, app):
+    if list_kind not in {"work", "reserve"}:
+        raise ValueError("list_kind must be work or reserve")
+    if (isinstance(max_rounds, bool) or not isinstance(max_rounds, int)
+            or not 1 <= max_rounds <= 8):
+        raise ValueError("max_rounds must be an integer from 1 to 8")
+    room = _room(room_name, app)
+    if previous_result is not None and not isinstance(previous_result, dict):
+        raise ValueError("previous_result must be a staffing-loop result")
+    previous_data = (previous_result or {}).get("data", {})
+    if not isinstance(previous_data, dict):
+        raise ValueError("previous_result.data must be an object")
+    prior_count = previous_data.get("round_count", 0)
+    if previous_result is not None and (
+            not isinstance(previous_result, dict) or previous_result.get("room_name") != room
+            or previous_data.get("list_kind") != list_kind
+            or previous_data.get("max_rounds") != max_rounds):
+        raise ValueError("previous_result must belong to the same room, list and round budget")
+    if (isinstance(prior_count, bool) or not isinstance(prior_count, int)
+            or not 0 <= prior_count <= max_rounds):
+        raise ValueError("previous_result exceeds the round budget")
+    data = {"clicks": [], "list_kind": list_kind, "max_rounds": max_rounds,
+            "rounds": [], "prior_round_count": prior_count,
+            "round_count": prior_count, "no_progress_streak": 0}
+    try:
+        before = _snapshot(app, room)
+        data["before"] = before
+        if previous_result is not None:
+            if not previous_result.get("safe_to_continue", False):
+                raise clicks.CheckedClickError("previous_staff_result_unconfirmed")
+            if previous_result.get("stop_staff_fill"):
+                return _result(room, "partial", before, data, previous_result["reason"], stop_staff_fill=True)
+        if list_kind == "work" and before["production"] == "running":
+            return _result(room, "skipped_running", before, data)
+        state = before
+        if list_kind == "reserve" and state["production"] == "running":
+            # A full reserve tab may be about to transfer workers into empty
+            # work slots. Observe that transition before declaring it full.
+            state = _transfer_window(app, room, state)
+            decrease = _staff_decrease(before, state)
+            if decrease:
+                return _result(room, "partial", state, data, decrease, stop_staff_fill=True)
+        no_progress = 0
+        if previous_result is not None:
+            # Starting production can transfer reserves, so count progress from
+            # the last phase before carrying a no-progress streak forward.
+            old = previous_result.get("snapshot")
+            decrease = _staff_decrease(old, state) if old is not None else ""
+            if decrease:
+                return _result(room, "partial", state, data, decrease, stop_staff_fill=True)
+            gained = old is not None and any(state[k]["current"] > old[k]["current"] for k in ("work", "reserve"))
+            if not gained:
+                no_progress = int(previous_data.get("no_progress_streak", 0))
+        if state[list_kind]["full"]:
+            return _result(room, "already_full", state, data)
+        if previous_result is not None and previous_result.get("reason") == "no_available_prisoners":
+            return _result(room, "partial", state, data, "no_available_prisoners")
+        data["no_progress_streak"] = no_progress
+        if no_progress >= 2:
+            return _result(room, "partial", state, data, "staff_no_progress")
+        while data["round_count"] < max_rounds:
+            if is_current_task_cancel_requested():
+                raise asyncio.CancelledError("Raw-workshop staffing cancelled")
+            round_before = state
+            action = (resonance_pc_raw_workshop_reserve_round if list_kind == "reserve"
+                      else resonance_pc_raw_workshop_fill_list_once)
+            result = action(room_name=room, app=app)
+            data["rounds"].append(result)
+            data["round_count"] += 1
+            data["clicks"].extend(result.get("data", {}).get("clicks", []))
+            if not result.get("safe_to_continue", False) or result.get("snapshot") is None:
+                raise clicks.CheckedClickError(result.get("reason") or "staff_snapshot_unknown", {"round": result})
+            state = result["snapshot"]
+            data["after"] = state
+            progressed = any(state[k]["current"] > round_before[k]["current"]
+                             for k in (("work",) if list_kind == "work" else ("work", "reserve")))
+            no_progress = 0 if progressed else no_progress + 1
+            data["no_progress_streak"] = no_progress
+            result["data"].update(round_number=data["round_count"], progress=progressed,
+                                  no_progress_streak=no_progress)
+            decrease = _staff_decrease(round_before, state)
+            if decrease or result.get("stop_staff_fill") or result.get("reason") == "selection_would_reduce_staff":
+                return _result(room, "partial", state, data, decrease or result["reason"], stop_staff_fill=True)
+            if state[list_kind]["full"]:
+                return _result(room, "completed", state, data)
+            if result.get("reason") == "no_available_prisoners":
+                return _result(room, "partial", state, data, "no_available_prisoners")
+            if list_kind == "work" and state["production"] == "running":
+                return _result(room, "skipped_running", state, data)
+            if no_progress >= 2:
+                return _result(room, "partial", state, data, "staff_no_progress")
+        return _result(room, "partial", state, data, list_kind + "_round_limit")
+    except clicks.CheckedClickError as exc:
+        return _failed(room, data, exc)
 
 
 @action_info(name="resonance_pc.raw_workshop_start_once", public=True, read_only=False,
@@ -295,7 +421,7 @@ def resonance_pc_raw_workshop_start_once(room_name: str, app: Any = None):
 
 def _check_return_cancelled():
     if is_current_task_cancel_requested():
-        raise asyncio.CancelledError("Raw-workshop overview return cancelled")
+        raise asyncio.CancelledError("Raw-workshop operation cancelled")
 
 
 @action_info(name="resonance_pc.raw_workshop_return_overview", public=True, read_only=False,
@@ -326,14 +452,16 @@ def resonance_pc_raw_workshop_return_overview(room_name: str, app: Any = None):
 def resonance_pc_raw_workshop_summarize(room_name: str, navigation=None, observation=None,
                                       deposit=None, work=None, reserve_rounds=None, start=None,
                                       max_reserve_rounds: int = 8, before_start=None, final_observe=None,
-                                      return_overview=None, require_return: bool = False):
+                                      return_overview=None, require_return: bool = False,
+                                      reserve_after_start=None):
     if (isinstance(max_reserve_rounds, bool) or not isinstance(max_reserve_rounds, int)
             or not 1 <= max_reserve_rounds <= 8):
         raise ValueError("max_reserve_rounds must be an integer from 1 to 8")
     rounds = [item for item in (reserve_rounds or []) if isinstance(item, dict)]
-    operations = [item for item in [observation, deposit, work, *rounds, before_start, start, final_observe]
+    operations = [item for item in [observation, deposit, work, *rounds, before_start, start, reserve_after_start, final_observe]
                   if isinstance(item, dict) and item]
     failed = next((item for item in operations if not item.get("safe_to_continue", False)), None)
+    staff_stopped = next((item for item in operations if item.get("stop_staff_fill")), None)
     last = next((item.get("snapshot") for item in reversed(operations) if item.get("snapshot") is not None), None)
     navigation_ok = isinstance(navigation, dict) and navigation.get("room_entered") is True
     snapshot = last if navigation_ok and failed is None else None
@@ -343,13 +471,18 @@ def resonance_pc_raw_workshop_summarize(room_name: str, navigation=None, observa
         status, reason = "failed", failed.get("reason", "operation_unconfirmed")
     elif snapshot is None:
         status, reason = "failed", "final_snapshot_unknown"
+    elif staff_stopped is not None:
+        status, reason = "partial", staff_stopped.get("reason", "staff_fill_stopped")
     elif snapshot["production"] == "idle":
         status, reason = "blocked", (start or {}).get("reason") or "production_not_started"
     elif snapshot["work"]["full"] and snapshot["reserve"]["full"]:
         status, reason = "completed", ""
     else:
+        loop_results = [item for item in [work, *rounds, reserve_after_start] if isinstance(item, dict)]
+        latest_reason = next((item.get("reason") for item in reversed(loop_results)
+                              if item.get("status") == "partial" and item.get("reason")), "staff_not_full")
         exhausted = len(rounds) >= max_reserve_rounds and rounds[-1].get("continue_reserve", False)
-        status, reason = "partial", "reserve_round_limit" if exhausted else "staff_not_full"
+        status, reason = "partial", "reserve_round_limit" if exhausted else latest_reason
     maintenance = {"success": status == "completed", "status": status,
                    "reason": reason, "snapshot": snapshot}
     returned = (isinstance(return_overview, dict) and return_overview.get("success") is True
@@ -363,7 +496,11 @@ def resonance_pc_raw_workshop_summarize(room_name: str, navigation=None, observa
             "room_entered": navigation_ok, "snapshot": snapshot,
             "returned_to_overview": returned, "page_after": page_after,
             "data": {"navigation": navigation, "deposit": deposit,
-                     "work": work, "reserve_rounds": rounds, "reserve_round_count": len(rounds),
+                     "work": work, "reserve_rounds": rounds,
+                     "work_round_count": (work or {}).get("data", {}).get("round_count", 0),
+                     "reserve_round_count": ((reserve_after_start or (rounds[-1] if rounds else {}))
+                                             .get("data", {}).get("round_count", len(rounds))),
+                     "reserve_after_start": reserve_after_start,
                      "before_start": before_start, "start": start, "final_observe": final_observe,
                      "last_confirmed_snapshot": last, "maintenance": maintenance,
                      "return_overview": return_overview}}

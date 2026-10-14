@@ -44,7 +44,7 @@ def semantic(result):
     return {key: value for key, value in result.items() if key not in {"solver_backend", "solver_stats"}}
 
 
-def _oracle_options(model, capacity, books, threshold, policy, negotiation):
+def _oracle_options(model, capacity, books, threshold, policy, negotiation, *, fixed=False):
     """Price and enumerate independently: no production candidate or pruning code."""
     result = {}
     flags = {"auto": [(0, 0), (0, 1), (1, 0), (1, 1)],
@@ -94,7 +94,8 @@ def _oracle_options(model, capacity, books, threshold, policy, negotiation):
                             free -= quantity
                         if not free:
                             break
-                    if previous is not None and (profit - previous <= 0 or profit - previous < threshold):
+                    if previous is not None and (profit - previous <= 0 or (
+                            policy == "profit" and profit - previous < threshold)):
                         break
                     cost = travel + (bargain_cost if bargain else 0) + (raise_cost if raising else 0)
                     options.append((profit, cost, k, bargain + raising,
@@ -102,7 +103,10 @@ def _oracle_options(model, capacity, books, threshold, policy, negotiation):
                     previous = profit
                     if policy == "fill" and not free:
                         break
-            result[(origin, destination)] = options
+            # Fixed freight can navigate only if this edge has no profitable
+            # trade under the selected negotiation policy. Resource exhaustion
+            # does not turn a profitable edge into an empty journey.
+            result[(origin, destination)] = options[1:] if fixed and len(options) > 1 else options
     return result
 
 
@@ -110,13 +114,15 @@ def enumerate_oracle(model, *, mode, capacity, books, threshold, negotiation,
                      budget, target=1, endpoints=None, fixed=None, negotiation_budget=None):
     policy = "fill" if mode == "quick" else "profit"
     negotiation = "required" if mode == "quick" else negotiation
-    choices = _oracle_options(model, capacity, books, threshold, policy, negotiation)
+    choices = _oracle_options(model, capacity, books, threshold, policy, negotiation,
+                              fixed=mode == "fixed")
     records = []
     closed = fixed is not None and fixed[0] == fixed[-1]
 
     def visit(path, signatures, profit, fatigue, used, neg):
         depth = len(signatures)
-        if depth and (mode == "fixed" or endpoints is None or path[-1] in endpoints):
+        if depth and (mode != "fixed" or signatures[-1][-1]) and (
+                mode == "fixed" or endpoints is None or path[-1] in endpoints):
             records.append((profit, fatigue, used, neg, depth, path, signatures))
         if mode == "fixed":
             if not closed and depth == len(fixed) - 1:
@@ -213,6 +219,132 @@ def test_fill_stops_at_first_full_load_not_product_replacement():
     assert quick["books_used"] == 0
     assert quick["route"][0]["book_stop_reason"] == "already_full_without_books"
     assert quick["route"][0]["bargain_to_cap"] and quick["route"][0]["raise_to_cap"]
+
+
+@pytest.mark.parametrize("mode", ["free", "fixed"])
+@pytest.mark.parametrize("book_budget", [2, None])
+def test_fill_ignores_high_threshold_including_last_partial_book(mode, book_budget):
+    model = solver(lots={"A": {"p": 2}})
+    args = dict(trade_mode=mode, fixed_route_city_ids=["A", "B"],
+                book_policy="fill", book_budget=book_budget, cargo_capacity=5)
+    baseline = solve(model, book_profit_threshold=0, **args)
+    high_threshold = solve(model, book_profit_threshold=200000, **args)
+    assert semantic(high_threshold) == semantic(baseline)
+    assert high_threshold["status"] == "ok"
+    assert high_threshold["books_used"] == 2
+    assert high_threshold["route"][0]["loaded_quantity"] == 5
+    assert high_threshold["route"][0]["book_stop_reason"] == "capacity_reached"
+    assert high_threshold["assumptions"]["book_threshold_applies"] is False
+
+
+def test_fill_curve_ignores_threshold_without_relying_on_solver_normalization():
+    from plans.resonance_pc.src.services.resonance_pc_trade_candidate_model import (
+        EdgeBookCurve, TradeEdgeOption,
+    )
+    baseline = TradeEdgeOption(
+        "A", "B", 0, False, False, 1, Fraction(0), Fraction(0), Fraction(20),
+        ("p",), ("p",), (("p", "p", 2, Fraction(10)),),
+        cargo_capacity=5, loaded_quantity=2,
+    )
+    fill = EdgeBookCurve.create(baseline=baseline, candidates=((Fraction(10), "p", "p", 2),),
+                               capacity=5, policy="fill", threshold=Fraction(200000))
+    profit = EdgeBookCurve.create(baseline=baseline, candidates=fill.candidates,
+                                 capacity=5, policy="profit", threshold=Fraction(200000))
+    assert fill.legal_limit == 2
+    assert fill.option(2, budget=None).loaded_quantity == 5
+    assert fill.profit_at(2) - fill.profit_at(1) == 10
+    assert profit.legal_limit == 0
+    assert profit.limit_reason == "profit_threshold"
+
+
+@pytest.mark.parametrize("book_budget", [0, 1, 3, 7, None])
+def test_fixed_fill_respects_one_shared_book_budget_across_repeated_profitable_legs(book_budget):
+    model = solver(costs={"A": {"B": 1}, "B": {"A": 1}},
+                   products={"p": product("p", {"A": 1}, {"B": 11}),
+                             "q": product("q", {"B": 1}, {"A": 101})},
+                   lots={"A": {"p": 1}, "B": {"q": 1}})
+    result = solve(model, trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"],
+                   book_policy="fill", book_budget=book_budget, book_profit_threshold=200000,
+                   cargo_capacity=3, fatigue_budget=5)
+    assert result["status"] == "ok"
+    assert len(result["route"]) == 5
+    assert all(leg["buys"] and leg["leg_type"] == "trade" for leg in result["route"])
+    total = sum(leg["books_used"] for leg in result["route"])
+    assert result["books_used"] == total
+    assert total == (10 if book_budget is None else book_budget)
+    remaining = book_budget
+    for leg in result["route"]:
+        assert leg["remaining_book_budget_before"] == remaining
+        if remaining is not None:
+            remaining -= leg["books_used"]
+            assert remaining >= 0
+        assert leg["remaining_book_budget_after"] == remaining
+    assert result["remaining_books"] == remaining
+    if book_budget == 0:
+        assert all(leg["loaded_quantity"] == 1 for leg in result["route"])
+    if book_budget == 1:
+        assert sum(leg["books_used"] for leg in result["route"] if leg["from_city_id"] == "B") == 1
+        assert all(leg["books_used"] == 0 for leg in result["route"] if leg["from_city_id"] == "A")
+
+
+@pytest.mark.parametrize("mode", ["free", "fixed"])
+def test_profit_policy_still_enforces_threshold_without_suppressing_base_purchase(mode):
+    model = solver(lots={"A": {"p": 2}})
+    args = dict(trade_mode=mode, fixed_route_city_ids=["A", "B"],
+                book_policy="profit", book_budget=None, cargo_capacity=5)
+    unfiltered = solve(model, book_profit_threshold=0, **args)
+    thresholded = solve(model, book_profit_threshold=200000, **args)
+    assert unfiltered["books_used"] == 2
+    assert thresholded["status"] == "ok"
+    assert thresholded["books_used"] == 0
+    assert thresholded["route"][0]["loaded_quantity"] == 2
+    assert thresholded["route"][0]["buys"]
+    assert thresholded["route"][0]["book_stop_reason"] == "profit_threshold"
+    assert thresholded["assumptions"]["book_threshold_applies"] is True
+
+
+def test_fixed_budget_700_buys_each_profitable_leg_and_stops_instead_of_empty_travel():
+    model = solver(costs={"A": {"B": 70}, "B": {"A": 70}}, attempt_fatigue=8,
+                   products={"p": product("p", {"A": 10}, {"B": 100}),
+                             "q": product("q", {"B": 10}, {"A": 100})},
+                   lots={"A": {"p": 100}, "B": {"q": 100}})
+    result = solve(model, trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"],
+                   fatigue_budget=700, cargo_capacity=630, book_budget=None,
+                   book_policy="fill", book_profit_threshold=200000,
+                   negotiation_policy="required", bargain_success_rates_bps=[5000],
+                   raise_success_rates_bps=[5000], bargain_step_bps=1000, raise_step_bps=1000)
+    assert result["status"] == "ok"
+    assert len(result["route"]) == 5
+    assert result["expected_fatigue_used_exact"] == "670"
+    assert result["remaining_expected_fatigue_exact"] == "30"
+    assert result["books_used"] == 30
+    assert all(leg["buys"] and leg["leg_type"] == "trade"
+               and leg["loaded_quantity"] == 630
+               and leg["bargain_to_cap"] and leg["raise_to_cap"]
+               for leg in result["route"])
+    for budget in (133, 134, 204):
+        bounded = solve(model, trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"],
+                        fatigue_budget=budget, negotiation_policy="required",
+                        bargain_success_rates_bps=[5000], raise_success_rates_bps=[5000],
+                        bargain_step_bps=1000, raise_step_bps=1000)
+        assert len(bounded["route"]) == (0 if budget == 133 else 1)
+        assert all(leg["buys"] for leg in bounded["route"])
+
+
+def test_fixed_can_reposition_through_unprofitable_edge_but_drops_navigation_tail():
+    model = solver(cities=("A", "B", "C", "D"),
+                   costs={"A": {"B": 1}, "B": {"C": 1}, "C": {"D": 1}, "D": {}},
+                   products={"p": product("p", {"B": 1}, {"C": 11})},
+                   lots={"B": {"p": 1}})
+    result = solve(model, trade_mode="fixed", fixed_route_city_ids=["A", "B", "C", "D"],
+                   fatigue_budget=3)
+    assert result["status"] == "ok"
+    assert result["city_path_ids"] == ["A", "B", "C"]
+    assert [leg["leg_type"] for leg in result["route"]] == ["navigation", "trade"]
+    assert result["route"][0]["buys"] == []
+    assert result["route"][-1]["buys"]
+    assert result["expected_fatigue_used_exact"] == "2"
+    assert result["stop_reason"] == "no_further_trade_within_budget"
 
 
 def test_quick_globally_allocates_books_to_later_higher_profit_leg():
