@@ -44,7 +44,7 @@ def list_reader(state):
         state.scans += 1
         return [{**CARD, **state.scene.get("card", {})}]
 
-    return SimpleNamespace(match=match, detect_cards=detect)
+    return SimpleNamespace(match=match, locate_cards=detect)
 
 
 def test_page_and_cards_use_one_stable_wait(clock_rig):

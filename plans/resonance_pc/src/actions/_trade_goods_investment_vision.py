@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import lru_cache
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -27,27 +28,34 @@ class InvestmentRecognitionError(RuntimeError):
 
 
 @lru_cache(maxsize=1)
-def _city_product_counts() -> dict[str, int]:
-    """Investment-page cities contain all their sell-list goods, including locked ones."""
+def _city_product_catalog() -> dict[str, tuple[str, list[dict]]]:
+    """Resolve aliases to the city's ordered native investment products."""
     try:
         payload = json.loads(CITY_CATALOG.read_text(encoding="utf-8"))
         if payload["schema_version"] != 1 or not payload["cities"]:
             raise ValueError("Invalid investment city catalog")
-        counts = {}
+        catalog = {}
         for city_id, city in payload["cities"].items():
             if not isinstance(city["products"], list):
                 raise ValueError(f"Invalid investment products for {city_id}")
-            count = len(city["products"])
+            products = city["products"]
+            if [row["investment_index"] for row in products] != list(range(1, len(products) + 1)):
+                raise ValueError(f"Invalid investment order for {city_id}")
             for name in (city_id, city["name"], *city.get("aliases", [])):
                 if not isinstance(name, str) or not name.strip():
                     raise ValueError(f"Invalid investment city alias for {city_id}")
                 name = name.strip()
-                if name in counts and counts[name] != count:
+                if name in catalog and catalog[name][0] != city_id:
                     raise ValueError(f"Ambiguous investment city alias: {name}")
-                counts[name] = count
-        return counts
+                catalog[name] = (city_id, products)
+        return catalog
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         raise InvestmentRecognitionError("investment_city_catalog_invalid", str(exc)) from exc
+
+
+@lru_cache(maxsize=1)
+def _city_product_counts() -> dict[str, int]:
+    return {name: len(products) for name, (_, products) in _city_product_catalog().items()}
 
 
 @lru_cache(maxsize=4)
@@ -148,12 +156,22 @@ class InvestmentVision:
 
     def __init__(self, template_root: Path | None = None, *, city_name: str = ""):
         self.city_product_count = None
+        self.city_id = None
+        self.city_products = []
+        self.city_catalog_signature = None
         city = city_name.strip()
         if city:
-            counts = _city_product_counts()
-            if city not in counts:
+            catalog = _city_product_catalog()
+            if city not in catalog:
                 raise InvestmentRecognitionError("investment_city_unknown", city)
-            self.city_product_count = counts[city]
+            self.city_id, products = catalog[city]
+            self.city_products = deepcopy(products)
+            self.city_product_count = len(self.city_products)
+            ordered_ids = [(str(row["native_goods_id"]), str(row["native_quotation_id"]))
+                           for row in self.city_products]
+            self.city_catalog_signature = hashlib.sha256(
+                json.dumps(ordered_ids, separators=(",", ":")).encode("utf-8"),
+            ).hexdigest()
         self.template_root = (TEMPLATE_ROOT if template_root is None else Path(template_root)).resolve()
         self._manifest, self._pixels = _resources(self.template_root)
         self._templates = {entry["name"]: entry for entry in self._manifest["templates"]}
@@ -378,6 +396,117 @@ class InvestmentVision:
                     found.append({"x": x, "y": y, "header_score": 0.,
                                   "frame_score": score, "size": (tw, th)})
         return found
+
+    def locate_cards(self, image: np.ndarray, *, success_visible: bool | None = None) -> list[dict]:
+        """Locate ordered visible slots once per entry/scroll, without reading their state."""
+        image = _image(image)
+        if self.city_product_count == 0:
+            return []
+        spec = self._manifest["cards"]
+        vx, vy, vw, _ = self.VIEWPORT
+        candidates = self._headers(image)
+        # At the top, headers already cover every visible slot. Only a scrolled
+        # viewport can need the costly lower-frame search for a clipped top row.
+        if not candidates or min(row["y"] for row in candidates) > vy + 24:
+            candidates.extend(self._top_partials(image, candidates))
+        candidates.sort(key=lambda row: (round(row["y"] / 20), row["x"]))
+        success = self.match(image, "success")["found"] if success_visible is None else success_visible
+        occlusion = spec.get("success_occlusion_roi", (0, 327, 1280, 66))
+        cards = []
+        for item in candidates:
+            x, y = item["x"], item["y"]
+            w, h = item.get("size", spec["size"])
+            if x < vx - 2 or x + w > vx + vw + 2:
+                continue
+            rect = tuple(map(int, (x, y, w, h)))
+            cards.append({"rect": rect, "partial": _clip(rect, self.VIEWPORT) != rect,
+                          "occluded": bool(success and _intersects(rect, occlusion)),
+                          "selected": False, "locked": None, "maximum": False,
+                          "header_score": item["header_score"],
+                          "frame_score": item.get("frame_score")})
+            if self.city_product_count is not None and len(cards) >= self.city_product_count:
+                break
+        self.validate_card_grid(cards)
+        return cards
+
+    def validate_card_grid(self, cards: list[dict], *, first_index: int | None = None) -> None:
+        """Reject missing native three-column slots before assigning absolute indices."""
+        if not cards:
+            raise InvestmentRecognitionError("investment_card_grid_unconfirmed", "No investment slots")
+        # Native reference-client grid: these are geometry checks, never item identity.
+        columns, row_step, tolerance = (62, 189, 315), 132, 5
+        first_y = cards[0]["rect"][1]
+        previous = -1
+        for card in cards:
+            x, y, _, _ = card["rect"]
+            column = min(range(3), key=lambda index: abs(x - columns[index]))
+            row = round((y - first_y) / row_step)
+            slot = row * 3 + column
+            if (abs(x - columns[column]) > tolerance or row < 0
+                    or abs(y - first_y - row * row_step) > tolerance
+                    or slot != previous + 1):
+                raise InvestmentRecognitionError("investment_card_grid_unconfirmed", "Missing or displaced investment slot")
+            previous = slot
+        if first_index is not None and self.city_product_count is not None:
+            vx, vy, vw, vh = self.VIEWPORT
+            nominal_height = self._manifest["cards"]["size"][1]
+            complete_rows = sum(vy <= first_y + row * row_step
+                                and first_y + row * row_step + nominal_height <= vy + vh
+                                for row in range(5))
+            top_partial_slots = sum(card.get("partial", False) and card["rect"][1] < vy for card in cards)
+            expected = min(max(0, self.city_product_count - first_index + 1 - top_partial_slots),
+                           complete_rows * 3)
+            if sum(not card["partial"] for card in cards) != expected:
+                raise InvestmentRecognitionError("investment_card_grid_unconfirmed", "Visible investment slots are incomplete")
+
+    def read_card_state(self, image: np.ndarray, card: dict[str, Any]) -> dict:
+        """Verify one cached slot using its header, then read only that slot's state."""
+        image = _image(image)
+        try:
+            rect = tuple(map(int, card["rect"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise InvestmentRecognitionError("invalid_card", "Missing card rectangle") from exc
+        if len(rect) != 4 or rect[2] <= 0 or rect[3] <= 0:
+            raise InvestmentRecognitionError("invalid_card", "Invalid card dimensions")
+        if card.get("partial") or card.get("occluded") or _clip(rect, self.VIEWPORT) != rect:
+            raise InvestmentRecognitionError("invalid_card", "State requires a complete unobscured card")
+        x, y, _, _ = rect
+        spec = self._manifest["cards"]
+        hx, hy, hw, hh = spec["header_box"]
+        box = _clip((x + hx - 3, y + hy - 3, hw + 6, hh + 6), self.VIEWPORT)
+        source = self._prepare(_crop(image, box), spec["preprocess"])
+        score = max(_best(source, self._pixels[filename], self._pixels[spec["header_mask"]])[0]
+                    for filename in spec["header_variants"])
+        if score < spec["header_threshold"]:
+            raise InvestmentRecognitionError(
+                "card_position_uncertain", f"Cached header at ({x}, {y}) score={score:.4f}",
+            )
+        state = self.read_card_selection(image, card)
+        locked = self._match_box(image, "lock", (x + 37, y + 38, 42, 50))["found"]
+        return {**state, "locked": bool(locked), "header_score": score}
+
+    def initial_order_confirmed(self, image: np.ndarray, cards: list[dict]) -> bool:
+        """Confirm the native entry selection is the first complete top-row slot.
+
+        Only call on fresh entry: the controller selects investment index 1.
+        This does not establish an origin for a later scrolled viewport.
+        """
+        if not cards or cards[0].get("partial") or cards[0].get("occluded"):
+            return False
+        first = cards[0]
+        y = first["rect"][1]
+        if not self.VIEWPORT[1] <= y <= self.VIEWPORT[1] + 24:
+            return False
+        self.validate_card_grid(cards, first_index=1)
+        state = self.read_card_selection(image, first)
+        if state["selected"]:
+            return True
+        if state.get("maximum"):
+            # The caller must first establish the upper scroll boundary. A badge
+            # by itself does not establish which absolute product is visible.
+            levels = self.read_levels(image)
+            return bool(levels.get("max_level") and levels.get("current") == 20)
+        return False
 
     def detect_cards(self, image: np.ndarray, *, success_visible: bool | None = None) -> list[dict]:
         image = _image(image)

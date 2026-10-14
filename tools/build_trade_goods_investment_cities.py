@@ -1,8 +1,8 @@
-"""Build city investment bounds from installed native exchange catalogs, offline.
+"""Build city investment display order from installed game data, offline.
 
-The native sellList determines the set and count, not investment display order.
-Runtime recognition must continue following screen order. This tool uses the
-separate devtools decoder; generated JSON is the only runtime dependency.
+UIHomeTradeUpdateController sorts the station's sellList by quotation price,
+then quotation ID, both ascending. This tool uses the separate devtools decoder;
+generated JSON is the only runtime dependency.
 """
 from __future__ import annotations
 
@@ -16,6 +16,21 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "plans/resonance_pc"
 NATIVE_FILES = ("HomeStationFactory.bin", "HomeGoodsQuotationFactory.bin", "HomeGoodsFactory.bin")
+ORDER_SCRIPT = "Patch/Script/UIHomeTradeUpgrade/UIHomeTradeUpdateController.lua"
+PRODUCT_ORDER = "investment_page: quotation.price ascending, quotation.id ascending"
+
+
+def investment_quotations(sell_list: list, quotations: dict) -> list[dict]:
+    """Match the native investment-page comparator, not goods' general prices."""
+    result = []
+    for raw in sell_list:
+        quotation_id = next(field["value"] for field in raw if field["name"] == "id")
+        quote = quotations[quotation_id]
+        if (type(quote.get("price")) not in (int, float) or type(quote.get("id")) is not int
+                or quote["id"] != quotation_id):
+            raise ValueError(f"Invalid investment ordering fields for quotation {quotation_id}")
+        result.append(quote)
+    return sorted(result, key=lambda quote: (quote["price"], quote["id"]))
 
 
 def _literal_tables(path: Path) -> dict:
@@ -61,7 +76,9 @@ def build(game_data: Path, devtools_src: Path, plan: Path = PLAN) -> dict:
         "source": {
             "kind": "native_game_config",
             "mapping": "HomeStationFactory.sellList -> HomeGoodsQuotationFactory.goodsId -> HomeGoodsFactory",
-            "product_order": "native_sell_list_order; runtime uses screen order",
+            "product_order": PRODUCT_ORDER,
+            "order_source": {"script": ORDER_SCRIPT, "comparator_lines": [155, 163],
+                             "sha256": sha256((game_data / ORDER_SCRIPT).read_bytes()).hexdigest()},
             "sha256": {f"Patch/BinaryConfig/{name}": sha256((native_root / name).read_bytes()).hexdigest()
                        for name in NATIVE_FILES},
             "plan_sha256": {path.relative_to(plan).as_posix(): sha256(path.read_bytes()).hexdigest()
@@ -83,15 +100,14 @@ def build(game_data: Path, devtools_src: Path, plan: Path = PLAN) -> dict:
         if not isinstance(sell_list, list):
             raise ValueError(f"Native sellList is missing for '{name}'; catalog is unknown")
         entries, seen_goods = [], set()
-        for raw in sell_list:
-            quotation_id = next(field["value"] for field in raw if field["name"] == "id")
-            quote = quotations[quotation_id]
+        for index, quote in enumerate(investment_quotations(sell_list, quotations), 1):
+            quotation_id = quote["id"]
             item = goods[quote["goodsId"]]
             if item["id"] in seen_goods:
                 raise ValueError(f"Duplicate native goods '{item['id']}' in '{name}'")
             seen_goods.add(item["id"])
-            entry = {"name": item["name"], "native_goods_id": item["id"],
-                     "native_quotation_id": quotation_id}
+            entry = {"investment_index": index, "name": item["name"], "native_goods_id": item["id"],
+                     "native_quotation_id": quotation_id, "native_quotation_price": quote["price"]}
             if item["name"] in products_by_name:
                 entry["product_id"] = products_by_name[item["name"]]
             entries.append(entry)

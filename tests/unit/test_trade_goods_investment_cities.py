@@ -9,6 +9,7 @@ import pytest
 
 from plans.resonance_pc.src.actions import _trade_goods_investment_vision as native
 from plans.resonance_pc.src.actions import trade_goods_investment_pc_actions as investment
+from tools.build_trade_goods_investment_cities import investment_quotations, PRODUCT_ORDER
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +28,31 @@ def test_native_catalog_covers_every_city_and_exact_known_products():
     assert len(payload["cities"]["14"]["products"]) == 10  # Missing from prestige unlock metadata.
     assert len(payload["cities"]["19"]["products"]) == 10
     assert "206" in {p["product_id"] for p in payload["cities"]["19"]["products"]}
+
+
+def test_catalog_uses_investment_page_order_and_contiguous_indices():
+    payload = json.loads(native.CITY_CATALOG.read_text(encoding="utf-8"))
+    assert payload["source"]["product_order"] == PRODUCT_ORDER
+    for city in payload["cities"].values():
+        rows = city["products"]
+        assert [row["investment_index"] for row in rows] == list(range(1, len(rows) + 1))
+        keys = [(row["native_quotation_price"], row["native_quotation_id"]) for row in rows]
+        assert keys == sorted(keys)
+
+
+def test_onederland_order_matches_real_investment_page():
+    payload = json.loads(native.CITY_CATALOG.read_text(encoding="utf-8"))
+    assert [row["name"] for row in payload["cities"]["9"]["products"]] == [
+        "石英砂", "铁矿石", "牛仔裤", "漆黑矿渣", "玛瑙", "青金石", "沙金",
+    ]
+
+
+def test_ordering_uses_quotation_price_then_id_without_mutating_sell_list():
+    sell_list = [[{"name": "id", "value": qid}] for qid in (30, 10, 20)]
+    quotes = {30: {"id": 30, "price": 100}, 10: {"id": 10, "price": 200},
+              20: {"id": 20, "price": 100}}
+    assert [row["id"] for row in investment_quotations(sell_list, quotes)] == [20, 30, 10]
+    assert [row[0]["value"] for row in sell_list] == [30, 10, 20]
 
 
 @pytest.mark.parametrize("name,expected", [
@@ -86,6 +112,7 @@ def test_processed_city_count_avoids_final_rescan_and_drag(monkeypatch):
     monkeypatch.setattr(investment, "_click", lambda *args: None)
     monkeypatch.setattr(investment, "_pause", lambda *args: None)
     monkeypatch.setattr(investment, "_cards", lambda *args: events.append("scan") or (FRAME, cards))
+    monkeypatch.setattr(investment, "_current_card", lambda app, reader, card: (FRAME, card))
     monkeypatch.setattr(investment, "_select", lambda app, r, card: events.append(card["rect"]) or
                         (FRAME, card, {"current": 10, "preview": 11}))
     monkeypatch.setattr(investment, "_scroll", lambda *args: pytest.fail("No end-of-list drag"))
@@ -93,8 +120,7 @@ def test_processed_city_count_avoids_final_rescan_and_drag(monkeypatch):
     result = investment.execute_trade_goods_investment_from_shop(
         mode=10, city_name="贡露城", app=object(), vision=object())
     assert result["product_count"] == 3 and result["scroll_count"] == 0
-    assert events == ["scan", cards[0]["rect"], "scan", cards[1]["rect"],
-                      "scan", cards[2]["rect"], "shop"]
+    assert events == ["scan", cards[0]["rect"], cards[1]["rect"], cards[2]["rect"], "shop"]
 
 
 def test_city_scoped_investment_preserves_closed_entry_skip_without_input(monkeypatch):

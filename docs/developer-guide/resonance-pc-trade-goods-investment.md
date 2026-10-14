@@ -48,13 +48,21 @@ The investment page lists only the current city's products. The native catalog
 quotations and goods, including initial products rather than only prestige
 unlocks. Expensive card frame/state checks are limited to the city's product
 count, and visiting that many products ends processing without another scan or
-end-of-list drag. Screen order remains authoritative; native sell-list order is
-not interpreted as investment order. Omitting the city retains unbounded visual
+end-of-list drag. The catalog's products follow the investment page's fixed
+order: quotation `price` ascending, then quotation `id` ascending for ties, as
+implemented by `UIHomeTradeUpdateController.lua` (comparator lines 155-163).
+Each product has a one-based `investment_index` and its native quotation price;
+the source records the controller hash for auditing. This is not the goods'
+general base price or the current market price. Locked goods retain their slots.
+Omitting the city retains unbounded visual
 discovery. Regenerate the catalog with
 `tools/build_trade_goods_investment_cities.py` from an installed game package.
 
-Page readiness and card stability share one observation loop. Each frame's
-success-banner result is reused by card detection. Upgrade preparation checks
+Page readiness and list-position stability share one observation loop. Each
+frame's success-banner result is reused by list localization. Full-card frame
+and state checks are not prerequisites for positioning later products. Only
+the current unfinished slot gets local header, lock, selection and level checks.
+Upgrade preparation checks
 the stable actual/preview levels and enabled confirmation button once, followed
 directly by one submit click using that confirmed point. No input occurs between
 those checks and submission. The submission observation window is unchanged.
@@ -72,12 +80,49 @@ no-progress observation window (delayed reread at least 0.9 seconds after the
 last click, followed by stable sampling). Late feedback observed
 before a new batch is returned without clicking so its count can be recalculated.
 
-Selecting a product does not move the list. After the initial full-list scan,
+Selecting a product does not move the list. The list is localized only on entry
+and after scrolling; all other steps reuse its positions. After initial localization,
 selection checks only the selected-corner marker and maximum badge at that
 product's known rectangle, without relocating it or falling back to a full-list
 scan. Selection and right-panel levels must stabilize together in the same
 observation loop. A maximum badge still requires the confirmed right-panel
 maximum layout. Unconfirmed selection times out without another click.
+
+On entry, the native controller selects absolute investment index 1. The first
+complete visible top slot must confirm that entry selection before indices are
+assigned. A preserved viewport with an unconfirmed origin fails without guessing.
+After scrolling, ordered overlap maps new positions to absolute indices; it
+never restarts numbering at 1. Ambiguous overlap fails before later products.
+The observed grid must contain consecutive native three-column slots; a missing
+slot cannot compress later product indices. When the first product's maximum
+badge obscures its selection marker, bounded upward scrolling first establishes
+the physical list top, then stable actual level 20 and the maximum panel confirm
+the origin. A stalled scroll before the known city count is complete is a failure.
+
+## Confirmed Levels
+
+The single account uses the existing `user-data/user-info.json`, under
+`trade_goods_investment_levels`. Its keys are canonical city IDs sorted
+numerically; each value is a fixed-length array in the catalog's investment
+order, with `null` for unknown levels. For example:
+
+```json
+{"trade_goods_investment_levels": {"9": [10, 13, 5, null, null, null, null]}}
+```
+
+Stable actual-level reads and confirmed post-submit levels are saved immediately
+through `core/persistent_data`, preserving every other user-data field. A saved
+level at or above the requested target skips that product without selection or
+level reading on the next visit. Raising the target rechecks unfinished items.
+Preview levels and unconfirmed submissions are never recorded as actual levels.
+The companion `trade_goods_investment_catalog_signatures` maps each city to a
+signature of its ordered native goods and quotation IDs. Missing or changed
+signatures invalidate that city's old levels, even when the count is unchanged.
+This cache is for one account; when changing accounts, clear both investment
+fields in user-info.json before running investment.
+The next item is not inspected or scrolled into view until the current item's
+confirmed actual level is at least 10, including when a requested target below
+10 has already been reached. Return failures do not discard confirmed levels.
 
 ## Freight Integration
 
@@ -133,10 +178,10 @@ The October 9 trials first exposed the old stopping-condition failure after a
 under the intermediate stop rule. The subsequent single-submit/no-effect rule
 and freight sub-task integration are covered by offline tests, not live runs.
 Numeric targets and the unlock-level/final-attempt rules have offline coverage
-only. City count bounds, local selection, merged observation loops, batch
-feedback, and the single pre-submit check have offline coverage only.
-Per-product identity and persistent investment records remain a separate
-planned change.
+only. City count bounds, local selection, merged observation loops, and the
+single pre-submit check have offline coverage only. Position reuse, current-slot
+state checks and confirmed-level reuse in user-info.json also have offline
+coverage only; this does not establish live client timing or acceptance.
 
 ## Return to the Exchange After Investment
 

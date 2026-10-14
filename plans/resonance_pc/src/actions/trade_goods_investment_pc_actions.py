@@ -15,6 +15,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 from ._trade_goods_investment_vision import InvestmentRecognitionError, InvestmentVision
+from ._trade_goods_investment_records import InvestmentLevelRecords
 
 
 _INVESTMENT_PROGRESS_CALLBACK: ContextVar[Optional[Callable]] = ContextVar(
@@ -132,16 +133,95 @@ def _levels(app: Any, reader: InvestmentVision, current: Optional[int] = None):
 
 
 def _cards(app: Any, reader: InvestmentVision):
+    started = time.monotonic()
     def read(frame):
         if reader.match(frame, "success")["found"]:
             return None
         if not reader.match(frame, "page_anchor")["found"]:
             return None
-        cards = reader.detect_cards(frame, success_visible=False)
+        cards = reader.locate_cards(frame, success_visible=False)
         if not cards or any(card.get("occluded") for card in cards):
             return None
         return cards
+    result = _wait(app, read)
+    logger.info("[TradeGoodsInvestment] phase=list_located cards=%s elapsed_ms=%s",
+                len(result[1]), round((time.monotonic() - started) * 1000))
+    return result
+
+
+def _current_card(app: Any, reader: InvestmentVision, card: dict):
+    def read(frame):
+        if reader.match(frame, "success")["found"] or not reader.match(frame, "page_anchor")["found"]:
+            return None
+        return reader.read_card_state(frame, card)
     return _wait(app, read)
+
+
+def _initial_card_indices(app: Any, reader: InvestmentVision, frame, cards):
+    viewport_top = reader.VIEWPORT[1]
+    if not cards or any(card["partial"] and card["rect"][1] < viewport_top for card in cards):
+        raise TradeGoodsInvestmentError("investment_initial_order_unconfirmed",
+                                       "The investment list origin could not be confirmed")
+    if getattr(reader, "city_id", ""):
+        validate_grid = getattr(reader, "validate_card_grid", None)
+        if validate_grid is not None:
+            try:
+                validate_grid(cards)
+            except InvestmentRecognitionError as exc:
+                raise TradeGoodsInvestmentError("investment_initial_order_unconfirmed", exc.detail) from exc
+        first = reader.read_card_selection(frame, cards[0])
+        if first.get("maximum") and not first.get("selected"):
+            frame, cards = _reset_list_top(app, reader, frame, cards)
+        if validate_grid is not None:
+            try:
+                validate_grid(cards, first_index=1)
+            except InvestmentRecognitionError as exc:
+                raise TradeGoodsInvestmentError("investment_initial_order_unconfirmed", exc.detail) from exc
+        # The native investment controller selects absolute item 1 on entry.
+        # A preserved scrolled viewport must not be silently numbered from 1.
+        def origin(image):
+            if reader.match(image, "success")["found"] or not reader.match(image, "page_anchor")["found"]:
+                return None
+            return True if reader.initial_order_confirmed(image, cards) else None
+        try:
+            frame, _ = _wait(app, origin)
+        except TradeGoodsInvestmentError as exc:
+            if exc.code != "investment_state_timeout":
+                raise
+            raise TradeGoodsInvestmentError("investment_initial_order_unconfirmed",
+                                           "The first investment item is not confirmed at the list origin") from exc
+    return frame, [{**card, "investment_index": index} for index, card in enumerate(cards, 1)]
+
+
+def _reset_list_top(app: Any, reader: InvestmentVision, frame, cards):
+    """Establish the upper boundary before accepting a maximum-covered origin."""
+    x, y, width, height = reader.VIEWPORT
+    stationary = 0
+    for attempt in range(_MAX_SCROLLS):
+        _cancel_check()
+        # Require two different drag spans to avoid one ineffective gesture
+        # being mistaken for a scroll boundary.
+        span = min((200, 320)[attempt % 2], height - 70)
+        _wait(app, lambda image: (not reader.match(image, "success")["found"]
+                                  and reader.match(image, "page_anchor")["found"]))
+        _cancel_check()
+        app.drag(start_x=x + width // 2, start_y=y + 35,
+                 end_x=x + width // 2, end_y=y + 35 + span,
+                 duration=.6, hold_before_release_sec=.15, stop_inertia=True)
+        _pause(.4)
+        after, following = _cards(app, reader)
+        difference = float(np.abs(frame[y:y + height, x:x + width].astype(float)
+                                  - after[y:y + height, x:x + width].astype(float)).mean())
+        stationary = stationary + 1 if difference <= 1.5 else 0
+        frame, cards = after, following
+        if stationary >= 2:
+            if (cards and not cards[0].get("partial")
+                    and y <= cards[0]["rect"][1] <= y + 24):
+                reader.validate_card_grid(cards, first_index=1)
+                return frame, cards
+            break
+    raise TradeGoodsInvestmentError("investment_initial_order_unconfirmed",
+                                   "Could not establish the top of the investment list")
 
 
 def _same_position(first: dict, second: dict) -> bool:
@@ -150,8 +230,9 @@ def _same_position(first: dict, second: dict) -> bool:
 
 def _select(app: Any, reader: InvestmentVision, card: dict):
     x, y, width, height = card["rect"]
-    _click(app, (x + width // 2, y + height // 2))
-    _pause(.4)
+    if not card.get("selected"):
+        _click(app, (x + width // 2, y + height // 2))
+        _pause(.4)
     def selected(frame):
         if reader.match(frame, "success")["found"]:
             return None
@@ -297,7 +378,7 @@ def _scroll(app: Any, reader: InvestmentVision, before: np.ndarray, previous_car
     viewport = reader.metadata["cards"]["viewport"]
     x, y, width, height = viewport
     complete = [card for card in previous_cards if not card["partial"]]
-    old = [(card, None if card.get("maximum") else reader.fingerprint(before, card)) for card in complete]
+    old = [(card, reader.fingerprint(before, card)) for card in complete]
     row_positions = sorted(set(round(card["rect"][1] / 3) * 3 for card in complete))
     spacing = int(np.median(np.diff(row_positions))) if len(row_positions) > 1 else reader.metadata["cards"]["size"][1] + 3
     span = min(spacing * 2, height - 80)
@@ -312,24 +393,43 @@ def _scroll(app: Any, reader: InvestmentVision, before: np.ndarray, previous_car
         if difference <= 1.5:
             continue
         new = [card for card in cards if not card["partial"]]
-        new_images = [None if card.get("maximum") else reader.fingerprint(after, card) for card in new]
+        new_images = [reader.fingerprint(after, card) for card in new]
         def overlaps(first, second):
             if abs(first[0]["rect"][0] - second[0]["rect"][0]) > 5:
                 return False
-            # Covered maximum cards are equivalent only for completed-card bookkeeping.
-            if first[0].get("maximum") or second[0].get("maximum"):
-                return bool(first[0].get("maximum") and second[0].get("maximum"))
             return reader.same_fingerprint(first[1], second[1])
+        overlap_counts = []
         for count in range(min(len(old), len(new)), 0, -1):
             pairs = zip(old[-count:], zip(new[:count], new_images[:count]))
             if all(overlaps(first, second) for first, second in pairs):
                 if count < 2 and len(old) > 1 and len(new) > 1:
                     continue
-                return after, cards, [dict(card) for card in new[:count]]
+                overlap_counts.append(count)
+        if len(overlap_counts) == 1:
+            count = overlap_counts[0]
+            cards = _scrolled_card_indices(complete, cards, count)
+            validate_grid = getattr(reader, "validate_card_grid", None)
+            if validate_grid is not None:
+                validate_grid(cards, first_index=cards[0]["investment_index"])
+            return after, cards, [dict(card) for card in cards if not card["partial"]][:count]
         raise TradeGoodsInvestmentError("investment_scroll_overlap_unconfirmed", "Could not verify the ordered overlap after scrolling")
     if any(card["partial"] for card in previous_cards):
         raise TradeGoodsInvestmentError("investment_scroll_stalled", "A partial product remains but the list would not scroll")
     return None
+
+
+def _scrolled_card_indices(previous_cards: list[dict], cards: list[dict], overlap_count: int) -> list[dict]:
+    complete = [card for card in previous_cards if not card["partial"]]
+    first_index = complete[-overlap_count]["investment_index"]
+    top_partials = 0
+    for card in cards:
+        if not card["partial"]:
+            break
+        top_partials += 1
+    first_index -= top_partials
+    if first_index < 1:
+        raise TradeGoodsInvestmentError("investment_scroll_overlap_unconfirmed", "Invalid absolute investment indices")
+    return [{**card, "investment_index": first_index + offset} for offset, card in enumerate(cards)]
 
 
 def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dict:
@@ -421,14 +521,18 @@ def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
 
 
 def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: Any, vision: Any,
-                                           progress: Optional[Callable[[str, dict], None]] = None) -> Dict[str, Any]:
+                                           progress: Optional[Callable[[str, dict], None]] = None,
+                                           persistent_data: Any = None) -> Dict[str, Any]:
     mode = normalize_investment_mode(mode)
     if app is None or vision is None:
         raise RuntimeError("app and vision services are required")
     reader, target = InvestmentVision(city_name=city_name), mode
     product_limit = reader.city_product_count
     started_at, transactions, product_index, scroll_count = time.monotonic(), [], 0, 0
-    done, reason = [], "all_products_at_target"
+    reason = "all_products_at_target"
+    records = (InvestmentLevelRecords(persistent_data, reader.city_id, product_limit,
+                                     catalog_signature=getattr(reader, "city_catalog_signature", None))
+               if getattr(reader, "city_id", None) and type(product_limit) is int and product_limit > 0 else None)
     single_next_attempt = False
     def report(state, **data):
         fields = {"city_name": city_name, "mode": mode, "target_level": target, "product_index": product_index, **data}
@@ -461,40 +565,61 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
         if product_limit != 0:
             _click(app, entry["center"])
             _pause(.4)
-        while product_limit != 0:
             frame, cards = _cards(app, reader)
-            viewport_top = reader.VIEWPORT[1]
-            if scroll_count == 0 and any(card["partial"] and card["rect"][1] < viewport_top for card in cards):
-                raise TradeGoodsInvestmentError(
-                    "investment_initial_order_unconfirmed",
-                    "The preserved list starts with a partial product whose completion is unconfirmed",
-                )
-            pending = [card for card in cards if not card["partial"] and not any(_same_position(card, old) for old in done)]
+            frame, cards = _initial_card_indices(app, reader, frame, cards)
+        while product_limit != 0:
+            _cancel_check()
+            pending = [card for card in cards if not card["partial"] and card["investment_index"] > product_index]
             if not pending:
                 if scroll_count >= _MAX_SCROLLS:
                     raise TradeGoodsInvestmentError("investment_scroll_limit", "Investment list exceeded its scroll guard")
+                def page_ready(image):
+                    return (not reader.match(image, "success")["found"]
+                            and reader.match(image, "page_anchor")["found"])
+                frame, _ = _wait(app, page_ready)
                 scrolled = _scroll(app, reader, frame, cards)
                 if scrolled is None:
+                    if product_limit is not None and product_index < product_limit:
+                        raise TradeGoodsInvestmentError(
+                            "investment_scroll_stalled", "Known investment products remain outside the confirmed list",
+                            {"product_index": product_index, "product_count": product_limit},
+                        )
                     break
-                frame, cards, done = scrolled
+                frame, cards, _ = scrolled
                 scroll_count += 1
                 continue
             card = pending[0]
+            index = card["investment_index"]
+            if index != product_index + 1:
+                raise TradeGoodsInvestmentError("investment_order_gap", "The next investment slot is not visible",
+                                               {"expected": product_index + 1, "observed": index})
+            known_level = records.confirmed_level(index) if records is not None else None
+            if known_level is not None and known_level >= target:
+                product_index = index
+                report("running", current_level=known_level, cached=True)
+                if known_level < 10:
+                    reason = "next_product_locked"
+                    break
+                if product_limit is not None and product_index >= product_limit:
+                    break
+                continue
+            frame, card = _current_card(app, reader, card)
             if card.get("locked") is None:
                 raise TradeGoodsInvestmentError("investment_lock_state_unknown", "Product lock state is not confirmed", card)
             if card["locked"]:
                 _pause(.5)
-                _, fresh_cards = _cards(app, reader)
-                candidates = [row for row in fresh_cards if _same_position(row, card)]
-                if not candidates or candidates[0].get("locked") is not False:
+                frame, fresh_card = _current_card(app, reader, card)
+                if fresh_card.get("locked") is not False:
                     reason = "next_product_locked"
                     break
-                card = candidates[0]
-            product_index += 1
+                card = fresh_card
+            product_index = index
             attempted, blocked = False, False
             while True:
                 frame, selected, levels = _select(app, reader, card)
                 actual_level = levels["current"]
+                if records is not None:
+                    records.record(product_index, actual_level)
                 report("running", current_level=levels["current"], preview_level=levels.get("preview"))
                 if levels["current"] >= target:
                     break
@@ -511,6 +636,8 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
                     break
                 transactions.append({"product_index": product_index, "from_level": operation["current_level"],
                                      "to_level": operation["upgrade_level"], **commit})
+                if records is not None:
+                    records.record(product_index, commit["current_level"])
                 report("running", current_level=commit["current_level"], transaction_count=len(transactions))
                 actual_level = commit["current_level"]
                 if actual_level >= target or operation["stop_after_commit"] or single_next_attempt:
@@ -524,7 +651,7 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             if actual_level < 10:
                 reason = "no_further_upgrade" if blocked else "next_product_locked"
                 break
-            done.append(dict(selected))
+            cards = [dict(selected) if _same_position(row, selected) else row for row in cards]
             if blocked:
                 reason = "no_further_upgrade"
                 single_next_attempt = True
@@ -552,10 +679,12 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
 
 @action_info(name="resonance_pc.invest_trade_goods_from_shop", public=True, read_only=False,
              description="Invest goods in original unlock order to a target level from 1 to 20 and return to the exchange.")
-@requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision")
+@requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision", persistent_data="core/persistent_data")
 def resonance_pc_invest_trade_goods_from_shop(mode: int = 10, city_name: str = "",
-                                            app: Any = None, vision: Any = None) -> Dict[str, Any]:
+                                            app: Any = None, vision: Any = None,
+                                            persistent_data: Any = None) -> Dict[str, Any]:
     return execute_trade_goods_investment_from_shop(
         mode=mode, city_name=city_name, app=app, vision=vision,
         progress=_INVESTMENT_PROGRESS_CALLBACK.get(),
+        persistent_data=persistent_data,
     )
