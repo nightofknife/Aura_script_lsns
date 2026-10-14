@@ -139,10 +139,11 @@ def execute(rig, monkeypatch, mode=10, product_levels=None, product_caps=None, p
     app, reader, state = rig
     events = []
     cards = [{"rect": (50 + index * 120, 150, 114, 128), "partial": False,
-              "locked": False, "selected": False} for index in range(3)]
+              "locked": False, "selected": False, "investment_index": index + 1} for index in range(3)]
     monkeypatch.setattr(investment, "InvestmentVision", lambda **kwargs: reader)
     monkeypatch.setattr(investment, "_wait", lambda app, predicate: (FRAME, predicate(FRAME)))
     monkeypatch.setattr(investment, "_cards", lambda *args: (FRAME, cards))
+    monkeypatch.setattr(investment, "_current_card", lambda app, reader, card: (FRAME, card))
     monkeypatch.setattr(investment, "_scroll", lambda *args: None)
 
     def select(app, reader, card):
