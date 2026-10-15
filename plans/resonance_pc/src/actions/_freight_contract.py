@@ -41,7 +41,7 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("trade_mode must be free or fixed")
     result["trade_mode"] = mode
     for key, default, minimum in (("fatigue_budget", 700, 0), ("cargo_capacity", 750, 1),
-                                   ("book_profit_threshold", 500000, 0)):
+                                   ("book_profit_threshold", 500000, 0), ("book_waste_limit", 0, 0)):
         result[key] = integer(key, result.get(key, default), minimum=minimum)
     books = result.get("book_budget", 0)
     result["book_budget"] = None if books is None else integer("book_budget", books)
@@ -131,7 +131,8 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
                   input_snapshot=deepcopy(request), planning_status=planning_status,
                   book_budget=request["book_budget"],
                   book_budget_unlimited=request["book_budget"] is None,
-                  book_policy=request["book_policy"], negotiation_policy=request["negotiation_policy"])
+                  book_policy=request["book_policy"], book_waste_limit=request["book_waste_limit"],
+                  negotiation_policy=request["negotiation_policy"])
     if planning_status == "no_plan":
         result["reason"] = "no_profitable_route"
     if request["book_budget"] is None:

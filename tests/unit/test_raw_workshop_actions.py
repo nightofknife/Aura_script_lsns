@@ -111,6 +111,83 @@ def test_deposit_full_toast_skips_amount_dialog(scene):
     assert controls(scene) == ["deposit"]
 
 
+def test_deposit_full_toast_is_accepted_on_first_hit(scene, monkeypatch):
+    scene.deposit_outcome = "already_full"
+    reads = []
+
+    def transient_toast(image, room):
+        reads.append(scene.page)
+        return "already_full" if len(reads) == 1 else None
+
+    monkeypatch.setattr(actions.ui, "deposit_outcome", transient_toast)
+    result = actions.resonance_pc_raw_workshop_deposit_max(ROOM, app=scene)
+    assert result["status"] == "already_full"
+    assert result["success"] and result["safe_to_continue"]
+    assert result["snapshot"]["work"]["current"] == 0
+    assert result["snapshot"]["reserve"]["current"] == 0
+    assert len(reads) == 1
+    assert controls(scene) == ["deposit"]
+    click = result["data"]["clicks"][0]
+    assert click["effect_evidence"] == "already_full" and click["effect_confirmed"]
+    assert click["confirmation_mode"] == "single_frame"
+    assert click["transition_required"] is False
+
+
+def test_missing_deposit_outcome_stops_without_retry(scene, monkeypatch):
+    monkeypatch.setattr(actions.ui, "deposit_outcome", lambda image, room: None)
+    result = actions.resonance_pc_raw_workshop_deposit_max(ROOM, app=scene)
+    assert result["status"] == "failed" and not result["safe_to_continue"]
+    assert result["reason"] == "click_effect_not_confirmed"
+    assert controls(scene) == ["deposit"]
+
+
+def test_deposit_toast_does_not_authorize_continuation_without_workshop_snapshot(scene, monkeypatch):
+    scene.deposit_outcome = "already_full"
+    calls = {"snapshots": 0}
+    original = actions._snapshot
+
+    def snapshot_after_toast(app, room):
+        calls["snapshots"] += 1
+        if calls["snapshots"] > 1:
+            raise actions.clicks.CheckedClickError("staff_snapshot_unknown")
+        return original(app, room)
+
+    monkeypatch.setattr(actions, "_snapshot", snapshot_after_toast)
+    result = actions.resonance_pc_raw_workshop_deposit_max(ROOM, app=scene)
+    assert result["status"] == "failed" and not result["safe_to_continue"]
+    assert controls(scene) == ["deposit"]
+
+
+@pytest.mark.parametrize("kind", ["work", "reserve"])
+@pytest.mark.parametrize("outcome", ["progress", "stalled", "decreased"])
+def test_preserved_staffing_loop_bounds_progress_and_staff_decrease(monkeypatch, kind, outcome):
+    state = snapshot("running" if kind == "reserve" else "idle", (3, 7), (0, 2))
+    monkeypatch.setattr(actions, "_snapshot", lambda *args: deepcopy(state))
+    monkeypatch.setattr(actions, "_transfer_window", lambda app, room, previous: previous)
+    calls = []
+
+    def next_round(room_name, app, **kwargs):
+        calls.append(True)
+        if outcome == "progress":
+            state[kind] = fraction(state[kind]["capacity"], state[kind]["capacity"])
+        elif outcome == "decreased":
+            state["work"] = fraction(2, 7)
+        return {"safe_to_continue": True, "status": "partial", "reason": "staff_not_full",
+                "snapshot": deepcopy(state), "data": {"clicks": []}}
+
+    name = "resonance_pc_raw_workshop_reserve_round" if kind == "reserve" else "resonance_pc_raw_workshop_fill_list_once"
+    monkeypatch.setattr(actions, name, next_round)
+    result = actions.resonance_pc_raw_workshop_fill_list_until_full(ROOM, kind, 8, app=App())
+    assert result["safe_to_continue"]
+    if outcome == "progress":
+        assert result["status"] == "completed" and len(calls) == 1
+    elif outcome == "stalled":
+        assert result["reason"] == "staff_no_progress" and len(calls) == 2
+    else:
+        assert result["stop_staff_fill"] and result["reason"] == "work_staff_decreased"
+        assert len(calls) == 1
+
+
 def test_maximum_not_confirmed_prevents_deposit_submission(scene):
     scene.max_works = False
     result = actions.resonance_pc_raw_workshop_deposit_max(ROOM, app=scene)

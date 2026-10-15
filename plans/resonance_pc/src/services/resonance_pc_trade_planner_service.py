@@ -151,6 +151,7 @@ class ResonancePcTradePlannerService:
         book_budget: Optional[int] = 0,
         trade_mode: str = "free",
         book_policy: str = "profit",
+        book_waste_limit: int = 0,
         negotiation_policy: str = "auto",
         fixed_route_city_ids: Optional[List[str]] = None,
         reposition_to_route: bool = False,
@@ -178,6 +179,8 @@ class ResonancePcTradePlannerService:
                                               message="trade_mode must be free or fixed")
         if type(book_budget) is int and book_budget == 0:
             book_policy, book_profit_threshold = "profit", DEFAULT_BOOK_PROFIT_THRESHOLD
+        if book_policy != "fill":
+            book_waste_limit = 0
         if mode == "fixed":
             if not isinstance(fixed_route_city_ids, list) or len(fixed_route_city_ids) < 2:
                 raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
@@ -310,7 +313,8 @@ class ResonancePcTradePlannerService:
         planning_inputs = {
             "start_city_id": resolved_city_id, "required_end_city_ids": normalized_end_city_ids,
             "fatigue_budget": fatigue_budget, "cargo_capacity": cargo_capacity, "book_budget": book_budget,
-            "trade_mode": mode, "book_policy": book_policy, "negotiation_policy": negotiation_policy,
+            "trade_mode": mode, "book_policy": book_policy, "book_waste_limit": book_waste_limit,
+            "negotiation_policy": negotiation_policy,
             "fixed_route_city_ids": fixed_route_city_ids,
             "reposition_to_route": reposition_to_route, "target_profit": target_profit,
             "book_profit_threshold": 0 if book_policy == "fill" else book_profit_threshold,

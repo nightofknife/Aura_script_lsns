@@ -1141,6 +1141,10 @@ exports:
       type: Any
       required: false
       default: profit
+    - name: book_waste_limit
+      type: Any
+      required: false
+      default: 0
     - name: negotiation_policy
       type: Any
       required: false
@@ -1224,6 +1228,10 @@ exports:
       type: Any
       required: false
       default: profit
+    - name: book_waste_limit
+      type: Any
+      required: false
+      default: 0
     - name: negotiation_policy
       type: Any
       required: false
@@ -1354,6 +1362,18 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: auto_trailer
+      type: Any
+      required: false
+      default: false
+    - name: trailer_daily_first_n
+      type: Any
+      required: false
+      default: 1
+    - name: trailer_payment
+      type: Any
+      required: false
+      default: gold
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -1519,6 +1539,18 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: use_trailer
+      type: Any
+      required: false
+      default: false
+    - name: trailer_daily_first_n
+      type: Any
+      required: false
+      default: 1
+    - name: trailer_payment
+      type: Any
+      required: false
+      default: gold
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
@@ -2404,6 +2436,61 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.product_workshop_staff_assets
+    module: plans.resonance_pc.src.actions.product_workshop_staff_pc_actions
+    function: resonance_pc_product_workshop_staff_assets
+    public: true
+    read_only: true
+    timeout: null
+    description: Validate native production staffing templates before navigation;
+      no game input.
+    parameters: []
+  - name: resonance_pc.product_workshop_staff_step
+    module: plans.resonance_pc.src.actions.product_workshop_staff_pc_actions
+    function: resonance_pc_product_workshop_staff_step
+    public: true
+    read_only: false
+    timeout: null
+    description: Perform one native quick-formation staffing step with fresh template
+      checks and a single click.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: step
+      type: Any
+      required: true
+      default: null
+    - name: previous
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.product_workshop_staff_summarize
+    module: plans.resonance_pc.src.actions.product_workshop_staff_pc_actions
+    function: resonance_pc_product_workshop_staff_summarize
+    public: true
+    read_only: true
+    timeout: null
+    description: Summarize production staffing counts, save evidence and final overview;
+      no game input.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: results
+      type: Any
+      required: true
+      default: null
+    - name: preflight
+      type: Any
+      required: false
+      default: null
+    - name: navigation
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.use_purchase_books
     module: plans.resonance_pc.src.actions.purchase_book_pc_actions
     function: resonance_pc_use_purchase_books
@@ -2436,6 +2523,19 @@ exports:
       type: Any
       required: false
       default: 0.2
+  - name: resonance_pc.raw_workshops_summarize
+    module: plans.resonance_pc.src.actions.raw_workshop_chain_pc_actions
+    function: resonance_pc_raw_workshops_summarize
+    public: true
+    read_only: true
+    timeout: null
+    description: Summarize the four ordered raw-workshop business results and overview
+      handoffs without game input.
+    parameters:
+    - name: results
+      type: Any
+      required: true
+      default: null
   - name: resonance_pc.raw_workshop_observe
     module: plans.resonance_pc.src.actions.raw_workshop_pc_actions
     function: resonance_pc_raw_workshop_observe
@@ -2837,6 +2937,10 @@ exports:
       type: Any
       required: false
       default: profit
+    - name: book_waste_limit
+      type: Any
+      required: false
+      default: 0
     - name: negotiation_policy
       type: Any
       required: false
@@ -3288,6 +3392,23 @@ exports:
       type: Any
       required: false
       default: 128
+  - name: resonance_pc.use_trailer_service_from_map
+    module: plans.resonance_pc.src.actions.trailer_service_pc_actions
+    function: resonance_pc_use_trailer_service_from_map
+    public: true
+    read_only: false
+    timeout: null
+    description: Submit one towing service from the selected destination map; never
+      drive normally or retry payment.
+    parameters:
+    - name: daily_first_n
+      type: Any
+      required: false
+      default: 1
+    - name: payment
+      type: Any
+      required: false
+      default: gold
   tasks:
   - id: admit_prisoners_pc/admit_prisoners_pc
     title: Admit Prisoners (PC)
@@ -3607,13 +3728,13 @@ exports:
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
   - id: fill_product_workshop_staff_pc/fill_product_workshop_staff_pc
-    title: 生产车间补人（PC）
+    title: 生产车间补人
     source: tasks/fill_product_workshop_staff_pc.yaml
-    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
+    description: 从普通整顿中心总览进入指定生产车间，车间编辑、快速编队、一键选中、确认、返回触发保存、应用，再次返回总览；全程使用模板。
   - id: fill_product_workshop_staff_pc
-    title: 生产车间补人（PC）
+    title: 生产车间补人
     source: tasks/fill_product_workshop_staff_pc.yaml
-    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
+    description: 从普通整顿中心总览进入指定生产车间，车间编辑、快速编队、一键选中、确认、返回触发保存、应用，再次返回总览；全程使用模板。
   - id: game_startup_pc/enter_main
     title: Enter Resonance Main Screen (PC)
     source: tasks/game_startup_pc.yaml
@@ -3622,14 +3743,22 @@ exports:
     title: Close Resonance Game (PC)
     source: tasks/game_startup_pc.yaml
     description: Close the verified Resonance PC window and process.
+  - id: maintain_raw_material_workshops_pc/maintain_raw_material_workshops_pc
+    title: 原料车间维护
+    source: tasks/maintain_raw_material_workshops_pc.yaml
+    description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
+  - id: maintain_raw_material_workshops_pc
+    title: 原料车间维护
+    source: tasks/maintain_raw_material_workshops_pc.yaml
+    description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
   - id: maintain_raw_material_workshop_pc/maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
   - id: maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
   - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
     title: Navigate Reforming Center Room (PC)
     source: tasks/navigate_reforming_center_room_pc.yaml
@@ -3705,6 +3834,16 @@ exports:
     source: tasks/trade_goods_investment_pc.yaml
     description: Invest goods from the current exchange menu in unlock order and return
       to that menu.
+  - id: use_trailer_service_pc/use_trailer_service_pc
+    title: Towing Service (PC)
+    source: tasks/use_trailer_service_pc.yaml
+    description: Start from a selected destination on the map, submit one eligible
+      towing service and confirm departure. Does not wait for arrival or drive normally.
+  - id: use_trailer_service_pc
+    title: Towing Service (PC)
+    source: tasks/use_trailer_service_pc.yaml
+    description: Start from a selected destination on the map, submit one eligible
+      towing service and confirm departure. Does not wait for arrival or drive normally.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-14T11:00:12Z'
+  generated_at: '2026-10-15T15:39:59Z'

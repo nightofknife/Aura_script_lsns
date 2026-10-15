@@ -1,0 +1,417 @@
+{
+  "source_kind": "native_sprite_and_native_font_composition",
+  "mask": false,
+  "method": "1-TM_SQDIFF_NORMED",
+  "threshold": 0.9,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "client_crop_xyxy": [
+    25,
+    56,
+    1305,
+    776
+  ],
+  "templates": [
+    {
+      "label": "拖车服务入口",
+      "roi": [
+        700,
+        590,
+        250,
+        100
+      ],
+      "positive": "map",
+      "negative": null,
+      "native_crop_xyxy": [
+        21,
+        22,
+        301,
+        91
+      ],
+      "native_composition_size": [
+        322,
+        110
+      ],
+      "name": "trailer_entry",
+      "size": [
+        187,
+        46
+      ],
+      "matches": {
+        "map": {
+          "score": 0.980502,
+          "xy": [
+            735,
+            619
+          ]
+        },
+        "gold": {
+          "score": 0.825423,
+          "xy": [
+            735,
+            619
+          ]
+        },
+        "mileage": {
+          "score": 0.849589,
+          "xy": [
+            735,
+            619
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.81463
+    },
+    {
+      "label": "拖车窗口固定标题",
+      "roi": [
+        620,
+        270,
+        200,
+        65
+      ],
+      "positive": "gold",
+      "negative": null,
+      "composition": {
+        "font_size_native": 40,
+        "client_scale_xy": [
+          0.6533333333333333,
+          0.6333333333333333
+        ],
+        "opaque_canvas_rgb": [
+          29,
+          30,
+          28
+        ],
+        "calibration": "native-font geometry fitted against supplied screenshot"
+      },
+      "name": "trailer_prompt",
+      "size": [
+        159,
+        28
+      ],
+      "matches": {
+        "map": {
+          "score": 0.0,
+          "xy": [
+            620,
+            270
+          ]
+        },
+        "gold": {
+          "score": 0.981116,
+          "xy": [
+            648,
+            289
+          ]
+        },
+        "mileage": {
+          "score": 0.981116,
+          "xy": [
+            648,
+            289
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.210742
+    },
+    {
+      "label": "铁盟币已选",
+      "roi": [
+        640,
+        443,
+        160,
+        50
+      ],
+      "positive": "gold",
+      "negative": "mileage",
+      "composition": {
+        "client_icon_size": [
+          40,
+          40
+        ],
+        "crop_xyxy": [
+          3,
+          3,
+          37,
+          37
+        ],
+        "background": "center RGBA of native selected background",
+        "resample": "BILINEAR",
+        "calibration": "native icon runtime layout size; amount excluded"
+      },
+      "name": "gold_selected",
+      "size": [
+        34,
+        34
+      ],
+      "matches": {
+        "map": {
+          "score": 0.601596,
+          "xy": [
+            741,
+            446
+          ]
+        },
+        "gold": {
+          "score": 0.995207,
+          "xy": [
+            673,
+            451
+          ]
+        },
+        "mileage": {
+          "score": 0.154083,
+          "xy": [
+            680,
+            455
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.812113
+    },
+    {
+      "label": "里程点已选",
+      "roi": [
+        807,
+        443,
+        160,
+        50
+      ],
+      "positive": "mileage",
+      "negative": "gold",
+      "composition": {
+        "client_icon_size": [
+          32,
+          32
+        ],
+        "crop_xyxy": [
+          0,
+          0,
+          32,
+          32
+        ],
+        "background": "center RGBA of native selected background",
+        "resample": "LANCZOS",
+        "calibration": "native icon runtime layout size; amount excluded"
+      },
+      "name": "mileage_selected",
+      "size": [
+        32,
+        32
+      ],
+      "matches": {
+        "map": {
+          "score": 0.689581,
+          "xy": [
+            833,
+            448
+          ]
+        },
+        "gold": {
+          "score": 0.138426,
+          "xy": [
+            873,
+            452
+          ]
+        },
+        "mileage": {
+          "score": 0.996901,
+          "xy": [
+            861,
+            452
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.882167
+    },
+    {
+      "label": "确认按钮",
+      "roi": [
+        790,
+        490,
+        215,
+        65
+      ],
+      "positive": "gold",
+      "negative": null,
+      "native_crop_xyxy": [
+        15,
+        11,
+        289,
+        73
+      ],
+      "native_composition_size": [
+        304,
+        84
+      ],
+      "name": "confirm",
+      "size": [
+        183,
+        42
+      ],
+      "matches": {
+        "map": {
+          "score": 0.0,
+          "xy": [
+            790,
+            490
+          ]
+        },
+        "gold": {
+          "score": 0.98453,
+          "xy": [
+            812,
+            503
+          ]
+        },
+        "mileage": {
+          "score": 0.98453,
+          "xy": [
+            812,
+            503
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.410767
+    },
+    {
+      "label": "取消按钮",
+      "roi": [
+        590,
+        490,
+        215,
+        65
+      ],
+      "positive": "gold",
+      "negative": null,
+      "native_crop_xyxy": [
+        83,
+        9,
+        225,
+        73
+      ],
+      "native_composition_size": [
+        304,
+        84
+      ],
+      "name": "cancel",
+      "size": [
+        95,
+        43
+      ],
+      "matches": {
+        "map": {
+          "score": 0.0,
+          "xy": [
+            590,
+            490
+          ]
+        },
+        "gold": {
+          "score": 0.968553,
+          "xy": [
+            658,
+            502
+          ]
+        },
+        "mileage": {
+          "score": 0.968553,
+          "xy": [
+            658,
+            502
+          ]
+        }
+      },
+      "plain_white_negative_score": 0.873025
+    }
+  ],
+  "native_sources": {
+    "ui/font/originpack.asset:-2237384480076949585": {
+      "bundle": "ui/font/originpack.asset",
+      "bundle_sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+      "path_id": -2237384480076949585,
+      "name": "SourceHanSansCN-Bold",
+      "type": "Font"
+    },
+    "ui/mainui.asset:-3064818256079929690": {
+      "bundle": "ui/mainui.asset",
+      "bundle_sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+      "path_id": -3064818256079929690,
+      "name": "map_btn_trailer",
+      "type": "Sprite"
+    },
+    "ui/mainui.asset:1758373656632607587": {
+      "bundle": "ui/mainui.asset",
+      "bundle_sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+      "path_id": 1758373656632607587,
+      "name": "map_icon_trailer",
+      "type": "Sprite"
+    },
+    "ui/mainui.asset:5021286228651645138": {
+      "bundle": "ui/mainui.asset",
+      "bundle_sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+      "path_id": 5021286228651645138,
+      "name": "main_trailer_cost_btn",
+      "type": "Sprite"
+    },
+    "ui/common.asset:-8523011509885622108": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -8523011509885622108,
+      "name": "yinuo",
+      "type": "Sprite"
+    },
+    "ui/common.asset:-7343698216075752733": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -7343698216075752733,
+      "name": "Mileage",
+      "type": "Sprite"
+    },
+    "ui/common.asset:5357160770140078404": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 5357160770140078404,
+      "name": "common_btn_yellow",
+      "type": "Sprite"
+    },
+    "ui/common.asset:-2950595030923980125": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": -2950595030923980125,
+      "name": "select_icon_confirm",
+      "type": "Sprite"
+    },
+    "ui/common.asset:3295921677958722789": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 3295921677958722789,
+      "name": "common_btn_wihte",
+      "type": "Sprite"
+    },
+    "ui/common.asset:5214756685592669475": {
+      "bundle": "ui/common.asset",
+      "bundle_sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "path_id": 5214756685592669475,
+      "name": "select_icon_cancel",
+      "type": "Sprite"
+    }
+  },
+  "screenshots": {
+    "map": {
+      "attachment": "codex-clipboard-ba7e5029-a0b0-4f2e-b479-95601e0e3a7a.png",
+      "sha256": "f3dd41ab77503085370122dfe3e38665ec76f1fccb45c885b8de68738eb94c99"
+    },
+    "gold": {
+      "attachment": "codex-clipboard-efb3e260-91b7-47eb-a8ad-65fed4aa125e.png",
+      "sha256": "f54990ebd9028f0e1c624bdb99c5243592fa8b8861a45e300fcd03b041beab5a"
+    },
+    "mileage": {
+      "attachment": "codex-clipboard-bb7a7cf1-e12d-4d23-9e7f-72b7ec211d2f.png",
+      "sha256": "7ec873748d50aa26b916e86ed469b13cd35f82a27073b9309c972e8b5b4264c6"
+    }
+  }
+}

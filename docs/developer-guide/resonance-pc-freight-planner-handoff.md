@@ -15,6 +15,7 @@
 | cargo_capacity | int = 750（服务） | 正整数，每航段的货舱 |
 | book_budget | int 或 None = 0 | 唯一全路线书总上限；None 无限；0 禁书 |
 | book_profit_threshold | 精确金额 = 500000 | 仅 profit 生效：每本 >0 且 >= 下限，逐本前缀均达标；fill 忽略 |
+| book_waste_limit | int = 0 | 仅 fill 生效；首次满仓可购总量超过货舱的数量上限；profit/禁书忽略 |
 | book_policy | str = profit | profit 允许满仓后优化商品组成；fill 不受单本阈值限制，首次满仓停止；两者均遵守整趟书总额度 |
 | negotiation_policy | str = auto | auto / required / disabled；required 仅双协商贸易 |
 | negotiation_budget | int 或 None = None | 可选全路线完整协商次数上限；None 不限次数 |
@@ -118,3 +119,6 @@ service 使用上表完整关键字参数；solver 的参数与其区别为：st
 货运入口前置识别起点并检查定位开关是合适接入方式；service 不会向调用方直接泄漏上述 ValueError。不存在“起点不符自动拼入贸易路线”或“不可达执行最高利润诊断路线”的回退。
 
 book_budget=None 的结果同时保留 book_budget=None、books_budget=None、remaining_books=None；books_used 为实际计划数量。loaded_quantity 位于 route[*]，代表计划商品数量；禁止当作实测货舱OCR值。fixed、target、reposition 的结果字段见第3节，每段/城市访问索引均从0开始。
+
+
+v1.11.12：fill 首次满仓超过 book_waste_limit 时只保留此前合法未满仓候选；目标收益最低疲劳平局下，fill 优先更高收益，profit 保持少书顺序。拖车为独立执行选项，不参与规划缓存和疲劳/利润求解。

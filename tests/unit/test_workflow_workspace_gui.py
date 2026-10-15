@@ -379,7 +379,7 @@ def assert_freight_parameters_reflow(window, size, columns, mode):
     grid = page.common_parameters
     assert grid.column_count == columns
     editors = [page.fatigue_budget, page.cargo_capacity, page.book_usage, page.book_count_field,
-               page.book_profit_threshold, page.book_policy, page.negotiation_policy,
+               page.book_profit_threshold, page.book_policy, page.book_waste_limit, page.negotiation_policy,
                page.start_city, page.target_profit_enabled, page.target_profit]
     visible = [editor for editor in editors if editor.isVisible()]
     assert all(editor.width() <= 220 for editor in visible)

@@ -1,34 +1,97 @@
 fill_product_workshop_staff_pc:
   meta:
-    title: 生产车间补人（PC）
-    description: 全程模板识别，从普通总览进入生产车间，快速编队有一键选中就点一次，人员确认后退出编辑页，有保存弹窗则确认，再经车间返回普通总览；不使用OCR、不读人数、不点应用、不改机器和生产方案、不领取。
+    title: 生产车间补人
+    description: 从普通整顿中心总览进入指定生产车间，车间编辑、快速编队、一键选中、确认、返回触发保存、应用，再次返回总览；全程使用模板。
     entry_point: true
     concurrency: exclusive
     inputs:
       - name: room_name
         type: enum
         enum: [1号生产车间, 2号生产车间]
-        default: 1号生产车间
+        required: true
       - {name: max_search_steps, type: number, default: 12, min: 1, max: 24}
       - {name: settle_sec, type: number, default: 0.8, min: 0.05, max: 10}
   steps:
+    assets:
+      action: resonance_pc.product_workshop_staff_assets
     navigate:
       action: aura.run_task
+      depends_on: assets
+      when: "{{ nodes.assets.output.success }}"
       params:
         task_ref: tasks:open_reforming_center_room_pc.yaml:open_reforming_center_room_pc
         inputs:
           room_name: "{{ inputs.room_name }}"
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
-    fill:
-      action: resonance_pc.product_workshop_quick_fill
-      depends_on: navigate
-      when: "{{ nodes.navigate.output.nodes.open_room.output.success and nodes.navigate.output.nodes.open_room.output.room_entered }}"
-      params: {room_name: "{{ inputs.room_name }}"}
+      # The injector returns framework_data; explicitly extract child business evidence.
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('open_room') or {}).get('output') or {} }}"
+    edit:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {navigate: "success|skipped"}
+      when: "{{ nodes.navigate.output is not none and nodes.navigate.output.get('success') == true and nodes.navigate.output.get('room_entered') == true }}"
+      params: {room_name: "{{ inputs.room_name }}", step: edit, previous: "{{ nodes.navigate.output }}"}
+    quick:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {edit: "success|skipped"}
+      when: "{{ nodes.edit.output is not none and nodes.edit.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: quick, previous: "{{ nodes.edit.output }}"}
+    select_all:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {quick: "success|skipped"}
+      when: "{{ nodes.quick.output is not none and nodes.quick.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: select_all, previous: "{{ nodes.quick.output }}"}
+    confirm:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {select_all: "success|skipped"}
+      when: "{{ nodes.select_all.output is not none and nodes.select_all.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: confirm, previous: "{{ nodes.select_all.output }}"}
+    request_save:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {confirm: "success|skipped"}
+      when: "{{ nodes.confirm.output is not none and nodes.confirm.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: request_save, previous: "{{ nodes.confirm.output }}"}
+    apply:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {request_save: "success|skipped"}
+      when: "{{ nodes.request_save.output is not none and nodes.request_save.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: apply, previous: "{{ nodes.request_save.output }}"}
+    return_overview:
+      action: resonance_pc.product_workshop_staff_step
+      depends_on: {apply: "success|skipped"}
+      when: "{{ nodes.apply.output is not none and nodes.apply.output.safe_to_continue }}"
+      params: {room_name: "{{ inputs.room_name }}", step: return_overview, previous: "{{ nodes.apply.output }}"}
+    finish:
+      action: resonance_pc.product_workshop_staff_summarize
+      depends_on: {return_overview: "success|skipped"}
+      params:
+        room_name: "{{ inputs.room_name }}"
+        preflight: "{{ nodes.assets.output }}"
+        navigation: "{{ nodes.navigate.output }}"
+        results:
+          - "{{ nodes.edit.output }}"
+          - "{{ nodes.quick.output }}"
+          - "{{ nodes.select_all.output }}"
+          - "{{ nodes.confirm.output }}"
+          - "{{ nodes.request_save.output }}"
+          - "{{ nodes.apply.output }}"
+          - "{{ nodes.return_overview.output }}"
   returns:
-    success: "{{ nodes.fill.output is not none and nodes.fill.output.success }}"
-    status: "{{ nodes.fill.output.status if nodes.fill.output is not none else 'navigation_failed' }}"
-    room_name: "{{ inputs.room_name }}"
-    returned_to_overview: "{{ nodes.fill.output is not none and nodes.fill.output.returned_to_overview }}"
-    reason: "{{ nodes.fill.output.reason if nodes.fill.output is not none else nodes.navigate.output.nodes.open_room.output.reason }}"
-    data: "{{ nodes.fill.output.data if nodes.fill.output is not none else nodes.navigate.output.nodes.open_room.output.data }}"
+    success: "{{ nodes.finish.output.success }}"
+    status: "{{ nodes.finish.output.status }}"
+    reason: "{{ nodes.finish.output.reason }}"
+    room_name: "{{ nodes.finish.output.room_name }}"
+    initial_count: "{{ nodes.finish.output.initial_count }}"
+    selected_count: "{{ nodes.finish.output.selected_count }}"
+    final_count: "{{ nodes.finish.output.final_count }}"
+    capacity: "{{ nodes.finish.output.capacity }}"
+    added_count: "{{ nodes.finish.output.added_count }}"
+    selected_added_count: "{{ nodes.finish.output.selected_added_count }}"
+    remaining_count: "{{ nodes.finish.output.remaining_count }}"
+    count_scope: "{{ nodes.finish.output.count_scope }}"
+    save_verified: "{{ nodes.finish.output.save_verified }}"
+    applied: "{{ nodes.finish.output.applied }}"
+    returned_to_overview: "{{ nodes.finish.output.returned_to_overview }}"
+    page_after: "{{ nodes.finish.output.page_after }}"
+    data: "{{ nodes.finish.output.data }}"

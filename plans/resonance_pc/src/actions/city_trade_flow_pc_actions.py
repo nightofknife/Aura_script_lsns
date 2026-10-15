@@ -66,6 +66,7 @@ from ._trade_buy_selection import (
 from ._freight_contract import (
     fixed_start_stop, integer, normalize_planning_inputs, plan_view, planning_event_data, start_mismatch,
 )
+from ._freight_trailer_policy import FreightTrailerPlan, validate_trailer_options
 from .sparkling_water_pc_actions import (
     resonance_pc_drink_sparkling_water_from_city_panel, _water_counts,
     SparklingWaterSession, load_sparkling_water_layout, _drink_sparkling_water_from_rest_menu,
@@ -2031,6 +2032,7 @@ async def _execute_route(
     recovery_context: ExecutionContext | None = None,
     recovery_travel_costs: Optional[Dict[str, Any]] = None,
     auto_pickup_interval_sec: float = 0.5,
+    trailer_plan: FreightTrailerPlan | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -2096,6 +2098,9 @@ async def _execute_route(
                     ),
                     engine=engine,
                     context=recovery_context,
+                    **({"use_trailer": True, "trailer_daily_first_n": trailer_plan.daily_first_n,
+                        "trailer_payment": trailer_plan.payment}
+                       if trailer_plan is not None and trailer_plan.should_use("route", index) else {}),
                 )
             except Exception as exc:
                 if not hasattr(exc, "code"):
@@ -2115,6 +2120,8 @@ async def _execute_route(
             if bool((leg_result.get("rubbish_recycling") or {}).get("triggered")):
                 rubbish_recycling_attempted = True
             travel = dict(leg_result.get("travel") or {})
+            if trailer_plan is not None:
+                trailer_plan.observe("route", index, travel)
             if travel.get("success") is False and str(travel.get("status") or "").lower() != "blocked":
                 _raise_error("trade_arrival_not_confirmed", "Arrival failed; cannot continue city actions", travel)
             water_due = bool(selection.get("planned") and selection.get("city_index") == index + 1)
@@ -2283,6 +2290,9 @@ async def _execute_trade_leg(
     engine: ExecutionEngine | None = None,
     context: ExecutionContext | None = None,
     auto_pickup_interval_sec: float = 0.5,
+    use_trailer: bool = False,
+    trailer_daily_first_n: int = 1,
+    trailer_payment: str = "gold",
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -2343,6 +2353,8 @@ async def _execute_trade_leg(
         app=app,
         ocr=ocr,
         vision=vision,
+        **({"use_trailer": True, "trailer_daily_first_n": trailer_daily_first_n,
+            "trailer_payment": trailer_payment} if use_trailer else {}),
     )
     if reporter is not None:
         travel_status = str(travel.get("status") or "ok").lower()
@@ -2360,7 +2372,9 @@ async def _execute_trade_leg(
             data={"travel": dict(travel)},
         )
     travel_status = str(travel.get("status") or "ok").lower()
-    page_state = "city_main"
+    page_state = str(travel.get("page_state") or (
+        "unknown" if travel_status == "blocked" and travel.get("trailer_service") else "city_main"
+    ))
     cape_island_investment: Dict[str, Any] = {
         "triggered": False,
         "status": "not_applicable",
@@ -2706,6 +2720,7 @@ async def _execute_freight_reposition(
     route: List[Dict[str, Any]], *, page_state: str, app, ocr, vision,
     arrival_timeout_seconds: float, use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
+    trailer_plan: FreightTrailerPlan | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     results: List[Dict[str, Any]] = []
@@ -2736,6 +2751,9 @@ async def _execute_freight_reposition(
                 use_fatigue_medicine=use_fatigue_medicine,
                 allowed_fatigue_medicines=allowed_fatigue_medicines or [],
                 fatigue_medicine_max_uses=fatigue_medicine_max_uses, app=app, ocr=ocr, vision=vision,
+                **({"use_trailer": True, "trailer_daily_first_n": trailer_plan.daily_first_n,
+                    "trailer_payment": trailer_plan.payment}
+                   if trailer_plan is not None and trailer_plan.should_use("reposition", index) else {}),
             )
         except Exception as exc:
             if not hasattr(exc, "code"):
@@ -2748,6 +2766,8 @@ async def _execute_freight_reposition(
             attach_evidence(failure, evidence_from(exc))
             return failure
         results.append({"leg": dict(leg), "travel": travel})
+        if trailer_plan is not None:
+            trailer_plan.observe("reposition", index, travel)
         blocked = travel.get("status") == "blocked"
         confirmed = travel.get("success") is True and not blocked
         if reporter:
@@ -2778,6 +2798,7 @@ async def _preview_trade_plan_from_start_city(
     book_budget: Optional[int] = 0,
     trade_mode: str = "free",
     book_policy: str = "profit",
+    book_waste_limit: int = 0,
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
     reposition_to_route: bool = False,
@@ -2924,6 +2945,7 @@ async def resonance_pc_preview_trade_plan_flow(
     book_budget: Optional[int] = 0,
     trade_mode: str = "free",
     book_policy: str = "profit",
+    book_waste_limit: int = 0,
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
     reposition_to_route: bool = False,
@@ -2950,6 +2972,7 @@ async def resonance_pc_preview_trade_plan_flow(
         book_budget=book_budget,
         trade_mode=trade_mode,
         book_policy=book_policy,
+        book_waste_limit=book_waste_limit,
         negotiation_policy=negotiation_policy,
         fixed_route_city_ids=fixed_route_city_ids,
         reposition_to_route=reposition_to_route,
@@ -2993,6 +3016,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     book_budget: Optional[int] = 0,
     trade_mode: str = "free",
     book_policy: str = "profit",
+    book_waste_limit: int = 0,
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
     reposition_to_route: bool = False,
@@ -3036,10 +3060,14 @@ async def resonance_pc_auto_cycle_trade_flow(
     engine: ExecutionEngine | None = None,
     persistent_data: PersistentDataService | None = None,
     auto_pickup_interval_sec: float = 0.5,
+    auto_trailer: bool = False,
+    trailer_daily_first_n: int = 1,
+    trailer_payment: str = "gold",
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     request = normalize_planning_inputs(locals())
+    validate_trailer_options(auto_trailer, trailer_daily_first_n, trailer_payment)
     auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
     for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
@@ -3211,6 +3239,11 @@ async def resonance_pc_auto_cycle_trade_flow(
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
                      investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
     plan["sparkling_water_plan"] = water_plan
+    trailer_plan = FreightTrailerPlan(
+        enabled=auto_trailer, daily_first_n=trailer_daily_first_n, payment=trailer_payment,
+        route=route, reposition=plan["reposition"]["route"],
+    )
+    plan["trailer_plan"] = trailer_plan.snapshot()
     if auto_trade_goods_investment:
         for visit in plan["city_visits"]:
             if visit["city_index"] == 0:
@@ -3277,6 +3310,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             use_fatigue_medicine=use_fatigue_medicine,
             allowed_fatigue_medicines=allowed_fatigue_medicines,
             fatigue_medicine_max_uses=fatigue_medicine_max_uses,
+            **({"trailer_plan": trailer_plan} if auto_trailer else {}),
         )
         page_state = reposition_execution["page_state"]
         if reposition_execution["success"] is not True:
@@ -3310,6 +3344,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             persistent_data=persistent_data,
             recovery_context=context,
             recovery_travel_costs=(resonance_pc_market_data.get_all_travel_fatigue()["costs"] if water_plan.get("planned") else None),
+            **({"trailer_plan": trailer_plan} if auto_trailer else {}),
         )
         page_state = str(execution.get("page_state") or "city_main")
 
@@ -3395,6 +3430,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         page_state = str(cleanup.get("page_state") or "city_main")
 
     execution["reposition_execution"] = reposition_execution
+    execution["trailer_service"] = trailer_plan.snapshot()
     negotiation_execution = _summarize_negotiation_execution(execution, final_sale)
     execution.update(negotiation_execution)
     execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts

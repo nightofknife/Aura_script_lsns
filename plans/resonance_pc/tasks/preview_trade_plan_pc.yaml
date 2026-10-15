@@ -187,6 +187,12 @@ preview_trade_plan_pc:
               name: product_id
               type: string
               required: true
+      - name: book_waste_limit
+        type: number
+        strict_integer: true
+        required: false
+        default: 0
+        min: 0
   steps:
     run:
       action: resonance_pc.preview_trade_plan_flow
@@ -210,6 +216,7 @@ preview_trade_plan_pc:
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
+        book_waste_limit: '{{ inputs.book_waste_limit }}'
   returns:
     error: "{{ nodes.run.output.error | default(none) }}"
     trade_mode: "{{ nodes.run.output.trade_mode | default(none) }}"
@@ -282,3 +289,4 @@ preview_trade_plan_pc:
     warnings: "{{ nodes.run.output.warnings }}"
     initial_city: "{{ nodes.run.output.initial_city }}"
     page_state: "{{ nodes.run.output.page_state }}"
+    book_waste_limit: '{{ nodes.run.output.book_waste_limit | default(0) }}'

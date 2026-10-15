@@ -123,13 +123,30 @@ def resonance_pc_raw_workshop_deposit_max(room_name: str, app: Any = None):
         if before["production"] == "running":
             return _result(room, "skipped_running", before, data)
         _require(app, lambda image: ui.room_ready(image, room) and ui.control_visible(image, "deposit_button"), "deposit_unavailable")
-        click = _click(app, "deposit", data, lambda image: ui.deposit_outcome(image, room),
-                       lambda image: ui.deposit_outcome(image, room))
-        outcome = click["ready_evidence"]
+        click = {"control": "deposit"}
+        data["clicks"].append(click)
+        clicks.send_click(app, POINTS["deposit"], click)
+        try:
+            outcome = clicks.wait_confirmed(app, lambda image: ui.deposit_outcome(image, room),
+                                            consecutive=1)
+        except clicks.CheckedClickError as exc:
+            raise clicks.CheckedClickError("click_effect_not_confirmed",
+                                           {"cause": exc.reason, "click": dict(click)}) from exc
+        click.update(effect_evidence=outcome, effect_confirmed=True)
         if outcome == "already_full":
+            # A transient toast proves only the deposit limit. Independently
+            # confirm the workshop before allowing the next operation.
+            click.update(confirmation_mode="single_frame", transition_required=False)
             return _result(room, "already_full", _snapshot(app, room), data)
         if outcome != "dialog":
             raise clicks.CheckedClickError("deposit_outcome_unknown")
+        try:
+            click["ready_evidence"] = clicks.wait_confirmed(
+                app, lambda image: "dialog" if ui.deposit_outcome(image, room) == "dialog" else None)
+        except clicks.CheckedClickError as exc:
+            raise clicks.CheckedClickError("click_transition_not_confirmed",
+                                           {"cause": exc.reason, "click": dict(click)}) from exc
+        click.update(transition_ready=True, transition_required=True)
         if not ui.deposit_maximum(clicks.read_frame(app)):
             _require(app, lambda image: ui.deposit_outcome(image, room) == "dialog"
                      and ui.control_visible(image, "deposit_max"), "deposit_dialog_not_ready")

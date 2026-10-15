@@ -33,6 +33,9 @@ def test_default_contract(page):
     assert inputs["cargo_capacity"] == 750
     assert inputs["book_budget"] == 0
     assert "book_profit_threshold" not in inputs
+    assert "book_waste_limit" not in inputs
+    assert page.book_waste_limit.value() == 0
+    assert page.book_waste_limit.suffix() == ""
     assert inputs["arrival_timeout_seconds"] == 3600
     assert inputs["auto_cape_island_investment"] is True
     assert not {"start_city_id", "auto_book", "trade_level", "active_events"} & inputs.keys()
@@ -55,7 +58,7 @@ def test_key_parameters_precede_collapsed_city_grid_in_both_forms(page, preview)
     assert "20" in widget.city_selector_toggle.text()
     city_top = widget.city_selector_toggle.mapTo(widget.parameter_panel, QPoint()).y()
     for control in (widget.fatigue_budget, widget.cargo_capacity, widget.book_usage,
-                    widget.book_profit_threshold, widget.book_policy, widget.negotiation_policy):
+                    widget.book_profit_threshold, widget.book_policy, widget.book_waste_limit, widget.negotiation_policy):
         assert control.mapTo(widget.parameter_panel, QPoint()).y() < city_top
     before = widget.selected_city_ids()
     widget.city_selector_toggle.setChecked(True)
@@ -72,6 +75,7 @@ def test_key_parameters_precede_collapsed_city_grid_in_both_forms(page, preview)
 
 @pytest.mark.parametrize("key,value", [("fatigue_budget", True), ("cargo_capacity", 1.5),
                                         ("book_budget", -1), ("book_budget", False),
+                                        ("book_waste_limit", -1), ("book_waste_limit", True), ("book_waste_limit", 1.5),
                                         ("negotiation_max_attempts", 2.5)])
 def test_restore_rejects_noninteger_resource_inputs(page, key, value):
     with pytest.raises(ValueError):
@@ -121,6 +125,8 @@ def test_fill_does_not_force_negotiation_and_preferences_survive_mode_switch(pag
     page.negotiation_policy.setCurrentIndex(page.negotiation_policy.findData("disabled"))
     inputs = page.collect_task_inputs()
     assert inputs["book_policy"] == "fill"
+    assert inputs["book_waste_limit"] == 0
+    assert "book_profit_threshold" not in inputs
     assert inputs["negotiation_policy"] == "disabled"
     assert page.book_policy.currentText() == "优先满仓"
     assert page.book_policy.isEnabled()

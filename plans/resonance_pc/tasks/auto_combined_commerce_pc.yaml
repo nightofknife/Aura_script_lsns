@@ -1356,6 +1356,32 @@ auto_combined_commerce_pc:
                     required: true
                     enum:
                     - true
+          book_waste_limit:
+            name: book_waste_limit
+            type: number
+            strict_integer: true
+            required: false
+            min: 0
+          auto_trailer:
+            name: auto_trailer
+            type: boolean
+            required: false
+            default: false
+          trailer_daily_first_n:
+            name: trailer_daily_first_n
+            type: number
+            strict_integer: true
+            required: false
+            default: 1
+            min: 1
+          trailer_payment:
+            name: trailer_payment
+            type: string
+            required: false
+            default: gold
+            enum:
+            - gold
+            - mileage
       - name: passenger_inputs
         type: dict
         required: false

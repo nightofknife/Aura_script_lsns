@@ -44,7 +44,7 @@ def semantic(result):
     return {key: value for key, value in result.items() if key not in {"solver_backend", "solver_stats"}}
 
 
-def _oracle_options(model, capacity, books, threshold, policy, negotiation, *, fixed=False):
+def _oracle_options(model, capacity, books, threshold, policy, negotiation, waste_limit=0, *, fixed=False):
     """Price and enumerate independently: no production candidate or pruning code."""
     result = {}
     flags = {"auto": [(0, 0), (0, 1), (1, 0), (1, 1)],
@@ -94,8 +94,9 @@ def _oracle_options(model, capacity, books, threshold, policy, negotiation, *, f
                             free -= quantity
                         if not free:
                             break
-                    if previous is not None and (profit - previous <= 0 or (
-                            policy == "profit" and profit - previous < threshold)):
+                    if policy == "fill" and k and sum(lot for _, _, lot in candidates) * (k + 1) - capacity > waste_limit:
+                        break
+                    if policy == "profit" and previous is not None and (profit - previous <= 0 or profit - previous < threshold):
                         break
                     cost = travel + (bargain_cost if bargain else 0) + (raise_cost if raising else 0)
                     options.append((profit, cost, k, bargain + raising,
@@ -111,10 +112,10 @@ def _oracle_options(model, capacity, books, threshold, policy, negotiation, *, f
 
 
 def enumerate_oracle(model, *, mode, capacity, books, threshold, negotiation,
-                     budget, target=1, endpoints=None, fixed=None, negotiation_budget=None):
-    policy = "fill" if mode == "quick" else "profit"
+                     budget, target=1, endpoints=None, fixed=None, negotiation_budget=None, waste_limit=0, policy=None):
+    policy = policy or ("fill" if mode == "quick" else "profit")
     negotiation = "required" if mode == "quick" else negotiation
-    choices = _oracle_options(model, capacity, books, threshold, policy, negotiation,
+    choices = _oracle_options(model, capacity, books, threshold, policy, negotiation, waste_limit,
                               fixed=mode == "fixed")
     records = []
     closed = fixed is not None and fixed[0] == fixed[-1]
@@ -143,7 +144,8 @@ def enumerate_oracle(model, *, mode, capacity, books, threshold, negotiation,
     visit(("A",), (), 0, 0, 0, 0)
     if mode == "target":
         reachable = [row for row in records if row[0] >= target]
-        best = min(reachable, key=lambda row: row[1:]) if reachable else None
+        best = min(reachable, key=lambda row: ((row[1], -row[0], *row[2:])
+                   if policy == "fill" else row[1:])) if reachable else None
     elif mode == "fixed":
         tradable = [row for row in records if row[0] > 0]
         best = min(tradable, key=lambda row: (-row[1], -row[0], *row[2:])) if tradable else None
@@ -226,7 +228,7 @@ def test_fill_stops_at_first_full_load_not_product_replacement():
 def test_fill_ignores_high_threshold_including_last_partial_book(mode, book_budget):
     model = solver(lots={"A": {"p": 2}})
     args = dict(trade_mode=mode, fixed_route_city_ids=["A", "B"],
-                book_policy="fill", book_budget=book_budget, cargo_capacity=5)
+                book_policy="fill", book_budget=book_budget, cargo_capacity=5, book_waste_limit=1)
     baseline = solve(model, book_profit_threshold=0, **args)
     high_threshold = solve(model, book_profit_threshold=200000, **args)
     assert semantic(high_threshold) == semantic(baseline)
@@ -247,7 +249,7 @@ def test_fill_curve_ignores_threshold_without_relying_on_solver_normalization():
         cargo_capacity=5, loaded_quantity=2,
     )
     fill = EdgeBookCurve.create(baseline=baseline, candidates=((Fraction(10), "p", "p", 2),),
-                               capacity=5, policy="fill", threshold=Fraction(200000))
+                               capacity=5, policy="fill", threshold=Fraction(200000), waste_limit=1)
     profit = EdgeBookCurve.create(baseline=baseline, candidates=fill.candidates,
                                  capacity=5, policy="profit", threshold=Fraction(200000))
     assert fill.legal_limit == 2
@@ -310,7 +312,7 @@ def test_fixed_budget_700_buys_each_profitable_leg_and_stops_instead_of_empty_tr
                    lots={"A": {"p": 100}, "B": {"q": 100}})
     result = solve(model, trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"],
                    fatigue_budget=700, cargo_capacity=630, book_budget=None,
-                   book_policy="fill", book_profit_threshold=200000,
+                   book_policy="fill", book_profit_threshold=200000, book_waste_limit=70,
                    negotiation_policy="required", bargain_success_rates_bps=[5000],
                    raise_success_rates_bps=[5000], bargain_step_bps=1000, raise_step_bps=1000)
     assert result["status"] == "ok"
@@ -576,14 +578,15 @@ def test_randomized_all_objectives_and_complete_tie_order_against_exhaustive_ora
         neg_budget = rng.choice([None, 1, 3])
         endpoints = rng.choice([None, ["B"], ["B", "C"]])
         target = rng.randint(10, 100)
+        waste_limit = rng.randint(0, capacity)
         for mode in ("profit", "quick", "target", "fixed"):
             fixed = ["A", "B", "C", "A"] if mode == "fixed" else None
             expected, maximum = enumerate_oracle(model, mode=mode, capacity=capacity, books=books,
                          threshold=threshold, negotiation=negotiation, budget=budget, target=target,
-                         endpoints=endpoints, fixed=fixed, negotiation_budget=neg_budget)
+                         endpoints=endpoints, fixed=fixed, negotiation_budget=neg_budget, waste_limit=waste_limit)
             args = dict(trade_mode="fixed" if mode == "fixed" else "free", fatigue_budget=budget, cargo_capacity=capacity, book_budget=books,
                         book_profit_threshold=threshold, negotiation_policy="required" if mode == "quick" else negotiation,
-                        book_policy="fill" if mode == "quick" else "profit",
+                        book_policy="fill" if mode == "quick" else "profit", book_waste_limit=waste_limit,
                         negotiation_budget=neg_budget, target_profit=target if mode == "target" else None,
                         required_end_city_ids=endpoints, fixed_route_city_ids=fixed)
             actual = solve(model, **args)

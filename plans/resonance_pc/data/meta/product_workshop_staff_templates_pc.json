@@ -1,0 +1,1489 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "kind": "synthetic_native_game_assets",
+  "live_calibrated": false,
+  "provenance": {
+    "sources": [
+      {
+        "resource": "ui/prison/manage/prisonedit.asset",
+        "sha256": "687b3e3f35f7a24cdd5304c9845966706d897ab85e295d8dda8ea16a0cde90c7"
+      },
+      {
+        "resource": "ui/prison/manage/prisonerlistmanage.asset",
+        "sha256": "b4b3224f0736d798f30a2e87838f01da37f09223a6ec35da48f07b2796436899"
+      },
+      {
+        "resource": "ui/common/prompt/prompt.asset",
+        "sha256": "02670ec8499a9898956ec5d1091b6522ad6328638696941a5ffcb10ddac91ce5"
+      }
+    ],
+    "fonts": [
+      {
+        "font_path_id": 6136794397608061395,
+        "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
+      },
+      {
+        "font_path_id": -2237384480076949585,
+        "sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+      },
+      {
+        "font_path_id": -4884400286118422667,
+        "sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47"
+      },
+      {
+        "font_path_id": -2237384480076949585,
+        "sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+      },
+      {
+        "font_path_id": 6136794397608061395,
+        "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
+      },
+      {
+        "font_path_id": -6409983837326833580,
+        "sha256": "f8ce2718a0bf5e1cf338a24431aa2f0631fecbf5d76654b99bab69b29d3b9e1e"
+      },
+      {
+        "font_path_id": -4884400286118422667,
+        "sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47"
+      },
+      {
+        "font_path_id": -3758921232364580136,
+        "sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd"
+      },
+      {
+        "font_path_id": -2237384480076949585,
+        "sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+      },
+      {
+        "font_path_id": 6136794397608061395,
+        "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
+      }
+    ],
+    "dependencies": [
+      {
+        "resource": "enemyplus/prisoner.asset",
+        "sha256": "b3520916532ec12e3f6b6184dd5c5d8441b60d3001b0fe0dc9261c6e2e0e001f"
+      },
+      {
+        "resource": "ui/common.asset",
+        "sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd"
+      },
+      {
+        "resource": "ui/common/prompt.asset",
+        "sha256": "9ee699f5ccb3f5ea7e3cc557260d5e973b38f59e2835bc65a75012a2b94660a8"
+      },
+      {
+        "resource": "ui/commontile.asset",
+        "sha256": "3825cd10cac3f45c5dc19444634bb7d7d336dd05e2ba2a32ce6a0a508c36fa70"
+      },
+      {
+        "resource": "ui/font.asset",
+        "sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a"
+      },
+      {
+        "resource": "ui/font/originpack.asset",
+        "sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+      },
+      {
+        "resource": "ui/prison/main.asset",
+        "sha256": "b44522ead2e9afa71dceb00c2cacf8906d5d95c48cb7285c3c7415d7bbf4ba1c"
+      },
+      {
+        "resource": "ui/prison/manage.asset",
+        "sha256": "346ade27b89e35e3338de18e55b430e821d91ee122dbbd9d68cdaf38c7c58bd8"
+      },
+      {
+        "resource": "ui/prison/prisonerlist.asset",
+        "sha256": "b2318be68cd4020bc525e94c2140fa1f48623838c0b460a1efef9dc75df9f544"
+      },
+      {
+        "resource": "ui/prison/prisonerlist/personality.asset",
+        "sha256": "7dad7935eb3feaf289a22a97d945b0330c854aacc6a590717d1ce64020990f60"
+      },
+      {
+        "resource": "ui/prison/prisonerproduction/resnew.asset",
+        "sha256": "fb8b6a4c9e399c5f2bfe134055e0c2f45ca5493094b4c6f8cbc2609289fe6e99"
+      },
+      {
+        "resource": "ui/prison/prisonroom/res/punishmentroom.asset",
+        "sha256": "283181e0c6b50f6c7e82012aad3d8988d2a8b5293ba208f8235729ccef5ef688"
+      },
+      {
+        "resource": "ui/prison/transitcenter.asset",
+        "sha256": "bbe9b7de23b7ee1fb47dcfe6d50b76bafc73c77b3262fd445370ff4d167b4c2a"
+      },
+      {
+        "resource": "ui/trainfactory.asset",
+        "sha256": "bf530d7461d3093e65fe4ba386bf6e600d44def151b9de8c08e7499c456bb71e"
+      },
+      {
+        "resource": "ui/trainfactory/edit/down.asset",
+        "sha256": "c38d99aca1574506ad0e9ec34365160b5f9b1e3d0cf7a227fe8fa1980b1a7687"
+      },
+      {
+        "resource": "ui/trainfactory/icon/down.asset",
+        "sha256": "e5f187f8e14caa71264bb2e6065a939b665c924dbd226656c7183db24ffdf8a3"
+      },
+      {
+        "resource": "ui/trainfactory/icon/repair/use.asset",
+        "sha256": "1e57183f54350114d00ce3a222a4b0342b7f1ba5d3bf9b7daefbd9f51d57b634"
+      },
+      {
+        "resource": "ui/trainfactory/repair.asset",
+        "sha256": "839c516144f4a94c4100548ca5dbe41a61a82486a671b9c01c14d37a5f653c3a"
+      },
+      {
+        "resource": "ui/trainfactory/second.asset",
+        "sha256": "db9256df36222537bc22a4a6ef1ccac234590e9344b052ac222847ad8bbc7318"
+      }
+    ],
+    "logic_sources": [
+      {
+        "script": "CommonTips.lua",
+        "sha256": "acfb58e56ba5405322a6152ee7432ff6c2bff1581c53987ccf758959a48c5413"
+      },
+      {
+        "script": "UIPrompt/UIPromptLuaBehaviour.lua",
+        "sha256": "a0ca00c2abca3bb791d58041786c281b9910353661fc8bf0ad81076f78dd0030"
+      },
+      {
+        "script": "UIPrisonEdit/UIPrisonEditController.lua",
+        "sha256": "3a20b67e5f72115d596544dd95187bb4d46dc0e6c779e09704d795c9fd862c92"
+      },
+      {
+        "script": "UIPrisonEdit/UIPrisonEditViewFunction.lua",
+        "sha256": "39032ec750407b6a29da99fc0c6e3f8bc0422999ffcc5c270cb41e913a0e818f"
+      }
+    ],
+    "text_bindings": {
+      "room_title": {
+        "text_id": 80600296,
+        "binding": "CurRoomIndex",
+        "examples": [
+          1,
+          2
+        ]
+      },
+      "save_prompt": {
+        "text_id": 80600202,
+        "node": "/Prompt/Group_Prompt/TextIcon_Prompt"
+      },
+      "button_labels": "native prefab defaults; nil yesTxt/noTxt in OnPrompt",
+      "example_counts": "synthetic inputs, not player data"
+    }
+  },
+  "limitations": [
+    "No live screenshot or live acceptance evidence",
+    "Native images/fonts/layout; Pillow rasterization differs from Unity",
+    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic"
+  ],
+  "templates": {
+    "room_1_title": {
+      "image": "templates/product_workshop_staff/room_1_title.png",
+      "bbox": [
+        660,
+        23,
+        30,
+        18
+      ],
+      "search_region": [
+        648,
+        11,
+        54,
+        42
+      ],
+      "click": [
+        712,
+        32
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "box_xyxy": [
+            659,
+            22,
+            765,
+            42
+          ],
+          "components": [
+            {
+              "text": "1号生产车间",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 28,
+              "font_size_prefab": 28,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 4,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 28,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 1,
+                "m_VerticalOverflow": 1,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            660,
+            23,
+            764,
+            41
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_1",
+      "sha256": "9c67de503f3acf10452518593d1dd01079d5e50fca2e0ca9d9311540255d5125",
+      "crop_note": "Numbered title prefix; shared suffix excluded to reject the other room"
+    },
+    "room_2_title": {
+      "image": "templates/product_workshop_staff/room_2_title.png",
+      "bbox": [
+        660,
+        23,
+        30,
+        18
+      ],
+      "search_region": [
+        648,
+        11,
+        54,
+        42
+      ],
+      "click": [
+        712,
+        32
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "box_xyxy": [
+            659,
+            22,
+            765,
+            42
+          ],
+          "components": [
+            {
+              "text": "2号生产车间",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 28,
+              "font_size_prefab": 28,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 4,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 28,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 1,
+                "m_VerticalOverflow": 1,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            660,
+            23,
+            764,
+            41
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_2",
+      "sha256": "637828d63442e790238e8746684d54be781f3b0f12581df250cf1e49478647c7",
+      "crop_note": "Numbered title prefix; shared suffix excluded to reject the other room"
+    },
+    "quick": {
+      "image": "templates/product_workshop_staff/quick.png",
+      "bbox": [
+        106,
+        487,
+        73,
+        21
+      ],
+      "search_region": [
+        94,
+        475,
+        97,
+        45
+      ],
+      "click": [
+        117,
+        498
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_Edit/Btn_QuickEdit/Img_QuickEditOFF/Group_/Txt_Quick",
+          "box_xyxy": [
+            108,
+            489,
+            177,
+            507
+          ],
+          "components": [
+            {
+              "text": "快速编队",
+              "font_path_id": 6136794397608061395,
+              "font_size_native": 26,
+              "font_size_prefab": 26,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 4,
+                  "m_PathID": 6136794397608061395
+                },
+                "m_FontSize": 26,
+                "m_FontStyle": 0,
+                "m_BestFit": 1,
+                "m_MinSize": 2,
+                "m_MaxSize": 26,
+                "m_Alignment": 3,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            108,
+            489,
+            177,
+            506
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_1",
+      "sha256": "11d898b756fb9768171e98acd4e948358b2667960a6fe6b272fe0b6e6b4803b3"
+    },
+    "editor_marker": {
+      "image": "templates/product_workshop_staff/editor_marker.png",
+      "bbox": [
+        1136,
+        37,
+        87,
+        17
+      ],
+      "search_region": [
+        1124,
+        25,
+        111,
+        41
+      ],
+      "click": [
+        1180,
+        45
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNum",
+          "box_xyxy": [
+            1126,
+            35,
+            1233,
+            55
+          ],
+          "components": [
+            {
+              "text": "人员数量：",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 26,
+              "font_size_prefab": 26,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 4,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 26,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 1,
+                "m_VerticalOverflow": 1,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            1136,
+            37,
+            1223,
+            54
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_1",
+      "sha256": "8da82dae9ca2baa93da50d1845af6550434cf307278ecc5b055580a89ac7a2a1"
+    },
+    "editor_count_label": {
+      "image": "templates/product_workshop_staff/editor_count_label.png",
+      "bbox": [
+        1136,
+        37,
+        87,
+        17
+      ],
+      "search_region": [
+        1124,
+        25,
+        111,
+        41
+      ],
+      "click": [
+        1180,
+        45
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNum",
+          "box_xyxy": [
+            1126,
+            35,
+            1233,
+            55
+          ],
+          "components": [
+            {
+              "text": "人员数量：",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 26,
+              "font_size_prefab": 26,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 4,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 26,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 1,
+                "m_VerticalOverflow": 1,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            1136,
+            37,
+            1223,
+            54
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_1",
+      "sha256": "8da82dae9ca2baa93da50d1845af6550434cf307278ecc5b055580a89ac7a2a1"
+    },
+    "selection_marker": {
+      "image": "templates/product_workshop_staff/selection_marker.png",
+      "bbox": [
+        37,
+        662,
+        104,
+        17
+      ],
+      "search_region": [
+        25,
+        650,
+        128,
+        41
+      ],
+      "click": [
+        89,
+        670
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_",
+          "box_xyxy": [
+            37,
+            661,
+            141,
+            680
+          ],
+          "components": [
+            {
+              "text": "车间囚犯数量",
+              "font_path_id": 6136794397608061395,
+              "font_size_native": 26,
+              "font_size_prefab": 26,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": 6136794397608061395
+                },
+                "m_FontSize": 26,
+                "m_FontStyle": 0,
+                "m_BestFit": 1,
+                "m_MinSize": 2,
+                "m_MaxSize": 26,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            37,
+            662,
+            141,
+            679
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "scene": "selection_empty",
+      "sha256": "ed78e555745e780476317cd809c42681b99cab3d296f606b918b848fd6c15793"
+    },
+    "selection_count_label": {
+      "image": "templates/product_workshop_staff/selection_count_label.png",
+      "bbox": [
+        37,
+        662,
+        104,
+        17
+      ],
+      "search_region": [
+        25,
+        650,
+        128,
+        41
+      ],
+      "click": [
+        89,
+        670
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_",
+          "box_xyxy": [
+            37,
+            661,
+            141,
+            680
+          ],
+          "components": [
+            {
+              "text": "车间囚犯数量",
+              "font_path_id": 6136794397608061395,
+              "font_size_native": 26,
+              "font_size_prefab": 26,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": 6136794397608061395
+                },
+                "m_FontSize": 26,
+                "m_FontStyle": 0,
+                "m_BestFit": 1,
+                "m_MinSize": 2,
+                "m_MaxSize": 26,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            37,
+            662,
+            141,
+            679
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "scene": "selection_empty",
+      "sha256": "ed78e555745e780476317cd809c42681b99cab3d296f606b918b848fd6c15793"
+    },
+    "select_all": {
+      "image": "templates/product_workshop_staff/select_all.png",
+      "bbox": [
+        850,
+        660,
+        84,
+        24
+      ],
+      "search_region": [
+        838,
+        648,
+        108,
+        48
+      ],
+      "click": [
+        932,
+        672
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonerListManage/Group_Detail/Btn_All/Txt_T",
+          "box_xyxy": [
+            852,
+            661,
+            932,
+            683
+          ],
+          "components": [
+            {
+              "text": "一键选中",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 30,
+              "font_size_prefab": 30,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 30,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 50,
+                "m_Alignment": 3,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            852,
+            662,
+            932,
+            682
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "scene": "selection_empty",
+      "sha256": "ee60f6d3b19065b4890c46e7a8d0bb894e3eed6e8d9deed4cd52b98afe45c715"
+    },
+    "cancel_all": {
+      "image": "templates/product_workshop_staff/cancel_all.png",
+      "bbox": [
+        850,
+        660,
+        84,
+        24
+      ],
+      "search_region": [
+        838,
+        648,
+        108,
+        48
+      ],
+      "click": [
+        932,
+        672
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonerListManage/Group_Detail/Btn_AllCancel/Txt_T",
+          "box_xyxy": [
+            852,
+            661,
+            932,
+            683
+          ],
+          "components": [
+            {
+              "text": "一键取消",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 30,
+              "font_size_prefab": 30,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 30,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 50,
+                "m_Alignment": 3,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            852,
+            662,
+            932,
+            682
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "scene": "selection_full",
+      "sha256": "afced38ad0b92bb1bbef5b81dcb83f4641ca90f23701258330f85e08ccde53e5"
+    },
+    "confirm": {
+      "image": "templates/product_workshop_staff/confirm.png",
+      "bbox": [
+        1068,
+        660,
+        44,
+        24
+      ],
+      "search_region": [
+        1056,
+        648,
+        68,
+        48
+      ],
+      "click": [
+        1150,
+        672
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonerListManage/Group_Detail/Btn_Confirm/Txt_T",
+          "box_xyxy": [
+            1070,
+            661,
+            1110,
+            683
+          ],
+          "components": [
+            {
+              "text": "确认",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 30,
+              "font_size_prefab": 30,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 30,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 2,
+                "m_MaxSize": 50,
+                "m_Alignment": 3,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                0,
+                0,
+                0,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            1070,
+            662,
+            1110,
+            682
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "scene": "selection_empty",
+      "sha256": "9c924bab720aba544997fe2713e3d1a8033d852c06f643a75880438b59f7c923"
+    },
+    "back": {
+      "image": "templates/product_workshop_staff/back.png",
+      "bbox": [
+        19,
+        13,
+        142,
+        55
+      ],
+      "search_region": [
+        7,
+        1,
+        166,
+        79
+      ],
+      "click": [
+        90,
+        40
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/PrisonEdit/Group_CommonTopLeft/Btn_Return",
+          "box_xyxy": [
+            19,
+            13,
+            161,
+            68
+          ],
+          "components": [
+            {
+              "sprite": "common_btn_return",
+              "sprite_file_id": 9,
+              "sprite_path_id": -9033569868668332768
+            }
+          ]
+        }
+      ],
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "scene": "editor_1",
+      "sha256": "dc6f18b5aafa6082faa7a106d1cd1c97d781517f3f11cb09b2f7e698f7800d12"
+    },
+    "save_prompt": {
+      "image": "templates/product_workshop_staff/save_prompt.png",
+      "bbox": [
+        587,
+        348,
+        250,
+        23
+      ],
+      "search_region": [
+        575,
+        336,
+        274,
+        47
+      ],
+      "click": [
+        712,
+        360
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/Prompt/Group_Prompt/TextIcon_Prompt",
+          "box_xyxy": [
+            587,
+            348,
+            837,
+            372
+          ],
+          "components": [
+            {
+              "text": "布局已变更，是否保存？",
+              "font_path_id": 6136794397608061395,
+              "font_size_native": 34,
+              "font_size_prefab": 34,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": 6136794397608061395
+                },
+                "m_FontSize": 34,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 3,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 1,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            587,
+            348,
+            837,
+            371
+          ]
+        }
+      ],
+      "resource": "ui/common/prompt/prompt.asset",
+      "scene": "save_prompt",
+      "sha256": "07ee50880214355fabaa48a2ec4800523305cc12d62071ae0e343344b8661c5a"
+    },
+    "apply": {
+      "image": "templates/product_workshop_staff/apply.png",
+      "bbox": [
+        693,
+        492,
+        50,
+        26
+      ],
+      "search_region": [
+        681,
+        480,
+        74,
+        50
+      ],
+      "click": [
+        958,
+        506
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/Prompt/Btn_Confirm/Group_/Txt_Confirm",
+          "box_xyxy": [
+            695,
+            493,
+            741,
+            517
+          ],
+          "components": [
+            {
+              "text": "确认",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 34,
+              "font_size_prefab": 34,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 34,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 3,
+                "m_MaxSize": 50,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            695,
+            494,
+            741,
+            516
+          ]
+        }
+      ],
+      "resource": "ui/common/prompt/prompt.asset",
+      "scene": "save_prompt",
+      "sha256": "91dcb07e19bdc872585bda53881396bf988e344e20f12ebcb83a65b3f7a98ecd"
+    },
+    "discard": {
+      "image": "templates/product_workshop_staff/discard.png",
+      "bbox": [
+        52,
+        492,
+        49,
+        26
+      ],
+      "search_region": [
+        40,
+        480,
+        73,
+        50
+      ],
+      "click": [
+        322,
+        506
+      ],
+      "threshold": 0.9,
+      "source_nodes": [
+        {
+          "path": "/Prompt/Btn_Cancel/Group_/Txt_Cancel",
+          "box_xyxy": [
+            54,
+            493,
+            99,
+            517
+          ],
+          "components": [
+            {
+              "text": "取消",
+              "font_path_id": -2237384480076949585,
+              "font_size_native": 34,
+              "font_size_prefab": 34,
+              "font_data": {
+                "m_Font": {
+                  "m_FileID": 2,
+                  "m_PathID": -2237384480076949585
+                },
+                "m_FontSize": 34,
+                "m_FontStyle": 0,
+                "m_BestFit": 0,
+                "m_MinSize": 3,
+                "m_MaxSize": 40,
+                "m_Alignment": 4,
+                "m_AlignByGeometry": 0,
+                "m_RichText": 1,
+                "m_HorizontalOverflow": 0,
+                "m_VerticalOverflow": 0,
+                "m_LineSpacing": 1.0
+              },
+              "color": [
+                255,
+                255,
+                255,
+                255
+              ]
+            }
+          ],
+          "ink_box_xyxy": [
+            54,
+            494,
+            99,
+            516
+          ]
+        }
+      ],
+      "resource": "ui/common/prompt/prompt.asset",
+      "scene": "save_prompt",
+      "sha256": "5184c86793022218fee2bedc406f77a3a08d6e24395c56d33594b811ea80f323"
+    },
+    "saved_marker": {
+      "image": "templates/product_workshop_staff/saved_marker.png",
+      "bbox": [
+        1093,
+        674,
+        87,
+        23
+      ],
+      "search_region": [
+        1081,
+        662,
+        111,
+        47
+      ],
+      "click": [
+        1136,
+        686
+      ],
+      "threshold": 0.9,
+      "source_image": "templates/reforming_center/destination_10_workshop_edit.png",
+      "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+      "sha256": "5bfb99963be42074feeda45d51c257304b45f80579e971c9d4a61a8927e38583"
+    }
+  },
+  "scenes": {
+    "editor_1": {
+      "image": "tests/fixtures/product_workshop_staff/editor_1.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "1号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "10"
+      },
+      "sha256": "26120c72360f1babaaeea20eb2df7b099f91a2c45651deb296609d97310ffee6"
+    },
+    "editor_2": {
+      "image": "tests/fixtures/product_workshop_staff/editor_2.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "2号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "10"
+      },
+      "sha256": "7fc80ac2eff4343ddce5d9637f2f60e525f733287090db3f2ea4579a07ffa540"
+    },
+    "editor_1_after": {
+      "image": "tests/fixtures/product_workshop_staff/editor_1_after.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "1号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "15"
+      },
+      "sha256": "161f69d6cccd08382ca8c233e11d26a178d3e129c753998069bdcded983724ff"
+    },
+    "selection_empty": {
+      "image": "tests/fixtures/product_workshop_staff/selection_empty.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "active_overrides": {
+        "/Group_Screen": false,
+        "/Group_NoPrison": false,
+        "/Btn_All": true,
+        "/Btn_AllCancel": false
+      },
+      "text_overrides": {
+        "/Group_Detail/Group_Prisoner/Txt_Num": "<color=#FFB800>10</color>/15"
+      },
+      "sha256": "71ee07aaa35421f97e2559cf9d83dad7d8633e86f064e0ba2338923a462fd7fe"
+    },
+    "selection_full": {
+      "image": "tests/fixtures/product_workshop_staff/selection_full.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "active_overrides": {
+        "/Group_Screen": false,
+        "/Group_NoPrison": false,
+        "/Btn_All": false,
+        "/Btn_AllCancel": true
+      },
+      "text_overrides": {
+        "/Group_Detail/Group_Prisoner/Txt_Num": "<color=#FFB800>15</color>/15"
+      },
+      "sha256": "179e5365527b0e50c378bc96234b1eac74d37fc5799067104916f5a9f9560edd"
+    },
+    "save_prompt": {
+      "image": "tests/fixtures/product_workshop_staff/save_prompt.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/common/prompt/prompt.asset",
+      "active_overrides": {
+        "/Txt_Prompt": false,
+        "/Group_DayTip": false,
+        "/Group_Tip": false,
+        "/Group_Tips": false,
+        "/Btn_SkipSafe": false,
+        "/Group_Prompt": true,
+        "/Group_Prompt/Img_Icon": false
+      },
+      "text_overrides": {
+        "/Group_Prompt/TextIcon_Prompt": "布局已变更，是否保存？"
+      },
+      "sha256": "d020bef3cfe50388d4122c2120c5b7ce8a7360a4c4f6ad9c7b223a17babaf0e7"
+    },
+    "saved": {
+      "image": "tests/fixtures/product_workshop_staff/saved.png",
+      "kind": "synthetic_composite_of_existing_live_template_crops",
+      "source_catalog": "data/meta/reforming_center_templates_pc.json",
+      "sha256": "f822ee91e3796db9d4b63fc9745f7f4558d0ece28064020c553ed882650c98b1"
+    }
+  },
+  "counters": {
+    "selection": {
+      "region": [
+        181,
+        658,
+        59,
+        25
+      ],
+      "format": "fraction",
+      "style": "selection",
+      "source_node": {
+        "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_Num",
+        "box_xyxy": [
+          181,
+          658,
+          240,
+          683
+        ],
+        "components": [
+          {
+            "text": "10/15",
+            "font_path_id": -3758921232364580136,
+            "font_size_native": 32,
+            "font_size_prefab": 32,
+            "font_data": {
+              "m_Font": {
+                "m_FileID": 8,
+                "m_PathID": -3758921232364580136
+              },
+              "m_FontSize": 32,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 3,
+              "m_MaxSize": 40,
+              "m_Alignment": 4,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 1,
+              "m_VerticalOverflow": 1,
+              "m_LineSpacing": 1.0
+            },
+            "color": [
+              255,
+              255,
+              255,
+              255
+            ]
+          }
+        ],
+        "ink_box_xyxy": [
+          181,
+          663,
+          240,
+          678
+        ]
+      }
+    },
+    "editor": {
+      "region": [
+        1219,
+        37,
+        61,
+        20
+      ],
+      "format": "integer",
+      "style": "list",
+      "source_node": {
+        "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNumCount",
+        "box_xyxy": [
+          1219,
+          37,
+          1325,
+          57
+        ],
+        "components": [
+          {
+            "text": "10",
+            "font_path_id": -4884400286118422667,
+            "font_size_native": 26,
+            "font_size_prefab": 26,
+            "font_data": {
+              "m_Font": {
+                "m_FileID": 7,
+                "m_PathID": -4884400286118422667
+              },
+              "m_FontSize": 26,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 2,
+              "m_MaxSize": 40,
+              "m_Alignment": 3,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 1,
+              "m_VerticalOverflow": 1,
+              "m_LineSpacing": 1.0
+            },
+            "color": [
+              255,
+              184,
+              0,
+              255
+            ]
+          }
+        ],
+        "ink_box_xyxy": [
+          1219,
+          41,
+          1240,
+          54
+        ]
+      }
+    }
+  },
+  "editor_digits": [
+    {
+      "character": "0",
+      "image": "templates/product_workshop_staff/editor_digit_0.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "313886cd6cc22bcf81c5a08d4784abd3521b7853491897021f1eb94b70aab187"
+    },
+    {
+      "character": "1",
+      "image": "templates/product_workshop_staff/editor_digit_1.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "e96f8590c6df4cf57508b8bfad26962c366a440e42f1ec249bec64dcf1c783d8"
+    },
+    {
+      "character": "2",
+      "image": "templates/product_workshop_staff/editor_digit_2.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "5c5db38a6f82dfa8f86437d044168b0859d638cd2ffc3bde60c2913159bf16e7"
+    },
+    {
+      "character": "3",
+      "image": "templates/product_workshop_staff/editor_digit_3.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "7f74bde716f6d900182f0597eab6db4b897a4873f9cdb493c15972a650ab3941"
+    },
+    {
+      "character": "4",
+      "image": "templates/product_workshop_staff/editor_digit_4.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "90b0ce1981eb63151f99fb13d74a6822bb852c4a496aa1cecaa1da7b7f3760e1"
+    },
+    {
+      "character": "5",
+      "image": "templates/product_workshop_staff/editor_digit_5.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "b1b44159b5238af6414c12edba1644bdc8fa675dd082d6f28f96ab7bacc1d2ae"
+    },
+    {
+      "character": "6",
+      "image": "templates/product_workshop_staff/editor_digit_6.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "aee95f2a4c713f7f5198e429e5c68c88345fae6f8ca995aaa325d68c571bf0c6"
+    },
+    {
+      "character": "7",
+      "image": "templates/product_workshop_staff/editor_digit_7.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "a839399d884c4d43e7ad9c853b807c0ac5cfc19b370f40d292da5d66102e3018"
+    },
+    {
+      "character": "8",
+      "image": "templates/product_workshop_staff/editor_digit_8.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "2cd9a4ac9e6d699a627834b67ba0ba2a4a3c1da570eccf886262794d1ec1c740"
+    },
+    {
+      "character": "9",
+      "image": "templates/product_workshop_staff/editor_digit_9.png",
+      "font_path_id": -4884400286118422667,
+      "font_size_native": 26,
+      "scale": 0.6666666666666666,
+      "sha256": "cf6f4646810c6fd0844cd9f3bfbb05157b0090df4eaf6472beb00c792fe8a7c4"
+    }
+  ],
+  "render_errors": {
+    "editor": [],
+    "selection": [],
+    "prompt": []
+  }
+}

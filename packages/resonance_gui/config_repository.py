@@ -10,7 +10,7 @@ from typing import Any
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
-from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval
+from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options
 from .black_moon_catalog import normalize_black_moon_settings
 
 
@@ -79,6 +79,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "target_profit": None,
     "target_profit_enabled": False,
     "book_profit_threshold": 500000,
+    "book_waste_limit": 0,
     "negotiation_max_attempts": 5,
     "bargain_success_rates_bps": [5000],
     "bargain_step_bps": 1000,
@@ -94,6 +95,9 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "base_fatigue_reserve": 200,
     "auto_pickup": False,
     "auto_pickup_interval_sec": 0.5,
+    "auto_trailer": False,
+    "trailer_daily_first_n": 1,
+    "trailer_payment": "gold",
     "use_fatigue_medicine": False,
     "allowed_fatigue_medicines": [],
     "fatigue_medicine_max_uses": 4,
@@ -124,6 +128,7 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "target_profit",
     "target_profit_enabled",
     "book_profit_threshold",
+    "book_waste_limit",
     "bargain_success_rates_bps",
     "bargain_step_bps",
     "raise_success_rates_bps",
@@ -440,6 +445,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("货运模式必须为 free 或 fixed。")
     merged["target_profit_enabled"] = bool(values.get("target_profit_enabled", False))
     for key, minimum, maximum in (("fatigue_budget", 0, None), ("cargo_capacity", 1, None),
+                                  ("book_waste_limit", 0, None),
                                   ("negotiation_max_attempts", 1, 6),
                                   ("fatigue_medicine_max_uses", 0, None),
                                   ("arrival_timeout_seconds", 1, None)):
@@ -496,6 +502,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["auto_pickup"] = bool(merged["auto_pickup"])
     merged["auto_pickup_interval_sec"] = validate_pickup_click_interval(merged["auto_pickup_interval_sec"])
     merged.update(normalize_black_moon_settings(merged))
+    merged.update(validate_trailer_options(merged))
     return merged
 
 

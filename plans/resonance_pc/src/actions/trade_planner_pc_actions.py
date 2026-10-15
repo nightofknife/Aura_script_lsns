@@ -33,6 +33,7 @@ def resonance_pc_trade_plan_optimal_route(
     book_budget: Optional[int] = 0,
     trade_mode: str = "free",
     book_policy: str = "profit",
+    book_waste_limit: int = 0,
     negotiation_policy: str = "auto",
     fixed_route_city_ids: Optional[List[str]] = None,
     reposition_to_route: bool = False,

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "source_kind": "native_sprite_and_native_font_composition",
+  "reference_client": [1280, 720],
+  "threshold": 0.9,
+  "method": "1-TM_SQDIFF_NORMED",
+  "use_grayscale": false,
+  "preprocess": "none",
+  "mask": false,
+  "provenance": "native_provenance.json",
+  "quota_region": [790, 674, 80, 28],
+  "payment_points": {"gold": [715, 469], "mileage": [887, 469]},
+  "templates": [
+    {"name": "trailer_entry", "file": "trailer_entry.png", "size": [187, 46], "roi": [700, 590, 250, 100], "sha256": "7bd7c3c5d53a932d5741d2c6959bc46a27ecdcf650b2b6f7158fe4dddb919277"},
+    {"name": "trailer_prompt", "file": "trailer_prompt.png", "size": [159, 28], "roi": [620, 270, 200, 65], "sha256": "a1539a5f83329a45f32bd561377f9d0781d4bf1e11a22b63979f8d0870b31907"},
+    {"name": "gold_selected", "file": "gold_selected.png", "size": [34, 34], "roi": [640, 443, 160, 50], "sha256": "5ed323a8fa4202e41677038470459865ea2a5303650ebfaeb4a8c0f17540e396"},
+    {"name": "mileage_selected", "file": "mileage_selected.png", "size": [32, 32], "roi": [807, 443, 160, 50], "sha256": "cd5a5020e1c43d4f23973340b6fd585acccd1943e5bcded373b81bbedc33c0be"},
+    {"name": "confirm", "file": "confirm.png", "size": [183, 42], "roi": [790, 490, 215, 65], "sha256": "9632987ba46ed249cae3f93da90bb405f17808354c929c0ab57cd57dca302d19"},
+    {"name": "cancel", "file": "cancel.png", "size": [95, 43], "roi": [590, 490, 215, 65], "sha256": "72feb01b40670e39caf9fd8cc2e78f48db1d51747a82035be64bc46aef4bfc22"}
+  ]
+}

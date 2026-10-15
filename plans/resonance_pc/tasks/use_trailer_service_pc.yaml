@@ -1,0 +1,39 @@
+use_trailer_service_pc:
+  meta:
+    title: Towing Service (PC)
+    description: Start from a selected destination on the map, submit one eligible towing service and confirm departure. Does not wait for arrival or drive normally.
+    entry_point: true
+    inputs:
+      - name: daily_first_n
+        type: number
+        strict_integer: true
+        required: false
+        default: 1
+        min: 1
+      - name: payment
+        type: string
+        required: false
+        default: gold
+        enum: [gold, mileage]
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    use_trailer:
+      action: resonance_pc.use_trailer_service_from_map
+      depends_on: require_resolution
+      params:
+        daily_first_n: "{{ inputs.daily_first_n }}"
+        payment: "{{ inputs.payment }}"
+  returns:
+    success: "{{ nodes.use_trailer.output.success }}"
+    status: "{{ nodes.use_trailer.output.status }}"
+    reason: "{{ nodes.use_trailer.output.reason }}"
+    page_state: "{{ nodes.use_trailer.output.page_state }}"
+    submitted: "{{ nodes.use_trailer.output.submitted }}"
+    departed: "{{ nodes.use_trailer.output.departed }}"
+    daily_first_n: "{{ nodes.use_trailer.output.daily_first_n }}"
+    payment: "{{ nodes.use_trailer.output.payment }}"
+    quota: "{{ nodes.use_trailer.output.quota }}"
+    open_clicks: "{{ nodes.use_trailer.output.open_clicks }}"
+    payment_clicks: "{{ nodes.use_trailer.output.payment_clicks }}"
+    elapsed_ms: "{{ nodes.use_trailer.output.elapsed_ms }}"

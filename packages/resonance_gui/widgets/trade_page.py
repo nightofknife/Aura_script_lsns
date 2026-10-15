@@ -6,8 +6,8 @@ from typing import Any, Mapping
 from decimal import Decimal
 from copy import deepcopy
 
-from PySide6.QtCore import QSize, QTimer, Qt, Signal, QSignalBlocker
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtCore import QSize, QTimer, Qt, Signal, QSignalBlocker, QRegularExpression
+from PySide6.QtGui import QBrush, QColor, QRegularExpressionValidator
 from PySide6.QtWidgets import (
     QButtonGroup,
     QAbstractItemView,
@@ -50,6 +50,7 @@ from ..config_repository import (
 )
 from ..logic import (
     validate_pickup_click_interval,
+    validate_trailer_options,
     validate_trade_goods_investment_level,
     TradeProgressState,
     expected_profit_per_fatigue,
@@ -393,7 +394,8 @@ class TradePage(QWidget):
             "cargo_capacity": "规划时使用的货舱总容量，请填写游戏中实际可用的容量。",
             "book_usage": "不用书、有限书数或不限书数；不用书仍购买基础库存中的盈利商品，有限书数是整趟任务的总额度。",
             "book_budget": "本次完整货运最多使用的进货书数量，不是每座城市的额度。",
-            "book_policy": "优先满仓：忽略单本收益阈值，在整趟用书额度内补足盈利商品，首次满仓后停止加书；额度不足时允许未满仓。收益优先仍受单本收益阈值限制。",
+            "book_policy": "优先满仓：忽略单本收益阈值，在整趟用书额度内补足盈利商品；首次满仓后停止加书，浪费不能超过上限，额度不足或超限时允许未满仓。收益优先仍受单本收益阈值限制。",
+            "book_waste_limit": "仅优先满仓生效。浪费指用书后符合交易条件商品的可购总量超过货舱容量、未装入的货物数量；0 表示不允许浪费货物。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
             "target_profit": "填写预计目标收益，以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
             "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
@@ -609,19 +611,22 @@ class TradePage(QWidget):
         self.book_profit_threshold.setToolTip("单本新增收益下限，仅收益优先策略生效；优先满仓忽略此阈值。50 万提交为 500000。")
         common_form.add_field("单本收益阈值", self.book_profit_threshold)
         common_form.add_field("用书策略", self.book_policy)
+        self.book_waste_limit = self._spin(0, 2_147_483_647)
+        common_form.add_field("浪费上限", self.book_waste_limit)
         self.book_threshold_note = QLabel(
             "优先满仓不使用单本收益阈值；仅在整趟用书额度内补货，首次满仓后停止加书。",
             content,
         )
         self.book_threshold_note.setProperty("caption", True)
         self.book_threshold_note.setWordWrap(True)
-        common_form.add_field("", self.book_threshold_note)
+        self.book_strategy_note = self.book_threshold_note
         common_form.add_field("协商策略", self.negotiation_policy)
         common_form.add_field("试算当前城市", self.start_city)
         common_form.set_field_visible(self.start_city, self.preview_mode)
         common_form.add_field("", self.target_profit_enabled)
         common_form.add_field(self.target_label, self.target_profit)
         form_stack.addWidget(common_form)
+        form_stack.addWidget(self.book_strategy_note)
         form_stack.addWidget(self.fixed_panel)
         form_stack.addWidget(self.nonfixed_panel)
         form_stack.addWidget(self.end_city_notice)
@@ -708,17 +713,42 @@ class TradePage(QWidget):
         self.trade_goods_investment_mode.setValue(10)
         investment_form.addRow("目标等级", self.trade_goods_investment_mode)
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
+        self.auto_trailer = QCheckBox("自动拖车", content)
         self.additional_options = QWidget(content)
         options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.setSpacing(8)
         for index, button in enumerate((self.use_fatigue_medicine,
                        self.auto_cape_island_investment, self.auto_rubbish_recycling,
-                       self.auto_trade_goods_investment)):
+                       self.auto_trade_goods_investment, self.auto_trailer)):
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
             options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
         recovery_layout.addWidget(self.additional_options)
         recovery_layout.addWidget(self.trade_goods_investment_panel)
+        self.trailer_panel = QWidget(content)
+        trailer_layout = QVBoxLayout(self.trailer_panel)
+        trailer_layout.setContentsMargins(0, 0, 0, 0)
+        trailer_fields = CompactParameterGrid(self.trailer_panel)
+        # QSpinBox/QIntValidator impose a 32-bit ceiling; the contract has no quota cap.
+        self.trailer_daily_first_n = QLineEdit("1", self.trailer_panel)
+        self.trailer_daily_first_n.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]*"), self.trailer_daily_first_n))
+        self._last_trailer_count = 1
+        self.trailer_payment = QComboBox(self.trailer_panel)
+        self.trailer_payment.addItem("铁盟币", "gold")
+        self.trailer_payment.addItem("里程点", "mileage")
+        trailer_fields.add_field("当天前 X 次", self.trailer_daily_first_n)
+        trailer_fields.add_field("支付方式", self.trailer_payment)
+        trailer_layout.addWidget(trailer_fields)
+        trailer_hint = QLabel("优先用于本轮里程最长的 X 段；到对应路段才检查当天前 X 次资格。会消耗所选货币。", self.trailer_panel)
+        trailer_hint.setWordWrap(True)
+        trailer_layout.addWidget(trailer_hint)
+        explanation = "X 为正整数，可超过当天总次数；等距时优先先发生的路段。次数耗尽或不符合当天前 X 次资格后，本轮后续不再检查拖车。支付或出发结果未知时停止，不自动改为普通行驶。"
+        self.auto_trailer.setToolTip(explanation)
+        self.trailer_daily_first_n.setToolTip(explanation)
+        self.trailer_payment.setToolTip("拖车支付方式：铁盟币或里程点；使用时会消耗对应资源。")
+        self.auto_trailer.toggled.connect(self._sync_trailer_controls)
+        self.trailer_daily_first_n.textChanged.connect(self._trailer_count_changed)
+        recovery_layout.addWidget(self.trailer_panel)
         self.black_moon_panel = QWidget(content)
         black_moon_row = QHBoxLayout(self.black_moon_panel)
         black_moon_row.setContentsMargins(0, 0, 0, 0)
@@ -736,6 +766,8 @@ class TradePage(QWidget):
         self.black_moon_settings_button.clicked.connect(self._open_black_moon_settings)
         recovery_layout.addWidget(self.medicine_panel)
         if self.preview_mode:
+            self.auto_trailer.hide()
+            self.trailer_panel.hide()
             self.black_moon_panel.hide()
             self.recovery_section.hide()
             self.additional_options.hide()
@@ -850,12 +882,10 @@ class TradePage(QWidget):
         self.fixed_panel.setVisible(state["fixed"])
         self.common_parameters.set_field_visible(self.target_profit_enabled, state["free"])
         self.common_parameters.set_field_visible(self.target_profit, state["free"])
-        self.common_parameters.set_field_visible(
-            self.book_threshold_note, state["book_rules"] and self.book_policy.currentData() == "fill",
-        )
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
-            (self.book_profit_threshold, state["book_threshold"]), (self.negotiation_policy, True),
+            (self.book_profit_threshold, state["book_threshold"]),
+            (self.book_waste_limit, state["book_waste_limit"]), (self.negotiation_policy, True),
             (self.target_profit_enabled, state["free"]), (self.target_profit, state["target"]),
             (self.negotiation_max_attempts, state["negotiation_attempts"]),
             (self.base_fatigue_reserve, state["recovery_reserve"]),
@@ -867,6 +897,15 @@ class TradePage(QWidget):
         self.book_budget.setVisible(not unlimited)
         self.book_count_note.setVisible(unlimited)
         self.book_count_note.setText("无限" if unlimited else "")
+        if self.book_usage.currentData() == "none":
+            book_note = "当前不用书：用书策略、单本收益阈值和浪费上限均不生效。"
+        elif self.book_policy.currentData() == "fill":
+            book_note = "优先满仓不使用单本收益阈值；首次满仓时未装入的货物不能超过浪费上限，0 表示不允许浪费货物。总用书额度仍须遵守，额度不足或超出浪费上限时允许未满仓。"
+        else:
+            book_note = "收益优先：按单本收益阈值用书；浪费上限不生效。"
+        if self._busy:
+            book_note += " 任务运行中，暂不可修改。"
+        self.book_strategy_note.setText(book_note)
         self.target_profit.setToolTip("在疲劳上限内，寻找达到预计收益目标的最低疲劳路线。")
         route = [str(self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole)) for i in range(self.fixed_route.count())]
         description = "至少选择两个城市。" if len(route) < 2 else (
@@ -878,7 +917,7 @@ class TradePage(QWidget):
         self._sync_actions()
 
     def _connect_parameter_dependencies(self) -> None:
-        planning = (self.fatigue_budget, self.cargo_capacity, self.book_budget, self.book_profit_threshold,
+        planning = (self.fatigue_budget, self.cargo_capacity, self.book_budget, self.book_profit_threshold, self.book_waste_limit,
                     self.target_profit, self.bargain_step, self.raise_step)
         for widget in planning:
             widget.valueChanged.connect(self._on_planning_inputs_changed)
@@ -1421,6 +1460,7 @@ class TradePage(QWidget):
         arrival_timeout_seconds = self._input_integer(values, "arrival_timeout_seconds", 3600, minimum=1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(Decimal(str(values.get("book_profit_threshold", 500000))) / Decimal(10000)))
+        self.book_waste_limit.setValue(self._input_integer(values, "book_waste_limit", 0))
         self.target_profit.setValue(float(Decimal(str(values.get("target_profit") or 0)) / Decimal(10000)))
         self.target_profit_enabled.setChecked(bool(values.get("target_profit_enabled", False)))
         self.book_policy.setCurrentIndex(max(self.book_policy.findData(values.get("book_policy", "profit")), 0))
@@ -1491,6 +1531,11 @@ class TradePage(QWidget):
         blocked = self.auto_pickup_interval_sec.blockSignals(True)
         self.auto_pickup_interval_sec.setValue(interval)
         self.auto_pickup_interval_sec.blockSignals(blocked)
+        trailer = validate_trailer_options(values)
+        self.auto_trailer.setChecked(trailer["auto_trailer"])
+        self.trailer_daily_first_n.setText(str(trailer["trailer_daily_first_n"]))
+        self.trailer_payment.setCurrentIndex(self.trailer_payment.findData(trailer["trailer_payment"]))
+        self._sync_trailer_controls()
         self._sync_pickup_controls()
         self.use_fatigue_medicine.setChecked(bool(values.get("use_fatigue_medicine", False)))
         self.allowed_fatigue_medicines = list(values.get("allowed_fatigue_medicines") or [])
@@ -1555,6 +1600,7 @@ class TradePage(QWidget):
             "book_policy": str(self.book_policy.currentData()),
             "negotiation_policy": str(self.negotiation_policy.currentData()),
             "book_profit_threshold": self._amount_base_units(self.book_profit_threshold),
+            "book_waste_limit": self.book_waste_limit.value(),
             "bargain_success_rates_bps": bargain_rates,
             "bargain_step_bps": self.bargain_step.value(),
             "raise_success_rates_bps": raise_rates,
@@ -1599,6 +1645,9 @@ class TradePage(QWidget):
         })
         if not self.preview_mode:
             inputs.update(self._black_moon_values())
+            count = self._trailer_count() if self.auto_trailer.isChecked() else self._last_trailer_count
+            inputs.update(auto_trailer=self.auto_trailer.isChecked(),
+                          trailer_daily_first_n=count, trailer_payment=self.trailer_payment.currentData())
         return inputs if _draft else normalize_trade_task_inputs(inputs)
 
     @staticmethod
@@ -1628,6 +1677,7 @@ class TradePage(QWidget):
                      target_profit_enabled=self.target_profit_enabled.isChecked(),
                      book_policy=self.book_policy.currentData(),
                      book_profit_threshold=self._amount_base_units(self.book_profit_threshold),
+                     book_waste_limit=self.book_waste_limit.value(),
                      negotiation_policy=self.negotiation_policy.currentData(),
                      negotiation_max_attempts=self.negotiation_max_attempts.value(),
                      bento_priority=self._selected_bento_priority(),
@@ -1670,6 +1720,32 @@ class TradePage(QWidget):
 
     def _sync_pickup_controls(self, *_args: object) -> None:
         self.auto_pickup_interval_sec.setEnabled(self.auto_pickup.isChecked() and not self._busy)
+
+    def _trailer_count(self) -> int:
+        text = self.trailer_daily_first_n.text()
+        try:
+            count = int(text) if text and text.isascii() and text.isdecimal() else 0
+        except ValueError:
+            count = 0
+        if count <= 0:
+            raise ValueError("拖车当天前 X 次必须为正整数。")
+        return count
+
+
+    def _trailer_count_changed(self, *_args: object) -> None:
+        try:
+            self._last_trailer_count = self._trailer_count()
+        except ValueError:
+            pass
+        self._sync_actions()
+
+
+    def _sync_trailer_controls(self, *_args: object) -> None:
+        enabled = self.auto_trailer.isChecked() and not self._busy
+        self.trailer_daily_first_n.setEnabled(enabled)
+        self.trailer_payment.setEnabled(enabled)
+        self._sync_actions()
+
 
     def _black_moon_values(self) -> dict[str, Any]:
         return {
@@ -1998,6 +2074,7 @@ class TradePage(QWidget):
             self.bento_priority_panel,
             self.base_fatigue_reserve,
             self.auto_pickup,
+            self.auto_trailer,
             self.auto_cape_island_investment,
             self.auto_trade_goods_investment,
             self.trade_goods_investment_panel,
@@ -2006,6 +2083,7 @@ class TradePage(QWidget):
             self.start_city,
             self.book_usage,
             self.book_profit_threshold,
+            self.book_waste_limit,
             self.fixed_panel,
             self.target_profit,
             self.use_fatigue_medicine,
@@ -2023,6 +2101,7 @@ class TradePage(QWidget):
         self._sync_goods_investment_controls()
         self._sync_black_moon_controls()
         self._sync_pickup_controls()
+        self._sync_trailer_controls()
         self._sync_parameter_controls()
         self._sync_actions()
 
@@ -2038,6 +2117,11 @@ class TradePage(QWidget):
     def _form_error(self) -> str:
         if not self._form_ready:
             return ""
+        if not self.preview_mode and self.auto_trailer.isChecked():
+            try:
+                self._trailer_count()
+            except ValueError as exc:
+                return str(exc)
         if not self.preview_mode and self.auto_bento.isChecked() and not self._selected_bento_priority():
             return "自动吃便当开启时，便当类型至少选择一种。"
         if self.trade_mode() == "fixed":

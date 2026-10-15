@@ -1,0 +1,85 @@
+maintain_raw_material_workshops_pc:
+  meta:
+    title: 原料车间维护
+    description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: max_reserve_rounds
+        type: enum
+        enum: [1, 2, 3, 4, 5, 6, 7, 8]
+        default: 8
+      - {name: max_search_steps, type: number, default: 12, min: 1, max: 24}
+      - {name: settle_sec, type: number, default: 0.8, min: 0.05, max: 10}
+  steps:
+    plant:
+      action: aura.run_task
+      params:
+        task_ref: tasks:maintain_raw_material_workshop_pc.yaml:maintain_raw_material_workshop_pc
+        inputs:
+          room_name: 植物纤维原料车间
+          max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+      # aura.run_task returns framework_data; project the child's business summary.
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+    animal:
+      action: aura.run_task
+      depends_on: plant
+      when: "{{ nodes.plant.output is mapping and nodes.plant.output.get('room_name') == '植物纤维原料车间' and nodes.plant.output.get('status') in ['completed', 'partial', 'blocked'] and (nodes.plant.output.get('status') != 'completed' or nodes.plant.output.get('success') == true) and nodes.plant.output.get('returned_to_overview') == true and nodes.plant.output.get('page_after') == 'reforming_center_overview' }}"
+      params:
+        task_ref: tasks:maintain_raw_material_workshop_pc.yaml:maintain_raw_material_workshop_pc
+        inputs:
+          room_name: 动物纤维原料车间
+          max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+    tools:
+      action: aura.run_task
+      depends_on: {animal: "success|skipped"}
+      when: "{{ nodes.animal.output is mapping and nodes.animal.output.get('room_name') == '动物纤维原料车间' and nodes.animal.output.get('status') in ['completed', 'partial', 'blocked'] and (nodes.animal.output.get('status') != 'completed' or nodes.animal.output.get('success') == true) and nodes.animal.output.get('returned_to_overview') == true and nodes.animal.output.get('page_after') == 'reforming_center_overview' }}"
+      params:
+        task_ref: tasks:maintain_raw_material_workshop_pc.yaml:maintain_raw_material_workshop_pc
+        inputs:
+          room_name: 缝纫工具原料车间
+          max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+    synthetic:
+      action: aura.run_task
+      depends_on: {tools: "success|skipped"}
+      when: "{{ nodes.tools.output is mapping and nodes.tools.output.get('room_name') == '缝纫工具原料车间' and nodes.tools.output.get('status') in ['completed', 'partial', 'blocked'] and (nodes.tools.output.get('status') != 'completed' or nodes.tools.output.get('success') == true) and nodes.tools.output.get('returned_to_overview') == true and nodes.tools.output.get('page_after') == 'reforming_center_overview' }}"
+      params:
+        task_ref: tasks:maintain_raw_material_workshop_pc.yaml:maintain_raw_material_workshop_pc
+        inputs:
+          room_name: 人造纤维原料车间
+          max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+    finish:
+      action: resonance_pc.raw_workshops_summarize
+      depends_on: {synthetic: "success|skipped"}
+      params:
+        results:
+          - "{{ nodes.plant.output }}"
+          - "{{ nodes.animal.output }}"
+          - "{{ nodes.tools.output }}"
+          - "{{ nodes.synthetic.output }}"
+  returns:
+    success: "{{ nodes.finish.output.success }}"
+    status: "{{ nodes.finish.output.status }}"
+    reason: "{{ nodes.finish.output.reason }}"
+    results: "{{ nodes.finish.output.results }}"
+    visited_count: "{{ nodes.finish.output.visited_count }}"
+    completed_count: "{{ nodes.finish.output.completed_count }}"
+    skipped_count: "{{ nodes.finish.output.skipped_count }}"
+    stopped_room: "{{ nodes.finish.output.stopped_room }}"
+    returned_to_overview: "{{ nodes.finish.output.returned_to_overview }}"
+    page_after: "{{ nodes.finish.output.page_after }}"

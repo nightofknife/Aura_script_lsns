@@ -1,7 +1,7 @@
 maintain_raw_material_workshop_pc:
   meta:
     title: 原料车间维护（PC）
-    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作和替补、必要时开始生产并复查替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
+    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -47,33 +47,25 @@ maintain_raw_material_workshop_pc:
         room_name: "{{ inputs.room_name }}"
         list_kind: work
         max_rounds: "{{ inputs.max_work_rounds | int }}"
-    reserve:
-      action: resonance_pc.raw_workshop_fill_list_until_full
-      depends_on: {work: "success|skipped"}
-      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.work.output is none or (nodes.work.output.safe_to_continue and not (nodes.work.output.stop_staff_fill | default(false)))) and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) }}"
-      params:
-        room_name: "{{ inputs.room_name }}"
-        list_kind: reserve
-        max_rounds: "{{ inputs.max_reserve_rounds | int }}"
     before_start:
       action: resonance_pc.raw_workshop_observe
-      depends_on: {reserve: "success|skipped"}
-      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) and (nodes.work.output is none or nodes.work.output.safe_to_continue) and (nodes.reserve.output is none or nodes.reserve.output.safe_to_continue) }}"
+      depends_on: {work: "success|skipped"}
+      when: "{{ nodes.observe.output is not none and nodes.observe.output.safe_to_continue and (nodes.deposit.output is none or nodes.deposit.output.safe_to_continue) and (nodes.work.output is none or nodes.work.output.safe_to_continue) }}"
       params: {room_name: "{{ inputs.room_name }}"}
     start:
       action: resonance_pc.raw_workshop_start_once
       depends_on: {before_start: "success|skipped"}
-      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and nodes.before_start.output.snapshot.production == 'idle' and (nodes.work.output is none or not (nodes.work.output.stop_staff_fill | default(false))) and (nodes.reserve.output is none or not (nodes.reserve.output.stop_staff_fill | default(false))) }}"
+      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and nodes.before_start.output.snapshot.production == 'idle' and (nodes.work.output is none or not (nodes.work.output.stop_staff_fill | default(false))) }}"
       params: {room_name: "{{ inputs.room_name }}"}
     reserve_after_start:
       action: resonance_pc.raw_workshop_fill_list_until_full
       depends_on: {start: "success|skipped"}
-      when: "{{ nodes.start.output is not none and nodes.start.output.safe_to_continue and nodes.start.output.snapshot.production == 'running' and nodes.reserve.output is not none and nodes.reserve.output.safe_to_continue and not (nodes.reserve.output.stop_staff_fill | default(false)) }}"
+      # Only running production locks existing workers out of reserve selection.
+      when: "{{ nodes.before_start.output is not none and nodes.before_start.output.safe_to_continue and (nodes.work.output is none or not (nodes.work.output.stop_staff_fill | default(false))) and ((nodes.start.output is none and nodes.before_start.output.snapshot.production == 'running') or (nodes.start.output is not none and nodes.start.output.safe_to_continue and nodes.start.output.snapshot.production == 'running')) }}"
       params:
         room_name: "{{ inputs.room_name }}"
         list_kind: reserve
         max_rounds: "{{ inputs.max_reserve_rounds | int }}"
-        previous_result: "{{ nodes.reserve.output }}"
     final_observe:
       action: resonance_pc.raw_workshop_observe
       depends_on: {reserve_after_start: "success|skipped"}
@@ -97,7 +89,7 @@ maintain_raw_material_workshop_pc:
         require_return: true
         deposit: "{{ nodes.deposit.output }}"
         work: "{{ nodes.work.output }}"
-        reserve_rounds: ["{{ nodes.reserve.output }}"]
+        reserve_rounds: []
         reserve_after_start: "{{ nodes.reserve_after_start.output }}"
         start: "{{ nodes.start.output }}"
         max_reserve_rounds: "{{ inputs.max_reserve_rounds | int }}"
