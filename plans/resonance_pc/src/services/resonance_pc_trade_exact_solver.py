@@ -177,6 +177,7 @@ class ResonancePcExactTradeSolver:
         book_profit_threshold: Any = 500000,
         trade_mode: str = "free",
         book_policy: str = "profit",
+        book_waste_limit: int = 0,
         negotiation_policy: str = "auto",
         negotiation_budget: Optional[int] = None,
         required_end_city_ids: Optional[Sequence[str]] = None,
@@ -205,6 +206,12 @@ class ResonancePcExactTradeSolver:
             # An inactive threshold must not affect validation, cache inputs or
             # the legal book count. The complete-route book budget still applies.
             book_profit_threshold = 0
+        if policy == "fill":
+            if type(book_waste_limit) is not int or book_waste_limit < 0:
+                raise ValueError("book_waste_limit must be a nonnegative integer")
+            waste_limit = book_waste_limit
+        else:
+            waste_limit = 0
         if negotiation not in {"auto", "required", "disabled"}:
             raise ValueError("negotiation_policy must be auto, required, or disabled")
         fatigue_limit = _as_non_negative_int("fatigue_budget", fatigue_budget)
@@ -290,13 +297,13 @@ class ResonancePcExactTradeSolver:
                                 "not_applied_fill_to_first_full_load" if policy == "fill"
                                 else "marginal > 0 and marginal >= threshold"),
                             "book_threshold_applies": policy == "profit" and books_limit != 0,
-                            "book_policy": policy, "negotiation_policy": negotiation,
+                            "book_policy": policy, "book_waste_limit": waste_limit, "negotiation_policy": negotiation,
                             "fixed_profitable_edges_require_trade": mode == "fixed",
                             "fixed_navigation_tail_allowed": False if mode == "fixed" else None})
         route_fatigue_limit = max(fatigue_limit - reposition_fatigue, 0)
         requested_pairs = None if fixed_path is None else set(zip(fixed_path, fixed_path[1:]))
         curves = self._build_edge_curves(city_ids=planning_cities, cargo_capacity=capacity,
-                    book_policy=policy, threshold=threshold, negotiation_policy=negotiation,
+                    book_policy=policy, threshold=threshold, book_waste_limit=waste_limit, negotiation_policy=negotiation,
                     bargain_profile=bargain, raise_profile=raising, prestige_by_city=prestige,
                     unlocked_products=unlocked, requested_pairs=requested_pairs,
                     allow_profitable_navigation=mode != "fixed")
@@ -394,7 +401,7 @@ class ResonancePcExactTradeSolver:
         request = {"trade_mode": mode, "fatigue_budget": fatigue_limit, "cargo_capacity": capacity,
                    "start_city_id": actual_start, "route_start_city_id": start,
                    "book_budget": books_limit, "book_profit_threshold_exact": self._fraction_text(threshold),
-                   "book_policy": policy, "negotiation_policy": negotiation,
+                   "book_policy": policy, "book_waste_limit": waste_limit, "negotiation_policy": negotiation,
                    "negotiation_budget": negotiation_cap,
                    "available_city_ids": planning_cities, "required_end_city_ids": list(end_ids or []),
                    "bargain_success_rates_bps": list(bargain.success_rates_bps),
@@ -408,7 +415,7 @@ class ResonancePcExactTradeSolver:
             request["target_profit_exact"] = self._fraction_text(target)
         response = {
             "status": status, "reason": None if status == "ok" else status,
-            "trade_mode": mode, "book_policy": policy, "negotiation_policy": negotiation,
+            "trade_mode": mode, "book_policy": policy, "book_waste_limit": waste_limit, "negotiation_policy": negotiation,
             "request": request, "snapshot_id": self.snapshot.get("snapshot_id"),
             "required_end_city_ids": list(end_ids or []), "start_city_id": actual_start,
             "route_start_city_id": start,
@@ -514,7 +521,7 @@ class ResonancePcExactTradeSolver:
         raise ValueError("fixed route start is unreachable for reposition navigation")
 
     def _build_edge_curves(
-        self, *, city_ids, cargo_capacity, book_policy, threshold, negotiation_policy,
+        self, *, city_ids, cargo_capacity, book_policy, threshold, negotiation_policy, book_waste_limit=0,
         bargain_profile, raise_profile, prestige_by_city, unlocked_products, requested_pairs=None,
         allow_profitable_navigation=True,
     ):
@@ -535,7 +542,8 @@ class ResonancePcExactTradeSolver:
                 navigation_index = len(curves)
                 has_trade_candidates = False
                 curves.append(EdgeBookCurve.create(baseline=navigation, candidates=(),
-                              capacity=cargo_capacity, policy=book_policy, threshold=threshold))
+                              capacity=cargo_capacity, policy=book_policy, threshold=threshold,
+                              waste_limit=book_waste_limit))
                 for bargain, raising in profiles:
                     if ((bargain and bargain_profile.expected_fatigue is None)
                             or (raising and raise_profile.expected_fatigue is None)):
@@ -554,7 +562,8 @@ class ResonancePcExactTradeSolver:
                     baseline = replace(baseline, cargo_capacity=cargo_capacity,
                                        loaded_quantity=sum(row[2] for row in baseline.buys))
                     curves.append(EdgeBookCurve.create(baseline=baseline, candidates=candidates,
-                                  capacity=cargo_capacity, policy=book_policy, threshold=threshold))
+                                  capacity=cargo_capacity, policy=book_policy, threshold=threshold,
+                                  waste_limit=book_waste_limit))
                 if has_trade_candidates:
                     if allow_profitable_navigation:
                         curves[navigation_index] = replace(curves[navigation_index], limit_reason="navigation_only")
@@ -927,6 +936,7 @@ class ResonancePcExactTradeSolver:
             "is_full_load": option.cargo_capacity > 0 and option.loaded_quantity == option.cargo_capacity,
             "load_ratio": option.loaded_quantity / option.cargo_capacity if option.cargo_capacity else 0,
             "book_stop_reason": option.book_stop_reason,
+            "book_waste_quantity": option.book_waste_quantity,
             "legal_book_limit": option.legal_book_limit,
             "next_book_marginal_profit_exact": self._fraction_text(option.next_book_marginal_profit),
             "from_city": self._city_name(option.from_city_id),

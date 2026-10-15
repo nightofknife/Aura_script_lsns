@@ -1250,6 +1250,29 @@ auto_cycle_trade_pc:
                 required: true
                 enum:
                 - true
+      - name: book_waste_limit
+        type: number
+        strict_integer: true
+        required: false
+        default: 0
+        min: 0
+      - name: auto_trailer
+        type: boolean
+        required: false
+        default: false
+      - name: trailer_daily_first_n
+        type: number
+        strict_integer: true
+        required: false
+        default: 1
+        min: 1
+      - name: trailer_payment
+        type: string
+        required: false
+        default: gold
+        enum:
+        - gold
+        - mileage
   steps:
     run:
       action: resonance_pc.auto_cycle_trade_flow
@@ -1291,6 +1314,10 @@ auto_cycle_trade_pc:
         bento_priority: "{{ inputs.bento_priority | default(['work_meals', 'love_bentos']) }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve | default(200) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
+        book_waste_limit: '{{ inputs.book_waste_limit }}'
+        auto_trailer: '{{ inputs.auto_trailer | default(false) }}'
+        trailer_daily_first_n: '{{ inputs.trailer_daily_first_n | default(1) }}'
+        trailer_payment: '{{ inputs.trailer_payment | default(''gold'') }}'
     bento:
       action: aura.run_task
       depends_on: run
@@ -1394,3 +1421,4 @@ auto_cycle_trade_pc:
     fatigue_medicine_use_count: "{{ nodes.finish.output.fatigue_medicine_use_count }}"
     initial_city: "{{ nodes.finish.output.initial_city }}"
     page_state: "{{ nodes.finish.output.page_state }}"
+    book_waste_limit: '{{ nodes.finish.output.book_waste_limit | default(0) }}'

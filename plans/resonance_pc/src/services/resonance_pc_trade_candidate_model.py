@@ -35,6 +35,7 @@ class TradeEdgeOption:
     loaded_quantity: int = 0
     book_stop_reason: str = "no_suitable_products"
     legal_book_limit: int = 0
+    book_waste_quantity: int = 0
     next_book_marginal_profit: Fraction = Fraction(0)
 
     @property
@@ -68,7 +69,7 @@ class EdgeBookCurve:
 
     @classmethod
     def create(cls, *, baseline: TradeEdgeOption, candidates: tuple,
-               capacity: int, policy: str, threshold: Fraction) -> "EdgeBookCurve":
+               capacity: int, policy: str, threshold: Fraction, waste_limit: int = 0) -> "EdgeBookCurve":
         if not candidates:
             return cls(baseline, (), capacity, policy, threshold, 0, 0,
                        "no_suitable_products")
@@ -80,9 +81,14 @@ class EdgeBookCurve:
         curve = cls(baseline, candidates, capacity, policy, threshold, saturation,
                     saturation, "capacity_reached" if policy == "fill" else "profit_saturated")
         if policy == "fill":
-            reason = ("already_full_without_books" if saturation == 0
-                      and baseline.loaded_quantity == capacity else "capacity_reached")
-            return replace(curve, limit_reason=reason)
+            # Fill only up to the first full load, independent of book profit.
+            # Earlier partial loads remain available for the route-wide budget.
+            if saturation == 0:
+                return replace(curve, limit_reason="already_full_without_books")
+            waste = limiting_lot * (saturation + 1) - capacity
+            if waste > waste_limit:
+                return replace(curve, legal_limit=saturation - 1, limit_reason="book_waste_limit")
+            return curve
         low, high = 1, saturation
         last = 0
         while low <= high:
@@ -143,6 +149,8 @@ class EdgeBookCurve:
                        buy_product_names=tuple(row[1] for row in buys), buys=tuple(buys),
                        book_incremental_profit=profit - self.baseline.expected_profit,
                        cargo_capacity=self.capacity, loaded_quantity=self.capacity - free,
+                       book_waste_quantity=(max(sum(row[3] for row in self.candidates) * (books + 1)
+                                                - self.capacity, 0) if books else 0),
                        book_stop_reason=reason, legal_book_limit=self.legal_limit,
                        next_book_marginal_profit=Fraction(self.profit_at(books + 1) - profit))
 

@@ -151,6 +151,7 @@ def test_book_controls_follow_usage_without_changing_negotiation(page, usage, co
     assert page.book_budget.isEnabled() is count
     assert page.book_policy.isEnabled() is rules
     assert not page.book_profit_threshold.isEnabled()
+    assert page.book_waste_limit.isEnabled() is rules
     assert page.negotiation_policy.currentData() == "disabled"
     if usage == "unlimited":
         assert page.book_count_note.text() == "无限"
@@ -342,3 +343,76 @@ def test_saved_account_prestige_edit_invalidates_preview(page, monkeypatch):
     page.city_prestige_button.click()
     assert not page.preview_state_hint.isHidden()
     assert page.collect_task_inputs()["city_prestige"]["default"] == 19
+
+
+@pytest.mark.parametrize("preview", [False, True])
+def test_waste_limit_saved_in_each_form_and_dispatched_only_for_fill(page, preview):
+    widget = TradePage(page._settings, preview_mode=True) if preview else page
+    try:
+        choose(widget.start_city, "1")
+        choose(widget.book_usage, "finite")
+        widget.book_budget.setValue(3)
+        widget.book_profit_threshold.setValue(999)
+        widget.book_waste_limit.setValue(200)
+        choose(widget.book_policy, "fill")
+        widget.save_ui_state()
+        saved = (widget._settings.load_trade_preview_inputs() if preview
+                 else widget._settings.load_trade_inputs())
+        assert saved["book_waste_limit"] == 200
+        assert saved["book_profit_threshold"] == 9990000
+        restored = TradePage(widget._settings, preview_mode=preview)
+        try:
+            assert restored.book_waste_limit.value() == 200
+            inputs = restored.collect_task_inputs()
+            assert inputs["book_budget"] == 3
+            assert inputs["book_waste_limit"] == 200
+            assert "book_profit_threshold" not in inputs
+            assert "不使用单本收益阈值" in restored.book_strategy_note.text()
+            assert "0 表示不允许浪费货物" in restored.book_strategy_note.text()
+            choose(restored.book_policy, "profit")
+            assert restored.book_profit_threshold.isEnabled()
+            assert not restored.book_waste_limit.isEnabled()
+            assert "浪费上限不生效" in restored.book_strategy_note.text()
+            inputs = restored.collect_task_inputs()
+            assert inputs["book_profit_threshold"] == 9990000
+            assert "book_waste_limit" not in inputs
+            choose(restored.book_usage, "none")
+            assert "当前不用书" in restored.book_strategy_note.text()
+            assert restored.book_waste_limit.value() == 200
+        finally:
+            restored.close()
+            restored.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    finally:
+        if preview:
+            widget.close()
+            widget.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+
+def test_only_active_book_strategy_inputs_invalidate_preview(page):
+    choose(page.book_usage, "unlimited")
+    choose(page.book_policy, "fill")
+    prime_preview(page)
+    page.book_profit_threshold.setValue(999)
+    assert not page._plan_stale
+    page.book_waste_limit.setValue(200)
+    assert page._plan_stale
+    choose(page.book_policy, "profit")
+    prime_preview(page)
+    page.book_waste_limit.setValue(201)
+    assert not page._plan_stale
+    page.book_profit_threshold.setValue(998)
+    assert page._plan_stale
+
+
+
+@pytest.mark.parametrize("value", [-1, True, 1.5])
+def test_repository_rejects_invalid_waste_limit_without_overwriting_saved_state(page, value):
+    page.book_waste_limit.setValue(200)
+    page.save_ui_state()
+    saved = page._settings.load_trade_inputs()
+    with pytest.raises(ValueError, match="book_waste_limit"):
+        page._settings.save_trade_inputs({**saved, "book_waste_limit": value})
+    assert page._settings.load_trade_inputs()["book_waste_limit"] == 200

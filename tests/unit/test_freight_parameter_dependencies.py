@@ -69,3 +69,21 @@ def test_removed_route_modes_are_rejected_at_the_shared_boundary(mode):
 def test_active_target_must_be_positive_integral_currency(goal):
     with pytest.raises(ValueError):
         normalize_planning_inputs({"trade_mode": "free", "target_profit": goal})
+
+
+@pytest.mark.parametrize("books", [1, None])
+def test_fill_ignores_inactive_profit_threshold_and_preserves_waste_limit(books):
+    draft = dict(book_budget=books, book_policy="fill", book_profit_threshold="inactive",
+                 book_waste_limit=200)
+    result = normalize_planning_inputs(draft)
+    assert result["book_waste_limit"] == 200
+    assert result["book_profit_threshold"] == 0
+    assert "book_profit_threshold" not in effective_freight_inputs(draft)
+    assert draft["book_profit_threshold"] == "inactive"
+
+
+def test_profit_and_no_books_ignore_inactive_waste_limit():
+    for books in (0, 2, None):
+        request = dict(book_budget=books, book_policy="profit", book_waste_limit="inactive")
+        assert "book_waste_limit" not in effective_freight_inputs(request)
+        assert normalize_planning_inputs(request)["book_waste_limit"] == 0

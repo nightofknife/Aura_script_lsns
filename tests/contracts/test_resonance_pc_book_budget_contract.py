@@ -28,9 +28,11 @@ def test_canonical_budget_contract_is_exposed_by_both_tasks(name):
     assert inputs["book_budget"]["nullable"] is True
     assert inputs["book_budget"]["default"] == 0
     assert inputs["book_profit_threshold"]["default"] == 500000
+    assert inputs["book_waste_limit"]["default"] == 0
+    assert inputs["book_waste_limit"]["strict_integer"] is True
     assert inputs["trade_mode"]["enum"] == ["free", "fixed"]
     assert "auto_book" not in inputs and "auto_book" not in spec["returns"]
-    assert {"book_budget", "book_budget_unlimited", "book_profit_threshold",
+    assert {"book_budget", "book_budget_unlimited", "book_profit_threshold", "book_waste_limit",
             "book_incremental_profit", "average_book_profit", "planning_status",
             "city_visits", "reposition"} <= spec["returns"].keys()
 
@@ -73,6 +75,7 @@ def test_public_signatures_match_modes_and_default_baseline():
         assert params["trade_mode"].default == "free"
         assert params["book_budget"].default == 0
         assert params["book_profit_threshold"].default == 500000
+        assert params["book_waste_limit"].default == 0
         assert params["fatigue_budget"].default == 700 and params["cargo_capacity"].default == 750
         assert "auto_book" not in params and "fixed_route_repeat_count" not in params
 
@@ -86,6 +89,7 @@ def test_generated_registration_has_new_inputs_not_old_aliases():
         assert "auto_book" not in params
         assert params["trade_mode"]["default"] == "free"
         assert params["book_profit_threshold"]["default"] == 500000
+        assert params["book_waste_limit"]["default"] == 0
         assert params["fatigue_budget"]["default"] == 700 and params["cargo_capacity"]["default"] == 750
 
 
@@ -101,10 +105,13 @@ def test_retained_combined_task_forwards_canonical_budget_and_recovery(order, bu
         task("auto_combined_commerce_pc")["meta"]["inputs"],
         {"order": order, "total_fatigue_budget": 700,
          "trade_inputs": {"book_budget": budget, "trade_mode": "free",
+                          "book_policy": "fill", "book_waste_limit": 200,
                           "auto_sparkling_water": True, "required_end_city_ids": ["15"]},
          "passenger_inputs": {"passenger_city_a_id": "11", "passenger_city_b_id": "15", "trip_count": 1},
          "recovery_snapshot": snapshot})
     assert ok, inputs
     assert inputs["trade_inputs"]["book_budget"] == budget
+    assert inputs["trade_inputs"]["book_waste_limit"] == 200
+    assert "book_waste_limit" in combined._PREVIEW_INPUT_KEYS
     assert inputs["trade_inputs"]["auto_sparkling_water"] is True
     assert inputs["recovery_snapshot"] == snapshot

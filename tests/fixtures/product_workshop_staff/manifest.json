@@ -1,0 +1,236 @@
+{
+  "kind": "synthetic_native_game_assets",
+  "live_calibrated": false,
+  "scenes": {
+    "editor_1": {
+      "image": "tests/fixtures/product_workshop_staff/editor_1.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "1号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "10"
+      },
+      "sha256": "26120c72360f1babaaeea20eb2df7b099f91a2c45651deb296609d97310ffee6"
+    },
+    "editor_2": {
+      "image": "tests/fixtures/product_workshop_staff/editor_2.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "2号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "10"
+      },
+      "sha256": "7fc80ac2eff4343ddce5d9637f2f60e525f733287090db3f2ea4579a07ffa540"
+    },
+    "editor_1_after": {
+      "image": "tests/fixtures/product_workshop_staff/editor_1_after.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonedit.asset",
+      "active_overrides": {
+        "/PrisonerListManage": false,
+        "/Group_Windows": false,
+        "/Group_Lock": false,
+        "/Group_UnLockEffect": false,
+        "/Group_Edit/Group_Detail": false,
+        "/Img_QuickEditON": false,
+        "/Img_QuickEditOFF": true
+      },
+      "text_overrides": {
+        "/Group_WorkshopInfo/Txt_Workshop": "1号生产车间",
+        "/Group_TotalNum/Txt_TotalNumCount": "15"
+      },
+      "sha256": "161f69d6cccd08382ca8c233e11d26a178d3e129c753998069bdcded983724ff"
+    },
+    "selection_empty": {
+      "image": "tests/fixtures/product_workshop_staff/selection_empty.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "active_overrides": {
+        "/Group_Screen": false,
+        "/Group_NoPrison": false,
+        "/Btn_All": true,
+        "/Btn_AllCancel": false
+      },
+      "text_overrides": {
+        "/Group_Detail/Group_Prisoner/Txt_Num": "<color=#FFB800>10</color>/15"
+      },
+      "sha256": "71ee07aaa35421f97e2559cf9d83dad7d8633e86f064e0ba2338923a462fd7fe"
+    },
+    "selection_full": {
+      "image": "tests/fixtures/product_workshop_staff/selection_full.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/prison/manage/prisonerlistmanage.asset",
+      "active_overrides": {
+        "/Group_Screen": false,
+        "/Group_NoPrison": false,
+        "/Btn_All": false,
+        "/Btn_AllCancel": true
+      },
+      "text_overrides": {
+        "/Group_Detail/Group_Prisoner/Txt_Num": "<color=#FFB800>15</color>/15"
+      },
+      "sha256": "179e5365527b0e50c378bc96234b1eac74d37fc5799067104916f5a9f9560edd"
+    },
+    "save_prompt": {
+      "image": "tests/fixtures/product_workshop_staff/save_prompt.png",
+      "kind": "synthetic_native_game_assets",
+      "resource": "ui/common/prompt/prompt.asset",
+      "active_overrides": {
+        "/Txt_Prompt": false,
+        "/Group_DayTip": false,
+        "/Group_Tip": false,
+        "/Group_Tips": false,
+        "/Btn_SkipSafe": false,
+        "/Group_Prompt": true,
+        "/Group_Prompt/Img_Icon": false
+      },
+      "text_overrides": {
+        "/Group_Prompt/TextIcon_Prompt": "布局已变更，是否保存？"
+      },
+      "sha256": "d020bef3cfe50388d4122c2120c5b7ce8a7360a4c4f6ad9c7b223a17babaf0e7"
+    },
+    "saved": {
+      "image": "tests/fixtures/product_workshop_staff/saved.png",
+      "kind": "synthetic_composite_of_existing_live_template_crops",
+      "source_catalog": "data/meta/reforming_center_templates_pc.json",
+      "sha256": "f822ee91e3796db9d4b63fc9745f7f4558d0ece28064020c553ed882650c98b1"
+    }
+  },
+  "counters": {
+    "selection": {
+      "region": [
+        181,
+        658,
+        59,
+        25
+      ],
+      "format": "fraction",
+      "style": "selection",
+      "source_node": {
+        "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_Num",
+        "box_xyxy": [
+          181,
+          658,
+          240,
+          683
+        ],
+        "components": [
+          {
+            "text": "10/15",
+            "font_path_id": -3758921232364580136,
+            "font_size_native": 32,
+            "font_size_prefab": 32,
+            "font_data": {
+              "m_Font": {
+                "m_FileID": 8,
+                "m_PathID": -3758921232364580136
+              },
+              "m_FontSize": 32,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 3,
+              "m_MaxSize": 40,
+              "m_Alignment": 4,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 1,
+              "m_VerticalOverflow": 1,
+              "m_LineSpacing": 1.0
+            },
+            "color": [
+              255,
+              255,
+              255,
+              255
+            ]
+          }
+        ],
+        "ink_box_xyxy": [
+          181,
+          663,
+          240,
+          678
+        ]
+      }
+    },
+    "editor": {
+      "region": [
+        1219,
+        37,
+        61,
+        20
+      ],
+      "format": "integer",
+      "style": "list",
+      "source_node": {
+        "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNumCount",
+        "box_xyxy": [
+          1219,
+          37,
+          1325,
+          57
+        ],
+        "components": [
+          {
+            "text": "10",
+            "font_path_id": -4884400286118422667,
+            "font_size_native": 26,
+            "font_size_prefab": 26,
+            "font_data": {
+              "m_Font": {
+                "m_FileID": 7,
+                "m_PathID": -4884400286118422667
+              },
+              "m_FontSize": 26,
+              "m_FontStyle": 0,
+              "m_BestFit": 0,
+              "m_MinSize": 2,
+              "m_MaxSize": 40,
+              "m_Alignment": 3,
+              "m_AlignByGeometry": 0,
+              "m_RichText": 1,
+              "m_HorizontalOverflow": 1,
+              "m_VerticalOverflow": 1,
+              "m_LineSpacing": 1.0
+            },
+            "color": [
+              255,
+              184,
+              0,
+              255
+            ]
+          }
+        ],
+        "ink_box_xyxy": [
+          1219,
+          41,
+          1240,
+          54
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "No live screenshot or live acceptance evidence",
+    "Native images/fonts/layout; Pillow rasterization differs from Unity",
+    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic"
+  ]
+}

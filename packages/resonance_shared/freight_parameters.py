@@ -6,7 +6,7 @@ from typing import Any, Mapping
 FREIGHT_MODES = ("free", "fixed")
 FREIGHT_PLANNING_KEYS = (
     "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget",
-    "book_profit_threshold", "book_policy", "negotiation_policy",
+    "book_profit_threshold", "book_waste_limit", "book_policy", "negotiation_policy",
     "fixed_route_city_ids", "reposition_to_route", "target_profit",
     "available_city_ids", "required_end_city_ids", "city_prestige",
     "product_unlocks", "bargain_success_rates_bps", "bargain_step_bps",
@@ -33,8 +33,11 @@ def effective_freight_inputs(source: Mapping[str, Any]) -> dict[str, Any]:
     if type(result.get("book_budget")) is int and result["book_budget"] == 0:
         result.pop("book_policy", None)
         result.pop("book_profit_threshold", None)
-    elif result.get("book_policy") == "fill":
+        result.pop("book_waste_limit", None)
+    elif result.get("book_policy", "profit") == "fill":
         result.pop("book_profit_threshold", None)
+    else:
+        result.pop("book_waste_limit", None)
     if result.get("negotiation_policy") == "disabled":
         result.pop("negotiation_max_attempts", None)
     if result.get("auto_bento") is False:
@@ -54,6 +57,8 @@ def freight_control_state(*, mode: str, book_usage: str, target_enabled: bool,
     return {"fixed": mode == "fixed", "free": mode == "free",
             "book_count": book_usage == "finite", "book_rules": book_usage != "none",
             "book_threshold": book_usage != "none" and book_policy == "profit",
+            "book_profit_threshold": book_usage != "none" and book_policy == "profit",
+            "book_waste_limit": book_usage != "none" and book_policy == "fill",
             "target": mode == "free" and target_enabled,
             "negotiation_attempts": negotiation != "disabled",
             "recovery_reserve": water or bento, "bento": bento, "medicine": medicine}

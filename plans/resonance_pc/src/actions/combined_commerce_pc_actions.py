@@ -28,14 +28,19 @@ from .passenger_flow_pc_actions import (
 )
 from .rubbish_recycling_pc_actions import is_rubbish_recycling_arrival
 from .city_travel_pc_actions import _normalize_pickup_interval
+from ._freight_trailer_policy import validate_trailer_options
 
 
 _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
+    "auto_trailer",
+    "trailer_daily_first_n",
+    "trailer_payment",
     "auto_pickup",
     "auto_pickup_interval_sec",
     "trade_mode",
     "book_policy",
+    "book_waste_limit",
     "negotiation_policy",
     "fixed_route_city_ids",
     "reposition_to_route",
@@ -69,6 +74,9 @@ _TRADE_INPUT_KEYS = {
     "black_moon_purchase_record_scope",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
+    "auto_trailer",
+    "trailer_daily_first_n",
+    "trailer_payment",
     "auto_bento",
     "bento_priority",
     "base_fatigue_reserve",
@@ -451,6 +459,12 @@ async def resonance_pc_auto_combined_commerce_flow(
     if raw_trade.get("auto_bento") is not None and raw_trade.get("auto_bento") is not False:
         return _blocked(result, "combined_auto_bento_unsupported", "preflight")
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
+    try:
+        validate_trailer_options(effective_trade.get("auto_trailer", False),
+                                 effective_trade.get("trailer_daily_first_n", 1),
+                                 effective_trade.get("trailer_payment", "gold"))
+    except ValueError as exc:
+        return _blocked(result, "invalid_trade_inputs", "preflight", detail=_exception_detail(exc))
     if "auto_pickup_interval_sec" in effective_trade:
         try:
             effective_trade["auto_pickup_interval_sec"] = _normalize_pickup_interval(effective_trade["auto_pickup_interval_sec"])

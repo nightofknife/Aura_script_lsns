@@ -1,0 +1,41 @@
+{
+  "kind": "actual_user_screenshots_client_crop_not_synthetic",
+  "client_crop": [
+    25,
+    56,
+    1305,
+    776
+  ],
+  "screenshots": {
+    "map": {
+      "attachment": "codex-clipboard-ba7e5029-a0b0-4f2e-b479-95601e0e3a7a.png",
+      "source_sha256": "f3dd41ab77503085370122dfe3e38665ec76f1fccb45c885b8de68738eb94c99",
+      "path": "map_client.png",
+      "sha256": "be8879e62390e4f608e6dcbe6ac141a0eb77ef2d1903e83b4ea448565624c334",
+      "size": [
+        1280,
+        720
+      ]
+    },
+    "gold": {
+      "attachment": "codex-clipboard-efb3e260-91b7-47eb-a8ad-65fed4aa125e.png",
+      "source_sha256": "f54990ebd9028f0e1c624bdb99c5243592fa8b8861a45e300fcd03b041beab5a",
+      "path": "gold_client.png",
+      "sha256": "ec9754c40da9fcfac3004331545a33c47f98c66e0a97545a2c3ce8aeecb06a24",
+      "size": [
+        1280,
+        720
+      ]
+    },
+    "mileage": {
+      "attachment": "codex-clipboard-bb7a7cf1-e12d-4d23-9e7f-72b7ec211d2f.png",
+      "source_sha256": "7ec873748d50aa26b916e86ed469b13cd35f82a27073b9309c972e8b5b4264c6",
+      "path": "mileage_client.png",
+      "sha256": "81fb3345f2b299aca5637b4f023134ea595a4d2fee50bddd508752e160b68510",
+      "size": [
+        1280,
+        720
+      ]
+    }
+  }
+}

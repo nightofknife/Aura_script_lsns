@@ -21,7 +21,7 @@ from plans.resonance_pc.src.actions.raw_workshop_pc_actions import (
 ROOT = Path(__file__).resolve().parents[2]
 TASK_NAME = "maintain_raw_material_workshop_pc"
 ROOM = "动物纤维原料车间"
-STAFF_LOOPS = ["work", "reserve", "reserve_after_start"]
+STAFF_LOOPS = ["work", "reserve_after_start"]
 
 
 def task():
@@ -84,8 +84,7 @@ def run_dag(production="idle", overrides=None, budget=8, continue_rounds=False):
                                   "max_rounds": params["max_rounds"], "round_count": count,
                                   "no_progress_streak": 0})
             if node_id == "before_start":
-                source = (context.data["nodes"]["reserve"]["output"]
-                          or context.data["nodes"]["work"]["output"]
+                source = (context.data["nodes"]["work"]["output"]
                           or context.data["nodes"]["observe"]["output"])
                 return atom(production, snapshot=deepcopy(source["snapshot"]))
             if node_id == "start":
@@ -120,7 +119,7 @@ def test_public_task_schema_and_metadata():
     assert spec["meta"]["concurrency"] == "exclusive"
     steps = spec["steps"]
     assert list(steps) == [
-        "navigate", "observe", "deposit", "work", "reserve",
+        "navigate", "observe", "deposit", "work",
         "before_start", "start", "reserve_after_start", "final_observe", "return_overview", "finish",
     ]
     assert steps["navigate"]["action"] == "aura.run_task"
@@ -153,14 +152,14 @@ def test_scope_has_no_implicit_retry_shared_state_or_out_of_scope_action():
     for node in steps.values():
         assert not {"retry", "on_exception", "on_result", "loop"}.intersection(node)
         assert "state." not in node.get("when", "")
-    for key, previous in [("work", "deposit"), ("reserve", "work"), ("reserve_after_start", "start")]:
+    for key, previous in [("work", "deposit"), ("reserve_after_start", "start")]:
         assert steps[key]["depends_on"] == {previous: "success|skipped"}
         budget = "max_work_rounds" if key == "work" else "max_reserve_rounds"
         assert steps[key]["params"]["max_rounds"] == "{{ inputs." + budget + " | int }}"
         assert f"nodes.{previous}.output.safe_to_continue" in steps[key]["when"]
-    assert "stop_staff_fill" in steps["reserve"]["when"]
     assert "stop_staff_fill" in steps["start"]["when"]
-    assert steps["reserve_after_start"]["params"]["previous_result"] == "{{ nodes.reserve.output }}"
+    assert "previous_result" not in steps["reserve_after_start"]["params"]
+    assert "reserve" not in steps
 
 
 def test_public_defaults_and_four_room_boundary():
@@ -190,20 +189,20 @@ def test_bad_inputs_rejected_before_any_navigation(provided):
     assert not ok
 
 
-def test_idle_orders_deposit_work_reserve_start_then_final_observation():
+def test_idle_orders_deposit_work_start_reserve_then_final_observation():
     calls, summaries, states, result = run_dag()
     assert [name for name, _ in calls] == [
-        "navigate", "observe", "deposit", "work", "reserve",
+        "navigate", "observe", "deposit", "work",
         "before_start", "start", "reserve_after_start", "final_observe", "return_overview", "finish",
     ]
     assert all(states[name] == StepState.SUCCESS for name in STAFF_LOOPS)
     assert summaries[0]["work"]["safe_to_continue"]
-    assert len(summaries[0]["reserve_rounds"]) == 1
-    assert summaries[0]["reserve_after_start"]["data"]["round_count"] == summaries[0]["reserve_rounds"][0]["data"]["round_count"]
+    assert summaries[0]["reserve_rounds"] == []
+    assert summaries[0]["reserve_after_start"]["data"]["round_count"] == 1
     work_params = next(params for name, params in calls if name == "work")
     after_start_params = next(params for name, params in calls if name == "reserve_after_start")
     assert work_params["list_kind"] == "work" and work_params["max_rounds"] == 8
-    assert after_start_params["previous_result"] == summaries[0]["reserve_rounds"][0]
+    assert "previous_result" not in after_start_params
     assert after_start_params["max_rounds"] == 8
     assert result.data["nodes"]["finish"]["output"]["success"]
 
@@ -213,24 +212,24 @@ def test_running_uses_ordered_finite_rounds_without_idle_writes(budget):
     calls, summaries, _, _ = run_dag("running", budget=budget, continue_rounds=True)
     names = [name for name, _ in calls]
     assert "deposit" not in names and "work" not in names and "start" not in names
-    assert [name for name in names if name in STAFF_LOOPS] == ["reserve"]
-    rounds = summaries[0]["reserve_rounds"]
+    assert [name for name in names if name in STAFF_LOOPS] == ["reserve_after_start"]
+    rounds = [summaries[0]["reserve_after_start"]]
     assert len(rounds) == 1
     assert rounds[0]["data"]["max_rounds"] == budget
     assert rounds[0]["data"]["round_count"] == budget
-    assert summaries[0]["reserve_after_start"] is None
+    assert summaries[0]["reserve_rounds"] == []
 
 
 def test_running_preserves_bounded_loop_no_progress_without_another_fill():
     calls, summaries, _, _ = run_dag("running", overrides={
-        "reserve": atom("running", status="partial", reason="staff_no_progress",
+        "reserve_after_start": atom("running", status="partial", reason="staff_no_progress",
                         snapshot={**atom("running")["snapshot"], "reserve": {"current": 0, "capacity": 2, "full": False}},
                         data={"clicks": [], "round_count": 2, "no_progress_streak": 2}),
     }, continue_rounds=True)
-    assert [name for name, _ in calls if name in STAFF_LOOPS] == ["reserve"]
-    assert summaries[0]["reserve_rounds"][0]["status"] == "partial"
-    assert summaries[0]["reserve_rounds"][0]["data"]["round_count"] == 2
-    assert summaries[0]["reserve_after_start"] is None
+    assert [name for name, _ in calls if name in STAFF_LOOPS] == ["reserve_after_start"]
+    assert summaries[0]["reserve_after_start"]["status"] == "partial"
+    assert summaries[0]["reserve_after_start"]["data"]["round_count"] == 2
+    assert summaries[0]["reserve_rounds"] == []
 
 
 def test_enum_accepted_integral_float_budget_is_normalized_before_real_summary():
@@ -241,8 +240,8 @@ def test_enum_accepted_integral_float_budget_is_normalized_before_real_summary()
     calls, summaries, states, result = run_dag(
         "running", budget=values["max_reserve_rounds"], continue_rounds=True,
     )
-    assert [name for name, _ in calls if name in STAFF_LOOPS] == ["reserve"]
-    reserve_params = next(params for name, params in calls if name == "reserve")
+    assert [name for name, _ in calls if name in STAFF_LOOPS] == ["reserve_after_start"]
+    reserve_params = next(params for name, params in calls if name == "reserve_after_start")
     assert type(reserve_params["max_rounds"]) is int
     assert reserve_params["max_rounds"] == 8
     assert type(summaries[0]["max_reserve_rounds"]) is int
@@ -251,9 +250,9 @@ def test_enum_accepted_integral_float_budget_is_normalized_before_real_summary()
     assert result.data["nodes"]["finish"]["output"]["status"] == "completed"
 
 
-@pytest.mark.parametrize("failed_node", ["observe", "deposit", "work", "reserve"])
+@pytest.mark.parametrize("failed_node", ["observe", "deposit", "work", "reserve_after_start"])
 def test_unknown_atomic_result_blocks_later_writes_but_still_summarizes(failed_node):
-    production = "running" if failed_node == "reserve" else "idle"
+    production = "running" if failed_node == "reserve_after_start" else "idle"
     failure = atom(production, safe=False, status="failed", continue_reserve=True)
     calls, summaries, _, result = run_dag(production, overrides={failed_node: failure}, continue_rounds=True)
     names = [name for name, _ in calls]
@@ -263,8 +262,8 @@ def test_unknown_atomic_result_blocks_later_writes_but_still_summarizes(failed_n
     assert result.data["nodes"]["finish"]["output"]["status"] == "failed"
     assert result.data["nodes"]["finish"]["output"]["reason"] == "unknown_state"
     assert result.data["nodes"]["finish"]["output"]["snapshot"] is None
-    if failed_node == "reserve":
-        assert failure in summaries[0]["reserve_rounds"]
+    if failed_node == "reserve_after_start":
+        assert failure == summaries[0]["reserve_after_start"]
     elif failed_node in ("deposit", "work"):
         assert summaries[0][failed_node] == failure
     else:
@@ -286,11 +285,22 @@ def test_final_unknown_result_preserved_and_not_retried(failed_node):
 def test_known_staffing_shortage_still_allows_safe_start():
     calls, summaries, _, _ = run_dag(overrides={
         "work": atom(status="partial"),
-        "reserve": atom(status="partial"),
+        "reserve_after_start": atom(status="partial"),
     })
     assert "start" in [name for name, _ in calls]
     assert summaries[0]["work"]["success"] is False
     assert summaries[0]["work"]["safe_to_continue"] is True
+
+
+def test_staff_decrease_guard_blocks_start_and_reserve_but_allows_safe_return():
+    calls, _, _, result = run_dag(overrides={
+        "work": atom(status="partial", stop_staff_fill=True, reason="work_staff_decreased"),
+    })
+    names = [name for name, _ in calls]
+    assert "start" not in names and "reserve_after_start" not in names
+    assert "return_overview" in names
+    summary = result.data["nodes"]["finish"]["output"]
+    assert summary["status"] == "partial" and summary["reason"] == "work_staff_decreased"
 
 
 def test_disabled_start_reports_known_block_without_an_implicit_retry():
@@ -307,6 +317,7 @@ def test_disabled_start_reports_known_block_without_an_implicit_retry():
     outcome = result.data["nodes"]["finish"]["output"]
     assert outcome["status"] == "blocked"
     assert outcome["reason"] == "start_disabled"
+    assert "reserve_after_start" not in [name for name, _ in calls]
 
 
 def test_summary_receives_distinct_ordered_observations_without_snapshot_overwrite():

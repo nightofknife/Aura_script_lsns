@@ -1,8 +1,8 @@
 """Exact fixed-sequence and minimum-fatigue target-profit searches.
 
-Target dominance additionally preserves the resource/path ordering. A label
-with more profit but a worse path is not enough to dominate an equal-resource
-label: after either reaches the target, excess profit is not an objective.
+Profit-policy target dominance preserves the resource/path ordering after the
+target is reached. Fill-policy targets instead maximize profit at the minimum
+fatigue, so available books can still complete a legal full load.
 """
 
 from __future__ import annotations
@@ -57,8 +57,11 @@ def _resources_fit(prepared: PreparedSearch, books: int, negotiations: int) -> b
             and (prepared.all_plan == 1 or negotiations <= prepared.negotiation_budget))
 
 
-def _dominates_target(a: _Label, b: _Label, prepared: PreparedSearch, goal: int) -> bool:
-    if a.ticks > b.ticks or min(a.profit, goal) < min(b.profit, goal):
+def _dominates_target(a: _Label, b: _Label, prepared: PreparedSearch, goal: int,
+                      *, prefer_fill: bool = False) -> bool:
+    a_profit = a.profit if prefer_fill else min(a.profit, goal)
+    b_profit = b.profit if prefer_fill else min(b.profit, goal)
+    if a.ticks > b.ticks or a_profit < b_profit:
         return False
     # Feasibility of the same suffix under hard resource limits.
     if not prepared.unbounded_books and a.books > b.books:
@@ -67,13 +70,17 @@ def _dominates_target(a: _Label, b: _Label, prepared: PreparedSearch, goal: int)
         return False
     # Earlier fatigue is strictly better even with worse secondary resources.
     # At equal fatigue the complete secondary order must survive the suffix.
-    return a.ticks < b.ticks or a.tie <= b.tie
+    return (a.ticks < b.ticks or (prefer_fill and a_profit > b_profit)
+            or a.tie <= b.tie)
 
 
-def _insert_target(frontier: list, candidate: _Label, prepared: PreparedSearch, goal: int) -> bool:
-    if any(_dominates_target(old, candidate, prepared, goal) for old in frontier):
+def _insert_target(frontier: list, candidate: _Label, prepared: PreparedSearch, goal: int,
+                   *, prefer_fill: bool = False) -> bool:
+    if any(_dominates_target(old, candidate, prepared, goal, prefer_fill=prefer_fill)
+           for old in frontier):
         return False
-    frontier[:] = [old for old in frontier if not _dominates_target(candidate, old, prepared, goal)]
+    frontier[:] = [old for old in frontier
+                   if not _dominates_target(candidate, old, prepared, goal, prefer_fill=prefer_fill)]
     frontier.append(candidate)
     return True
 
@@ -83,10 +90,14 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
     """Process fatigue layers exactly, retaining all nondominated target labels.
 
     Curves are expanded only when a partial route needs their low-book choices.
-    A goal transition uses binary search for its minimum book count. With an
-    incumbent fatigue bound, no continuation of that transition can improve
-    the answer because every movement has strictly positive fatigue.
+    Profit-policy goal transitions use their minimum book count; fill-policy
+    transitions use their legal book limit. An incumbent fatigue bound prevents
+    continuations that cannot improve the primary objective.
     """
+    prefer_fill = any(curve.policy == "fill" for curve in curves)
+    def goal_key(label: _Label) -> tuple:
+        return ((label.ticks, -label.profit, label.tie) if prefer_fill
+                else (label.ticks, label.tie))
     by_city: Dict[str, list] = {city: [] for city in prepared.city_ids}
     for curve in curves:
         if curve.baseline.expected_fatigue_cost > prepared.fatigue_budget or not _resources_fit(
@@ -127,7 +138,8 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
         nodes = []
         for city, labels in layer.items():
             for label in sorted(labels, key=lambda item: item.tie):
-                if not _insert_target(settled[city], label, prepared, target):
+                if not _insert_target(settled[city], label, prepared, target,
+                                      prefer_fill=prefer_fill):
                     stats["pruned_labels"] += 1
                     continue
                 nodes.append(label)
@@ -146,11 +158,13 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
                 limit = curve.legal_limit if prepared.unbounded_books else min(
                     curve.legal_limit, prepared.book_budget - node.books)
                 stats["goal_probes"] += 1
-                books = curve.minimum_books_for_profit(max(target - node.profit, 0), limit)
+                needed = max(target - node.profit, 0)
+                books = ((limit if curve.profit_at(limit) >= needed else None) if prefer_fill
+                         else curve.minimum_books_for_profit(needed, limit))
                 if books is None:
                     continue
                 candidate = node.extend(option_at(curve, books), cost)
-                if (candidate.ticks, candidate.tie) < (best.ticks, best.tie):
+                if goal_key(candidate) < goal_key(best):
                     best = candidate
         for node in nodes:
             for curve, cost in by_city[node.city]:
@@ -162,24 +176,30 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
                     continue
                 limit = curve.legal_limit if prepared.unbounded_books else min(
                     curve.legal_limit, prepared.book_budget - node.books)
-                # Once profit is capped, extra books only worsen the objective.
-                goal_books = curve.minimum_books_for_profit(max(target - node.profit, 0), limit)
-                if goal_books is not None:
-                    limit = goal_books
+                # Profit policy minimizes books after reaching the target.
+                # Fill retains every allocation for the route-wide budget.
+                if not prefer_fill:
+                    goal_books = curve.minimum_books_for_profit(max(target - node.profit, 0), limit)
+                    if goal_books is not None:
+                        limit = goal_books
                 destination = curve.baseline.to_city_id
                 if next_ticks not in pending:
                     pending[next_ticks] = {}
                     heapq.heappush(heap, next_ticks)
                 frontier = pending[next_ticks].setdefault(destination, [])
-                for books in range(limit + 1):
+                # Without a binding book budget, lower fill counts cannot
+                # improve fatigue or profit on this same transition.
+                counts = (limit,) if prefer_fill and prepared.unbounded_books else range(limit + 1)
+                for books in counts:
                     if books % 256 == 0:
                         check_solver_cancelled()
                     candidate = node.extend(option_at(curve, books), cost)
-                    if any(_dominates_target(old, candidate, prepared, target) for old in settled[destination]):
+                    if any(_dominates_target(old, candidate, prepared, target, prefer_fill=prefer_fill)
+                           for old in settled[destination]):
                         stats["pruned_labels"] += 1
                         continue
                     before = len(frontier)
-                    if _insert_target(frontier, candidate, prepared, target):
+                    if _insert_target(frontier, candidate, prepared, target, prefer_fill=prefer_fill):
                         pending_count += len(frontier) - before
                         stats["generated_labels"] += 1
                         stats["peak_pending_labels"] = max(stats["peak_pending_labels"], pending_count)

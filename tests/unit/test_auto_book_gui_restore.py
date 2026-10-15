@@ -208,3 +208,21 @@ def test_formal_planning_event_updates_visible_workflow(window):
     assert page.center_stack.currentWidget() is page.runtime_trade_plan_page
     assert page.runtime_average_book_profit.isVisible()
     assert "600,000" in page.runtime_average_book_profit.text()
+
+
+@pytest.mark.parametrize("budget", [1, None])
+def test_fill_waste_limit_reaches_formal_and_preview_runner(window, monkeypatch, budget):
+    page = window.trade_page
+    page.restore_inputs({"book_budget": budget, "book_policy": "fill",
+                         "book_waste_limit": 200, "book_profit_threshold": 9990000,
+                         "start_city_id": "1"})
+    runner, bridge = recording_bridge(monkeypatch)
+    bridge.run_pc_trade(page.collect_task_inputs())
+    preview_runner, preview_bridge = recording_bridge(monkeypatch)
+    preview_bridge.preview_pc_trade(page.collect_task_inputs(preview=True))
+    calls = [*runner.calls, *preview_runner.calls]
+    assert [call["task_ref"] for call in calls] == [PC_TRADE_TASK_REF, PC_TRADE_PREVIEW_TASK_REF]
+    for call in calls:
+        assert call["inputs"]["book_budget"] == budget
+        assert call["inputs"]["book_waste_limit"] == 200
+        assert "book_profit_threshold" not in call["inputs"]

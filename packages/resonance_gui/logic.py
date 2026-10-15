@@ -1140,6 +1140,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "auto_book": bool(result.get("auto_book", False)),
         "book_budget_ignored": bool(result.get("book_budget_ignored", False)),
         "book_profit_threshold": result.get("book_profit_threshold"),
+        "book_waste_limit": result.get("book_waste_limit"),
         "book_incremental_profit": result.get("book_incremental_profit"),
         "book_incremental_profit_exact": result.get("book_incremental_profit_exact"),
         "average_book_profit": result.get("average_book_profit"),
@@ -1176,9 +1177,26 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def validate_trailer_options(values: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate execution-only trailer choices without imposing a game quota."""
+    enabled = values.get("auto_trailer", False)
+    count = values.get("trailer_daily_first_n", 1)
+    payment = values.get("trailer_payment", "gold")
+    if type(enabled) is not bool:
+        raise ValueError("自动拖车必须为布尔值。")
+    if type(count) is not int or count <= 0:
+        raise ValueError("拖车当天前 X 次必须为正整数。")
+    if not isinstance(payment, str) or payment not in ("gold", "mileage"):
+        raise ValueError("拖车支付方式必须为铁盟币或里程点。")
+    return {"auto_trailer": enabled, "trailer_daily_first_n": count, "trailer_payment": payment}
+
+
+
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
+    if any(key in normalized for key in ("auto_trailer", "trailer_daily_first_n", "trailer_payment")):
+        normalized.update(validate_trailer_options(normalized))
     if "auto_pickup_interval_sec" in normalized:
         normalized["auto_pickup_interval_sec"] = validate_pickup_click_interval(normalized["auto_pickup_interval_sec"])
     # Execution-only extras share one snapshot across all freight modes.
