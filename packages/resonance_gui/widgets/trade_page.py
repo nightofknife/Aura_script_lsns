@@ -620,13 +620,13 @@ class TradePage(QWidget):
         self.book_threshold_note.setProperty("caption", True)
         self.book_threshold_note.setWordWrap(True)
         self.book_strategy_note = self.book_threshold_note
-        common_form.add_field("", self.book_threshold_note)
         common_form.add_field("协商策略", self.negotiation_policy)
         common_form.add_field("试算当前城市", self.start_city)
         common_form.set_field_visible(self.start_city, self.preview_mode)
         common_form.add_field("", self.target_profit_enabled)
         common_form.add_field(self.target_label, self.target_profit)
         form_stack.addWidget(common_form)
+        form_stack.addWidget(self.book_strategy_note)
         form_stack.addWidget(self.fixed_panel)
         form_stack.addWidget(self.nonfixed_panel)
         form_stack.addWidget(self.end_city_notice)
@@ -882,9 +882,6 @@ class TradePage(QWidget):
         self.fixed_panel.setVisible(state["fixed"])
         self.common_parameters.set_field_visible(self.target_profit_enabled, state["free"])
         self.common_parameters.set_field_visible(self.target_profit, state["free"])
-        self.common_parameters.set_field_visible(
-            self.book_threshold_note, True,
-        )
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
             (self.book_profit_threshold, state["book_threshold"]),

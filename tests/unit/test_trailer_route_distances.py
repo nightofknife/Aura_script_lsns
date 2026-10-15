@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from tools.build_trailer_route_distances import (
-    display_distance, field_records, rail_graph, reference_ids, shortest_distances,
+    PLAN_TEXT_HASH_FORMAT, display_distance, field_records, plan_text_sha256,
+    rail_graph, reference_ids, shortest_distances,
 )
 
 
@@ -88,8 +89,9 @@ def test_catalog_records_reproducible_native_and_mapping_provenance():
                                       "Patch/Script/UIHome/UIHomeMapController.lua"}
     assert all(len(value) == 64 for value in source["sha256"].values())
     assert all(len(value["sha256"]) == 64 for value in source["scripts"].values())
+    assert source["plan_sha256_format"] == PLAN_TEXT_HASH_FORMAT == "utf8-crlf-to-lf-v1"
     for relative, digest in source["plan_sha256"].items():
-        assert sha256((PLAN / relative).read_bytes()).hexdigest() == digest
+        assert plan_text_sha256(PLAN / relative) == digest
     investment = json.loads((PLAN / "data/meta/trade_goods_investment_cities.json").read_text(encoding="utf-8"))
     assert CATALOG["native_city_ids"] == {city_id: row["native_station_id"]
                                             for city_id, row in investment["cities"].items()}
@@ -143,3 +145,24 @@ def test_native_reference_order_and_informal_filter_are_preserved():
         reference_ids([[{"name": "id", "value": "7"}]])
     with pytest.raises(ValueError, match="unique"):
         field_records({"records": [records["records"][0], records["records"][0]]})
+
+
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
+def test_plan_source_provenance_is_independent_of_checkout_newlines(tmp_path, newline):
+    for relative, digest in CATALOG["source"]["plan_sha256"].items():
+        lf = (PLAN / relative).read_bytes().replace(b"\r\n", b"\n")
+        checkout = tmp_path / Path(relative).name
+        checkout.write_bytes(lf.replace(b"\n", newline))
+        assert plan_text_sha256(checkout) == digest == sha256(lf).hexdigest()
+
+
+def test_plan_source_hash_preserves_content_and_formatting_bytes(tmp_path):
+    path = tmp_path / "source.json"
+    raw = '{"城市": "修格里城"}\n'.encode("utf-8")
+    path.write_bytes(raw)
+    expected = sha256(raw).hexdigest()
+    assert plan_text_sha256(path) == expected
+    for changed in (raw.rstrip(b"\n"), b"\xef\xbb\xbf" + raw,
+                    raw.replace(b" ", b"  "), raw.replace("修格里城".encode(), "铁盟哨站".encode())):
+        path.write_bytes(changed)
+        assert plan_text_sha256(path) != expected

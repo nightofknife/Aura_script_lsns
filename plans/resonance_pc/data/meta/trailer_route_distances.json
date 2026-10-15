@@ -552,9 +552,10 @@
         "evidence": "decoded Lua 5.3 bytecode constants and instructions; not recovered source"
       }
     },
+    "plan_sha256_format": "utf8-crlf-to-lf-v1",
     "plan_sha256": {
       "data/meta/cities.json": "2a83e6c3e7392e817e4f00139eb7a47367e0f280e34bd7aa87d8812a946c8bf5",
-      "data/meta/trade_goods_investment_cities.json": "35f4872aa3c8d37802426581dd85aac0d177cfa9401a1da9e36fdea9dfe626a0"
+      "data/meta/trade_goods_investment_cities.json": "021942f3201cc5881ec942511cd402b377541f5238175438d70758eea3d3a603"
     },
     "screenshot_cross_check": {
       "attachment": "codex-clipboard-ba7e5029-a0b0-4f2e-b479-95601e0e3a7a.png",

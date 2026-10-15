@@ -29,6 +29,19 @@ NATIVE_SCRIPTS = {
 }
 
 
+PLAN_TEXT_HASH_FORMAT = "utf8-crlf-to-lf-v1"
+
+
+def plan_text_sha256(path: Path) -> str:
+    """Hash UTF-8 plan source bytes with CRLF converted to LF only.
+
+    Git checkouts can change line endings; JSON order, whitespace, trailing
+    newline, BOM and all other bytes remain significant. Native binary/config
+    and Lua evidence hashes deliberately keep their exact original bytes.
+    """
+    return sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def field_records(decoded: dict) -> dict[int, dict]:
     records = {}
     for record in decoded["records"]:
@@ -153,7 +166,8 @@ def build(game_data: Path, devtools_src: Path, plan: Path = PLAN) -> dict:
                                         "evidence": "decoded Lua 5.3 bytecode constants and instructions; not recovered source"}
                 for name, functions in NATIVE_SCRIPTS.items()
             },
-            "plan_sha256": {path.relative_to(plan).as_posix(): sha256(path.read_bytes()).hexdigest()
+            "plan_sha256_format": PLAN_TEXT_HASH_FORMAT,
+            "plan_sha256": {path.relative_to(plan).as_posix(): plan_text_sha256(path)
                             for path in (cities_path, mapping_path)},
             "screenshot_cross_check": {
                 "attachment": screenshot,
