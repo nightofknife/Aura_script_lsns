@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from copy import deepcopy
 import hashlib
 import io
 import json
@@ -32,6 +33,112 @@ RESOURCES = {
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def refresh_feature_blocks(catalog):
+    """Keep complete controls; reference crops override native rasterization.
+
+    Native full-block variants retain offline prefab coverage. Both the primary
+    image and any variant contain icon, text and background, not isolated ink.
+    """
+    definitions = {
+        "room_1_title": ("editor_1", (571, 10, 203, 61), (672, 40)),
+        "room_2_title": ("editor_2", (571, 10, 203, 61), (672, 40)),
+        "quick": ("editor_1", (60, 479, 124, 35), (115, 500)),
+        "select_all": ("selection_empty", (822, 642, 219, 57), (930, 670)),
+        "cancel_all": ("selection_full", (822, 644, 217, 56), (930, 670)),
+        "confirm": ("selection_empty", (1045, 645, 213, 57), (1150, 670)),
+        "apply": ("save_prompt", (642, 466, 123, 70), (958, 506)),
+        "discard": ("save_prompt", (0, 469, 134, 68), (322, 506)),
+    }
+    for key, (scene, box, click) in definitions.items():
+        x,y,w,h = box
+        source = FIXTURES / (scene+".png")
+        path = ASSETS / (key+".png")
+        Image.open(source).convert("RGB").crop((x,y,x+w,y+h)).save(path)
+        spec = {"image":"templates/product_workshop_staff/"+path.name,
+                "bbox":list(box), "search_region":[x-12,y-8,w+24,h+16],
+                "click":list(click), "threshold":0.90, "scene":scene,
+                "kind":"synthetic_native_feature_block", "source_image":"tests/fixtures/product_workshop_staff/"+source.name,
+                "sha256":digest(path), "feature_kind":"icon_text_background"}
+        if key.startswith("room_"):
+            # Inspect the numbered part within this full image to distinguish
+            # otherwise near-identical headers. No separate tiny title asset.
+            spec["number_region"] = [89,13,30,18]
+            spec["number_min_score"] = .80
+            spec["number_min_margin"] = .06
+        catalog["templates"][key] = spec
+    references = {
+        "quick":"reference_quick_20261017.png",
+        "room_1_title":"reference_room1_title_20261017.png",
+        "select_all":"reference_select_all_20261017.png",
+        "cancel_all":"reference_cancel_all_20261017.png",
+        "confirm":"reference_confirm_20261017.png",
+        "apply":"reference_apply_20261017.png",
+        "discard":"reference_discard_20261017.png",
+    }
+    for key, filename in references.items():
+        source = FIXTURES / filename
+        if not source.exists():
+            continue
+        spec = catalog["templates"][key]
+        native = deepcopy(spec)
+        variant_path = ASSETS / (key+".native.png")
+        Image.open(PLAN/spec["image"]).save(variant_path)
+        native.update(image="templates/product_workshop_staff/"+variant_path.name, sha256=digest(variant_path))
+        raw = Image.open(source).convert("RGB")
+        crop = raw.getbbox()  # remove only the outer black screenshot padding
+        target = raw.crop(crop)
+        if target.size != tuple(spec["bbox"][2:]):
+            raise ValueError((key, "Reference size differs from measured client feature block"))
+        path = PLAN/spec["image"]
+        target.save(path)
+        spec.update(kind="user_supplied_live_feature_block", sha256=digest(path),
+                    source_image="tests/fixtures/product_workshop_staff/"+filename,
+                    source_sha256=digest(source), source_crop_xyxy=list(crop), variants=[native])
+        spec.pop("scene",None)
+        if key in {"apply","discard"}:
+            # Runtime HorizontalLayoutGroup centers the popup captions. Native
+            # prefab examples retain their own left-aligned variant anchors.
+            rx,ry = (893,466) if key == "apply" else (253,469)
+            _,_,w,h = spec["bbox"]
+            spec["bbox"] = [rx,ry,w,h]
+            spec["search_region"] = [rx-12,ry-8,w+24,h+16]
+    for key in ("select_all","cancel_all","apply","discard"):
+        spec = catalog["templates"][key]
+        for item in (spec,*spec.get("variants",[])):
+            path = PLAN/item["image"]
+            image = Image.open(path).convert("RGB")
+            ink = Image.eval(image.convert("L"),lambda value:255 if value >= 220 else 0)
+            bounds = ink.getbbox()
+            if bounds is None:
+                raise ValueError((key,"No white button icon or text"))
+            l,t,r,b = bounds
+            crop = (max(0,l-6),max(0,t-4),min(image.width,r+6),min(image.height,b+4))
+            image.crop(crop).save(path)
+            x,y,_,_ = item["bbox"]
+            item["bbox"] = [x+crop[0],y+crop[1],crop[2]-crop[0],crop[3]-crop[1]]
+            item["feature_crop_xyxy"] = list(crop)
+            if "source_crop_xyxy" in item:
+                sx,sy,_,_ = item["source_crop_xyxy"]
+                item["source_crop_xyxy"] = [sx+crop[0],sy+crop[1],sx+crop[2],sy+crop[3]]
+            item.update(sha256=digest(path),feature_kind="icon_text_with_small_background_margin")
+    catalog["kind"] = "native_assets_with_user_reference_templates"
+    catalog["live_calibrated"] = False  # full workflow still lacks live acceptance
+    catalog["feature_blocks"] = {"format":"icon_text_background", "number_identity":"within_full_title_image",
+                                 "reference_date":"2026-10-17", "reference_frame":"tests/fixtures/product_workshop_staff/live_room1_editor_20261017.png"}
+    catalog["limitations"] = [value for value in catalog["limitations"] if value != "No live screenshot or live acceptance evidence"]
+    limitation = "Editor header and quick-button references checked offline against a live frame; remaining controls and full workflow lack live acceptance"
+    if limitation not in catalog["limitations"]:
+        catalog["limitations"].append(limitation)
+    for key in ("selection_marker","selection_count_label","editor_marker","editor_count_label"):
+        catalog["templates"].pop(key,None)
+    catalog["templates"].pop("save_prompt",None)
+    catalog["save_prompt_policy"] = {"recognition":"apply_and_discard_buttons", "message_text_required":False}
+    catalog.pop("counters",None)
+    catalog.pop("editor_digits",None)
+    catalog["selection_policy"] = {"recognition":"button_only", "select_all":"click_once_then_confirm_and_save",
+                                    "cancel_all_on_entry":"return_without_confirming_or_saving", "button_score_margin":.01}
 
 
 def rgba(value: dict) -> tuple[int, ...]:
@@ -243,6 +350,7 @@ def main():
     parser.add_argument("--unitypy-dir",type=Path,default=REPO/".pytest_tmp/cuberogue_internal/unitypy")
     parser.add_argument("--dependency-index",type=Path,default=REPO/".pytest_tmp/reforming_assets_20261004/dependency_candidates.json")
     parser.add_argument("--scope",type=Path,default=REPO/".pytest_tmp/product_staff_implementation_20261015/assets")
+    parser.add_argument("--refresh-feature-blocks",action="store_true",help="Refresh full control blocks from saved native scenes and user references without extracting game assets")
     args=parser.parse_args()
     args.scope=args.scope.resolve()
     if not args.scope.is_relative_to(REPO.resolve()):
@@ -250,6 +358,14 @@ def main():
     args.scope.mkdir(parents=True,exist_ok=True)
     for key in ("TEMP","TMP","TMPDIR"):
         os.environ[key]=str(args.scope)
+    if args.refresh_feature_blocks:
+        dest = PLAN/"data/meta/product_workshop_staff_templates_pc.json"
+        catalog = json.loads(dest.read_text("utf-8"))
+        refresh_feature_blocks(catalog)
+        dest.write_text(json.dumps(catalog,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        (FIXTURES/"manifest.json").write_text(json.dumps({"kind":catalog["kind"],"live_calibrated":False,"scenes":catalog["scenes"],"limitations":catalog["limitations"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        print("Refreshed complete editor and selection control blocks")
+        return
     for path in (args.devtools_src,args.unitypy_dir):
         sys.path.insert(0,str(path))
     from aura_resonance_devtools.unity_bundle import load_bundle,_logical_sprite_image
@@ -259,7 +375,7 @@ def main():
     catalog={"schema_version":1,"reference_client":[1280,720],"kind":"synthetic_native_game_assets","live_calibrated":False,
              "provenance":{"sources":[{"resource":r,"sha256":digest(args.data_root/"Patch/Asset"/r)} for r in RESOURCES.values()]},
              "limitations":["No live screenshot or live acceptance evidence","Native images/fonts/layout; Pillow rasterization differs from Unity","Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic"],
-             "templates":{},"scenes":{},"counters":{}}
+             "templates":{},"scenes":{}}
     scenes={}
     def scene(key,model,active,text):
         image,nodes=models[model].render(active,text)
@@ -291,26 +407,11 @@ def main():
         catalog["templates"][key]={"image":"templates/product_workshop_staff/"+path.name,"bbox":[l,t,r-l,b-t],"search_region":[max(0,l-12),max(0,t-12),min(1280,r+12)-max(0,l-12),min(720,b+12)-max(0,t-12)],"click":[round((a+d)/2),round((c+e)/2)],"threshold":0.90,"source_nodes":[node],"resource":RESOURCES[model],"scene":scene_key,"sha256":digest(path)}
     for num in (1,2):
         template(f"room_{num}_title",f"editor_{num}","/Group_WorkshopInfo/Txt_Workshop")
-        # Shared suffix characters otherwise make wrong room numbers correlate
-        # above 0.96. Match the native numbered prefix, alongside the quick
-        # button that independently identifies this as the editing page.
-        item=catalog["templates"][f"room_{num}_title"]
-        path=PLAN/item["image"]
-        image=Image.open(path);image.crop((0,0,min(30,image.width),image.height)).save(path)
-        item["bbox"][2]=min(30,item["bbox"][2])
-        item["search_region"][2]=item["bbox"][2]+24
-        item["sha256"]=digest(path)
-        item["crop_note"]="Numbered title prefix; shared suffix excluded to reject the other room"
     template("quick","editor_1","/Img_QuickEditOFF/Group_/Txt_Quick",2,"/Group_Edit/Btn_QuickEdit")
-    template("editor_marker","editor_1","/Group_Top/Group_TotalNum/Txt_TotalNum")
-    template("editor_count_label","editor_1","/Group_Top/Group_TotalNum/Txt_TotalNum")
-    template("selection_marker","selection_empty","/Group_Detail/Group_Prisoner/Txt_")
-    template("selection_count_label","selection_empty","/Group_Detail/Group_Prisoner/Txt_")
     template("select_all","selection_empty","/Group_Detail/Btn_All/Txt_T",2,"/Group_Detail/Btn_All")
     template("cancel_all","selection_full","/Group_Detail/Btn_AllCancel/Txt_T",2,"/Group_Detail/Btn_AllCancel")
     template("confirm","selection_empty","/Group_Detail/Btn_Confirm/Txt_T",2,"/Group_Detail/Btn_Confirm")
     template("back","editor_1","/Group_CommonTopLeft/Btn_Return")
-    template("save_prompt","save_prompt","/Group_Prompt/TextIcon_Prompt")
     template("apply","save_prompt","/Btn_Confirm/Group_/Txt_Confirm",2,"/Btn_Confirm")
     template("discard","save_prompt","/Btn_Cancel/Group_/Txt_Cancel",2,"/Btn_Cancel")
     # The user-observed save branch returns to the physical room page.
@@ -328,31 +429,16 @@ def main():
             catalog["templates"]["saved_marker"]={"image":"templates/product_workshop_staff/saved_marker.png","bbox":[l,t,w,h],"search_region":marker["search_region"],"click":[round(l+w/2),round(t+h/2)],"threshold":0.90,"source_image":marker["image"],"source_id":marker["source_id"],"sha256":digest(dest)}
     saved.save(FIXTURES/"saved.png")
     catalog["scenes"]["saved"]={"image":"tests/fixtures/product_workshop_staff/saved.png","kind":"synthetic_composite_of_existing_live_template_crops","source_catalog":"data/meta/reforming_center_templates_pc.json","sha256":digest(FIXTURES/"saved.png")}
-    def counter(key,scene_key,suffix,format_,style):
-        _,nodes,model=scenes[scene_key]
-        node=next(n for p,n in nodes.items() if p.endswith(suffix))
-        l,t,r,b=node["box_xyxy"]
-        l,t,r,b=max(0,l),max(0,t),min(1280,r),min(720,b)
-        catalog["counters"][key]={"region":[l,t,r-l,b-t],"format":format_,"style":style,"source_node":node}
-    counter("selection","selection_empty","/Group_Detail/Group_Prisoner/Txt_Num","fraction","selection")
-    counter("editor","editor_1","/Group_Top/Group_TotalNum/Txt_TotalNumCount","integer","list")
-    catalog["editor_digits"]=[]
-    editor_font=models["editor"].fonts[-4884400286118422667]["path"]
-    for character in "0123456789":
-        font=ImageFont.truetype(str(editor_font),26)
-        glyph=Image.new("RGB",(64,64));ImageDraw.Draw(glyph).text((12,4),character,font=font,fill="white")
-        glyph=glyph.resize((round(64*SCALE),round(64*SCALE)),Image.Resampling.LANCZOS)
-        path=ASSETS/("editor_digit_"+character+".png");glyph.save(path)
-        catalog["editor_digits"].append({"character":character,"image":"templates/product_workshop_staff/"+path.name,"font_path_id":-4884400286118422667,"font_size_native":26,"scale":SCALE,"sha256":digest(path)})
     catalog["provenance"]["fonts"]=[{"font_path_id":key,"sha256":font["sha256"]} for model in models.values() for key,font in model.fonts.items()]
     logic_names=("CommonTips.lua","UIPrompt/UIPromptLuaBehaviour.lua","UIPrisonEdit/UIPrisonEditController.lua","UIPrisonEdit/UIPrisonEditViewFunction.lua")
     catalog["provenance"]["logic_sources"]=[{"script":name,"sha256":digest(args.data_root/"Patch/Script"/name)} for name in logic_names]
     catalog["provenance"]["text_bindings"]={"room_title":{"text_id":80600296,"binding":"CurRoomIndex","examples":[1,2]},"save_prompt":{"text_id":80600202,"node":"/Prompt/Group_Prompt/TextIcon_Prompt"},"button_labels":"native prefab defaults; nil yesTxt/noTxt in OnPrompt","example_counts":"synthetic inputs, not player data"}
     catalog["provenance"]["dependencies"]=[{"resource":r,"sha256":digest(args.data_root/"Patch/Asset"/r)} for r in sorted(set().union(*(m.dependencies for m in models.values())))]
     catalog["render_errors"]={k:m.errors for k,m in models.items()}
+    refresh_feature_blocks(catalog)
     dest=PLAN/"data/meta/product_workshop_staff_templates_pc.json"
     dest.write_text(json.dumps(catalog,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    (FIXTURES/"manifest.json").write_text(json.dumps({"kind":catalog["kind"],"live_calibrated":False,"scenes":catalog["scenes"],"counters":catalog["counters"],"limitations":catalog["limitations"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    (FIXTURES/"manifest.json").write_text(json.dumps({"kind":catalog["kind"],"live_calibrated":False,"scenes":catalog["scenes"],"limitations":catalog["limitations"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"templates":len(catalog["templates"]),"scenes":len(catalog["scenes"]),"catalog":str(dest),"errors":{k:len(m.errors) for k,m in models.items()}}))
 
 

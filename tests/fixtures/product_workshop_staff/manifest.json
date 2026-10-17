@@ -1,5 +1,5 @@
 {
-  "kind": "synthetic_native_game_assets",
+  "kind": "native_assets_with_user_reference_templates",
   "live_calibrated": false,
   "scenes": {
     "editor_1": {
@@ -114,123 +114,9 @@
       "sha256": "f822ee91e3796db9d4b63fc9745f7f4558d0ece28064020c553ed882650c98b1"
     }
   },
-  "counters": {
-    "selection": {
-      "region": [
-        181,
-        658,
-        59,
-        25
-      ],
-      "format": "fraction",
-      "style": "selection",
-      "source_node": {
-        "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_Num",
-        "box_xyxy": [
-          181,
-          658,
-          240,
-          683
-        ],
-        "components": [
-          {
-            "text": "10/15",
-            "font_path_id": -3758921232364580136,
-            "font_size_native": 32,
-            "font_size_prefab": 32,
-            "font_data": {
-              "m_Font": {
-                "m_FileID": 8,
-                "m_PathID": -3758921232364580136
-              },
-              "m_FontSize": 32,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 3,
-              "m_MaxSize": 40,
-              "m_Alignment": 4,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 1,
-              "m_VerticalOverflow": 1,
-              "m_LineSpacing": 1.0
-            },
-            "color": [
-              255,
-              255,
-              255,
-              255
-            ]
-          }
-        ],
-        "ink_box_xyxy": [
-          181,
-          663,
-          240,
-          678
-        ]
-      }
-    },
-    "editor": {
-      "region": [
-        1219,
-        37,
-        61,
-        20
-      ],
-      "format": "integer",
-      "style": "list",
-      "source_node": {
-        "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNumCount",
-        "box_xyxy": [
-          1219,
-          37,
-          1325,
-          57
-        ],
-        "components": [
-          {
-            "text": "10",
-            "font_path_id": -4884400286118422667,
-            "font_size_native": 26,
-            "font_size_prefab": 26,
-            "font_data": {
-              "m_Font": {
-                "m_FileID": 7,
-                "m_PathID": -4884400286118422667
-              },
-              "m_FontSize": 26,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 2,
-              "m_MaxSize": 40,
-              "m_Alignment": 3,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 1,
-              "m_VerticalOverflow": 1,
-              "m_LineSpacing": 1.0
-            },
-            "color": [
-              255,
-              184,
-              0,
-              255
-            ]
-          }
-        ],
-        "ink_box_xyxy": [
-          1219,
-          41,
-          1240,
-          54
-        ]
-      }
-    }
-  },
   "limitations": [
-    "No live screenshot or live acceptance evidence",
     "Native images/fonts/layout; Pillow rasterization differs from Unity",
-    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic"
+    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic",
+    "Editor header and quick-button references checked offline against a live frame; remaining controls and full workflow lack live acceptance"
   ]
 }

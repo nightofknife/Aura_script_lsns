@@ -25,7 +25,7 @@ def task():
     return yaml.safe_load((ROOT / f"plans/resonance_pc/tasks/{TASK}.yaml").read_text(encoding="utf-8"))[TASK]
 
 
-def run_staffing(overrides=None, inputs=None, local_count=6, initial_count=2, missing_navigation=False):
+def run_staffing(overrides=None, inputs=None, selection_action="selected", missing_navigation=False):
     """Only replace input-producing UI actions; execute actual DAG/summary logic."""
     async def run():
         calls = []
@@ -49,8 +49,9 @@ def run_staffing(overrides=None, inputs=None, local_count=6, initial_count=2, mi
                 value = deepcopy(params["previous"])
                 value.update(room_name=params["room_name"], step=params["step"],
                              success=True, safe_to_continue=True, reason="",
-                             initial_count=initial_count, local_count=local_count, capacity=6,
-                             applied=local_count > initial_count and node_id in {"apply", "return_overview"},
+                             selection_action=selection_action,
+                             confirmed=selection_action == "selected" and node_id in {"confirm", "request_save", "apply", "return_overview"},
+                             applied=selection_action == "selected" and node_id in {"apply", "return_overview"},
                              returned_to_overview=node_id == "return_overview",
                              page_after="reforming_center_overview" if node_id == "return_overview" else "editor")
             value = deepcopy((overrides or {}).get(node_id, value))
@@ -104,11 +105,8 @@ def test_preflight_navigation_and_staffing_execute_in_strict_order(room):
     assert result["success"] and result["status"] == "submitted"
     assert result["reason"] == "save_persistence_unverified"
     assert result["room_name"] == room
-    assert (result["initial_count"], result["selected_count"], result["capacity"]) == (2, 6, 6)
-    assert result["selected_added_count"] == 4 and result["remaining_count"] == 0
-    assert result["count_scope"] == "local_formation"
+    assert result["selection_action"] == "selected"
     assert result["save_verified"] is False
-    assert result["final_count"] is None and result["added_count"] is None
     assert result["applied"] and result["returned_to_overview"]
     assert result["page_after"] == "reforming_center_overview"
     assert [row["step"] for row in result["data"]["steps"]] == list(STEPS)
@@ -160,32 +158,74 @@ def test_missing_child_framework_business_output_is_a_failed_result():
     assert result["reason"] == "staff_navigation_not_confirmed"
 
 
-def test_submitted_but_incomplete_staffing_returns_truthful_partial_result():
-    calls, _, result = run_staffing(local_count=4)
+def test_cancel_all_entry_returns_unchanged_without_save_claim():
+    calls, states, result = run_staffing(selection_action="unchanged")
     assert [name for name, _ in calls] == ["assets", "navigate", *STEPS, "finish"]
-    assert result["status"] == "partial" and not result["success"]
-    assert result["reason"] == "staff_not_full"
-    assert result["selected_added_count"] == result["remaining_count"] == 2
-    assert result["final_count"] is None and result["added_count"] is None
+    assert all(states[step] == StepState.SUCCESS for step in STEPS)
+    assert result["status"] == "unchanged" and result["success"]
+    assert result["selection_action"] == "unchanged"
+    assert result["reason"] == ""
+    assert not result["applied"] and result["returned_to_overview"]
     assert result["save_verified"] is False
-    assert result["applied"] and result["returned_to_overview"]
 
 
-def test_full_local_formation_cannot_claim_completed_or_persisted_final_count():
-    _, _, result = run_staffing(local_count=6)
-    assert result["selected_count"] == result["capacity"] == 6
-    assert result["status"] == "submitted" and result["status"] != "completed"
-    assert result["applied"] and result["returned_to_overview"]
+@pytest.mark.parametrize("selection_action", ["selected", "unchanged"])
+def test_public_result_contains_no_staff_counts_or_capacity(selection_action):
+    _, _, result = run_staffing(selection_action=selection_action)
+    assert set(result) == {"room_name", "success", "status", "reason", "selection_action",
+                           "save_verified", "applied", "returned_to_overview", "page_after", "data"}
+    assert set(task()["returns"]) == set(result)
+
+    def assert_no_counts(value):
+        if isinstance(value, dict):
+            assert not any("count" in str(key).lower() or "capacity" in str(key).lower() for key in value)
+            for item in value.values():
+                assert_no_counts(item)
+        elif isinstance(value, list):
+            for item in value:
+                assert_no_counts(item)
+    assert_no_counts(result)
+
+
+def test_unknown_selection_button_stops_before_select_confirm_or_apply():
+    failure = {"room_name": ROOM, "step": "quick", "success": False,
+               "safe_to_continue": False, "reason": "staff_selection_button_unknown",
+               "page_after": "selection", "returned_to_overview": False}
+    calls, states, result = run_staffing(overrides={"quick": failure})
+    assert [name for name, _ in calls] == ["assets", "navigate", "edit", "quick", "finish"]
+    assert all(states[step] == StepState.SKIPPED for step in STEPS[2:])
+    assert result["status"] == "failed" and not result["success"]
+    assert result["reason"] == "staff_selection_button_unknown"
+    assert not result["applied"]
+
+
+@pytest.mark.parametrize("selection_action", [None, "unknown", "cancel_all", ""])
+def test_unknown_selection_action_cannot_claim_submission(selection_action):
+    _, _, result = run_staffing(selection_action=selection_action)
+    assert not result["success"] and result["status"] == "failed"
     assert not result["save_verified"]
-    assert result["final_count"] is None and result["added_count"] is None
 
 
-def test_unchanged_full_roster_can_report_existing_count_without_save_claim():
-    _, _, result = run_staffing(local_count=6, initial_count=6)
-    assert result["success"] and result["status"] == "completed"
-    assert result["final_count"] == result["selected_count"] == 6
-    assert result["added_count"] == result["selected_added_count"] == 0
-    assert not result["applied"] and not result["save_verified"]
+def test_selected_action_without_apply_cannot_claim_submission():
+    last = {"room_name": ROOM, "step": "return_overview", "success": True,
+            "safe_to_continue": True, "reason": "", "selection_action": "selected",
+            "confirmed": True, "applied": False, "returned_to_overview": True,
+            "page_after": "reforming_center_overview"}
+    _, _, result = run_staffing(overrides={"return_overview": last})
+    assert result["status"] == "failed" and not result["success"]
+
+
+@pytest.mark.parametrize("patch", [
+    {"selection_action": "selected", "confirmed": False, "applied": True},
+    {"selection_action": "unchanged", "confirmed": True, "applied": False},
+    {"selection_action": "unchanged", "confirmed": False, "applied": True},
+])
+def test_branch_evidence_must_match_confirm_and_apply_operations(patch):
+    last = {"room_name": ROOM, "step": "return_overview", "success": True,
+            "safe_to_continue": True, "reason": "", "returned_to_overview": True,
+            "page_after": "reforming_center_overview", **patch}
+    _, _, result = run_staffing(overrides={"return_overview": last})
+    assert result["status"] == "failed" and not result["success"]
 
 
 @pytest.mark.parametrize("inputs", [
