@@ -44,6 +44,65 @@ def semantic(result):
     return {key: value for key, value in result.items() if key not in {"solver_backend", "solver_stats"}}
 
 
+def test_user_crystal_prices_settle_identically_in_both_modes_and_goal():
+    model = solver(products={"p": product("水晶工艺品", {"A": 688}, {"B": 792})},
+                   lots={"A": {"p": 2}})
+    for mode, target in (("free", None), ("fixed", None), ("free", 96)):
+        result = solve(model, cargo_capacity=2, trade_mode=mode, target_profit=target,
+                       fixed_route_city_ids=["A", "B"], city_tax_rates_bps={"A": 700, "B": 750})
+        assert result["status"] == "ok"
+        assert result["expected_profit_exact"] == "96"
+        assert result["route"][0]["settlement"] == {
+            "buy_goods_amount": 1376, "buy_tax": 96, "buy_total": 1472,
+            "sell_goods_amount": 1584, "taxable_profit": 208, "sell_tax": 16,
+            "sell_total": 1568, "net_profit": 96,
+        }
+        assert result["assumptions"]["execution_quantities_verified"] is False
+    unreachable = solve(model, cargo_capacity=2, target_profit=97,
+                        city_tax_rates_bps={"A": 700, "B": 750})
+    assert unreachable["status"] != "ok"
+
+
+@pytest.mark.parametrize("taxes", [{"A": True}, {"A": -1}, {"A": 10001}, {"A": 0.5}, {"unknown": 700}, []])
+def test_solver_rejects_invalid_actual_tax_overrides(taxes):
+    with pytest.raises(ValueError, match="city_tax_rates_bps"):
+        solve(solver(), city_tax_rates_bps=taxes)
+
+
+def test_native_parent_prestige_and_city_specific_actual_tax_are_independent():
+    model = solver(cities=("A", "B", "C"), costs={"A": {"B": 1}, "B": {}, "C": {}},
+                   lots={"A": {"p": 1}})
+    model.rules["prestige_levels"]["1"] = {"general_tax_bps": 1000, "extra_buy_bps": 1000}
+    model.rules["tax"] = {"city_rules": {
+        "A": {"prestige_city_id": "A", "delta_bps": 0, "supported_currency": True},
+        "B": {"prestige_city_id": "B", "fixed_tax_bps": 1000, "supported_currency": True},
+        "C": {"prestige_city_id": "A", "delta_bps": -300, "supported_currency": True},
+    }}
+    prestige = model._normalize_city_prestige({"default": 20, "overrides": {"A": 1}})
+    assert prestige["A"] == prestige["C"] == 1
+    assert model._tax_bps("C", prestige["C"]) == 700
+    assert model._tax_bps("B", prestige["B"]) == 1000
+    result = solve(model, city_prestige={"default": 20, "overrides": {"A": 1}},
+                   city_tax_rates_bps={"C": 750})
+    assert model._tax_bps("C", prestige["C"]) == 750
+    assert result["request"]["city_tax_rates_bps"] == {"C": 750}
+
+
+def test_native_tatu_has_no_generic_prestige_purchase_multiplier():
+    model = solver(cities=("17", "B"), costs={"17": {"B": 1}, "B": {}},
+                   products={"p": product("p", {"17": 100}, {"B": 200})},
+                   lots={"17": {"p": 2}})
+    model.rules["prestige_levels"]["20"]["extra_buy_bps"] = 20000
+    model.rules["tax"] = {"city_rules": {
+        "17": {"prestige_city_id": "17", "fixed_tax_bps": 1000,
+               "fixed_extra_buy_bps": 0, "supported_currency": True},
+        "B": {"prestige_city_id": "B", "delta_bps": 0, "supported_currency": True},
+    }}
+    result = solve(model, start_city_id="17", cargo_capacity=20)
+    assert result["route"][0]["loaded_quantity"] == 2
+    assert result["route"][0]["settlement"]["buy_goods_amount"] == 200
+
+
 def _oracle_options(model, capacity, books, threshold, policy, negotiation, waste_limit=0, *, fixed=False):
     """Price and enumerate independently: no production candidate or pruning code."""
     result = {}
@@ -243,12 +302,14 @@ def test_fill_curve_ignores_threshold_without_relying_on_solver_normalization():
     from plans.resonance_pc.src.services.resonance_pc_trade_candidate_model import (
         EdgeBookCurve, TradeEdgeOption,
     )
+    from plans.resonance_pc.src.services.resonance_pc_trade_settlement import TradeCandidate
     baseline = TradeEdgeOption(
         "A", "B", 0, False, False, 1, Fraction(0), Fraction(0), Fraction(20),
         ("p",), ("p",), (("p", "p", 2, Fraction(10)),),
         cargo_capacity=5, loaded_quantity=2,
     )
-    fill = EdgeBookCurve.create(baseline=baseline, candidates=((Fraction(10), "p", "p", 2),),
+    fill = EdgeBookCurve.create(baseline=baseline,
+                               candidates=(TradeCandidate(Fraction(10), "p", "p", 2, 1, 11, 0, 0),),
                                capacity=5, policy="fill", threshold=Fraction(200000), waste_limit=1)
     profit = EdgeBookCurve.create(baseline=baseline, candidates=fill.candidates,
                                  capacity=5, policy="profit", threshold=Fraction(200000))

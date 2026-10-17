@@ -52,6 +52,12 @@ from ..logic import (
     validate_pickup_click_interval,
     validate_trailer_options,
     validate_trade_goods_investment_level,
+    validate_city_tax_rates_bps,
+    FREIGHT_NET_PROFIT_NOTE,
+    freight_currency_error,
+    freight_settlement_lines,
+    market_fallback_notice,
+    validate_allow_stale_market,
     TradeProgressState,
     expected_profit_per_fatigue,
     extract_run_id,
@@ -70,6 +76,7 @@ from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog,
 from .black_moon_purchase_dialog import BlackMoonPurchaseDialog
 from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
+from .market_warning_label import MarketWarningLabel
 from .toggle_button import ToggleButton as QCheckBox
 
 
@@ -79,10 +86,11 @@ class CityPrestigeDialog(QDialog):
         default_level: int = 20,
         overrides: Mapping[str, Any] | None = None,
         parent: QWidget | None = None,
+        *, tax_rates_bps: Mapping[str, int] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("appRoot")
-        self.setWindowTitle("城市声望设置")
+        self.setWindowTitle("城市声望与实际税率")
         self.setModal(True)
         self.setMinimumWidth(620)
 
@@ -90,13 +98,22 @@ class CityPrestigeDialog(QDialog):
         layout.setContentsMargins(20, 18, 20, 16)
         layout.setSpacing(14)
 
+        self.tabs = QTabWidget(self)
+        prestige_page = QWidget(self.tabs)
+        prestige_layout = QVBoxLayout(prestige_page)
+        self.tabs.addTab(prestige_page, "城市声望")
+        layout.addWidget(self.tabs)
+
         default_row = QHBoxLayout()
         default_row.addWidget(QLabel("默认城市声望", self))
         default_row.addStretch(1)
         self.default_prestige = self._prestige_spin(allow_default=False)
         self.default_prestige.setValue(max(1, min(int(default_level), 20)))
         default_row.addWidget(self.default_prestige)
-        layout.addLayout(default_row)
+        prestige_layout.addLayout(default_row)
+        prestige_note = QLabel("声望按所属父城／势力共享；子城的自定义声望会归一到父城，并非独立声望。悬停城市名查看归属；“实际税率”页则按城市独立覆盖。", prestige_page)
+        prestige_note.setWordWrap(True)
+        prestige_layout.addWidget(prestige_note)
 
         grid = QGridLayout()
         grid.setHorizontalSpacing(12)
@@ -104,11 +121,18 @@ class CityPrestigeDialog(QDialog):
         normalized_overrides = dict(overrides or {})
         self.city_prestige: dict[str, QSpinBox] = {}
         rows_per_column = (len(PC_TRADE_CITY_OPTIONS) + 1) // 2
+        parent_cities = {"2": "1", "7": "1", "5": "4", "6": "3", "9": "8", "13": "11",
+                         "14": "19", "20": "19", "16": "15"}
         for index, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
             section = index // rows_per_column
             row = index % rows_per_column
             column = section * 2
             label = QLabel(city_name, self)
+            parent_name = dict(PC_TRADE_CITY_OPTIONS).get(parent_cities.get(city_id))
+            if parent_name:
+                label.setToolTip(f"声望按{parent_name}计算；此处自定义声望会归一到该父城。实际税率覆盖仍按本城独立生效。")
+            elif city_id in ("18", "12"):
+                label.setToolTip("所属父城不在当前城市列表中，此处声望作为对应父势力的代理输入。")
             field = self._prestige_spin(allow_default=True)
             field.setValue(max(0, min(int(normalized_overrides.get(city_id, 0)), 20)))
             self.city_prestige[city_id] = field
@@ -116,7 +140,45 @@ class CityPrestigeDialog(QDialog):
             grid.addWidget(field, row, column + 1)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(2, 1)
-        layout.addLayout(grid)
+        prestige_layout.addLayout(grid)
+
+        tax_page = QWidget(self.tabs)
+        tax_layout = QVBoxLayout(tax_page)
+        self.tax_explanation = QLabel("未覆盖的城市按声望与规则计算税率。覆盖值为游戏显示的最终实际税率，不会再次扣除声望减税；例如 7.50% 保存为 750 bps。", tax_page)
+        self.tax_explanation.setWordWrap(True)
+        tax_layout.addWidget(self.tax_explanation)
+        tax_scroll = QScrollArea(tax_page)
+        tax_scroll.setWidgetResizable(True)
+        tax_scroll.setMinimumHeight(260)
+        tax_content = QWidget(tax_scroll)
+        tax_grid = QGridLayout(tax_content)
+        tax_grid.setHorizontalSpacing(12)
+        self._original_tax_rates = validate_city_tax_rates_bps(dict(tax_rates_bps or {}))
+        self.tax_enabled: dict[str, QCheckBox] = {}
+        self.city_tax_rates: dict[str, QDoubleSpinBox] = {}
+        for row, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
+            enabled = QCheckBox("覆盖税率", tax_content)
+            enabled.setChecked(city_id in self._original_tax_rates)
+            rate = QDoubleSpinBox(tax_content)
+            rate.setRange(0, 100)
+            rate.setDecimals(2)
+            rate.setSingleStep(0.1)
+            rate.setSuffix(" %")
+            rate.setMaximumWidth(160)
+            rate.setValue(self._original_tax_rates.get(city_id, 0) / 100)
+            rate.setEnabled(enabled.isChecked())
+            enabled.toggled.connect(rate.setEnabled)
+            enabled.setToolTip("开启后直接使用右侧实际税率；关闭后按城市声望和规则计算。")
+            rate.setToolTip("游戏显示的实际税率，0% 也是有效覆盖值；不表示额外减税。")
+            self.tax_enabled[city_id] = enabled
+            self.city_tax_rates[city_id] = rate
+            tax_grid.addWidget(QLabel(city_name, tax_content), row, 0)
+            tax_grid.addWidget(enabled, row, 1)
+            tax_grid.addWidget(rate, row, 2)
+        tax_grid.setColumnStretch(0, 1)
+        tax_scroll.setWidget(tax_content)
+        tax_layout.addWidget(tax_scroll)
+        self.tabs.addTab(tax_page, "实际税率")
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save
@@ -148,6 +210,16 @@ class CityPrestigeDialog(QDialog):
         self.default_prestige.setValue(20)
         for field in self.city_prestige.values():
             field.setValue(0)
+        self._original_tax_rates = {}
+        for button in self.tax_enabled.values():
+            button.setChecked(False)
+
+    def tax_rates_value(self) -> dict[str, int]:
+        # Preserve entries not represented by this editor; never silently erase them.
+        rates = {key: value for key, value in self._original_tax_rates.items() if key not in self.tax_enabled}
+        rates.update({city: int(Decimal(format(field.value(), ".2f")) * 100)
+                      for city, field in self.city_tax_rates.items() if self.tax_enabled[city].isChecked()})
+        return rates
 
     def prestige_value(self) -> dict[str, Any]:
         return {
@@ -397,7 +469,7 @@ class TradePage(QWidget):
             "book_policy": "优先满仓：忽略单本收益阈值，在整趟用书额度内补足盈利商品；首次满仓后停止加书，浪费不能超过上限，额度不足或超限时允许未满仓。收益优先仍受单本收益阈值限制。",
             "book_waste_limit": "仅优先满仓生效。浪费指用书后符合交易条件商品的可购总量超过货舱容量、未装入的货物数量；0 表示不允许浪费货物。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
-            "target_profit": "填写预计目标收益，以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
+            "target_profit": "填写预计净收益目标，已计入买入税与卖出利润税。以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
             "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
             "reposition_to_route": "当前城市不是固定线路起点时先导航过去；关闭则报错停止，导航疲劳计入本次预算。",
             "auto_sparkling_water": "到达最后一个符合条件的城市时按实际疲劳和剩余免费次数喝水；运行前需刷新恢复数据。",
@@ -583,9 +655,9 @@ class TradePage(QWidget):
         self.target_profit.setDecimals(4)
         self.target_profit.setSuffix(" 万")
         self.target_profit.setSpecialValueText("请填写目标收益")
-        self.target_profit_enabled = QCheckBox("设置预计收益目标", content)
-        self.target_profit_enabled.setToolTip("在疲劳上限内，寻找达到预计收益目标的最低疲劳路线。")
-        self.target_label = QLabel("目标收益", content)
+        self.target_profit_enabled = QCheckBox("设置预计净收益目标", content)
+        self.target_profit_enabled.setToolTip("在疲劳上限内，寻找达到预计净收益目标的最低疲劳路线；已计入买入税与卖出利润税。")
+        self.target_label = QLabel("目标净收益", content)
         self.end_city_notice = QLabel(
             "终点约束暂不可编辑，已保留原有选择。",
             content,
@@ -714,13 +786,15 @@ class TradePage(QWidget):
         investment_form.addRow("目标等级", self.trade_goods_investment_mode)
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
         self.auto_trailer = QCheckBox("自动拖车", content)
+        self.allow_stale_market = QCheckBox("允许历史行情", content)
+        self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算和客运不受此开关影响。")
         self.additional_options = QWidget(content)
         options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)
         options_layout.setSpacing(8)
         for index, button in enumerate((self.use_fatigue_medicine,
                        self.auto_cape_island_investment, self.auto_rubbish_recycling,
-                       self.auto_trade_goods_investment, self.auto_trailer)):
+                       self.auto_trade_goods_investment, self.auto_trailer, self.allow_stale_market)):
             button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
             options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
         recovery_layout.addWidget(self.additional_options)
@@ -766,6 +840,7 @@ class TradePage(QWidget):
         self.black_moon_settings_button.clicked.connect(self._open_black_moon_settings)
         recovery_layout.addWidget(self.medicine_panel)
         if self.preview_mode:
+            self.allow_stale_market.hide()
             self.auto_trailer.hide()
             self.trailer_panel.hide()
             self.black_moon_panel.hide()
@@ -906,7 +981,7 @@ class TradePage(QWidget):
         if self._busy:
             book_note += " 任务运行中，暂不可修改。"
         self.book_strategy_note.setText(book_note)
-        self.target_profit.setToolTip("在疲劳上限内，寻找达到预计收益目标的最低疲劳路线。")
+        self.target_profit.setToolTip("在疲劳上限内，寻找达到预计净收益目标的最低疲劳路线；已计入买入税与卖出利润税。")
         route = [str(self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole)) for i in range(self.fixed_route.count())]
         description = "至少选择两个城市。" if len(route) < 2 else (
             "闭环，可循环；允许最后部分圈，末站清仓。" if route[0] == route[-1]
@@ -1052,7 +1127,8 @@ class TradePage(QWidget):
         self.raise_step = self._spin(1, 2000)
         self._city_prestige_default = 20
         self._city_prestige_overrides: dict[str, int] = {}
-        self.city_prestige_button = QPushButton("设置城市声望", panel)
+        self._city_tax_rates_bps: dict[str, int] = {}
+        self.city_prestige_button = QPushButton("设置声望与税率", panel)
         self.city_prestige_button.clicked.connect(self._edit_city_prestige)
         self.product_unlock_button = QPushButton("设置商品解锁", panel)
         self.product_unlock_button.clicked.connect(self._edit_product_unlocks)
@@ -1065,7 +1141,7 @@ class TradePage(QWidget):
         form.add_field("砍价幅度(bps)", self.bargain_step)
         form.add_field("抬价成功率(bps)", self.raise_rates)
         form.add_field("抬价幅度(bps)", self.raise_step)
-        form.add_field("城市声望", self.city_prestige_button)
+        form.add_field("声望 / 税率", self.city_prestige_button)
         form.add_field("商品解锁", self.product_unlock_button)
         if not self.preview_mode:
             form.add_field("到站等待上限", self.arrival_timeout_minutes)
@@ -1155,6 +1231,9 @@ class TradePage(QWidget):
         heading.addWidget(self.stage_detail)
         layout.addLayout(heading)
 
+        self.market_warning_label = MarketWarningLabel(panel)
+        layout.addWidget(self.market_warning_label)
+
         self.preview_result_hint = QLabel(panel)
         self.preview_result_hint.setProperty("status", "warning")
         self.preview_result_hint.setWordWrap(True)
@@ -1164,8 +1243,8 @@ class TradePage(QWidget):
         self.route_tree = QTreeWidget(panel)
         self.route_tree.setMinimumHeight(160)
         self.route_tree.setColumnCount(6)
-        self.route_tree.setHeaderLabels(["路线", "计划买入", "疲劳 / 书", "协商", "预计收益", "状态"])
-        self.route_tree.setRootIsDecorated(False)
+        self.route_tree.setHeaderLabels(["路线", "计划买入", "疲劳 / 书", "协商", "预计净收益", "状态"])
+        self.route_tree.setRootIsDecorated(True)
         self.route_tree.setAlternatingRowColors(True)
         self.route_tree.setUniformRowHeights(False)
         self.route_tree.setIconSize(QSize(18, 18))
@@ -1197,6 +1276,9 @@ class TradePage(QWidget):
         result_title = QLabel("方案概览", self.result_band)
         result_title.setObjectName("sectionTitle")
         result_layout.addWidget(result_title)
+        self.net_profit_note = QLabel(FREIGHT_NET_PROFIT_NOTE, self.result_band)
+        self.net_profit_note.setWordWrap(True)
+        result_layout.addWidget(self.net_profit_note)
         grid = QGridLayout()
         grid.setHorizontalSpacing(28)
         grid.setVerticalSpacing(6)
@@ -1206,7 +1288,7 @@ class TradePage(QWidget):
             ("status", "方案状态"),
             ("trade_mode", "货运模式"),
             ("planning_status", "规划状态"),
-            ("expected_profit", "预计收益"),
+            ("expected_profit", "预计净收益"),
             ("fatigue", "预计疲劳"),
             ("reposition_fatigue", "预计定位疲劳（包含在总疲劳内）"),
             ("actual_profit", "实际收益（已确认）"),
@@ -1323,20 +1405,30 @@ class TradePage(QWidget):
         dialog = CityPrestigeDialog(
             default_level=self._city_prestige_default,
             overrides=self._city_prestige_overrides,
+            tax_rates_bps=self._city_tax_rates_bps,
             parent=self,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
+            dialog.deleteLater()
             return
         prestige = dialog.prestige_value()
+        taxes = dialog.tax_rates_value()
+        dialog.deleteLater()
+        saved_inputs = self._load_inputs()
+        saved_inputs["city_prestige"] = prestige
+        saved_inputs["city_tax_rates_bps"] = taxes
+        try:
+            self._save_inputs(saved_inputs)
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "保存失败", str(exc))
+            return
         self._city_prestige_default = int(prestige["default"])
         self._city_prestige_overrides = {
             str(city_id): int(value)
             for city_id, value in dict(prestige["overrides"]).items()
         }
+        self._city_tax_rates_bps = dict(taxes)
         self._update_city_prestige_button()
-        saved_inputs = self._load_inputs()
-        saved_inputs["city_prestige"] = self._city_prestige_payload()
-        self._save_inputs(saved_inputs)
         self._on_planning_inputs_changed()
 
     def _city_prestige_payload(self) -> dict[str, Any]:
@@ -1347,10 +1439,11 @@ class TradePage(QWidget):
 
     def _update_city_prestige_button(self) -> None:
         count = len(self._city_prestige_overrides)
-        suffix = f"（{count} 个自定义）" if count else ""
-        self.city_prestige_button.setText(f"设置城市声望{suffix}")
+        taxes = len(self._city_tax_rates_bps)
+        suffix = f"（税率 {taxes} 城）" if taxes else ""
+        self.city_prestige_button.setText(f"设置声望与税率{suffix}")
         self.city_prestige_button.setToolTip(
-            f"默认声望：{self._city_prestige_default}；自定义城市：{count}"
+            f"默认声望：{self._city_prestige_default}；自定义声望：{count} 城；实际税率覆盖：{taxes} 城。覆盖税率不再叠加声望减税。"
         )
 
     def _edit_product_unlocks(self) -> None:
@@ -1496,6 +1589,7 @@ class TradePage(QWidget):
         for city, button in self.end_city_checks.items():
             button.setChecked(city in required_end_city_ids)
         prestige = values.get("city_prestige") if isinstance(values.get("city_prestige"), Mapping) else {}
+        self._city_tax_rates_bps = validate_city_tax_rates_bps(values.get("city_tax_rates_bps", {}))
         self._city_prestige_default = max(1, min(int(prestige.get("default", 20)), 20))
         overrides = prestige.get("overrides") if isinstance(prestige.get("overrides"), Mapping) else {}
         self._city_prestige_overrides = {
@@ -1527,6 +1621,7 @@ class TradePage(QWidget):
         self._sync_bento_type_checks()
         self.base_fatigue_reserve.setValue(self._input_integer(values, "base_fatigue_reserve", 200))
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
+        self.allow_stale_market.setChecked(validate_allow_stale_market(values.get("allow_stale_market", False)))
         interval = validate_pickup_click_interval(values.get("auto_pickup_interval_sec", 0.5))
         blocked = self.auto_pickup_interval_sec.blockSignals(True)
         self.auto_pickup_interval_sec.setValue(interval)
@@ -1608,6 +1703,7 @@ class TradePage(QWidget):
             "available_city_ids": selected_city_ids,
             "required_end_city_ids": required_end_city_ids,
             "city_prestige": self._city_prestige_payload(),
+            "city_tax_rates_bps": dict(self._city_tax_rates_bps),
             "product_unlocks": self._product_unlock_payload(),
         }
         if mode == "fixed" or _draft:
@@ -1645,6 +1741,7 @@ class TradePage(QWidget):
         })
         if not self.preview_mode:
             inputs.update(self._black_moon_values())
+            inputs["allow_stale_market"] = self.allow_stale_market.isChecked()
             count = self._trailer_count() if self.auto_trailer.isChecked() else self._last_trailer_count
             inputs.update(auto_trailer=self.auto_trailer.isChecked(),
                           trailer_daily_first_n=count, trailer_payment=self.trailer_payment.currentData())
@@ -1847,6 +1944,8 @@ class TradePage(QWidget):
         return ""
 
     def begin_run(self, payload: Mapping[str, Any]) -> None:
+        self.market_warning_label.clear()
+        self.market_warning_label.hide()
         self._active_mode = "run"
         self._current_cid = str(payload.get("cid") or extract_run_id(payload))
         self._progress = TradeProgressState(cid=self._current_cid)
@@ -1866,6 +1965,8 @@ class TradePage(QWidget):
         self._refresh_debug()
 
     def begin_preview(self, payload: Mapping[str, Any]) -> None:
+        self.market_warning_label.clear()
+        self.market_warning_label.hide()
         if self.tabs is not None:
             self.tabs.setCurrentWidget(self.execution_panel)
         self.route_tree.clear()
@@ -1900,6 +2001,7 @@ class TradePage(QWidget):
         self._progress = reduce_trade_progress(self._progress, event, expected_cid=self._current_cid)
         if self._progress.sequence == previous_sequence:
             return
+        self._update_market_notice(vars(self._progress))
         self.stage_title.setText(self._progress.stage_label)
         self.stage_detail.setText(self._progress_detail())
         if self._progress.current_city:
@@ -2075,6 +2177,7 @@ class TradePage(QWidget):
             self.base_fatigue_reserve,
             self.auto_pickup,
             self.auto_trailer,
+            self.allow_stale_market,
             self.auto_cape_island_investment,
             self.auto_trade_goods_investment,
             self.trade_goods_investment_panel,
@@ -2117,6 +2220,15 @@ class TradePage(QWidget):
     def _form_error(self) -> str:
         if not self._form_ready:
             return ""
+        currency_error = freight_currency_error({
+            "trade_mode": self.trade_mode(),
+            "available_city_ids": self.selected_city_ids(),
+            "required_end_city_ids": [] if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()],
+            "fixed_route_city_ids": [self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.fixed_route.count())],
+            "start_city_id": self.start_city.currentData() if self.preview_mode else "",
+        })
+        if currency_error:
+            return currency_error
         if not self.preview_mode and self.auto_trailer.isChecked():
             try:
                 self._trailer_count()
@@ -2199,8 +2311,15 @@ class TradePage(QWidget):
             item.setToolTip(1, "\n".join([products, *notes]))
             item.setToolTip(2, "\n".join([resources, *notes]))
             item.setToolTip(4, detail)
-            item.setTextAlignment(5, Qt.AlignmentFlag.AlignCenter)
             self.route_tree.addTopLevelItem(item)
+            settlement_lines = freight_settlement_lines(leg)
+            if settlement_lines:
+                details = "\n".join(settlement_lines)
+                item.setToolTip(4, details)
+                child = QTreeWidgetItem([details])
+                item.addChild(child)
+                child.setFirstColumnSpanned(True)
+            item.setTextAlignment(5, Qt.AlignmentFlag.AlignCenter)
         self._apply_route_statuses()
 
     @staticmethod
@@ -2265,6 +2384,7 @@ class TradePage(QWidget):
             self.route_tree.scrollToItem(active_item)
 
     def _render_planning_summary(self, summary: Mapping[str, Any]) -> None:
+        self._update_market_notice(summary)
         self._render_overview(summary, route=self._progress.route)
         stop_text = self._planning_stop_text(summary)
         if stop_text:
@@ -2277,7 +2397,15 @@ class TradePage(QWidget):
             "no_further_trade_within_budget": "预算内没有后续盈利交易，结束路线；不追加纯空载尾段消耗疲劳。",
         }.get(str(summary.get("stop_reason") or ""), "")
 
+    def _update_market_notice(self, values: Mapping[str, Any]) -> None:
+        if not values.get("market_source"):
+            return
+        text = market_fallback_notice(values)
+        self.market_warning_label.setText(text)
+        self.market_warning_label.setVisible(bool(text))
+
     def _render_result(self, summary: Mapping[str, Any]) -> None:
+        self._update_market_notice(summary)
         status = str(summary.get("status") or "")
         self.result_values["status"].setText(self._status_label(status))
         self.result_values["status"].setProperty(

@@ -187,6 +187,33 @@ auto_combined_commerce_pc:
               - '19'
               - '20'
               - '21'
+          city_tax_rates_bps:
+            name: city_tax_rates_bps
+            type: dict
+            required: false
+            default: {}
+            properties:
+              "1": {name: city_1_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "2": {name: city_2_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "3": {name: city_3_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "4": {name: city_4_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "5": {name: city_5_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "6": {name: city_6_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "7": {name: city_7_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "8": {name: city_8_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "9": {name: city_9_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "10": {name: city_10_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "11": {name: city_11_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "12": {name: city_12_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "13": {name: city_13_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "14": {name: city_14_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "15": {name: city_15_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "16": {name: city_16_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "17": {name: city_17_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "18": {name: city_18_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "19": {name: city_19_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "20": {name: city_20_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+              "21": {name: city_21_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
           city_prestige:
             name: city_prestige
             type: dict
@@ -390,6 +417,11 @@ auto_combined_commerce_pc:
             max: 20
           auto_pickup:
             name: auto_pickup
+            type: boolean
+            required: false
+            default: false
+          allow_stale_market:
+            name: allow_stale_market
             type: boolean
             required: false
             default: false
