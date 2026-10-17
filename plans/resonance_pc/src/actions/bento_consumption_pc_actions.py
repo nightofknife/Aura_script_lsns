@@ -27,6 +27,8 @@ from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
 
 
 ROOT = Path(__file__).resolve().parents[2]
+_CONFIRM_USE_MAX_CLICKS = 3
+_CONFIRM_USE_INTERVAL_SEC = 1.0
 
 
 class BentoConsumptionError(RuntimeError):
@@ -310,6 +312,59 @@ class BentoConsumptionSession:
             self.requires_refresh = False
         logger.info("[BentoConsumption] portion=%s phase=%s meal=%s", len(self.items), phase, meal)
 
+    def _wait_consumption_effect(self):
+        timeout = self.layout["animation_timeout_sec"]
+        deadline = min(self.deadline, time.monotonic() + timeout)
+        clicks = 0
+        next_click_at = 0.0
+        confirmation_matches = 0
+        effect_seen = False
+
+        def effect():
+            nonlocal clicks, next_click_at, confirmation_matches, effect_seen
+            if self.match("effect")["found"]:
+                effect_seen = True
+                return True
+            # Even one observed effect permanently closes the confirmation path.
+            if effect_seen:
+                return False
+            if time.monotonic() < next_click_at:
+                confirmation_matches = 0
+                return False
+            confirmation = self.match("confirm_use")
+            if not confirmation["found"]:
+                confirmation_matches = 0
+                return False
+            confirmation_matches += 1
+            if confirmation_matches < 2:
+                return False
+            # Recheck the transition before input; an effect can arrive between probes.
+            if self.match("effect")["found"]:
+                effect_seen = True
+                return True
+            confirmation = self.match("confirm_use")
+            if not confirmation["found"]:
+                confirmation_matches = 0
+                return False
+            self.guard()
+            if time.monotonic() >= deadline:
+                return False
+            if clicks >= _CONFIRM_USE_MAX_CLICKS:
+                self.fail("bento_confirmation_not_applied",
+                          "Bento use confirmation remained open after three clicks")
+            self.stage = "confirm_use"
+            point = confirmation["center"]
+            logger.info("[BentoConsumption] phase=confirm_use_click attempt=%s/%s point=%s reason=%s",
+                        clicks + 1, _CONFIRM_USE_MAX_CLICKS, point,
+                        "confirmation_still_open" if clicks else "stable_confirmation")
+            self.click(point)
+            clicks += 1
+            confirmation_matches = 0
+            next_click_at = time.monotonic() + _CONFIRM_USE_INTERVAL_SEC
+            return False
+
+        self.wait(effect, "consumption effect", timeout, confirmations=2)
+
     def consume(self, meal):
         point = self.locate(meal)
         self.click(point)
@@ -332,19 +387,7 @@ class BentoConsumptionSession:
             self.fail("bento_target_changed", "Use button disappeared before clicking")
         self.click(use["center"])
         self.page = "transition"
-        confirmed = False
-        def effect():
-            nonlocal confirmed
-            if self.match("effect")["found"]:
-                return True
-            if not confirmed:
-                confirmation = self.match("confirm_use")
-                if confirmation["found"]:
-                    self.stage = "confirm_use"
-                    self.click(confirmation["center"])
-                    confirmed = True
-            return False
-        self.wait(effect, "consumption effect", self.layout["animation_timeout_sec"], confirmations=2)
+        self._wait_consumption_effect()
         self.page = "effect"
         self.stage = "confirm_effect"
         self.record(meal, "consumption_confirmed")
