@@ -1,7 +1,7 @@
 fill_product_workshop_staff_pc:
   meta:
     title: 生产车间补人
-    description: 从普通整顿中心总览进入指定生产车间，车间编辑、快速编队、一键选中、确认、返回触发保存、应用，再次返回总览；全程使用模板。
+    description: 从总览进入指定车间，编辑、快速编队后识别一键选中就点击并确认保存；入口已显示一键取消则直接退出。全程模板，不识别人数。
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -82,14 +82,7 @@ fill_product_workshop_staff_pc:
     status: "{{ nodes.finish.output.status }}"
     reason: "{{ nodes.finish.output.reason }}"
     room_name: "{{ nodes.finish.output.room_name }}"
-    initial_count: "{{ nodes.finish.output.initial_count }}"
-    selected_count: "{{ nodes.finish.output.selected_count }}"
-    final_count: "{{ nodes.finish.output.final_count }}"
-    capacity: "{{ nodes.finish.output.capacity }}"
-    added_count: "{{ nodes.finish.output.added_count }}"
-    selected_added_count: "{{ nodes.finish.output.selected_added_count }}"
-    remaining_count: "{{ nodes.finish.output.remaining_count }}"
-    count_scope: "{{ nodes.finish.output.count_scope }}"
+    selection_action: "{{ nodes.finish.output.selection_action }}"
     save_verified: "{{ nodes.finish.output.save_verified }}"
     applied: "{{ nodes.finish.output.applied }}"
     returned_to_overview: "{{ nodes.finish.output.returned_to_overview }}"

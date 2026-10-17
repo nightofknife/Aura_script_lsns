@@ -68,7 +68,8 @@ def test_blank_normalized_shape_has_no_evidence(whole):
 
 def test_actual_class_confidence_preserved(monkeypatch):
     fixtures=Path(__file__).parents[1]/'fixtures/deep_dive_anchor'
-    paths=list(fixtures.glob('whole_warm*.png'))+list((fixtures/'orange_support_17').glob('orange_D22*.png'))
+    native=Path(s.__file__).resolve().parents[2]/'templates/deep_dive_layout'
+    paths=list(native.glob('icon_*eye*.png'))+list(fixtures.glob('whole_warm*.png'))+list((fixtures/'orange_support_17').glob('orange_D22*.png'))
     rgb_cases=[]
     for path in paths:
         rgb=cv2.cvtColor(cv2.imread(str(path)),cv2.COLOR_BGR2RGB)

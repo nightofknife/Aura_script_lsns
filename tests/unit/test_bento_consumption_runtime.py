@@ -341,7 +341,7 @@ def test_consumption_does_not_read_or_check_fatigue(tmp_path, monkeypatch, clock
     store.set("user-info.json", ["status", "fatigue"], {"current": 0, "max": 600})
     assert not hasattr(session, "fatigue") and not hasattr(session, "read_fatigue")
     def names_only(roi):
-        assert roi in ("detail", "confirm"), "Fatigue must not be OCR-read"
+        assert roi == "detail", "Only the selected meal detail may be OCR-read"
         return "铁盟工作餐"
     monkeypatch.setattr(session, "text", names_only)
     assert session.consume(chosen)
@@ -439,7 +439,7 @@ def test_consumption_uses_catalog_amount_without_recovery_ocr(tmp_path, monkeypa
     chosen = meal("love_bentos")
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
     def names_only(roi):
-        assert roi in ("detail", "confirm"), "Recovery value must not be OCR-read"
+        assert roi == "detail", "Only the selected meal detail may be OCR-read"
         return chosen["food_name"]
     monkeypatch.setattr(session, "text", names_only)
     assert session.consume(chosen)
@@ -469,7 +469,7 @@ def test_optional_confirmation_waits_for_template_without_popup_ocr(tmp_path, mo
     monkeypatch.setattr(session, "text", text)
     monkeypatch.setattr(session, "match", match)
     assert session.consume(chosen)
-    assert len(confirmation_probes) == 2
+    assert len(confirmation_probes) >= 3
     assert app.used == 1
     assert sum(point == [30, 30] for _, point in app.clicks) == 1
 
@@ -886,3 +886,192 @@ def test_low_confidence_detail_ocr_is_rejected(tmp_path):
     app = NS(capture=lambda rect: NS(success=True, image=np.zeros((rect[3], rect[2], 3), dtype=np.uint8)))
     session = bento.BentoConsumptionSession(app, ocr, None, PersistentDataService(tmp_path), layout, {}, {})
     assert session.text([0, 0, 100, 24]) == ""
+
+
+def confirmation_session(tmp_path, chosen, monkeypatch, clock, *, misses=0, **kwargs):
+    session, app, store = replay_session(tmp_path, chosen, monkeypatch, **kwargs)
+    session.layout["animation_timeout_sec"] = 6.0
+    confirmation_clicks = []
+    original_click = app.click
+
+    def click(x, y):
+        if app.page == "confirm" and [x, y] == [30, 30]:
+            confirmation_clicks.append(clock[0])
+            if len(confirmation_clicks) <= misses:
+                app.clicks.append((app.page, [x, y]))
+                return
+        original_click(x, y)
+
+    monkeypatch.setattr(app, "click", click)
+    return session, app, store, confirmation_clicks
+
+
+@pytest.mark.parametrize("kind", ["work_meals", "love_bentos"])
+@pytest.mark.parametrize("misses", [1, 2])
+def test_confirmation_retries_missed_clicks_and_deducts_only_once(
+        tmp_path, monkeypatch, clock, kind, misses):
+    chosen = meal(kind)
+    session, app, store, clicks = confirmation_session(
+        tmp_path, chosen, monkeypatch, clock, misses=misses)
+    count_key = "available_count" if kind == "work_meals" else "count"
+    before = store.read("user-info.json")["recovery"][kind][count_key]
+
+    assert session.consume(chosen)
+
+    assert len(clicks) == misses + 1
+    assert all(b - a >= 1.0 for a, b in zip(clicks, clicks[1:]))
+    assert app.used == 1 and app.page == "cabinet"
+    assert len(session.items) == 1 and session.items[0]["completed"]
+    saved = store.read("user-info.json")
+    assert saved["recovery"][kind][count_key] == before - 1
+    assert not saved["metadata"]["bento_consumption"]["requires_refresh"]
+
+
+def test_confirmation_stops_after_three_ineffective_clicks_without_consumption(tmp_path, monkeypatch, clock):
+    chosen = meal()
+    session, app, store, clicks = confirmation_session(
+        tmp_path, chosen, monkeypatch, clock, misses=99)
+    before = store.read("user-info.json")["recovery"]["work_meals"]["available_count"]
+
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(chosen)
+
+    assert error.value.code == "bento_confirmation_not_applied"
+    assert len(clicks) == 3 and app.used == 1 and app.page == "confirm"
+    assert all(b - a >= 1.0 for a, b in zip(clicks, clicks[1:]))
+    assert clock[0] - clicks[-1] >= 1.0
+    saved = store.read("user-info.json")
+    assert saved["recovery"]["work_meals"]["available_count"] == before
+    assert saved["metadata"]["bento_consumption"]["phase"] == "consumption_pending"
+    assert session.requires_refresh and not session.items[0]["consumed"]
+
+
+@pytest.mark.parametrize("misses", [0, 1, 2])
+def test_closed_confirmation_without_effect_does_not_repeat_use_or_extend_timeout(
+        tmp_path, monkeypatch, clock, misses):
+    session, app, store, clicks = confirmation_session(
+        tmp_path, meal(), monkeypatch, clock, misses=misses, effect=False)
+
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(meal())
+
+    assert error.value.code == "bento_transition_timeout"
+    assert len(clicks) == misses + 1 and app.used == 1 and app.page == "animation"
+    assert clock[0] == pytest.approx(.1 + 6.0, abs=.15)
+    assert session.requires_refresh and not session.items[0]["consumed"]
+
+
+def test_one_effect_observation_permanently_disables_confirmation_retries(tmp_path, monkeypatch, clock):
+    session, app, store, clicks = confirmation_session(tmp_path, meal(), monkeypatch, clock)
+    original = session.match
+
+    def match(key, roi=None):
+        result = original(key, roi)
+        if key == "effect" and result["found"]:
+            app.page = "confirm"  # Effect is seen once, then the observation becomes ambiguous.
+        return result
+
+    monkeypatch.setattr(session, "match", match)
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(meal())
+
+    assert error.value.code == "bento_transition_timeout"
+    assert len(clicks) == 1 and app.used == 1
+    assert not session.items[0]["consumed"]
+
+
+@pytest.mark.parametrize("arriving_page", ["effect", "animation"])
+def test_confirmation_rechecks_for_late_transition_before_retry(
+        tmp_path, monkeypatch, clock, arriving_page):
+    session, app, store, clicks = confirmation_session(
+        tmp_path, meal(), monkeypatch, clock, misses=99)
+    original = session.match
+    retry_probes = []
+
+    def match(key, roi=None):
+        value = original(key, roi)
+        if key == "confirm_use" and clicks:
+            retry_probes.append(True)
+            if len(retry_probes) == 2:
+                app.page = arriving_page
+        return value
+
+    monkeypatch.setattr(session, "match", match)
+    if arriving_page == "effect":
+        assert session.consume(meal())
+    else:
+        with pytest.raises(bento.BentoConsumptionError) as error:
+            session.consume(meal())
+        assert error.value.code == "bento_transition_timeout"
+    assert len(clicks) == 1 and app.used == 1
+
+
+@pytest.mark.parametrize("kind", ["work_meals", "love_bentos"])
+def test_confirmation_and_retries_never_read_popup_text(tmp_path, monkeypatch, clock, kind):
+    chosen = meal(kind)
+    session, app, store, clicks = confirmation_session(
+        tmp_path, chosen, monkeypatch, clock, misses=2)
+    original = session.text
+
+    def text(roi):
+        assert app.page == "cabinet" and roi == "detail", "Confirmation must not read popup text"
+        return original(roi)
+
+    monkeypatch.setattr(session, "text", text)
+    assert session.consume(chosen)
+    assert len(clicks) == 3 and app.used == 1 and session.items[0]["completed"]
+
+
+def test_confirmation_retry_cancellation_prevents_further_input(tmp_path, monkeypatch, clock):
+    session, app, store, clicks = confirmation_session(
+        tmp_path, meal(), monkeypatch, clock, misses=99)
+    monkeypatch.setattr(bento, "is_current_task_cancel_requested", lambda: bool(clicks))
+
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(meal())
+
+    assert error.value.code == "bento_cancelled"
+    assert len(clicks) == 1 and app.used == 1 and app.page == "confirm"
+    assert not session.items[0]["consumed"]
+
+
+def test_slow_confirmation_probe_cannot_click_past_original_deadline(tmp_path, monkeypatch, clock):
+    session, app, store, clicks = confirmation_session(tmp_path, meal(), monkeypatch, clock, misses=99)
+    original = session.match
+    retry_probes = []
+
+    def match(key, roi=None):
+        if key == "confirm_use" and clicks:
+            retry_probes.append(True)
+            if len(retry_probes) == 2:
+                clock[0] += session.layout["animation_timeout_sec"]
+        return original(key, roi)
+
+    monkeypatch.setattr(session, "match", match)
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(meal())
+
+    assert error.value.code == "bento_transition_timeout"
+    assert len(clicks) == 1 and app.used == 1
+
+
+def test_cancellation_during_confirmation_probe_prevents_retry(tmp_path, monkeypatch, clock):
+    session, app, store, clicks = confirmation_session(
+        tmp_path, meal(), monkeypatch, clock, misses=99)
+    original = session.match
+    retry_probes = []
+    cancelled = [False]
+
+    def match(key, roi=None):
+        if key == "confirm_use" and clicks:
+            retry_probes.append(True)
+            cancelled[0] = len(retry_probes) >= 2
+        return original(key, roi)
+
+    monkeypatch.setattr(session, "match", match)
+    monkeypatch.setattr(bento, "is_current_task_cancel_requested", lambda: cancelled[0])
+    with pytest.raises(bento.BentoConsumptionError) as error:
+        session.consume(meal())
+
+    assert error.value.code == "bento_cancelled"
+    assert len(clicks) == 1 and app.used == 1 and not session.items[0]["consumed"]

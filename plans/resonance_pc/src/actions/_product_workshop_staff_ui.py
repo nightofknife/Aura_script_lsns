@@ -8,7 +8,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from . import _raw_workshop_digits as digits
 from . import _raw_workshop_ui as raw_ui
 from . import _reforming_center_room_templates as rooms
 
@@ -25,111 +24,90 @@ def validate_assets():
     data = catalog()
     if data.get("reference_client") != [1280, 720]:
         raise ValueError("Production staffing requires 1280x720 templates")
-    required = {"room_1_title", "room_2_title", "quick", "selection_marker",
-                "select_all", "cancel_all", "confirm", "back", "save_prompt", "apply", "discard"}
+    required = {"room_1_title", "room_2_title", "quick",
+                "select_all", "cancel_all", "confirm", "back", "apply", "discard"}
     if not required.issubset(data["templates"]):
         raise ValueError("Incomplete production staffing template catalog")
     for spec in data["templates"].values():
-        rooms._asset(spec["image"])
-    for style in ("list", "selection"):
-        digits.glyphs(style)
-    _editor_bank()
-    for name in ("selection", "editor"):
-        x, y, w, h = data["counters"][name]["region"]
-        if not (0 <= x < x+w <= 1280 and 0 <= y < y+h <= 720):
-            raise ValueError("Counter region outside client")
+        for variant in (spec, *spec.get("variants", [])):
+            rooms._asset(variant["image"])
     return True
 
 
 def control(image, name):
     spec = catalog()["templates"].get(name)
-    return rooms.match_asset(image, spec) if spec else None
+    if not spec:
+        return None
+    hits = [{**hit,"anchor_bbox":variant.get("bbox"),"click":variant.get("click")}
+            for variant in (spec, *spec.get("variants", []))
+            if (hit := rooms.match_asset(image, variant)) is not None]
+    if not hits:
+        return None
+    hit = max(hits, key=lambda value: value["score"])
+    if name in {"room_1_title", "room_2_title"}:
+        # Rich headers share a large icon/background. Verify the numbered part
+        # within the full images as well, so shared pixels cannot identify a room.
+        scores = {}
+        for key in ("room_1_title", "room_2_title"):
+            item = catalog()["templates"][key]
+            scores[key] = max(_number_score(image, hit, variant)
+                              for variant in (item, *item.get("variants", [])))
+        other = "room_2_title" if name == "room_1_title" else "room_1_title"
+        if scores[name] < spec["number_min_score"] or scores[name]-scores[other] < spec["number_min_margin"]:
+            return None
+    return hit
+
+
+def _number_score(image, hit, spec):
+    x,y,w,h = spec["number_region"]
+    target = rooms._asset(spec["image"])[y:y+h,x:x+w]
+    sx,sy = hit["rect"][0]+x,hit["rect"][1]+y
+    source = image[max(0,sy-2):min(720,sy+h+2), max(0,sx-2):min(1280,sx+w+2)]
+    if source.shape[0] < h or source.shape[1] < w:
+        return -1
+    scores = cv2.matchTemplate(cv2.cvtColor(source,cv2.COLOR_BGR2GRAY),
+                               cv2.cvtColor(target,cv2.COLOR_BGR2GRAY), cv2.TM_CCOEFF_NORMED)
+    scores[~np.isfinite(scores)] = -1
+    return float(scores.max())
 
 
 def point(image, name):
     hit = control(image, name)
     if hit is None:
         return None
-    spec = catalog()["templates"][name]
     # Native text can be off-center inside the clickable control. Preserve its
     # measured offset when the matching text moves within the search region.
-    if "click" in spec and "bbox" in spec:
-        x, y, _, _ = spec["bbox"]
-        return [spec["click"][0]+hit["rect"][0]-x,
-                spec["click"][1]+hit["rect"][1]-y]
+    bbox, click = hit.get("anchor_bbox"),hit.get("click")
+    if click is not None and bbox is not None:
+        x, y, _, _ = bbox
+        return [click[0]+hit["rect"][0]-x,
+                click[1]+hit["rect"][1]-y]
     return hit["center"]
-
-
-def _integer(image, spec):
-    x, y, w, h = spec["region"]
-    ink = digits.foreground(image[y:y+h, x:x+w])
-    boxes = digits.segment(ink) if ink is not None else []
-    if not 1 <= len(boxes) <= 2:
-        return None
-    values = [_editor_digit(ink, box) for box in boxes]
-    if any(value is None or value["character"] not in "0123456789"
-           or value["score"] < .75 or value["margin"] < .04 for value in values):
-        return None
-    text = "".join(value["character"] for value in values)
-    if len(text) > 1 and text.startswith("0"):
-        return None
-    return int(text)
-
-
-@lru_cache(maxsize=1)
-def _editor_bank():
-    values = []
-    for item in catalog()["editor_digits"]:
-        path = (PLAN / item["image"]).resolve()
-        if not path.is_relative_to(PLAN.resolve()):
-            raise ValueError("Digit path must stay inside the plan")
-        ink = cv2.imdecode(np.fromfile(path, np.uint8), cv2.IMREAD_GRAYSCALE)
-        boxes = digits.segment(ink) if ink is not None else []
-        if len(boxes) != 1:
-            raise ValueError("Expected one native editor digit")
-        sample = digits.normalize(ink, boxes[0])
-        if sample is None:
-            raise ValueError("Invalid native editor digit")
-        values.append((item["character"], sample))
-    if {key for key, _ in values} != set("0123456789"):
-        raise ValueError("Incomplete editor digit bank")
-    return values
-
-
-def _editor_digit(ink, box):
-    sample = digits.normalize(ink, box)
-    if sample is None:
-        return None
-    scores = {}
-    for letter, target in _editor_bank():
-        score = max(float(2*np.minimum(sample, np.roll(target, (dy, dx), axis=(0, 1))).sum()/max(float(sample.sum()+target.sum()), 1e-6)) for dy in (-1, 0, 1) for dx in (-1, 0, 1))
-        scores[letter] = max(scores.get(letter, 0), score)
-    ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-    return {"character": ranked[0][0], "score": ranked[0][1], "margin": ranked[0][1]-ranked[1][1]}
 
 
 def observe(image, room_name):
     if room_name not in ROOMS or not isinstance(image, np.ndarray) or image.dtype != np.uint8 or image.shape != (720, 1280, 3):
         return None
     # Foreground modals take precedence over the still-visible page underneath.
-    prompt = [control(image, key) for key in ("save_prompt", "apply", "discard")]
+    prompt = [control(image, key) for key in ("apply", "discard")]
     if any(prompt):
         return {"page": "save_prompt"} if all(prompt) else None
-    if control(image, "selection_marker"):
-        if not control(image, "confirm"):
-            return None
-        spec = catalog()["counters"]["selection"]
-        count = digits.read_fraction(image, spec["region"], style=spec.get("style", "selection"))
-        if count is None:
-            return {"page": "selection", "count": None, "button": None}
-        # A cancel button alone is never evidence of a full list.
-        all_hit, cancel_hit = control(image, "select_all"), control(image, "cancel_all")
-        button = "select_all" if all_hit and not cancel_hit else "cancel_all" if cancel_hit and not all_hit else None
-        return {"page": "selection", "count": count["current"], "capacity": count["capacity"], "button": button}
+    all_hit, cancel_hit = control(image, "select_all"), control(image, "cancel_all")
+    if all_hit or cancel_hit:
+        # Both full blue buttons share most pixels. The better text match must
+        # win clearly; ambiguous buttons never authorize either operation.
+        if all_hit and cancel_hit:
+            if abs(all_hit["score"]-cancel_hit["score"]) < .01:
+                return None
+            button = "select_all" if all_hit["score"] > cancel_hit["score"] else "cancel_all"
+        else:
+            button = "select_all" if all_hit else "cancel_all"
+        return {"page":"selection", "button":button}
+    if control(image, "confirm"):
+        return None
     title = "room_1_title" if room_name == ROOMS[0] else "room_2_title"
     if control(image, title) and control(image, "quick"):
-        count = _integer(image, catalog()["counters"]["editor"])
-        return {"page": "editor", "count": count}
+        return {"page": "editor"}
     spec = rooms.load_catalog()["rooms"][room_name]
     if rooms.destination_confirmed(image, spec):
         return {"page": "product_workshop"}
@@ -144,4 +122,8 @@ def edit_point(image, room_name):
     # Navigation identifies the numbered room; its inner title is shared.
     if len(hits) < 2 or any(hit is None for hit in hits):
         return None
-    return hits[-1]["center"]
+    # The label identifies the control, but the clickable target requested by
+    # the user is the blue icon above it (1280x720 client, real entry screenshot).
+    # Keep the offset relative to the matched label rather than its screen origin.
+    x, y = hits[-1]["center"]
+    return [x, y-50]

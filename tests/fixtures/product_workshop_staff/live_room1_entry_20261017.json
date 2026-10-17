@@ -1,0 +1,28 @@
+{
+  "kind": "user_supplied_live_screenshot",
+  "source_filename": "codex-clipboard-070235f3-ddb0-4d65-a07a-b64bacc9e238.png",
+  "source_sha256": "0dc8f9114287a412ee86d8c6f71d17fe3e8b6687e1e8276b6ef96342bf77c159",
+  "client_crop_xyxy": [
+    25,
+    56,
+    1305,
+    776
+  ],
+  "client_size": [
+    1280,
+    720
+  ],
+  "edit_icon_bbox_xywh": [
+    1102,
+    602,
+    67,
+    67
+  ],
+  "edit_text_bbox_xywh": [
+    1093,
+    674,
+    87,
+    23
+  ],
+  "instruction": "Click the blue icon above the workshop edit label"
+}

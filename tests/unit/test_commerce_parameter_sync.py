@@ -87,3 +87,34 @@ def test_workflow_snapshot_uses_latest_single_editor_values(window, monkeypatch,
     assert {key: task["inputs"][key] for key in expected} == expected
     saved = window._settings.load_trade_inputs() if kind == "trade" else window._settings.load_passenger_inputs()
     assert {key: saved[key] for key in expected} == expected
+
+
+def test_restoring_freight_draft_does_not_autosave_partial_state(window, monkeypatch):
+    values = window.trade_page.collect_ui_state()
+    values.update(auto_bento=True, bento_priority=["love_bentos"], auto_sparkling_water=True,
+                  auto_pickup=True, auto_pickup_interval_sec=3.25)
+    monkeypatch.setattr(window._settings, "save_trade_inputs", lambda *_: pytest.fail("restore must not autosave"))
+    window.trade_page.set_inputs(values)
+    assert window.trade_page.auto_bento.isChecked()
+    assert window.trade_page.auto_pickup_interval_sec.value() == 3.25
+    assert window.trade_page._selected_bento_priority() == ["love_bentos"]
+
+
+def test_workflow_run_respects_freight_error_only_when_freight_selected(window):
+    trade, workflow = window.trade_page, window.workflow_page
+    trade.set_inputs({"available_city_ids": ["1", "2", "11"], "required_end_city_ids": ["11"]})
+    assert workflow.run_button.isEnabled()
+    trade.city_checks["11"].setChecked(False)
+    assert not workflow.run_button.isEnabled()
+    assert "终点" in workflow.run_button.toolTip()
+    workflow._task_checks["trade"].setChecked(False)
+    assert workflow.run_button.isEnabled()
+    workflow._task_checks["trade"].setChecked(True)
+    assert not workflow.run_button.isEnabled()
+    # A validation change must never disable the active Stop button.
+    workflow.begin_workflow(["trade"], [], {})
+    assert workflow.run_button.isEnabled()
+    workflow.finish_workflow(success=False, message="offline test")
+    assert not workflow.run_button.isEnabled()
+    trade.city_checks["11"].setChecked(True)
+    assert workflow.run_button.isEnabled()

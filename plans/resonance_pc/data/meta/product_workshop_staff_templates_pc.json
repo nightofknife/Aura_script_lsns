@@ -4,7 +4,7 @@
     1280,
     720
   ],
-  "kind": "synthetic_native_game_assets",
+  "kind": "native_assets_with_user_reference_templates",
   "live_calibrated": false,
   "provenance": {
     "sources": [
@@ -177,722 +177,373 @@
     }
   },
   "limitations": [
-    "No live screenshot or live acceptance evidence",
     "Native images/fonts/layout; Pillow rasterization differs from Unity",
-    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic"
+    "Dynamic lists, animation, shader and masks are not simulated; example counts are synthetic",
+    "Editor header and quick-button references checked offline against a live frame; remaining controls and full workflow lack live acceptance"
   ],
   "templates": {
     "room_1_title": {
       "image": "templates/product_workshop_staff/room_1_title.png",
       "bbox": [
-        660,
-        23,
+        571,
+        10,
+        203,
+        61
+      ],
+      "search_region": [
+        559,
+        2,
+        227,
+        77
+      ],
+      "click": [
+        672,
+        40
+      ],
+      "threshold": 0.9,
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_room1_title_20261017.png",
+      "sha256": "214ca47e6260a0b8a65caecaf1d14b1d63cb09068f5c88ee597302ccb44d6aa7",
+      "feature_kind": "icon_text_background",
+      "number_region": [
+        89,
+        13,
         30,
         18
       ],
-      "search_region": [
-        648,
-        11,
-        54,
-        42
+      "number_min_score": 0.8,
+      "number_min_margin": 0.06,
+      "source_sha256": "e61c88cbf75e37c8abf9e80189c1121f8c8bcb94f54da429ccc4733e7b6b1ec8",
+      "source_crop_xyxy": [
+        8,
+        8,
+        211,
+        69
       ],
-      "click": [
-        712,
-        32
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
+      "variants": [
         {
-          "path": "/PrisonEdit/Group_Top/Group_WorkshopInfo/Txt_Workshop",
-          "box_xyxy": [
-            659,
-            22,
-            765,
-            42
+          "image": "templates/product_workshop_staff/room_1_title.native.png",
+          "bbox": [
+            571,
+            10,
+            203,
+            61
           ],
-          "components": [
-            {
-              "text": "1号生产车间",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 28,
-              "font_size_prefab": 28,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 4,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 28,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 1,
-                "m_VerticalOverflow": 1,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            559,
+            2,
+            227,
+            77
           ],
-          "ink_box_xyxy": [
-            660,
-            23,
-            764,
-            41
-          ]
+          "click": [
+            672,
+            40
+          ],
+          "threshold": 0.9,
+          "scene": "editor_1",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/editor_1.png",
+          "sha256": "4878c38df93f02b2de0bf8fb88f81ca4d45825b9d490ceba82c0da58b0ee46c7",
+          "feature_kind": "icon_text_background",
+          "number_region": [
+            89,
+            13,
+            30,
+            18
+          ],
+          "number_min_score": 0.8,
+          "number_min_margin": 0.06
         }
-      ],
-      "resource": "ui/prison/manage/prisonedit.asset",
-      "scene": "editor_1",
-      "sha256": "9c67de503f3acf10452518593d1dd01079d5e50fca2e0ca9d9311540255d5125",
-      "crop_note": "Numbered title prefix; shared suffix excluded to reject the other room"
+      ]
     },
     "room_2_title": {
       "image": "templates/product_workshop_staff/room_2_title.png",
       "bbox": [
-        660,
-        23,
+        571,
+        10,
+        203,
+        61
+      ],
+      "search_region": [
+        559,
+        2,
+        227,
+        77
+      ],
+      "click": [
+        672,
+        40
+      ],
+      "threshold": 0.9,
+      "scene": "editor_2",
+      "kind": "synthetic_native_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/editor_2.png",
+      "sha256": "83fa9cf6cdd93359030414a6a464512588c85d1278c7bc237bf5db0ba513e14a",
+      "feature_kind": "icon_text_background",
+      "number_region": [
+        89,
+        13,
         30,
         18
       ],
-      "search_region": [
-        648,
-        11,
-        54,
-        42
-      ],
-      "click": [
-        712,
-        32
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonEdit/Group_Top/Group_WorkshopInfo/Txt_Workshop",
-          "box_xyxy": [
-            659,
-            22,
-            765,
-            42
-          ],
-          "components": [
-            {
-              "text": "2号生产车间",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 28,
-              "font_size_prefab": 28,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 4,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 28,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 1,
-                "m_VerticalOverflow": 1,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            660,
-            23,
-            764,
-            41
-          ]
-        }
-      ],
-      "resource": "ui/prison/manage/prisonedit.asset",
-      "scene": "editor_2",
-      "sha256": "637828d63442e790238e8746684d54be781f3b0f12581df250cf1e49478647c7",
-      "crop_note": "Numbered title prefix; shared suffix excluded to reject the other room"
+      "number_min_score": 0.8,
+      "number_min_margin": 0.06
     },
     "quick": {
       "image": "templates/product_workshop_staff/quick.png",
       "bbox": [
-        106,
-        487,
-        73,
-        21
+        60,
+        479,
+        124,
+        35
       ],
       "search_region": [
-        94,
-        475,
-        97,
-        45
+        48,
+        471,
+        148,
+        51
       ],
       "click": [
-        117,
-        498
+        115,
+        500
       ],
       "threshold": 0.9,
-      "source_nodes": [
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_quick_20261017.png",
+      "sha256": "859ef8a4756299ae983b8fe651cbf4b3a3372bf3a4af2b4f99858d4989e90a17",
+      "feature_kind": "icon_text_background",
+      "source_sha256": "79770264ecf956a647724c5158c03f4308446a22b87fdf640d97571a18181a82",
+      "source_crop_xyxy": [
+        8,
+        8,
+        132,
+        43
+      ],
+      "variants": [
         {
-          "path": "/PrisonEdit/Group_Edit/Btn_QuickEdit/Img_QuickEditOFF/Group_/Txt_Quick",
-          "box_xyxy": [
-            108,
-            489,
-            177,
-            507
+          "image": "templates/product_workshop_staff/quick.native.png",
+          "bbox": [
+            60,
+            479,
+            124,
+            35
           ],
-          "components": [
-            {
-              "text": "快速编队",
-              "font_path_id": 6136794397608061395,
-              "font_size_native": 26,
-              "font_size_prefab": 26,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 4,
-                  "m_PathID": 6136794397608061395
-                },
-                "m_FontSize": 26,
-                "m_FontStyle": 0,
-                "m_BestFit": 1,
-                "m_MinSize": 2,
-                "m_MaxSize": 26,
-                "m_Alignment": 3,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            48,
+            471,
+            148,
+            51
           ],
-          "ink_box_xyxy": [
-            108,
-            489,
-            177,
-            506
-          ]
+          "click": [
+            115,
+            500
+          ],
+          "threshold": 0.9,
+          "scene": "editor_1",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/editor_1.png",
+          "sha256": "48fd00c15492ab308febe565851a938b5b49fdd918b8bcd4104a3c7a1d3d00b6",
+          "feature_kind": "icon_text_background"
         }
-      ],
-      "resource": "ui/prison/manage/prisonedit.asset",
-      "scene": "editor_1",
-      "sha256": "11d898b756fb9768171e98acd4e948358b2667960a6fe6b272fe0b6e6b4803b3"
-    },
-    "editor_marker": {
-      "image": "templates/product_workshop_staff/editor_marker.png",
-      "bbox": [
-        1136,
-        37,
-        87,
-        17
-      ],
-      "search_region": [
-        1124,
-        25,
-        111,
-        41
-      ],
-      "click": [
-        1180,
-        45
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNum",
-          "box_xyxy": [
-            1126,
-            35,
-            1233,
-            55
-          ],
-          "components": [
-            {
-              "text": "人员数量：",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 26,
-              "font_size_prefab": 26,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 4,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 26,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 1,
-                "m_VerticalOverflow": 1,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            1136,
-            37,
-            1223,
-            54
-          ]
-        }
-      ],
-      "resource": "ui/prison/manage/prisonedit.asset",
-      "scene": "editor_1",
-      "sha256": "8da82dae9ca2baa93da50d1845af6550434cf307278ecc5b055580a89ac7a2a1"
-    },
-    "editor_count_label": {
-      "image": "templates/product_workshop_staff/editor_count_label.png",
-      "bbox": [
-        1136,
-        37,
-        87,
-        17
-      ],
-      "search_region": [
-        1124,
-        25,
-        111,
-        41
-      ],
-      "click": [
-        1180,
-        45
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNum",
-          "box_xyxy": [
-            1126,
-            35,
-            1233,
-            55
-          ],
-          "components": [
-            {
-              "text": "人员数量：",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 26,
-              "font_size_prefab": 26,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 4,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 26,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 1,
-                "m_VerticalOverflow": 1,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            1136,
-            37,
-            1223,
-            54
-          ]
-        }
-      ],
-      "resource": "ui/prison/manage/prisonedit.asset",
-      "scene": "editor_1",
-      "sha256": "8da82dae9ca2baa93da50d1845af6550434cf307278ecc5b055580a89ac7a2a1"
-    },
-    "selection_marker": {
-      "image": "templates/product_workshop_staff/selection_marker.png",
-      "bbox": [
-        37,
-        662,
-        104,
-        17
-      ],
-      "search_region": [
-        25,
-        650,
-        128,
-        41
-      ],
-      "click": [
-        89,
-        670
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_",
-          "box_xyxy": [
-            37,
-            661,
-            141,
-            680
-          ],
-          "components": [
-            {
-              "text": "车间囚犯数量",
-              "font_path_id": 6136794397608061395,
-              "font_size_native": 26,
-              "font_size_prefab": 26,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": 6136794397608061395
-                },
-                "m_FontSize": 26,
-                "m_FontStyle": 0,
-                "m_BestFit": 1,
-                "m_MinSize": 2,
-                "m_MaxSize": 26,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            37,
-            662,
-            141,
-            679
-          ]
-        }
-      ],
-      "resource": "ui/prison/manage/prisonerlistmanage.asset",
-      "scene": "selection_empty",
-      "sha256": "ed78e555745e780476317cd809c42681b99cab3d296f606b918b848fd6c15793"
-    },
-    "selection_count_label": {
-      "image": "templates/product_workshop_staff/selection_count_label.png",
-      "bbox": [
-        37,
-        662,
-        104,
-        17
-      ],
-      "search_region": [
-        25,
-        650,
-        128,
-        41
-      ],
-      "click": [
-        89,
-        670
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_",
-          "box_xyxy": [
-            37,
-            661,
-            141,
-            680
-          ],
-          "components": [
-            {
-              "text": "车间囚犯数量",
-              "font_path_id": 6136794397608061395,
-              "font_size_native": 26,
-              "font_size_prefab": 26,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": 6136794397608061395
-                },
-                "m_FontSize": 26,
-                "m_FontStyle": 0,
-                "m_BestFit": 1,
-                "m_MinSize": 2,
-                "m_MaxSize": 26,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            37,
-            662,
-            141,
-            679
-          ]
-        }
-      ],
-      "resource": "ui/prison/manage/prisonerlistmanage.asset",
-      "scene": "selection_empty",
-      "sha256": "ed78e555745e780476317cd809c42681b99cab3d296f606b918b848fd6c15793"
+      ]
     },
     "select_all": {
       "image": "templates/product_workshop_staff/select_all.png",
       "bbox": [
-        850,
-        660,
-        84,
-        24
+        877,
+        659,
+        110,
+        27
       ],
       "search_region": [
-        838,
-        648,
-        108,
-        48
+        810,
+        634,
+        243,
+        73
       ],
       "click": [
-        932,
-        672
+        930,
+        670
       ],
       "threshold": 0.9,
-      "source_nodes": [
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_select_all_20261017.png",
+      "sha256": "b32d660a1d4fd8a2b883eb009298a1f15d2803d1e81a677824b355018a2589bb",
+      "feature_kind": "icon_text_with_small_background_margin",
+      "source_sha256": "6c73a08a55f90fdc1668a7aa46dbd17fc0f655b79c8f986a1794ef31894ce5e1",
+      "source_crop_xyxy": [
+        63,
+        25,
+        173,
+        52
+      ],
+      "variants": [
         {
-          "path": "/PrisonerListManage/Group_Detail/Btn_All/Txt_T",
-          "box_xyxy": [
-            852,
-            661,
-            932,
-            683
+          "image": "templates/product_workshop_staff/select_all.native.png",
+          "bbox": [
+            822,
+            656,
+            114,
+            32
           ],
-          "components": [
-            {
-              "text": "一键选中",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 30,
-              "font_size_prefab": 30,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 30,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 50,
-                "m_Alignment": 3,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            810,
+            634,
+            243,
+            73
           ],
-          "ink_box_xyxy": [
-            852,
-            662,
-            932,
-            682
+          "click": [
+            930,
+            670
+          ],
+          "threshold": 0.9,
+          "scene": "selection_empty",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/selection_empty.png",
+          "sha256": "77c3fb81653033f876b60fc0a557df9787c5af926d8c215c4f88aa7a12b24bb7",
+          "feature_kind": "icon_text_with_small_background_margin",
+          "feature_crop_xyxy": [
+            0,
+            14,
+            114,
+            46
           ]
         }
       ],
-      "resource": "ui/prison/manage/prisonerlistmanage.asset",
-      "scene": "selection_empty",
-      "sha256": "ee60f6d3b19065b4890c46e7a8d0bb894e3eed6e8d9deed4cd52b98afe45c715"
+      "feature_crop_xyxy": [
+        55,
+        17,
+        165,
+        44
+      ]
     },
     "cancel_all": {
       "image": "templates/product_workshop_staff/cancel_all.png",
       "bbox": [
-        850,
-        660,
-        84,
-        24
+        877,
+        659,
+        111,
+        26
       ],
       "search_region": [
-        838,
-        648,
-        108,
-        48
+        810,
+        636,
+        241,
+        72
       ],
       "click": [
-        932,
-        672
+        930,
+        670
       ],
       "threshold": 0.9,
-      "source_nodes": [
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_cancel_all_20261017.png",
+      "sha256": "9bae3f4e39f0d44d47533a44e205bea26ae2b4f342701867200f4dc47c0cb52f",
+      "feature_kind": "icon_text_with_small_background_margin",
+      "source_sha256": "2a95f20952c9c239a75580c285627a160db9bd4c8bdb7166b5fa778189bc83f9",
+      "source_crop_xyxy": [
+        63,
+        23,
+        174,
+        49
+      ],
+      "variants": [
         {
-          "path": "/PrisonerListManage/Group_Detail/Btn_AllCancel/Txt_T",
-          "box_xyxy": [
-            852,
-            661,
-            932,
-            683
+          "image": "templates/product_workshop_staff/cancel_all.native.png",
+          "bbox": [
+            822,
+            656,
+            115,
+            32
           ],
-          "components": [
-            {
-              "text": "一键取消",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 30,
-              "font_size_prefab": 30,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 30,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 50,
-                "m_Alignment": 3,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            810,
+            636,
+            241,
+            72
           ],
-          "ink_box_xyxy": [
-            852,
-            662,
-            932,
-            682
+          "click": [
+            930,
+            670
+          ],
+          "threshold": 0.9,
+          "scene": "selection_full",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/selection_full.png",
+          "sha256": "b9e57f32a98755429d5a61c860da02ad3f73396f9ec7fee63b63a1b2e58447fb",
+          "feature_kind": "icon_text_with_small_background_margin",
+          "feature_crop_xyxy": [
+            0,
+            12,
+            115,
+            44
           ]
         }
       ],
-      "resource": "ui/prison/manage/prisonerlistmanage.asset",
-      "scene": "selection_full",
-      "sha256": "afced38ad0b92bb1bbef5b81dcb83f4641ca90f23701258330f85e08ccde53e5"
+      "feature_crop_xyxy": [
+        55,
+        15,
+        166,
+        41
+      ]
     },
     "confirm": {
       "image": "templates/product_workshop_staff/confirm.png",
       "bbox": [
-        1068,
-        660,
-        44,
-        24
+        1045,
+        645,
+        213,
+        57
       ],
       "search_region": [
-        1056,
-        648,
-        68,
-        48
+        1033,
+        637,
+        237,
+        73
       ],
       "click": [
         1150,
-        672
+        670
       ],
       "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/PrisonerListManage/Group_Detail/Btn_Confirm/Txt_T",
-          "box_xyxy": [
-            1070,
-            661,
-            1110,
-            683
-          ],
-          "components": [
-            {
-              "text": "确认",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 30,
-              "font_size_prefab": 30,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 30,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 2,
-                "m_MaxSize": 50,
-                "m_Alignment": 3,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                0,
-                0,
-                0,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            1070,
-            662,
-            1110,
-            682
-          ]
-        }
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_confirm_20261017.png",
+      "sha256": "36fbbe929f44acbba0a9efb9e7b05559cde7b608366ad7eecaaeeebfadac581f",
+      "feature_kind": "icon_text_background",
+      "source_sha256": "fc060e2aa69091af579252d074aa590814d1b456974b41408fc4b92b8a2fc8b6",
+      "source_crop_xyxy": [
+        8,
+        8,
+        221,
+        65
       ],
-      "resource": "ui/prison/manage/prisonerlistmanage.asset",
-      "scene": "selection_empty",
-      "sha256": "9c924bab720aba544997fe2713e3d1a8033d852c06f643a75880438b59f7c923"
+      "variants": [
+        {
+          "image": "templates/product_workshop_staff/confirm.native.png",
+          "bbox": [
+            1045,
+            645,
+            213,
+            57
+          ],
+          "search_region": [
+            1033,
+            637,
+            237,
+            73
+          ],
+          "click": [
+            1150,
+            670
+          ],
+          "threshold": 0.9,
+          "scene": "selection_empty",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/selection_empty.png",
+          "sha256": "9f6f2c622026002ae1451e6ce27ce0379a582cc1cf107339183353af9835d20f",
+          "feature_kind": "icon_text_background"
+        }
+      ]
     },
     "back": {
       "image": "templates/product_workshop_staff/back.png",
@@ -935,218 +586,145 @@
       "scene": "editor_1",
       "sha256": "dc6f18b5aafa6082faa7a106d1cd1c97d781517f3f11cb09b2f7e698f7800d12"
     },
-    "save_prompt": {
-      "image": "templates/product_workshop_staff/save_prompt.png",
-      "bbox": [
-        587,
-        348,
-        250,
-        23
-      ],
-      "search_region": [
-        575,
-        336,
-        274,
-        47
-      ],
-      "click": [
-        712,
-        360
-      ],
-      "threshold": 0.9,
-      "source_nodes": [
-        {
-          "path": "/Prompt/Group_Prompt/TextIcon_Prompt",
-          "box_xyxy": [
-            587,
-            348,
-            837,
-            372
-          ],
-          "components": [
-            {
-              "text": "布局已变更，是否保存？",
-              "font_path_id": 6136794397608061395,
-              "font_size_native": 34,
-              "font_size_prefab": 34,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": 6136794397608061395
-                },
-                "m_FontSize": 34,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 3,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 1,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
-          ],
-          "ink_box_xyxy": [
-            587,
-            348,
-            837,
-            371
-          ]
-        }
-      ],
-      "resource": "ui/common/prompt/prompt.asset",
-      "scene": "save_prompt",
-      "sha256": "07ee50880214355fabaa48a2ec4800523305cc12d62071ae0e343344b8661c5a"
-    },
     "apply": {
       "image": "templates/product_workshop_staff/apply.png",
       "bbox": [
-        693,
-        492,
-        50,
-        26
+        903,
+        479,
+        108,
+        48
       ],
       "search_region": [
-        681,
-        480,
-        74,
-        50
+        881,
+        458,
+        147,
+        86
       ],
       "click": [
         958,
         506
       ],
       "threshold": 0.9,
-      "source_nodes": [
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_apply_20261017.png",
+      "sha256": "457a0af9caf92c3e9fd195dca90a5d70f88e58e2bbe720e1c53e7ae5ad73a686",
+      "feature_kind": "icon_text_with_small_background_margin",
+      "source_sha256": "486223ea971f9d6178867151b5c651347b06359062a24432bc3a239c3baf51d3",
+      "source_crop_xyxy": [
+        18,
+        21,
+        126,
+        69
+      ],
+      "variants": [
         {
-          "path": "/Prompt/Btn_Confirm/Group_/Txt_Confirm",
-          "box_xyxy": [
-            695,
-            493,
-            741,
-            517
+          "image": "templates/product_workshop_staff/apply.native.png",
+          "bbox": [
+            642,
+            482,
+            104,
+            47
           ],
-          "components": [
-            {
-              "text": "确认",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 34,
-              "font_size_prefab": 34,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 34,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 3,
-                "m_MaxSize": 50,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            630,
+            458,
+            147,
+            86
           ],
-          "ink_box_xyxy": [
-            695,
-            494,
-            741,
-            516
+          "click": [
+            958,
+            506
+          ],
+          "threshold": 0.9,
+          "scene": "save_prompt",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/save_prompt.png",
+          "sha256": "94e34952e24c1e231b1aea912abad5abbba111f703e9f3f860de5c867dcfb632",
+          "feature_kind": "icon_text_with_small_background_margin",
+          "feature_crop_xyxy": [
+            0,
+            16,
+            104,
+            63
           ]
         }
       ],
-      "resource": "ui/common/prompt/prompt.asset",
-      "scene": "save_prompt",
-      "sha256": "91dcb07e19bdc872585bda53881396bf988e344e20f12ebcb83a65b3f7a98ecd"
+      "feature_crop_xyxy": [
+        10,
+        13,
+        118,
+        61
+      ]
     },
     "discard": {
       "image": "templates/product_workshop_staff/discard.png",
       "bbox": [
-        52,
-        492,
-        49,
-        26
+        271,
+        479,
+        101,
+        48
       ],
       "search_region": [
-        40,
-        480,
-        73,
-        50
+        241,
+        461,
+        158,
+        84
       ],
       "click": [
         322,
         506
       ],
       "threshold": 0.9,
-      "source_nodes": [
+      "kind": "user_supplied_live_feature_block",
+      "source_image": "tests/fixtures/product_workshop_staff/reference_discard_20261017.png",
+      "sha256": "4f16d81a6f15b166f4ab8841afb9a29d910148955caa872a75af762b652faa20",
+      "feature_kind": "icon_text_with_small_background_margin",
+      "source_sha256": "c10e45ec0743933496f8ced87ecbf8b65cc50496944d01703cdbb8159a8880da",
+      "source_crop_xyxy": [
+        26,
+        18,
+        127,
+        66
+      ],
+      "variants": [
         {
-          "path": "/Prompt/Btn_Cancel/Group_/Txt_Cancel",
-          "box_xyxy": [
-            54,
-            493,
-            99,
-            517
+          "image": "templates/product_workshop_staff/discard.native.png",
+          "bbox": [
+            2,
+            482,
+            102,
+            47
           ],
-          "components": [
-            {
-              "text": "取消",
-              "font_path_id": -2237384480076949585,
-              "font_size_native": 34,
-              "font_size_prefab": 34,
-              "font_data": {
-                "m_Font": {
-                  "m_FileID": 2,
-                  "m_PathID": -2237384480076949585
-                },
-                "m_FontSize": 34,
-                "m_FontStyle": 0,
-                "m_BestFit": 0,
-                "m_MinSize": 3,
-                "m_MaxSize": 40,
-                "m_Alignment": 4,
-                "m_AlignByGeometry": 0,
-                "m_RichText": 1,
-                "m_HorizontalOverflow": 0,
-                "m_VerticalOverflow": 0,
-                "m_LineSpacing": 1.0
-              },
-              "color": [
-                255,
-                255,
-                255,
-                255
-              ]
-            }
+          "search_region": [
+            -12,
+            461,
+            158,
+            84
           ],
-          "ink_box_xyxy": [
-            54,
-            494,
-            99,
-            516
+          "click": [
+            322,
+            506
+          ],
+          "threshold": 0.9,
+          "scene": "save_prompt",
+          "kind": "synthetic_native_feature_block",
+          "source_image": "tests/fixtures/product_workshop_staff/save_prompt.png",
+          "sha256": "407923d398f1aa32f1a4cf7e16f2d92396d19c8fd889aee22ee4a5a4c904e0ad",
+          "feature_kind": "icon_text_with_small_background_margin",
+          "feature_crop_xyxy": [
+            2,
+            13,
+            104,
+            60
           ]
         }
       ],
-      "resource": "ui/common/prompt/prompt.asset",
-      "scene": "save_prompt",
-      "sha256": "5184c86793022218fee2bedc406f77a3a08d6e24395c56d33594b811ea80f323"
+      "feature_crop_xyxy": [
+        18,
+        10,
+        119,
+        58
+      ]
     },
     "saved_marker": {
       "image": "templates/product_workshop_staff/saved_marker.png",
@@ -1285,205 +863,25 @@
       "sha256": "f822ee91e3796db9d4b63fc9745f7f4558d0ece28064020c553ed882650c98b1"
     }
   },
-  "counters": {
-    "selection": {
-      "region": [
-        181,
-        658,
-        59,
-        25
-      ],
-      "format": "fraction",
-      "style": "selection",
-      "source_node": {
-        "path": "/PrisonerListManage/Group_Detail/Group_Prisoner/Txt_Num",
-        "box_xyxy": [
-          181,
-          658,
-          240,
-          683
-        ],
-        "components": [
-          {
-            "text": "10/15",
-            "font_path_id": -3758921232364580136,
-            "font_size_native": 32,
-            "font_size_prefab": 32,
-            "font_data": {
-              "m_Font": {
-                "m_FileID": 8,
-                "m_PathID": -3758921232364580136
-              },
-              "m_FontSize": 32,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 3,
-              "m_MaxSize": 40,
-              "m_Alignment": 4,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 1,
-              "m_VerticalOverflow": 1,
-              "m_LineSpacing": 1.0
-            },
-            "color": [
-              255,
-              255,
-              255,
-              255
-            ]
-          }
-        ],
-        "ink_box_xyxy": [
-          181,
-          663,
-          240,
-          678
-        ]
-      }
-    },
-    "editor": {
-      "region": [
-        1219,
-        37,
-        61,
-        20
-      ],
-      "format": "integer",
-      "style": "list",
-      "source_node": {
-        "path": "/PrisonEdit/Group_Top/Group_TotalNum/Txt_TotalNumCount",
-        "box_xyxy": [
-          1219,
-          37,
-          1325,
-          57
-        ],
-        "components": [
-          {
-            "text": "10",
-            "font_path_id": -4884400286118422667,
-            "font_size_native": 26,
-            "font_size_prefab": 26,
-            "font_data": {
-              "m_Font": {
-                "m_FileID": 7,
-                "m_PathID": -4884400286118422667
-              },
-              "m_FontSize": 26,
-              "m_FontStyle": 0,
-              "m_BestFit": 0,
-              "m_MinSize": 2,
-              "m_MaxSize": 40,
-              "m_Alignment": 3,
-              "m_AlignByGeometry": 0,
-              "m_RichText": 1,
-              "m_HorizontalOverflow": 1,
-              "m_VerticalOverflow": 1,
-              "m_LineSpacing": 1.0
-            },
-            "color": [
-              255,
-              184,
-              0,
-              255
-            ]
-          }
-        ],
-        "ink_box_xyxy": [
-          1219,
-          41,
-          1240,
-          54
-        ]
-      }
-    }
-  },
-  "editor_digits": [
-    {
-      "character": "0",
-      "image": "templates/product_workshop_staff/editor_digit_0.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "313886cd6cc22bcf81c5a08d4784abd3521b7853491897021f1eb94b70aab187"
-    },
-    {
-      "character": "1",
-      "image": "templates/product_workshop_staff/editor_digit_1.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "e96f8590c6df4cf57508b8bfad26962c366a440e42f1ec249bec64dcf1c783d8"
-    },
-    {
-      "character": "2",
-      "image": "templates/product_workshop_staff/editor_digit_2.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "5c5db38a6f82dfa8f86437d044168b0859d638cd2ffc3bde60c2913159bf16e7"
-    },
-    {
-      "character": "3",
-      "image": "templates/product_workshop_staff/editor_digit_3.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "7f74bde716f6d900182f0597eab6db4b897a4873f9cdb493c15972a650ab3941"
-    },
-    {
-      "character": "4",
-      "image": "templates/product_workshop_staff/editor_digit_4.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "90b0ce1981eb63151f99fb13d74a6822bb852c4a496aa1cecaa1da7b7f3760e1"
-    },
-    {
-      "character": "5",
-      "image": "templates/product_workshop_staff/editor_digit_5.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "b1b44159b5238af6414c12edba1644bdc8fa675dd082d6f28f96ab7bacc1d2ae"
-    },
-    {
-      "character": "6",
-      "image": "templates/product_workshop_staff/editor_digit_6.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "aee95f2a4c713f7f5198e429e5c68c88345fae6f8ca995aaa325d68c571bf0c6"
-    },
-    {
-      "character": "7",
-      "image": "templates/product_workshop_staff/editor_digit_7.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "a839399d884c4d43e7ad9c853b807c0ac5cfc19b370f40d292da5d66102e3018"
-    },
-    {
-      "character": "8",
-      "image": "templates/product_workshop_staff/editor_digit_8.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "2cd9a4ac9e6d699a627834b67ba0ba2a4a3c1da570eccf886262794d1ec1c740"
-    },
-    {
-      "character": "9",
-      "image": "templates/product_workshop_staff/editor_digit_9.png",
-      "font_path_id": -4884400286118422667,
-      "font_size_native": 26,
-      "scale": 0.6666666666666666,
-      "sha256": "cf6f4646810c6fd0844cd9f3bfbb05157b0090df4eaf6472beb00c792fe8a7c4"
-    }
-  ],
   "render_errors": {
     "editor": [],
     "selection": [],
     "prompt": []
+  },
+  "feature_blocks": {
+    "format": "icon_text_background",
+    "number_identity": "within_full_title_image",
+    "reference_date": "2026-10-17",
+    "reference_frame": "tests/fixtures/product_workshop_staff/live_room1_editor_20261017.png"
+  },
+  "selection_policy": {
+    "recognition": "button_only",
+    "select_all": "click_once_then_confirm_and_save",
+    "cancel_all_on_entry": "return_without_confirming_or_saving",
+    "button_score_margin": 0.01
+  },
+  "save_prompt_policy": {
+    "recognition": "apply_and_discard_buttons",
+    "message_text_required": false
   }
 }
