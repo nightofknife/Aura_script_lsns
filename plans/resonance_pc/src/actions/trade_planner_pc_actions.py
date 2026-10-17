@@ -46,6 +46,7 @@ def resonance_pc_trade_plan_optimal_route(
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
     city_prestige: Optional[Dict[str, Any]] = None,
+    city_tax_rates_bps: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     current_city_key: Optional[str] = None,
     current_city_id: Optional[str] = None,

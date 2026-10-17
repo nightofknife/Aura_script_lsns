@@ -4,6 +4,8 @@ from __future__ import annotations
 
 PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF = 'tasks:consciousness_deep_dive_loop_pc.yaml:consciousness_deep_dive_loop_pc'
 DEEP_DIVE_LOOP_PROGRESS_EVENT = 'task.resonance_pc_deep_dive_loop_progress'
+FREIGHT_NET_PROFIT_NOTE = "预计净收益已计入买入税与卖出利润税；游戏显示的税前利润不等于净收益。预计值不代表实际已确认收益。"
+UNSUPPORTED_TRADE_CURRENCY_MESSAGE = "武林源等异币城市尚不支持统一货运收益计算，请移出线路或参与城市。"
 
 import copy
 import json
@@ -325,6 +327,9 @@ class WorkflowFreightProgressState(ProgressDisplayState):
     route: list[dict[str, Any]] = field(default_factory=list)
     summary: dict[str, Any] = field(default_factory=dict)
     market_source: str = ""
+    market_fetched_at: str = ""
+    market_stale_reason: str = ""
+    market_fallback_blocked: bool = False
     cities: list[FreightCityStage] = field(default_factory=list)
     active_city_index: int | None = None
     active_phase: str = ""
@@ -448,6 +453,7 @@ def reduce_workflow_freight_progress(
         _archive_progress_route(state)
     _update_progress_display(state, payload, data)
     state.route_revision = incoming_revision
+    _reduce_market_metadata(state, data, stage, event_state)
     for key in ("trade_mode", "request_kind"):
         if key in payload:
             state.summary[key] = payload[key]
@@ -772,6 +778,10 @@ class TradeProgressState:
     to_city: str = ""
     current_city: str = ""
     snapshot_id: str = ""
+    market_source: str = ""
+    market_fetched_at: str = ""
+    market_stale_reason: str = ""
+    market_fallback_blocked: bool = False
     route: list[dict[str, Any]] = field(default_factory=list)
     summary: dict[str, Any] = field(default_factory=dict)
     last_data: dict[str, Any] = field(default_factory=dict)
@@ -824,12 +834,17 @@ def reduce_trade_progress(
         to_city=str(payload.get("to_city") or ""),
         current_city=str(payload.get("current_city") or state.current_city),
         snapshot_id=str(payload.get("snapshot_id") or state.snapshot_id),
+        market_source=state.market_source,
+        market_fetched_at=state.market_fetched_at,
+        market_stale_reason=state.market_stale_reason,
+        market_fallback_blocked=state.market_fallback_blocked,
         route=list(state.route),
         summary=dict(state.summary),
         last_data=dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {},
         events=[*state.events, envelope],
     )
     data = next_state.last_data
+    _reduce_market_metadata(next_state, data, next_state.stage, next_state.state)
     if isinstance(data.get("route"), list):
         next_state.route = [dict(item) for item in data["route"] if isinstance(item, Mapping)]
     if isinstance(data.get("summary"), Mapping):
@@ -1124,7 +1139,9 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         final_city = str(route[-1].get("to_city") or "")
     warnings = list(result.get("warnings") or [])
     if str(result.get("market_source") or "") == "fallback_cache":
-        warnings.insert(0, "行情更新失败，已使用本地市场快照。")
+        message = market_fallback_notice(result)
+        if message not in warnings:
+            warnings.insert(0, message)
     return {
         "status": str(result.get("status") or extract_status(payload) or ""),
         "reason": result.get("reason") or execution.get("reason"),
@@ -1162,6 +1179,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_refreshed": bool(result.get("market_refreshed")),
         "market_source": str(result.get("market_source") or ""),
         "market_stale_reason": str(result.get("market_stale_reason") or ""),
+        "market_fallback_blocked": bool(result.get("market_fallback_blocked")),
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
         **{key: copy.deepcopy(result.get(key)) for key in (
             "trade_mode", "request_kind", "input_snapshot", "planning_status", "success", "error",
@@ -1175,6 +1193,53 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
             "execution", "final_sale", "blocked_leg", "sparkling_water_plan", "sparkling_water", "bento_consumption",
         )},
     }
+
+
+def market_fallback_notice(values: Mapping[str, Any]) -> str:
+    if values.get("market_source") != "fallback_cache":
+        return ""
+    headline = ("行情刷新失败，已停止货运；未使用历史行情继续操作。"
+                if values.get("market_fallback_blocked")
+                else "行情刷新失败，本次使用历史行情；价格可能已过期，实际收益可能偏离计划。")
+    timestamp = str(values.get("market_fetched_at") or "未知")
+    reason = str(values.get("market_stale_reason") or "未提供").replace("\n", " ")
+    return f"{headline}\n快照时间：{timestamp}；失败原因：{reason[:180]}"
+
+
+def _reduce_market_metadata(state: Any, data: Mapping[str, Any], stage: str, event_state: str) -> None:
+    values = data.get("summary") if isinstance(data.get("summary"), Mapping) else data
+    source = data.get("source") if stage == "market" else values.get("market_source")
+    if not source:
+        return
+    state.market_source = str(source)
+    state.market_fetched_at = str((data.get("fetched_at") if stage == "market" else values.get("market_fetched_at")) or "")
+    state.market_stale_reason = str((data.get("stale_reason") if stage == "market" else values.get("market_stale_reason")) or "")
+    state.market_fallback_blocked = (event_state in {"blocked", "failed", "error"} if stage == "market"
+                                     else bool(values.get("market_fallback_blocked")))
+
+
+def validate_allow_stale_market(value: Any) -> bool:
+    if type(value) is not bool:
+        raise ValueError("允许历史行情必须为布尔值。")
+    return value
+
+
+def freight_currency_error(values: Mapping[str, Any]) -> str:
+    """Only inspect fields applicable to the selected mode; keep inactive drafts."""
+    cities = ([*(values.get("fixed_route_city_ids") or [])] if values.get("trade_mode") == "fixed"
+              else [*(values.get("available_city_ids") or []), *(values.get("required_end_city_ids") or [])])
+    if str(values.get("start_city_id") or "") == "21" or any(str(city) == "21" for city in cities):
+        return UNSUPPORTED_TRADE_CURRENCY_MESSAGE
+    return ""
+
+
+def validate_city_tax_rates_bps(value: Any) -> dict[str, int]:
+    """Actual city tax rates, not extra prestige discounts; never coerce values."""
+    if not isinstance(value, dict) or any(not isinstance(key, str) or not key.strip() for key in value):
+        raise ValueError("城市实际税率必须为城市 ID 到整数 bps 的字典。")
+    if any(type(rate) is not int or not 0 <= rate <= 10000 for rate in value.values()):
+        raise ValueError("城市实际税率必须为 0～10000 的整数 bps（7.5% = 750），不能使用布尔或小数。")
+    return dict(value)
 
 
 def validate_trailer_options(values: Mapping[str, Any]) -> dict[str, Any]:
@@ -1195,6 +1260,13 @@ def validate_trailer_options(values: Mapping[str, Any]) -> dict[str, Any]:
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
+    if "allow_stale_market" in normalized:
+        normalized["allow_stale_market"] = validate_allow_stale_market(normalized["allow_stale_market"])
+    currency_error = freight_currency_error(normalized)
+    if currency_error:
+        raise ValueError(currency_error)
+    if "city_tax_rates_bps" in normalized:
+        normalized["city_tax_rates_bps"] = validate_city_tax_rates_bps(normalized["city_tax_rates_bps"])
     if any(key in normalized for key in ("auto_trailer", "trailer_daily_first_n", "trailer_payment")):
         normalized.update(validate_trailer_options(normalized))
     if "auto_pickup_interval_sec" in normalized:
@@ -1242,6 +1314,25 @@ def expected_profit_per_fatigue(summary: Mapping[str, Any] | None) -> float | No
     if fatigue <= 0:
         return None
     return profit / fatigue
+
+
+def freight_settlement_lines(leg: Mapping[str, Any]) -> list[str]:
+    """Display solver settlement verbatim; never derive net profit from screen profit."""
+    settlement = leg.get("settlement")
+    if not isinstance(settlement, Mapping) or not settlement:
+        return []
+
+    def amount(key: str) -> str:
+        value = settlement.get(key)
+        return f"{value:,}" if type(value) is int else "未提供"
+
+    return [
+        "预计结算（未实测）",
+        f"买入支出 {amount('buy_total')}（含买入税 {amount('buy_tax')}）",
+        f"卖出到账 {amount('sell_total')}（扣卖出利润税 {amount('sell_tax')}）",
+        f"计税利润 {amount('taxable_profit')}（未扣买入税，不等于净收益）",
+        f"预计净收益 {amount('net_profit')}",
+    ]
 
 
 def route_product_lines(leg: Mapping[str, Any]) -> list[str]:

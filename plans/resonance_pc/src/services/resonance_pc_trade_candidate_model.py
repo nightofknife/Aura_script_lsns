@@ -1,19 +1,14 @@
-"""Pure, exact book curves shared by the four freight objectives.
-
-For sorted integer unit profits p[i] and cumulative lots L[i],
-P(k) = sum((p[i] - p[i+1]) * min(capacity, L[i] * (k+1))).
-This is concave, so discrete marginal profits are nonincreasing. Both the
-saturation bound and the profit-policy threshold-prefix search are exact.
-Fill policy stops at the first full load and never applies a profit threshold.
-"""
+"""Exact whole-settlement book curves (rounded marginals need not be concave)."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from fractions import Fraction
+from math import gcd, lcm
 from typing import Any, Optional, Tuple
 
 from .resonance_pc_trade_solver_common import check_solver_cancelled
+from .resonance_pc_trade_settlement import Settlement, TradeCandidate, linear_profit, optimal_load
 
 
 @dataclass(frozen=True)
@@ -37,6 +32,7 @@ class TradeEdgeOption:
     legal_book_limit: int = 0
     book_waste_quantity: int = 0
     next_book_marginal_profit: Fraction = Fraction(0)
+    settlement: Settlement = Settlement()
 
     @property
     def full_negotiation_used(self) -> int:
@@ -59,24 +55,36 @@ class TradeEdgeOption:
 @dataclass(frozen=True)
 class EdgeBookCurve:
     baseline: TradeEdgeOption
-    candidates: Tuple[Tuple[Fraction, str, str, int], ...]
+    candidates: Tuple[TradeCandidate, ...]
     capacity: int
     policy: str
     threshold: Fraction
     legal_limit: int
     saturation_limit: int
     limit_reason: str
+    _loads: dict = field(default_factory=dict, compare=False, repr=False)
 
     @classmethod
     def create(cls, *, baseline: TradeEdgeOption, candidates: tuple,
                capacity: int, policy: str, threshold: Fraction, waste_limit: int = 0) -> "EdgeBookCurve":
-        if not candidates:
+        positive = tuple(row for row in candidates if row.unit_profit > 0)
+        if not positive:
             return cls(baseline, (), capacity, policy, threshold, 0, 0,
                        "no_suitable_products")
         if policy == "fill":
-            limiting_lot = sum(row[3] for row in candidates)
+            candidates = positive
+            buys, settlement = optimal_load(candidates, capacity, 0, fill=True)
+            baseline = replace(baseline, buys=buys, settlement=settlement,
+                               expected_profit=Fraction(settlement.net_profit),
+                               loaded_quantity=sum(row[2] for row in buys),
+                               buy_product_ids=tuple(row[0] for row in buys),
+                               buy_product_names=tuple(row[1] for row in buys))
+            limiting_lot = sum(row.lot for row in positive)
         else:
-            limiting_lot = sum(row[3] for row in candidates if row[0] == candidates[0][0])
+            # A lower-slope item can win a rounding tie even after the top item
+            # fills cargo. Saturate when EVERY economically distinct supply is
+            # unconstrained, not merely the highest linear-profit group.
+            limiting_lot = min(row.lot for row in candidates)
         saturation = max((capacity + limiting_lot - 1) // limiting_lot - 1, 0)
         curve = cls(baseline, candidates, capacity, policy, threshold, saturation,
                     saturation, "capacity_reached" if policy == "fill" else "profit_saturated")
@@ -89,31 +97,78 @@ class EdgeBookCurve:
             if waste > waste_limit:
                 return replace(curve, legal_limit=saturation - 1, limit_reason="book_waste_limit")
             return curve
-        low, high = 1, saturation
-        last = 0
-        while low <= high:
-            check_solver_cancelled()
-            middle = (low + high) // 2
-            marginal = curve.profit_at(middle) - curve.profit_at(middle - 1)
-            if marginal > 0 and marginal >= threshold:
-                last = middle
-                low = middle + 1
-            else:
-                high = middle - 1
+        last = curve._threshold_prefix(saturation)
         reason = curve.limit_reason if last == saturation else "profit_threshold"
         if saturation == 0 and baseline.loaded_quantity == capacity:
             reason = "already_full_without_books"
         return replace(curve, legal_limit=last, limit_reason=reason)
 
     def profit_at(self, books: int) -> int:
-        free, profit = self.capacity, 0
-        for unit, _id, _name, lot in self.candidates:
-            quantity = min(free, lot * (books + 1))
-            profit += int(unit) * quantity
-            free -= quantity
-            if not free:
-                break
-        return profit
+        return self._load(books)[1].net_profit
+
+    def _load(self, books):
+        if books not in self._loads:
+            self._loads[books] = optimal_load(self.candidates, self.capacity, books, fill=self.policy == "fill")
+        return self._loads[books]
+
+    def _threshold_prefix(self, saturation):
+        """Find the FIRST illegal marginal, without assuming rounded concavity.
+
+        The linear relaxation U(k) is concave and actual P(k) is within one
+        unit below/above U(k). Therefore U(k)-U(k-1)-2 is a safe lower bound
+        for a marginal. Binary search may skip this provably safe prefix only;
+        the potentially ambiguous suffix is checked in chronological order.
+        Tax-free curves are exactly linear-relaxation curves, permitting the
+        original logarithmic search without a rounding assumption.
+        """
+        if not saturation:
+            return 0
+        tax_free = all(not row.buy_tax_bps and not row.sell_tax_bps for row in self.candidates)
+        low, high, safe = 1, saturation, 0
+        while low <= high:
+            check_solver_cancelled()
+            middle = (low + high) // 2
+            delta = linear_profit(self.candidates, self.capacity, middle) - linear_profit(
+                self.candidates, self.capacity, middle - 1)
+            lower = delta if tax_free else delta - 2
+            if lower > 0 and lower >= self.threshold:
+                safe, low = middle, middle + 1
+            else:
+                high = middle - 1
+        if tax_free:
+            return safe
+        previous = self.profit_at(safe)
+        books = safe + 1
+        homogeneous = len({(row.buy_price, row.sell_price, row.buy_tax_bps, row.sell_tax_bps)
+                           for row in self.candidates}) == 1
+        period = full = None
+        if homogeneous:
+            row = self.candidates[0]
+            lot = sum(item.lot for item in self.candidates)
+            quantity_period = lcm(10000 // gcd(row.buy_price * row.buy_tax_bps, 10000),
+                                  10000 // gcd((row.sell_price - row.buy_price) * row.sell_tax_bps, 10000))
+            period = quantity_period // gcd(quantity_period, lot)
+            full = max((self.capacity + lot - 1) // lot - 1, 0)
+        checked = 0
+        while books <= saturation:
+            check_solver_cancelled()
+            profit = self.profit_at(books)
+            marginal = profit - previous
+            if marginal <= 0 or marginal < self.threshold:
+                return books - 1
+            previous = profit
+            books += 1
+            checked += 1
+            if homogeneous and checked == period and books < full:
+                # Identical economic goods: adding quantity_period items adds
+                # integer taxes and a positive integer net amount. Optimal
+                # quantity choices repeat by this period, including the option
+                # to leave slots empty. Before saturation the book marginals
+                # therefore repeat exactly; inspect one cycle, then its final
+                # partial-capacity boundary. No concavity assumption is used.
+                books = full
+                previous = self.profit_at(full - 1)
+        return saturation
 
     def minimum_books_for_profit(self, profit: int, limit: int) -> Optional[int]:
         if self.profit_at(limit) < profit:
@@ -130,14 +185,8 @@ class EdgeBookCurve:
     def option(self, books: int, *, budget: Optional[int], target: bool = False) -> TradeEdgeOption:
         if not 0 <= books <= self.legal_limit:
             raise ValueError("book count is outside the legal curve prefix")
-        free, buys = self.capacity, []
-        for unit, product_id, name, lot in self.candidates:
-            quantity = min(free, lot * (books + 1))
-            if quantity:
-                buys.append((product_id, name, quantity, unit))
-                free -= quantity
-            if not free:
-                break
+        buys, settlement = self._load(books)
+        free = self.capacity - sum(row[2] for row in buys)
         reason = self.limit_reason
         if books < self.legal_limit:
             reason = "target_objective" if target else "global_book_allocation"
@@ -149,10 +198,11 @@ class EdgeBookCurve:
                        buy_product_names=tuple(row[1] for row in buys), buys=tuple(buys),
                        book_incremental_profit=profit - self.baseline.expected_profit,
                        cargo_capacity=self.capacity, loaded_quantity=self.capacity - free,
-                       book_waste_quantity=(max(sum(row[3] for row in self.candidates) * (books + 1)
+                       book_waste_quantity=(max(sum(row.lot for row in self.candidates if row.unit_profit > 0) * (books + 1)
                                                 - self.capacity, 0) if books else 0),
                        book_stop_reason=reason, legal_book_limit=self.legal_limit,
-                       next_book_marginal_profit=Fraction(self.profit_at(books + 1) - profit))
+                       next_book_marginal_profit=Fraction(self.profit_at(books + 1) - profit),
+                       settlement=settlement)
 
 
 __all__ = ["TradeEdgeOption", "EdgeBookCurve"]

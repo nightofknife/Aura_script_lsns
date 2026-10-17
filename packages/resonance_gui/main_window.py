@@ -1671,6 +1671,7 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.finish_run(
             self._combined_child_payload(payload, trade, kind="trade")
         )
+        self.workflow_page.update_freight_market_result(trade)
         self.passenger_page.finish_run(
             self._combined_child_payload(payload, passenger, kind="passenger")
         )
@@ -1905,6 +1906,7 @@ class ResonanceMainWindow(QMainWindow):
                 self.trade_preview_page.finish_preview(payload)
             elif kind == "trade_run":
                 self.trade_page.finish_run(payload)
+                self.workflow_page.update_freight_market_result(trade_result_summary(payload))
             elif kind == "passenger_run":
                 self.passenger_page.finish_run(payload)
             elif kind == "combined_commerce_run":

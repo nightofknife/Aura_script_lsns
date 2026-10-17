@@ -124,6 +124,32 @@ preview_trade_plan_pc:
           type: string
           required: true
           enum: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"]
+      - name: city_tax_rates_bps
+        type: dict
+        required: false
+        default: {}
+        properties:
+          "1": {name: city_1_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "2": {name: city_2_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "3": {name: city_3_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "4": {name: city_4_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "5": {name: city_5_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "6": {name: city_6_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "7": {name: city_7_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "8": {name: city_8_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "9": {name: city_9_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "10": {name: city_10_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "11": {name: city_11_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "12": {name: city_12_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "13": {name: city_13_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "14": {name: city_14_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "15": {name: city_15_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "16": {name: city_16_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "17": {name: city_17_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "18": {name: city_18_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "19": {name: city_19_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "20": {name: city_20_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "21": {name: city_21_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
       - name: city_prestige
         type: dict
         required: false
@@ -215,6 +241,7 @@ preview_trade_plan_pc:
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
+        city_tax_rates_bps: "{{ inputs.city_tax_rates_bps | default({}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         book_waste_limit: '{{ inputs.book_waste_limit }}'
   returns:

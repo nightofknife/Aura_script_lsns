@@ -10,7 +10,7 @@ from typing import Any
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
-from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options
+from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options, validate_city_tax_rates_bps, validate_allow_stale_market
 from .black_moon_catalog import normalize_black_moon_settings
 
 
@@ -88,12 +88,14 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "available_city_ids": DEFAULT_PC_TRADE_CITY_IDS,
     "required_end_city_ids": None,
     "city_prestige": {"default": 20, "overrides": {}},
+    "city_tax_rates_bps": {},
     "product_unlocks": {"mode": "all", "product_ids": []},
     "auto_sparkling_water": False,
     "auto_bento": False,
     "bento_priority": ["work_meals", "love_bentos"],
     "base_fatigue_reserve": 200,
     "auto_pickup": False,
+    "allow_stale_market": False,
     "auto_pickup_interval_sec": 0.5,
     "auto_trailer": False,
     "trailer_daily_first_n": 1,
@@ -136,6 +138,7 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "available_city_ids",
     "required_end_city_ids",
     "city_prestige",
+    "city_tax_rates_bps",
     "product_unlocks",
 )
 
@@ -278,6 +281,8 @@ class ResonanceConfigRepository:
                 validate_pickup_click_interval(parsed.get("auto_pickup_interval_sec", 0.5))
                 # Invalid purchase settings must not silently reset all freight fields.
                 normalize_black_moon_settings(parsed)
+                validate_city_tax_rates_bps(parsed.get("city_tax_rates_bps", {}))
+                validate_allow_stale_market(parsed.get("allow_stale_market", False))
                 try:
                     return _merge_trade_inputs(parsed)
                 except (TypeError, ValueError):
@@ -308,6 +313,19 @@ class ResonanceConfigRepository:
         current.update(normalized)
         self.save_trade_inputs(current)
 
+    def _save_freight_inputs_json(self, key: str, values: dict[str, Any]) -> None:
+        previous = self.settings.value(key)
+        self.settings.setValue(key, json.dumps(values, ensure_ascii=False))
+        try:
+            self.sync_checked()
+        except OSError:
+            if previous is None:
+                self.settings.remove(key)
+            else:
+                self.settings.setValue(key, previous)
+            self.settings.sync()
+            raise
+
     def load_trade_preview_inputs(self) -> dict[str, Any]:
         """Load independent planning inputs, seeding normal trade inputs once."""
         key = TRADE_PREVIEW_INPUTS_KEY
@@ -318,10 +336,14 @@ class ResonanceConfigRepository:
         raw = self.settings.value(key, "")
         try:
             parsed = json.loads(str(raw))
-            if isinstance(parsed, dict):
-                return _merge_trade_preview_inputs(parsed)
         except (TypeError, ValueError):
-            pass
+            parsed = None
+        if isinstance(parsed, dict):
+            validate_city_tax_rates_bps(parsed.get("city_tax_rates_bps", {}))
+            try:
+                return _merge_trade_preview_inputs(parsed)
+            except (TypeError, ValueError):
+                pass
         normalized = _merge_trade_preview_inputs({})
         self.save_trade_preview_inputs(normalized)
         return normalized
@@ -329,10 +351,7 @@ class ResonanceConfigRepository:
     def save_trade_preview_inputs(self, inputs: dict[str, Any]) -> None:
         """Persist only preview planning inputs without changing trade settings."""
         normalized = _merge_trade_preview_inputs(inputs)
-        self.settings.setValue(
-            TRADE_PREVIEW_INPUTS_KEY, json.dumps(normalized, ensure_ascii=False)
-        )
-        self.settings.sync()
+        self._save_freight_inputs_json(TRADE_PREVIEW_INPUTS_KEY, normalized)
 
     def load_passenger_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("passenger/inputs_json", "")
@@ -441,6 +460,8 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    merged["city_tax_rates_bps"] = validate_city_tax_rates_bps(merged["city_tax_rates_bps"])
+    merged["allow_stale_market"] = validate_allow_stale_market(merged["allow_stale_market"])
     if merged["trade_mode"] not in ("free", "fixed"):
         raise ValueError("货运模式必须为 free 或 fixed。")
     merged["target_profit_enabled"] = bool(values.get("target_profit_enabled", False))

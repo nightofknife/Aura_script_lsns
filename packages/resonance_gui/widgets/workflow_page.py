@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
 
 from ..config_repository import ResonanceConfigRepository
 from .toggle_button import ToggleButton as QCheckBox
+from .market_warning_label import MarketWarningLabel
 from ..passenger_catalog import load_passenger_route_catalog
 from ..logic import (
     PASSENGER_STAGE_LABELS,
@@ -63,6 +64,9 @@ from ..logic import (
     reduce_passenger_progress,
     reduce_workflow_freight_progress,
     route_product_lines,
+    FREIGHT_NET_PROFIT_NOTE,
+    freight_settlement_lines,
+    market_fallback_notice,
 )
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
@@ -792,7 +796,7 @@ class WorkflowPage(QWidget):
         summary_layout.setVerticalSpacing(8)
         self.runtime_plan_values: dict[str, QLabel] = {}
         fields = (
-            ("expected_profit", "预计收益"),
+            ("expected_profit", "预计净收益"),
             ("profit_per_fatigue", "疲劳收益比"),
             ("fatigue", "预计疲劳 / 预算"),
             ("route", "路线规模"),
@@ -988,6 +992,7 @@ class WorkflowPage(QWidget):
         panel = QFrame(self)
         panel.setObjectName("workflowPanel")
         layout = QVBoxLayout(panel)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
         layout.setContentsMargins(12, 14, 12, 12)
         layout.setSpacing(7)
         header = QHBoxLayout()
@@ -1016,6 +1021,8 @@ class WorkflowPage(QWidget):
         progress_layout.setSpacing(8)
         self.runtime_tabs.addTab(self.runtime_progress_page, "进度")
         layout.addWidget(self.runtime_tabs, 1)
+        self.market_warning_label = MarketWarningLabel(panel)
+        layout.addWidget(self.market_warning_label)
         progress_metrics = QGridLayout()
         progress_metrics.setHorizontalSpacing(8)
         progress_metrics.setColumnStretch(0, 1)
@@ -1340,6 +1347,8 @@ class WorkflowPage(QWidget):
         )
         self._passenger_progress = PassengerProgressState()
         self.resource_progress_label.clear()
+        self.market_warning_label.clear()
+        self.market_warning_label.hide()
         self.resource_progress_label.hide()
         labels = dict(WORKFLOW_TASKS)
         labels["refresh_recovery"] = "刷新恢复资源"
@@ -1456,6 +1465,9 @@ class WorkflowPage(QWidget):
             self._render_freight_progress()
             self._active_runtime_kind = kind
             self._show_current_operation(kind, self._freight_progress)
+            warning = market_fallback_notice(vars(self._freight_progress))
+            self.market_warning_label.setText(warning)
+            self.market_warning_label.setVisible(bool(warning))
             if (
                 str(payload.get("stage") or "") == "planning"
                 and str(payload.get("state") or "").lower() == "completed"
@@ -1503,6 +1515,19 @@ class WorkflowPage(QWidget):
             ),
         )
         self.append_log(self._progress_log_line(payload, f"{label} · {detail}" if detail else label))
+
+    def update_freight_market_result(self, result: Mapping[str, Any]) -> None:
+        """Terminal-result fallback when a market progress event was not delivered."""
+        if not result.get("market_source"):
+            return
+        for key in ("market_source", "market_fetched_at", "market_stale_reason"):
+            setattr(self._freight_progress, key, str(result.get(key) or ""))
+        self._freight_progress.market_fallback_blocked = bool(result.get("market_fallback_blocked"))
+        warning = market_fallback_notice(vars(self._freight_progress))
+        self.market_warning_label.setText(warning)
+        self.market_warning_label.setVisible(bool(warning))
+        if self._freight_progress.route:
+            self._render_runtime_trade_plan()
 
     def finish_workflow(self, *, success: bool, message: str) -> None:
         stopped = self._stopping
@@ -1637,7 +1662,10 @@ class WorkflowPage(QWidget):
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
         mode = {"free": "不定线路", "fixed": "固定线路"}.get(str(summary.get("trade_mode")), "货运")
-        notes = [mode, "预计值来自规划，不代表实测收益或疲劳"]
+        notes = [mode, FREIGHT_NET_PROFIT_NOTE, "预计疲劳来自规划，不代表实测。"]
+        warning = market_fallback_notice(vars(self._freight_progress))
+        if warning:
+            notes.append(warning)
         reposition = summary.get("reposition")
         if isinstance(reposition, Mapping) and reposition.get("required"):
             notes.append(f"先定位到线路起点，预计疲劳 {self._display_plan_value(reposition.get('expected_fatigue'))}（已计入总疲劳）")
@@ -1742,7 +1770,7 @@ class WorkflowPage(QWidget):
             )
             route_label.setObjectName("runtimePlanLegRoute")
             profit_label = QLabel(
-                f"预计收益  {self._display_plan_value(leg.get('expected_profit'))}", card
+                f"预计净收益  {self._display_plan_value(leg.get('expected_profit'))}", card
             )
             profit_label.setObjectName("runtimePlanLegProfit")
             profit_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -1764,10 +1792,18 @@ class WorkflowPage(QWidget):
             meta.setObjectName("runtimePlanLegMeta")
             card_layout.addWidget(meta)
 
+            settlement_label = QLabel("\n".join(freight_settlement_lines(leg)), card)
+            settlement_label.setObjectName("runtimePlanLegSettlement")
+            settlement_label.setWordWrap(True)
+            settlement_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            settlement_label.setVisible(bool(settlement_label.text()))
+            card_layout.addWidget(settlement_label)
+
             card.route_label = route_label
             card.profit_label = profit_label
             card.products_label = products_label
             card.meta_label = meta
+            card.settlement_label = settlement_label
             self.runtime_plan_route_layout.insertWidget(
                 self.runtime_plan_route_layout.count() - 1, card
             )

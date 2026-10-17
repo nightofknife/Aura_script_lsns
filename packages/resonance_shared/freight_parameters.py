@@ -8,7 +8,7 @@ FREIGHT_PLANNING_KEYS = (
     "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget",
     "book_profit_threshold", "book_waste_limit", "book_policy", "negotiation_policy",
     "fixed_route_city_ids", "reposition_to_route", "target_profit",
-    "available_city_ids", "required_end_city_ids", "city_prestige",
+    "available_city_ids", "required_end_city_ids", "city_prestige", "city_tax_rates_bps",
     "product_unlocks", "bargain_success_rates_bps", "bargain_step_bps",
     "raise_success_rates_bps", "raise_step_bps",
 )

@@ -33,6 +33,7 @@ from ._freight_trailer_policy import validate_trailer_options
 
 _ORDERS = {"trade_first", "passenger_first"}
 _TRADE_INPUT_KEYS = {
+    "allow_stale_market",
     "auto_trailer",
     "trailer_daily_first_n",
     "trailer_payment",
@@ -56,6 +57,7 @@ _TRADE_INPUT_KEYS = {
     "available_city_ids",
     "required_end_city_ids",
     "city_prestige",
+    "city_tax_rates_bps",
     "product_unlocks",
     "auto_sparkling_water",
     "auto_bento",
@@ -74,6 +76,7 @@ _TRADE_INPUT_KEYS = {
     "black_moon_purchase_record_scope",
 }
 _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
+    "allow_stale_market",
     "auto_trailer",
     "trailer_daily_first_n",
     "trailer_payment",
@@ -460,6 +463,8 @@ async def resonance_pc_auto_combined_commerce_flow(
         return _blocked(result, "combined_auto_bento_unsupported", "preflight")
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
     try:
+        if type(effective_trade.get("allow_stale_market", False)) is not bool:
+            raise ValueError("allow_stale_market must be a boolean")
         validate_trailer_options(effective_trade.get("auto_trailer", False),
                                  effective_trade.get("trailer_daily_first_n", 1),
                                  effective_trade.get("trailer_payment", "gold"))

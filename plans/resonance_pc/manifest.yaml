@@ -1199,6 +1199,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: city_tax_rates_bps
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -1294,6 +1298,10 @@ exports:
       type: Any
       required: false
       default: false
+    - name: city_tax_rates_bps
+      type: Any
+      required: false
+      default: null
     - name: allowed_fatigue_medicines
       type: Any
       required: false
@@ -1374,6 +1382,10 @@ exports:
       type: Any
       required: false
       default: gold
+    - name: allow_stale_market
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -2991,6 +3003,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: city_tax_rates_bps
+      type: Any
+      required: false
+      default: null
     - name: product_unlocks
       type: Any
       required: false
@@ -3846,4 +3862,4 @@ exports:
       towing service and confirm departure. Does not wait for arrival or drive normally.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-17T06:28:24Z'
+  generated_at: '2026-10-17T20:47:53Z'

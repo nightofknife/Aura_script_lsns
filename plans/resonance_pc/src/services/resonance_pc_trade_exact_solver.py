@@ -22,6 +22,7 @@ import heapq
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .resonance_pc_trade_candidate_model import EdgeBookCurve, TradeEdgeOption
+from .resonance_pc_trade_settlement import PRICING_MODEL, TradeCandidate, game_round, optimal_load
 from .resonance_pc_trade_objective_solver import solve_fixed, solve_target
 from .resonance_pc_trade_solver_common import (
     check_solver_cancelled,
@@ -161,6 +162,7 @@ class ResonancePcExactTradeSolver:
             for city_id, products in dict(buy_lot or {}).items()
         }
         self.rules = dict(trade_rules)
+        self.city_tax_rates_bps: Dict[str, int] = {}
         self.allowed_city_ids = tuple(dict.fromkeys(str(item) for item in allowed_city_ids))
         self.unlockable_product_ids = (
             None
@@ -189,10 +191,21 @@ class ResonancePcExactTradeSolver:
         raise_success_rates_bps: Optional[Sequence[Any]] = None,
         raise_step_bps: Optional[Any] = None,
         city_prestige: Optional[Mapping[str, Any]] = None,
+        city_tax_rates_bps: Optional[Mapping[str, Any]] = None,
         product_unlocks: Optional[Mapping[str, Any]] = None,
         _backend: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Plan one complete freight request without compatibility aliases."""
+        if city_tax_rates_bps is not None and not isinstance(city_tax_rates_bps, Mapping):
+            raise ValueError("city_tax_rates_bps must be a city-to-integer-bps mapping")
+        self.city_tax_rates_bps = {
+            str(city): _as_bounded_int(f"city_tax_rates_bps[{city}]", rate, minimum=0, maximum=10000)
+            for city, rate in (city_tax_rates_bps or {}).items()
+        }
+        unknown_tax_cities = set(self.city_tax_rates_bps) - set(self.fatigue_costs)
+        if unknown_tax_cities:
+            raise ValueError(f"city_tax_rates_bps contains unknown city ids: {sorted(unknown_tax_cities)}")
+        city_rules = (self.rules.get("tax") or {}).get("city_rules") or {}
         mode = str(trade_mode).strip().lower()
         if mode not in {"free", "fixed"}:
             raise ValueError("trade_mode must be free or fixed")
@@ -278,6 +291,10 @@ class ResonancePcExactTradeSolver:
                 raise ValueError("target_profit must be greater than 0")
             target_integer = (target.numerator + target.denominator - 1) // target.denominator
 
+        unsupported = [city for city in planning_cities
+                       if (city_rules.get(city) or {}).get("supported_currency") is False]
+        if unsupported:
+            raise ValueError(f"unsupported_trade_currency: {unsupported}")
         bargain = self._normalize_negotiation_profile(side="bargain",
                     success_rates_bps=bargain_success_rates_bps, step_bps=bargain_step_bps)
         raising = self._normalize_negotiation_profile(side="raise",
@@ -408,6 +425,7 @@ class ResonancePcExactTradeSolver:
                    "bargain_step_bps": bargain.step_bps,
                    "raise_success_rates_bps": list(raising.success_rates_bps), "raise_step_bps": raising.step_bps,
                    "city_prestige": dict(prestige),
+                   "city_tax_rates_bps": dict(self.city_tax_rates_bps),
                    "product_unlocks": None if unlocked is None else sorted(unlocked, key=self._sort_key)}
         if mode == "fixed":
             request.update(fixed_route_city_ids=list(fixed_path), reposition_to_route=reposition_to_route)
@@ -660,17 +678,20 @@ class ResonancePcExactTradeSolver:
         raise_to_cap: bool,
         prestige_by_city: Mapping[str, int],
         unlocked_products: Optional[set[str]],
-    ) -> Tuple[Tuple[Fraction, str, str, int], ...]:
+    ) -> Tuple[TradeCandidate, ...]:
         from_prestige = prestige_by_city[from_city]
         to_prestige = prestige_by_city[to_city]
         buy_tax_bps = self._tax_bps(from_city, from_prestige)
         sell_tax_bps = self._tax_bps(to_city, to_prestige)
         extra_buy_bps = self._prestige_rule(from_prestige)["extra_buy_bps"]
+        city_rule = ((self.rules.get("tax") or {}).get("city_rules") or {}).get(from_city) or {}
+        if "fixed_extra_buy_bps" in city_rule:
+            extra_buy_bps = int(city_rule["fixed_extra_buy_bps"])
         max_adjustment_bps = int(
             (self.rules.get("negotiation") or {}).get("max_adjustment_bps", 2000)
         )
 
-        candidates: List[Tuple[Fraction, str, str, int]] = []
+        candidates: List[TradeCandidate] = []
         city_lots = self.buy_lot.get(from_city) or {}
         for product_id in sorted(city_lots, key=self._sort_key):
             product_id = str(product_id)
@@ -685,25 +706,23 @@ class ResonancePcExactTradeSolver:
                 continue
             buy_factor_bps = 10_000 - (max_adjustment_bps if bargain_to_cap else 0)
             sell_factor_bps = 10_000 + (max_adjustment_bps if raise_to_cap else 0)
-            adjusted_buy = js_round(buy_price * Fraction(buy_factor_bps, 10_000))
-            adjusted_sell = js_round(sell_price * Fraction(sell_factor_bps, 10_000))
+            adjusted_buy = game_round(buy_price * Fraction(buy_factor_bps, 10_000))
+            adjusted_sell = game_round(sell_price * Fraction(sell_factor_bps, 10_000))
             net_profit = (
-                Fraction(adjusted_sell * (10_000 - sell_tax_bps), 10_000)
-                - Fraction(adjusted_buy * (10_000 + buy_tax_bps), 10_000)
+                Fraction((adjusted_sell - adjusted_buy) * (10_000 - sell_tax_bps), 10_000)
+                - Fraction(adjusted_buy * buy_tax_bps, 10_000)
             )
-            expected_unit_profit = Fraction(js_round(net_profit), 1)
-            if expected_unit_profit <= 0:
-                continue
-            prestige_lot = js_round(Fraction(base_lot * (10_000 + extra_buy_bps), 10_000))
+            prestige_lot = game_round(Fraction(base_lot * (10_000 + extra_buy_bps), 10_000))
             if prestige_lot <= 0:
                 continue
             product_name = self._product_name(product_id)
             candidates.append(
-                (
-                    expected_unit_profit,
+                TradeCandidate(
+                    net_profit,
                     product_id,
                     product_name,
                     prestige_lot,
+                    adjusted_buy, adjusted_sell, buy_tax_bps, sell_tax_bps,
                 )
             )
 
@@ -722,22 +741,9 @@ class ResonancePcExactTradeSolver:
         expected_bargain_fatigue: Fraction,
         expected_raise_fatigue: Fraction,
         cargo_capacity: int,
-        candidates: Sequence[Tuple[Fraction, str, str, int]],
+        candidates: Sequence[TradeCandidate],
     ) -> TradeEdgeOption:
-        free_capacity = int(cargo_capacity)
-        expected_profit = Fraction(0, 1)
-        buys: List[Tuple[str, str, int, Fraction]] = []
-        quantity_multiplier = int(books_used) + 1
-        for unit_profit, product_id, product_name, prestige_lot in candidates:
-            if free_capacity <= 0:
-                break
-            max_quantity = prestige_lot * quantity_multiplier
-            quantity = min(int(max_quantity), free_capacity)
-            if quantity <= 0:
-                continue
-            buys.append((product_id, product_name, quantity, unit_profit))
-            expected_profit += unit_profit * quantity
-            free_capacity -= quantity
+        buys, settlement = optimal_load(candidates, int(cargo_capacity), int(books_used))
 
         return TradeEdgeOption(
             from_city_id=from_city,
@@ -748,10 +754,11 @@ class ResonancePcExactTradeSolver:
             travel_fatigue=int(travel_fatigue),
             expected_bargain_fatigue=expected_bargain_fatigue,
             expected_raise_fatigue=expected_raise_fatigue,
-            expected_profit=expected_profit,
+            expected_profit=Fraction(settlement.net_profit),
             buy_product_ids=tuple(item[0] for item in buys),
             buy_product_names=tuple(item[1] for item in buys),
             buys=tuple(buys),
+            settlement=settlement,
         )
 
     def _prune_edge_options(
@@ -812,9 +819,11 @@ class ResonancePcExactTradeSolver:
             raise ValueError("city_prestige.default must be between 1 and 20")
         result: Dict[str, int] = {}
         for city_id in set(self.allowed_city_ids) | set(self.fatigue_costs):
+            city_rule = ((self.rules.get("tax") or {}).get("city_rules") or {}).get(str(city_id)) or {}
+            prestige_city = str(city_rule.get("prestige_city_id") or city_id)
             value = _as_integral(
                 f"city prestige for '{city_id}'",
-                overrides.get(str(city_id), default_level),
+                overrides.get(prestige_city, default_level),
             )
             if str(value) not in levels:
                 raise ValueError(f"city prestige for '{city_id}' must be between 1 and 20")
@@ -854,9 +863,21 @@ class ResonancePcExactTradeSolver:
         }
 
     def _tax_bps(self, city_id: str, prestige_level: int) -> int:
+        if city_id in self.city_tax_rates_bps:
+            return self.city_tax_rates_bps[city_id]
         prestige_rule = self._prestige_rule(prestige_level)
         tax_bps = int(prestige_rule["general_tax_bps"])
         tax_rules = dict(self.rules.get("tax") or {})
+        city_rules = tax_rules.get("city_rules")
+        if isinstance(city_rules, Mapping):
+            city_rule = city_rules.get(str(city_id))
+            if not isinstance(city_rule, Mapping):
+                raise ValueError(f"native tax rule for city '{city_id}' is missing")
+            if city_rule.get("supported_currency") is False:
+                raise ValueError(f"unsupported_trade_currency: {city_id}")
+            if "fixed_tax_bps" in city_rule:
+                return int(city_rule["fixed_tax_bps"])
+            return max(0, min(10000, tax_bps + int(city_rule.get("delta_bps", 0))))
         special_city_ids = {str(item) for item in list(tax_rules.get("special_city_ids") or [])}
         if str(city_id) in special_city_ids:
             tax_bps += int(tax_rules.get("special_city_delta_bps", 0))
@@ -915,7 +936,15 @@ class ResonancePcExactTradeSolver:
             "all_plan": all_plan,
             "bargain_profile": self._serialize_profile(bargain_profile),
             "raise_profile": self._serialize_profile(raise_profile),
-            "tax_applied_to_buy_and_sell_amounts": True,
+            "pricing_model": PRICING_MODEL,
+            "rounding_mode": "game_num_round_half_away_with_strict_1e-4_tolerance",
+            "buy_tax_base": "whole_purchase_goods_amount",
+            "sell_tax_base": "positive_whole_sale_spread_excluding_purchase_tax",
+            "inventory_cost_basis": "single_batch_negotiated_buy_price_excluding_tax",
+            "unit_profit_is_unrounded_estimate": True,
+            "planned_quantities_assumed_filled": True,
+            "execution_quantities_verified": False,
+            "city_tax_rates_bps": dict(self.city_tax_rates_bps),
         }
 
 
@@ -924,6 +953,8 @@ class ResonancePcExactTradeSolver:
         expected_negotiation_fatigue = option.expected_negotiation_fatigue
         expected_fatigue_cost = option.expected_fatigue_cost
         return {
+            "pricing_model": PRICING_MODEL,
+            "settlement": option.settlement.to_dict(),
             "leg_type": "trade" if option.buys else "navigation",
             "selection_reason": ("profitable_goods_require_purchase" if option.buys
                                  else "no_profitable_products_transition"
@@ -952,6 +983,7 @@ class ResonancePcExactTradeSolver:
                     "quantity": int(quantity),
                     "expected_unit_profit": float(unit_profit),
                     "expected_unit_profit_exact": self._fraction_text(unit_profit),
+                    "unit_profit_basis": "linear_estimate_before_whole_order_tax_rounding",
                 }
                 for product_id, product_name, quantity, unit_profit in option.buys
             ],

@@ -4,6 +4,11 @@ auto_cycle_trade_pc:
     description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
     entry_point: true
     inputs:
+      - name: allow_stale_market
+        type: boolean
+        required: false
+        default: false
+        description: "行情刷新失败时允许使用历史行情继续货运；默认停止以避免旧价格交易风险。"
       - name: trade_mode
         type: string
         required: false
@@ -192,6 +197,32 @@ auto_cycle_trade_pc:
             - "19"
             - "20"
             - "21"
+      - name: city_tax_rates_bps
+        type: dict
+        required: false
+        default: {}
+        properties:
+          "1": {name: city_1_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "2": {name: city_2_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "3": {name: city_3_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "4": {name: city_4_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "5": {name: city_5_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "6": {name: city_6_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "7": {name: city_7_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "8": {name: city_8_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "9": {name: city_9_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "10": {name: city_10_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "11": {name: city_11_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "12": {name: city_12_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "13": {name: city_13_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "14": {name: city_14_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "15": {name: city_15_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "16": {name: city_16_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "17": {name: city_17_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "18": {name: city_18_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "19": {name: city_19_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "20": {name: city_20_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
+          "21": {name: city_21_tax, type: number, required: false, strict_integer: true, min: 0, max: 10000}
       - name: city_prestige
         type: dict
         required: false
@@ -1277,6 +1308,7 @@ auto_cycle_trade_pc:
     run:
       action: resonance_pc.auto_cycle_trade_flow
       params:
+        allow_stale_market: "{{ inputs.allow_stale_market | default(false) }}"
         trade_mode: "{{ inputs.trade_mode }}"
         book_policy: "{{ inputs.book_policy }}"
         negotiation_policy: "{{ inputs.negotiation_policy }}"
@@ -1295,6 +1327,7 @@ auto_cycle_trade_pc:
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
+        city_tax_rates_bps: "{{ inputs.city_tax_rates_bps | default({}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
         use_fatigue_medicine: "{{ inputs.use_fatigue_medicine | default(false) }}"
         allowed_fatigue_medicines: "{{ inputs.allowed_fatigue_medicines | default([]) }}"
@@ -1343,6 +1376,11 @@ auto_cycle_trade_pc:
         auto_bento: "{{ inputs.auto_bento }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
+    market_source: "{{ nodes.finish.output.market_source | default(none) }}"
+    market_refreshed: "{{ nodes.finish.output.market_refreshed | default(false) }}"
+    market_stale_reason: "{{ nodes.finish.output.market_stale_reason | default(none) }}"
+    market_fetched_at: "{{ nodes.finish.output.market_fetched_at | default(none) }}"
+    market_fallback_blocked: "{{ nodes.finish.output.market_fallback_blocked | default(false) }}"
     error: "{{ nodes.finish.output.error | default(none) }}"
     trade_mode: "{{ nodes.finish.output.trade_mode | default(none) }}"
     request_kind: "{{ nodes.finish.output.request_kind | default(none) }}"

@@ -96,6 +96,13 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
     for value in prestige.get("overrides", {}).values():
         integer("city_prestige.overrides", value, minimum=1, maximum=20)
     result["city_prestige"] = prestige
+    taxes = result.get("city_tax_rates_bps")
+    taxes = {} if taxes is None else taxes
+    if not isinstance(taxes, dict) or any(not isinstance(key, str) or not key.strip() for key in taxes):
+        raise ValueError("city_tax_rates_bps must be a mapping of city IDs to integer basis points")
+    result["city_tax_rates_bps"] = {
+        key: integer("city_tax_rates_bps", value, maximum=10000) for key, value in taxes.items()
+    }
     unlocks = result.get("product_unlocks")
     unlocks = {"mode": "all", "product_ids": []} if unlocks is None else unlocks
     if not isinstance(unlocks, dict) or unlocks.get("mode") not in {"all", "only"}:

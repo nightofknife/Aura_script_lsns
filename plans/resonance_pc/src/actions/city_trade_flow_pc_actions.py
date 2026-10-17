@@ -2813,6 +2813,7 @@ async def _preview_trade_plan_from_start_city(
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
+    city_tax_rates_bps: Optional[Dict[str, Any]] = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     reporter: _TradeProgressReporter | None = None,
 ) -> Dict[str, Any]:
@@ -2867,7 +2868,8 @@ async def _preview_trade_plan_from_start_city(
             "completed",
             current_city=start_city_name,
             snapshot_id=snapshot_id,
-            data={"source": market_source, "stale_reason": market.get("stale_reason")},
+            data={"source": market_source, "stale_reason": market.get("stale_reason"),
+                  "fetched_at": market.get("fetched_at")},
         )
         await reporter.emit(
             "planning",
@@ -2963,6 +2965,7 @@ async def resonance_pc_preview_trade_plan_flow(
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
+    city_tax_rates_bps: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     del event_bus, context
     return await _preview_trade_plan_from_start_city(
@@ -2985,11 +2988,51 @@ async def resonance_pc_preview_trade_plan_flow(
         available_city_ids=available_city_ids,
         required_end_city_ids=required_end_city_ids,
         city_prestige=city_prestige,
+        city_tax_rates_bps=city_tax_rates_bps,
         product_unlocks=product_unlocks,
         resonance_pc_market_data=resonance_pc_market_data,
         resonance_pc_trade_planner=resonance_pc_trade_planner,
         reporter=_ACTIVE_PROGRESS_REPORTER.get(),
     )
+
+
+def _market_fallback_blocked_result(
+    request: Dict[str, Any], refresh: Dict[str, Any], current: Dict[str, Any], message: str,
+) -> Dict[str, Any]:
+    """Stop before planning or spending while retaining the public task result shape."""
+    reason = "stale_market_disallowed"
+    plan = {
+        "status": "blocked", "reason": reason, "route": [],
+        "snapshot_id": refresh.get("snapshot_id"), "city_path": [], "city_path_ids": [],
+        "required_end_city_ids": request.get("required_end_city_ids"),
+        "selected_end_city_id": None, "selected_end_city_name": None,
+        "expected_profit": None, "expected_profit_exact": None,
+        "fatigue_budget": request["fatigue_budget"],
+        "expected_fatigue_used": 0, "expected_fatigue_used_exact": "0",
+        "remaining_expected_fatigue": request["fatigue_budget"],
+        "remaining_expected_fatigue_exact": str(request["fatigue_budget"]),
+        "book_profit_threshold": request["book_profit_threshold"],
+        "book_incremental_profit": 0, "book_incremental_profit_exact": "0",
+        "average_book_profit": None, "average_book_profit_exact": None,
+        "books_used": 0, "remaining_books": request["book_budget"],
+        "negotiation_max_attempts": None, "full_negotiation_used": False,
+        "full_bargain_count": 0, "full_raise_count": 0, "assumptions": [],
+        "warnings": [message], "sparkling_water_plan": None,
+        "sparkling_water": {"triggered": False, "status": "not_triggered"},
+        "execution": {"status": "blocked", "reason": reason, "blocked_at": "market",
+                      "completed_leg_count": 0, "completed_route": [], "leg_results": []},
+        "final_sale": None, "blocked_at": "market", "blocked_leg": None,
+        "fatigue_medicine_used": [], "fatigue_medicine_use_count": 0,
+        "initial_city": dict(current), "page_state": "city_panel",
+        "success": False, "bento_pending": False,
+        "error": {"code": reason, "message": message,
+                  "detail": {"snapshot_id": refresh.get("snapshot_id"),
+                             "stale_reason": refresh.get("stale_reason"),
+                             "fetched_at": refresh.get("fetched_at")}},
+    }
+    result = plan_view(plan, request, kind="run")
+    result["input_snapshot"]["allow_stale_market"] = False
+    return result
 
 
 @action_info(
@@ -3032,6 +3075,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     use_fatigue_medicine: bool = False,
+    city_tax_rates_bps: Optional[Dict[str, Any]] = None,
     allowed_fatigue_medicines: Optional[List[str]] = None,
     fatigue_medicine_max_uses: int = 4,
     arrival_timeout_seconds: float = 3600.0,
@@ -3063,13 +3107,15 @@ async def resonance_pc_auto_cycle_trade_flow(
     auto_trailer: bool = False,
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
+    allow_stale_market: bool = False,
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     request = normalize_planning_inputs(locals())
     validate_trailer_options(auto_trailer, trailer_daily_first_n, trailer_payment)
     auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
-    for name, value in (("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
+    for name, value in (("allow_stale_market", allow_stale_market),
+                        ("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
                         ("auto_trade_goods_investment", auto_trade_goods_investment),
                         ("auto_rubbish_recycling", auto_rubbish_recycling),
@@ -3175,13 +3221,41 @@ async def resonance_pc_auto_cycle_trade_flow(
         force=True,
         resonance_pc_market_data=resonance_pc_market_data,
     )
+    stale = bool(refresh.get("stale"))
+    blocked_market = stale and not allow_stale_market
+    market_metadata = {
+        "market_source": "fallback_cache" if stale else "refresh",
+        "market_refreshed": not stale,
+        "market_stale_reason": refresh.get("stale_reason"),
+        "market_fetched_at": refresh.get("fetched_at"),
+        "market_fallback_blocked": blocked_market,
+    }
+    market_message = (
+        "行情更新失败，未允许使用历史行情，货运已停止。" if blocked_market else
+        "行情更新失败，已按设置使用历史行情继续货运，成交价格与预计收益可能不准确。" if stale else
+        "行情刷新完成。"
+    )
     if reporter is not None:
         await reporter.emit(
             "market",
-            "completed",
+            "blocked" if blocked_market else "completed",
             current_city=str(current.get("city_name") or ""),
             snapshot_id=str(refresh.get("snapshot_id") or ""),
+            data={"source": market_metadata["market_source"],
+                  "stale_reason": market_metadata["market_stale_reason"],
+                  "fetched_at": market_metadata["market_fetched_at"],
+                  "market_fallback_blocked": blocked_market, "message": market_message},
         )
+    if blocked_market:
+        logger.warning("%s reason=%s fetched_at=%s", market_message,
+                       refresh.get("stale_reason"), refresh.get("fetched_at"))
+        result = _market_fallback_blocked_result(request, refresh, current, market_message)
+        result.update(market_metadata)
+        return result
+    if stale:
+        logger.warning("%s reason=%s fetched_at=%s", market_message,
+                       refresh.get("stale_reason"), refresh.get("fetched_at"))
+    if reporter is not None:
         await reporter.emit("planning", "started", snapshot_id=str(refresh.get("snapshot_id") or ""))
     solver_progress_callback = (
         None
@@ -3244,6 +3318,10 @@ async def resonance_pc_auto_cycle_trade_flow(
         route=route, reposition=plan["reposition"]["route"],
     )
     plan["trailer_plan"] = trailer_plan.snapshot()
+    plan.update(market_metadata)
+    plan["input_snapshot"]["allow_stale_market"] = allow_stale_market
+    if stale:
+        plan["warnings"] = [*list(plan.get("warnings") or []), market_message]
     if auto_trade_goods_investment:
         for visit in plan["city_visits"]:
             if visit["city_index"] == 0:

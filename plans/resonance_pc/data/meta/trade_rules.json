@@ -1,14 +1,18 @@
 {
   "schema_version": "2.0.0",
-  "model_version": "resonance_pc_trade_binary_to_cap_2026_07_19",
+  "model_version": "resonance_pc_batch_profit_tax_2026_10_18",
   "source": {
     "reference_site": "https://www.resonance-columba.com/",
-    "verification_status": "requires_game_sample_validation"
+    "verification_status": "client_bytecode_and_user_single_batch_sample",
+    "client_station_sha256": "140b6a6809953562f73602f34483b8d7f3ee1c60cf6fdb2c9dbe011a42ddcc37",
+    "inventory_cost_basis": "single_batch_negotiated_buy_price_excluding_purchase_tax",
+    "sample": {"buy_unit": 688, "quantity": 2, "buy_tax_bps": 700, "buy_total": 1472, "sell_unit": 792, "sell_tax_bps": 750, "taxable_profit": 208, "sell_total": 1568, "net_profit": 96}
   },
   "rounding": {
-    "mode": "half_toward_positive_infinity",
+    "mode": "game_half_away_from_zero_epsilon_0_0001",
     "price_stage": true,
-    "taxed_unit_profit_stage": true,
+    "taxed_unit_profit_stage": false,
+    "batch_tax_stage": true,
     "purchase_quantity_stage": true
   },
   "trade_level": {
@@ -21,7 +25,30 @@
       "3",
       "6"
     ],
-    "special_city_delta_bps": -300
+    "special_city_delta_bps": -300,
+    "city_rules": {
+      "1": {"prestige_city_id":"1","native_prestige_station_id":83000001,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "2": {"prestige_city_id":"1","native_prestige_station_id":83000001,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "3": {"prestige_city_id":"3","native_prestige_station_id":83000020,"delta_bps":-300,"currency_id":11400001,"supported_currency":true},
+      "4": {"prestige_city_id":"4","native_prestige_station_id":83000029,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "5": {"prestige_city_id":"4","native_prestige_station_id":83000029,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "6": {"prestige_city_id":"3","native_prestige_station_id":83000020,"delta_bps":-300,"currency_id":11400001,"supported_currency":true},
+      "7": {"prestige_city_id":"1","native_prestige_station_id":83000001,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "8": {"prestige_city_id":"8","native_prestige_station_id":83000053,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "9": {"prestige_city_id":"8","native_prestige_station_id":83000053,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "10": {"prestige_city_id":"10","native_prestige_station_id":83000010,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "11": {"prestige_city_id":"11","native_prestige_station_id":83000002,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "12": {"prestige_city_id":"12","native_prestige_station_id":83000009,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "13": {"prestige_city_id":"11","native_prestige_station_id":83000002,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "14": {"prestige_city_id":"19","native_prestige_station_id":83000052,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "15": {"prestige_city_id":"15","native_prestige_station_id":83000006,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "16": {"prestige_city_id":"15","native_prestige_station_id":83000006,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "17": {"prestige_city_id":"17","native_prestige_station_id":83000015,"delta_bps":0,"fixed_tax_bps":1000,"fixed_extra_buy_bps":0,"currency_id":11400001,"supported_currency":true},
+      "18": {"prestige_city_id":"18","native_prestige_station_id":83000008,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "19": {"prestige_city_id":"19","native_prestige_station_id":83000052,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "20": {"prestige_city_id":"19","native_prestige_station_id":83000052,"delta_bps":0,"currency_id":11400001,"supported_currency":true},
+      "21": {"prestige_city_id":"21","native_prestige_station_id":83000046,"delta_bps":0,"fixed_tax_bps":1500,"currency_id":11401048,"supported_currency":false}
+    }
   },
   "prestige_levels": {
     "1": {"general_tax_bps": 1000, "extra_buy_bps": 1000},

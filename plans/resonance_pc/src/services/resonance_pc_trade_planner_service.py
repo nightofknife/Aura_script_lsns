@@ -165,6 +165,7 @@ class ResonancePcTradePlannerService:
         available_city_ids: Optional[List[str]] = None,
         required_end_city_ids: Optional[List[str]] = None,
         city_prestige: Optional[Dict[str, Any]] = None,
+        city_tax_rates_bps: Optional[Dict[str, Any]] = None,
         product_unlocks: Optional[Dict[str, Any]] = None,
         current_city_key: Optional[str] = None,
         current_city_id: Optional[str] = None,
@@ -177,6 +178,12 @@ class ResonancePcTradePlannerService:
         if mode not in {"free", "fixed"}:
             raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
                                               message="trade_mode must be free or fixed")
+        city_tax_rates_bps = {} if city_tax_rates_bps is None else city_tax_rates_bps
+        if (not isinstance(city_tax_rates_bps, dict)
+                or any(not isinstance(key, str) or not key.strip() or type(value) is not int
+                       or not 0 <= value <= 10000 for key, value in city_tax_rates_bps.items())):
+            raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
+                message="city_tax_rates_bps must map city IDs to integer basis points from 0 to 10000")
         if type(book_budget) is int and book_budget == 0:
             book_policy, book_profit_threshold = "profit", DEFAULT_BOOK_PROFIT_THRESHOLD
         if book_policy != "fill":
@@ -220,6 +227,21 @@ class ResonancePcTradePlannerService:
                 message="One current city input is required for optimal route planning.",
             )
 
+        trade_rules_payload = self._load_trade_rules_payload()
+        city_rules = (trade_rules_payload.get("tax") or {}).get("city_rules") or {}
+        unsupported_currency_ids = {
+            str(city) for city, rule in city_rules.items() if rule.get("supported_currency") is False
+        }
+        explicit_cities = set(str(city) for city in (available_city_ids or []))
+        unsupported_requested = sorted((explicit_cities | {resolved_city_id}) & unsupported_currency_ids)
+        if unsupported_requested:
+            raise ResonancePcTradePlannerError(code="unsupported_trade_currency",
+                message="武林源等异币城市尚不支持统一货运收益计算，请移出线路或参与城市。",
+                detail={"unsupported_city_ids": unsupported_requested})
+        unknown_tax_cities = sorted(set(city_tax_rates_bps) - set(fatigue_payload.get("costs") or {}))
+        if unknown_tax_cities:
+            raise ResonancePcTradePlannerError(code="invalid_optimal_route_input",
+                message=f"city_tax_rates_bps contains unknown city IDs: {unknown_tax_cities}")
         fatigue_costs = fatigue_payload.get("costs") or {}
         supported_city_ids = [
             str(city_id)
@@ -231,7 +253,7 @@ class ResonancePcTradePlannerService:
             allowed_city_ids = [
                 city_id
                 for city_id in supported_city_ids
-                if city_id in default_available_city_ids
+                if city_id in default_available_city_ids and city_id not in unsupported_currency_ids
             ]
         else:
             if not isinstance(available_city_ids, list):
@@ -309,7 +331,6 @@ class ResonancePcTradePlannerService:
 
         buy_lot_payload = self._load_buy_lot_payload()
         product_unlocks_payload = self._load_product_unlocks_payload()
-        trade_rules_payload = self._load_trade_rules_payload()
         planning_inputs = {
             "start_city_id": resolved_city_id, "required_end_city_ids": normalized_end_city_ids,
             "fatigue_budget": fatigue_budget, "cargo_capacity": cargo_capacity, "book_budget": book_budget,
@@ -321,13 +342,16 @@ class ResonancePcTradePlannerService:
             "negotiation_budget": negotiation_budget,
             "bargain_success_rates_bps": bargain_success_rates_bps, "bargain_step_bps": bargain_step_bps,
             "raise_success_rates_bps": raise_success_rates_bps, "raise_step_bps": raise_step_bps,
-            "city_prestige": city_prestige, "product_unlocks": product_unlocks,
+            "city_prestige": city_prestige, "city_tax_rates_bps": city_tax_rates_bps,
+            "product_unlocks": product_unlocks,
         }
         cache_key = self._optimal_route_cache_key(
             snapshot=snapshot, fatigue_payload=fatigue_payload, buy_lot_payload=buy_lot_payload,
             product_unlocks_payload=product_unlocks_payload, trade_rules_payload=trade_rules_payload,
             allowed_city_ids=allowed_city_ids, planning_inputs=planning_inputs,
         )
+        # Default scope reports excluded currencies; an explicit valid scope does not.
+        cache_key += ":default_scope" if available_city_ids is None else ":explicit_scope"
         with self._optimal_route_cache_lock:
             cached = self._optimal_route_cache.get(cache_key)
             if cached is not None:
@@ -349,6 +373,9 @@ class ResonancePcTradePlannerService:
                 code="invalid_optimal_route_input",
                 message=str(exc),
             ) from exc
+        if available_city_ids is None and unsupported_currency_ids:
+            result["pricing_excluded_city_ids"] = sorted(unsupported_currency_ids)
+            result.setdefault("warnings", []).append("默认规划已排除尚不支持统一计价的异币城市。")
         with self._optimal_route_cache_lock:
             self._optimal_route_cache[cache_key] = copy.deepcopy(result)
             self._optimal_route_cache.move_to_end(cache_key)
