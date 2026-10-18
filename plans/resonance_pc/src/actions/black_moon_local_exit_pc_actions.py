@@ -10,7 +10,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from ._black_moon_local_exit_vision import BlackMoonLocalExitVision
 from .black_moon_local_prepare_pc_actions import _capture, _cancel_check, _validated_center
 from .black_moon_local_select_pc_actions import _same_view
-from ._black_moon_local_scan_contract import validated_scan_completion
+from ._black_moon_local_scan_contract import validated_scan_completion, validated_selection_presence
 
 
 _WAIT_SECONDS = 7.
@@ -43,9 +43,9 @@ async def execute_black_moon_wait_purchase(submission, app, reader=None):
         scan = submission.get("scan")
         if scan is not None:
             validated_scan_completion(scan)
-            if scan.get("started_empty") is not True or scan.get("selected_card_count") != 0:
-                raise ValueError("No-goods exit requires a complete initially-empty zero-selection scan")
-            return {"success": True, "status": "skipped", "reason": "no_new_selected_goods",
+            if validated_selection_presence(scan)["has_selected_goods"] is not False:
+                raise ValueError("No-goods exit requires a completed scan without selected targets")
+            return {"success": True, "status": "skipped", "reason": "no_selected_goods",
                     "ready_to_exit": True, "purchase_verified": False, "page_state": "local_shop"}
         return {"success": True, "status": "skipped", "reason": "no_purchase_submitted",
                 "ready_to_exit": False, "purchase_verified": False}
@@ -85,6 +85,9 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
         raise ValueError("Purchase settling must explicitly allow exit")
     reader = reader if reader is not None else BlackMoonLocalExitVision()
     clicks, last = 0, {}
+    # No-target visits exit directly; zero-total evidence is only required after
+    # a submitted purchase has been verified, never as an initial condition.
+    require_zero_total = purchase_result.get("purchase_verified") is True
 
     async def probe(allow_source):
         nonlocal last
@@ -96,7 +99,9 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
             kind, hit, key = None, None, None
             if last.get("page_state") == exit_target:
                 kind, key = "target", ("target", exit_target)
-            elif allow_source and (_settled(last) or (
+            elif allow_source and ((last.get("page_state") == "local_shop"
+                    and last.get("shop_ready") is True
+                    and (not require_zero_total or last.get("total_zero") is True)) or (
                     exit_target == "main" and last.get("page_state") == "rest_menu")):
                 hit = reader.button(frame, exit_target)
                 if hit["found"]:
@@ -126,7 +131,7 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
             return completed()
         if kind != "source":
             raise BlackMoonLocalExitError("black_moon_exit_source_unknown",
-                                         "Settled LOCAL shop and fresh exit button are not confirmed", last)
+                                         "Ready LOCAL shop and fresh exit button are not confirmed", last)
         point = _validated_center(hit)
         _cancel_check()
         app.click(x=int(point[0]), y=int(point[1]))

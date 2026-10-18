@@ -741,7 +741,6 @@ black_moon_local_select_pc:
       timeout_sec: 300
       params:
         purchase_table: "{{ inputs.purchase_table }}"
-        require_empty_selection: "{{ inputs.submit_purchase }}"
     submit:
       action: resonance_pc.submit_black_moon_local_selection
       depends_on: select_goods

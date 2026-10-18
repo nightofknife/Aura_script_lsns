@@ -758,7 +758,6 @@ black_moon_local_purchase_pc:
       timeout_sec: 240
       params:
         purchase_table: "{{ nodes.begin_visit.output.purchase_table }}"
-        require_empty_selection: true
     submit_purchase:
       action: resonance_pc.submit_black_moon_local_visit
       depends_on: {select_goods: 'success|skipped'}
@@ -788,7 +787,7 @@ black_moon_local_purchase_pc:
     city_key: "{{ nodes.finish_visit.output.city_key }}"
     week_key: "{{ nodes.finish_visit.output.week_key }}"
     completed_this_week: "{{ nodes.finish_visit.output.completed_this_week }}"
-    selected_card_count: "{{ nodes.finish_visit.output.selected_card_count }}"
-    selected_items: "{{ nodes.finish_visit.output.selected_items }}"
+    has_selected_goods: "{{ nodes.finish_visit.output.has_selected_goods }}"
+    matched_item_ids: "{{ nodes.finish_visit.output.matched_item_ids }}"
     purchase_verified: "{{ nodes.finish_visit.output.purchase_verified }}"
     page_state: "{{ nodes.finish_visit.output.page_state }}"

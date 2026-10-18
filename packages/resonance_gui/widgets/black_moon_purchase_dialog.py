@@ -162,6 +162,9 @@ class ProductGrid(QListView):
         self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.setDragDropMode(QAbstractItemView.DragDropMode.NoDragDrop)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Reserve scrollbar space so wrapping cannot toggle the viewport width
+        # and repeatedly switch the grid between different column counts.
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setMouseTracking(True)
         self.setAccessibleName("黑月商品选择网格")
@@ -199,7 +202,7 @@ class ProductGrid(QListView):
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self.viewport():
             if event.type() == QEvent.Type.Resize:
-                # Scrollbars can resize the viewport without resizing QListView.
+                # Keep cell sizes in sync with the actual viewport geometry.
                 self._layout_timer.start()
             if event.type() == QEvent.Type.ToolTip:
                 return True

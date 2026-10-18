@@ -1,4 +1,4 @@
-"""Shared completion proof for physical-bottom and sold-out-boundary scans.
+"""Shared completion evidence for current and historical wishlist scans.
 
 Only old records without any new scan fields may use the historical
 ``bottom_confirmed`` contract. A partial or explicitly incomplete new proof
@@ -11,7 +11,10 @@ import math
 from typing import Any
 
 
-_SCAN_FIELDS = frozenset({"scan_complete", "end_reason", "top_confirmed", "boundary_evidence"})
+_SCAN_FIELDS = frozenset({
+    "scan_complete", "end_reason", "top_confirmed", "boundary_evidence",
+    "scroll_count", "unchanged_drag_count",
+})
 
 
 def _finite_json(value: Any) -> None:
@@ -41,35 +44,81 @@ def validated_scan_completion(value: Any) -> dict:
 
     if value.get("scan_complete") is not True:
         raise ValueError("Wishlist scan must explicitly be complete")
+    # Historical records may carry this observation, but scans now begin at the
+    # current list position and do not require a confirmed top.
+    if "top_confirmed" in value and type(value["top_confirmed"]) is not bool:
+        raise ValueError("top_confirmed must be a boolean")
     reason = value.get("end_reason")
+    boundary = value.get("boundary_evidence")
+    # Historical records have no counters and use upper_region_processed.
+    # Current records require both counters, including a first-page sold-out stop.
+    if (reason in ("unchanged_view", "drag_limit")
+            or any(key in value for key in ("scroll_count", "unchanged_drag_count"))
+            or (isinstance(boundary, dict) and "current_page_processed" in boundary)):
+        scroll_count = value.get("scroll_count")
+        if type(scroll_count) is not int or not 0 <= scroll_count <= 11:
+            raise ValueError("scroll_count must be an integer between zero and eleven")
+        unchanged_drag_count = value.get("unchanged_drag_count")
+        if (type(unchanged_drag_count) is not int
+                or not 0 <= unchanged_drag_count <= scroll_count):
+            raise ValueError("unchanged_drag_count must be an integer between zero and scroll_count")
     if reason == "list_bottom":
         if value.get("bottom_confirmed") is not True:
             raise ValueError("Physical-bottom completion requires bottom confirmation")
-        if "top_confirmed" in value and type(value["top_confirmed"]) is not bool:
-            raise ValueError("top_confirmed must be a boolean")
     elif reason == "sold_out_boundary":
-        if value.get("bottom_confirmed") is not False or value.get("top_confirmed") is not True:
-            raise ValueError("Sold-out completion requires a confirmed top, not physical-bottom proof")
-        boundary = value.get("boundary_evidence")
-        if (not isinstance(boundary, dict)
-                or boundary.get("recognized") is not True
-                or boundary.get("upper_region_processed") is not True):
-            raise ValueError("Sold-out boundary and all preceding goods must be processed")
+        if value.get("bottom_confirmed") is not False:
+            raise ValueError("Sold-out completion must not claim physical-bottom proof")
+        if not isinstance(boundary, dict) or boundary.get("recognized") is not True:
+            raise ValueError("Sold-out completion requires a recognized boundary")
+        processed = boundary.get("current_page_processed", boundary.get("upper_region_processed"))
+        if processed is not True:
+            raise ValueError("Sold-out completion requires the current page to be processed")
+        if ("upper_region_processed" in boundary
+                and type(boundary["upper_region_processed"]) is not bool):
+            raise ValueError("Historical upper_region_processed must be a boolean")
         frames = boundary.get("stable_frames")
         if type(frames) is not int or frames < 2:
             raise ValueError("Sold-out boundary requires at least two stable frames")
-        for field in ("row_top", "column"):
-            if type(boundary.get(field)) is not int or boundary[field] < 0:
-                raise ValueError(f"Sold-out boundary {field} must be a nonnegative integer")
+        if type(boundary.get("row_top")) is not int:
+            raise ValueError("Sold-out boundary row_top must be an integer")
+        if type(boundary.get("column")) is not int or boundary["column"] < 0:
+            raise ValueError("Sold-out boundary column must be a nonnegative integer")
         score = boundary.get("score")
-        if type(score) not in (int, float) or not math.isfinite(score) or not 0 <= score <= 1:
+        if type(score) not in (int, float) or not 0 <= score <= 1 or not math.isfinite(score):
             raise ValueError("Sold-out boundary score must be finite and between zero and one")
+    elif reason in ("unchanged_view", "drag_limit"):
+        if value.get("bottom_confirmed") is not False:
+            raise ValueError("View-based completion must not claim physical-bottom proof")
+        if reason == "unchanged_view" and value["unchanged_drag_count"] < 2:
+            raise ValueError("Unchanged-view completion requires two consecutive unchanged drags")
+        if reason == "drag_limit" and value["scroll_count"] <= 10:
+            raise ValueError("Drag-limit completion requires more than ten drags")
     else:
-        raise ValueError("Scan end_reason must be list_bottom or sold_out_boundary")
+        raise ValueError(
+            "Scan end_reason must be sold_out_boundary, unchanged_view, drag_limit, "
+            "or historical list_bottom"
+        )
 
     fields = {key: value[key] for key in (*_SCAN_FIELDS, "bottom_confirmed") if key in value}
     _finite_json(fields)
     return deepcopy(fields)
 
 
-__all__ = ["validated_scan_completion"]
+def validated_selection_presence(value: Any, allowed_item_ids=None) -> dict:
+    """Validate selected target presence without counting shop entries."""
+    if not isinstance(value, dict) or type(value.get("has_selected_goods")) is not bool:
+        raise ValueError("has_selected_goods must be a boolean")
+    matched = value.get("matched_item_ids")
+    if (not isinstance(matched, list)
+            or any(not isinstance(item_id, str) or not item_id or item_id != item_id.strip()
+                   for item_id in matched)
+            or len(set(matched)) != len(matched)):
+        raise ValueError("matched_item_ids must contain unique nonempty product IDs")
+    if value["has_selected_goods"] != bool(matched):
+        raise ValueError("Selected-target presence must agree with matched_item_ids")
+    if allowed_item_ids is not None and not set(matched) <= set(allowed_item_ids):
+        raise ValueError("Selected targets must belong to the frozen purchase table")
+    return {"has_selected_goods": value["has_selected_goods"], "matched_item_ids": list(matched)}
+
+
+__all__ = ["validated_scan_completion", "validated_selection_presence"]

@@ -817,10 +817,6 @@ exports:
       type: Any
       required: true
       default: null
-    - name: require_empty_selection
-      type: Any
-      required: false
-      default: false
   - name: resonance_pc.submit_black_moon_local_selection
     module: plans.resonance_pc.src.actions.black_moon_local_select_pc_actions
     function: resonance_pc_submit_black_moon_local_selection

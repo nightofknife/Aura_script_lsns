@@ -149,9 +149,7 @@ class BlackMoonLocalSelectVision:
         sx, sy, sw, sh = sold["card_relative_roi"]
         if self._hit(frame, sold, (x + sx - 6, y + sy - 6, sw + 12, sh + 12))["found"]:
             return "sold_out"
-        entry = self.meta["selected"]
-        rx, ry, rw, rh = entry["roi_relative"]
-        selected = self._hit(frame, entry, (x + rx - 2, y + ry - 2, rw + 4, rh + 4))
+        selected = self.selected_mark(frame, card)
         normal = self.meta["geometry"]["normal_corner"]
         template, _ = self._pair(normal)
         corner = self._hit(frame, normal, (x - 2, y - 2, template.shape[1] + 4, template.shape[0] + 4))
@@ -159,8 +157,18 @@ class BlackMoonLocalSelectVision:
             return "selected"
         return "unselected" if corner["found"] else "unknown"
 
+    def selected_mark(self, frame, card):
+        """Check the top-right selection badge relative to a recognized card."""
+        x, y, w, h = card["rect"]
+        vx, vy, vw, vh = self.VIEWPORT
+        if card.get("partial") or x < vx or y < vy or x + w > vx + vw or y + h > vy + vh:
+            return {"found": False, "score": 0., "center": None}
+        entry = self.meta["selected"]
+        rx, ry, rw, rh = entry["roi_relative"]
+        return self._hit(frame, entry, (x + rx - 2, y + ry - 2, rw + 4, rh + 4))
+
     def identify(self, frame, card, candidates=None):
-        if card.get("partial") or card.get("state") != "unselected":
+        if card.get("partial") or card.get("state") not in {"unselected", "selected"}:
             return None
         ids = list(self.entries) if candidates is None else [key for key in candidates if key in self.entries]
         if not ids:

@@ -4,19 +4,27 @@
 
 `tasks:black_moon_local_select_pc.yaml:black_moon_local_select_pc` starts at the
 LOCAL shop, independently of the rest-menu preparation task. Already-enabled
-batch mode is confirmed and left unchanged. It resets the retained list position
-to the top once, scans to the bottom, and selects requested goods. There is no
+batch mode is confirmed and left unchanged. It starts at the current list position,
+scans downward using the bounded page loop described below, and selects requested
+goods. It does not require an initial zero total or scroll upward before selecting. A clipped row above
+the first complete visible row is outside this scan's starting range. There is no
 GUI registration, freight integration, refresh, inventory write, or weekly ledger
 write in this stage. The existing generic purchase backend is unchanged.
 
 The input `purchase_table` maps the 140 canonical catalog IDs to booleans.
-Unspecified known IDs default to false; unknown IDs are rejected. All independent
-stock cards of an enabled product are selected, including discount and pack
+Unspecified known IDs default to false; unknown IDs are rejected. All encountered
+independent stock cards of an enabled product are selected, including discount and pack
 variants. No deduplication by product identity occurs.
 
-`submit_purchase` defaults to false. When true, the initial total must match zero
-before scanning, avoiding submission of unrelated preselected goods. A successful
-complete scan with newly selected goods permits exactly one purchase-button click.
+`submit_purchase` defaults to false. A successful bounded downward scan with
+`has_selected_goods=true` permits exactly one purchase-button click. Every
+confirmed selected target sets this boolean and adds its catalog ID to
+`matched_item_ids`, a unique set of product types. This set is evidence of which
+types matched, not a card count, pack quantity or inventory delta. The scanner
+does not maintain new/preexisting/card counts or per-card selection totals.
+Already-selected targets are not clicked again. A later card of the same type
+is still recognized and clicked if unselected: membership in `matched_item_ids`
+never suppresses a click. Scrolling above the starting position is omitted.
 The returned `purchase_submitted` is not automatic proof of purchase: handling
 network loading is followed by an explicit read-only settling step. It requires
 two consecutive stable LOCAL batch frames with zero total within 30 seconds.
@@ -33,8 +41,10 @@ buttons use 0.90. Rest completion requires the shop-entry menu template and no
 shop-page marker. Main completion reuses the departure-button RGB SQDIFF template
 at 0.90. Contradictory page markers are unknown.
 
-The exit source must be a stable LOCAL batch shop with zero total, confirmed in
-two newly captured frames along with a stable matched button point. After each
+The exit source must be a stable LOCAL batch shop, confirmed in two newly
+captured frames along with a stable matched button point. After a verified
+purchase it must still have zero total; a no-target visit exits directly without
+an initial-total requirement. After each
 click, wait for two target-page observations. Unknown or loading states allow no
 input. Each of at most three supplemental clicks requires freshly confirmed
 source state; a late destination match suppresses that click. Already at the
@@ -43,7 +53,7 @@ different destination.
 
 With `submit_purchase=false`, purchase settling and exit nodes are skipped, so
 the selection-only workflow stays in the shop. A submitted task with a completed
-zero-selection scan skips payment and returns normally. An all-false wishlist is
+scan and `has_selected_goods=false` skips payment and returns normally. An all-false wishlist is
 explicit no-work and does not authorize navigation. Results include `purchase_completion`,
 `exit`, `page_state`, and aggregate `success`; failed exit cannot report aggregate
 business success merely because selection succeeded. There is still no GUI or
@@ -69,55 +79,77 @@ exact zero-total state. Provenance and the native bank digest are in the new
 Use `tools/build_black_moon_local_select_templates.py` with the documented normal
 and selected client frames to regenerate the new bank.
 
-Each newly captured page locates card geometry and checks selection state first.
-Selected cards skip identity matching. Partial or unknown cards are not clicked.
-Before clicking, fresh geometry, unselected state and only that target's identity
-are rechecked locally. After clicking, two observations of the yellow badge
-confirm selection without rerunning product identity matching. An initial click
-allows at most three supplements, each requiring a new positive source check.
+Each newly captured page processes complete, recognizable target cards one by
+one. Partial or unknown cards are not clicked, and missing or clipped companions
+do not require a full two-column row before continuing. Already-selected target
+cards permit purchase without another click. Cards that cannot be identified as
+requested targets are skipped. Each confirmed target badge sets
+`has_selected_goods=true` and adds its product type to `matched_item_ids`.
+No selected-card registry is maintained. Repeated sightings or distinct cards
+of the same type are handled from their current badge state; an unselected card
+remains eligible for clicking.
 
-Scrolling waits for the viewport to stabilize; overlapping selected cards are
-recognized from the new image rather than stale coordinates. Boundary checks use
-a non-row-sized supplemental drag, with bounded top/down drag loops. No target on
-a page is not an end condition. A lower-boundary clipped card prevents completion.
+Before clicking, fresh geometry, unselected state and the target identity are
+rechecked locally. After clicking, the recognizer checks the yellow badge in the
+upper-right corner at an offset relative to the recognized product/card position.
+Fresh feedback confirms selection without rerunning full product identity
+matching. If feedback is absent, at most three supplemental clicks are allowed,
+each with a fresh source-state check.
 
-### Sold-out boundary
+### Recognition and scrolling loop
+
+The scanner starts at the current list position. It processes the current page's
+complete, recognizable targets before deciding whether to finish or drag again.
+It captures a stable baseline frame after the page's clicks and selection
+confirmations, immediately before dragging. Each drag moves the pointer upward
+by 262 pixels over 0.45 seconds, holds it stationary for 0.5 seconds at the
+endpoint (`hold_before_release_sec`), then releases. After release, the scanner waits
+for the viewport to stabilize before comparing it with the baseline and
+recognizing the new page. The held endpoint is intended to suppress inertia.
+
+The comparison covers the entire product-list viewport image. It does not
+compare only the target recognition results: a page without a matching target
+can still be recognized as different. The baseline already includes confirmed
+selection badges so the current page's own clicks do not count as scroll motion.
+No fresh recognition uses coordinates captured before a drag.
+
+The loop finishes when any one of these conditions is met:
+
+- A stable SOLD OUT marker is recognized; the current page's eligible targets
+  are processed before finishing (`sold_out_boundary`).
+- The list viewport remains unchanged across each of two consecutive drags
+  (`unchanged_view`). Any changed viewport resets the unchanged-drag counter to
+  zero. Each comparison uses that drag's stable pre-drag baseline and stable
+  post-release frame.
+- More than ten drags have occurred: the page reached by drag 11 is processed,
+  then the loop finishes (`drag_limit`).
+
+A page without a target is not itself an end condition. Full-row pixel
+registration, scroll-distance projection, previous-page clipped-pixel proof,
+43-pixel bottom probing and mandatory full two-column rows are removed. The
+scanner does not scroll back above its starting position.
 
 The user-confirmed LOCAL sort order puts sold-out goods after available stock.
-An independent grayscale SOLD OUT plate is observed in two fresh stable frames.
-It defines the last row that needs processing, not an immediate return condition:
-both columns of all preceding rows and the boundary row are handled before any
-successful early return. No product identity matching is performed below it.
-An entirely sold-out screen can establish this boundary without ordinary card
-corners. Empty card detection without a positive boundary remains an error.
+The independent grayscale SOLD OUT plate is observed in stable frames. Product
+identity matching below that boundary is unnecessary. An entirely sold-out
+screen may establish the boundary without ordinary card corners.
 
-Above-boundary missing geometry/unknown state or changed target feedback cannot
-complete a scan. Every earlier page must account for each fully visible two-column
-row before scrolling; a target whose fresh identity check fails is not silently
-skipped. Counted targets are checked again for selected state before scrolling or
-completing. A clipped upper card needs visible-pixel evidence from the corresponding
-full card already processed on an overlapping page. One unambiguous full-row
-registration establishes scroll displacement before that instance is credited;
-an arbitrary matching fragment of a duplicate product is insufficient. Missing or
-ambiguous overlap is a conservative failure. A clipped lower companion card
-is brought into view before completion. If that evidence cannot be established,
-the action fails conservatively rather than silently skipping available stock.
-Short lists without a sold-out marker first prove the physical bottom using two
-different drag spans before limiting the grid to its observed final row. Only a
-trailing empty right slot of that dense last row is permitted; interior gaps,
-missing left slots and unknown detected cards remain failures.
-The same physical-bottom confirmation is required when the boundary row contains
-only a positively recognized left sold-out card and an empty right slot. This
-does not exempt any preceding row or skip the boundary's final feedback check.
+Results distinguish `scan_complete` and `end_reason` (`sold_out_boundary`,
+`unchanged_view` or `drag_limit`) from physical `bottom_confirmed`.
+`scan_complete` means this bounded page loop reached an allowed stopping
+condition; it does not claim every stock card was visited. In particular,
+unchanged viewport observations and the drag limit are not physical-bottom
+evidence. No confirmed-top field is required. Submission and weekly-ledger
+validation use this bounded-loop contract; older records remain readable under
+their historical evidence rules.
 
-Results distinguish `scan_complete` and `end_reason` (`list_bottom` or
-`sold_out_boundary`) from physical `bottom_confirmed`. Boundary proof includes a
-confirmed top, stable marker position/score, and `upper_region_processed=true`.
-Submission and weekly-ledger validation share this contract. Old records with
-only `bottom_confirmed=true` remain readable; explicit incomplete new results
-cannot fall back to that old proof. Payment journaling and confirmation rules
-are unchanged. Zero selected goods skip payment but allow normal return navigation
-after a completed empty-start scan, without claiming a successful purchase.
+If `has_selected_goods` is true, the task submits once using the existing
+payment journal and settlement checks. If false, it skips payment and returns
+normally without claiming a successful purchase. New weekly evidence checks
+matched product ID sets and pending/confirmed payment state, rather than card
+multiplicity. Historical quantity-bearing evidence remains readable under its
+older rules. Payment journaling, confirmation and uncertain-payment handling
+remain unchanged.
 
 The new plate is cropped from the user-supplied 2026-10-14 screenshot; only the
 anonymous SOLD OUT label enters the bank. The source first row is clipped: its
@@ -128,9 +160,12 @@ This change has not been template-match calibrated or live-run tested.
 
 ## Validation Boundary
 
-Unit tests cover wishlist validation, local feedback, duplicate cards, bounded
-retry, cancellation, empty initial selection and single submission. Cropped real
-list/footer fixtures cover target matches, selected/unselected state and paper
+Historical unit tests cover wishlist validation, local feedback, duplicate cards,
+bounded retry, cancellation, the former empty-start requirement and single submission.
+The 2026-10-18 current-position/nonempty-start change and the subsequent bounded
+page/drag loop and removal of runtime card counting have not been tested. No
+tests, live input or purchase were performed for these changes. Historical overlap/bottom-proof checks do not
+validate the replacement loop. Cropped real list/footer fixtures cover target matches, selected/unselected state and paper
 lookalike rejection. Native-template synthetic coarse recall covers all 140 IDs
 and is not evidence that every product matches the real client.
 

@@ -1,14 +1,13 @@
 """Weekly wishlist visit stages; task YAML owns preparation and navigation order."""
 from __future__ import annotations
 
-from copy import deepcopy
 import uuid
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 
 from ._black_moon_local_shop_policy import load_black_moon_catalog, normalize_record_scope
-from ._black_moon_local_scan_contract import validated_scan_completion
+from ._black_moon_local_scan_contract import validated_scan_completion, validated_selection_presence
 from ._black_moon_local_shop_state import (
     begin_selection_visit, selection_visit_completed, read_city_record,
     mark_pending_batch, confirm_batch, complete_visit, resolve_purchase_week,
@@ -43,16 +42,10 @@ def _current_week(visit):
 def _selection_proof(visit, selection):
     if not isinstance(selection, dict) or selection.get("success") is not True:
         raise ValueError("Successful selection is required")
-    count, items = selection.get("selected_new_count"), selection.get("selected_items")
-    if (type(count) is not int or count < 0 or not isinstance(items, list) or len(items) != count
-            or selection.get("started_empty") is not True):
-        raise ValueError("A complete initially-empty wishlist scan is required")
+    presence = validated_selection_presence(selection, visit["selected_item_ids"])
     completion = validated_scan_completion(selection)
-    if any(not isinstance(item, dict) or item.get("item_id") not in visit["selected_item_ids"] for item in items):
-        raise ValueError("Selected cards must belong to the frozen purchase table")
     return {"type": "wishlist_scan", "recognized": True, **completion,
-            "started_empty": True, "selected_item_ids": list(visit["selected_item_ids"]),
-            "selected_card_count": count, "selected_items": deepcopy(items)}
+            "selected_item_ids": list(visit["selected_item_ids"]), **presence}
 
 
 @action_info(name="resonance_pc.begin_black_moon_local_visit", public=True, read_only=False,
@@ -97,7 +90,8 @@ async def resonance_pc_submit_black_moon_local_visit(visit: dict, selection: dic
 
     def journal():
         _current_week(visit)
-        mark_pending_batch(persistent_data, **identity, batch_id=batch_id, items=proof["selected_items"])
+        mark_pending_batch(persistent_data, **identity, batch_id=batch_id,
+                           items=[{"item_id": item_id} for item_id in proof["matched_item_ids"]])
 
     result = await execute_black_moon_submit(selection, app, before_submit=journal)
     return {**result, "batch_id": batch_id if result["purchase_submitted"] else None, "scan": proof}
@@ -113,7 +107,7 @@ async def resonance_pc_complete_black_moon_local_visit(visit: dict, submission: 
     if not isinstance(submission, dict) or submission.get("success") is not True:
         raise ValueError("Successful submission or explicit no-goods skip is required")
     proof = submission["scan"]
-    if submission.get("purchase_submitted") is True:
+    if submission.get("purchase_submitted") is True and proof["has_selected_goods"] is True:
         settled = await execute_black_moon_wait_purchase(submission, app)
         # No await between recognized settlement and durable evidence writes.
         confirm_batch(persistent_data, **identity, batch_id=submission["batch_id"], evidence={
@@ -121,7 +115,8 @@ async def resonance_pc_complete_black_moon_local_visit(visit: dict, submission: 
             "purchase_applied": True, "ui_settled": True,
         })
         reason = "wishlist_processed"
-    elif submission.get("purchase_submitted") is False and submission.get("status") == "skipped" and proof["selected_card_count"] == 0:
+    elif (submission.get("purchase_submitted") is False and submission.get("status") == "skipped"
+          and proof["has_selected_goods"] is False):
         settled = {"success": True, "ready_to_exit": True, "purchase_verified": False, "page_state": "local_shop"}
         reason = "no_matching_goods"
     else:
@@ -129,7 +124,7 @@ async def resonance_pc_complete_black_moon_local_visit(visit: dict, submission: 
     _current_week(visit)
     complete_visit(persistent_data, **identity, reason=reason, evidence=proof)
     return {**settled, "status": "completed", "reason": reason, "completed_this_week": True,
-            "selected_card_count": proof["selected_card_count"], "selected_items": deepcopy(proof["selected_items"])}
+            "has_selected_goods": proof["has_selected_goods"], "matched_item_ids": list(proof["matched_item_ids"])}
 
 
 @action_info(name="resonance_pc.finish_black_moon_local_visit", public=True, read_only=False,
@@ -152,13 +147,12 @@ async def resonance_pc_finish_black_moon_local_visit(visit: dict, completion: di
         exited = await execute_black_moon_exit({"success": True, "ready_to_exit": True}, target, app)
     else:
         exited = {"success": True, "page_state": "rest_menu", "exited": False, "click_count": 0}
-    count = completion.get("selected_card_count", 0) if visit["run"] else 0
-    items = completion.get("selected_items", []) if visit["run"] else []
     result = {"success": True, "status": completion["status"] if visit["run"] else visit["status"],
               "reason": completion["reason"] if visit["run"] else visit["reason"],
               "city_key": visit["city_key"], "week_key": visit["week_key"],
               "completed_this_week": True if visit["run"] else visit["completed_this_week"],
-              "selected_card_count": count, "selected_items": deepcopy(items),
+              "has_selected_goods": completion["has_selected_goods"] if visit["run"] else False,
+              "matched_item_ids": list(completion["matched_item_ids"]) if visit["run"] else [],
               "purchase_verified": completion.get("purchase_verified", False) if visit["run"] else False,
               "page_state": exited["page_state"], "exit": exited}
     logger.info("[BlackMoonLocalVisit] result=%s", result)

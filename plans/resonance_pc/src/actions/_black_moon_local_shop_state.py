@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from packages.aura_core.context.persistence.persistent_data_errors import PersistentDataNotFoundError
 
-from ._black_moon_local_scan_contract import validated_scan_completion
+from ._black_moon_local_scan_contract import validated_scan_completion, validated_selection_presence
 
 
 PURCHASES_FILE = "black-moon-shop-purchases.json"
@@ -595,12 +595,34 @@ def _completion_evidence(record: dict, value: Any) -> dict:
 
 
 def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
-    if any(proof.get(flag) is not True
-           for flag in ("recognized", "started_empty")):
-        raise ValueError("Wishlist completion requires a recognized empty-start scan")
+    if proof.get("recognized") is not True:
+        raise ValueError("Wishlist completion requires a recognized scan")
+    # Retain the old observation when present without requiring an empty start.
+    if "started_empty" in proof and type(proof["started_empty"]) is not bool:
+        raise ValueError("started_empty must be a boolean")
     validated_scan_completion(proof)
     if set(_item_ids(proof.get("selected_item_ids"), allow_empty=False)) != set(record["selected_item_ids"]):
         raise ValueError("Wishlist completion must match the visit selection snapshot")
+    if _has_pending(record):
+        raise ValueError("Unresolved purchase intent prevents visit completion")
+    confirmed = [batch for batch in record["batches"].values()
+                 if batch["status"] == "confirmed"]
+    if any(batch["evidence"].get("type") != "wishlist_purchase_settled" for batch in confirmed):
+        raise ValueError("Wishlist completion requires settled wishlist payment evidence")
+    # Either new field selects this contract. A partial or malformed new proof
+    # must never fall back to historical per-card accounting.
+    if "has_selected_goods" in proof or "matched_item_ids" in proof:
+        presence = validated_selection_presence(proof, record["selected_item_ids"])
+        matched = set(presence["matched_item_ids"])
+        purchased = {item["item_id"] for batch in confirmed for item in batch["items"]}
+        if purchased != matched:
+            raise ValueError("Matched targets require current-visit confirmed payment evidence")
+        return proof
+    return _legacy_wishlist_card_evidence(record, proof, confirmed)
+
+
+def _legacy_wishlist_card_evidence(record: dict, proof: dict, confirmed: list[dict]) -> dict:
+    """Keep historical card counts readable without imposing them on new scans."""
     count = proof.get("selected_card_count")
     if type(count) is not int or count < 0:
         raise ValueError("selected_card_count must be a nonnegative integer")
@@ -609,12 +631,6 @@ def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
         raise ValueError("Wishlist completion must account for each selected card")
     if items:
         _batch_items(items, record["selected_item_ids"])
-    if _has_pending(record):
-        raise ValueError("Unresolved purchase intent prevents visit completion")
-    confirmed = [batch for batch in record["batches"].values()
-                 if batch["status"] == "confirmed"]
-    if any(batch["evidence"].get("type") != "wishlist_purchase_settled" for batch in confirmed):
-        raise ValueError("Wishlist completion requires settled wishlist payment evidence")
     purchased = Counter(item["item_id"] for batch in confirmed for item in batch["items"])
     selected = Counter(item["item_id"] for item in items)
     if purchased != selected:
@@ -623,8 +639,13 @@ def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
 
 
 def _wishlist_completion_reason(reason: str, proof: dict) -> None:
-    if (proof.get("type") == "wishlist_scan" and proof["selected_card_count"] == 0
-            and reason != "no_matching_goods"):
+    if proof.get("type") != "wishlist_scan":
+        return
+    if "has_selected_goods" in proof or "matched_item_ids" in proof:
+        empty = not validated_selection_presence(proof)["has_selected_goods"]
+    else:
+        empty = proof["selected_card_count"] == 0
+    if empty and reason != "no_matching_goods":
         raise ValueError("An empty wishlist scan must use reason no_matching_goods")
 
 
