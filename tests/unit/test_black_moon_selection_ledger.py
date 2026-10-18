@@ -19,11 +19,21 @@ def begin(store, selected=None, **keys):
     return ledger.begin_selection_visit(store, **(KEY | keys), selected_item_ids=selected or ["a", "b"])
 
 
-def scan(items=None, selected=None, **overrides):
+def legacy_scan(items=None, selected=None, **overrides):
     items = [] if items is None else items
     return {"type": "wishlist_scan", "recognized": True, "bottom_confirmed": True,
             "started_empty": True, "selected_item_ids": selected or ["a", "b"],
             "selected_card_count": len(items), "selected_items": items} | overrides
+
+
+def scan(items=None, selected=None, **overrides):
+    items = [] if items is None else items
+    return {"type": "wishlist_scan", "recognized": True,
+            "scan_complete": True, "end_reason": "unchanged_view", "bottom_confirmed": False,
+            "scroll_count": 2, "unchanged_drag_count": 2,
+            "selected_item_ids": selected or ["a", "b"],
+            "has_selected_goods": bool(items),
+            "matched_item_ids": sorted({item["item_id"] for item in items})} | overrides
 
 
 def payment(**overrides):
@@ -111,7 +121,7 @@ def test_confirmed_cards_are_not_inventory_units_and_persist_before_exit(store):
     confirmed = confirm(store, record)
     assert confirmed["batches"]["batch"]["status"] == "confirmed"
     assert ledger.read_city_record(store, **KEY) == confirmed
-    completed = complete(store, record, scan(items), reason="wishlist_processed")
+    completed = complete(store, record, legacy_scan(items), reason="wishlist_processed")
     assert completed["completed"]
     assert completed["completion"]["evidence"]["selected_card_count"] == 3
     assert "purchase_units" not in completed["batches"]["batch"]["items"][0]
@@ -129,9 +139,11 @@ def test_wishlist_confirmation_requires_explicit_true_flags(store, flag, value):
 
 
 @pytest.mark.parametrize("override", [
-    {"recognized": False}, {"bottom_confirmed": False}, {"started_empty": False},
-    {"recognized": 1}, {"selected_card_count": True}, {"selected_card_count": -1},
-    {"selected_card_count": 1}, {"selected_items": None}, {"selected_item_ids": ["a"]},
+    {"recognized": False}, {"bottom_confirmed": True}, {"started_empty": 1},
+    {"recognized": 1}, {"has_selected_goods": 1}, {"has_selected_goods": True},
+    {"matched_item_ids": ["a"]}, {"matched_item_ids": None}, {"selected_item_ids": ["a"]},
+    {"matched_item_ids": ["a", "a"]}, {"matched_item_ids": ["unknown"]},
+    {"scan_complete": False}, {"unchanged_drag_count": 1},
     {"selected_item_ids": ["a", "a"]}, {"cancelled": True}, {"error": "failed"},
 ])
 def test_invalid_wishlist_scan_rejected_without_mutation(store, override):
@@ -146,7 +158,7 @@ def test_invalid_wishlist_scan_rejected_without_mutation(store, override):
 def test_selected_cards_require_valid_known_identity_and_payment(store, items):
     record = begin(store)
     with pytest.raises(ValueError):
-        complete(store, record, scan(items), reason="wishlist_processed")
+        complete(store, record, legacy_scan(items), reason="wishlist_processed")
 
 
 def test_confirmed_card_multiplicity_must_exactly_match_scan(store):
@@ -155,17 +167,17 @@ def test_confirmed_card_multiplicity_must_exactly_match_scan(store):
     confirm(store, record)
     for items in ([], [{"item_id": "b"}], [{"item_id": "a"}, {"item_id": "a"}]):
         with pytest.raises(ValueError, match="Each selected card"):
-            complete(store, record, scan(items), reason="wishlist_processed")
+            complete(store, record, legacy_scan(items), reason="wishlist_processed")
 
 
 def test_previous_visit_payment_cannot_back_new_visit_cards(store):
     first = begin(store)
     pending(store, first, [{"item_id": "a"}])
     confirm(store, first)
-    complete(store, first, scan([{"item_id": "a"}]), reason="wishlist_processed")
+    complete(store, first, legacy_scan([{"item_id": "a"}]), reason="wishlist_processed")
     second = begin(store, ["a"])
     with pytest.raises(ValueError, match="Each selected card"):
-        complete(store, second, scan([{"item_id": "a"}], selected=["a"]), reason="wishlist_processed")
+        complete(store, second, legacy_scan([{"item_id": "a"}], selected=["a"]), reason="wishlist_processed")
 
 
 def test_confirmed_payment_without_completion_restarts_same_wishlist_safely(store):
@@ -211,11 +223,11 @@ def test_corrupt_persisted_wishlist_completion_fails_read(store):
     record = complete(store, begin(store))
     document = store.read(ledger.PURCHASES_FILE)
     city = document["scopes"]["default"]["weeks"][KEY["week_key"]]["cities"]["city"]
-    city["completion"]["evidence"]["started_empty"] = False
+    city["completion"]["evidence"]["has_selected_goods"] = True
     store.update(file=ledger.PURCHASES_FILE, updater=lambda _: document)
-    with pytest.raises(ValueError, match="Wishlist completion"):
+    with pytest.raises(ValueError, match="Selected-target presence"):
         ledger.read_city_record(store, **KEY)
-    with pytest.raises(ValueError, match="Wishlist completion"):
+    with pytest.raises(ValueError, match="Selected-target presence"):
         ledger.selection_visit_completed(city, record["selected_item_ids"])
 
 
@@ -239,9 +251,9 @@ def test_corrupt_archived_wishlist_completion_fails_read(store):
     begin(store, ["a"])
     document = store.read(ledger.PURCHASES_FILE)
     city = document["scopes"]["default"]["weeks"][KEY["week_key"]]["cities"]["city"]
-    city["previous_visits"][0]["completion"]["evidence"]["selected_card_count"] = 1
+    city["previous_visits"][0]["completion"]["evidence"]["matched_item_ids"] = ["a"]
     store.update(file=ledger.PURCHASES_FILE, updater=lambda _: document)
-    with pytest.raises(ValueError, match="each selected card"):
+    with pytest.raises(ValueError, match="Selected-target presence"):
         ledger.read_city_record(store, **KEY)
 
 
@@ -252,3 +264,61 @@ def test_new_visit_rejects_invalid_selection_even_if_record_exists(store, select
         ledger.begin_selection_visit(store, **KEY, selected_item_ids=selected)
     with pytest.raises(ValueError):
         ledger.selection_visit_completed(None, selected)
+
+
+@pytest.mark.parametrize("cards", [1, 2, 4])
+def test_presence_completion_tracks_product_ids_without_card_multiplicity(store, cards):
+    record = begin(store)
+    pending(store, record, [{"item_id": "a"}] * cards)
+    confirm(store, record)
+    result = complete(store, record, scan([{"item_id": "a"}]), reason="wishlist_processed")
+    assert ledger.selection_visit_completed(result, ["a", "b"])
+    assert result["completion"]["evidence"]["matched_item_ids"] == ["a"]
+    assert "selected_card_count" not in result["completion"]["evidence"]
+    assert ledger.read_city_record(store, **KEY) == result
+
+
+@pytest.mark.parametrize("matched", [[], ["b"], ["a", "b"]])
+def test_presence_completion_requires_exact_current_confirmed_product_set(store, matched):
+    record = begin(store)
+    pending(store, record, [{"item_id": "a"}])
+    confirm(store, record)
+    with pytest.raises(ValueError, match="current-visit confirmed"):
+        complete(store, record, scan([{"item_id": item} for item in matched]), reason="wishlist_processed")
+    assert ledger.read_city_record(store, **KEY)["completed"] is False
+
+
+@pytest.mark.parametrize("field", ["has_selected_goods", "matched_item_ids"])
+def test_partial_presence_proof_cannot_fall_back_to_legacy_counts(store, field):
+    record = begin(store)
+    proof = legacy_scan()
+    proof[field] = False if field == "has_selected_goods" else []
+    with pytest.raises(ValueError):
+        complete(store, record, proof)
+
+
+def test_legacy_empty_card_completion_still_reads(store):
+    record = complete(store, begin(store), legacy_scan())
+    assert ledger.read_city_record(store, **KEY) == record
+    assert ledger.selection_visit_completed(record, ["a", "b"])
+
+
+@pytest.mark.parametrize("override", [
+    {"selected_card_count": True}, {"selected_card_count": -1},
+    {"selected_card_count": 1}, {"selected_items": None},
+])
+def test_legacy_card_evidence_still_rejects_invalid_count_accounting(store, override):
+    record = begin(store)
+    with pytest.raises(ValueError):
+        complete(store, record, legacy_scan(**override))
+    assert ledger.read_city_record(store, **KEY)["completed"] is False
+
+
+def test_previous_visit_payment_cannot_back_new_presence_proof(store):
+    first = begin(store)
+    pending(store, first, [{"item_id": "a"}])
+    confirm(store, first)
+    complete(store, first, scan([{"item_id": "a"}]), reason="wishlist_processed")
+    second = begin(store, ["a"])
+    with pytest.raises(ValueError, match="current-visit confirmed"):
+        complete(store, second, scan([{"item_id": "a"}], selected=["a"]), reason="wishlist_processed")

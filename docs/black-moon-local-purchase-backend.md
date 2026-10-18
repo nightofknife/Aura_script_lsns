@@ -143,6 +143,10 @@ not initiated another game purchase.
 
 The 2026-10-18 bounded page/drag loop replaces strict RGB row overlap and
 scroll-displacement proof with whole-list viewport comparisons after stabilized
-release. This loop and the subsequent removal of runtime card counting have not
-been tested; no tests, live input or purchase were performed for these changes. The preceding validation records are historical and do not
-establish coverage of the replacement loop.
+release. Release regression checks cover the replacement loop and boolean
+selected-target contract, while historical quantity-bearing ledger evidence
+retains dedicated compatibility coverage. On 2026-10-18 the standalone child
+was run from the Cape City rest menu with only digital thought enabled: it
+completed selection, payment settlement, weekly persistence and return to the
+rest menu in 19.02 seconds. This does not certify unrelated complete freight
+routes or independently measure the received inventory quantity.

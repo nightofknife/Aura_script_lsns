@@ -112,6 +112,46 @@ def test_submission_skipped_does_not_capture_or_click():
     assert app.captures == 0 and not app.clicks
 
 
+def no_target_scan():
+    return {"scan_complete": True, "end_reason": "unchanged_view", "bottom_confirmed": False,
+            "scroll_count": 2, "unchanged_drag_count": 2,
+            "has_selected_goods": False, "matched_item_ids": []}
+
+
+def test_completed_no_target_scan_allows_exit_without_waiting_for_payment():
+    app = App([2])
+    result = wait(app, {**SKIPPED, "scan": no_target_scan()})
+    assert result["ready_to_exit"] is True and result["purchase_verified"] is False
+    assert result["reason"] == "no_selected_goods"
+    assert not app.captures and not app.clicks
+
+
+def test_no_target_visit_exits_directly_even_with_nonzero_initial_total():
+    app = App([2], transition=4)
+    reader = Reader()
+    original_button = reader.button
+
+    def button(image, target):
+        hit = original_button(image, target)
+        hit["found"] = int(image[0, 0, 0]) == 2
+        return hit
+
+    reader.button = button
+    result = wait(app, {**SKIPPED, "scan": no_target_scan()})
+    exited = leave(app, purchase_result=result, reader=reader)
+    assert exited["exited"] and exited["page_state"] == "rest_menu"
+    assert len(app.clicks) == 1
+
+
+@pytest.mark.parametrize("change", [{"scan_complete": False}, {"unchanged_drag_count": 1},
+                                    {"has_selected_goods": True, "matched_item_ids": ["a"]}])
+def test_invalid_or_nonempty_scan_cannot_authorize_no_target_exit(change):
+    app = App([1])
+    with pytest.raises(ValueError):
+        wait(app, {**SKIPPED, "scan": {**no_target_scan(), **change}})
+    assert not app.captures and not app.clicks
+
+
 @pytest.mark.parametrize("submission", [None, {}, {"success": False}, {"success": 1},
                                         {"success": True, "purchase_submitted": False}])
 def test_invalid_submission_does_not_touch_ui(submission):

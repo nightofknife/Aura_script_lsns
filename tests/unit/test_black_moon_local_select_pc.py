@@ -1,4 +1,4 @@
-"""Offline behavioral contracts for LOCAL target selection and single submit."""
+"""Offline contracts for viewport scanning, local badge feedback and single submit."""
 import asyncio
 from copy import deepcopy
 from pathlib import Path
@@ -17,59 +17,25 @@ def card(item="a", *, x=600, y=150, state="unselected", partial=False):
 
 
 class App:
-    def __init__(self, pages, *, fail_clicks=0, unknown_after_click=False, grid_top=150):
-        # Logical pages advance two rows. The viewport retains the next full
-        # row, so scroll registration observes the same physical stock cards.
-        stock = {}
-        for page_index, rows in enumerate(deepcopy(pages)):
-            for current in rows:
-                x, y, _, _ = current["rect"]
-                row = page_index * 2 + round((y - 150) / 131)
-                stock[row, x] = current
-        last_row = max([len(pages) * 2] + [row for row, _ in stock]) if stock else -1
-        for row in range(last_row + 1):
-            for column in (600, 940):
-                current = stock.setdefault((row, column), card("b", x=column))
-                current["instance"] = row * 2 + (column == 940)
-        self.pages = []
-        self.pixels = {}
-        for page_index in range(len(pages)):
-            visible = []
-            for (row, column), original in sorted(stock.items()):
-                top = grid_top + row * 131 - page_index * 262
-                if top + 120 <= 139 or top >= 650:
-                    continue
-                current = deepcopy(original)
-                current["rect"] = (column, top, 320, 120)
-                current["partial"] |= top < 139 or top + 120 > 650
-                visible.append(current)
-                self.pixels.setdefault(current["instance"], np.random.default_rng(
-                    current["instance"]).integers(0, 180, (120, 320, 3), dtype=np.uint8))
-            self.pages.append(visible)
-        self.page = 0
-        self.captures = 0
-        self.snapshots = {}
-        self.clicks = []
-        self.drags = []
-        self.fail_clicks = fail_clicks
-        self.unknown_after_click = unknown_after_click
-        self.ready = True
-        self.capture_error = False
-        self.purchase_clicks = 0
+    def __init__(self, pages, *, fail_clicks=0, unknown_after_click=False, view_keys=None):
+        self.pages = deepcopy(pages)
+        self.view_keys = list(range(len(pages))) if view_keys is None else view_keys
+        self.page = self.captures = self.purchase_clicks = 0
+        self.snapshots, self.clicks, self.drags = {}, [], []
+        self.fail_clicks, self.unknown_after_click = fail_clicks, unknown_after_click
+        self.ready, self.capture_error = True, False
 
     def capture(self):
         self.captures += 1
         token = self.captures % 255
-        self.snapshots[token] = {"cards": deepcopy(self.pages[self.page]), "ready": self.ready,
-                                 "page": self.page}
+        self.snapshots[token] = {"cards": deepcopy(self.pages[self.page]),
+                                 "ready": self.ready, "page": self.page}
         frame = np.zeros((720, 1280, 3), np.uint8)
-        frame[139:650, 590:1270] = 30
+        frame[139:650, 590:1270] = 20 + self.view_keys[self.page] * 7
         for current in self.pages[self.page]:
             x, y, w, h = current["rect"]
-            top, bottom = max(139, y), min(650, y + h)
-            pixels = self.pixels[current["instance"]] // 2 + {
-                "selected": 120, "unselected": 0, "unknown": 70}[current["state"]]
-            frame[top:bottom, x:x + w] = pixels[top - y:bottom - y]
+            frame[max(139, y):min(650, y + h), x:x + w] = {
+                "selected": 200, "unselected": 60, "unknown": 120}[current["state"]]
         frame[0, 0] = token
         return SimpleNamespace(success=not self.capture_error, image=frame)
 
@@ -82,42 +48,26 @@ class App:
             cx, cy, w, h = current["rect"]
             if cx <= x < cx + w and cy <= y < cy + h:
                 if self.unknown_after_click:
-                    state = "unknown"
+                    current["state"] = "unknown"
                 elif len(self.clicks) > self.fail_clicks:
-                    state = "selected"
-                else:
-                    return
-                for page in self.pages:
-                    for same in page:
-                        if same["instance"] == current["instance"]:
-                            same["state"] = state
+                    current["state"] = "selected"
                 return
         raise AssertionError(f"Unexpected click outside a card: {(x, y)}")
 
-    def drag(self, start_x, start_y, end_x, end_y, duration, hold_before_release_sec):
-        self.drags.append((start_x, start_y, end_x, end_y))
-        if end_y < start_y:
-            self.page = min(self.page + 1, len(self.pages) - 1)
-        else:
-            self.page = max(0, self.page - 1)
+    def drag(self, **kwargs):
+        self.drags.append(kwargs)
+        assert kwargs["end_y"] < kwargs["start_y"]
+        self.page = min(self.page + 1, len(self.pages) - 1)
 
 
 class Reader:
     VIEWPORT = (590, 139, 680, 511)
     known_ids = {"a", "b", "c"}
-    meta = {"card_size": (320, 120), "card_columns": (600, 940),
-            "sold_out_boundary": {"row_pitch": 131}}
 
     def __init__(self, app):
         self.app = app
-        self.identity_calls = []
-        self.identity_states = []
-        self.state_calls = []
-        self.card_calls = []
-        self.zero = None
-        self.wanted = {"a"}
+        self.identity_calls, self.mark_calls, self.sold_pages = [], [], set()
         self.button_hit = {"found": True, "center": (1180, 680)}
-        self.before_identify = None
 
     def snapshot(self, frame):
         return self.app.snapshots[int(frame[0, 0, 0])]
@@ -126,29 +76,29 @@ class Reader:
         return self.snapshot(frame)["ready"]
 
     def total_zero(self, frame):
-        return self.zero if self.zero is not None else not any(
-            row["state"] == "selected" for row in self.snapshot(frame)["cards"])
+        return not any(row["state"] == "selected" for row in self.snapshot(frame)["cards"])
 
-    def cards(self, frame, row_limit=None):
-        self.card_calls.append(self.app.captures)
-        return [deepcopy(current) for current in self.snapshot(frame)["cards"]
-                if row_limit is None or current["rect"][1] <= row_limit + 6]
+    def cards(self, frame):
+        return deepcopy(self.snapshot(frame)["cards"])
 
     def identify(self, frame, current, candidates=None):
         self.identity_calls.append((self.app.captures, current["item_id"], candidates))
-        self.identity_states.append(current["state"])
-        if self.before_identify:
-            self.before_identify(current, candidates)
-        if current["item_id"] not in (self.wanted if candidates is None else candidates):
+        if current["state"] not in {"selected", "unselected"}:
+            return None
+        if current["item_id"] not in ({"a"} if candidates is None else candidates):
             return None
         return {"item_id": current["item_id"], "score": .97}
 
-    def state(self, frame, current):
-        self.state_calls.append(self.app.captures)
-        for fresh in self.snapshot(frame)["cards"]:
-            if fresh["rect"] == current["rect"]:
-                return fresh["state"]
-        return "unknown"
+    def selected_mark(self, frame, current):
+        self.mark_calls.append((self.app.captures, current["rect"]))
+        return {"found": any(fresh["rect"] == current["rect"] and fresh["state"] == "selected"
+                             for fresh in self.snapshot(frame)["cards"])}
+
+    def sold_out_markers(self, frame):
+        if self.snapshot(frame)["page"] in self.sold_pages:
+            return [{"row_top": 412, "column": 600, "score": .99,
+                     "marker_rect": [800, 440, 80, 40]}]
+        return []
 
     def button(self, frame):
         return deepcopy(self.button_hit)
@@ -168,23 +118,27 @@ def fast_wait(monkeypatch):
     monkeypatch.setattr(select, "_POLL_SECONDS", .001)
     monkeypatch.setattr(select, "_SETTLE_SECONDS", .001)
     monkeypatch.setattr(select, "_WAIT_SECONDS", .012)
-    monkeypatch.setattr(select, "_MAX_DRAGS", 12)
     return clock
 
 
-def run_selection(pages, table=None, *, app=None, reader=None, require_empty_selection=False):
+def run_selection(pages=None, table=None, *, app=None, reader=None):
     app = app or App(pages)
     reader = reader or Reader(app)
     result = asyncio.run(select.execute_black_moon_select(
-        purchase_table=table or {"a": True, "b": False, "c": False}, app=app, reader=reader,
-        require_empty_selection=require_empty_selection))
+        purchase_table=table or {"a": True, "b": False, "c": False}, app=app, reader=reader))
     return result, app, reader
 
 
-def test_normalize_purchase_table_preserves_bool_settings_without_mutating_input():
+def completed_selection(has_goods=True):
+    return {"success": True, "scan_complete": True, "end_reason": "unchanged_view",
+            "bottom_confirmed": False, "scroll_count": 2, "unchanged_drag_count": 2,
+            "has_selected_goods": has_goods, "matched_item_ids": ["a"] if has_goods else []}
+
+
+def test_normalize_purchase_table_preserves_bool_settings_without_mutation():
     table = {"a": True, "b": False}
-    result = select.normalize_purchase_table(table, known_ids={"a", "b", "c"})
-    assert result == table and table == {"a": True, "b": False}
+    assert select.normalize_purchase_table(table, known_ids={"a", "b", "c"}) == table
+    assert table == {"a": True, "b": False}
 
 
 @pytest.mark.parametrize("table", [None, [], {}, {"a": 1}, {"a": "true"}, {"a": None}, {"unknown": True}])
@@ -193,262 +147,212 @@ def test_invalid_purchase_table_is_rejected(table):
         select.normalize_purchase_table(table, known_ids={"a", "b", "c"})
 
 
-def test_selected_card_is_skipped_without_identity_matching_or_click():
+def test_preselected_target_is_identified_without_reclick():
     result, app, reader = run_selection([[card(state="selected"), card("b", x=940)]])
-    assert result["success"] and result["bottom_confirmed"]
-    assert result["selected_new_count"] == 0 and not app.clicks
-    assert not any(item == "a" for _, item, _ in reader.identity_calls)
+    assert result["has_selected_goods"] and result["matched_item_ids"] == ["a"]
+    assert result["scan_complete"] and not result["bottom_confirmed"]
+    assert not app.clicks and any(item == "a" for _, item, _ in reader.identity_calls)
 
 
-def test_only_true_targets_are_matched_and_selected():
+def test_only_enabled_targets_are_selected_without_entry_counts():
     result, app, reader = run_selection([[card(), card("b", x=940)]])
-    assert result["selected_new_count"] == 1
-    assert result["selected_items"][0]["item_id"] == "a"
-    assert len(app.clicks) == 1 and app.purchase_clicks == 0
+    assert result["has_selected_goods"] and result["matched_item_ids"] == ["a"]
+    assert len(app.clicks) == 1 and not app.purchase_clicks
     assert all(candidates is None or set(candidates) == {"a"} for _, _, candidates in reader.identity_calls)
+    assert not {"selected_items", "selected_new_count", "selected_existing_count"}.intersection(result)
 
 
-def test_same_item_on_two_independent_cards_is_selected_twice():
+def test_same_product_on_two_cards_selects_both_but_records_only_presence():
     result, app, _ = run_selection([[card(), card(x=940)]])
-    assert result["selected_new_count"] == 2 and len(app.clicks) == 2
-    assert [row["item_id"] for row in result["selected_items"]] == ["a", "a"]
+    assert len(app.clicks) == 2
+    assert result["has_selected_goods"] and result["matched_item_ids"] == ["a"]
 
 
-def test_partial_and_unknown_cards_never_click_or_match_identity():
-    app = App([[card(partial=True), card(x=940, state="unknown")], [card("b")]])
-    reader = Reader(app)
-    with pytest.raises(select.BlackMoonLocalSelectError) as error:
-        run_selection([], app=app, reader=reader)
-    assert error.value.code == "black_moon_select_page_incomplete"
-    assert not app.clicks
-    assert not any(item == "a" for _, item, _ in reader.identity_calls)
+def test_partial_and_unknown_cards_are_skipped_without_identity_or_click():
+    result, app, reader = run_selection([[card(partial=True), card(x=940, state="unknown")]])
+    assert result["scan_complete"] and not result["has_selected_goods"]
+    assert not app.clicks and not reader.identity_calls
 
 
-def test_no_target_on_first_page_still_scrolls_until_later_target_and_bottom():
+def test_no_target_on_first_page_still_scans_later_pages():
     result, app, _ = run_selection([[card("b")], [card("c")], [card()]])
-    assert result["bottom_confirmed"] and result["selected_new_count"] == 1
-    assert app.page == 2 and len(app.clicks) == 1
+    assert result["has_selected_goods"] and app.page == 2 and len(app.clicks) == 1
+    assert result["scroll_count"] == 4 and result["unchanged_drag_count"] == 2
 
 
-def test_absent_target_terminates_at_bottom_not_when_target_count_reached():
-    result, app, _ = run_selection([[card("b")], [card("c")]])
-    assert result["success"] and result["bottom_confirmed"]
-    assert result["selected_new_count"] == 0 and app.page == 1
+def test_absent_target_stops_after_two_unchanged_full_view_drags():
+    result, app, _ = run_selection([[card("b")], [card("b")]])
+    assert result["scan_complete"] and result["end_reason"] == "unchanged_view"
+    assert not result["has_selected_goods"] and result["scroll_count"] == 3
+    assert app.page == 1 and not app.clicks
 
 
-def test_empty_purchase_targets_do_not_click_or_drag():
+def test_full_view_change_resets_consecutive_unchanged_counter():
+    app = App([[card("b")] for _ in range(5)], view_keys=[0, 0, 1, 1, 1])
+    result, app, _ = run_selection(app=app)
+    # One unchanged drag, a change only in non-target list pixels, then two unchanged drags.
+    assert result["end_reason"] == "unchanged_view" and result["scroll_count"] == 4
+    assert result["unchanged_drag_count"] == 2 and app.page == 4
+
+
+def test_selection_feedback_changes_are_excluded_from_pre_drag_baseline():
+    result, app, _ = run_selection([[card()]])
+    assert len(app.clicks) == 1 and result["scroll_count"] == 2
+    assert result["unchanged_drag_count"] == 2
+
+
+def test_empty_purchase_targets_do_not_capture_click_or_drag():
     result, app, reader = run_selection([[card()]], table={"a": False, "b": False})
-    assert result["success"] and result["selected_new_count"] == 0
-    assert not result["bottom_confirmed"] and result["reason"] == "no_purchase_targets"
-    assert not app.clicks and not app.drags and not reader.identity_calls
+    assert result["success"] and not result["has_selected_goods"]
+    assert not result["scan_complete"] and result["reason"] == "no_purchase_targets"
+    assert not app.captures and not app.clicks and not app.drags and not reader.identity_calls
 
 
-def test_scroll_overlap_selected_target_skips_identity_but_unselected_copy_does_not():
-    result, app, reader = run_selection([[card(state="selected")], [card(state="selected"), card(x=940)]])
-    assert result["selected_new_count"] == 1 and len(app.clicks) == 1
-    assert all(state == "unselected" for state in reader.identity_states)
+def test_click_failure_uses_relative_card_badge_and_fresh_probe_before_supplement():
+    app = App([[card(x=940, y=281)]], fail_clicks=1)
+    result, app, reader = run_selection(app=app)
+    assert result["has_selected_goods"] and len(app.clicks) == 2
+    assert app.clicks[1][2] > app.clicks[0][2]
+    assert all(rect == (940, 281, 320, 120) for _, rect in reader.mark_calls)
+    assert max(capture for capture, _ in reader.mark_calls) > app.clicks[-1][2]
 
 
-def test_click_failure_is_retried_with_fresh_observation_then_selected():
-    app = App([[card()]], fail_clicks=1)
-    result, app, reader = run_selection([], app=app)
-    assert result["selected_new_count"] == 1 and len(app.clicks) == 2
-    assert result["selected_items"][0]["click_count"] == 2
-    assert app.clicks[1][2] > app.clicks[0][2] and reader.state_calls
-
-
-def test_delayed_selected_feedback_waits_without_supplemental_click():
+def test_delayed_selected_badge_does_not_cause_supplemental_click():
     app = App([[card()]])
     reader = Reader(app)
-    original_state = reader.state
+    original_mark = reader.selected_mark
 
-    def state(frame, current):
-        observed = original_state(frame, current)
-        return "unselected" if app.clicks and len(reader.state_calls) < 5 else observed
+    def mark(frame, current):
+        hit = original_mark(frame, current)
+        return {"found": False} if app.clicks and len(reader.mark_calls) < 5 else hit
 
-    reader.state = state
-    result, app, _ = run_selection([], app=app, reader=reader)
-    assert result["selected_new_count"] == 1 and len(app.clicks) == 1
-    assert len(reader.state_calls) >= 6
-
-
-def test_selected_arriving_during_fresh_retry_probe_prevents_reclick():
-    app = App([[card()]])
-    reader = Reader(app)
-    original_state = reader.state
-    original_cards = reader.cards
-    retry_seen = False
-
-    def cards(frame, row_limit=None):
-        nonlocal retry_seen
-        rows = original_cards(frame, row_limit=row_limit)
-        if app.clicks:
-            retry_seen = True
-        return rows
-
-    def state(frame, current):
-        observed = original_state(frame, current)
-        return observed if retry_seen else "unselected"
-
-    reader.cards = cards
-    reader.state = state
-    result, app, _ = run_selection([], app=app, reader=reader)
-    assert result["selected_new_count"] == 1 and len(app.clicks) == 1
-    assert result["selected_items"][0]["click_count"] == 1
-    assert retry_seen
+    reader.selected_mark = mark
+    result, app, _ = run_selection(app=app, reader=reader)
+    assert result["has_selected_goods"] and len(app.clicks) == 1
 
 
-def test_unknown_state_after_click_never_allows_blind_reclick():
+def test_unknown_feedback_never_allows_blind_reclick():
     app = App([[card()]], unknown_after_click=True)
-    with pytest.raises(RuntimeError):
-        run_selection([], app=app)
-    assert len(app.clicks) == 1
+    with pytest.raises(select.BlackMoonLocalSelectError) as error:
+        run_selection(app=app)
+    assert error.value.code == "black_moon_select_identity_changed"
+    assert len(app.clicks) == 1 and not app.drags
 
 
 def test_repeated_click_failure_has_only_three_supplements():
     app = App([[card()]], fail_clicks=99)
-    with pytest.raises(RuntimeError):
-        run_selection([], app=app)
-    assert len(app.clicks) == 4 and app.purchase_clicks == 0
+    with pytest.raises(select.BlackMoonLocalSelectError) as error:
+        run_selection(app=app)
+    assert error.value.code == "black_moon_select_click_exhausted"
+    assert len(app.clicks) == 4 and not app.purchase_clicks
     assert all(after[2] > before[2] for before, after in zip(app.clicks, app.clicks[1:]))
 
 
-def test_nonempty_preselection_check_rejects_before_any_input():
-    app = App([[card()]])
-    reader = Reader(app)
-    reader.zero = False
-    with pytest.raises(RuntimeError):
-        run_selection([], app=app, reader=reader, require_empty_selection=True)
-    assert not app.clicks and not app.drags
-
-
-def test_capture_failure_never_reaches_input():
-    app = App([[card()]])
-    app.capture_error = True
-    with pytest.raises(RuntimeError):
-        run_selection([], app=app)
-    assert not app.clicks and not app.drags
-
-
-def test_selection_does_not_submit_purchase():
-    result, app, _ = run_selection([[card()]])
-    assert result["selected_new_count"] == 1 and app.purchase_clicks == 0
-
-
-def test_after_click_confirmation_does_not_rematch_item_identity():
-    result, app, reader = run_selection([[card()]])
-    assert result["selected_new_count"] == 1
-    assert all(capture <= app.clicks[0][2] for capture, item, _ in reader.identity_calls if item == "a")
-    assert reader.state_calls and max(reader.state_calls) > app.clicks[0][2]
-
-
-def test_fresh_local_identity_mismatch_rejects_scan_without_click():
+def test_fresh_identity_mismatch_rejects_before_click():
     app = App([[card()]])
     reader = Reader(app)
     original_identify = reader.identify
 
     def identify(frame, current, candidates=None):
-        hit = original_identify(frame, current, candidates)
-        return None if candidates is not None else hit
+        return None if candidates is not None else original_identify(frame, current, candidates)
 
     reader.identify = identify
     with pytest.raises(select.BlackMoonLocalSelectError) as error:
-        run_selection([], app=app, reader=reader)
-    assert error.value.code == "black_moon_select_upper_identity_changed"
-    assert not app.clicks
+        run_selection(app=app, reader=reader)
+    assert error.value.code == "black_moon_select_identity_changed" and not app.clicks
 
 
-def test_retained_scroll_position_is_reset_before_scan():
-    app = App([[card()], [card("b")], [card("c")]])
+def test_retained_position_is_used_without_initial_zero_check_or_reset():
+    app = App([[card()], [card("b")], [card(state="selected")]])
     app.page = 2
-    result, app, _ = run_selection([], app=app)
-    assert result["selected_new_count"] == 1
-    assert app.drags[0][3] > app.drags[0][1]
+    reader = Reader(app)
+    reader.total_zero = lambda frame: pytest.fail("Initial total must not be checked")
+    result, app, _ = run_selection(app=app, reader=reader)
+    assert result["has_selected_goods"] and app.page == 2 and not app.clicks
+    assert all(drag["end_y"] < drag["start_y"] for drag in app.drags)
 
 
-def test_top_clipped_card_at_bottom_does_not_prevent_completion():
-    app = App([[card("b")], [card("b"), card(y=281)]], grid_top=90)
-    result, app, _ = run_selection([], app=app)
-    assert result["bottom_confirmed"] and result["selected_new_count"] == 1
-    assert any(current["partial"] and current["rect"][1] < Reader.VIEWPORT[1]
-               for current in app.pages[-1])
-
-
-def test_bottom_clipped_card_at_stopped_list_is_not_complete():
-    app = App([[card(y=600, partial=True)]])
-    with pytest.raises(select.BlackMoonLocalSelectError):
-        run_selection([], app=app)
-    assert not app.clicks
-
-
-def test_unknown_list_layout_is_not_treated_as_empty_store():
-    app = App([[]])
-    with pytest.raises(select.BlackMoonLocalSelectError):
-        run_selection([], app=app)
-    assert not app.clicks
-
-
-def test_nonready_page_never_reaches_click_or_scroll():
+def test_sold_out_ends_after_current_page_target_is_selected():
     app = App([[card()]])
-    app.ready = False
-    with pytest.raises(select.BlackMoonLocalSelectError):
-        run_selection([], app=app)
+    reader = Reader(app)
+    reader.sold_pages = {0}
+    result, app, _ = run_selection(app=app, reader=reader)
+    assert result["end_reason"] == "sold_out_boundary" and result["has_selected_goods"]
+    assert result["boundary_evidence"]["current_page_processed"] is True
+    assert result["boundary_evidence"]["stable_frames"] == 2
+    assert len(app.clicks) == 1 and not app.drags
+
+
+def test_eleventh_drag_page_is_processed_before_limit_stops_scan():
+    app = App([[card("b")] for _ in range(11)] + [[card()], [card("c")]])
+    result, app, _ = run_selection(app=app)
+    assert result["scan_complete"] and result["end_reason"] == "drag_limit"
+    assert result["has_selected_goods"] and result["scroll_count"] == len(app.drags) == 11
+    assert app.page == 11 and len(app.clicks) == 1
+    assert all(drag["hold_before_release_sec"] == .5 and drag["duration"] == .45
+               for drag in app.drags)
+
+
+@pytest.mark.parametrize("capture_error,ready", [(True, True), (False, False)])
+def test_capture_failure_or_nonready_page_never_reaches_input(capture_error, ready):
+    app = App([[card()]])
+    app.capture_error, app.ready = capture_error, ready
+    with pytest.raises(RuntimeError):
+        run_selection(app=app)
     assert not app.clicks and not app.drags
 
 
-def test_cancellation_before_selection_never_reaches_input(monkeypatch):
+@pytest.mark.parametrize("after_click", [False, True])
+def test_cancellation_stops_without_another_input(monkeypatch, after_click):
     app = App([[card()]])
 
     def cancel():
-        raise asyncio.CancelledError()
-
-    monkeypatch.setattr(select, "_cancel_check", cancel)
-    with pytest.raises(asyncio.CancelledError):
-        run_selection([], app=app)
-    assert not app.clicks and not app.drags
-
-
-def test_cancellation_after_click_stops_without_another_input(monkeypatch):
-    app = App([[card()]])
-
-    def cancel():
-        if app.clicks:
+        if not after_click or app.clicks:
             raise asyncio.CancelledError()
 
     monkeypatch.setattr(select, "_cancel_check", cancel)
     with pytest.raises(asyncio.CancelledError):
-        run_selection([], app=app)
-    assert len(app.clicks) == 1
+        run_selection(app=app)
+    assert len(app.clicks) == int(after_click) and not app.drags
 
 
 def submit(selection, app=None, reader=None):
     app = app or App([[card(state="selected")]])
     reader = reader or Reader(app)
-    if isinstance(selection, dict):
-        selection = {"started_empty": True, "selected_items": [], **selection}
     return asyncio.run(select.execute_black_moon_submit(selection=selection, app=app, reader=reader)), app
 
 
-def test_submit_has_exactly_one_click_and_does_not_claim_verified_purchase():
-    result, app = submit({"success": True, "bottom_confirmed": True, "selected_new_count": 2})
-    assert app.purchase_clicks == 1 and len(app.clicks) == 1
-    assert result["status"] == "purchase_submitted"
-    assert result["purchase_submitted"] and result["purchase_verified"] is False
-    assert not app.drags
+def test_submit_has_exactly_one_click_without_claiming_verified_purchase():
+    result, app = submit(completed_selection())
+    assert app.purchase_clicks == len(app.clicks) == 1 and not app.drags
+    assert result["status"] == "purchase_submitted" and result["purchase_verified"] is False
+    assert result["has_selected_goods"] and result["matched_item_ids"] == ["a"]
 
 
-def test_zero_selection_submit_is_skipped_without_click():
-    result, app = submit({"success": True, "bottom_confirmed": True, "selected_new_count": 0})
-    assert not app.clicks and not result.get("purchase_submitted", False)
+def test_no_target_selection_skips_payment_with_completed_scan_for_exit():
+    result, app = submit(completed_selection(False))
+    assert not app.captures and not app.clicks and not result["purchase_submitted"]
+    assert result["reason"] == "no_selected_goods" and result["scan"]["scan_complete"]
+    assert not result["scan"]["has_selected_goods"]
 
 
-@pytest.mark.parametrize("selection", [None, {}, {"success": False, "bottom_confirmed": True, "selected_new_count": 1},
-                                      {"success": True, "bottom_confirmed": False, "selected_new_count": 1}])
-def test_unfinished_or_failed_selection_cannot_submit(selection):
+@pytest.mark.parametrize("selection", [None, {}, {**completed_selection(), "success": False},
+                                      {**completed_selection(), "scan_complete": False}])
+def test_failed_or_unfinished_scan_cannot_submit(selection):
     app = App([[card(state="selected")]])
     with pytest.raises((RuntimeError, ValueError, TypeError)):
         submit(selection, app=app)
     assert not app.clicks
+
+
+@pytest.mark.parametrize("presence", [{"has_selected_goods": 1}, {"has_selected_goods": "true"},
+                                     {"has_selected_goods": False}, {"matched_item_ids": []},
+                                     {"matched_item_ids": ["a", "a"]}])
+def test_inconsistent_or_nonboolean_presence_rejected_without_click(presence):
+    app = App([[card(state="selected")]])
+    with pytest.raises(ValueError):
+        submit({**completed_selection(), **presence}, app=app)
+    assert not app.captures and not app.clicks
 
 
 def test_missing_purchase_button_cannot_submit():
@@ -456,25 +360,8 @@ def test_missing_purchase_button_cannot_submit():
     reader = Reader(app)
     reader.button_hit = {"found": False, "center": None}
     with pytest.raises(RuntimeError):
-        submit({"success": True, "bottom_confirmed": True, "selected_new_count": 1}, app, reader)
+        submit(completed_selection(), app, reader)
     assert not app.clicks
-
-
-@pytest.mark.parametrize("count", [-1, True, "1", 1.5, float("inf")])
-def test_submit_rejects_invalid_selected_count_without_click(count):
-    app = App([[card(state="selected")]])
-    with pytest.raises((ValueError, RuntimeError, TypeError)):
-        submit({"success": True, "bottom_confirmed": True, "selected_new_count": count}, app=app)
-    assert not app.clicks
-
-
-def test_scan_is_bounded_when_many_pages_never_reach_bottom():
-    app = App([[card("b")] for _ in range(24)])
-    with pytest.raises(select.BlackMoonLocalSelectError) as error:
-        run_selection([], app=app)
-    assert error.value.code == "black_moon_select_scroll_limit"
-    assert not app.clicks
-    assert len(app.drags) <= select._MAX_DRAGS * 2 + 2
 
 
 def test_task_defaults_to_select_only_and_validates_before_input():
@@ -482,11 +369,10 @@ def test_task_defaults_to_select_only_and_validates_before_input():
     task = yaml.safe_load((root / "plans/resonance_pc/tasks/black_moon_local_select_pc.yaml").read_text(
         encoding="utf-8"))["black_moon_local_select_pc"]
     inputs = {row["name"]: row for row in task["meta"]["inputs"]}
-    assert inputs["purchase_table"]["required"]
-    assert inputs["submit_purchase"]["default"] is False
+    assert inputs["purchase_table"]["required"] and inputs["submit_purchase"]["default"] is False
     steps = task["steps"]
     assert steps["require_resolution"]["depends_on"] == "validate_table"
     assert "candidate_count > 0" in steps["enable_batch"]["when"]
     assert steps["select_goods"]["depends_on"] == {"enable_batch": "success|skipped"}
-    assert steps["select_goods"]["params"]["require_empty_selection"] == "{{ inputs.submit_purchase }}"
+    assert "require_empty_selection" not in steps["select_goods"]["params"]
     assert steps["submit"]["when"] == "{{ inputs.submit_purchase }}"

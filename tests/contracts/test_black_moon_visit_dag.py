@@ -68,7 +68,7 @@ def harness(monkeypatch, tmp_path, task):
     calls, submitted, exits = [], [], []
     city_key = visit.load_black_moon_catalog()["eligible_cities"][0]
     monkeypatch.setattr(visit, "resolve_purchase_week", lambda _: WEEK)
-    config = {"count": 1, "fail_payment": False, "fail_exit": False}
+    config = {"has_selected_goods": True, "fail_payment": False, "fail_exit": False}
     latest = {}
 
     def city_record():
@@ -76,7 +76,7 @@ def harness(monkeypatch, tmp_path, task):
 
     async def submit(selection, app, before_submit):
         assert app is None
-        if selection["selected_new_count"] == 0:
+        if not selection["has_selected_goods"]:
             return {"success": True, "status": "skipped", "purchase_submitted": False}
         before_submit()
         submitted.append("click")
@@ -119,12 +119,13 @@ def harness(monkeypatch, tmp_path, task):
             if action == "resonance_pc.prepare_black_moon_local_shop_step":
                 return {"success": True, "step": params["step"]}
             if action == "resonance_pc.select_black_moon_local_goods":
-                assert params["require_empty_selection"] is True
+                assert "require_empty_selection" not in params
                 assert params["purchase_table"][ITEM] is True
-                count = config["count"]
-                return {"success": True, "selected_new_count": count,
-                        "selected_items": [{"item_id": ITEM, "score": .97} for _ in range(count)],
-                        "bottom_confirmed": True, "started_empty": True}
+                selected = config["has_selected_goods"]
+                return {"success": True, "has_selected_goods": selected,
+                        "matched_item_ids": [ITEM] if selected else [],
+                        "scan_complete": True, "end_reason": "unchanged_view",
+                        "scroll_count": 2, "unchanged_drag_count": 2, "bottom_confirmed": False}
             if action == "resonance_pc.begin_black_moon_local_visit":
                 result = visit.resonance_pc_begin_black_moon_local_visit(
                     **params, resonance_pc_city_shop_data=City(), persistent_data=store)
@@ -150,12 +151,13 @@ def returned(task, context, state):
     return asyncio.run(TemplateRenderer(context, state).render(task["returns"]))
 
 
-def test_nonzero_full_pipeline_renders_real_dependencies_params_and_returns(harness, task):
+def test_selected_target_pipeline_renders_real_dependencies_params_and_returns(harness, task):
     context, state = asyncio.run(harness.run(target="main"))
     result = returned(task, context, state)
     assert result["success"] is True and result["status"] == "completed"
     assert result["page_state"] == "main" and result["purchase_verified"] is True
-    assert result["selected_card_count"] == 1 and harness.submitted == ["click"]
+    assert result["has_selected_goods"] is True and result["matched_item_ids"] == [ITEM]
+    assert harness.submitted == ["click"]
     assert harness.exits == ["main"]
     assert harness.calls == [
         "resonance_pc.begin_black_moon_local_visit", "resonance_pc.require_client_resolution",
@@ -168,10 +170,11 @@ def test_nonzero_full_pipeline_renders_real_dependencies_params_and_returns(harn
 
 
 def test_zero_match_pipeline_marks_complete_and_exits_without_payment(harness, task):
-    harness.config["count"] = 0
+    harness.config["has_selected_goods"] = False
     context, state = asyncio.run(harness.run())
     result = returned(task, context, state)
-    assert result["reason"] == "no_matching_goods" and result["selected_card_count"] == 0
+    assert result["reason"] == "no_matching_goods" and result["has_selected_goods"] is False
+    assert result["matched_item_ids"] == []
     assert result["purchase_verified"] is False and result["page_state"] == "rest_menu"
     assert harness.submitted == [] and harness.exits == ["rest_menu"]
     assert harness.record()["completed"] is True
@@ -191,7 +194,7 @@ def test_all_false_skips_shop_but_finish_receives_default_empty_completion(harne
 
 
 def test_weekly_skip_uses_skipped_dependency_chain_without_reopening_shop(harness, task):
-    harness.config["count"] = 0
+    harness.config["has_selected_goods"] = False
     asyncio.run(harness.run())
     harness.calls.clear()
     harness.exits.clear()

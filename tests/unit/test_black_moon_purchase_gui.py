@@ -446,3 +446,23 @@ def test_responsive_grid_no_horizontal_scroll_and_render(dialog, app, tmp_path, 
         assert dialog.grid.visualRect(dialog.proxy.index(1, 0)).top() == dialog.grid.visualRect(dialog.proxy.index(0, 0)).top()
     dialog._toggle_item(dialog.proxy.index(0, 0))
     assert dialog.grab().save(str(tmp_path / f"black-moon-{width}.png"))
+
+
+def test_category_filtering_does_not_oscillate_grid_layout(dialog, app):
+    dialog.setStyleSheet(APP_STYLE)
+    dialog.setFont(QFont("Microsoft YaHei", 10))
+    dialog.resize(1000, 680)
+    dialog.show()
+    for category_row in (2, 4, 0, 2):
+        dialog.categories.setCurrentRow(category_row)
+        for _ in range(4):
+            app.processEvents()
+        samples = []
+        for _ in range(12):
+            app.processEvents()
+            samples.append((dialog.grid.viewport().width(),
+                            dialog.grid.visualRect(dialog.proxy.index(2, 0)).top(),
+                            dialog.grid.verticalScrollBar().isVisible()))
+        assert len(set(samples)) == 1
+        assert samples[0][2] is True
+        assert dialog.grid.horizontalScrollBar().maximum() == 0

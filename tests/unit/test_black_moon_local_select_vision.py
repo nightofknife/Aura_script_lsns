@@ -32,14 +32,44 @@ def test_current_real_goods_detected_in_independent_cards():
     assert all(card['state'] == 'unselected' for card in cards if not card['partial'])
 
 
-def test_selected_badge_skips_identity_and_normal_cards_are_unselected():
+def test_selected_badge_does_not_make_an_unwanted_card_a_target():
     reader = BlackMoonLocalSelectVision(['purchase_order_book'])
     image = frame('selected')
     cards = reader.cards(image)
     assert sum(card['state'] == 'selected' for card in cards) == 1
     selected = next(card for card in cards if card['state'] == 'selected')
+    # This historical selected card is a staff, not a purchase order book.
     assert reader.identify(image, selected) is None
-    assert not any(reader.identify(image, card) for card in cards)
+    assert reader.selected_mark(image, selected)['found']
+    assert all(not reader.selected_mark(image, card)['found'] for card in cards
+               if card['state'] == 'unselected')
+
+
+def test_selected_badge_moves_with_card_and_is_not_found_on_another_card():
+    reader = BlackMoonLocalSelectVision(['purchase_order_book'])
+    source = frame('selected')
+    selected = next(card for card in reader.cards(source) if card['state'] == 'selected')
+    x, y, width, height = selected['rect']
+    target = {**selected, 'rect': (600, 450, width, height)}
+    moved = np.zeros_like(source)
+    moved[450:450 + height, 600:600 + width] = source[y:y + height, x:x + width]
+    assert reader.selected_mark(moved, target)['found']
+    assert not reader.selected_mark(moved, selected)['found']
+    assert not reader.selected_mark(moved, {**target, 'rect': (600, 150, width, height)})['found']
+
+
+def test_selected_target_identity_is_preserved_when_native_badge_is_present():
+    reader = BlackMoonLocalSelectVision(['purchase_order_book'])
+    image = frame('current')
+    target = next(card for card in reader.cards(image) if reader.identify(image, card))
+    x, y, _, _ = target['rect']
+    rx, ry, _, _ = reader.meta['selected']['roi_relative']
+    badge = _pixels(reader.root, reader.meta['selected']['file'])
+    height, width = badge.shape[:2]
+    image[y + ry:y + ry + height, x + rx:x + rx + width] = badge
+    target = {**target, 'state': 'selected'}
+    assert reader.selected_mark(image, target)['found']
+    assert reader.identify(image, target)['item_id'] == 'purchase_order_book'
 
 
 def test_footer_zero_negative_and_purchase_control():

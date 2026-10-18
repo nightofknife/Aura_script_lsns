@@ -156,16 +156,16 @@ anonymous SOLD OUT label enters the bank. The source first row is clipped: its
 card top is 125 in client coordinates, not the viewport top 143. The plate origin
 is at 719,178. `tools/build_black_moon_sold_out_template.py` regenerates the plate
 and provenance; the main icon generator preserves this independent resource.
-This change has not been template-match calibrated or live-run tested.
+The 2026-10-18 live run below observed the sold-out marker using this bank.
 
 ## Validation Boundary
 
 Historical unit tests cover wishlist validation, local feedback, duplicate cards,
 bounded retry, cancellation, the former empty-start requirement and single submission.
-The 2026-10-18 current-position/nonempty-start change and the subsequent bounded
-page/drag loop and removal of runtime card counting have not been tested. No
-tests, live input or purchase were performed for these changes. Historical overlap/bottom-proof checks do not
-validate the replacement loop. Cropped real list/footer fixtures cover target matches, selected/unselected state and paper
+Release regression checks cover the current-position/nonempty-start scan,
+bounded page/drag loop, selected-target presence, payment/weekly integration and
+the category-filter layout regression. Historical overlap/bottom-proof checks do
+not validate the replacement loop. Cropped real list/footer fixtures cover target matches, selected/unselected state and paper
 lookalike rejection. Native-template synthetic coarse recall covers all 140 IDs
 and is not evidence that every product matches the real client.
 
@@ -179,5 +179,13 @@ matching the 98,885 total. No further game input or exit followed.
 
 The subsequent exit implementation is verified with offline fake-app transitions
 and actual retained navigation/header/footer control crops. Both destination
-detectors have offline evidence; exit clicking has not been tested in the live
-client. No new live purchase or input was performed for this exit implementation.
+detectors have offline evidence. At that implementation stage no live exit had
+been performed; the newer run below exercises the rest-menu exit.
+
+On 2026-10-18, a user-authorized standalone purchase from the Cape City rest menu
+enabled only `digital_thought`. Both observed target selection clicks succeeded
+without supplements. Four upward drags ended at a recognized sold-out marker.
+The task submitted once, confirmed stable zero-total settlement, persisted the
+weekly completion, and returned to the rest menu. Total task time was 19.02
+seconds. This is UI settlement evidence, not an independently measured inventory
+delta. The temporary runner was closed after all task activity completed.

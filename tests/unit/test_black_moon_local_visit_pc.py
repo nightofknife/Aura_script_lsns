@@ -46,8 +46,10 @@ def record(store, visit):
 
 def scan(items=None, **overrides):
     items = [{"item_id": "a", "score": .97}] if items is None else items
-    return {"success": True, "selected_new_count": len(items), "selected_items": items,
-            "bottom_confirmed": True, "started_empty": True} | overrides
+    return {"success": True, "has_selected_goods": bool(items),
+            "matched_item_ids": sorted({item["item_id"] for item in items}),
+            "scan_complete": True, "end_reason": "unchanged_view", "bottom_confirmed": False,
+            "scroll_count": 2, "unchanged_drag_count": 2} | overrides
 
 
 def submit(store, visit, selection=None, app=None):
@@ -71,7 +73,7 @@ def fake_ui(monkeypatch):
 
     async def fake_submit(selection, app, before_submit):
         events.append("validated")
-        if selection["selected_new_count"] == 0:
+        if not selection["has_selected_goods"]:
             return {"success": True, "status": "skipped", "purchase_submitted": False}
         before_submit()
         events.append("clicked")
@@ -198,14 +200,15 @@ def test_timeout_or_cancel_retains_pending_and_cannot_complete(store, fake_ui, m
 
 
 @pytest.mark.parametrize("override", [
-    {"success": 1}, {"success": False}, {"selected_new_count": True},
-    {"selected_new_count": -1}, {"selected_new_count": 2},
-    {"selected_items": None}, {"selected_items": ["a"]},
-    {"selected_items": [{"item_id": "b"}]},
-    {"bottom_confirmed": 1}, {"bottom_confirmed": False},
-    {"started_empty": 1}, {"started_empty": False},
+    {"success": 1}, {"success": False}, {"has_selected_goods": 1},
+    {"has_selected_goods": False}, {"matched_item_ids": []},
+    {"matched_item_ids": None}, {"matched_item_ids": "a"},
+    {"matched_item_ids": ["a", "a"]}, {"matched_item_ids": ["b"]},
+    {"matched_item_ids": [""]}, {"matched_item_ids": [" a"]},
+    {"scan_complete": False}, {"scan_complete": 1},
+    {"unchanged_drag_count": 1}, {"scroll_count": True},
 ])
-def test_invalid_count_card_or_strict_scan_proof_cannot_submit(store, fake_ui, override):
+def test_invalid_presence_target_or_scan_proof_cannot_submit(store, fake_ui, override):
     visit = begin(store)
     with pytest.raises(ValueError):
         submit(store, visit, scan(**override))
@@ -220,7 +223,8 @@ def test_zero_matching_scan_completes_week_and_exits_without_purchase(store, fak
     assert completion["reason"] == "no_matching_goods" and completion["purchase_verified"] is False
     assert record(store, visit)["completed"] is True
     result = finish(store, visit, completion)
-    assert result["page_state"] == "rest_menu" and result["selected_card_count"] == 0
+    assert result["page_state"] == "rest_menu" and result["has_selected_goods"] is False
+    assert result["matched_item_ids"] == []
     assert fake_ui == ["validated", "exit:rest_menu"]
 
 
@@ -426,3 +430,19 @@ def test_actual_submit_cancel_during_journal_keeps_pending_without_click(store, 
     saved = record(store, visit)
     assert saved["batches"]["cancelled-before-click"]["status"] == "pending"
     assert saved["completed"] is False and not app.clicks
+
+
+def test_same_product_multiple_cards_uses_one_presence_receipt_and_completes_week(store, fake_ui):
+    visit = begin(store)
+    selection = scan([{"item_id": "a"}, {"item_id": "a"}])
+    submission = submit(store, visit, selection)
+    batch = record(store, visit)["batches"][submission["batch_id"]]
+    assert batch["status"] == "pending" and batch["items"] == [{"item_id": "a"}]
+    assert submission["scan"]["has_selected_goods"] is True
+    assert submission["scan"]["matched_item_ids"] == ["a"]
+    assert "selected_card_count" not in submission["scan"]
+    completion = complete(store, visit, submission)
+    result = finish(store, visit, completion)
+    assert result["has_selected_goods"] is True and result["matched_item_ids"] == ["a"]
+    assert begin(store)["reason"] == "completed_this_week"
+    assert fake_ui == ["validated", "clicked", "settled", "exit:rest_menu"]

@@ -64,10 +64,12 @@ def record(store, *, complete=False, pending=False, confirmed=False):
     if complete:
         saved = ledger.complete_visit(store, **KEY, visit_id=saved["visit_id"],
             reason="wishlist_processed" if confirmed else "no_matching_goods", evidence={
-                "type": "wishlist_scan", "recognized": True, "bottom_confirmed": True,
-                "started_empty": True, "selected_item_ids": ["purchase_order_book"],
-                "selected_card_count": 1 if confirmed else 0,
-                "selected_items": items if confirmed else [],
+                "type": "wishlist_scan", "recognized": True, "scan_complete": True,
+                "end_reason": "unchanged_view", "bottom_confirmed": False,
+                "scroll_count": 2, "unchanged_drag_count": 2,
+                "selected_item_ids": ["purchase_order_book"],
+                "has_selected_goods": confirmed,
+                "matched_item_ids": ["purchase_order_book"] if confirmed else [],
             })
     return saved
 
@@ -76,7 +78,7 @@ def child_result(**changes):
     return {
         "success": True, "status": "completed", "page_state": "rest_menu",
         "city_key": CITY["city_key"], "week_key": WEEK, "completed_this_week": True,
-        "selected_card_count": 0, "selected_items": [], "reason": "no_matching_goods",
+        "has_selected_goods": False, "matched_item_ids": [], "reason": "no_matching_goods",
     } | changes
 
 
@@ -133,10 +135,11 @@ def test_child_adapter_uses_finish_visit_and_frozen_purchase_map(monkeypatch):
 
 
 @pytest.mark.parametrize("changes", [
-    {"selected_card_count": True}, {"selected_card_count": -1}, {"selected_card_count": "0"},
-    {"selected_card_count": 1}, {"selected_items": None}, {"selected_items": {}},
-    {"selected_card_count": 1, "selected_items": [None]},
-    {"selected_card_count": 1, "selected_items": [{"item_id": "blackstone_armor"}]},
+    {"has_selected_goods": 1}, {"has_selected_goods": None}, {"has_selected_goods": True},
+    {"matched_item_ids": None}, {"matched_item_ids": {}}, {"matched_item_ids": "a"},
+    {"matched_item_ids": [None]}, {"matched_item_ids": ["purchase_order_book"]},
+    {"has_selected_goods": True, "matched_item_ids": ["blackstone_armor"]},
+    {"has_selected_goods": True, "matched_item_ids": ["purchase_order_book", "purchase_order_book"]},
     {"city_key": "other_city"}, {"page_state": "main"}, {"week_key": None},
     {"completed_this_week": 1}, {"completed_this_week": False}, {"success": False},
 ])
@@ -150,15 +153,14 @@ def test_child_adapter_rejects_old_monolithic_node(monkeypatch):
         run_child(monkeypatch, {"nodes": {"purchase": {"output": child_result()}}})
 
 
-def test_receipt_salvage_preserves_cards_without_assuming_units_or_stock_index(store):
+def test_receipt_salvage_preserves_product_presence_without_card_counts(store):
     record(store, complete=True, confirmed=True)
     purchase = {"city_key": CITY["city_key"], "week_key": WEEK, "status": "failed"}
     flow._retain_black_moon_purchase_receipt(purchase, persistent_data=store, record_scope="default")
     assert purchase["completed_this_week"] is True
-    assert purchase["selected_card_count"] == 1
-    assert purchase["selected_items"] == [{"item_id": "purchase_order_book", "score": 0.96}]
-    assert "purchase_units" not in purchase["selected_items"][0]
-    assert "stock_index" not in purchase["selected_items"][0]
+    assert purchase["has_selected_goods"] is True
+    assert purchase["matched_item_ids"] == ["purchase_order_book"]
+    assert "selected_card_count" not in purchase and "selected_items" not in purchase
     assert purchase["status"] == "failed"
 
 
@@ -212,7 +214,8 @@ def test_no_matching_goods_restores_shared_rest_then_water_and_city(rest_harness
     assert result["page_state"] == "city_panel"
     assert result["sparkling_water"]["completed_count"] == 2
     assert visits[0]["reason"] == "no_matching_goods"
-    assert visits[0]["selected_card_count"] == 0
+    assert visits[0]["has_selected_goods"] is False
+    assert visits[0]["matched_item_ids"] == []
 
 
 def test_no_targets_skip_rest_ui_entirely(rest_harness):
@@ -231,7 +234,7 @@ def test_purchase_failure_stops_water_and_retains_durable_receipt(rest_harness, 
     # Force the child path so this simulates payment persisting after gate, then exit failing.
     monkeypatch.setattr(flow, "_black_moon_purchase_gate", lambda **_kwargs: {
         "success": True, "triggered": True, "status": "pending", "week_key": WEEK,
-        "city_key": CITY["city_key"], "completed_this_week": False, "selected_card_count": 0,
+        "city_key": CITY["city_key"], "completed_this_week": False, "has_selected_goods": False, "matched_item_ids": [],
     })
     async def failure(**_kwargs):
         calls.append("purchase_failed")
@@ -241,7 +244,8 @@ def test_purchase_failure_stops_water_and_retains_durable_receipt(rest_harness, 
         asyncio.run(flow._execute_freight_rest_stop(**kwargs))
     assert "water" not in calls and "return_city" not in calls
     assert visits[0]["success"] is False
-    assert visits[0]["selected_card_count"] == 1
+    assert visits[0]["has_selected_goods"] is True
+    assert visits[0]["matched_item_ids"] == ["purchase_order_book"]
     assert visits[0]["completed_this_week"] is True
     assert visits[0]["page_state"] == "unknown"
 
@@ -328,3 +332,38 @@ def test_purchase_failure_stops_route_before_next_trade_and_cleans_state(route_h
     assert ("trade", 1) not in calls
     if failure_city_index == 0:
         assert ("trade", 0) not in calls
+
+
+def test_child_adapter_accepts_selected_product_presence_without_card_counts(monkeypatch):
+    expected = child_result(has_selected_goods=True, matched_item_ids=["purchase_order_book"],
+                            reason="wishlist_processed", purchase_verified=True)
+    result, _ = run_child(monkeypatch, {"nodes": {"finish_visit": {"output": expected}}})
+    assert result == expected
+    assert "selected_card_count" not in result and "selected_items" not in result
+
+
+def test_route_summary_unions_product_ids_across_city_visits(route_harness, monkeypatch):
+    kwargs, _ = route_harness
+    original = flow._execute_freight_rest_stop
+    async def selected(**parameters):
+        result = await original(**parameters)
+        receipt = result["black_moon_local_purchase"]
+        receipt.update(has_selected_goods=True, matched_item_ids=["purchase_order_book"])
+        return result
+    monkeypatch.setattr(flow, "_execute_freight_rest_stop", selected)
+    result = asyncio.run(flow._execute_route(**kwargs))
+    receipt = result["black_moon_local_purchase"]
+    assert receipt["triggered_count"] == 3
+    assert receipt["has_selected_goods"] is True
+    assert receipt["matched_item_ids"] == ["purchase_order_book"]
+    assert "selected_card_count" not in receipt and "selected_items" not in receipt
+
+
+def test_receipt_salvage_does_not_claim_pending_products_were_purchased(store):
+    record(store, pending=True)
+    purchase = {"city_key": CITY["city_key"], "week_key": WEEK, "status": "failed"}
+    flow._retain_black_moon_purchase_receipt(purchase, persistent_data=store, record_scope="default")
+    assert purchase["completed_this_week"] is False
+    assert purchase["has_selected_goods"] is False
+    assert purchase["matched_item_ids"] == []
+    assert purchase["status"] == "failed"
