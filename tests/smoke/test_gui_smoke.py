@@ -79,6 +79,8 @@ def test_gui_self_check_builds_window_and_discovers_plans() -> None:
         "from packages.resonance_gui.app import self_check_resonance_gui;"
         "raise SystemExit(self_check_resonance_gui())"
     )
+    # Keep raw diagnostics: isolated Python and native Qt/IPC can use different
+    # Windows encodings, so automatic decoding must not lose output in a thread.
     result = subprocess.run([sys.executable, "-I", "-X", "utf8", "-c", code], env=env,
-                            capture_output=True, text=True, timeout=60)
+                            capture_output=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
