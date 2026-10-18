@@ -183,7 +183,7 @@
   ],
   "templates": {
     "room_1_title": {
-      "image": "templates/product_workshop_staff/room_1_title.png",
+      "image": "templates/workshop/staffing/editor/room_1_title.png",
       "bbox": [
         571,
         10,
@@ -222,7 +222,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/room_1_title.native.png",
+          "image": "templates/workshop/staffing/editor/room_1_title.native.png",
           "bbox": [
             571,
             10,
@@ -257,7 +257,7 @@
       ]
     },
     "room_2_title": {
-      "image": "templates/product_workshop_staff/room_2_title.png",
+      "image": "templates/workshop/staffing/editor/room_2_title.png",
       "bbox": [
         571,
         10,
@@ -290,7 +290,7 @@
       "number_min_margin": 0.06
     },
     "quick": {
-      "image": "templates/product_workshop_staff/quick.png",
+      "image": "templates/workshop/staffing/editor/quick.png",
       "bbox": [
         60,
         479,
@@ -321,7 +321,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/quick.native.png",
+          "image": "templates/workshop/staffing/editor/quick.native.png",
           "bbox": [
             60,
             479,
@@ -348,7 +348,7 @@
       ]
     },
     "select_all": {
-      "image": "templates/product_workshop_staff/select_all.png",
+      "image": "templates/workshop/staffing/editor/select_all.png",
       "bbox": [
         877,
         659,
@@ -379,7 +379,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/select_all.native.png",
+          "image": "templates/workshop/staffing/editor/select_all.native.png",
           "bbox": [
             822,
             656,
@@ -418,7 +418,7 @@
       ]
     },
     "cancel_all": {
-      "image": "templates/product_workshop_staff/cancel_all.png",
+      "image": "templates/workshop/staffing/editor/cancel_all.png",
       "bbox": [
         877,
         659,
@@ -449,7 +449,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/cancel_all.native.png",
+          "image": "templates/workshop/staffing/editor/cancel_all.native.png",
           "bbox": [
             822,
             656,
@@ -488,7 +488,7 @@
       ]
     },
     "confirm": {
-      "image": "templates/product_workshop_staff/confirm.png",
+      "image": "templates/workshop/staffing/editor/confirm.png",
       "bbox": [
         1045,
         645,
@@ -519,7 +519,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/confirm.native.png",
+          "image": "templates/workshop/staffing/editor/confirm.native.png",
           "bbox": [
             1045,
             645,
@@ -546,7 +546,7 @@
       ]
     },
     "back": {
-      "image": "templates/product_workshop_staff/back.png",
+      "image": "templates/workshop/staffing/editor/back.png",
       "bbox": [
         19,
         13,
@@ -587,7 +587,7 @@
       "sha256": "dc6f18b5aafa6082faa7a106d1cd1c97d781517f3f11cb09b2f7e698f7800d12"
     },
     "apply": {
-      "image": "templates/product_workshop_staff/apply.png",
+      "image": "templates/workshop/staffing/editor/apply.png",
       "bbox": [
         903,
         479,
@@ -618,7 +618,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/apply.native.png",
+          "image": "templates/workshop/staffing/editor/apply.native.png",
           "bbox": [
             642,
             482,
@@ -657,7 +657,7 @@
       ]
     },
     "discard": {
-      "image": "templates/product_workshop_staff/discard.png",
+      "image": "templates/workshop/staffing/editor/discard.png",
       "bbox": [
         271,
         479,
@@ -688,7 +688,7 @@
       ],
       "variants": [
         {
-          "image": "templates/product_workshop_staff/discard.native.png",
+          "image": "templates/workshop/staffing/editor/discard.native.png",
           "bbox": [
             2,
             482,
@@ -727,7 +727,7 @@
       ]
     },
     "saved_marker": {
-      "image": "templates/product_workshop_staff/saved_marker.png",
+      "image": "templates/workshop/staffing/controls/edit.png",
       "bbox": [
         1093,
         674,
@@ -745,9 +745,9 @@
         686
       ],
       "threshold": 0.9,
-      "source_image": "templates/reforming_center/destination_10_workshop_edit.png",
+      "source_image": "templates/workshop/staffing/controls/edit.png",
       "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
-      "sha256": "5bfb99963be42074feeda45d51c257304b45f80579e971c9d4a61a8927e38583"
+      "sha256": "47ad63d9d7e355d834fcd9bd2e5c97fb2b487aca87a9bb3b4720e908dd0012bd"
     }
   },
   "scenes": {

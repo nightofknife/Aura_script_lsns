@@ -5,7 +5,7 @@
 ## 模板与匹配
 
 - `data/meta/trade_product_templates.json` 覆盖 229 种商品，228 种支持识别。
-- `templates/trade_products/` 包含 456 张 available/selected 模板，均为带游戏底纹、固定裁剪的 80×56 RGB PNG，无 alpha 或蒙版。
+- `templates/commerce/trade/products/<商品ID>/` 保存 available/selected 模板，当前共 456 张，均为带游戏底纹、固定裁剪的 80×56 RGB PNG，无 alpha 或蒙版。商品覆盖以目录中的逻辑 ID 和两种状态为准。
 - 彩色 `TM_SQDIFF_NORMED`，置信度为 `1-score`，接受门槛为 0.92；不使用灰度、亮度归一化或其他商品身份辅助判定。
 - 全库模板在同一位置竞争，先确认最高分身份再过滤待购 ID，不能让待购商品的弱匹配覆盖更可靠的其他商品身份。
 - 宝石工艺品（ID 67）缺少配置图标，明确标为 unsupported 并告警跳过，不用相似素材替代。

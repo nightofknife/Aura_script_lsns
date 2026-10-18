@@ -9,7 +9,8 @@ scans downward using the bounded page loop described below, and selects requeste
 goods. It does not require an initial zero total or scroll upward before selecting. A clipped row above
 the first complete visible row is outside this scan's starting range. There is no
 GUI registration, freight integration, refresh, inventory write, or weekly ledger
-write in this stage. The existing generic purchase backend is unchanged.
+write in this stage. The retired monolithic purchase backend has been removed;
+the staged begin/prepare/select/submit/complete/finish pipeline remains.
 
 The input `purchase_table` maps the 140 canonical catalog IDs to booleans.
 Unspecified known IDs default to false; unknown IDs are rejected. All encountered
@@ -75,7 +76,7 @@ One shared mask excludes discount/type overlays and pack quantities while
 retaining lower-left quality background. Cropped screenshot controls provide
 generic card corners, yellow selection feedback, the purchase button and the
 exact zero-total state. Provenance and the native bank digest are in the new
-`templates/black_moon_local_select/manifest.json`; the old bank is not rewritten.
+`templates/commerce/shop/black_moon/calibrated/manifest.json`; the native bank is indexed separately at `templates/commerce/shop/black_moon/native/manifest.json`.
 Use `tools/build_black_moon_local_select_templates.py` with the documented normal
 and selected client frames to regenerate the new bank.
 
@@ -159,6 +160,11 @@ and provenance; the main icon generator preserves this independent resource.
 The 2026-10-18 live run below observed the sold-out marker using this bank.
 
 ## Validation Boundary
+
+The current purchase task uses begin/prepare/select/submit/complete/finish
+stages. The old monolithic purchase action and its exclusive scanner outputs
+have been retired; native normal-state icons remain calibration inputs. See
+[PC legacy entry retirement](developer-guide/resonance-pc-legacy-entry-retirement.md).
 
 Historical unit tests cover wishlist validation, local feedback, duplicate cards,
 bounded retry, cancellation, the former empty-start requirement and single submission.

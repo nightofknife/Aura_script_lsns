@@ -62,7 +62,7 @@ def load_product_templates(catalog_path: str | None = None) -> ProductCatalog:
             if row["supported"] is True:
                 for state in ("available", "selected"):
                     image_path = (root / row[state]).resolve()
-                    if not image_path.is_relative_to(root / "templates/trade_products"):
+                    if not image_path.is_relative_to(root / "templates/commerce/trade/products"):
                         raise ValueError("template path is outside product assets")
                     # Decode only opaque RGB PNGs; there is no mask or alpha fallback.
                     image = cv2.imdecode(np.frombuffer(image_path.read_bytes(), np.uint8), cv2.IMREAD_UNCHANGED)

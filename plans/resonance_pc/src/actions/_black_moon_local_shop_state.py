@@ -1,6 +1,5 @@
-"""Weekly shop ledger, with cooperative session and read/modify/write locks.
+"""Weekly shop ledger, with guarded read/modify/write operations.
 
-Hold ``async with purchase_session_lock(service)`` over the entire shop action.
 Call ``mark_pending_batch`` before the one confirmation click, then persist
 recognized confirmation synchronously with ``confirm_batch`` even if the action
 has been cancelled. Pending entries are evidence to reconcile, never work to
@@ -9,17 +8,15 @@ persistence service's atomic replacement is not compare-and-swap.
 """
 from __future__ import annotations
 
-import asyncio
 import copy
 import math
 import os
 import threading
 import time as monotonic_time
 import uuid
-import weakref
 from collections import Counter
 from collections.abc import Mapping
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -34,7 +31,6 @@ PURCHASES_FILE = "black-moon-shop-purchases.json"
 SCHEMA_VERSION = 1
 _LOCKS_GUARD = threading.Lock()
 _WRITE_LOCKS: dict[str, Any] = {}
-_SESSION_LOCKS: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
 _OUTCOMES = frozenset({"purchased", "sold_out", "missing"})
 _INCOMPLETE_REASONS = frozenset({"disabled", "error", "cancel", "cancelled", "canceled",
                                "empty", "empty_selection", "aborted", "failed"})
@@ -179,39 +175,6 @@ def _write_guard(persistent_data: Any):
                 _unlock(handle)
     finally:
         local_lock.release()
-
-
-@asynccontextmanager
-async def purchase_session_lock(persistent_data: Any):
-    """Serialize complete shop sessions across tasks, loops and processes.
-
-    The lock is global per user-data root, not per profile or city, because shop
-    interactions share the game window. Cancellation releases the session lock;
-    it never clears pending entries or gates synchronous evidence writes.
-    """
-    root = _root(persistent_data)
-    key = os.path.normcase(str(root))
-    loop = asyncio.get_running_loop()
-    with _LOCKS_GUARD:
-        locks = _SESSION_LOCKS.setdefault(loop, {})
-        lock = locks.setdefault(key, asyncio.Lock())
-    async with lock:
-        root.mkdir(parents=True, exist_ok=True)
-        with (root / f".{PURCHASES_FILE}.session.lock").open("a+b") as handle:
-            acquired = False
-            try:
-                while not acquired:
-                    try:
-                        _try_lock(handle)
-                        acquired = True
-                    except OSError as exc:
-                        if not _lock_busy(exc):
-                            raise
-                        await asyncio.sleep(0.05)
-                yield
-            finally:
-                if acquired:
-                    _unlock(handle)
 
 
 def _validate_visit(visit: Any) -> None:
@@ -365,25 +328,10 @@ def _has_pending(record: dict) -> bool:
 
 def _current(record: dict | None, visit_id: str | None) -> dict:
     if record is None:
-        raise ValueError("begin_visit must precede shop ledger mutations")
+        raise ValueError("begin_selection_visit must precede shop ledger mutations")
     if visit_id is not None and _name(visit_id, "visit_id") != record["visit_id"]:
         raise ValueError("Stale shop visit identity")
     return record
-
-
-def begin_visit(persistent_data: Any, *, scope: str = "default", week_key: str,
-                city_key: str, selected_item_ids: list[str]) -> dict:
-    """Create a city/week snapshot once; every existing record stays frozen."""
-    def mutation(record: dict | None) -> dict:
-        if record is not None:
-            return record
-        selected = _item_ids(selected_item_ids, allow_empty=False)
-        stamp = _stamp()
-        return {"completed": False, "visit_id": uuid.uuid4().hex,
-                "selected_item_ids": selected, "started_at": stamp, "updated_at": stamp,
-                "batches": {}, "previous_visits": [], "completion": None}
-
-    return _mutate(persistent_data, scope, week_key, city_key, mutation)
 
 
 def selection_visit_completed(record: dict | None, selected_item_ids: list[str]) -> bool:
@@ -536,32 +484,6 @@ def _nonpurchase_evidence(value: Any) -> dict:
     return evidence
 
 
-def resolve_pending_batch(persistent_data: Any, *, scope: str = "default", week_key: str,
-                          city_key: str, batch_id: str, evidence: dict,
-                          visit_id: str | None = None) -> dict:
-    """Close unexecuted/failed intent only on positive nonpurchase evidence.
-
-    Cancellation, absence of a receipt, or a timeout is not such evidence.
-    Any later click must receive a new batch_id and a new pending entry.
-    """
-    batch_id = _name(batch_id, "batch_id")
-    proof = _nonpurchase_evidence(evidence)
-
-    def mutation(record: dict | None) -> dict:
-        record = _current(record, None)
-        batch = _find_batch(record, batch_id, visit_id)
-        if batch["status"] == "not_purchased" and batch["evidence"] == proof:
-            return record
-        if record["completed"] or batch["status"] != "pending":
-            raise ValueError("Only pending intent can be resolved as not purchased")
-        stamp = _stamp()
-        batch.update(status="not_purchased", evidence=proof, resolved_at=stamp)
-        record["updated_at"] = stamp
-        return record
-
-    return _mutate(persistent_data, scope, week_key, city_key, mutation)
-
-
 def _completion_evidence(record: dict, value: Any) -> dict:
     proof = _evidence(value)
     if any(proof.get(flag) not in (None, False) for flag in ("cancelled", "canceled", "disabled", "error")):
@@ -674,6 +596,5 @@ def complete_visit(persistent_data: Any, *, scope: str = "default", week_key: st
 
 
 __all__ = ["PURCHASES_FILE", "SCHEMA_VERSION", "resolve_purchase_week", "read_city_record",
-           "begin_visit", "begin_selection_visit", "selection_visit_completed",
-           "mark_pending_batch", "confirm_batch", "complete_visit",
-           "resolve_pending_batch", "purchase_session_lock"]
+           "begin_selection_visit", "selection_visit_completed",
+           "mark_pending_batch", "confirm_batch", "complete_visit"]

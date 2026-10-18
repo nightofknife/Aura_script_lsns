@@ -199,9 +199,8 @@ def test_hotkey_start_uses_workflow_and_is_ignored_while_busy_or_closing(window,
 
 
 def test_stop_cancels_current_and_remaining_workflow_without_running_tasks(window):
-    cancelled, cleared = [], []
+    cancelled = []
     window.requestCancelCurrent.connect(lambda: cancelled.append(True))
-    window.requestClearQueue.connect(lambda: cleared.append(True))
     window._workflow_active = True
     window._busy = True
     window._workflow_pending = [{"step": "trade"}, {"step": "passenger"}]
@@ -209,7 +208,6 @@ def test_stop_cancels_current_and_remaining_workflow_without_running_tasks(windo
     assert window._workflow_pending == []
     assert window._workflow_stopping
     assert cancelled == [True]
-    assert cleared == [True]
     window._hotkeys.activated.emit("stop")
     assert cancelled == [True]
 

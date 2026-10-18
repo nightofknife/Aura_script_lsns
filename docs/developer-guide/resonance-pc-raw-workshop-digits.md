@@ -39,9 +39,9 @@
 
 ## 文件与重现
 
-- 字库：`plans/resonance_pc/templates/reforming_center/raw_workshop/digits/`。
+- 字库：`plans/resonance_pc/templates/workshop/production/digits/`，保留 list/selection 场景及各字体变体。
 - 索引：`plans/resonance_pc/data/meta/raw_workshop_digits_pc.json`。
-- 生成器：`tools/build_raw_workshop_digit_templates.py`，显式提供两份原生字体导出文件。
+- 生成器：`tools/build_raw_workshop_digit_templates.py`，显式提供两份原生字体导出文件；`--selection-font-export` 必填。完整字库需要两种场景的 77 张字形，输入缺失、错误或损坏时在任何输出写入前失败，保留原有完整索引和预览。重建仅清理上一次索引登记在本字库内的废弃输出。
 - 实机／合成回归样本：`tests/fixtures/raw_workshop_digits/manifest.json`，逐样本区分来源并记录 SHA-256。
 - 测试：`tests/unit/test_raw_workshop_digits.py`。
 - 本次预览与详细报告：`.pytest_tmp/raw_workshop_digits_20261011/`。

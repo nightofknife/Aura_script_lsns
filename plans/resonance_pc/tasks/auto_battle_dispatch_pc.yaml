@@ -540,7 +540,7 @@ auto_battle_ct_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -630,7 +630,7 @@ auto_battle_ct_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -650,7 +650,7 @@ auto_battle_ct_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -873,7 +873,7 @@ auto_battle_gp_action_summary_run_group_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -1149,7 +1149,7 @@ auto_battle_gp_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -1227,7 +1227,7 @@ auto_battle_gp_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -1247,7 +1247,7 @@ auto_battle_gp_batch_pc:
       action: plans/aura_base/find_image_and_click
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
@@ -1441,7 +1441,7 @@ auto_battle_dispatch_pc:
     wait_first_ct_category_template:
       action: plans/aura_base/wait_for_image
       params:
-        template: "templates/battle_category_ct.png"
+        template: "templates/battle/dispatch/category_ct.png"
         timeout: 8.0
         interval: 0.2
         region: [20, 180, 200, 160]
@@ -1453,7 +1453,7 @@ auto_battle_dispatch_pc:
     switch_first_ct:
       action: plans/aura_base/find_image_and_click
       params:
-        template: "templates/battle_category_ct.png"
+        template: "templates/battle/dispatch/category_ct.png"
         region: [20, 180, 200, 160]
         threshold: 0.95
         use_grayscale: true
@@ -1473,7 +1473,7 @@ auto_battle_dispatch_pc:
     wait_first_gp_category_template:
       action: plans/aura_base/wait_for_image
       params:
-        template: "templates/battle_category_gp.png"
+        template: "templates/battle/dispatch/category_gp.png"
         timeout: 8.0
         interval: 0.2
         region: [20, 180, 200, 160]
@@ -1485,7 +1485,7 @@ auto_battle_dispatch_pc:
     switch_first_gp:
       action: plans/aura_base/find_image_and_click
       params:
-        template: "templates/battle_category_gp.png"
+        template: "templates/battle/dispatch/category_gp.png"
         region: [20, 180, 200, 160]
         threshold: 0.95
         use_grayscale: true
@@ -1556,7 +1556,7 @@ auto_battle_dispatch_pc:
     wait_second_ct_category_template:
       action: plans/aura_base/wait_for_image
       params:
-        template: "templates/battle_category_ct.png"
+        template: "templates/battle/dispatch/category_ct.png"
         timeout: 8.0
         interval: 0.2
         region: [20, 180, 200, 160]
@@ -1569,7 +1569,7 @@ auto_battle_dispatch_pc:
     switch_second_ct:
       action: plans/aura_base/find_image_and_click
       params:
-        template: "templates/battle_category_ct.png"
+        template: "templates/battle/dispatch/category_ct.png"
         region: [20, 180, 200, 160]
         threshold: 0.95
         use_grayscale: true
@@ -1589,7 +1589,7 @@ auto_battle_dispatch_pc:
     wait_second_gp_category_template:
       action: plans/aura_base/wait_for_image
       params:
-        template: "templates/battle_category_gp.png"
+        template: "templates/battle/dispatch/category_gp.png"
         timeout: 8.0
         interval: 0.2
         region: [20, 180, 200, 160]
@@ -1604,7 +1604,7 @@ auto_battle_dispatch_pc:
     switch_second_gp:
       action: plans/aura_base/find_image_and_click
       params:
-        template: "templates/battle_category_gp.png"
+        template: "templates/battle/dispatch/category_gp.png"
         region: [20, 180, 200, 160]
         threshold: 0.95
         use_grayscale: true
@@ -1655,14 +1655,14 @@ auto_battle_dispatch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
         timeout_sec: 20.0
         interval_sec: 0.2
         stable_scans: 2
-        already_at_target_template: "templates/battle_main_terminal_marker.png"
+        already_at_target_template: "templates/battle/navigation/main_terminal_marker.png"
         already_at_target_region: [1080, 375, 190, 80]
         already_at_target_threshold: 0.95
         already_at_target_use_grayscale: true
@@ -1679,14 +1679,14 @@ auto_battle_dispatch_pc:
       action: resonance_pc.wait_and_click_back_button
       params:
         region: [10, 5, 160, 70]
-        template: "templates/battle_back_button.png"
+        template: "templates/battle/navigation/back_button.png"
         threshold: 0.9
         use_grayscale: true
         after_click_sec: 1.0
         timeout_sec: 20.0
         interval_sec: 0.2
         stable_scans: 2
-        already_at_target_template: "templates/battle_main_terminal_marker.png"
+        already_at_target_template: "templates/battle/navigation/main_terminal_marker.png"
         already_at_target_region: [1080, 375, 190, 80]
         already_at_target_threshold: 0.95
         already_at_target_use_grayscale: true

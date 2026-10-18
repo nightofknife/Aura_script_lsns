@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 
 
-TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates/trade_goods_investment"
+TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates/commerce/investment"
 CITY_CATALOG = Path(__file__).resolve().parents[2] / "data/meta/trade_goods_investment_cities.json"
 
 

@@ -46,7 +46,7 @@ their click, supplemental-click and skipped counts. No purchase is implied.
 
 ## Native Controls
 
-The six controls share the existing `templates/black_moon_local_shop` bank.
+The six controls share `templates/commerce/shop/black_moon/native/controls/`, indexed by the native bank manifest one directory above.
 Native construction is reproducible through
 `tools/build_black_moon_local_shop_templates.py --prepare-only`; full-bank
 construction uses the same recipes. Crops search within an eight-pixel local
@@ -61,6 +61,10 @@ excluding dynamic background edges and localized labels. Switch templates
 use native fonts and switch sprites with their original alpha masks.
 
 ## Evidence Boundary
+
+Preparation and exit share the PC-local bounded transition executor. Their
+timing, recognition evidence and cancellation errors remain scene-owned; see
+[template click transitions](developer-guide/resonance-pc-template-click-transitions.md).
 
 Four user-provided screenshots are stored as verified control-ROI fixtures
 under `tests/fixtures/black_moon_prepare`; unrelated account, currency and NPC

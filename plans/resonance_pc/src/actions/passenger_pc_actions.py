@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._settlement_observation import observe_presence
 
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
@@ -32,22 +33,22 @@ class PassengerPcError(RuntimeError):
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _FULL_SCREEN = [0, 0, 1280, 720]
 
-_MAIN_BUTTON_TEMPLATE = "templates/passenger_management_button.png"
-_MAIN_SCREEN_TEMPLATE = "templates/main_train_maintenance_icon.png"
+_MAIN_BUTTON_TEMPLATE = "templates/passenger/management/entry.png"
+_MAIN_SCREEN_TEMPLATE = "templates/navigation/global/train_maintenance.png"
 _MAIN_SCREEN_REGION = [920, 640, 80, 65]
-_SCORE_MARKER_TEMPLATE = "templates/passenger_score_marker.png"
-_RECRUIT_BUTTON_TEMPLATE = "templates/passenger_recruit_button.png"
-_FLYER_MODE_TEMPLATE = "templates/passenger_flyer_mode.png"
-_DESTINATION_MARKER_TEMPLATE = "templates/passenger_destination_marker.png"
-_DESTINATION_NEXT_TEMPLATE = "templates/passenger_destination_next.png"
-_DISPATCH_MARKER_TEMPLATE = "templates/passenger_dispatch_marker.png"
-_DISPATCH_LOCATION_TEMPLATE = "templates/passenger_dispatch_location_marker.png"
-_DISPATCH_LOCK_TEMPLATE = "templates/passenger_dispatch_lock.png"
-_DISPATCH_CONFIRM_TEMPLATE = "templates/passenger_dispatch_confirm.png"
-_AMOUNT_MAX_TEMPLATE = "templates/passenger_amount_max.png"
-_AMOUNT_CONFIRM_TEMPLATE = "templates/passenger_amount_confirm.png"
-_RECRUIT_SUCCESS_TEMPLATE = "templates/passenger_recruit_success.png"
-_SETTLEMENT_TEMPLATE = "templates/passenger_revenue_settlement.png"
+_SCORE_MARKER_TEMPLATE = "templates/passenger/management/score_marker.png"
+_RECRUIT_BUTTON_TEMPLATE = "templates/passenger/recruitment/entry.png"
+_FLYER_MODE_TEMPLATE = "templates/passenger/recruitment/flyer_mode.png"
+_DESTINATION_MARKER_TEMPLATE = "templates/passenger/destination/marker.png"
+_DESTINATION_NEXT_TEMPLATE = "templates/passenger/destination/next.png"
+_DISPATCH_MARKER_TEMPLATE = "templates/passenger/dispatch/marker.png"
+_DISPATCH_LOCATION_TEMPLATE = "templates/passenger/dispatch/location_marker.png"
+_DISPATCH_LOCK_TEMPLATE = "templates/passenger/dispatch/lock.png"
+_DISPATCH_CONFIRM_TEMPLATE = "templates/passenger/dispatch/confirm.png"
+_AMOUNT_MAX_TEMPLATE = "templates/passenger/amount/maximum.png"
+_AMOUNT_CONFIRM_TEMPLATE = "templates/passenger/amount/confirm.png"
+_RECRUIT_SUCCESS_TEMPLATE = "templates/passenger/recruitment/success.png"
+_SETTLEMENT_TEMPLATE = "templates/passenger/settlement/revenue.png"
 
 _MAIN_BUTTON_REGION = [950, 600, 220, 120]
 _SCORE_MARKER_REGION = [120, 70, 330, 130]
@@ -281,8 +282,13 @@ def _wait_template_absent(
     deadline = time.monotonic() + max(float(timeout_sec), 0.0)
     last: Dict[str, Any] = {}
     while True:
-        last = _match_template(app, vision, template, region)
-        if not last.get("found"):
+        last = observe_presence(
+            app=app, vision=vision, template=_template_path(template), region=_coerce_region(region),
+            threshold=_TEMPLATE_THRESHOLD, check_cancelled=_check_cancelled,
+        )
+        if not last["valid"]:
+            return {"absent": False, "last_match": last}
+        if last["found"] is False:
             return {"absent": True, "last_match": last}
         if time.monotonic() >= deadline:
             return {"absent": False, "last_match": last}
@@ -954,7 +960,18 @@ def resonance_pc_enter_city_and_settle_passengers(
     dismiss_attempts: List[Dict[str, Any]] = []
     for attempt in range(1, 4):
         _check_cancelled()
-        app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
+        source = observe_presence(
+            app=app, vision=vision, template=_template_path(_SETTLEMENT_TEMPLATE),
+            region=_coerce_region(_SETTLEMENT_REGION), threshold=_TEMPLATE_THRESHOLD,
+            check_cancelled=_check_cancelled,
+        )
+        if not source["valid"]:
+            _raise("passenger_settlement_observation_failed", "Passenger settlement source is unknown",
+                   {"settlement_match": settlement, "last_match": source,
+                    "settlement_confirmed": True, "revenue": revenue, "attempt": attempt})
+        if source["found"]:
+            _check_cancelled()
+            app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
         absent = _wait_template_absent(
             app,
             vision,
@@ -962,6 +979,10 @@ def resonance_pc_enter_city_and_settle_passengers(
             _SETTLEMENT_REGION,
             timeout_sec=2.5,
         )
+        if (absent.get("last_match") or {}).get("valid") is False:
+            _raise("passenger_settlement_observation_failed", "Passenger settlement closure is unknown",
+                   {"settlement_match": settlement, "last_match": absent["last_match"],
+                    "settlement_confirmed": True, "revenue": revenue, "attempt": attempt})
         visit_city = (
             _visit_city_entry_evidence(app, ocr)
             if absent.get("absent")

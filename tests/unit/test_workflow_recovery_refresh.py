@@ -51,9 +51,12 @@ def window(tmp_path, monkeypatch):
     app.processEvents()
 
 
-def test_run_button_waits_for_cancelled_worker_exit(window, monkeypatch):
+def test_pc_start_button_waits_for_cancelled_worker_exit(window, monkeypatch):
     from types import SimpleNamespace
 
+    window.trade_page.set_target_status({"ok": True, "target": {"title": "雷索纳斯", "visible": True}})
+    start_button = window.trade_page.start_button
+    assert start_button is not None and start_button.isEnabled()
     pending = [True]
     bridge = RunnerBridge()
     bridge._runner = SimpleNamespace(
@@ -68,11 +71,11 @@ def test_run_button_waits_for_cancelled_worker_exit(window, monkeypatch):
     monkeypatch.setattr(bridge, "refresh_target", lambda: None)
     bridge._set_busy(True)
     bridge.poll_current()
-    assert not window.run_button.isEnabled()
+    assert not start_button.isEnabled()
     assert window._busy
     pending[0] = False
     bridge.poll_current()
-    assert window.run_button.isEnabled()
+    assert start_button.isEnabled()
     assert not window._busy
 
 

@@ -23,7 +23,6 @@ class _FakeRunner:
         return [
             {"game_name": "aura_base"},
             {"game_name": "aura_benchmark"},
-            {"game_name": "resonance"},
             {"game_name": "resonance_pc"},
         ]
 
@@ -80,6 +79,6 @@ def test_gui_self_check_builds_window_and_discovers_plans() -> None:
         "from packages.resonance_gui.app import self_check_resonance_gui;"
         "raise SystemExit(self_check_resonance_gui())"
     )
-    result = subprocess.run([sys.executable, "-I", "-c", code], env=env,
+    result = subprocess.run([sys.executable, "-I", "-X", "utf8", "-c", code], env=env,
                             capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr

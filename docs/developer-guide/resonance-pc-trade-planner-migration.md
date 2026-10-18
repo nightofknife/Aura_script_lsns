@@ -2,7 +2,9 @@
 
 ## 1. 改造目的与版本
 
-本次改造仅作用于 `plans/resonance_pc`。Android 计划包 `plans/resonance` 没有迁移到这套接口，也没有被修改。
+本说明记录 PC 规划器在 2026-07-19 的接口迁移，仅描述 `plans/resonance_pc`。
+
+后续旧入口退休已完成：当前使用精确 `trade_plan_optimal_route` 与 `trade_route_execution_*` 生命周期，旧滚动/循环/模拟动作不再导出。当前边界见[PC 旧入口退休](resonance-pc-legacy-entry-retirement.md)；下文保留模型迁移阶段的记录。
 
 旧规划器把 `negotiation_budget` 解释为底层砍价/抬价尝试次数，并根据声望、贸易等级、连续成功衰减等规则计算每次尝试后的价格概率分布。实际游戏账号的成功率、连续成功衰减和单次幅度差异较大，而且执行器不能可靠控制 0% 到 20% 之间的中间幅度，因此旧模型生成的非满幅度方案无法稳定执行。
 

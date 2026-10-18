@@ -98,29 +98,30 @@ def _temporary_character_config(tmp_path: Path) -> tuple[Path, Path]:
     character_root = template_root / "characters"
     template_root.mkdir(parents=True, exist_ok=True)
     config["templates"] = {
-        "character_root": "templates/characters",
         "entry": "templates/entry.png",
         "lit_star": "templates/star.png",
         "lit_star_mask": "templates/star_mask.png",
     }
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/player_data_character_entry.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/controls/entry.png",
         template_root / "entry.png",
     )
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/character_stars/lit/01.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/stars/lit.png",
         template_root / "star.png",
     )
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/character_stars/lit/01_mask.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/stars/lit_mask.png",
         template_root / "star_mask.png",
     )
     config_path = tmp_path / "player_characters.json"
+    config["characters"] = [{"character_id": "测试角色", "name": "测试角色", "templates": [
+        "templates/characters/测试角色/默认.png", "templates/characters/测试角色/新皮肤.png"]}]
     config_path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
     return config_path, character_root
 
 
-def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_bad_sizes(
+def test_character_catalog_uses_explicit_skins_ignores_unlisted_files_and_rejects_bad_sizes(
     tmp_path,
 ) -> None:
     config_path, character_root = _temporary_character_config(tmp_path)
@@ -142,7 +143,33 @@ def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_
     assert len(catalog["templates"]) == 2
 
     _write_png(character_root / "坏尺寸" / "01.png", 139, 140)
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    payload["characters"][0]["templates"].append("templates/characters/坏尺寸/01.png")
+    config_path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="140x140"):
+        characters.load_character_catalog(config_path, plan_root=tmp_path)
+
+
+def test_character_catalog_preserves_business_identities_for_shared_art():
+    catalog = characters.load_character_catalog()
+    by_id = {row["character_id"]: row for row in catalog["characters"]}
+    assert by_id["弗兰"]["template_refs"][0] == by_id["空"]["template_refs"][0]
+    assert by_id["弗兰"]["name"] == "弗兰"
+    assert by_id["空"]["name"] == "空"
+    assert list(by_id).index("弗兰") < list(by_id).index("空")
+    assert len(catalog["templates"]) == 290
+
+
+def test_character_catalog_requires_explicit_identity_and_rejects_escaping_refs(tmp_path):
+    config_path, _ = _temporary_character_config(tmp_path)
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    payload.pop("characters")
+    config_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="explicit characters"):
+        characters.load_character_catalog(config_path, plan_root=tmp_path)
+    payload["characters"] = [{"character_id": "a", "name": "a", "templates": ["../outside.png"]}]
+    config_path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="unavailable"):
         characters.load_character_catalog(config_path, plan_root=tmp_path)
 
 

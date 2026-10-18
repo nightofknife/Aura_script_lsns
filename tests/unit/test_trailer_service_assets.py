@@ -3,6 +3,7 @@
 from hashlib import sha256
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
@@ -15,7 +16,7 @@ from plans.resonance_pc.src.actions import _trailer_service_vision as trailer
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests/fixtures/trailer_service"
-TEMPLATES = ROOT / "plans/resonance_pc/templates/trailer_service"
+TEMPLATES = ROOT / "plans/resonance_pc/templates/navigation/trailer"
 NAMES = {"trailer_entry", "trailer_prompt", "gold_selected", "mileage_selected", "confirm", "cancel"}
 COUNT_ROI = (790, 674, 80, 28)
 
@@ -85,6 +86,27 @@ def test_native_asset_manifest_is_complete_self_contained_and_verified():
         assert entry["size"][0] <= width
         assert entry["size"][1] <= height
         assert not entry.get("mask")
+
+
+def test_existing_navigation_evidence_uses_plan_root_after_resource_nesting():
+    calls = []
+
+    class Vision:
+        def find_template(self, **kwargs):
+            calls.append(kwargs)
+            return SimpleNamespace(found=True, confidence=.98, center_point=(7, 9), debug_info={})
+
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    match = trailer.TrailerVision(vision=Vision()).match_existing(
+        frame, "templates/navigation/global/back.png", (0, 0, 170, 80), .86,
+    )
+    assert match == {"found": True, "confidence": .98, "center": [7, 9]}
+    assert Path(calls[0]["template_image"]) == ROOT / "plans/resonance_pc/templates/navigation/global/back.png"
+    assert Path(calls[0]["template_image"]).is_file()
+    assert calls[0]["threshold"] == .86
+    assert calls[0]["use_grayscale"] is True
+    assert calls[0]["match_method"] == cv2.TM_CCOEFF_NORMED
+    assert calls[0]["preprocess"] == "none"
 
 
 @pytest.mark.parametrize(("label", "name"), [

@@ -24,7 +24,7 @@
 
 ## 识别素材与策略
 
-目录：`plans/resonance_pc/data/meta/eternal_scuffle.json`；图片：`templates/eternal_scuffle/`。包括 99 名角色、176 件装备、44 个控件，共 2967 张 PNG。装备包含可达专用条目 `11800086` 乱斗变量模块，其他测试装备不在候选库。
+目录：`plans/resonance_pc/data/meta/eternal_scuffle.json`。包括 99 名角色、176 件装备和 44 个控件；姓名和立绘分别放在 `templates/characters/nameplates/scuffle/`、`templates/characters/stand/scuffle/`，装备视图放在 `templates/inventory/equipment/art/`，占用框放在 `templates/inventory/equipment/frames/scuffle/`，乱斗控件放在 `templates/battle/scuffle/controls/`。物理图片以目录中的资产索引为准，同像素图片可由多个业务记录引用。装备包含可达专用条目 `11800086` 乱斗变量模块，其他测试装备不在候选库。
 
 - **角色**：只匹配完整居中姓名模板，保留空白上下文；取全目录最高得分，达到 0.80 即接受，不要求领先第二名，不使用动态人物立绘兜底。候选页、队伍页、选中角色复核共用此规则。
 - **战败标题**：YOU LOSE 原图配合按水平、垂直笔画边界重建的几何蒙版匹配，保留阶梯拐角和字洞，排除场景背景与外围发光；保持灰度匹配和 0.90 门槛。素材构建工具用固定矩形精确复现蒙版，不依赖颜色阈值分割。

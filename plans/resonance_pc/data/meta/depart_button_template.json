@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "template": "templates/depart_button.png",
+  "template": "templates/navigation/travel/depart.png",
   "sha256": "6242e41eb7aab6e13105f35faf56c17e61b7c4daaad76b572d386fb66cdb1911",
   "mode": "RGB",
   "size": [106, 42],

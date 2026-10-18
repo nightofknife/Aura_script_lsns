@@ -1,14 +1,44 @@
 {
   "schema_version": 1,
   "layout": {
-    "reference_client": [1280, 720],
-    "grid_region": [0, 70, 1280, 650],
-    "entry_region": [430, 430, 180, 190],
-    "card_size": [168, 289],
-    "template_size": [140, 140],
-    "template_offset_from_card": [14, 52],
-    "star_template_size": [24, 24],
-    "star_row_from_card": [28, 238, 138, 32],
+    "reference_client": [
+      1280,
+      720
+    ],
+    "grid_region": [
+      0,
+      70,
+      1280,
+      650
+    ],
+    "entry_region": [
+      430,
+      430,
+      180,
+      190
+    ],
+    "card_size": [
+      168,
+      289
+    ],
+    "template_size": [
+      140,
+      140
+    ],
+    "template_offset_from_card": [
+      14,
+      52
+    ],
+    "star_template_size": [
+      24,
+      24
+    ],
+    "star_row_from_card": [
+      28,
+      238,
+      138,
+      32
+    ],
     "entry_match_threshold": 0.82,
     "character_match_threshold": 0.82,
     "star_match_threshold": 0.8,
@@ -17,8 +47,14 @@
     "max_stars": 5,
     "no_new_scan_limit": 3,
     "max_scrolls": 30,
-    "scroll_start": [1000, 620],
-    "scroll_end": [1000, 310],
+    "scroll_start": [
+      1000,
+      620
+    ],
+    "scroll_end": [
+      1000,
+      310
+    ],
     "scroll_duration_sec": 0.5,
     "scroll_hold_before_release_sec": 0.5,
     "stable_capture_attempts": 5,
@@ -26,9 +62,948 @@
     "stable_capture_max_mean_diff": 1.5
   },
   "templates": {
-    "character_root": "templates/characters",
-    "entry": "templates/player_data_character_entry.png",
-    "lit_star": "templates/character_stars/lit/01.png",
-    "lit_star_mask": "templates/character_stars/lit/01_mask.png"
-  }
+    "entry": "templates/characters/controls/entry.png",
+    "lit_star": "templates/characters/stars/lit.png",
+    "lit_star_mask": "templates/characters/stars/lit_mask.png"
+  },
+  "characters": [
+    {
+      "character_id": "丽桑德拉",
+      "name": "丽桑德拉",
+      "templates": [
+        "templates/characters/portraits/丽桑德拉/01.png",
+        "templates/characters/portraits/丽桑德拉/02.png",
+        "templates/characters/portraits/丽桑德拉/03.png"
+      ]
+    },
+    {
+      "character_id": "乌刹娜",
+      "name": "乌刹娜",
+      "templates": [
+        "templates/characters/portraits/乌刹娜/01.png",
+        "templates/characters/portraits/乌刹娜/02.png",
+        "templates/characters/portraits/乌刹娜/03.png",
+        "templates/characters/portraits/乌刹娜/04.png"
+      ]
+    },
+    {
+      "character_id": "亚莉奈",
+      "name": "亚莉奈",
+      "templates": [
+        "templates/characters/portraits/亚莉奈/01.png",
+        "templates/characters/portraits/亚莉奈/02.png",
+        "templates/characters/portraits/亚莉奈/03.png",
+        "templates/characters/portraits/亚莉奈/04.png",
+        "templates/characters/portraits/亚莉奈/05.png"
+      ]
+    },
+    {
+      "character_id": "伊利亚德",
+      "name": "伊利亚德",
+      "templates": [
+        "templates/characters/portraits/伊利亚德/01.png",
+        "templates/characters/portraits/伊利亚德/02.png",
+        "templates/characters/portraits/伊利亚德/03.png",
+        "templates/characters/portraits/伊利亚德/04.png"
+      ]
+    },
+    {
+      "character_id": "伊卡菈",
+      "name": "伊卡菈",
+      "templates": [
+        "templates/characters/portraits/伊卡菈/01.png",
+        "templates/characters/portraits/伊卡菈/02.png",
+        "templates/characters/portraits/伊卡菈/03.png"
+      ]
+    },
+    {
+      "character_id": "伊尔",
+      "name": "伊尔",
+      "templates": [
+        "templates/characters/portraits/伊尔/01.png",
+        "templates/characters/portraits/伊尔/02.png"
+      ]
+    },
+    {
+      "character_id": "伊洛娜",
+      "name": "伊洛娜",
+      "templates": [
+        "templates/characters/portraits/伊洛娜/01.png",
+        "templates/characters/portraits/伊洛娜/02.png",
+        "templates/characters/portraits/伊洛娜/03.png"
+      ]
+    },
+    {
+      "character_id": "伊洛娜·暮光",
+      "name": "伊洛娜·暮光",
+      "templates": [
+        "templates/characters/portraits/伊洛娜·暮光/01.png",
+        "templates/characters/portraits/伊洛娜·暮光/02.png"
+      ]
+    },
+    {
+      "character_id": "伊索斯",
+      "name": "伊索斯",
+      "templates": [
+        "templates/characters/portraits/伊索斯/01.png",
+        "templates/characters/portraits/伊索斯/02.png",
+        "templates/characters/portraits/伊索斯/03.png"
+      ]
+    },
+    {
+      "character_id": "伽罗尔",
+      "name": "伽罗尔",
+      "templates": [
+        "templates/characters/portraits/伽罗尔/01.png"
+      ]
+    },
+    {
+      "character_id": "佩罗塔",
+      "name": "佩罗塔",
+      "templates": [
+        "templates/characters/portraits/佩罗塔/01.png",
+        "templates/characters/portraits/佩罗塔/02.png",
+        "templates/characters/portraits/佩罗塔/03.png"
+      ]
+    },
+    {
+      "character_id": "克洛伊",
+      "name": "克洛伊",
+      "templates": [
+        "templates/characters/portraits/克洛伊/01.png",
+        "templates/characters/portraits/克洛伊/02.png"
+      ]
+    },
+    {
+      "character_id": "冯·里奈",
+      "name": "冯·里奈",
+      "templates": [
+        "templates/characters/portraits/冯·里奈/01.png",
+        "templates/characters/portraits/冯·里奈/02.png",
+        "templates/characters/portraits/冯·里奈/03.png"
+      ]
+    },
+    {
+      "character_id": "切茜娅",
+      "name": "切茜娅",
+      "templates": [
+        "templates/characters/portraits/切茜娅/01.png",
+        "templates/characters/portraits/切茜娅/02.png"
+      ]
+    },
+    {
+      "character_id": "列车长",
+      "name": "列车长",
+      "templates": [
+        "templates/characters/portraits/列车长/01.png"
+      ]
+    },
+    {
+      "character_id": "加丽娜",
+      "name": "加丽娜",
+      "templates": [
+        "templates/characters/portraits/加丽娜/01.png",
+        "templates/characters/portraits/加丽娜/02.png"
+      ]
+    },
+    {
+      "character_id": "卡塔斯",
+      "name": "卡塔斯",
+      "templates": [
+        "templates/characters/portraits/卡塔斯/01.png",
+        "templates/characters/portraits/卡塔斯/02.png",
+        "templates/characters/portraits/卡塔斯/03.png",
+        "templates/characters/portraits/卡塔斯/04.png"
+      ]
+    },
+    {
+      "character_id": "卡塔斯·业火",
+      "name": "卡塔斯·业火",
+      "templates": [
+        "templates/characters/portraits/卡塔斯·业火/01.png",
+        "templates/characters/portraits/卡塔斯·业火/02.png"
+      ]
+    },
+    {
+      "character_id": "卡洛琳",
+      "name": "卡洛琳",
+      "templates": [
+        "templates/characters/portraits/卡洛琳/01.png",
+        "templates/characters/portraits/卡洛琳/02.png",
+        "templates/characters/portraits/卡洛琳/03.png"
+      ]
+    },
+    {
+      "character_id": "卡莱雅",
+      "name": "卡莱雅",
+      "templates": [
+        "templates/characters/portraits/卡莱雅/01.png",
+        "templates/characters/portraits/卡莱雅/02.png",
+        "templates/characters/portraits/卡莱雅/03.png",
+        "templates/characters/portraits/卡莱雅/04.png"
+      ]
+    },
+    {
+      "character_id": "卡莲",
+      "name": "卡莲",
+      "templates": [
+        "templates/characters/portraits/卡莲/01.png"
+      ]
+    },
+    {
+      "character_id": "参宿一",
+      "name": "参宿一",
+      "templates": [
+        "templates/characters/portraits/参宿一/01.png"
+      ]
+    },
+    {
+      "character_id": "叶珏",
+      "name": "叶珏",
+      "templates": [
+        "templates/characters/portraits/叶珏/01.png",
+        "templates/characters/portraits/叶珏/02.png",
+        "templates/characters/portraits/叶珏/03.png"
+      ]
+    },
+    {
+      "character_id": "嘉尔",
+      "name": "嘉尔",
+      "templates": [
+        "templates/characters/portraits/嘉尔/01.png",
+        "templates/characters/portraits/嘉尔/02.png",
+        "templates/characters/portraits/嘉尔/03.png"
+      ]
+    },
+    {
+      "character_id": "圣剑波克士",
+      "name": "圣剑波克士",
+      "templates": [
+        "templates/characters/portraits/圣剑波克士/01.png"
+      ]
+    },
+    {
+      "character_id": "埃兹拉",
+      "name": "埃兹拉",
+      "templates": [
+        "templates/characters/portraits/埃兹拉/01.png",
+        "templates/characters/portraits/埃兹拉/02.png"
+      ]
+    },
+    {
+      "character_id": "塔拉",
+      "name": "塔拉",
+      "templates": [
+        "templates/characters/portraits/塔拉/01.png"
+      ]
+    },
+    {
+      "character_id": "塞西尔",
+      "name": "塞西尔",
+      "templates": [
+        "templates/characters/portraits/塞西尔/01.png",
+        "templates/characters/portraits/塞西尔/02.png"
+      ]
+    },
+    {
+      "character_id": "夏娜",
+      "name": "夏娜",
+      "templates": [
+        "templates/characters/portraits/夏娜/01.png",
+        "templates/characters/portraits/夏娜/02.png",
+        "templates/characters/portraits/夏娜/03.png",
+        "templates/characters/portraits/夏娜/04.png"
+      ]
+    },
+    {
+      "character_id": "夏尔",
+      "name": "夏尔",
+      "templates": [
+        "templates/characters/portraits/夏尔/01.png",
+        "templates/characters/portraits/夏尔/02.png",
+        "templates/characters/portraits/夏尔/03.png",
+        "templates/characters/portraits/夏尔/04.png"
+      ]
+    },
+    {
+      "character_id": "夏洛蒂",
+      "name": "夏洛蒂",
+      "templates": [
+        "templates/characters/portraits/夏洛蒂/01.png",
+        "templates/characters/portraits/夏洛蒂/02.png",
+        "templates/characters/portraits/夏洛蒂/03.png",
+        "templates/characters/portraits/夏洛蒂/04.png"
+      ]
+    },
+    {
+      "character_id": "夏洛蒂·澄心",
+      "name": "夏洛蒂·澄心",
+      "templates": [
+        "templates/characters/portraits/夏洛蒂·澄心/01.png",
+        "templates/characters/portraits/夏洛蒂·澄心/02.png"
+      ]
+    },
+    {
+      "character_id": "多萝西",
+      "name": "多萝西",
+      "templates": [
+        "templates/characters/portraits/多萝西/01.png",
+        "templates/characters/portraits/多萝西/02.png",
+        "templates/characters/portraits/多萝西/03.png",
+        "templates/characters/portraits/多萝西/04.png"
+      ]
+    },
+    {
+      "character_id": "多萝西·瑰晨",
+      "name": "多萝西·瑰晨",
+      "templates": [
+        "templates/characters/portraits/多萝西·瑰晨/01.png",
+        "templates/characters/portraits/多萝西·瑰晨/02.png",
+        "templates/characters/portraits/多萝西·瑰晨/03.png",
+        "templates/characters/portraits/多萝西·瑰晨/04.png"
+      ]
+    },
+    {
+      "character_id": "奈弥",
+      "name": "奈弥",
+      "templates": [
+        "templates/characters/portraits/奈弥/01.png",
+        "templates/characters/portraits/奈弥/02.png"
+      ]
+    },
+    {
+      "character_id": "奥莉薇恩",
+      "name": "奥莉薇恩",
+      "templates": [
+        "templates/characters/portraits/奥莉薇恩/01.png",
+        "templates/characters/portraits/奥莉薇恩/02.png",
+        "templates/characters/portraits/奥莉薇恩/03.png"
+      ]
+    },
+    {
+      "character_id": "妮蔻拉",
+      "name": "妮蔻拉",
+      "templates": [
+        "templates/characters/portraits/妮蔻拉/01.png",
+        "templates/characters/portraits/妮蔻拉/02.png",
+        "templates/characters/portraits/妮蔻拉/03.png",
+        "templates/characters/portraits/妮蔻拉/04.png",
+        "templates/characters/portraits/妮蔻拉/05.png",
+        "templates/characters/portraits/妮蔻拉/06.png"
+      ]
+    },
+    {
+      "character_id": "婕丝&西蒙",
+      "name": "婕丝&西蒙",
+      "templates": [
+        "templates/characters/portraits/婕丝&西蒙/01.png",
+        "templates/characters/portraits/婕丝&西蒙/02.png"
+      ]
+    },
+    {
+      "character_id": "安菲娅",
+      "name": "安菲娅",
+      "templates": [
+        "templates/characters/portraits/安菲娅/01.png",
+        "templates/characters/portraits/安菲娅/02.png",
+        "templates/characters/portraits/安菲娅/03.png",
+        "templates/characters/portraits/安菲娅/04.png",
+        "templates/characters/portraits/安菲娅/05.png",
+        "templates/characters/portraits/安菲娅/06.png"
+      ]
+    },
+    {
+      "character_id": "宵月",
+      "name": "宵月",
+      "templates": [
+        "templates/characters/portraits/宵月/01.png",
+        "templates/characters/portraits/宵月/02.png"
+      ]
+    },
+    {
+      "character_id": "小麦",
+      "name": "小麦",
+      "templates": [
+        "templates/characters/portraits/小麦/01.png",
+        "templates/characters/portraits/小麦/02.png"
+      ]
+    },
+    {
+      "character_id": "山岚",
+      "name": "山岚",
+      "templates": [
+        "templates/characters/portraits/山岚/01.png"
+      ]
+    },
+    {
+      "character_id": "帕拉笛",
+      "name": "帕拉笛",
+      "templates": [
+        "templates/characters/portraits/帕拉笛/01.png",
+        "templates/characters/portraits/帕拉笛/02.png",
+        "templates/characters/portraits/帕拉笛/03.png"
+      ]
+    },
+    {
+      "character_id": "弗兰",
+      "name": "弗兰",
+      "templates": [
+        "templates/characters/portraits/弗兰/01.png",
+        "templates/characters/portraits/弗兰/02.png"
+      ]
+    },
+    {
+      "character_id": "拉妲",
+      "name": "拉妲",
+      "templates": [
+        "templates/characters/portraits/拉妲/01.png",
+        "templates/characters/portraits/拉妲/02.png"
+      ]
+    },
+    {
+      "character_id": "斯洛卡伊",
+      "name": "斯洛卡伊",
+      "templates": [
+        "templates/characters/portraits/斯洛卡伊/01.png",
+        "templates/characters/portraits/斯洛卡伊/02.png",
+        "templates/characters/portraits/斯洛卡伊/03.png"
+      ]
+    },
+    {
+      "character_id": "无名",
+      "name": "无名",
+      "templates": [
+        "templates/characters/portraits/无名/01.png",
+        "templates/characters/portraits/无名/02.png",
+        "templates/characters/portraits/无名/03.png"
+      ]
+    },
+    {
+      "character_id": "时萝",
+      "name": "时萝",
+      "templates": [
+        "templates/characters/portraits/时萝/01.png",
+        "templates/characters/portraits/时萝/02.png",
+        "templates/characters/portraits/时萝/03.png"
+      ]
+    },
+    {
+      "character_id": "星花",
+      "name": "星花",
+      "templates": [
+        "templates/characters/portraits/星花/01.png",
+        "templates/characters/portraits/星花/02.png",
+        "templates/characters/portraits/星花/03.png",
+        "templates/characters/portraits/星花/04.png",
+        "templates/characters/portraits/星花/05.png",
+        "templates/characters/portraits/星花/06.png"
+      ]
+    },
+    {
+      "character_id": "晃",
+      "name": "晃",
+      "templates": [
+        "templates/characters/portraits/晃/01.png",
+        "templates/characters/portraits/晃/02.png"
+      ]
+    },
+    {
+      "character_id": "朱利安",
+      "name": "朱利安",
+      "templates": [
+        "templates/characters/portraits/朱利安/01.png"
+      ]
+    },
+    {
+      "character_id": "朵拉弥丝",
+      "name": "朵拉弥丝",
+      "templates": [
+        "templates/characters/portraits/朵拉弥丝/01.png",
+        "templates/characters/portraits/朵拉弥丝/02.png",
+        "templates/characters/portraits/朵拉弥丝/03.png",
+        "templates/characters/portraits/朵拉弥丝/04.png"
+      ]
+    },
+    {
+      "character_id": "柯娜",
+      "name": "柯娜",
+      "templates": [
+        "templates/characters/portraits/柯娜/01.png",
+        "templates/characters/portraits/柯娜/02.png",
+        "templates/characters/portraits/柯娜/03.png"
+      ]
+    },
+    {
+      "character_id": "沃斯托克",
+      "name": "沃斯托克",
+      "templates": [
+        "templates/characters/portraits/沃斯托克/01.png",
+        "templates/characters/portraits/沃斯托克/02.png",
+        "templates/characters/portraits/沃斯托克/03.png"
+      ]
+    },
+    {
+      "character_id": "波克士",
+      "name": "波克士",
+      "templates": [
+        "templates/characters/portraits/波克士/01.png"
+      ]
+    },
+    {
+      "character_id": "海伦娜",
+      "name": "海伦娜",
+      "templates": [
+        "templates/characters/portraits/海伦娜/01.png",
+        "templates/characters/portraits/海伦娜/02.png"
+      ]
+    },
+    {
+      "character_id": "海因里希",
+      "name": "海因里希",
+      "templates": [
+        "templates/characters/portraits/海因里希/01.png",
+        "templates/characters/portraits/海因里希/02.png"
+      ]
+    },
+    {
+      "character_id": "涟",
+      "name": "涟",
+      "templates": [
+        "templates/characters/portraits/涟/01.png",
+        "templates/characters/portraits/涟/02.png"
+      ]
+    },
+    {
+      "character_id": "爱弥儿",
+      "name": "爱弥儿",
+      "templates": [
+        "templates/characters/portraits/爱弥儿/01.png",
+        "templates/characters/portraits/爱弥儿/02.png"
+      ]
+    },
+    {
+      "character_id": "狮鬃",
+      "name": "狮鬃",
+      "templates": [
+        "templates/characters/portraits/狮鬃/01.png"
+      ]
+    },
+    {
+      "character_id": "瑞瓦",
+      "name": "瑞瓦",
+      "templates": [
+        "templates/characters/portraits/瑞瓦/01.png",
+        "templates/characters/portraits/瑞瓦/02.png",
+        "templates/characters/portraits/瑞瓦/03.png",
+        "templates/characters/portraits/瑞瓦/04.png"
+      ]
+    },
+    {
+      "character_id": "瑞秋",
+      "name": "瑞秋",
+      "templates": [
+        "templates/characters/portraits/瑞秋/01.png"
+      ]
+    },
+    {
+      "character_id": "瓦伦汀",
+      "name": "瓦伦汀",
+      "templates": [
+        "templates/characters/portraits/瓦伦汀/01.png",
+        "templates/characters/portraits/瓦伦汀/02.png"
+      ]
+    },
+    {
+      "character_id": "甘雅",
+      "name": "甘雅",
+      "templates": [
+        "templates/characters/portraits/甘雅/01.png",
+        "templates/characters/portraits/甘雅/02.png",
+        "templates/characters/portraits/甘雅/03.png"
+      ]
+    },
+    {
+      "character_id": "生驹",
+      "name": "生驹",
+      "templates": [
+        "templates/characters/portraits/生驹/01.png",
+        "templates/characters/portraits/生驹/02.png"
+      ]
+    },
+    {
+      "character_id": "真咲",
+      "name": "真咲",
+      "templates": [
+        "templates/characters/portraits/真咲/01.png",
+        "templates/characters/portraits/真咲/02.png",
+        "templates/characters/portraits/真咲/03.png"
+      ]
+    },
+    {
+      "character_id": "神盾波克士",
+      "name": "神盾波克士",
+      "templates": [
+        "templates/characters/portraits/神盾波克士/01.png"
+      ]
+    },
+    {
+      "character_id": "空",
+      "name": "空",
+      "templates": [
+        "templates/characters/portraits/弗兰/01.png",
+        "templates/characters/portraits/空/02.png"
+      ]
+    },
+    {
+      "character_id": "米莉",
+      "name": "米莉",
+      "templates": [
+        "templates/characters/portraits/米莉/01.png",
+        "templates/characters/portraits/米莉/02.png"
+      ]
+    },
+    {
+      "character_id": "索玛",
+      "name": "索玛",
+      "templates": [
+        "templates/characters/portraits/索玛/01.png",
+        "templates/characters/portraits/索玛/02.png",
+        "templates/characters/portraits/索玛/03.png"
+      ]
+    },
+    {
+      "character_id": "约书亚",
+      "name": "约书亚",
+      "templates": [
+        "templates/characters/portraits/约书亚/01.png",
+        "templates/characters/portraits/约书亚/02.png",
+        "templates/characters/portraits/约书亚/03.png",
+        "templates/characters/portraits/约书亚/04.png",
+        "templates/characters/portraits/约书亚/05.png",
+        "templates/characters/portraits/约书亚/06.png"
+      ]
+    },
+    {
+      "character_id": "罗洁尔",
+      "name": "罗洁尔",
+      "templates": [
+        "templates/characters/portraits/罗洁尔/01.png",
+        "templates/characters/portraits/罗洁尔/02.png",
+        "templates/characters/portraits/罗洁尔/03.png"
+      ]
+    },
+    {
+      "character_id": "罗洁尔·定格",
+      "name": "罗洁尔·定格",
+      "templates": [
+        "templates/characters/portraits/罗洁尔·定格/01.png",
+        "templates/characters/portraits/罗洁尔·定格/02.png",
+        "templates/characters/portraits/罗洁尔·定格/03.png",
+        "templates/characters/portraits/罗洁尔·定格/04.png"
+      ]
+    },
+    {
+      "character_id": "美琪",
+      "name": "美琪",
+      "templates": [
+        "templates/characters/portraits/美琪/01.png",
+        "templates/characters/portraits/美琪/02.png"
+      ]
+    },
+    {
+      "character_id": "艾略特",
+      "name": "艾略特",
+      "templates": [
+        "templates/characters/portraits/艾略特/01.png",
+        "templates/characters/portraits/艾略特/02.png"
+      ]
+    },
+    {
+      "character_id": "苍叶",
+      "name": "苍叶",
+      "templates": [
+        "templates/characters/portraits/苍叶/01.png",
+        "templates/characters/portraits/苍叶/02.png",
+        "templates/characters/portraits/苍叶/03.png"
+      ]
+    },
+    {
+      "character_id": "苏恩",
+      "name": "苏恩",
+      "templates": [
+        "templates/characters/portraits/苏恩/01.png",
+        "templates/characters/portraits/苏恩/02.png",
+        "templates/characters/portraits/苏恩/03.png"
+      ]
+    },
+    {
+      "character_id": "苔妮",
+      "name": "苔妮",
+      "templates": [
+        "templates/characters/portraits/苔妮/01.png",
+        "templates/characters/portraits/苔妮/02.png",
+        "templates/characters/portraits/苔妮/03.png",
+        "templates/characters/portraits/苔妮/04.png",
+        "templates/characters/portraits/苔妮/05.png"
+      ]
+    },
+    {
+      "character_id": "莉薇娅",
+      "name": "莉薇娅",
+      "templates": [
+        "templates/characters/portraits/莉薇娅/01.png",
+        "templates/characters/portraits/莉薇娅/02.png",
+        "templates/characters/portraits/莉薇娅/03.png",
+        "templates/characters/portraits/莉薇娅/04.png",
+        "templates/characters/portraits/莉薇娅/05.png",
+        "templates/characters/portraits/莉薇娅/06.png",
+        "templates/characters/portraits/莉薇娅/07.png",
+        "templates/characters/portraits/莉薇娅/08.png"
+      ]
+    },
+    {
+      "character_id": "莱卡吉亚",
+      "name": "莱卡吉亚",
+      "templates": [
+        "templates/characters/portraits/莱卡吉亚/01.png",
+        "templates/characters/portraits/莱卡吉亚/02.png"
+      ]
+    },
+    {
+      "character_id": "菲妮娅",
+      "name": "菲妮娅",
+      "templates": [
+        "templates/characters/portraits/菲妮娅/01.png",
+        "templates/characters/portraits/菲妮娅/02.png",
+        "templates/characters/portraits/菲妮娅/03.png",
+        "templates/characters/portraits/菲妮娅/04.png"
+      ]
+    },
+    {
+      "character_id": "蒂丝塔尔",
+      "name": "蒂丝塔尔",
+      "templates": [
+        "templates/characters/portraits/蒂丝塔尔/01.png",
+        "templates/characters/portraits/蒂丝塔尔/02.png",
+        "templates/characters/portraits/蒂丝塔尔/03.png"
+      ]
+    },
+    {
+      "character_id": "蓝鹊儿",
+      "name": "蓝鹊儿",
+      "templates": [
+        "templates/characters/portraits/蓝鹊儿/01.png",
+        "templates/characters/portraits/蓝鹊儿/02.png"
+      ]
+    },
+    {
+      "character_id": "薇尔岚",
+      "name": "薇尔岚",
+      "templates": [
+        "templates/characters/portraits/薇尔岚/01.png",
+        "templates/characters/portraits/薇尔岚/02.png",
+        "templates/characters/portraits/薇尔岚/03.png"
+      ]
+    },
+    {
+      "character_id": "赫卡蒂",
+      "name": "赫卡蒂",
+      "templates": [
+        "templates/characters/portraits/赫卡蒂/01.png",
+        "templates/characters/portraits/赫卡蒂/02.png",
+        "templates/characters/portraits/赫卡蒂/03.png"
+      ]
+    },
+    {
+      "character_id": "跳鼠",
+      "name": "跳鼠",
+      "templates": [
+        "templates/characters/portraits/跳鼠/01.png"
+      ]
+    },
+    {
+      "character_id": "达斯廷",
+      "name": "达斯廷",
+      "templates": [
+        "templates/characters/portraits/达斯廷/01.png",
+        "templates/characters/portraits/达斯廷/02.png",
+        "templates/characters/portraits/达斯廷/03.png"
+      ]
+    },
+    {
+      "character_id": "达莉娅",
+      "name": "达莉娅",
+      "templates": [
+        "templates/characters/portraits/达莉娅/01.png",
+        "templates/characters/portraits/达莉娅/02.png"
+      ]
+    },
+    {
+      "character_id": "迪妮莎",
+      "name": "迪妮莎",
+      "templates": [
+        "templates/characters/portraits/迪妮莎/01.png",
+        "templates/characters/portraits/迪妮莎/02.png",
+        "templates/characters/portraits/迪妮莎/03.png",
+        "templates/characters/portraits/迪妮莎/04.png",
+        "templates/characters/portraits/迪妮莎/05.png",
+        "templates/characters/portraits/迪妮莎/06.png"
+      ]
+    },
+    {
+      "character_id": "遥",
+      "name": "遥",
+      "templates": [
+        "templates/characters/portraits/遥/01.png"
+      ]
+    },
+    {
+      "character_id": "那由他",
+      "name": "那由他",
+      "templates": [
+        "templates/characters/portraits/那由他/01.png",
+        "templates/characters/portraits/那由他/02.png"
+      ]
+    },
+    {
+      "character_id": "金子小姐",
+      "name": "金子小姐",
+      "templates": [
+        "templates/characters/portraits/金子小姐/01.png"
+      ]
+    },
+    {
+      "character_id": "闻笙",
+      "name": "闻笙",
+      "templates": [
+        "templates/characters/portraits/闻笙/01.png",
+        "templates/characters/portraits/闻笙/02.png",
+        "templates/characters/portraits/闻笙/03.png"
+      ]
+    },
+    {
+      "character_id": "阿尔喀娜",
+      "name": "阿尔喀娜",
+      "templates": [
+        "templates/characters/portraits/阿尔喀娜/01.png",
+        "templates/characters/portraits/阿尔喀娜/02.png"
+      ]
+    },
+    {
+      "character_id": "阿知波",
+      "name": "阿知波",
+      "templates": [
+        "templates/characters/portraits/阿知波/01.png",
+        "templates/characters/portraits/阿知波/02.png"
+      ]
+    },
+    {
+      "character_id": "陈书闲",
+      "name": "陈书闲",
+      "templates": [
+        "templates/characters/portraits/陈书闲/01.png",
+        "templates/characters/portraits/陈书闲/02.png",
+        "templates/characters/portraits/陈书闲/03.png",
+        "templates/characters/portraits/陈书闲/04.png",
+        "templates/characters/portraits/陈书闲/05.png"
+      ]
+    },
+    {
+      "character_id": "隼",
+      "name": "隼",
+      "templates": [
+        "templates/characters/portraits/隼/01.png",
+        "templates/characters/portraits/隼/02.png",
+        "templates/characters/portraits/隼/03.png"
+      ]
+    },
+    {
+      "character_id": "雅莱",
+      "name": "雅莱",
+      "templates": [
+        "templates/characters/portraits/雅莱/01.png",
+        "templates/characters/portraits/雅莱/02.png"
+      ]
+    },
+    {
+      "character_id": "雷比斯",
+      "name": "雷比斯",
+      "templates": [
+        "templates/characters/portraits/雷比斯/01.png"
+      ]
+    },
+    {
+      "character_id": "雷火",
+      "name": "雷火",
+      "templates": [
+        "templates/characters/portraits/雷火/01.png"
+      ]
+    },
+    {
+      "character_id": "霖",
+      "name": "霖",
+      "templates": [
+        "templates/characters/portraits/霖/01.png",
+        "templates/characters/portraits/霖/02.png",
+        "templates/characters/portraits/霖/03.png"
+      ]
+    },
+    {
+      "character_id": "露比",
+      "name": "露比",
+      "templates": [
+        "templates/characters/portraits/露比/01.png",
+        "templates/characters/portraits/露比/02.png"
+      ]
+    },
+    {
+      "character_id": "静流",
+      "name": "静流",
+      "templates": [
+        "templates/characters/portraits/静流/01.png",
+        "templates/characters/portraits/静流/02.png"
+      ]
+    },
+    {
+      "character_id": "静流·逐夏",
+      "name": "静流·逐夏",
+      "templates": [
+        "templates/characters/portraits/静流·逐夏/01.png",
+        "templates/characters/portraits/静流·逐夏/02.png"
+      ]
+    },
+    {
+      "character_id": "马吉拉",
+      "name": "马吉拉",
+      "templates": [
+        "templates/characters/portraits/马吉拉/01.png",
+        "templates/characters/portraits/马吉拉/02.png",
+        "templates/characters/portraits/马吉拉/03.png"
+      ]
+    },
+    {
+      "character_id": "马吉拉·星仪",
+      "name": "马吉拉·星仪",
+      "templates": [
+        "templates/characters/portraits/马吉拉·星仪/01.png",
+        "templates/characters/portraits/马吉拉·星仪/02.png"
+      ]
+    },
+    {
+      "character_id": "魇",
+      "name": "魇",
+      "templates": [
+        "templates/characters/portraits/魇/01.png",
+        "templates/characters/portraits/魇/02.png"
+      ]
+    },
+    {
+      "character_id": "黛丝莉",
+      "name": "黛丝莉",
+      "templates": [
+        "templates/characters/portraits/黛丝莉/01.png",
+        "templates/characters/portraits/黛丝莉/02.png"
+      ]
+    }
+  ]
 }

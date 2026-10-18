@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "template_root": "templates/inventory/expiry_digits",
+  "template_root": "templates/inventory/digits/expiry",
   "available_digits": ["3", "4", "6", "7"],
   "white_min": 165,
   "max_channel_spread": 55,

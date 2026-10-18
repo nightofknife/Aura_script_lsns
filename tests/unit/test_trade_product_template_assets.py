@@ -44,14 +44,17 @@ def test_fixed_rgb_crop_and_matching_contract_without_masks():
 
 def test_every_asset_is_opaque_png_with_verified_content_and_two_distinct_states():
     referenced = set()
-    for entry in CATALOG["products"].values():
+    covered = set()
+    for product_id, entry in CATALOG["products"].items():
         if not entry["supported"]:
             continue
         state_bytes = []
         for state in ("available", "selected"):
             relative = entry[state]
+            assert relative == f"templates/commerce/trade/products/{product_id}/{state}.png"
+            covered.add((product_id, state))
             path = PLAN / relative
-            assert path.resolve().is_relative_to((PLAN / "templates/trade_products").resolve())
+            assert path.resolve().is_relative_to((PLAN / "templates/commerce/trade/products").resolve())
             assert path.suffix == ".png"
             raw = path.read_bytes()
             metadata = CATALOG["assets"][relative]
@@ -65,8 +68,11 @@ def test_every_asset_is_opaque_png_with_verified_content_and_two_distinct_states
             state_bytes.append(raw)
         assert state_bytes[0] != state_bytes[1]
     assert referenced == set(CATALOG["assets"])
-    assert len(referenced) == 456
-    assert {path.relative_to(PLAN).as_posix() for path in (PLAN / "templates/trade_products").glob("*")} == referenced
+    assert covered == {(product_id, state)
+                       for product_id, entry in CATALOG["products"].items() if entry["supported"]
+                       for state in ("available", "selected")}
+    assert {path.relative_to(PLAN).as_posix()
+            for path in (PLAN / "templates/commerce/trade/products").rglob("*") if path.is_file()} == referenced
 
 
 def _record(**values):

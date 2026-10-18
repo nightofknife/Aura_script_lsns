@@ -45,6 +45,8 @@ from .city_travel_pc_actions import resonance_pc_intercity_depart_and_wait, _nor
 from ._operation_progress import (
     observe_operation, observe_worker_future, operation_progress, utc_timestamp,
 )
+from ._cancellable_wait import async_sleep_slices, sleep_slices
+from ._settlement_observation import observe_presence
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button
 from ._city_panel_vision import CityPanelVisionError, open_city_panel, wait_city
 from ._city_shop_entry import CityShopEntryError, enter_city_shop, probe_menu_template, valid_probe
@@ -220,23 +222,11 @@ _WORKER_PROGRESS_CONTEXT: contextvars.ContextVar[Dict[str, Any]] = contextvars.C
 
 def _sleep_with_cancel(duration: float) -> None:
     """Keep UI settling waits responsive without interrupting held gestures."""
-    remaining = max(float(duration), 0.0)
-    _check_trade_cancelled()
-    while remaining > 0:
-        interval = min(remaining, 0.05)
-        time.sleep(interval)
-        _check_trade_cancelled()
-        remaining -= interval
+    sleep_slices(duration, sleep=time.sleep, check_cancelled=_check_trade_cancelled)
 
 
 async def _sleep_with_cancel_async(duration: float) -> None:
-    remaining = max(float(duration), 0.0)
-    _check_trade_cancelled()
-    while remaining > 0:
-        interval = min(remaining, 0.05)
-        await asyncio.sleep(interval)
-        _check_trade_cancelled()
-        remaining -= interval
+    await async_sleep_slices(duration, sleep=asyncio.sleep, check_cancelled=_check_trade_cancelled)
 
 
 
@@ -322,19 +312,19 @@ _BUY_BUTTON_REGION = [1000, 630, 140, 50]
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
 _SELL_ALL_REGION = [1140, 80, 110, 50]
-_SELL_ALL_TEMPLATE = "templates/trade_sell_all_button.png"
+_SELL_ALL_TEMPLATE = "templates/commerce/trade/sell/all_button.png"
 _SELL_BUTTON_REGION = [1000, 630, 120, 40]
 
 _BACK_POINT = (82, 37)
 _CITY_MAIN_POINT = (198, 37)
-_BACK_BUTTON_TEMPLATE = "templates/nav_back_button.png"
-_CITY_MAIN_BUTTON_TEMPLATE = "templates/nav_city_main_button.png"
+_BACK_BUTTON_TEMPLATE = "templates/navigation/global/back.png"
+_CITY_MAIN_BUTTON_TEMPLATE = "templates/navigation/global/city_main.png"
 _BACK_BUTTON_REGION = [0, 0, 170, 80]
 _CITY_MAIN_BUTTON_REGION = [140, 0, 130, 80]
 _NAV_BUTTON_THRESHOLD = 0.86
 _NAV_BUTTON_TIMEOUT_SEC = 3.0
 _NAV_BUTTON_INTERVAL_SEC = 0.4
-_SHOP_MENU_READY_TEMPLATE = "templates/trade_shop_menu_ready.png"
+_SHOP_MENU_READY_TEMPLATE = "templates/commerce/trade/shop/menu_ready.png"
 _SHOP_MENU_READY_REGION = [720, 350, 220, 120]
 _SHOP_MENU_READY_THRESHOLD = 0.86
 _SHOP_MENU_READY_TIMEOUT_SEC = 15.0
@@ -348,11 +338,11 @@ _BUY_SCROLL_START = (670, 450)
 _BUY_SCROLL_END = (670, 200)
 
 _BUY_SETTLEMENT = {
-    "template": "templates/buy_settlement_scale_badge.png",
+    "template": "templates/commerce/trade/settlement/buy_scale_badge.png",
     "region": [520, 240, 320, 320],
 }
 _SELL_SETTLEMENT = {
-    "template": "templates/sell_settlement_scale_badge.png",
+    "template": "templates/commerce/trade/settlement/sell_scale_badge.png",
     "region": [930, 240, 300, 300],
 }
 
@@ -644,6 +634,20 @@ def _wait_for_shop_menu_ready(
         _sleep_with_cancel(max(float(interval_sec), 0.05))
 
 
+def _wait_settlement_template(app, vision, template, region, *, threshold, timeout_sec, interval_sec=0.3):
+    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    while True:
+        last = observe_presence(
+            app=app, vision=vision, template=Path(__file__).resolve().parents[2] / template,
+            region=_coerce_region(region), threshold=threshold, check_cancelled=_check_trade_cancelled,
+        )
+        if not last["valid"] or last["found"]:
+            return last
+        if time.monotonic() >= deadline:
+            return last
+        _sleep_with_cancel(max(float(interval_sec), 0.05))
+
+
 def _close_settlement(
     app: Any,
     vision: Any,
@@ -662,7 +666,7 @@ def _close_settlement(
         float(timeout_sec),
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
-    first = _wait_template(
+    first = _wait_settlement_template(
         app,
         vision,
         str(cfg["template"]),
@@ -678,7 +682,9 @@ def _close_settlement(
             first,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        return {"closed": False, "found": False, "kind": kind, "first_match": first}
+        return {"closed": False, "found": first.get("found"), "kind": kind, "first_match": first,
+                "settlement_confirmed": False, "final_absence_verified": False,
+                "observation_unknown": first.get("valid") is not True}
 
     logger.info(
         "[TradeSettlement] phase=initial_found kind=%s match=%s exit_point=%s context=%s",
@@ -687,94 +693,106 @@ def _close_settlement(
         _SETTLEMENT_EXIT_POINT,
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
-    _check_trade_cancelled()
-    app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
-    _sleep_with_cancel(0.8)
-    recheck = _wait_template(
-        app,
-        vision,
-        str(cfg["template"]),
-        list(cfg["region"]),
-        threshold=threshold,
-        timeout_sec=1.5,
-        interval_sec=0.3,
-    )
-    logger.info(
-        "[TradeSettlement] phase=after_first_exit kind=%s still_visible=%s match=%s context=%s",
-        kind,
-        bool(recheck.get("found")),
-        recheck,
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
-    )
-    retried = False
-    final_match = recheck
-    if recheck.get("found"):
+    try:
         _check_trade_cancelled()
         app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
-        retried = True
         _sleep_with_cancel(0.8)
-        try:
-            final_match = _match_template(
-                app,
-                vision,
-                str(cfg["template"]),
-                list(cfg["region"]),
-                threshold,
-            )
-        except Exception as exc:  # noqa: BLE001 - diagnostics must not change flow behavior
-            final_match = {
-                "found": None,
-                "template": str(cfg["template"]),
-                "region": list(cfg["region"]),
-                "reason": "diagnostic_match_failed",
-                "error_type": type(exc).__name__,
-                "message": str(exc),
-            }
+        recheck = _wait_settlement_template(
+            app,
+            vision,
+            str(cfg["template"]),
+            list(cfg["region"]),
+            threshold=threshold,
+            timeout_sec=1.5,
+            interval_sec=0.3,
+        )
+        logger.info(
+            "[TradeSettlement] phase=after_first_exit kind=%s still_visible=%s match=%s context=%s",
+            kind,
+            bool(recheck.get("found")),
+            recheck,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
+        retried = False
+        final_match = recheck
+        if recheck.get("found"):
+            _check_trade_cancelled()
+            app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
+            retried = True
+            _sleep_with_cancel(0.8)
+            try:
+                final_match = observe_presence(
+                    app=app, vision=vision,
+                    template=Path(__file__).resolve().parents[2] / str(cfg["template"]),
+                    region=_coerce_region(cfg["region"]), threshold=threshold,
+                    check_cancelled=_check_trade_cancelled,
+                )
+            except CityTradeFlowError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - unknown evidence cannot authorize closure
+                final_match = {
+                    "found": None,
+                    "template": str(cfg["template"]),
+                    "region": list(cfg["region"]),
+                    "reason": "diagnostic_match_failed",
+                    "error_type": type(exc).__name__,
+                    "message": str(exc),
+                }
+                logger.warning(
+                    "[TradeSettlement] phase=after_second_exit_diagnostic_failed kind=%s error_type=%s message=%s context=%s",
+                    kind,
+                    type(exc).__name__,
+                    exc,
+                    dict(_WORKER_PROGRESS_CONTEXT.get()),
+                )
+            else:
+                log_method = logger.warning if final_match.get("found") else logger.info
+                log_method(
+                    "[TradeSettlement] phase=after_second_exit kind=%s still_visible=%s match=%s context=%s",
+                    kind,
+                    bool(final_match.get("found")),
+                    final_match,
+                    dict(_WORKER_PROGRESS_CONTEXT.get()),
+                )
+        final_absence_verified = bool(
+            final_match.get("valid") is True and final_match.get("found") is False
+        )
+        if not final_absence_verified:
             logger.warning(
-                "[TradeSettlement] phase=after_second_exit_diagnostic_failed kind=%s error_type=%s message=%s context=%s",
+                "[TradeSettlement] phase=completed kind=%s reported_closed=false final_absence_verified=false retried=%s final_match=%s context=%s",
                 kind,
-                type(exc).__name__,
-                exc,
-                dict(_WORKER_PROGRESS_CONTEXT.get()),
-            )
-        else:
-            log_method = logger.warning if final_match.get("found") else logger.info
-            log_method(
-                "[TradeSettlement] phase=after_second_exit kind=%s still_visible=%s match=%s context=%s",
-                kind,
-                bool(final_match.get("found")),
+                retried,
                 final_match,
                 dict(_WORKER_PROGRESS_CONTEXT.get()),
             )
-    final_absence_verified = bool(
-        final_match.get("found") is False and final_match.get("reason") != "capture_failed"
-    )
-    if not final_absence_verified:
-        logger.warning(
-            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=false retried=%s final_match=%s context=%s",
-            kind,
-            retried,
-            final_match,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-    else:
-        logger.info(
-            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=true retried=%s context=%s",
-            kind,
-            retried,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-    return {
-        "closed": True,
-        "found": True,
-        "kind": kind,
-        "first_match": first,
-        "recheck": recheck,
-        "retried": retried,
-        "final_match": final_match,
-        "final_absence_verified": final_absence_verified,
-        "exit_point": {"x": _SETTLEMENT_EXIT_POINT[0], "y": _SETTLEMENT_EXIT_POINT[1]},
-    }
+        else:
+            logger.info(
+                "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=true retried=%s context=%s",
+                kind,
+                retried,
+                dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+        return {
+            "closed": final_absence_verified,
+            "settlement_confirmed": True,
+            "observation_unknown": final_match.get("valid") is not True,
+            "found": True,
+            "kind": kind,
+            "first_match": first,
+            "recheck": recheck,
+            "retried": retried,
+            "final_match": final_match,
+            "final_absence_verified": final_absence_verified,
+            "exit_point": {"x": _SETTLEMENT_EXIT_POINT[0], "y": _SETTLEMENT_EXIT_POINT[1]},
+        }
+
+    except CityTradeFlowError as exc:
+        exc.detail.update(settlement_confirmed=True, first_match=first, page_state="unknown")
+        raise
+    except Exception as exc:
+        _raise_error("trade_settlement_close_failed", "Transaction confirmed but settlement closure failed",
+                     {"settlement_confirmed": True, "first_match": first, "page_state": "unknown",
+                      "error_type": type(exc).__name__, "message": str(exc)})
 
 
 def _click_required_nav_button(
@@ -1146,6 +1164,8 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         _raise_error(exc.code, exc.message, {**exc.detail, "book_result": book_result})
 
+    bought = False
+    settlement = settlement_after_confirm = None
     try:
         buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
         if buy_button_hit is None:
@@ -1178,7 +1198,7 @@ def resonance_pc_buy_goods_on_buy_page(
         confirm_panel = None
         confirm_click = None
         settlement_after_confirm = None
-        if not settlement.get("closed"):
+        if not settlement.get("settlement_confirmed") and not settlement.get("observation_unknown"):
             confirm_panel = _wait_for_text_hit(
                 app,
                 ocr,
@@ -1199,8 +1219,8 @@ def resonance_pc_buy_goods_on_buy_page(
                 _sleep_with_cancel(0.8)
                 settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
 
-        bought = bool(settlement.get("closed")) or bool(
-            isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
+        bought = bool(settlement.get("settlement_confirmed")) or bool(
+            isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("settlement_confirmed")
         )
         if not bought:
             observe_operation("buy.confirming", "确认买入与结算", "failed",
@@ -1209,6 +1229,12 @@ def resonance_pc_buy_goods_on_buy_page(
                          {"book_result": book_result, "negotiation": negotiation,
                           "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
                           "selected_products": selected})
+        confirmed_settlement = settlement_after_confirm if settlement_after_confirm is not None else settlement
+        if not confirmed_settlement.get("closed") or not confirmed_settlement.get("final_absence_verified"):
+            _raise_error("buy_settlement_close_unconfirmed", "Purchase confirmed but settlement closure is unknown",
+                         {"settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
+                          "selected_products": selected, "page_state": "unknown"})
+        shop_ready = _wait_for_shop_menu_ready(app, vision)
         observe_operation("buy.confirming", "确认买入与结算", "completed", bought_confirmed=bought)
         logger.info(
             "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
@@ -1221,12 +1247,15 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         back = {
             "skipped": True,
-            "reason": "buy_success_returns_to_shop_page",
+            "reason": "buy_shop_page_verified",
             "page_state": "shop_page",
+            "shop_ready": shop_ready,
         }
         result = {
             "success": True,
             "page_state": "shop_page",
+            "bought_confirmed": True,
+            "shop_ready": shop_ready,
             "requested_products": requested_products,
             "buy_result": buy_result,
             "selected_product_ids": list(selection["selected_product_ids"]),
@@ -1262,7 +1291,10 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         return result
     except CityTradeFlowError as exc:
-        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result})
+        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result,
+                     "bought_confirmed": bought or bool(exc.detail.get("bought_confirmed"))
+                                         or bool(exc.detail.get("settlement_confirmed")),
+                     "settlement": settlement, "settlement_after_confirm": settlement_after_confirm})
 
 
 @action_info(

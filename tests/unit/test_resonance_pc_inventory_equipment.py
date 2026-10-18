@@ -37,7 +37,7 @@ def _write_equipment_catalog(
         {
             "equipment_id": "test_equipment",
             "name": "测试装备",
-            "template": "templates/inventory/equipment/test_equipment.png",
+            "template": "templates/inventory/equipment/art/test_equipment/grid_100x60.png",
         }
     ]
     for entry in entries:
@@ -116,12 +116,12 @@ def test_equipment_catalog_rejects_invalid_inputs(
             {
                 "equipment_id": "duplicate",
                 "name": "甲",
-                "template": "templates/inventory/equipment/a.png",
+                "template": "templates/inventory/equipment/art/a/grid_100x60.png",
             },
             {
                 "equipment_id": "duplicate",
                 "name": "乙",
-                "template": "templates/inventory/equipment/b.png",
+                "template": "templates/inventory/equipment/art/b/grid_100x60.png",
             },
         ]
     elif case == "escape":

@@ -8,12 +8,12 @@
   "sparkling_water_roi": [937, 221, 88, 52],
   "bento_count_roi": [1152, 537, 24, 22],
   "bento_count_digits": {
-    "directory": "templates/player_recovery/bento_count_digits",
+    "directory": "templates/recovery/bento/count_digits",
     "template_size": [24, 22],
     "threshold": 0.74
   },
   "sparkling_water_digits": {
-    "directory": "templates/player_recovery/free_uses_digits",
+    "directory": "templates/recovery/water/free_uses_digits",
     "template_size": [32, 48],
     "threshold": 0.95,
     "min_score_margin": 0.04,
@@ -27,16 +27,16 @@
     {"issue_time": "18:00", "roi": [620, 160, 165, 105]}
   ],
   "templates": {
-    "profile": {"path": "templates/player_recovery/profile.png", "roi": [305, 293, 215, 45], "threshold": 0.85},
-    "fatigue_plus": {"path": "templates/player_recovery/fatigue_plus.png", "roi": [420, 245, 55, 50], "threshold": 0.85},
-    "fatigue_page": {"path": "templates/player_recovery/fatigue_page.png", "roi": [560, 105, 270, 45], "threshold": 0.85},
-    "rest_info": {"path": "templates/player_recovery/rest_info.png", "roi": [1138, 260, 60, 55], "threshold": 0.85},
-    "popup": {"path": "templates/player_recovery/popup.png", "roi": [930, 170, 100, 45], "threshold": 0.85},
-    "bento_button": {"path": "templates/player_recovery/bento_button.png", "roi": [1040, 570, 150, 75], "threshold": 0.85},
-    "bento_page": {"path": "templates/player_recovery/bento_page.png", "roi": [330, 6, 215, 65], "threshold": 0.85},
-    "bento_train": {"path": "templates/bento_consumption/train_return.png", "roi": [178, 14, 39, 45], "threshold": 0.95},
-    "back": {"path": "templates/player_recovery/back.png", "roi": [10, 7, 145, 60], "threshold": 0.85},
-    "bento_present": {"path": "templates/player_recovery/bento_present.png", "threshold": 0.85},
-    "bento_absent": {"path": "templates/player_recovery/bento_absent.png", "threshold": 0.85}
+    "profile": {"path": "templates/navigation/global/profile_entry.png", "roi": [305, 293, 215, 45], "threshold": 0.85},
+    "fatigue_plus": {"path": "templates/recovery/fatigue/controls/fatigue_plus.png", "roi": [420, 245, 55, 50], "threshold": 0.85},
+    "fatigue_page": {"path": "templates/recovery/fatigue/controls/fatigue_page.png", "roi": [560, 105, 270, 45], "threshold": 0.85},
+    "rest_info": {"path": "templates/recovery/fatigue/controls/rest_info.png", "roi": [1138, 260, 60, 55], "threshold": 0.85},
+    "popup": {"path": "templates/recovery/fatigue/controls/popup.png", "roi": [930, 170, 100, 45], "threshold": 0.85},
+    "bento_button": {"path": "templates/recovery/bento/controls/bento_button.png", "roi": [1040, 570, 150, 75], "threshold": 0.85},
+    "bento_page": {"path": "templates/recovery/bento/controls/bento_page.png", "roi": [330, 6, 215, 65], "threshold": 0.85},
+    "bento_train": {"path": "templates/recovery/bento/controls/train_return.png", "roi": [178, 14, 39, 45], "threshold": 0.95},
+    "back": {"path": "templates/recovery/fatigue/controls/back.png", "roi": [10, 7, 145, 60], "threshold": 0.85},
+    "bento_present": {"path": "templates/recovery/bento/controls/bento_present.png", "threshold": 0.85},
+    "bento_absent": {"path": "templates/recovery/bento/controls/bento_absent.png", "threshold": 0.85}
   }
 }

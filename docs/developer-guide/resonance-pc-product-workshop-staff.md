@@ -2,6 +2,8 @@
 
 任务：`tasks:fill_product_workshop_staff_pc.yaml:fill_product_workshop_staff_pc`，展示名为“生产车间补人”。起点为普通整顿中心总览，客户区固定为 1280×720；首版入口支持现有导航素材覆盖的 1 号、2 号生产车间。调用时必须传入 `room_name`。
 
+当前仅保留本文分步任务入口；旧单体 quick-fill 动作、生成器、索引及独占文字模板已退休。范围见[PC 旧入口退休](resonance-pc-legacy-entry-retirement.md)。
+
 ## 已确认流程
 
 1. 复用整顿中心导航打开指定生产车间。
@@ -41,7 +43,7 @@
 
 最初模板来自游戏原生素材、字体和预制体布局合成。2026-10-17 按用户提供的两张裁片，将标题与快速编队升级为包含图标、文字、背景的完整特征块，去掉裁片外层纯黑边。快速编队使用 124×35 图块；车间标题使用 203×61 图块，包含左侧图标、车间名和下方机型。标题中的编号另在同一图块内比较匹配分与差距，避免共用图标造成 1、2 号误认；不再保存单独的 30×18 标题模板。原生合成版本也保持完整图块，作为带来源记录的变体支持原生场景回放。
 
-素材脚本为 `tools/build_product_workshop_staff_templates.py`，版本化目录为 `templates/product_workshop_staff/`，来源、布局和示例场景记录在 `data/meta/product_workshop_staff_templates_pc.json`。`--refresh-feature-blocks` 可只从已保存场景与用户裁片重建这几个完整图块，无需再次提取游戏资产。生产车间入口继续使用已有真实截图模板。运行时只读取随计划打包的模板，不要求本地安装目录存在或读取游戏数据。
+素材脚本为 `tools/build_product_workshop_staff_templates.py`，编辑器专用素材目录为 `templates/workshop/staffing/editor/`，来源、布局和示例场景记录在 `data/meta/product_workshop_staff_templates_pc.json`。`--refresh-feature-blocks` 可只从已保存场景与用户裁片重建这几个完整图块，无需再次提取游戏资产。生产车间入口继续使用已有真实截图模板；保存标识引用 `templates/workshop/staffing/controls/edit.png`，由房间素材脚本唯一生成，不再复制图片。公共资源归属见[功能模板资源](resonance-pc-functional-templates.md)。运行时只读取随计划打包的模板，不要求本地安装目录存在或读取游戏数据。
 
 一键选中、一键取消与确认使用用户给定的按钮图。一键选中与一键取消按白色图标和文字边界保留左右 6、上下 4 像素蓝底余量，模板分别为 110×27、111×26；匹配原生合成场景的变体也同样收紧。每个变体分别记录裁切锚点，点击仍落在按钮中心。已有真实选择页上，一键选中和确认匹配分均约 1.000；一键取消在合成对照场景中验证，不将它当作人数已满的证据。原人数标识、人数区域和数字模板从运行目录索引中移除。
 

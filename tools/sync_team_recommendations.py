@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = (
     REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta" / "team_recommendations.json"
 )
-CHARACTER_ROOT = REPO_ROOT / "plans" / "resonance_pc" / "templates" / "characters"
+CHARACTER_CATALOG = REPO_ROOT / "plans" / "resonance_pc" / "data" / "meta" / "player_characters.json"
 SOURCE_URL = "https://wiki.biligame.com/resonance/%E9%85%8D%E9%98%9F%E6%94%BB%E7%95%A5"
 API_URL = "https://wiki.biligame.com/resonance/api.php"
 USER_AGENT = "AuraResonance-TeamCatalog/1.0"
@@ -276,7 +276,24 @@ def _build_team(
     }
 
 
+def _load_character_ids() -> set[str]:
+    payload = json.loads(CHARACTER_CATALOG.read_text(encoding="utf-8"))
+    rows = payload.get("characters") if isinstance(payload, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("Character catalog must contain a nonempty characters list")
+    identities: set[str] = set()
+    for row in rows:
+        identity = row.get("character_id") if isinstance(row, dict) else None
+        if not isinstance(identity, str) or not identity.strip():
+            raise ValueError("Character catalog row requires a nonempty character_id")
+        if identity in identities:
+            raise ValueError(f"Duplicate character_id in character catalog: {identity}")
+        identities.add(identity)
+    return identities
+
+
 def build_catalog(*, expected_count: int = 123) -> dict[str, object]:
+    known_characters = _load_character_ids()
     cards, source_revision_id = _load_team_cards()
     if len(cards) != expected_count:
         raise RuntimeError(
@@ -286,7 +303,6 @@ def build_catalog(*, expected_count: int = 123) -> dict[str, object]:
     if len(titles) != len(set(titles)):
         raise RuntimeError("BWIKI team titles are not unique")
     sources = _load_page_sources(titles)
-    known_characters = {path.name for path in CHARACTER_ROOT.iterdir() if path.is_dir()}
     teams = [
         _build_team(card, sources[_page_title(card["title"])], known_characters)
         for card in cards

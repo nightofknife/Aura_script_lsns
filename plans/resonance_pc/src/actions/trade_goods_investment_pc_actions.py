@@ -437,7 +437,7 @@ def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dic
     image = _capture(app)
     menu = vision.find_template(
         source_image=image[350:470, 720:940],
-        template_image=str(_PLAN_ROOT / "templates/trade_shop_menu_ready.png"),
+        template_image=str(_PLAN_ROOT / "templates/commerce/trade/shop/menu_ready.png"),
         threshold=.86, use_grayscale=True,
     )
     score = getattr(menu, "confidence", None)
@@ -456,7 +456,7 @@ def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dic
             reader.read_levels(image)
             back = vision.find_template(
                 source_image=image[:80, :170],
-                template_image=str(_PLAN_ROOT / "templates/nav_back_button.png"),
+                template_image=str(_PLAN_ROOT / "templates/navigation/global/back.png"),
                 threshold=.86, use_grayscale=True,
             )
             if (back.found and back.center_point is not None

@@ -9,6 +9,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._cancellable_wait import sleep_until_deadline
 
 
 _CAP_REGION = (980, 430, 90, 50)
@@ -29,13 +30,13 @@ NEGOTIATION_ATTEMPT_FATIGUE = 8
 
 _NEGOTIATION_CONFIG: Mapping[str, Mapping[str, str]] = {
     "bargain": {
-        "button_template": "templates/trade_buy_bargain_button.png",
-        "cap_template": "templates/trade_buy_cap20_digits.png",
-        "exhausted_template": "templates/trade_buy_rebargain_button.png",
+        "button_template": "templates/commerce/trade/negotiation/buy/bargain_button.png",
+        "cap_template": "templates/commerce/trade/negotiation/buy/cap20_digits.png",
+        "exhausted_template": "templates/commerce/trade/negotiation/buy/rebargain_button.png",
     },
     "raise": {
-        "button_template": "templates/trade_sell_raise_button.png",
-        "cap_template": "templates/trade_sell_cap20_digits.png",
+        "button_template": "templates/commerce/trade/negotiation/sell/raise_button.png",
+        "cap_template": "templates/commerce/trade/negotiation/sell/cap20_digits.png",
     },
 }
 
@@ -54,13 +55,8 @@ def _check_cancelled() -> None:
 
 
 def _cancelable_sleep(seconds: float) -> None:
-    deadline = time.monotonic() + max(float(seconds), 0.0)
-    while True:
-        _check_cancelled()
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return
-        time.sleep(min(0.05, remaining))
+    sleep_until_deadline(seconds, sleep=time.sleep, monotonic=time.monotonic,
+                         check_cancelled=_check_cancelled)
 
 
 

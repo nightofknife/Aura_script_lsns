@@ -46,6 +46,21 @@ def window(repository, monkeypatch):
     QApplication.processEvents()
 
 
+def test_pc_generic_task_results_remain_available_on_history_page(window):
+    item = {"game_name": "resonance_pc", "kind": "workflow_task", "label": "PC task"}
+    window._on_task_started(item)
+    window._on_task_dispatched({"item": item, "cid": "pc-result-without-workbench"})
+    window._on_task_finished({
+        "cid": "pc-result-without-workbench", "status": "success",
+        "final_result": {"success": True, "message": "PC result retained"},
+    })
+    window._switch_page(window.HISTORY_PAGE_INDEX)
+    assert window.page_stack.currentWidget() is window.history_page
+    assert window.history_page.isAncestorOf(window.run_detail)
+    assert "pc-result-without-workbench" in window.run_detail.toPlainText()
+    assert "PC result retained" in window.run_detail.toPlainText()
+
+
 def test_legacy_commerce_expands_in_place_and_keeps_enabled_subset(repository):
     repository.set_value("workflow/task_order", "close,commerce,startup,battle")
     repository.set_value("workflow/commerce_order", "passenger,trade")

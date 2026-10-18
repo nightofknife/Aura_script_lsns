@@ -164,13 +164,26 @@ def build(source_dir: Path, replay_dir: Path | None = None):
         replay_dir = replay_dir.resolve()
         if not replay_dir.is_relative_to(REPO.resolve()) or replay_dir == REPO.resolve():
             raise ValueError("Replay artifacts must be in a dedicated directory inside this repository")
-    output = PLAN / "templates/reforming_center"
+    output = PLAN / "templates/navigation/rooms"
     output.mkdir(parents=True, exist_ok=True)
+    shared = PLAN / "templates/workshop/staffing/controls"
     layout = json.loads((PLAN / "data/meta/reforming_center_rooms_pc.json").read_text(encoding="utf-8"))["rooms"]
     source_cache = {}
     sources = {}
+    written = {}
 
-    def asset(identifier, screen_box, name, kind="white_text", search_region=None):
+    def write_image(path, image):
+        # Several room annotations own separate provenance, but share one
+        # physical control. Reject differing crops instead of last-write wins.
+        if path in written:
+            if not np.array_equal(written[path], image):
+                raise ValueError(f"Conflicting shared control pixels: {path}")
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(path), image)
+        written[path] = image
+
+    def asset(identifier, screen_box, name, kind="white_text", search_region=None, directory=output):
         if identifier not in source_cache:
             path = source_dir / f"codex-clipboard-{identifier}.png"
             binary = path.read_bytes()
@@ -186,8 +199,13 @@ def build(source_dir: Path, replay_dir: Path | None = None):
         if crop.shape[:2] != (h, w) or w < 1 or h < 1:
             raise ValueError(f"Invalid manual annotation: {name} {screen_box}")
         image_name = f"{name}.png"
-        cv2.imwrite(str(output / image_name), crop)
-        item = {"image": f"templates/reforming_center/{image_name}", "kind": kind,
+        if directory == output:
+            category = ("map" if name.startswith("map_") else "selection" if name.startswith("selected_")
+                        else "destination" if name.startswith("destination_") else "controls")
+            directory = directory / category
+        path = directory / image_name
+        write_image(path, crop)
+        item = {"image": path.relative_to(PLAN).as_posix(), "kind": kind,
                 "source_id": identifier, "source_bbox_xywh": [x, y, w, h],
                 "title_center_offset": [w / 2, h / 2]}
         if kind == "white_text":
@@ -195,8 +213,9 @@ def build(source_dir: Path, replay_dir: Path | None = None):
             if np.count_nonzero(mask) < 12:
                 raise ValueError(f"No stable white text in manual annotation: {name}")
             mask_name = f"{name}.mask.png"
-            cv2.imwrite(str(output / mask_name), mask)
-            item["mask"] = f"templates/reforming_center/{mask_name}"
+            mask_path = directory / mask_name
+            write_image(mask_path, mask)
+            item["mask"] = mask_path.relative_to(PLAN).as_posix()
         item["search_region"] = search_region or [max(0, x-12), max(0, y-12),
                                                   min(1280-max(0, x-12), w+24),
                                                   min(720-max(0, y-12), h+24)]
@@ -204,8 +223,12 @@ def build(source_dir: Path, replay_dir: Path | None = None):
 
     destinations = {}
     for number, (room, (identifier, annotations)) in enumerate(DESTINATIONS.items()):
-        destinations[room] = [asset(identifier, box, f"destination_{number:02d}_{label}", kind)
-                              for label, box, kind in annotations]
+        destinations[room] = []
+        for label, box, kind in annotations:
+            common_name = {"select_prisoner": "select_prisoner", "workshop_edit": "edit"}.get(label)
+            destinations[room].append(asset(
+                identifier, box, common_name or f"destination_{number:02d}_{label}", kind,
+                directory=shared if common_name else output))
     rooms = {}
     for number, (room, (source, box)) in enumerate(MAP_TITLES.items()):
         entry_type = "production" if room in list(SELECTED_TITLES)[:4] else (
@@ -259,7 +282,7 @@ def build(source_dir: Path, replay_dir: Path | None = None):
                            "scan_region": [30, 90, 1250, 490], "expected_method": "Manual visual annotation, not runtime output",
                            "fixtures": fixtures}
         (replay_dir / "manifest.json").write_text(json.dumps(replay_manifest, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
-    print(json.dumps({"rooms": len(rooms), "sources": len(sources), "asset_files": len(list(output.glob("*.png"))),
+    print(json.dumps({"rooms": len(rooms), "sources": len(sources), "asset_files": len(written),
                       "metadata": str(meta_path), "replay_dir": str(replay_dir) if replay_dir else None}, ensure_ascii=False))
 
 

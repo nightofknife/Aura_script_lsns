@@ -231,8 +231,8 @@ def test_corrupt_persisted_wishlist_completion_fails_read(store):
         ledger.selection_visit_completed(city, record["selected_item_ids"])
 
 
-def test_old_full_scan_contract_remains_strict_and_valid(store):
-    record = ledger.begin_visit(store, **KEY, selected_item_ids=["a", "b"])
+def test_persisted_full_scan_evidence_remains_strict_and_valid(store):
+    record = begin(store, ["a", "b"])
     pending(store, record, [{"item_id": "a", "purchase_units": 3}])
     with pytest.raises(ValueError, match="confirmed=true"):
         confirm(store, record, proof={"recognized": True, "purchase_applied": True})

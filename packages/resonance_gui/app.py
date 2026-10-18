@@ -189,7 +189,7 @@ def self_check_resonance_gui() -> int:
     window = None
     try:
         discovered = {row.get("game_name") for row in runner.list_games(include_shared=True)}
-        required = {"aura_base", "aura_benchmark", "resonance", "resonance_pc"}
+        required = {"aura_base", "aura_benchmark", "resonance_pc"}
         missing = sorted(required - discovered)
         if missing:
             raise RuntimeError(f"Required external plans were not discovered: {', '.join(missing)}")

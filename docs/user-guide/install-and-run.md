@@ -4,7 +4,6 @@
 
 ```powershell
 .\scripts\setup_dev_environment.ps1 -VisionProvider cpu
-.\scripts\run_cli.ps1 tasks resonance
 .\scripts\run_cli.ps1 tasks resonance_pc
 .\scripts\run_cli.ps1 gui resonance
 ```
@@ -17,9 +16,8 @@ runtime, GUI and test dependencies, and runs the development preflight. Use
 ## CLI Examples
 
 ```powershell
-.\scripts\run_cli.ps1 tasks resonance
-.\scripts\run_cli.ps1 run resonance tasks:market_data.yaml:market_data_get_latest --timeout-sec 120
-.\scripts\run_cli.ps1 run resonance tasks:auto_battle_input_preview.yaml:auto_battle_input_preview --inputs '{"jobs":[{"route_id":"gp.action_summary.global_supply.savior","difficulty":1}],"stop_on_failure":true}'
+.\scripts\run_cli.ps1 tasks resonance_pc
+.\scripts\run_cli.ps1 run resonance_pc tasks:auto_battle_input_preview_pc.yaml:auto_battle_input_preview_pc --inputs '{"jobs":[{"route_id":"gp.action_summary.global_supply.savior","difficulty":1}],"stop_on_failure":true}'
 ```
 
 ## Release Layout
@@ -32,7 +30,6 @@ runtime/
 plans/
   aura_base/
   aura_benchmark/
-  resonance/
   resonance_pc/
 models/
   ocr/

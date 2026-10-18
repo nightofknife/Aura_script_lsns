@@ -83,7 +83,7 @@ def test_first_love_uses_fixed_food_and_selected_rois(monkeypatch):
     assert meal["selected_roi"] == [296, 328, 52, 61]
     assert meal["fatigue_recovery"] == 46
     assert recovery_reads == [("love", (298, 513, 22, 16))]
-    marker = cv2.imread("plans/resonance_pc/templates/bento_consumption/selected_marker.png")
+    marker = cv2.imread("plans/resonance_pc/templates/recovery/bento/controls/selected_marker.png")
     x, y, w, h = meal["selected_roi"]
     selected = 1 - cv2.minMaxLoc(cv2.matchTemplate(image[y:y+h, x:x+w], marker,
                                                    cv2.TM_SQDIFF_NORMED))[0]

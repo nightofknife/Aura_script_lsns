@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "plans/resonance_pc/templates/player_data/status_digits"
+OUTPUT = ROOT / "plans/resonance_pc/templates/navigation/profile/status_digits"
 FONT_SHA256 = "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
 FONT_NAME = "SourceHanSansCN-Bold"
 FONT_SIZE = 16

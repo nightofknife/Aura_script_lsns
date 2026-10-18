@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 from packages.resonance_shared.freight_parameters import effective_freight_inputs
 
-GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
@@ -1363,16 +1362,6 @@ def _optional_int(value: Any) -> int | None:
 def _int_or(value: Any, default: int) -> int:
     parsed = _optional_int(value)
     return default if parsed is None else parsed
-
-
-def parse_inputs_json(text: str) -> dict[str, Any]:
-    raw = str(text or "").strip()
-    if not raw:
-        return {}
-    payload = json.loads(raw)
-    if not isinstance(payload, dict):
-        raise ValueError("任务参数必须是 JSON object。")
-    return payload
 
 
 def pretty_json(payload: Any) -> str:

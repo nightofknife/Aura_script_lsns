@@ -18,8 +18,9 @@ def test_embedded_runner_discovers_required_games_and_tasks() -> None:
     runner = EmbeddedGameRunner()
     try:
         games = {row["game_name"]: row for row in runner.list_games()}
-        required_games = {"aura_benchmark", "resonance", "resonance_pc"}
+        required_games = {"aura_benchmark", "resonance_pc"}
         assert required_games.issubset(games)
+        assert "resonance" not in games
 
         for game_name in required_games:
             assert games[game_name]["task_error_count"] == 0
@@ -56,6 +57,7 @@ def test_subprocess_runner_discovers_games() -> None:
     runner = SubprocessGameRunner()
     try:
         games = {row["game_name"] for row in runner.list_games()}
-        assert {"aura_benchmark", "resonance", "resonance_pc"}.issubset(games)
+        assert {"aura_benchmark", "resonance_pc"}.issubset(games)
+        assert "resonance" not in games
     finally:
         runner.close()

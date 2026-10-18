@@ -6,9 +6,8 @@ The GUI lives in `packages/resonance_gui` and launches with:
 .\scripts\run_cli.ps1 gui resonance
 ```
 
-The command name remains `gui resonance`, but the primary desktop workflow
-executes Windows-client tasks from the `resonance_pc` plan through an isolated
-subprocess runner.
+The `gui resonance` command executes Windows-client tasks from the
+`resonance_pc` plan through an isolated subprocess runner.
 
 The main navigation contains Workflow, Independent Features and Settings.
 
@@ -35,14 +34,4 @@ step before freight execution. The workflow reports completion after final
 sales and any enabled bento cleanup have finished. Expected route values and
 confirmed execution resources are displayed separately.
 
-Freight, passenger, battle and workflow inputs use typed Qt controls. Nested
-JSON editing remains available only in the lower-level workbench where it is
-useful for arbitrary task inputs.
-
-The retained lower-level workbench groups include:
-
-- Market data: refresh, latest snapshot and product query.
-- Trade planning: next step, best cycle and simulation.
-- Automatic trade: `auto_cycle_trade`.
-- City operations: travel, enter shop, buy goods and sell goods.
-- Battle dispatch: input preview and automatic dispatch.
+Freight, passenger, battle and workflow inputs use typed Qt controls.

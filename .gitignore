@@ -26,7 +26,6 @@ tmp_*.png
 .tmp*
 artifacts/
 plans/*/data/cache/
-plans/resonance/data/cache/player/
 AuraResonanceGui.spec
 python-runtime.local.ps1
 .env

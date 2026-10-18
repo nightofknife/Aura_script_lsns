@@ -3,10 +3,6 @@
 ## Plan Validation
 
 ```powershell
-python -m packages.aura_core.cli.package_cli check plans/resonance
-python -m packages.aura_core.cli.package_cli validate plans/resonance
-python tools\plan_doctor.py --plan resonance
-
 python -m packages.aura_core.cli.package_cli check plans/resonance_pc
 python -m packages.aura_core.cli.package_cli validate plans/resonance_pc
 python tools\plan_doctor.py --plan resonance_pc
@@ -47,7 +43,6 @@ $env:TMPDIR = $testTemp
 
 ```powershell
 .\scripts\run_cli.ps1 games --all
-.\scripts\run_cli.ps1 tasks resonance
 .\scripts\run_cli.ps1 tasks resonance_pc
 ```
 
@@ -75,7 +70,6 @@ $env:TMPDIR = $testTemp
 
 ```powershell
 pwsh -NoProfile -File <release>\run.ps1 games --all
-pwsh -NoProfile -File <release>\run.ps1 tasks resonance
 pwsh -NoProfile -File <release>\run.ps1 tasks resonance_pc
 pwsh -NoProfile -File <release>\run.ps1 doctor --ocr --ocr-provider cpu
 & <release>\runtime\AuraResonanceRuntime.exe --self-check

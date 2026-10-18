@@ -41,7 +41,7 @@ def test_book_cancel_during_pointer_move_prevents_click(monkeypatch, cancel_stat
         click=lambda **kw: clicks.append(kw),
     )
     with pytest.raises(asyncio.CancelledError):
-        books._click_template_or_point(app, object(), "unused", [0, 0, 50, 50], (10, 20))
+        books._click_template(app, object(), "unused", [0, 0, 50, 50])
     assert clicks == []
 
 
@@ -57,7 +57,7 @@ def test_book_quantity_cancel_never_confirms_or_runs_failure_cleanup(monkeypatch
         clicks.append(kwargs)
         cancel_state["cancelled"] = True
 
-    monkeypatch.setattr(books, "_click_template_or_point", matched_click)
+    monkeypatch.setattr(books, "_click_template", matched_click)
     monkeypatch.setattr(books, "_wait_for_template_state", lambda *a, **kw: {"matched": True})
     monkeypatch.setattr(books, "_attempt_quantity_dialog_cleanup",
                         lambda **kw: pytest.fail("Cancellation must not trigger recovery clicks"))

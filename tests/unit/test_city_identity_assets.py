@@ -9,7 +9,7 @@ from PIL import Image
 import pytest
 
 from plans.aura_base.src.services.vision_service import VisionService
-from tools.build_city_identity_templates import CITY_ROI, VISIT_ROI, city_names, contour_template
+from tools.build_city_identity_templates import CITY_ROI, VISIT_ROI, build, city_names, contour_template
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "plans/resonance_pc"
@@ -40,7 +40,7 @@ def test_catalog_covers_canonical_city_names_and_fixed_matching_contract():
         "use_grayscale": True, "preprocess": "edge",
     }
     assert CATALOG["visit_entry"] == {
-        "template": "templates/visit_city_entry.png", "method": "TM_SQDIFF_NORMED",
+        "template": "templates/navigation/city/visit_entry.png", "method": "TM_SQDIFF_NORMED",
         "threshold": .9, "roi": VISIT_ROI, "use_grayscale": False, "preprocess": "none",
     }
 
@@ -116,3 +116,30 @@ def test_builder_rejects_wrong_size_or_empty_city_badge():
         contour_template(Image.new("RGB", (133, 133)))
     with pytest.raises(ValueError, match="no usable contour"):
         contour_template(Image.new("RGBA", (133, 133)))
+
+
+def test_builder_owns_functional_city_outputs_and_is_idempotent(tmp_path):
+    """Producer probes use generated input badges, never screenshot fixtures."""
+    plan, research = tmp_path / "plan", tmp_path / "reviewed-input"
+    research.mkdir()
+    source = plan / "src/services/city_shop_data_pc_service.py"
+    source.parent.mkdir(parents=True)
+    source.write_bytes((PLAN / source.relative_to(plan)).read_bytes())
+    for index, key in enumerate(city_names(PLAN)):
+        pixels = np.zeros((133, 133, 4), dtype=np.uint8)
+        pixels[20:110, 25:100] = [30 + index * 5, 180, 220, 255]
+        Image.fromarray(pixels).save(research / f"{key}.png")
+    Image.new("RGB", (35, 29), (12, 80, 230)).save(research / "visit-city-icon-template.png")
+    (plan / "data/meta").mkdir(parents=True)
+    sibling = plan / "templates/navigation/global/owned_by_another_producer.png"
+    sibling.parent.mkdir(parents=True)
+    Image.new("RGB", (3, 4), (20, 30, 40)).save(sibling)
+    sibling_bytes = sibling.read_bytes()
+    first = build(research, plan)
+    first_bytes = {path.relative_to(plan): path.read_bytes() for path in plan.rglob("*") if path.is_file()}
+    assert all(path.startswith("templates/navigation/city/") for path in first["assets"])
+    assert len(first["assets"]) == 43
+    assert {path.relative_to(plan).as_posix() for path in (plan / "templates/navigation/city").rglob("*.png")} == set(first["assets"])
+    assert build(research, plan) == first
+    assert {path.relative_to(plan): path.read_bytes() for path in plan.rglob("*") if path.is_file()} == first_bytes
+    assert sibling.read_bytes() == sibling_bytes

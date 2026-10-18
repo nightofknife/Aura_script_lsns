@@ -15,7 +15,6 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from .config_repository import TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
-    GAME_NAME,
     ETERNAL_SCUFFLE_PROGRESS_EVENT,
     DEEP_DIVE_LOOP_PROGRESS_EVENT,
     PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,
@@ -48,10 +47,7 @@ DEEP_DIVE_PLANNED_RUN_PROGRESS_EVENT = "task.resonance_pc_deep_dive_planned_run_
 
 
 class RunnerBridge(QObject):
-    tasksLoaded = Signal(list)
     historyLoaded = Signal(list)
-    queueChanged = Signal(list)
-    taskQueued = Signal(dict)
     taskStarted = Signal(dict)
     taskDispatched = Signal(dict)
     runUpdated = Signal(dict)
@@ -145,20 +141,9 @@ class RunnerBridge(QObject):
         if self._shutdown_requested.is_set():
             return
         self._ensure_poll_timer()
-        self.logMessage.emit("正在加载雷索纳斯任务列表。")
-        self.refresh_tasks()
+        self.logMessage.emit("正在连接雷索纳斯 PC 后台。")
         self.refresh_history()
         self.refresh_target()
-
-    @Slot()
-    def refresh_tasks(self) -> None:
-        try:
-            rows = list(self._runner_instance().list_tasks(GAME_NAME))
-        except Exception as exc:  # noqa: BLE001
-            self.taskFailed.emit({"stage": "list_tasks", "error": str(exc)})
-            return
-        self.tasksLoaded.emit(rows)
-        self.logMessage.emit(f"已加载 {len(rows)} 个雷索纳斯任务。")
 
     @Slot()
     def refresh_history(self) -> None:
@@ -178,21 +163,6 @@ class RunnerBridge(QObject):
         self.targetStatusChanged.emit(dict(payload or {}))
 
     @Slot(str, object, object, float)
-    def enqueue_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
-        self._queue.append(self._make_item(GAME_NAME, task_ref, inputs, label, timeout_sec))
-        self.taskQueued.emit(dict(self._queue[-1]))
-        self._emit_queue()
-        if not self._busy:
-            self._run_next()
-
-    @Slot(str, object, object, float)
-    def run_task_now(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
-        self._queue.insert(0, self._make_item(GAME_NAME, task_ref, inputs, label, timeout_sec))
-        self._emit_queue()
-        if not self._busy:
-            self._run_next()
-
-    @Slot(str, object, object, float)
     def run_pc_task(self, task_ref: str, inputs: object, label: object = None, timeout_sec: float = 0.0) -> None:
         """Run one generic Resonance PC task without enabling bridge queue chaining."""
         if self._busy:
@@ -201,7 +171,6 @@ class RunnerBridge(QObject):
         item = self._make_item(PC_GAME_NAME, task_ref, inputs, label, timeout_sec)
         item["kind"] = "workflow_task"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -214,7 +183,6 @@ class RunnerBridge(QObject):
         item = self._make_item(PC_GAME_NAME, PC_TRADE_TASK_REF, run_inputs, "PC 自动跑商", timeout_sec)
         item["kind"] = "trade_run"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -232,7 +200,6 @@ class RunnerBridge(QObject):
         )
         item["kind"] = "passenger_run"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -256,7 +223,6 @@ class RunnerBridge(QObject):
         )
         item["kind"] = "combined_commerce_run"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -277,7 +243,6 @@ class RunnerBridge(QObject):
         )
         item["kind"] = "trade_preview"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -295,7 +260,6 @@ class RunnerBridge(QObject):
         )
         item["kind"] = "battle_run"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
 
     @Slot(object, float)
@@ -313,13 +277,7 @@ class RunnerBridge(QObject):
         )
         item["kind"] = "battle_preview"
         self._queue.insert(0, item)
-        self._emit_queue()
         self._run_next()
-
-    @Slot()
-    def clear_queue(self) -> None:
-        self._queue.clear()
-        self._emit_queue()
 
     @Slot()
     def cancel_current(self) -> None:
@@ -430,7 +388,6 @@ class RunnerBridge(QObject):
 
         self._set_busy(True)
         item = self._queue.pop(0)
-        self._emit_queue()
         self._current_cid = ""
         self._current_item = item
         self._scuffle_sequence = -1
@@ -496,7 +453,6 @@ class RunnerBridge(QObject):
             )
             self.logMessage.emit(f"执行失败：{item['label']} - {exc}")
             self._reset_current()
-            self._emit_queue()
             self._set_busy(False)
 
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
@@ -630,6 +586,3 @@ class RunnerBridge(QObject):
             return
         self._busy = value
         self.busyChanged.emit(value)
-
-    def _emit_queue(self) -> None:
-        self.queueChanged.emit([dict(item) for item in self._queue])
