@@ -16,9 +16,37 @@ The main navigation contains Workflow, Independent Features and Settings.
   tasks. Freight and passenger have independent budgets and full parameter
   editors in the workflow page. Battle retains its ordered job editor.
 - Independent Features: refresh player data, preview freight, recommend teams,
-  run the existing Deep Dive and Eternal Scuffle tasks, or collect data. These
+  refresh an equipment affix, run Deep Dive and Eternal Scuffle, or collect data. These
   entries use a flat task list and a wide detail panel.
 - Settings: configure runtime and workflow preferences.
+
+The Affix Refresh small task starts at the open equipment affix replacement
+window, in a 1280x720 game client. In Independent Features, select Affix Refresh,
+search the complete effect catalog, choose a numerical requirement (any, at
+least, equal, or maximum), and set the film budget. The catalog is not filtered
+by equipment, so choose an effect available to your current equipment. Press
+Start Auto Refresh; the task checks the current candidate before spending,
+handles refresh confirmations, and stops when a candidate meets the target.
+Apply that candidate manually in the game. Automatic replacement is disabled,
+including for previously saved settings that enabled it.
+
+No equipment name, level, old-affix selection, or replacement-slot number is
+required. The task does not read or scroll the old-affix list, so a long list,
+locked slots, or its current scroll position does not affect target selection.
+Target, numerical requirement, and budget preferences are saved between runs.
+Fixed controls, refresh confirmation windows, and film counters use bundled
+templates. OCR is limited to the new candidate, with unchanged crops cached.
+Each actual OCR call preserves raw text, confidence, location, and parsing
+results in the application log; use the panel's log control to inspect them.
+
+A zero budget only checks an existing candidate and never refreshes. The last
+refresh inside the budget is still evaluated before stopping. During execution,
+the panel shows the candidate, film spent versus budget, remaining balance,
+and current status. End states distinguish a target found for manual
+replacement, budget exhausted, insufficient film, cancellation, and recognition
+or operation errors. Uncertain transactions stop without repeating a potentially
+spending click, and retain any unconfirmed cost in the result. Stopping leaves
+the current game window and pending candidate in place.
 
 Freight supports four modes: maximum profit, quick full-load trading, fixed
 route and target profit. Fixed routes retain city order and repeated visits;

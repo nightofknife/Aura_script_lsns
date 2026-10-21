@@ -5,13 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
 from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options, validate_city_tax_rates_bps, validate_allow_stale_market
 from .black_moon_catalog import normalize_black_moon_settings
+from .affix_catalog import normalize_affix_inputs
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -406,6 +407,23 @@ class ResonanceConfigRepository:
             "player_data/inputs_schema_version",
             PLAYER_DATA_INPUTS_SCHEMA_VERSION,
         )
+        self.settings.sync()
+
+    def load_affix_refresh_inputs(self) -> dict[str, Any]:
+        defaults = {"target_affix_id": None, "comparison": "gte", "threshold": "1", "max_film_cost": 20,
+                    "auto_replace": False}
+        try:
+            raw = json.loads(str(self.settings.value("affix_refresh/inputs_json", "")))
+            if isinstance(raw, dict) and raw.get("schema_version") == 1:
+                return normalize_affix_inputs(raw)
+        except (ValueError, TypeError):
+            pass
+        return defaults
+
+    def save_affix_refresh_inputs(self, inputs: Mapping[str, Any]) -> None:
+        normalized = normalize_affix_inputs(inputs)
+        normalized["schema_version"] = 1
+        self.settings.setValue("affix_refresh/inputs_json", json.dumps(normalized, ensure_ascii=False))
         self.settings.sync()
 
     def load_eternal_scuffle_inputs(self) -> dict[str, int]:

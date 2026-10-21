@@ -33,6 +33,8 @@ from .bridge import RunnerBridge
 from .hotkeys import GlobalHotkeyManager
 from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
+    PC_AFFIX_REFRESH_TASK_REF,
+    PC_AFFIX_REFRESH_READ_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
@@ -340,6 +342,8 @@ class ResonanceMainWindow(QMainWindow):
         )
         self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.small_tasks_page.runEternalScuffleRequested.connect(self._run_small_task_eternal_scuffle)
+        self.small_tasks_page.readAffixRefreshRequested.connect(self._read_small_task_affix_refresh)
+        self.small_tasks_page.runAffixRefreshRequested.connect(self._run_small_task_affix_refresh)
         self.small_tasks_page.cacheRequested.connect(
             self._read_small_task_player_data_cache
         )
@@ -452,6 +456,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.tradeProgress.connect(self._on_trade_progress)
         self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
         self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
+        self._bridge.affixRefreshProgress.connect(self.small_tasks_page.affix_refresh_panel.apply_progress)
         self._bridge.deepDiveLoopProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_loop_progress)
         self._bridge.deepDivePlannedRunProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_planned_run_progress)
         self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
@@ -464,6 +469,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.cancelRequested.connect(self._on_workflow_cancel_requested)
+        self._bridge.cancelRequested.connect(self._on_affix_refresh_cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
         self._bridge.busyChanged.connect(self._on_busy_changed)
@@ -894,6 +900,34 @@ class ResonanceMainWindow(QMainWindow):
             float(self._preferences.timeout_sec),
         )
 
+    def _read_small_task_affix_refresh(self) -> None:
+        if self._busy or self._workflow_active or self._small_task_active_ref:
+            self.small_tasks_page.affix_refresh_panel.defer_auto_read()
+            self.statusBar().showMessage("当前有任务正在运行，空闲后自动识别词缀界面。")
+            return
+        self._small_task_active_ref = PC_AFFIX_REFRESH_READ_TASK_REF
+        self.small_tasks_page.begin_affix_refresh("read")
+        self.requestRunPcTask.emit(PC_AFFIX_REFRESH_READ_TASK_REF, {"config": {}}, "读取词缀替换界面", 0.0)
+
+    def _run_small_task_affix_refresh(self, inputs: dict[str, Any]) -> None:
+        if self._busy or self._workflow_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再试。")
+            return
+        try:
+            # Recollect the visible target and budget; replacement is disabled.
+            inputs = self.small_tasks_page.affix_refresh_panel.collect_inputs()
+            self._settings.save_affix_refresh_inputs(inputs)
+        except (ValueError, KeyError) as exc:
+            self.small_tasks_page.show_affix_refresh_error(str(exc))
+            return
+        self._small_task_active_ref = PC_AFFIX_REFRESH_TASK_REF
+        self.small_tasks_page.begin_affix_refresh("run", inputs)
+        self.requestRunPcTask.emit(PC_AFFIX_REFRESH_TASK_REF, {"config": inputs}, "刷新词缀", 0.0)
+
+    def _on_affix_refresh_cancel_requested(self, _payload: dict[str, Any]) -> None:
+        if self._small_task_active_ref in {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF}:
+            self.small_tasks_page.affix_refresh_panel.mark_stopping()
+
     def _run_small_task_eternal_scuffle(self, inputs: dict[str, Any]) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
             self.small_tasks_page.show_eternal_scuffle_error("当前有任务正在运行，请稍后再试。")
@@ -1010,6 +1044,8 @@ class ResonanceMainWindow(QMainWindow):
     def _show_small_task_error(self, task_ref: str, message: str) -> None:
         page = self.small_tasks_page
         handlers = {
+            PC_AFFIX_REFRESH_TASK_REF: page.show_affix_refresh_error,
+            PC_AFFIX_REFRESH_READ_TASK_REF: page.show_affix_refresh_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF: page.show_consciousness_deep_dive_planned_run_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF: page.consciousness_deep_dive_panel.show_loop_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF: page.show_consciousness_deep_dive_scan_error,
@@ -1077,6 +1113,7 @@ class ResonanceMainWindow(QMainWindow):
         self.passenger_page.set_busy(False)
         self.battle_page.set_busy(False)
         self._workflow_failed_message = ""
+        self.small_tasks_page.affix_refresh_panel.set_runner_busy(self._busy)
 
 
     def _on_workflow_cancel_requested(self, _payload: dict[str, Any]) -> None:
@@ -1376,6 +1413,21 @@ class ResonanceMainWindow(QMainWindow):
                     self._show_small_task_error(task_ref, message)
             if small_task_owns_result:
                 self._small_task_active_ref = ""
+            if task_ref in {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF} and small_task_owns_result:
+                affix_result = player_data_result.get("affix_refresh")
+                runner_status = extract_status(payload)
+                if isinstance(affix_result, dict):
+                    affix_result = dict(affix_result)
+                    if runner_status != "success":
+                        affix_result.update(success=False, status="cancelled" if runner_status == "cancelled" else "failed",
+                                            framework_interrupted=True,
+                                            message=payload.get("error") or "任务已取消或中断。",
+                                            reason=affix_result.get("reason") or payload.get("error") or "任务已取消或中断。")
+                    self.small_tasks_page.apply_affix_refresh_result(affix_result)
+                else:
+                    self.small_tasks_page.show_affix_refresh_error(
+                        str(player_data_result.get("reason") or player_data_result.get("error") or payload.get("error") or "任务未返回完整刷新词缀结果。"),
+                        cancelled=runner_status == "cancelled")
             if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF and small_task_owns_result:
                 scuffle_result = player_data_result.get("eternal_scuffle")
                 status = extract_status(payload)
@@ -1570,6 +1622,9 @@ class ResonanceMainWindow(QMainWindow):
             return
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
+        if (stage == "cancel_task" and self._small_task_active_ref in
+                {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF}):
+            self.small_tasks_page.affix_refresh_panel.cancel_failed(str(payload.get("error") or "未知错误"))
         if stage in {"list_tasks", "list_runs"}:
             self.run_detail.show_text(pretty_json(payload))
             return

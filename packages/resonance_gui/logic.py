@@ -50,6 +50,10 @@ PASSENGER_PROGRESS_SCHEMA = "resonance_pc.passenger_progress.v1"
 PC_ETERNAL_SCUFFLE_TASK_REF = "tasks:eternal_scuffle_pc.yaml:eternal_scuffle_pc"
 ETERNAL_SCUFFLE_PROGRESS_EVENT = "task.resonance_pc_eternal_scuffle_progress"
 ETERNAL_SCUFFLE_PROGRESS_SCHEMA = "resonance_pc.eternal_scuffle_progress.v1"
+PC_AFFIX_REFRESH_TASK_REF = "tasks:affix_refresh_pc.yaml:affix_refresh_pc"
+PC_AFFIX_REFRESH_READ_TASK_REF = "tasks:affix_refresh_pc.yaml:affix_refresh_read_pc"
+AFFIX_REFRESH_PROGRESS_EVENT = "task.resonance_pc_affix_refresh_progress"
+AFFIX_REFRESH_PROGRESS_SCHEMA = "resonance_pc.affix_refresh_progress.v1"
 
 TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 STATUS_LABELS = {
