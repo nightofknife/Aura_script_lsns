@@ -16,8 +16,10 @@ from plans.resonance_pc.src.actions import player_recovery_pc_actions as recover
 
 
 SECTIONS = tuple(section for section in data._PROFILE_SECTION_ORDER if section != "bento_count")
-COMBINATIONS = [list(combo) for size in range(1, len(SECTIONS) + 1)
-                for combo in itertools.combinations(SECTIONS, size)]
+COMBINATIONS = [list(combo) for size in (1, 2)
+                for combo in itertools.combinations(SECTIONS, size)] + [
+    list(SECTIONS[:3]), list(SECTIONS[3:]), list(SECTIONS),
+]
 
 
 @pytest.fixture

@@ -94,9 +94,14 @@ def test_loaded_content_then_multiple_downward_drags_confirm_top(clock, vision, 
     assert "degraded" not in result
 
 
-def test_header_and_blank_list_do_not_authorize_drag(clock, vision):
+def test_header_and_blank_list_do_not_authorize_drag(clock, vision, monkeypatch):
     reader, app = reader_for(clock, vision, ready_at=999)
     assert reader.is_page("bento_cabinet")
+    blank = reader.capture(reader.layout["bento_navigation"]["viewport"])
+    content_loaded = reader._bento_content_loaded(blank)
+    assert content_loaded is False
+    # The fake cabinet stays blank throughout the timeout; classify it once.
+    monkeypatch.setattr(reader, "_bento_content_loaded", lambda _frame: content_loaded)
     with pytest.raises(recovery.StopTaskException, match="did not finish loading"):
         reader.prepare_bento_read()
     assert not app.drag_calls

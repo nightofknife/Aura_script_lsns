@@ -21,12 +21,15 @@ def frame(name):
     return cv2.cvtColor(im,cv2.COLOR_BGR2RGB)
 
 
-def test_workshop_observation_isolated_from_healing():
+def test_workshop_observation_isolated_from_healing(monkeypatch):
     im=frame('21-purple-workshop-options-disabled.png')
     base=observe(im)
     assert base['scene']=='event_options_unknown'
 
+    from plans.resonance_pc.src.actions import _deep_dive_single_run_vision as shared
+    monkeypatch.setattr(shared,'detect_event_page',lambda *a:pytest.fail('healing vision called'))
     result=observe(im,event_family='vortex')
+    assert result['scene']=='event_options'
     rows=result['event_options']
     assert rows[0]['title']=='按下按钮' and rows[0]['supported']
     assert rows[1]['blocked']
@@ -35,12 +38,6 @@ def test_workshop_observation_isolated_from_healing():
     assert len(healing.catalog()['events'])==9
     assert len(vision.catalog()['events'])==62
     assert base['scene']=='event_options_unknown'
-
-
-def test_vortex_observation_does_not_call_healing_detector(monkeypatch):
-    from plans.resonance_pc.src.actions import _deep_dive_single_run_vision as shared
-    monkeypatch.setattr(shared,'detect_event_page',lambda *a:pytest.fail('healing vision called'))
-    assert shared.observe(frame('21-purple-workshop-options-disabled.png'),event_family='vortex')['scene']=='event_options'
 
 
 def init():

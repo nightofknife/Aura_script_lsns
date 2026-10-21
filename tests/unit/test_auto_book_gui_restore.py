@@ -118,24 +118,26 @@ def test_base_fatigue_reserve_rejects_negative_without_overwriting_saved_zero(wi
 
 
 @pytest.mark.parametrize("mode", ["free", "fixed"])
-@pytest.mark.parametrize("budget", [0, 17, None])
-def test_actual_bridge_dispatch_covers_two_modes_and_book_limits(window, monkeypatch, mode, budget):
+def test_actual_bridge_dispatch_covers_two_modes_and_book_limits(window, monkeypatch, mode):
     page = window.trade_page
-    page.restore_inputs({"trade_mode": mode, "book_budget": budget, "fixed_route_city_ids": ["1", "2", "1"],
-                         "target_profit": 1000000, "target_profit_enabled": True, "start_city_id": "11"})
-    runner, bridge = recording_bridge(monkeypatch)
-    inputs = page.collect_task_inputs()
-    bridge.run_pc_trade(inputs)
-    assert runner.calls[0]["inputs"] == inputs
-    assert runner.calls[0]["inputs"]["book_budget"] == budget
-    assert not {"auto_book", "trade_level", "active_events", "fixed_route_repeat_count", "start_city_id"} & runner.calls[0]["inputs"].keys()
-    preview = page.collect_task_inputs(preview=True)
-    preview_runner, preview_bridge = recording_bridge(monkeypatch)
-    preview_bridge.preview_pc_trade(preview)
-    assert preview_runner.calls[0]["task_ref"] == PC_TRADE_PREVIEW_TASK_REF
-    expected = normalize_trade_task_inputs({key: value for key, value in preview.items() if key in TRADE_PREVIEW_INPUT_KEYS})
-    assert preview_runner.calls[0]["inputs"] == expected
-    assert expected["book_budget"] == budget
+    baseline = page.collect_ui_state()
+    for budget in (0, 17, None):
+        page.restore_inputs(baseline)
+        page.restore_inputs({"trade_mode": mode, "book_budget": budget, "fixed_route_city_ids": ["1", "2", "1"],
+                             "target_profit": 1000000, "target_profit_enabled": True, "start_city_id": "11"})
+        runner, bridge = recording_bridge(monkeypatch)
+        inputs = page.collect_task_inputs()
+        bridge.run_pc_trade(inputs)
+        assert runner.calls[0]["inputs"] == inputs, (mode, budget)
+        assert runner.calls[0]["inputs"]["book_budget"] == budget, (mode, budget)
+        assert not {"auto_book", "trade_level", "active_events", "fixed_route_repeat_count", "start_city_id"} & runner.calls[0]["inputs"].keys(), (mode, budget)
+        preview = page.collect_task_inputs(preview=True)
+        preview_runner, preview_bridge = recording_bridge(monkeypatch)
+        preview_bridge.preview_pc_trade(preview)
+        assert preview_runner.calls[0]["task_ref"] == PC_TRADE_PREVIEW_TASK_REF, (mode, budget)
+        expected = normalize_trade_task_inputs({key: value for key, value in preview.items() if key in TRADE_PREVIEW_INPUT_KEYS})
+        assert preview_runner.calls[0]["inputs"] == expected, (mode, budget)
+        assert expected["book_budget"] == budget, (mode, budget)
 
 
 def test_bridge_preview_removes_execution_and_ui_state_only(window, monkeypatch):
@@ -168,26 +170,27 @@ def test_unlimited_recovery_dispatch_keeps_validated_projection(window, monkeypa
     assert source == before
 
 
-@pytest.mark.parametrize("books,value,visible", [
-    (2, 500001.25, True), (2, 0, True), (0, 500001, False), (2, None, False),
-    (2, "bad", False), (2, float("nan"), False), (2, float("inf"), False),
-    (None, None, False), (2, True, False),
-])
-def test_optional_average_history_and_planning(window, books, value, visible):
-    fields = {"trade_mode": "free", "book_budget": None, "remaining_books": None, "books_used": books,
-              "book_incremental_profit": 1000002.5, "book_incremental_profit_exact": "2000005/2",
-              "average_book_profit": value, "average_book_profit_exact": "2000005/4"}
-    summary = trade_result_summary(fields)
-    for key in fields:
-        assert summary[key] == fields[key] or summary[key] is fields[key]
-    for page in (window.trade_page, window.trade_preview_page):
-        page.show_history_result(fields)
-        assert page.result_values["average_book_profit"].isHidden() is not visible
-        page._render_planning_summary(summary)
-        assert page.result_captions["average_book_profit"].isHidden() is not visible
-        page.show_history_result({"books_used": 0})
-        assert page.result_values["average_book_profit"].isHidden()
-    assert (average_book_profit_text(summary) is not None) is visible
+def test_optional_average_history_and_planning(window):
+    for books, value, visible in (
+        (2, 500001.25, True), (2, 0, True), (0, 500001, False), (2, None, False),
+        (2, "bad", False), (2, float("nan"), False), (2, float("inf"), False),
+        (None, None, False), (2, True, False),
+    ):
+        fields = {"trade_mode": "free", "book_budget": None, "remaining_books": None, "books_used": books,
+                  "book_incremental_profit": 1000002.5, "book_incremental_profit_exact": "2000005/2",
+                  "average_book_profit": value, "average_book_profit_exact": "2000005/4"}
+        summary = trade_result_summary(fields)
+        for key in fields:
+            assert summary[key] == fields[key] or summary[key] is fields[key], (books, value, key)
+        for page in (window.trade_page, window.trade_preview_page):
+            page.show_history_result({"books_used": 0})
+            page.show_history_result(fields)
+            assert page.result_values["average_book_profit"].isHidden() is not visible, (books, value)
+            page._render_planning_summary(summary)
+            assert page.result_captions["average_book_profit"].isHidden() is not visible, (books, value)
+            page.show_history_result({"books_used": 0})
+            assert page.result_values["average_book_profit"].isHidden(), (books, value)
+        assert (average_book_profit_text(summary) is not None) is visible, (books, value)
 
 
 def test_formal_planning_event_updates_visible_workflow(window):

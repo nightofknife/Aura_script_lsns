@@ -27,6 +27,14 @@ def test_real_overview_recognizes_manual_labels_without_extra_rooms(record):
     hits = vision.room_hits(image, vision.load_catalog())
     assert {hit["room_name"] for hit in hits} == set(record["expected_names"])
     assert all(hit["score"] >= .92 for hit in hits)
+    if record["id"] == "overview_02":
+        before = {row["room_name"]: row for row in hits}
+        moved = cv2.warpAffine(image, np.float32([[1, 0, 37], [0, 1, 21]]), (1280, 720),
+                               flags=cv2.INTER_NEAREST)
+        after = {row["room_name"]: row for row in vision.room_hits(moved, vision.load_catalog())}
+        assert set(after) == set(before)
+        for name in before:
+            assert after[name]["center"] == [before[name]["center"][0]+37, before[name]["center"][1]+21]
 
 
 def test_all_provided_open_rooms_are_covered_and_assets_remain_plan_local():
@@ -46,17 +54,6 @@ def test_all_provided_open_rooms_are_covered_and_assets_remain_plan_local():
             path = (vision._PLAN / asset["image"]).resolve()
             assert path.is_relative_to(vision._PLAN.resolve())
             assert path.is_file()
-
-
-def test_synthetic_integer_pan_preserves_matching_and_coordinates():
-    image = read_image(FIXTURES / "overview_02.png")
-    before = {row["room_name"]: row for row in vision.room_hits(image, vision.load_catalog())}
-    moved = cv2.warpAffine(image, np.float32([[1, 0, 37], [0, 1, 21]]), (1280, 720),
-                           flags=cv2.INTER_NEAREST)
-    after = {row["room_name"]: row for row in vision.room_hits(moved, vision.load_catalog())}
-    assert set(after) == set(before)
-    for name in before:
-        assert after[name]["center"] == [before[name]["center"][0]+37, before[name]["center"][1]+21]
 
 
 @pytest.mark.parametrize("room", ["2号整顿宿舍", "2号生产车间"])

@@ -45,7 +45,8 @@ def probe(image, **capture_fields):
 ])
 def test_supplied_scenes_and_shared_reward_boxes(number, normalized):
     async def run():
-        helper = probe(frame(number, normalized=normalized))
+        image = frame(number, normalized=normalized)
+        helper = probe(image)
         observation = await asyncio.to_thread(helper.observe)
         assert observation["valid"] is True
         assert observation["scene"] == SCENES[number-1], observation["diagnostics"]
@@ -58,6 +59,40 @@ def test_supplied_scenes_and_shared_reward_boxes(number, normalized):
         for match in [*observation["controls"].values(), *observation["boxes"]]:
             x, y = match["center"]
             assert 0 <= x < 1280 and 0 <= y < 720
+        identity_cases = {
+            3: ("role", [10000890, 10000154, 10001356]),
+            5: ("role", [10000468, 10000095, 10000139]),
+            4: ("equipment", [11800292, 11800008, 11800084]),
+            9: ("equipment", [11800061, 11800240, 11800001]),
+        }
+        if number in identity_cases:
+            kind, expected = identity_cases[number]
+            rows = await asyncio.to_thread(helper.read_candidates, observation, kind)
+            assert [r["id"] for r in rows] == expected, observation["diagnostics"]
+            assert [r["index"] for r in rows] == [0, 1, 2]
+            assert all(450 < row["select_point"][1] < 520 for row in rows)
+            if kind == "equipment" and not normalized:
+                baseline = rows
+                # Reuse the original read before erasing just the left name;
+                # keep the independent post-erasure candidate API call.
+                dx, dy = observation.get("_anchor_offset", (0, 0))
+                sx = observation.get("_scale_x", 1.)
+                left = 309 if number == 9 else 369
+                x = round(left * sx) + dx
+                image[359 + dy:382 + dy, x - 15:x + 175] = 0
+                remaining = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
+                assert [(row["index"], row["id"]) for row in remaining] == [(row["index"], row["id"]) for row in baseline[1:]]
+        if number in (6, 10):
+            rows = await asyncio.to_thread(helper.read_team, observation)
+            expected = [10001356, 10000468, 10000072, 10000027, 10000389]
+            if number == 10:
+                expected[:2] = reversed(expected[:2])
+            assert [r["id"] for r in rows] == expected, observation["diagnostics"]
+            assert [r["screen_index"] for r in rows] == list(range(5))
+            assert [r["screen_index"] for r in rows if r["selected"]] == [0]
+            filled = {10001356: "attack", 10000468: "support", 10000072: "support", 10000027: "support", 10000389: "defense"}
+            for row in rows:
+                assert row["slots"] == {s: "occupied" if s == filled[row["id"]] else "empty" for s in ("attack", "defense", "support")}
     asyncio.run(run())
 
 
@@ -92,43 +127,6 @@ def test_defeat_title_mask_ignores_pixels_outside_red_letters():
         assert after["scene"] == "defeat"
         assert abs(before["diagnostics"]["control_scores"]["battle_lose_title"]
                    - after["diagnostics"]["control_scores"]["battle_lose_title"]) < .001
-    asyncio.run(run())
-
-
-@pytest.mark.parametrize("number,kind,expected", (
-    (3, "role", [10000890, 10000154, 10001356]),
-    (5, "role", [10000468, 10000095, 10000139]),
-    (4, "equipment", [11800292, 11800008, 11800084]),
-    (9, "equipment", [11800061, 11800240, 11800001]),
-))
-@pytest.mark.parametrize("normalized", (False, True))
-def test_all_catalog_identity_comparison(number, kind, expected, normalized):
-    async def run():
-        helper = probe(frame(number, normalized=normalized))
-        observation = await asyncio.to_thread(helper.observe)
-        rows = await asyncio.to_thread(helper.read_candidates, observation, kind)
-        assert [r["id"] for r in rows] == expected, observation["diagnostics"]
-        assert [r["index"] for r in rows] == [0, 1, 2]
-        assert all(450 < row["select_point"][1] < 520 for row in rows)
-    asyncio.run(run())
-
-
-@pytest.mark.parametrize("number", (6, 10))
-@pytest.mark.parametrize("normalized", (False, True))
-def test_team_reordering_and_all_fifteen_slot_states(number, normalized):
-    async def run():
-        helper = probe(frame(number, normalized=normalized))
-        observation = await asyncio.to_thread(helper.observe)
-        rows = await asyncio.to_thread(helper.read_team, observation)
-        expected = [10001356, 10000468, 10000072, 10000027, 10000389]
-        if number == 10:
-            expected[:2] = reversed(expected[:2])
-        assert [r["id"] for r in rows] == expected, observation["diagnostics"]
-        assert [r["screen_index"] for r in rows] == list(range(5))
-        assert [r["screen_index"] for r in rows if r["selected"]] == [0]
-        filled = {10001356: "attack", 10000468: "support", 10000072: "support", 10000027: "support", 10000389: "defense"}
-        for row in rows:
-            assert row["slots"] == {s: "occupied" if s == filled[row["id"]] else "empty" for s in ("attack", "defense", "support")}
     asyncio.run(run())
 
 
@@ -246,24 +244,6 @@ def test_live_unknown_role_is_skipped_without_blocking_known_roles():
         rows = await asyncio.to_thread(helper.read_candidates, observation, "role")
         assert [(row["index"], row["id"]) for row in rows] == [(1, 10001222), (2, 10000854)]
         assert all(row["select_point"][0] > 600 for row in rows)
-    asyncio.run(run())
-
-
-@pytest.mark.parametrize("number", (4, 9))
-def test_unreadable_equipment_preserves_other_candidates_and_screen_indices(number):
-    async def run():
-        image = frame(number)
-        helper = probe(image)
-        observation = await asyncio.to_thread(helper.observe)
-        baseline = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
-        # Erase only the left equipment name, retaining the scene and buttons.
-        dx, dy = observation.get("_anchor_offset", (0, 0))
-        sx = observation.get("_scale_x", 1.)
-        left = 309 if number == 9 else 369
-        x = round(left * sx) + dx
-        image[359 + dy:382 + dy, x - 15:x + 175] = 0
-        rows = await asyncio.to_thread(helper.read_candidates, observation, "equipment")
-        assert [(row["index"], row["id"]) for row in rows] == [(row["index"], row["id"]) for row in baseline[1:]]
     asyncio.run(run())
 
 

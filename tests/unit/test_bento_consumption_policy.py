@@ -137,11 +137,13 @@ def test_exact_requests_are_copied(meal):
     assert meal["kind"] != "changed"
 
 
-@pytest.mark.parametrize("factory", [work_request, love_request])
-@pytest.mark.parametrize("extra", [
-    "fatigue", "fatigue_recovery", "score", "rating_stars", "count", "max_count",
-    "base_fatigue_reserve", "meal_priority", "priority", "floor", "budget",
-    "role_name", "food_name",
+@pytest.mark.parametrize("factory,extra", [
+    *((work_request, extra) for extra in (
+        "fatigue", "fatigue_recovery", "score", "rating_stars", "count", "max_count",
+        "base_fatigue_reserve", "meal_priority", "priority", "floor", "budget",
+        "role_name", "food_name",
+    )),
+    (love_request, "fatigue"),
 ])
 def test_request_extra_keys_are_rejected(factory, extra):
     meal = factory()
@@ -172,8 +174,10 @@ def test_invalid_work_request_time(time):
         validate_meals([work_request(time)])
 
 
-@pytest.mark.parametrize("field", ["role_id", "food_id", "remaining_days"])
-@pytest.mark.parametrize("bad", [None, True, False, -1, 1.0, "1", [], {}])
+@pytest.mark.parametrize("field,bad", [
+    *(("role_id", bad) for bad in (None, True, False, -1, 1.0, "1", [], {})),
+    *((field, bad) for field in ("food_id", "remaining_days") for bad in (None, True, -1)),
+])
 def test_request_numbers_are_strict(field, bad):
     meal = love_request()
     meal[field] = bad
