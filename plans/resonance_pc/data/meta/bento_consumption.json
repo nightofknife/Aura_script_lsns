@@ -8,7 +8,7 @@
   "first_love_food_roi": [146, 355, 154, 138],
   "first_love_selected_roi": [296, 328, 52, 61],
   "recovery_digits": {
-    "manifest": "templates/bento_consumption/recovery_digits/manifest.json",
+    "manifest": "templates/recovery/bento/recovery_digits/manifest.json",
     "work_threshold": 0.72,
     "love_threshold": 0.68
   },
@@ -26,57 +26,57 @@
   "ocr_min_confidence": 0.9,
   "templates": {
     "use_work": {
-      "path": "templates/bento_consumption/use_work.png",
+      "path": "templates/recovery/bento/controls/use_work.png",
       "roi": [875, 396, 97, 68],
       "threshold": 0.98
     },
     "use_love": {
-      "path": "templates/bento_consumption/use_love.png",
+      "path": "templates/recovery/bento/controls/use_love.png",
       "roi": [875, 396, 97, 68],
       "threshold": 0.98
     },
     "use_disabled": {
-      "path": "templates/bento_consumption/use_disabled.png",
+      "path": "templates/recovery/bento/controls/use_disabled.png",
       "roi": [875, 396, 97, 68],
       "threshold": 0.98
     },
     "confirm_use": {
-      "path": "templates/bento_consumption/confirm_use.png",
+      "path": "templates/recovery/bento/controls/confirm_use.png",
       "roi": [903, 476, 53, 53],
       "threshold": 0.95
     },
     "effect": {
-      "path": "templates/bento_consumption/effect.png",
+      "path": "templates/recovery/bento/controls/effect.png",
       "roi": [641, 241, 91, 91],
       "threshold": 0.95
     },
     "rating_page": {
-      "path": "templates/bento_consumption/rating_page.png",
+      "path": "templates/recovery/bento/controls/rating_page.png",
       "roi": [544, 349, 219, 23],
       "threshold": 0.95
     },
     "rating_confirm": {
-      "path": "templates/bento_consumption/rating_confirm.png",
+      "path": "templates/recovery/bento/controls/rating_confirm.png",
       "roi": [535, 378, 210, 45],
       "threshold": 0.98
     },
     "star_on": {
-      "path": "templates/bento_consumption/star_on.png",
+      "path": "templates/recovery/bento/controls/star_on.png",
       "roi": [495, 254, 50, 50],
       "threshold": 0.95
     },
     "star_off": {
-      "path": "templates/bento_consumption/star_off.png",
+      "path": "templates/recovery/bento/controls/star_off.png",
       "roi": [495, 254, 50, 50],
       "threshold": 0.95
     },
     "train_return": {
-      "path": "templates/bento_consumption/train_return.png",
+      "path": "templates/recovery/bento/controls/train_return.png",
       "roi": [178, 14, 39, 45],
       "threshold": 0.95
     },
     "selected_marker": {
-      "path": "templates/bento_consumption/selected_marker.png",
+      "path": "templates/recovery/bento/controls/selected_marker.png",
       "roi": [110, 118, 697, 537],
       "threshold": 0.95
     }

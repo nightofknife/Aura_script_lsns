@@ -6,7 +6,7 @@
 
 当前只实施 `open_reforming_center_room_pc`。普通总览由调用方保证，不识别初始页面、不判断已经在目标房间、不负责返回；下文其余任务仍是历史规划，不表示本次实施承诺。原 `detect_reforming_center_page_pc` / `return_reforming_center_overview_pc` 初稿已撤掉。
 
-导航仅用用户截图裁出的图像模板，不调用 OCR：房间名称白字图形用于定位，黄框内放大名称模板确认选中目标，固定按钮模板执行第二次点击，固定页面标识模板验证结束状态。图形匹配不解释文字内容。素材生成入口为 `tools/build_reforming_center_templates.py`，目录为 `templates/reforming_center/`，索引为 `data/meta/reforming_center_templates_pc.json`。
+导航仅用用户截图裁出的图像模板，不调用 OCR：房间名称白字图形用于定位，黄框内放大名称模板确认选中目标，固定按钮模板执行第二次点击，固定页面标识模板验证结束状态。图形匹配不解释文字内容。素材生成入口为 `tools/build_reforming_center_templates.py`，目录为 `templates/navigation/rooms/`，索引为 `data/meta/reforming_center_templates_pc.json`。
 
 | 用户确认的房间类型 | 进入操作 | 返回结果 |
 | --- | --- | --- |

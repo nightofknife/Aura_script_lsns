@@ -29,7 +29,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game-data", type=Path, required=True)
     parser.add_argument("--pythonlibs", type=Path, default=ROOT / ".codex_tmp/item_quality_research/pythonlibs")
-    parser.add_argument("--output", type=Path, default=ROOT / "plans/resonance_pc/templates/affix_refresh")
+    parser.add_argument("--output", type=Path, default=ROOT / "plans/resonance_pc/templates/inventory/affix_refresh")
     parser.add_argument("--catalog", type=Path, default=ROOT / "plans/resonance_pc/data/meta/affix_refresh.json")
     parser.add_argument("--reference-screenshot", type=Path, action="append", default=[],
                         help="Approved reference screenshot, repeat to retain calibration from multiple recorded SHA256 sources")

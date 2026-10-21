@@ -72,12 +72,12 @@ def test_primary_buy_button_reuses_existing_template_and_clicks_its_observed_cen
     result = buy_rig.run()
     calls = [call for call in buy_rig.calls if call[0] == "template_hit"]
     assert len(calls) == 1
-    assert calls[0][1][2:] == ("templates/purchase_book_buy_page_ready.png", [850, 590, 380, 110])
+    assert calls[0][1][2:] == ("templates/commerce/books/buy_page_ready.png", [850, 590, 380, 110])
     assert calls[0][2]["threshold"] == .8
     click = next(call for call in buy_rig.calls if call[0] == "click")
     assert click[1][1]["center"] == [1050, 650]
     assert result["buy_button"]["method"] == "template"
-    assert result["buy_button"]["template"] == "templates/purchase_book_buy_page_ready.png"
+    assert result["buy_button"]["template"] == "templates/commerce/books/buy_page_ready.png"
     assert result["confirm_panel_found"] is False
     assert result["settlement"]["closed"] is True
 
@@ -108,9 +108,9 @@ def confirmation_scenario(buy_rig, monkeypatch, *, panel_found=True, button_foun
 
     def wait_template(app, vision, template, region, **kwargs):
         events.append(("template", template, list(region), kwargs["threshold"]))
-        found = panel_found if template == "templates/trade_buy_preview_title.png" else (
+        found = panel_found if template == "templates/commerce/trade/buy_preview_title.png" else (
             button_found if list(region) == [900, 620, 330, 70] else True)
-        return {"found": found, "center": [1060, 652] if found else None, "confidence": .95}
+        return {"valid": True, "found": found, "center": [1060, 652] if found else None, "confidence": .95}
 
     def click(app, hit):
         events.append(("click", hit["center"]))
@@ -119,7 +119,8 @@ def confirmation_scenario(buy_rig, monkeypatch, *, panel_found=True, button_foun
     def settlement(*args, **kwargs):
         closed = next(settlement_results)
         events.append(("settlement", closed))
-        return {"closed": closed}
+        return {"closed": closed, "settlement_confirmed": closed,
+                "final_absence_verified": closed, "observation_unknown": False}
 
     monkeypatch.setattr(trade, "_wait_template", wait_template)
     monkeypatch.setattr(trade, "_click_hit", click)
@@ -131,10 +132,10 @@ def test_extra_confirmation_requires_title_then_existing_button_then_final_settl
     events = confirmation_scenario(buy_rig, monkeypatch)
     result = buy_rig.run()
     assert events == [
-        ("template", "templates/purchase_book_buy_page_ready.png", [850, 590, 380, 110], .8),
+        ("template", "templates/commerce/books/buy_page_ready.png", [850, 590, 380, 110], .8),
         ("click", [1060, 652]), ("settlement", False),
-        ("template", "templates/trade_buy_preview_title.png", [850, 80, 180, 60], .86),
-        ("template", "templates/purchase_book_buy_page_ready.png", [900, 620, 330, 70], .8),
+        ("template", "templates/commerce/trade/buy_preview_title.png", [850, 80, 180, 60], .86),
+        ("template", "templates/commerce/books/buy_page_ready.png", [900, 620, 330, 70], .8),
         ("click", [1060, 652]), ("settlement", True),
     ]
     assert result["success"] is True and result["confirm_panel_found"] is True
@@ -149,7 +150,7 @@ def test_missing_confirmation_title_cannot_trigger_second_button_or_success(buy_
         buy_rig.run()
     assert error.value.code == "buy_transaction_not_confirmed"
     assert [event[0] for event in events] == ["template", "click", "settlement", "template"]
-    assert events[-1][1] == "templates/trade_buy_preview_title.png"
+    assert events[-1][1] == "templates/commerce/trade/buy_preview_title.png"
 
 
 def test_missing_confirmation_button_cannot_click_a_guessed_position(buy_rig, monkeypatch):
@@ -173,8 +174,8 @@ def test_matching_both_controls_still_cannot_replace_final_settlement_confirmati
 
 
 @pytest.mark.parametrize("template,region", [
-    ("templates/purchase_book_buy_page_ready.png", [850, 590, 380, 110]),
-    ("templates/trade_buy_preview_title.png", [850, 80, 180, 60]),
+    ("templates/commerce/books/buy_page_ready.png", [850, 590, 380, 110]),
+    ("templates/commerce/trade/buy_preview_title.png", [850, 80, 180, 60]),
 ])
 def test_buy_template_capture_offsets_match_center_to_client_coordinates(template, region):
     captures, calls = [], []
@@ -199,11 +200,12 @@ def test_buy_template_capture_offsets_match_center_to_client_coordinates(templat
 
 
 def test_reused_button_and_new_title_are_decodable_nonempty_template_assets():
+    from plans.resonance_pc.src.actions import purchase_book_pc_actions as books
     root = Path(trade.__file__).resolve().parents[2]
-    for filename in ("purchase_book_buy_page_ready.png", "trade_buy_preview_title.png"):
-        image = cv2.imdecode(np.frombuffer((root / "templates" / filename).read_bytes(), np.uint8),
+    for template in (books._BUY_PAGE_READY_TEMPLATE, trade._BUY_CONFIRM_PANEL_TEMPLATE):
+        image = cv2.imdecode(np.frombuffer((root / template).read_bytes(), np.uint8),
                              cv2.IMREAD_COLOR)
         assert image is not None and image.shape[2] == 3
         assert image.std() > 1
-        if filename == "trade_buy_preview_title.png":
+        if template == trade._BUY_CONFIRM_PANEL_TEMPLATE:
             assert image.shape[:2] == (26, 90)

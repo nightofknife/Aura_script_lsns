@@ -51,7 +51,7 @@ def test_every_asset_is_opaque_png_with_verified_content_and_two_distinct_states
         for state in ("available", "selected"):
             relative = entry[state]
             path = PLAN / relative
-            assert path.resolve().is_relative_to((PLAN / "templates/trade_products").resolve())
+            assert path.resolve().is_relative_to((PLAN / "templates/commerce/trade/products").resolve())
             assert path.suffix == ".png"
             raw = path.read_bytes()
             metadata = CATALOG["assets"][relative]
@@ -66,7 +66,7 @@ def test_every_asset_is_opaque_png_with_verified_content_and_two_distinct_states
         assert state_bytes[0] != state_bytes[1]
     assert referenced == set(CATALOG["assets"])
     assert len(referenced) == 456
-    assert {path.relative_to(PLAN).as_posix() for path in (PLAN / "templates/trade_products").glob("*")} == referenced
+    assert {path.relative_to(PLAN).as_posix() for path in (PLAN / "templates/commerce/trade/products").rglob("*.png")} == referenced
 
 
 def _record(**values):

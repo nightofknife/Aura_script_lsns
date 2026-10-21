@@ -446,3 +446,41 @@ def test_same_product_multiple_cards_uses_one_presence_receipt_and_completes_wee
     assert result["has_selected_goods"] is True and result["matched_item_ids"] == ["a"]
     assert begin(store)["reason"] == "completed_this_week"
     assert fake_ui == ["validated", "clicked", "settled", "exit:rest_menu"]
+
+
+def test_actual_submit_journal_timeout_keeps_pending_and_blocks_replay(store, monkeypatch):
+    clock = SimpleNamespace(now=0.0)
+
+    async def advance(seconds):
+        clock.now += seconds
+
+    monkeypatch.setattr(select, "time", SimpleNamespace(monotonic=lambda: clock.now))
+    monkeypatch.setattr(asyncio, "sleep", advance)
+    visit = begin(store)
+    app = SubmitApp()
+    original_journal = visit_actions.mark_pending_batch
+
+    def journal_then_expire(*args, **kwargs):
+        saved = original_journal(*args, **kwargs)
+        clock.now += select._WAIT_SECONDS
+        return saved
+
+    async def actual_submit(selection, app, before_submit):
+        return await select.execute_black_moon_submit(
+            selection, app, SubmitReader(), before_submit=before_submit)
+
+    monkeypatch.setattr(visit_actions, "mark_pending_batch", journal_then_expire)
+    monkeypatch.setattr(visit_actions, "execute_black_moon_submit", actual_submit)
+    with pytest.raises(select.BlackMoonLocalSelectError) as error:
+        submit(store, visit, app=app)
+    assert error.value.code == "black_moon_submit_unconfirmed"
+    saved = record(store, visit)
+    assert saved["completed"] is False and not app.clicks
+    assert len(saved["batches"]) == 1
+    assert next(iter(saved["batches"].values()))["status"] == "pending"
+    with pytest.raises(ValueError, match="Unresolved"):
+        submit(store, visit, app=app)
+    with pytest.raises(ValueError, match="Unresolved"):
+        begin(store)
+    assert record(store, visit) == saved
+    assert not app.clicks

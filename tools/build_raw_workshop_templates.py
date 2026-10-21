@@ -15,6 +15,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "plans/resonance_pc"
+SHARED_SELECTION = {
+    "select_all": "select_all.png", "cancel_all": "cancel_all.png",
+    "staff_confirm": "confirm.png", "selection_back": "back.png",
+}
 CLIENT = (25, 56, 1305, 776)
 SOURCES = {
     "idle_blue": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
@@ -102,7 +106,7 @@ def build(source_dir, preview_dir):
     preview_dir = preview_dir.resolve()
     if not preview_dir.is_relative_to(ROOT) or preview_dir == ROOT:
         raise ValueError("Preview directory must be a dedicated repo-local directory")
-    output = PLAN / "templates/reforming_center/raw_workshop"
+    output = PLAN / "templates/workshop/production/controls/raw"
     output.mkdir(parents=True, exist_ok=True)
     preview_dir.mkdir(parents=True, exist_ok=True)
     frames, provenance = {}, {}
@@ -121,7 +125,9 @@ def build(source_dir, preview_dir):
         if not (0 <= x < x+w <= 1280 and 0 <= y < y+h <= 720):
             raise ValueError(f"Invalid crop: {name}: {box}")
         crop = frames[source].crop((x, y, x+w, y+h))
-        destination = output / f"{name}.png"
+        destination = (PLAN / "templates/workshop/staffing/controls/selection" / SHARED_SELECTION[name]
+                       if name in SHARED_SELECTION else output / f"{name}.png")
+        destination.parent.mkdir(parents=True, exist_ok=True)
         crop.save(destination)
         records.append({"id": identifier, "name": name, "label": label,
                         "image": destination.relative_to(PLAN).as_posix(),

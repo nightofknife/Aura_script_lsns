@@ -52,13 +52,21 @@ def test_prepare_reader_never_loads_stock_assets_or_catalogue(monkeypatch):
         return real_open(path, *args, **kwargs)
 
     monkeypatch.setattr(shop.Image, "open", tracked)
-    monkeypatch.setattr(shop, "_catalog", lambda *args: pytest.fail("Preparation cannot read products"))
+    assert not hasattr(shop, "_catalog")
+    real_read = Path.read_text
+
+    def read_without_products(path, *args, **kwargs):
+        assert path.name != "black_moon_local_shop_catalog.json", "Preparation cannot read products"
+        return real_read(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_without_products)
     reader = prepare.BlackMoonLocalPrepareVision()
     reader.observe(np.zeros((720, 1280, 3), np.uint8))
     assert opened and not any("/items/" in path or "/cards/" in path for path in opened)
     assert len(reader._data[0]["templates"]) == 6
     assert all(not pixels.flags.writeable for pixels in reader._data[1].values())
-    assert {name.split(".")[0] for name in map(lambda path: Path(path).name, opened)} == set(prepare.CONTROL_NAMES)
+    assert {name.split(".")[0] for name in map(lambda path: Path(path).name, opened)} == {
+        *prepare.CONTROL_NAMES, "local_tab"}
 
 
 def test_unknown_templates_do_not_imply_off_or_ready():

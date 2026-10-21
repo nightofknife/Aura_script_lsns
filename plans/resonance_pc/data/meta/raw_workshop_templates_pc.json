@@ -178,7 +178,7 @@
       "id": "A01",
       "name": "deposit_button",
       "label": "预存按钮",
-      "image": "templates/reforming_center/raw_workshop/deposit_button.png",
+      "image": "templates/workshop/production/controls/raw/deposit_button.png",
       "source": "idle_blue",
       "source_id": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
       "client_bbox_xywh": [
@@ -201,7 +201,7 @@
       "id": "A02",
       "name": "deposit_max",
       "label": "金额层：最多",
-      "image": "templates/reforming_center/raw_workshop/deposit_max.png",
+      "image": "templates/workshop/production/controls/raw/deposit_max.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -224,7 +224,7 @@
       "id": "A03",
       "name": "deposit_confirm",
       "label": "金额层：确定",
-      "image": "templates/reforming_center/raw_workshop/deposit_confirm.png",
+      "image": "templates/workshop/production/controls/raw/deposit_confirm.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -247,7 +247,7 @@
       "id": "A04",
       "name": "deposit_cancel",
       "label": "金额层：取消",
-      "image": "templates/reforming_center/raw_workshop/deposit_cancel.png",
+      "image": "templates/workshop/production/controls/raw/deposit_cancel.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -270,7 +270,7 @@
       "id": "A05",
       "name": "deposit_currency",
       "label": "金额层：铁盟币",
-      "image": "templates/reforming_center/raw_workshop/deposit_currency.png",
+      "image": "templates/workshop/production/controls/raw/deposit_currency.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -293,7 +293,7 @@
       "id": "A06",
       "name": "deposit_full_toast",
       "label": "预存已达上限提示",
-      "image": "templates/reforming_center/raw_workshop/deposit_full_toast.png",
+      "image": "templates/workshop/production/controls/raw/deposit_full_toast.png",
       "source": "deposit_full",
       "source_id": "318ff7c3-ca38-4bd0-ab9c-8296fbe6f98f",
       "client_bbox_xywh": [
@@ -316,7 +316,7 @@
       "id": "A07",
       "name": "start_enabled",
       "label": "开始生产：蓝色可用",
-      "image": "templates/reforming_center/raw_workshop/start_enabled.png",
+      "image": "templates/workshop/production/controls/raw/start_enabled.png",
       "source": "idle_blue",
       "source_id": "bb20fa22-f8b8-4181-b8d0-033e8871ed2f",
       "client_bbox_xywh": [
@@ -339,7 +339,7 @@
       "id": "A08",
       "name": "start_disabled",
       "label": "开始生产：灰色禁用",
-      "image": "templates/reforming_center/raw_workshop/start_disabled.png",
+      "image": "templates/workshop/production/controls/raw/start_disabled.png",
       "source": "idle_gray",
       "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
       "client_bbox_xywh": [
@@ -362,7 +362,7 @@
       "id": "A09",
       "name": "running_stop",
       "label": "生产中：终止（只观察）",
-      "image": "templates/reforming_center/raw_workshop/running_stop.png",
+      "image": "templates/workshop/production/controls/raw/running_stop.png",
       "source": "running",
       "source_id": "623785cd-7d53-4a50-8acb-8086f4964f5d",
       "client_bbox_xywh": [
@@ -385,7 +385,7 @@
       "id": "A10",
       "name": "running_speed",
       "label": "生产中：加速（只观察）",
-      "image": "templates/reforming_center/raw_workshop/running_speed.png",
+      "image": "templates/workshop/production/controls/raw/running_speed.png",
       "source": "running",
       "source_id": "623785cd-7d53-4a50-8acb-8086f4964f5d",
       "client_bbox_xywh": [
@@ -408,7 +408,7 @@
       "id": "A11",
       "name": "slider_track_reference",
       "label": "滑块初始状态参考",
-      "image": "templates/reforming_center/raw_workshop/slider_track_reference.png",
+      "image": "templates/workshop/production/controls/raw/slider_track_reference.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -431,7 +431,7 @@
       "id": "A12",
       "name": "deposit_min_marker",
       "label": "金额层：最少",
-      "image": "templates/reforming_center/raw_workshop/deposit_min_marker.png",
+      "image": "templates/workshop/production/controls/raw/deposit_min_marker.png",
       "source": "deposit_dialog",
       "source_id": "9fba6cd4-f24e-4d00-bbce-fcd6683bfaf1",
       "client_bbox_xywh": [
@@ -454,7 +454,7 @@
       "id": "B01",
       "name": "work_tab_selected",
       "label": "工作名单：已选页签",
-      "image": "templates/reforming_center/raw_workshop/work_tab_selected.png",
+      "image": "templates/workshop/production/controls/raw/work_tab_selected.png",
       "source": "idle_gray",
       "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
       "client_bbox_xywh": [
@@ -477,7 +477,7 @@
       "id": "B02",
       "name": "reserve_tab_unselected",
       "label": "替补名单：未选页签",
-      "image": "templates/reforming_center/raw_workshop/reserve_tab_unselected.png",
+      "image": "templates/workshop/production/controls/raw/reserve_tab_unselected.png",
       "source": "idle_gray",
       "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
       "client_bbox_xywh": [
@@ -500,7 +500,7 @@
       "id": "B03",
       "name": "choose_prisoners",
       "label": "车间：选择囚犯",
-      "image": "templates/reforming_center/raw_workshop/choose_prisoners.png",
+      "image": "templates/workshop/production/controls/raw/choose_prisoners.png",
       "source": "idle_gray",
       "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
       "client_bbox_xywh": [
@@ -523,7 +523,7 @@
       "id": "B04",
       "name": "select_all",
       "label": "选择页：一键选中",
-      "image": "templates/reforming_center/raw_workshop/select_all.png",
+      "image": "templates/workshop/staffing/controls/selection/select_all.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -546,7 +546,7 @@
       "id": "B05",
       "name": "cancel_all",
       "label": "选择页：一键取消",
-      "image": "templates/reforming_center/raw_workshop/cancel_all.png",
+      "image": "templates/workshop/staffing/controls/selection/cancel_all.png",
       "source": "selection_checked",
       "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
       "client_bbox_xywh": [
@@ -569,7 +569,7 @@
       "id": "B06",
       "name": "staff_confirm",
       "label": "选择页：确认",
-      "image": "templates/reforming_center/raw_workshop/staff_confirm.png",
+      "image": "templates/workshop/staffing/controls/selection/confirm.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -592,7 +592,7 @@
       "id": "B07",
       "name": "prisoner_selected_ribbon",
       "label": "囚犯卡：选中标记",
-      "image": "templates/reforming_center/raw_workshop/prisoner_selected_ribbon.png",
+      "image": "templates/workshop/production/controls/raw/prisoner_selected_ribbon.png",
       "source": "selection_checked",
       "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
       "client_bbox_xywh": [
@@ -615,7 +615,7 @@
       "id": "B08",
       "name": "selection_footer",
       "label": "选择页：车间囚犯数量",
-      "image": "templates/reforming_center/raw_workshop/selection_footer.png",
+      "image": "templates/workshop/production/controls/raw/selection_footer.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -638,7 +638,7 @@
       "id": "B09",
       "name": "selection_back",
       "label": "选择页：返回箭头",
-      "image": "templates/reforming_center/raw_workshop/selection_back.png",
+      "image": "templates/workshop/staffing/controls/selection/back.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -661,7 +661,7 @@
       "id": "B10",
       "name": "work_count_0_7_sample",
       "label": "工作人数样本：0/7",
-      "image": "templates/reforming_center/raw_workshop/work_count_0_7_sample.png",
+      "image": "templates/workshop/production/controls/raw/work_count_0_7_sample.png",
       "source": "idle_gray",
       "source_id": "3a15c8fd-73a2-42d3-8b29-50457e8022d2",
       "client_bbox_xywh": [
@@ -684,7 +684,7 @@
       "id": "B11",
       "name": "work_count_7_7_sample",
       "label": "工作人数样本：7/7",
-      "image": "templates/reforming_center/raw_workshop/work_count_7_7_sample.png",
+      "image": "templates/workshop/production/controls/raw/work_count_7_7_sample.png",
       "source": "staff_full",
       "source_id": "c36cafc2-1d85-4d13-97cd-824db0eb0b26",
       "client_bbox_xywh": [
@@ -707,7 +707,7 @@
       "id": "B12",
       "name": "reserve_count_0_2_sample",
       "label": "替补人数样本：0/2",
-      "image": "templates/reforming_center/raw_workshop/reserve_count_0_2_sample.png",
+      "image": "templates/workshop/production/controls/raw/reserve_count_0_2_sample.png",
       "source": "staff_full",
       "source_id": "c36cafc2-1d85-4d13-97cd-824db0eb0b26",
       "client_bbox_xywh": [
@@ -730,7 +730,7 @@
       "id": "B13",
       "name": "selection_count_0_7_sample",
       "label": "选择人数样本：0/7",
-      "image": "templates/reforming_center/raw_workshop/selection_count_0_7_sample.png",
+      "image": "templates/workshop/production/controls/raw/selection_count_0_7_sample.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -753,7 +753,7 @@
       "id": "B14",
       "name": "selection_count_7_7_sample",
       "label": "选择人数样本：7/7",
-      "image": "templates/reforming_center/raw_workshop/selection_count_7_7_sample.png",
+      "image": "templates/workshop/production/controls/raw/selection_count_7_7_sample.png",
       "source": "selection_checked",
       "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
       "client_bbox_xywh": [

@@ -62,7 +62,7 @@ Framework node success is not business success; callers must inspect output.
 
 ## Recognition Assets
 
-Six approved opaque RGB templates reside under `templates/trailer_service`.
+Six approved opaque RGB templates reside under `templates/navigation/trailer`.
 They use the framework matcher with `TM_SQDIFF_NORMED`, score `1 - difference`,
 threshold 0.90, no grayscale, preprocessing, or masks. Currency templates contain
 the icon and selected white background but no variable amounts. Only the

@@ -98,24 +98,25 @@ def _temporary_character_config(tmp_path: Path) -> tuple[Path, Path]:
     character_root = template_root / "characters"
     template_root.mkdir(parents=True, exist_ok=True)
     config["templates"] = {
-        "character_root": "templates/characters",
         "entry": "templates/entry.png",
         "lit_star": "templates/star.png",
         "lit_star_mask": "templates/star_mask.png",
     }
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/player_data_character_entry.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/controls/entry.png",
         template_root / "entry.png",
     )
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/character_stars/lit/01.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/stars/lit.png",
         template_root / "star.png",
     )
     shutil.copyfile(
-        REPO_ROOT / "plans/resonance_pc/templates/character_stars/lit/01_mask.png",
+        REPO_ROOT / "plans/resonance_pc/templates/characters/stars/lit_mask.png",
         template_root / "star_mask.png",
     )
     config_path = tmp_path / "player_characters.json"
+    config["characters"] = [{"character_id": "测试角色", "name": "测试角色", "templates": [
+        "templates/characters/测试角色/默认.png", "templates/characters/测试角色/新皮肤.png"]}]
     config_path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
     return config_path, character_root
 
@@ -142,6 +143,9 @@ def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_
     assert len(catalog["templates"]) == 2
 
     _write_png(character_root / "坏尺寸" / "01.png", 139, 140)
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    payload["characters"][0]["templates"].append("templates/characters/坏尺寸/01.png")
+    config_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError, match="140x140"):
         characters.load_character_catalog(config_path, plan_root=tmp_path)
 

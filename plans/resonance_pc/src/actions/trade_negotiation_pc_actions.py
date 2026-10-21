@@ -9,6 +9,9 @@ from typing import Any, Dict, Mapping, Tuple
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._bounded_observation import ObservationBudget, wait_for_observation
+from ._template_observation import observe_template
+from ._cancellable_wait import sleep_until_deadline
 
 
 _CAP_REGION = (980, 430, 90, 50)
@@ -29,13 +32,13 @@ NEGOTIATION_ATTEMPT_FATIGUE = 8
 
 _NEGOTIATION_CONFIG: Mapping[str, Mapping[str, str]] = {
     "bargain": {
-        "button_template": "templates/trade_buy_bargain_button.png",
-        "cap_template": "templates/trade_buy_cap20_digits.png",
-        "exhausted_template": "templates/trade_buy_rebargain_button.png",
+        "button_template": "templates/commerce/trade/negotiation/buy/bargain_button.png",
+        "cap_template": "templates/commerce/trade/negotiation/buy/cap20_digits.png",
+        "exhausted_template": "templates/commerce/trade/negotiation/buy/rebargain_button.png",
     },
     "raise": {
-        "button_template": "templates/trade_sell_raise_button.png",
-        "cap_template": "templates/trade_sell_cap20_digits.png",
+        "button_template": "templates/commerce/trade/negotiation/sell/raise_button.png",
+        "cap_template": "templates/commerce/trade/negotiation/sell/cap20_digits.png",
     },
 }
 
@@ -54,13 +57,8 @@ def _check_cancelled() -> None:
 
 
 def _cancelable_sleep(seconds: float) -> None:
-    deadline = time.monotonic() + max(float(seconds), 0.0)
-    while True:
-        _check_cancelled()
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return
-        time.sleep(min(0.05, remaining))
+    sleep_until_deadline(seconds, sleep=time.sleep, monotonic=time.monotonic,
+                         check_cancelled=_check_cancelled)
 
 
 
@@ -75,32 +73,22 @@ def _match_template(
     template: str,
     region: Tuple[int, int, int, int],
     threshold: float,
+    require_center: bool = False,
 ) -> Dict[str, Any]:
-    _check_cancelled()
-    capture = app.capture(rect=region)
-    _check_cancelled()
-    if not capture.success:
-        raise NegotiationExecutionError(
-            "negotiation_page_lost",
-            "Unable to capture the negotiation page.",
-            {"template": template, "region": list(region)},
-        )
-    match = vision.find_template(
-        source_image=capture.image,
-        template_image=str(_template_path(template)),
-        threshold=float(threshold),
-        use_grayscale=True,
+    result = observe_template(
+        app=app, vision=vision, template=_template_path(template), region=region,
+        threshold=threshold, check_cancelled=_check_cancelled,
+        require_center=require_center,
     )
-    _check_cancelled()
-    center = getattr(match, "center_point", None)
-    result: Dict[str, Any] = {
-        "found": bool(getattr(match, "found", False)),
-        "confidence": float(getattr(match, "confidence", 0.0) or 0.0),
-        "template": template,
-        "region": list(region),
-    }
-    if center and len(center) == 2:
-        result["center"] = [int(region[0] + center[0]), int(region[1] + center[1])]
+    result["template"] = template
+    if not result["valid"]:
+        capture_failed = result.get("reason") == "capture_failed"
+        raise NegotiationExecutionError(
+            "negotiation_page_lost" if capture_failed else "negotiation_template_match_failed",
+            "Unable to capture the negotiation page." if capture_failed
+            else "Unable to obtain valid negotiation template evidence.",
+            result,
+        )
     return result
 
 
@@ -115,25 +103,24 @@ def _wait_for_template_state(
     timeout_sec: float,
     poll_interval_sec: float,
     exhausted_template: str | None = None,
+    budget: ObservationBudget | None = None,
 ) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last: Dict[str, Any] = {
-        "found": False,
-        "confidence": 0.0,
-        "template": template,
-        "region": list(region),
-    }
+    budget = budget if budget is not None else ObservationBudget(
+        timeout_sec, monotonic=time.monotonic, check_cancelled=_check_cancelled,
+        immediate_first_probe=True,
+    )
     exhausted_stable = 0
-    while True:
-        _check_cancelled()
+
+    def observe():
         last = _match_template(
             app=app,
             vision=vision,
             template=template,
             region=region,
             threshold=threshold,
+            require_center=expected_found,
         )
-        if exhausted_template:
+        if exhausted_template and budget.active():
             exhausted = _match_template(
                 app=app,
                 vision=vision,
@@ -141,25 +128,33 @@ def _wait_for_template_state(
                 region=region,
                 threshold=_EXHAUSTED_THRESHOLD,
             )
+            return {**last, "exhausted_match": exhausted}
+        return last
+
+    def accept(last):
+        nonlocal exhausted_stable
+        exhausted = last.get("exhausted_match")
+        if exhausted is not None:
             exhausted_stable = exhausted_stable + 1 if exhausted.get("found") else 0
             if exhausted_stable >= _EXHAUSTED_STABLE_MATCHES:
-                return {
-                    **last,
-                    "found": False,
-                    "attempts_exhausted": True,
-                    "exhausted_match": exhausted,
-                }
+                last.update(found=False, attempts_exhausted=True)
+                return True
         # A possible 再交涉 hit takes precedence over the common button
         # background until its second frame confirms the exhausted state.
-        if exhausted_stable == 0 and bool(last.get("found")) is bool(expected_found):
-            return last
-        if time.monotonic() >= deadline:
-            if exhausted_stable:
-                # Never click a shared-background match while the exhausted
-                # label has been seen but has not yet reached two frames.
-                return {**last, "found": False, "exhausted_match": exhausted}
-            return last
-        _cancelable_sleep(max(float(poll_interval_sec), 0.05))
+        return (exhausted_stable == 0 and last.get("valid") is True
+                and last.get("found") is expected_found)
+
+    observed = wait_for_observation(
+        observe=observe, accept=accept, budget=budget,
+        poll_seconds=max(float(poll_interval_sec), 0.05), sleep=_cancelable_sleep,
+    )
+    if observed.matched:
+        return {**observed.value, "state_confirmed": True}
+    return {
+        "valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
+        "template": template, "region": list(region), "state_confirmed": False,
+        "last_match": observed.value,
+    }
 
 
 def _confirm_cap(
@@ -168,7 +163,10 @@ def _confirm_cap(
     vision: Any,
     cap_template: str,
     confirmation_interval_sec: float,
+    budget: ObservationBudget | None = None,
 ) -> Dict[str, Any]:
+    if budget is not None and not budget.active():
+        return {"confirmed": False, "confidence": 0.0, "matches": []}
     first = _match_template(
         app=app,
         vision=vision,
@@ -176,9 +174,14 @@ def _confirm_cap(
         region=_CAP_REGION,
         threshold=_CAP_THRESHOLD,
     )
+    if budget is not None and not budget.active():
+        return {"confirmed": False, "confidence": 0.0, "matches": [first]}
     if not first.get("found"):
         return {"confirmed": False, "confidence": float(first.get("confidence") or 0.0), "matches": [first]}
-    _cancelable_sleep(max(float(confirmation_interval_sec), 0.05))
+    interval = max(float(confirmation_interval_sec), 0.05)
+    _cancelable_sleep(budget.pause_seconds(interval) if budget is not None else interval)
+    if budget is not None and not budget.active():
+        return {"confirmed": False, "confidence": 0.0, "matches": [first]}
     second = _match_template(
         app=app,
         vision=vision,
@@ -187,7 +190,7 @@ def _confirm_cap(
         threshold=_CAP_THRESHOLD,
     )
     return {
-        "confirmed": bool(second.get("found")),
+        "confirmed": bool(second.get("found")) and (budget is None or budget.active()),
         "confidence": min(
             float(first.get("confidence") or 0.0),
             float(second.get("confidence") or 0.0),
@@ -202,18 +205,29 @@ def _confirm_attempts_exhausted(
     vision: Any,
     template: str,
     interval_sec: float,
+    budget: ObservationBudget | None = None,
 ) -> Dict[str, Any]:
+    if budget is not None and not budget.active():
+        return {"valid": False, "found": None, "reason": "observation_timeout"}
     first = _match_template(
         app=app, vision=vision, template=template,
         region=_BUTTON_REGION, threshold=_EXHAUSTED_THRESHOLD,
     )
+    if budget is not None and not budget.active():
+        return {**first, "valid": False, "found": None, "reason": "observation_timeout"}
     if not first.get("found"):
         return first
-    _cancelable_sleep(max(float(interval_sec), 0.05))
+    interval = max(float(interval_sec), 0.05)
+    _cancelable_sleep(budget.pause_seconds(interval) if budget is not None else interval)
+    if budget is not None and not budget.active():
+        return {**first, "valid": False, "found": None, "reason": "observation_timeout"}
     second = _match_template(
         app=app, vision=vision, template=template,
         region=_BUTTON_REGION, threshold=_EXHAUSTED_THRESHOLD,
     )
+    if budget is not None and not budget.active():
+        return {**second, "valid": False, "found": None, "reason": "observation_timeout",
+                "matches": [first, second]}
     return {
         **second,
         "confidence": min(float(first.get("confidence") or 0.0), float(second.get("confidence") or 0.0)),
@@ -298,6 +312,12 @@ def _execute_negotiation_to_cap(
         raise ValueError(f"unsupported negotiation kind: {kind}")
 
     deadline = started_at + max(float(total_timeout_sec), 0.0)
+    total_budget = ObservationBudget(
+        max(deadline - time.monotonic(), 0.0),
+        monotonic=time.monotonic, check_cancelled=_check_cancelled,
+    )
+    # Keep the original entry deadline, including validation/initialization work.
+    total_budget.deadline = deadline
     cap_template = str(config["cap_template"])
     button_template = str(config["button_template"])
     exhausted_template = config.get("exhausted_template")
@@ -305,6 +325,31 @@ def _execute_negotiation_to_cap(
     last_button: Dict[str, Any] = {"found": False, "confidence": 0.0}
     no_animation_since: float | None = None
     attempts_used = 0
+
+    def input_evidence() -> Dict[str, Any]:
+        return {
+            "kind": kind, "attempts_used": attempts_used,
+            "actual_fatigue_used": attempts_used * NEGOTIATION_ATTEMPT_FATIGUE,
+            "max_attempts": normalized_max_attempts,
+        }
+
+    def observe_phase(callback, **kwargs):
+        try:
+            return callback(**kwargs)
+        except NegotiationExecutionError as exc:
+            # A failed observation never erases inputs already sent this run.
+            # Count only clicks which returned; never guess about failed input.
+            exc.detail.update(input_evidence())
+            raise
+
+    def phase_budget(seconds: float) -> ObservationBudget:
+        result = ObservationBudget(
+            min(max(float(seconds), 0.0), max(deadline - time.monotonic(), 0.0)),
+            monotonic=time.monotonic, check_cancelled=_check_cancelled,
+            immediate_first_probe=float(seconds) <= 0 and total_budget.active(),
+            deadline_limit=deadline,
+        )
+        return result
 
     def exhausted_result(observation: Dict[str, Any]) -> Dict[str, Any]:
         marker = dict(observation.get("exhausted_match") or {})
@@ -331,21 +376,23 @@ def _execute_negotiation_to_cap(
             exhausted_match=marker,
         )
 
-    while time.monotonic() < deadline:
-        _check_cancelled()
+    while total_budget.active():
         # 再交涉 is a terminal state regardless of configured attempts or cap.
         if exhausted_template:
-            exhausted = _confirm_attempts_exhausted(
+            exhausted = observe_phase(_confirm_attempts_exhausted,
                 app=app, vision=vision, template=exhausted_template,
-                interval_sec=poll_interval_sec,
+                interval_sec=poll_interval_sec, budget=total_budget,
             )
+            if not total_budget.active():
+                break
             if exhausted.get("found"):
                 return exhausted_result({"exhausted_match": exhausted})
-        last_cap = _confirm_cap(
+        last_cap = observe_phase(_confirm_cap,
             app=app,
             vision=vision,
             cap_template=cap_template,
             confirmation_interval_sec=cap_confirmation_interval_sec,
+            budget=total_budget,
         )
         logger.info(
             "resonance_pc negotiation cap_check kind=%s confirmed=%s confidence=%.4f",
@@ -353,6 +400,8 @@ def _execute_negotiation_to_cap(
             bool(last_cap.get("confirmed")),
             float(last_cap.get("confidence") or 0.0),
         )
+        if not total_budget.active():
+            break
         if last_cap.get("confirmed"):
             return _result(
                 requested=True,
@@ -363,8 +412,6 @@ def _execute_negotiation_to_cap(
                 max_attempts=normalized_max_attempts,
                 stop_reason="cap_reached",
             )
-        if time.monotonic() >= deadline:
-            break
         if attempts_used >= normalized_max_attempts:
             return _result(
                 requested=True,
@@ -377,7 +424,8 @@ def _execute_negotiation_to_cap(
             )
 
         remaining = max(deadline - time.monotonic(), 0.0)
-        last_button = _wait_for_template_state(
+        button_budget = phase_budget(float(button_wait_timeout_sec))
+        last_button = observe_phase(_wait_for_template_state,
             app=app,
             vision=vision,
             template=button_template,
@@ -387,7 +435,10 @@ def _execute_negotiation_to_cap(
             timeout_sec=min(float(button_wait_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
             exhausted_template=exhausted_template,
+            budget=button_budget,
         )
+        if not total_budget.active():
+            break
         if last_button.get("attempts_exhausted"):
             return exhausted_result(last_button)
         if not last_button.get("found"):
@@ -396,19 +447,25 @@ def _execute_negotiation_to_cap(
             raise NegotiationExecutionError(
                 "negotiation_button_not_found",
                 "Unable to find the negotiation button on the trade page.",
-                {"kind": kind, "last_cap": last_cap, "last_button": last_button},
+                {**input_evidence(), "last_cap": last_cap, "last_button": last_button},
             )
         center = last_button.get("center")
         if not isinstance(center, list) or len(center) != 2:
             raise NegotiationExecutionError(
                 "negotiation_button_not_found",
                 "Negotiation button match did not provide a click point.",
-                {"kind": kind, "last_button": last_button},
+                {**input_evidence(), "last_button": last_button},
             )
-        if time.monotonic() >= deadline:
+        if not total_budget.active():
             break
-
-        _check_cancelled()
+        if not button_budget.active():
+            if not total_budget.active():
+                break
+            raise NegotiationExecutionError(
+                "negotiation_button_not_found",
+                "Negotiation button evidence expired before input.",
+                {**input_evidence(), "last_button": last_button},
+            )
         app.click(x=int(center[0]), y=int(center[1]))
         attempts_used += 1
         logger.info(
@@ -419,7 +476,9 @@ def _execute_negotiation_to_cap(
             float(last_button.get("confidence") or 0.0),
         )
         remaining = max(deadline - time.monotonic(), 0.0)
-        animation_start = _wait_for_template_state(
+        if not total_budget.active():
+            break
+        animation_start = observe_phase(_wait_for_template_state,
             app=app,
             vision=vision,
             template=button_template,
@@ -429,16 +488,22 @@ def _execute_negotiation_to_cap(
             timeout_sec=min(float(animation_start_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
             exhausted_template=exhausted_template,
+            budget=phase_budget(float(animation_start_timeout_sec)),
         )
+        if not total_budget.active():
+            break
         if animation_start.get("attempts_exhausted"):
             return exhausted_result(animation_start)
-        if animation_start.get("found"):
-            last_cap = _confirm_cap(
+        if not animation_start.get("state_confirmed"):
+            last_cap = observe_phase(_confirm_cap,
                 app=app,
                 vision=vision,
                 cap_template=cap_template,
                 confirmation_interval_sec=cap_confirmation_interval_sec,
+                budget=total_budget,
             )
+            if not total_budget.active():
+                break
             if last_cap.get("confirmed"):
                 return _result(
                     requested=True,
@@ -457,9 +522,7 @@ def _execute_negotiation_to_cap(
                     "negotiation_animation_start_timeout",
                     "Negotiation button clicks did not start the animation.",
                     {
-                        "kind": kind,
-                        "attempts_used": attempts_used,
-                        "max_attempts": normalized_max_attempts,
+                        **input_evidence(),
                         "last_cap": last_cap,
                         "last_button": animation_start,
                     },
@@ -469,9 +532,7 @@ def _execute_negotiation_to_cap(
                     "negotiation_animation_start_timeout",
                     "Negotiation button clicks did not start the animation.",
                     {
-                        "kind": kind,
-                        "attempts_used": attempts_used,
-                        "max_attempts": normalized_max_attempts,
+                        **input_evidence(),
                         "last_cap": last_cap,
                         "last_button": animation_start,
                     },
@@ -480,7 +541,7 @@ def _execute_negotiation_to_cap(
 
         no_animation_since = None
         remaining = max(deadline - time.monotonic(), 0.0)
-        animation_finish = _wait_for_template_state(
+        animation_finish = observe_phase(_wait_for_template_state,
             app=app,
             vision=vision,
             template=button_template,
@@ -490,16 +551,22 @@ def _execute_negotiation_to_cap(
             timeout_sec=min(float(animation_finish_timeout_sec), remaining),
             poll_interval_sec=poll_interval_sec,
             exhausted_template=exhausted_template,
+            budget=phase_budget(float(animation_finish_timeout_sec)),
         )
+        if not total_budget.active():
+            break
         if animation_finish.get("attempts_exhausted"):
             return exhausted_result(animation_finish)
         if not animation_finish.get("found"):
-            last_cap = _confirm_cap(
+            last_cap = observe_phase(_confirm_cap,
                 app=app,
                 vision=vision,
                 cap_template=cap_template,
                 confirmation_interval_sec=cap_confirmation_interval_sec,
+                budget=total_budget,
             )
+            if not total_budget.active():
+                break
             if last_cap.get("confirmed"):
                 return _result(
                     requested=True,
@@ -513,19 +580,22 @@ def _execute_negotiation_to_cap(
             raise NegotiationExecutionError(
                 "negotiation_animation_finish_timeout",
                 "Negotiation animation did not return to the trade page.",
-                {"kind": kind, "last_cap": last_cap, "last_button": animation_finish},
+                {**input_evidence(), "last_cap": last_cap, "last_button": animation_finish},
             )
         logger.info(
             "resonance_pc negotiation animation_finished kind=%s button_confidence=%.4f",
             kind,
             float(animation_finish.get("confidence") or 0.0),
         )
-        last_cap = _confirm_cap(
+        last_cap = observe_phase(_confirm_cap,
             app=app,
             vision=vision,
             cap_template=cap_template,
             confirmation_interval_sec=cap_confirmation_interval_sec,
+            budget=total_budget,
         )
+        if not total_budget.active():
+            break
         if last_cap.get("confirmed"):
             return _result(
                 requested=True,
@@ -556,9 +626,7 @@ def _execute_negotiation_to_cap(
         "negotiation_cap_detection_timeout",
         "Negotiation did not reach the 20.0% cap before the total timeout.",
         {
-            "kind": kind,
-            "attempts_used": attempts_used,
-            "max_attempts": normalized_max_attempts,
+            **input_evidence(),
             "last_cap": last_cap,
             "last_button": last_button,
         },

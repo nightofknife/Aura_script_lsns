@@ -553,7 +553,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_00.png",
+        "image": "templates/navigation/rooms/map/map_00.png",
         "kind": "white_text",
         "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
         "source_bbox_xywh": [
@@ -566,7 +566,7 @@
           51.5,
           10.5
         ],
-        "mask": "templates/reforming_center/map_00.mask.png",
+        "mask": "templates/navigation/rooms/map/map_00.mask.png",
         "search_region": [
           0,
           90,
@@ -577,7 +577,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_09_title.png",
+          "image": "templates/navigation/rooms/destination/destination_09_title.png",
           "kind": "white_text",
           "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
           "source_bbox_xywh": [
@@ -590,7 +590,7 @@
             40.5,
             11.0
           ],
-          "mask": "templates/reforming_center/destination_09_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_09_title.mask.png",
           "search_region": [
             669,
             10,
@@ -599,7 +599,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_09_dorm_navigation.png",
+          "image": "templates/navigation/rooms/destination/destination_09_dorm_navigation.png",
           "kind": "white_text",
           "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
           "source_bbox_xywh": [
@@ -612,7 +612,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_09_dorm_navigation.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_09_dorm_navigation.mask.png",
           "search_region": [
             106,
             647,
@@ -638,7 +638,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_01.png",
+        "image": "templates/navigation/rooms/map/map_01.png",
         "kind": "white_text",
         "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
         "source_bbox_xywh": [
@@ -651,7 +651,7 @@
           51.5,
           10.5
         ],
-        "mask": "templates/reforming_center/map_01.mask.png",
+        "mask": "templates/navigation/rooms/map/map_01.mask.png",
         "search_region": [
           0,
           90,
@@ -662,7 +662,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_09_title.png",
+          "image": "templates/navigation/rooms/destination/destination_09_title.png",
           "kind": "white_text",
           "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
           "source_bbox_xywh": [
@@ -675,7 +675,7 @@
             40.5,
             11.0
           ],
-          "mask": "templates/reforming_center/destination_09_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_09_title.mask.png",
           "search_region": [
             669,
             10,
@@ -684,7 +684,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_09_dorm_navigation.png",
+          "image": "templates/navigation/rooms/destination/destination_09_dorm_navigation.png",
           "kind": "white_text",
           "source_id": "ba7a37e6-07e2-4dcd-857f-c90d276872d3",
           "source_bbox_xywh": [
@@ -697,7 +697,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_09_dorm_navigation.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_09_dorm_navigation.mask.png",
           "search_region": [
             106,
             647,
@@ -723,7 +723,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_02.png",
+        "image": "templates/navigation/rooms/map/map_02.png",
         "kind": "white_text",
         "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
         "source_bbox_xywh": [
@@ -736,7 +736,7 @@
           51.5,
           10.5
         ],
-        "mask": "templates/reforming_center/map_02.mask.png",
+        "mask": "templates/navigation/rooms/map/map_02.mask.png",
         "search_region": [
           0,
           90,
@@ -747,7 +747,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_10_title.png",
+          "image": "templates/navigation/rooms/destination/destination_10_title.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -760,7 +760,7 @@
             40.5,
             11.0
           ],
-          "mask": "templates/reforming_center/destination_10_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_10_title.mask.png",
           "search_region": [
             651,
             10,
@@ -769,7 +769,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -782,7 +782,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -808,7 +808,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_03.png",
+        "image": "templates/navigation/rooms/map/map_03.png",
         "kind": "white_text",
         "source_id": "666e062d-25fb-4132-ad79-f8a67c43c139",
         "source_bbox_xywh": [
@@ -821,7 +821,7 @@
           51.5,
           10.5
         ],
-        "mask": "templates/reforming_center/map_03.mask.png",
+        "mask": "templates/navigation/rooms/map/map_03.mask.png",
         "search_region": [
           0,
           90,
@@ -832,7 +832,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_10_title.png",
+          "image": "templates/navigation/rooms/destination/destination_10_title.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -845,7 +845,7 @@
             40.5,
             11.0
           ],
-          "mask": "templates/reforming_center/destination_10_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_10_title.mask.png",
           "search_region": [
             651,
             10,
@@ -854,7 +854,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -867,7 +867,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -893,7 +893,7 @@
       ],
       "entry_type": "selection_only",
       "map_title": {
-        "image": "templates/reforming_center/map_04.png",
+        "image": "templates/navigation/rooms/map/map_04.png",
         "kind": "white_text",
         "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
         "source_bbox_xywh": [
@@ -906,7 +906,7 @@
           36.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_04.mask.png",
+        "mask": "templates/navigation/rooms/map/map_04.mask.png",
         "search_region": [
           0,
           90,
@@ -916,7 +916,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_04.png",
+        "image": "templates/navigation/rooms/selection/selected_04.png",
         "kind": "white_text",
         "source_id": "bbad8c0b-b81b-4b91-ab60-1b969a78b0da",
         "source_bbox_xywh": [
@@ -929,7 +929,7 @@
           68.5,
           18.5
         ],
-        "mask": "templates/reforming_center/selected_04.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_04.mask.png",
         "search_region": [
           0,
           180,
@@ -955,7 +955,7 @@
       ],
       "entry_type": "selection_only",
       "map_title": {
-        "image": "templates/reforming_center/map_05.png",
+        "image": "templates/navigation/rooms/map/map_05.png",
         "kind": "white_text",
         "source_id": "09d2d6ff-6129-486f-852d-bfbd963f91bf",
         "source_bbox_xywh": [
@@ -968,7 +968,7 @@
           19.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_05.mask.png",
+        "mask": "templates/navigation/rooms/map/map_05.mask.png",
         "search_region": [
           0,
           90,
@@ -978,7 +978,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_05.png",
+        "image": "templates/navigation/rooms/selection/selected_05.png",
         "kind": "white_text",
         "source_id": "12707809-50d9-4bcd-b0b2-dce974ce1cff",
         "source_bbox_xywh": [
@@ -991,7 +991,7 @@
           37.0,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_05.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_05.mask.png",
         "search_region": [
           0,
           180,
@@ -1015,7 +1015,7 @@
       ],
       "entry_type": "detail",
       "map_title": {
-        "image": "templates/reforming_center/map_06.png",
+        "image": "templates/navigation/rooms/map/map_06.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1028,7 +1028,7 @@
           28.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_06.mask.png",
+        "mask": "templates/navigation/rooms/map/map_06.mask.png",
         "search_region": [
           0,
           90,
@@ -1038,7 +1038,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_06.png",
+        "image": "templates/navigation/rooms/selection/selected_06.png",
         "kind": "white_text",
         "source_id": "ac03e38e-edb9-4a00-9148-69cb49bfc264",
         "source_bbox_xywh": [
@@ -1051,7 +1051,7 @@
           53.0,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_06.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_06.mask.png",
         "search_region": [
           0,
           180,
@@ -1061,7 +1061,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_06_title.png",
+          "image": "templates/navigation/rooms/destination/destination_06_title.png",
           "kind": "white_text",
           "source_id": "a7f53f8d-51c5-470b-993f-c7c5bee183b2",
           "source_bbox_xywh": [
@@ -1074,7 +1074,7 @@
             45.0,
             15.5
           ],
-          "mask": "templates/reforming_center/destination_06_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_06_title.mask.png",
           "search_region": [
             355,
             0,
@@ -1083,7 +1083,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_06_view_report.png",
+          "image": "templates/navigation/rooms/destination/destination_06_view_report.png",
           "kind": "color",
           "source_id": "a7f53f8d-51c5-470b-993f-c7c5bee183b2",
           "source_bbox_xywh": [
@@ -1121,7 +1121,7 @@
       ],
       "entry_type": "detail",
       "map_title": {
-        "image": "templates/reforming_center/map_07.png",
+        "image": "templates/navigation/rooms/map/map_07.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1134,7 +1134,7 @@
           28.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_07.mask.png",
+        "mask": "templates/navigation/rooms/map/map_07.mask.png",
         "search_region": [
           0,
           90,
@@ -1144,7 +1144,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_07.png",
+        "image": "templates/navigation/rooms/selection/selected_07.png",
         "kind": "white_text",
         "source_id": "31214f9e-928e-4bbe-904d-6cd9abc7f32c",
         "source_bbox_xywh": [
@@ -1157,7 +1157,7 @@
           53.0,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_07.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_07.mask.png",
         "search_region": [
           0,
           180,
@@ -1167,7 +1167,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_07_title.png",
+          "image": "templates/navigation/rooms/destination/destination_07_title.png",
           "kind": "white_text",
           "source_id": "d8bb5f12-da83-4ab5-bfff-1944ca583fcf",
           "source_bbox_xywh": [
@@ -1180,7 +1180,7 @@
             45.0,
             15.5
           ],
-          "mask": "templates/reforming_center/destination_07_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_07_title.mask.png",
           "search_region": [
             414,
             1,
@@ -1189,7 +1189,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_07_waiting_queue.png",
+          "image": "templates/navigation/rooms/destination/destination_07_waiting_queue.png",
           "kind": "white_text",
           "source_id": "d8bb5f12-da83-4ab5-bfff-1944ca583fcf",
           "source_bbox_xywh": [
@@ -1202,7 +1202,7 @@
             45.0,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_07_waiting_queue.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_07_waiting_queue.mask.png",
           "search_region": [
             1153,
             35,
@@ -1226,7 +1226,7 @@
       ],
       "entry_type": "selection_only",
       "map_title": {
-        "image": "templates/reforming_center/map_08.png",
+        "image": "templates/navigation/rooms/map/map_08.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1239,7 +1239,7 @@
           28.0,
           11.5
         ],
-        "mask": "templates/reforming_center/map_08.mask.png",
+        "mask": "templates/navigation/rooms/map/map_08.mask.png",
         "search_region": [
           0,
           90,
@@ -1249,7 +1249,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_08.png",
+        "image": "templates/navigation/rooms/selection/selected_08.png",
         "kind": "white_text",
         "source_id": "97c8c3af-7891-456e-ae12-8cae07d70b46",
         "source_bbox_xywh": [
@@ -1262,7 +1262,7 @@
           53.0,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_08.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_08.mask.png",
         "search_region": [
           0,
           180,
@@ -1286,7 +1286,7 @@
       ],
       "entry_type": "detail",
       "map_title": {
-        "image": "templates/reforming_center/map_09.png",
+        "image": "templates/navigation/rooms/map/map_09.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1299,7 +1299,7 @@
           28.0,
           11.5
         ],
-        "mask": "templates/reforming_center/map_09.mask.png",
+        "mask": "templates/navigation/rooms/map/map_09.mask.png",
         "search_region": [
           0,
           90,
@@ -1309,7 +1309,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_09.png",
+        "image": "templates/navigation/rooms/selection/selected_09.png",
         "kind": "white_text",
         "source_id": "a84588ee-d644-4f7d-a65f-88eb412d9ea3",
         "source_bbox_xywh": [
@@ -1322,7 +1322,7 @@
           53.0,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_09.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_09.mask.png",
         "search_region": [
           0,
           180,
@@ -1332,7 +1332,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_08_title.png",
+          "image": "templates/navigation/rooms/destination/destination_08_title.png",
           "kind": "white_text",
           "source_id": "68445bcb-cc49-4610-9dee-1dfd44af8790",
           "source_bbox_xywh": [
@@ -1345,7 +1345,7 @@
             50.5,
             16.0
           ],
-          "mask": "templates/reforming_center/destination_08_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_08_title.mask.png",
           "search_region": [
             466,
             1,
@@ -1354,7 +1354,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_08_parole_all.png",
+          "image": "templates/navigation/rooms/destination/destination_08_parole_all.png",
           "kind": "color",
           "source_id": "68445bcb-cc49-4610-9dee-1dfd44af8790",
           "source_bbox_xywh": [
@@ -1392,7 +1392,7 @@
       ],
       "entry_type": "selection_only",
       "map_title": {
-        "image": "templates/reforming_center/map_10.png",
+        "image": "templates/navigation/rooms/map/map_10.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1405,7 +1405,7 @@
           37.0,
           11.5
         ],
-        "mask": "templates/reforming_center/map_10.mask.png",
+        "mask": "templates/navigation/rooms/map/map_10.mask.png",
         "search_region": [
           0,
           90,
@@ -1415,7 +1415,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_10.png",
+        "image": "templates/navigation/rooms/selection/selected_10.png",
         "kind": "white_text",
         "source_id": "44b52e42-f96a-4988-8e02-bfd0898dbd07",
         "source_bbox_xywh": [
@@ -1428,7 +1428,7 @@
           71.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_10.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_10.mask.png",
         "search_region": [
           0,
           180,
@@ -1454,7 +1454,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_11.png",
+        "image": "templates/navigation/rooms/map/map_11.png",
         "kind": "white_text",
         "source_id": "cbef82eb-6cbd-435b-b863-edffbf44f870",
         "source_bbox_xywh": [
@@ -1467,7 +1467,7 @@
           54.0,
           11.5
         ],
-        "mask": "templates/reforming_center/map_11.mask.png",
+        "mask": "templates/navigation/rooms/map/map_11.mask.png",
         "search_region": [
           0,
           90,
@@ -1478,7 +1478,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_14_roster.png",
+          "image": "templates/navigation/rooms/destination/destination_14_roster.png",
           "kind": "white_text",
           "source_id": "31793e96-0b44-4f99-adf8-194c238fb496",
           "source_bbox_xywh": [
@@ -1491,7 +1491,7 @@
             50.5,
             16.0
           ],
-          "mask": "templates/reforming_center/destination_14_roster.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_14_roster.mask.png",
           "search_region": [
             246,
             9,
@@ -1500,7 +1500,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_14_admit.png",
+          "image": "templates/navigation/rooms/destination/destination_14_admit.png",
           "kind": "white_text",
           "source_id": "31793e96-0b44-4f99-adf8-194c238fb496",
           "source_bbox_xywh": [
@@ -1513,7 +1513,7 @@
             61.0,
             12.0
           ],
-          "mask": "templates/reforming_center/destination_14_admit.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_14_admit.mask.png",
           "search_region": [
             1103,
             661,
@@ -1539,7 +1539,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_12.png",
+        "image": "templates/navigation/rooms/map/map_12.png",
         "kind": "white_text",
         "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
         "source_bbox_xywh": [
@@ -1552,7 +1552,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_12.mask.png",
+        "mask": "templates/navigation/rooms/map/map_12.mask.png",
         "search_region": [
           0,
           90,
@@ -1563,7 +1563,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_12_raw_warehouse.png",
+          "image": "templates/navigation/rooms/destination/destination_12_raw_warehouse.png",
           "kind": "white_text",
           "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
           "source_bbox_xywh": [
@@ -1576,7 +1576,7 @@
             44.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_12_raw_warehouse.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_12_raw_warehouse.mask.png",
           "search_region": [
             1112,
             199,
@@ -1585,7 +1585,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_12_product_warehouse.png",
+          "image": "templates/navigation/rooms/destination/destination_12_product_warehouse.png",
           "kind": "white_text",
           "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
           "source_bbox_xywh": [
@@ -1598,7 +1598,7 @@
             44.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_12_product_warehouse.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_12_product_warehouse.mask.png",
           "search_region": [
             1112,
             532,
@@ -1624,7 +1624,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_13.png",
+        "image": "templates/navigation/rooms/map/map_13.png",
         "kind": "white_text",
         "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
         "source_bbox_xywh": [
@@ -1637,7 +1637,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_13.mask.png",
+        "mask": "templates/navigation/rooms/map/map_13.mask.png",
         "search_region": [
           0,
           90,
@@ -1648,7 +1648,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_12_raw_warehouse.png",
+          "image": "templates/navigation/rooms/destination/destination_12_raw_warehouse.png",
           "kind": "white_text",
           "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
           "source_bbox_xywh": [
@@ -1661,7 +1661,7 @@
             44.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_12_raw_warehouse.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_12_raw_warehouse.mask.png",
           "search_region": [
             1112,
             199,
@@ -1670,7 +1670,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_12_product_warehouse.png",
+          "image": "templates/navigation/rooms/destination/destination_12_product_warehouse.png",
           "kind": "white_text",
           "source_id": "a4ef51a2-2751-44d0-adda-8676a68d6849",
           "source_bbox_xywh": [
@@ -1683,7 +1683,7 @@
             44.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_12_product_warehouse.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_12_product_warehouse.mask.png",
           "search_region": [
             1112,
             532,
@@ -1710,7 +1710,7 @@
       ],
       "entry_type": "production",
       "map_title": {
-        "image": "templates/reforming_center/map_14.png",
+        "image": "templates/navigation/rooms/map/map_14.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -1723,7 +1723,7 @@
           69.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_14.mask.png",
+        "mask": "templates/navigation/rooms/map/map_14.mask.png",
         "search_region": [
           0,
           90,
@@ -1733,7 +1733,7 @@
       },
       "map_title_variants": [
         {
-          "image": "templates/reforming_center/map_14_variant_00.png",
+          "image": "templates/navigation/rooms/map/map_14_variant_00.png",
           "kind": "white_text",
           "source_id": "01591961-4b5e-484f-854f-550b8ba5ce86",
           "source_bbox_xywh": [
@@ -1746,7 +1746,7 @@
             69.5,
             11.0
           ],
-          "mask": "templates/reforming_center/map_14_variant_00.mask.png",
+          "mask": "templates/navigation/rooms/map/map_14_variant_00.mask.png",
           "search_region": [
             0,
             90,
@@ -1756,7 +1756,7 @@
         }
       ],
       "selected_title": {
-        "image": "templates/reforming_center/selected_14.png",
+        "image": "templates/navigation/rooms/selection/selected_14.png",
         "kind": "white_text",
         "source_id": "b0ec2014-d352-471d-a5ed-6e481656b87e",
         "source_bbox_xywh": [
@@ -1769,7 +1769,7 @@
           141.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_14.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_14.mask.png",
         "search_region": [
           0,
           180,
@@ -1779,7 +1779,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_00_title.png",
+          "image": "templates/navigation/rooms/destination/destination_00_title.png",
           "kind": "white_text",
           "source_id": "f81060c5-b490-4b80-8a5e-b802456c7176",
           "source_bbox_xywh": [
@@ -1792,7 +1792,7 @@
             107.0,
             15.0
           ],
-          "mask": "templates/reforming_center/destination_00_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_00_title.mask.png",
           "search_region": [
             350,
             10,
@@ -1801,7 +1801,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_00_select_prisoner.png",
+          "image": "templates/workshop/staffing/controls/select_prisoner.png",
           "kind": "white_text",
           "source_id": "f81060c5-b490-4b80-8a5e-b802456c7176",
           "source_bbox_xywh": [
@@ -1814,7 +1814,7 @@
             38.5,
             12.5
           ],
-          "mask": "templates/reforming_center/destination_00_select_prisoner.mask.png",
+          "mask": "templates/workshop/staffing/controls/select_prisoner.mask.png",
           "search_region": [
             865,
             644,
@@ -1841,7 +1841,7 @@
       ],
       "entry_type": "production",
       "map_title": {
-        "image": "templates/reforming_center/map_15.png",
+        "image": "templates/navigation/rooms/map/map_15.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -1854,7 +1854,7 @@
           69.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_15.mask.png",
+        "mask": "templates/navigation/rooms/map/map_15.mask.png",
         "search_region": [
           0,
           90,
@@ -1864,7 +1864,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_15.png",
+        "image": "templates/navigation/rooms/selection/selected_15.png",
         "kind": "white_text",
         "source_id": "7601cdf5-1c39-4754-a3a2-11a5a5e81944",
         "source_bbox_xywh": [
@@ -1877,7 +1877,7 @@
           126.5,
           18.5
         ],
-        "mask": "templates/reforming_center/selected_15.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_15.mask.png",
         "search_region": [
           0,
           180,
@@ -1887,7 +1887,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_01_title.png",
+          "image": "templates/navigation/rooms/destination/destination_01_title.png",
           "kind": "white_text",
           "source_id": "f242fc14-93b2-4006-85a1-1a55df25b4f7",
           "source_bbox_xywh": [
@@ -1900,7 +1900,7 @@
             107.0,
             15.0
           ],
-          "mask": "templates/reforming_center/destination_01_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_01_title.mask.png",
           "search_region": [
             350,
             10,
@@ -1909,7 +1909,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_01_select_prisoner.png",
+          "image": "templates/workshop/staffing/controls/select_prisoner.png",
           "kind": "white_text",
           "source_id": "f242fc14-93b2-4006-85a1-1a55df25b4f7",
           "source_bbox_xywh": [
@@ -1922,7 +1922,7 @@
             38.5,
             12.5
           ],
-          "mask": "templates/reforming_center/destination_01_select_prisoner.mask.png",
+          "mask": "templates/workshop/staffing/controls/select_prisoner.mask.png",
           "search_region": [
             865,
             644,
@@ -1949,7 +1949,7 @@
       ],
       "entry_type": "production",
       "map_title": {
-        "image": "templates/reforming_center/map_16.png",
+        "image": "templates/navigation/rooms/map/map_16.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -1962,7 +1962,7 @@
           69.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_16.mask.png",
+        "mask": "templates/navigation/rooms/map/map_16.mask.png",
         "search_region": [
           0,
           90,
@@ -1972,7 +1972,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_16.png",
+        "image": "templates/navigation/rooms/selection/selected_16.png",
         "kind": "white_text",
         "source_id": "a9cf78d6-d85c-4ae2-a169-0866e6e5fcfe",
         "source_bbox_xywh": [
@@ -1985,7 +1985,7 @@
           141.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_16.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_16.mask.png",
         "search_region": [
           0,
           180,
@@ -1995,7 +1995,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_02_title.png",
+          "image": "templates/navigation/rooms/destination/destination_02_title.png",
           "kind": "white_text",
           "source_id": "77cf1072-27f0-40f2-bc3b-a51866c3c61f",
           "source_bbox_xywh": [
@@ -2008,7 +2008,7 @@
             107.0,
             15.0
           ],
-          "mask": "templates/reforming_center/destination_02_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_02_title.mask.png",
           "search_region": [
             350,
             10,
@@ -2017,7 +2017,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_02_select_prisoner.png",
+          "image": "templates/workshop/staffing/controls/select_prisoner.png",
           "kind": "white_text",
           "source_id": "77cf1072-27f0-40f2-bc3b-a51866c3c61f",
           "source_bbox_xywh": [
@@ -2030,7 +2030,7 @@
             38.5,
             12.5
           ],
-          "mask": "templates/reforming_center/destination_02_select_prisoner.mask.png",
+          "mask": "templates/workshop/staffing/controls/select_prisoner.mask.png",
           "search_region": [
             865,
             644,
@@ -2057,7 +2057,7 @@
       ],
       "entry_type": "production",
       "map_title": {
-        "image": "templates/reforming_center/map_17.png",
+        "image": "templates/navigation/rooms/map/map_17.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -2070,7 +2070,7 @@
           69.5,
           11.0
         ],
-        "mask": "templates/reforming_center/map_17.mask.png",
+        "mask": "templates/navigation/rooms/map/map_17.mask.png",
         "search_region": [
           0,
           90,
@@ -2080,7 +2080,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_17.png",
+        "image": "templates/navigation/rooms/selection/selected_17.png",
         "kind": "white_text",
         "source_id": "f680705d-8d5f-43d0-a8c6-b5ad63399055",
         "source_bbox_xywh": [
@@ -2093,7 +2093,7 @@
           141.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_17.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_17.mask.png",
         "search_region": [
           0,
           180,
@@ -2103,7 +2103,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_03_title.png",
+          "image": "templates/navigation/rooms/destination/destination_03_title.png",
           "kind": "white_text",
           "source_id": "3bca14b5-ed29-4b16-8e2a-adab68280a41",
           "source_bbox_xywh": [
@@ -2116,7 +2116,7 @@
             107.0,
             15.0
           ],
-          "mask": "templates/reforming_center/destination_03_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_03_title.mask.png",
           "search_region": [
             350,
             10,
@@ -2125,7 +2125,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_03_select_prisoner.png",
+          "image": "templates/workshop/staffing/controls/select_prisoner.png",
           "kind": "white_text",
           "source_id": "3bca14b5-ed29-4b16-8e2a-adab68280a41",
           "source_bbox_xywh": [
@@ -2138,7 +2138,7 @@
             38.5,
             12.5
           ],
-          "mask": "templates/reforming_center/destination_03_select_prisoner.mask.png",
+          "mask": "templates/workshop/staffing/controls/select_prisoner.mask.png",
           "search_region": [
             865,
             644,
@@ -2164,7 +2164,7 @@
       ],
       "entry_type": "detail",
       "map_title": {
-        "image": "templates/reforming_center/map_18.png",
+        "image": "templates/navigation/rooms/map/map_18.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -2177,7 +2177,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_18.mask.png",
+        "mask": "templates/navigation/rooms/map/map_18.mask.png",
         "search_region": [
           0,
           90,
@@ -2187,7 +2187,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_18.png",
+        "image": "templates/navigation/rooms/selection/selected_18.png",
         "kind": "white_text",
         "source_id": "8c0ab801-994c-4868-aa4f-b37577673d7b",
         "source_bbox_xywh": [
@@ -2200,7 +2200,7 @@
           71.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_18.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_18.mask.png",
         "search_region": [
           0,
           180,
@@ -2210,7 +2210,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_04_title.png",
+          "image": "templates/navigation/rooms/destination/destination_04_title.png",
           "kind": "white_text",
           "source_id": "1927e684-9826-45b5-a9ee-5d3a2cb97c42",
           "source_bbox_xywh": [
@@ -2223,7 +2223,7 @@
             46.0,
             14.0
           ],
-          "mask": "templates/reforming_center/destination_04_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_04_title.mask.png",
           "search_region": [
             513,
             89,
@@ -2232,7 +2232,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_04_research_formula.png",
+          "image": "templates/navigation/rooms/destination/destination_04_research_formula.png",
           "kind": "color",
           "source_id": "1927e684-9826-45b5-a9ee-5d3a2cb97c42",
           "source_bbox_xywh": [
@@ -2268,7 +2268,7 @@
       ],
       "entry_type": "selection_only",
       "map_title": {
-        "image": "templates/reforming_center/map_19.png",
+        "image": "templates/navigation/rooms/map/map_19.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -2281,7 +2281,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_19.mask.png",
+        "mask": "templates/navigation/rooms/map/map_19.mask.png",
         "search_region": [
           0,
           90,
@@ -2291,7 +2291,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_19.png",
+        "image": "templates/navigation/rooms/selection/selected_19.png",
         "kind": "white_text",
         "source_id": "9c1b5a17-183d-46e9-9fff-1cc6c5044e9c",
         "source_bbox_xywh": [
@@ -2304,7 +2304,7 @@
           71.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_19.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_19.mask.png",
         "search_region": [
           0,
           180,
@@ -2328,7 +2328,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_20.png",
+        "image": "templates/navigation/rooms/map/map_20.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -2341,7 +2341,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_20.mask.png",
+        "mask": "templates/navigation/rooms/map/map_20.mask.png",
         "search_region": [
           0,
           90,
@@ -2352,7 +2352,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_15_title.png",
+          "image": "templates/navigation/rooms/destination/destination_15_title.png",
           "kind": "white_text",
           "source_id": "1f89a7d6-4a2c-4510-adb4-882c4dca38f8",
           "source_bbox_xywh": [
@@ -2365,7 +2365,7 @@
             86.5,
             22.0
           ],
-          "mask": "templates/reforming_center/destination_15_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_15_title.mask.png",
           "search_region": [
             582,
             162,
@@ -2374,7 +2374,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_15_deposit.png",
+          "image": "templates/navigation/rooms/destination/destination_15_deposit.png",
           "kind": "white_text",
           "source_id": "1f89a7d6-4a2c-4510-adb4-882c4dca38f8",
           "source_bbox_xywh": [
@@ -2387,7 +2387,7 @@
             48.0,
             13.0
           ],
-          "mask": "templates/reforming_center/destination_15_deposit.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_15_deposit.mask.png",
           "search_region": [
             934,
             471,
@@ -2413,7 +2413,7 @@
       ],
       "entry_type": "detail",
       "map_title": {
-        "image": "templates/reforming_center/map_21.png",
+        "image": "templates/navigation/rooms/map/map_21.png",
         "kind": "white_text",
         "source_id": "2307449c-08d1-4dc3-9031-f421a2af431e",
         "source_bbox_xywh": [
@@ -2426,7 +2426,7 @@
           36.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_21.mask.png",
+        "mask": "templates/navigation/rooms/map/map_21.mask.png",
         "search_region": [
           0,
           90,
@@ -2436,7 +2436,7 @@
       },
       "map_title_variants": [],
       "selected_title": {
-        "image": "templates/reforming_center/selected_21.png",
+        "image": "templates/navigation/rooms/selection/selected_21.png",
         "kind": "white_text",
         "source_id": "85faf0fa-6a0b-4579-a52e-86beefe0d43b",
         "source_bbox_xywh": [
@@ -2449,7 +2449,7 @@
           71.5,
           19.5
         ],
-        "mask": "templates/reforming_center/selected_21.mask.png",
+        "mask": "templates/navigation/rooms/selection/selected_21.mask.png",
         "search_region": [
           0,
           180,
@@ -2459,7 +2459,7 @@
       },
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_05_title.png",
+          "image": "templates/navigation/rooms/destination/destination_05_title.png",
           "kind": "white_text",
           "source_id": "b98b7f19-48f7-4344-9e2e-120e85e3fef1",
           "source_bbox_xywh": [
@@ -2472,7 +2472,7 @@
             70.0,
             17.5
           ],
-          "mask": "templates/reforming_center/destination_05_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_05_title.mask.png",
           "search_region": [
             936,
             12,
@@ -2481,7 +2481,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_05_goods_transport.png",
+          "image": "templates/navigation/rooms/destination/destination_05_goods_transport.png",
           "kind": "color",
           "source_id": "b98b7f19-48f7-4344-9e2e-120e85e3fef1",
           "source_bbox_xywh": [
@@ -2519,7 +2519,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_22.png",
+        "image": "templates/navigation/rooms/map/map_22.png",
         "kind": "white_text",
         "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
         "source_bbox_xywh": [
@@ -2532,7 +2532,7 @@
           45.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_22.mask.png",
+        "mask": "templates/navigation/rooms/map/map_22.mask.png",
         "search_region": [
           0,
           90,
@@ -2543,7 +2543,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_13_title.png",
+          "image": "templates/navigation/rooms/destination/destination_13_title.png",
           "kind": "white_text",
           "source_id": "61602bd8-7c99-42b2-a7bf-6c829209fbc8",
           "source_bbox_xywh": [
@@ -2556,7 +2556,7 @@
             101.5,
             22.5
           ],
-          "mask": "templates/reforming_center/destination_13_title.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_13_title.mask.png",
           "search_region": [
             849,
             144,
@@ -2565,7 +2565,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_13_transport_orders.png",
+          "image": "templates/navigation/rooms/destination/destination_13_transport_orders.png",
           "kind": "color",
           "source_id": "61602bd8-7c99-42b2-a7bf-6c829209fbc8",
           "source_bbox_xywh": [
@@ -2603,7 +2603,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_23.png",
+        "image": "templates/navigation/rooms/map/map_23.png",
         "kind": "white_text",
         "source_id": "cc6ccd36-5fd8-40dc-b557-2c112e9d524f",
         "source_bbox_xywh": [
@@ -2616,7 +2616,7 @@
           45.0,
           11.0
         ],
-        "mask": "templates/reforming_center/map_23.mask.png",
+        "mask": "templates/navigation/rooms/map/map_23.mask.png",
         "search_region": [
           0,
           90,
@@ -2626,7 +2626,7 @@
       },
       "map_title_variants": [
         {
-          "image": "templates/reforming_center/map_23_variant_00.png",
+          "image": "templates/navigation/rooms/map/map_23_variant_00.png",
           "kind": "white_text",
           "source_id": "7e12c250-bccf-439e-a309-99d44cf629e1",
           "source_bbox_xywh": [
@@ -2639,7 +2639,7 @@
             45.0,
             11.0
           ],
-          "mask": "templates/reforming_center/map_23_variant_00.mask.png",
+          "mask": "templates/navigation/rooms/map/map_23_variant_00.mask.png",
           "search_region": [
             0,
             90,
@@ -2650,7 +2650,7 @@
       ],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/destination_11_purchase_list.png",
+          "image": "templates/navigation/rooms/destination/destination_11_purchase_list.png",
           "kind": "white_text",
           "source_id": "15cb14c9-fa01-4b3f-a5a5-8293e9104b95",
           "source_bbox_xywh": [
@@ -2663,7 +2663,7 @@
             85.0,
             16.5
           ],
-          "mask": "templates/reforming_center/destination_11_purchase_list.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_11_purchase_list.mask.png",
           "search_region": [
             252,
             534,
@@ -2672,7 +2672,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_11_one_click_purchase.png",
+          "image": "templates/navigation/rooms/destination/destination_11_one_click_purchase.png",
           "kind": "white_text",
           "source_id": "15cb14c9-fa01-4b3f-a5a5-8293e9104b95",
           "source_bbox_xywh": [
@@ -2685,7 +2685,7 @@
             48.0,
             12.0
           ],
-          "mask": "templates/reforming_center/destination_11_one_click_purchase.mask.png",
+          "mask": "templates/navigation/rooms/destination/destination_11_one_click_purchase.mask.png",
           "search_region": [
             285,
             642,
@@ -2707,7 +2707,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_workshop_3.png",
+        "image": "templates/navigation/rooms/map_workshop_3.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2730,7 +2730,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/physical_workshop_3.png",
+          "image": "templates/navigation/rooms/physical_workshop_3.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2751,7 +2751,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -2764,7 +2764,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -2787,7 +2787,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_workshop_4.png",
+        "image": "templates/navigation/rooms/map_workshop_4.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2810,7 +2810,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/physical_workshop_4.png",
+          "image": "templates/navigation/rooms/physical_workshop_4.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2831,7 +2831,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -2844,7 +2844,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -2867,7 +2867,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_workshop_5.png",
+        "image": "templates/navigation/rooms/map_workshop_5.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2890,7 +2890,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/physical_workshop_5.png",
+          "image": "templates/navigation/rooms/physical_workshop_5.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2911,7 +2911,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -2924,7 +2924,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -2947,7 +2947,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/reforming_center/map_workshop_6.png",
+        "image": "templates/navigation/rooms/map_workshop_6.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2970,7 +2970,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/reforming_center/physical_workshop_6.png",
+          "image": "templates/navigation/rooms/physical_workshop_6.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2991,7 +2991,7 @@
           ]
         },
         {
-          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "image": "templates/workshop/staffing/controls/edit.png",
           "kind": "white_text",
           "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
           "source_bbox_xywh": [
@@ -3004,7 +3004,7 @@
             43.5,
             11.5
           ],
-          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "mask": "templates/workshop/staffing/controls/edit.mask.png",
           "search_region": [
             1081,
             662,
@@ -3019,7 +3019,7 @@
   },
   "buttons": {
     "production": {
-      "image": "templates/reforming_center/button_production.png",
+      "image": "templates/navigation/rooms/controls/button_production.png",
       "kind": "color",
       "source_id": "b0ec2014-d352-471d-a5ed-6e481656b87e",
       "source_bbox_xywh": [
@@ -3040,7 +3040,7 @@
       ]
     },
     "detail": {
-      "image": "templates/reforming_center/button_detail.png",
+      "image": "templates/navigation/rooms/controls/button_detail.png",
       "kind": "color",
       "source_id": "31214f9e-928e-4bbe-904d-6cd9abc7f32c",
       "source_bbox_xywh": [
@@ -3061,7 +3061,7 @@
       ]
     },
     "construction": {
-      "image": "templates/reforming_center/button_construction.png",
+      "image": "templates/navigation/rooms/controls/button_construction.png",
       "kind": "color",
       "source_id": "12707809-50d9-4bcd-b0b2-dce974ce1cff",
       "source_bbox_xywh": [

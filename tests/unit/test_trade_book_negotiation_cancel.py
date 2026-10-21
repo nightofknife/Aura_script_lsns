@@ -41,7 +41,7 @@ def test_book_cancel_during_pointer_move_prevents_click(monkeypatch, cancel_stat
         click=lambda **kw: clicks.append(kw),
     )
     with pytest.raises(asyncio.CancelledError):
-        books._click_template_or_point(app, object(), "unused", [0, 0, 50, 50], (10, 20))
+        books._click_template(app, object(), "unused", [0, 0, 50, 50])
     assert clicks == []
 
 
@@ -57,7 +57,7 @@ def test_book_quantity_cancel_never_confirms_or_runs_failure_cleanup(monkeypatch
         clicks.append(kwargs)
         cancel_state["cancelled"] = True
 
-    monkeypatch.setattr(books, "_click_template_or_point", matched_click)
+    monkeypatch.setattr(books, "_click_template", matched_click)
     monkeypatch.setattr(books, "_wait_for_template_state", lambda *a, **kw: {"matched": True})
     monkeypatch.setattr(books, "_attempt_quantity_dialog_cleanup",
                         lambda **kw: pytest.fail("Cancellation must not trigger recovery clicks"))
@@ -90,7 +90,7 @@ def test_negotiation_cancel_after_matching_prevents_click(monkeypatch, cancel_st
 
     def found(**kwargs):
         cancel_state["cancelled"] = True
-        return {"found": True, "center": [10, 20]}
+        return {"valid": True, "found": True, "center": [10, 20], "state_confirmed": True}
 
     monkeypatch.setattr(negotiation, "_wait_for_template_state", found)
     with pytest.raises(asyncio.CancelledError):
@@ -106,7 +106,7 @@ def test_negotiation_cancel_during_animation_prevents_next_attempt(monkeypatch, 
     sleeps = []
     monkeypatch.setattr(negotiation, "_confirm_cap", lambda **kw: {"confirmed": False})
     monkeypatch.setattr(negotiation, "_match_template", lambda **kw:
-                        {"found": True, "center": [10, 20], "confidence": 1.0})
+                        {"valid": True, "found": True, "center": [10, 20], "confidence": 1.0})
 
     def sleep(seconds):
         sleeps.append(seconds)

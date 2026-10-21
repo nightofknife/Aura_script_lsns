@@ -141,17 +141,23 @@ def test_every_promoted_asset_is_local_hash_valid_and_masks_match():
     cat = policy.load_catalog()
     for relative, metadata in cat["assets"].items():
         path = (PLAN / relative).resolve()
-        assert path.is_relative_to((PLAN / "templates/eternal_scuffle").resolve())
+        assert any(path.is_relative_to((PLAN / directory).resolve()) for directory in (
+            "templates/battle/scuffle/controls", "templates/characters/nameplates/scuffle",
+            "templates/characters/stand/scuffle", "templates/inventory/equipment/art",
+            "templates/inventory/equipment/frames/scuffle"))
         assert ".pytest_tmp" not in relative
         assert hashlib.sha256(path.read_bytes()).hexdigest() == metadata["sha256"]
         with Image.open(path) as image:
             assert list(image.size) == metadata["size"]
         if path.name.endswith("_mask.png"):
-            with Image.open(path) as mask, Image.open(path.with_name(path.name.replace("_mask.png", ".png"))) as template:
-                assert mask.mode == "L" and mask.size == template.size
+            with Image.open(path) as mask:
+                assert mask.mode == "L"
                 assert mask.getbbox() is not None
+    pairs = [(row["template"], row["mask"]) for row in cat["controls"].values() if row.get("mask")]
     for row in cat["characters"]:
         assert len(row["stand_templates"]) == len(row["stand_masks"]) == 8
+        assert len(row["stand_sources"]) == 8
+        pairs.extend(zip(row["stand_templates"], row["stand_masks"], strict=True))
         assert cat["assets"][row["name_template"]]["size"] == [138, 23]
     for row in cat["equipment"]:
         assert cat["assets"][row["template"]]["size"] == [200, 200]
@@ -161,6 +167,11 @@ def test_every_promoted_asset_is_local_hash_valid_and_masks_match():
         assert name_asset["source_font_sha256"]
         for profile in ("small_icon", "small_tips"):
             assert cat["assets"][row[profile + "_template"]]["size"] == [88, 88]
+            pairs.append((row[profile + "_template"], row[profile + "_mask"]))
+        pairs.append((row["template"], row["mask"]))
+    for template_ref, mask_ref in pairs:
+        with Image.open(PLAN / template_ref) as template, Image.open(PLAN / mask_ref) as mask:
+            assert mask.mode == "L" and mask.size == template.size
     assert "choose_role_phase" in cat["controls"] and "unopened_box" in cat["controls"]
 
 

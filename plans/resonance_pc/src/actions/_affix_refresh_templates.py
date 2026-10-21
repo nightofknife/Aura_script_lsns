@@ -27,7 +27,7 @@ def _get(value, key, default=None):
 class AffixTemplateReader:
     def __init__(self, vision, plan_root, catalog):
         self.vision = vision
-        self.root = (Path(plan_root) / "templates" / "affix_refresh").resolve()
+        self.root = (Path(plan_root) / "templates" / "inventory/affix_refresh").resolve()
         self.catalog = catalog
         try:
             self.manifest = json.loads((self.root / "manifest.json").read_text(encoding="utf-8"))

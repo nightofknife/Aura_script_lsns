@@ -12,6 +12,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._bounded_observation import ObservationBudget, wait_for_observation
+from ._template_observation import observe_template
 
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
@@ -32,22 +34,22 @@ class PassengerPcError(RuntimeError):
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _FULL_SCREEN = [0, 0, 1280, 720]
 
-_MAIN_BUTTON_TEMPLATE = "templates/passenger_management_button.png"
-_MAIN_SCREEN_TEMPLATE = "templates/main_train_maintenance_icon.png"
+_MAIN_BUTTON_TEMPLATE = "templates/passenger/management/entry.png"
+_MAIN_SCREEN_TEMPLATE = "templates/navigation/global/train_maintenance.png"
 _MAIN_SCREEN_REGION = [920, 640, 80, 65]
-_SCORE_MARKER_TEMPLATE = "templates/passenger_score_marker.png"
-_RECRUIT_BUTTON_TEMPLATE = "templates/passenger_recruit_button.png"
-_FLYER_MODE_TEMPLATE = "templates/passenger_flyer_mode.png"
-_DESTINATION_MARKER_TEMPLATE = "templates/passenger_destination_marker.png"
-_DESTINATION_NEXT_TEMPLATE = "templates/passenger_destination_next.png"
-_DISPATCH_MARKER_TEMPLATE = "templates/passenger_dispatch_marker.png"
-_DISPATCH_LOCATION_TEMPLATE = "templates/passenger_dispatch_location_marker.png"
-_DISPATCH_LOCK_TEMPLATE = "templates/passenger_dispatch_lock.png"
-_DISPATCH_CONFIRM_TEMPLATE = "templates/passenger_dispatch_confirm.png"
-_AMOUNT_MAX_TEMPLATE = "templates/passenger_amount_max.png"
-_AMOUNT_CONFIRM_TEMPLATE = "templates/passenger_amount_confirm.png"
-_RECRUIT_SUCCESS_TEMPLATE = "templates/passenger_recruit_success.png"
-_SETTLEMENT_TEMPLATE = "templates/passenger_revenue_settlement.png"
+_SCORE_MARKER_TEMPLATE = "templates/passenger/management/score_marker.png"
+_RECRUIT_BUTTON_TEMPLATE = "templates/passenger/recruitment/entry.png"
+_FLYER_MODE_TEMPLATE = "templates/passenger/recruitment/flyer_mode.png"
+_DESTINATION_MARKER_TEMPLATE = "templates/passenger/destination/marker.png"
+_DESTINATION_NEXT_TEMPLATE = "templates/passenger/destination/next.png"
+_DISPATCH_MARKER_TEMPLATE = "templates/passenger/dispatch/marker.png"
+_DISPATCH_LOCATION_TEMPLATE = "templates/passenger/dispatch/location_marker.png"
+_DISPATCH_LOCK_TEMPLATE = "templates/passenger/dispatch/lock.png"
+_DISPATCH_CONFIRM_TEMPLATE = "templates/passenger/dispatch/confirm.png"
+_AMOUNT_MAX_TEMPLATE = "templates/passenger/amount/maximum.png"
+_AMOUNT_CONFIRM_TEMPLATE = "templates/passenger/amount/confirm.png"
+_RECRUIT_SUCCESS_TEMPLATE = "templates/passenger/recruitment/success.png"
+_SETTLEMENT_TEMPLATE = "templates/passenger/settlement/revenue.png"
 
 _MAIN_BUTTON_REGION = [950, 600, 220, 120]
 _SCORE_MARKER_REGION = [120, 70, 330, 130]
@@ -210,27 +212,15 @@ def _match_template(
     region: Sequence[int],
     threshold: float = _TEMPLATE_THRESHOLD,
 ) -> Dict[str, Any]:
-    _check_cancelled()
     rect = _coerce_region(region)
-    capture = app.capture(rect=rect)
-    if not capture.success:
-        return {"found": False, "reason": "capture_failed", "template": template, "region": list(rect)}
-    result = vision.find_template(
-        source_image=capture.image,
-        template_image=_template_path(template),
-        threshold=float(threshold),
-        use_grayscale=True,
+    result = observe_template(
+        app=app, vision=vision, template=_template_path(template), region=rect,
+        threshold=threshold, check_cancelled=_check_cancelled, require_center=True,
     )
-    center = getattr(result, "center_point", None)
-    payload: Dict[str, Any] = {
-        "found": bool(getattr(result, "found", False)),
-        "confidence": float(getattr(result, "confidence", 0.0) or 0.0),
-        "template": template,
-        "region": list(rect),
-    }
-    if center and len(center) == 2:
-        payload["center"] = [int(rect[0] + int(center[0])), int(rect[1] + int(center[1]))]
-    return payload
+    result["template"] = template
+    if not result["valid"]:
+        _raise("passenger_template_observation_failed", "passenger template observation is unknown", result)
+    return result
 
 
 def _wait_template(
@@ -242,14 +232,21 @@ def _wait_template(
     timeout_sec: float = _PAGE_TIMEOUT,
     threshold: float = _TEMPLATE_THRESHOLD,
     interval_sec: float = _POLL_INTERVAL,
+    _budget: Optional[ObservationBudget] = None,
 ) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last: Dict[str, Any] = {"found": False, "template": template, "region": list(region)}
-    while True:
-        last = _match_template(app, vision, template, region, threshold)
-        if last.get("found") or time.monotonic() >= deadline:
-            return last
-        time.sleep(max(float(interval_sec), 0.05))
+    budget = _budget if _budget is not None else ObservationBudget(
+        timeout_sec, monotonic=time.monotonic, check_cancelled=_check_cancelled,
+        immediate_first_probe=True,
+    )
+    result = wait_for_observation(
+        observe=lambda: _match_template(app, vision, template, region, threshold),
+        accept=lambda value: value.get("valid") is True and value.get("found") is True,
+        budget=budget, poll_seconds=max(float(interval_sec), 0.05), sleep=time.sleep,
+    )
+    if result.matched:
+        return result.value
+    return {"valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
+            "template": template, "region": list(region), "last_match": result.value}
 
 
 def _click_template_required(
@@ -261,11 +258,14 @@ def _click_template_required(
     error_code: str,
     timeout_sec: float = _PAGE_TIMEOUT,
 ) -> Dict[str, Any]:
-    match = _wait_template(app, vision, template, region, timeout_sec=timeout_sec)
+    budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
+                               check_cancelled=_check_cancelled, immediate_first_probe=True)
+    match = _wait_template(app, vision, template, region, timeout_sec=timeout_sec, _budget=budget)
     center = match.get("center")
     if not match.get("found") or not isinstance(center, list) or len(center) != 2:
         _raise(error_code, f"required passenger template was not found: {template}", {"match": match})
-    _check_cancelled()
+    if not budget.active():
+        _raise(error_code, f"passenger template observation expired before input: {template}", {"match": match})
     app.click(x=int(center[0]), y=int(center[1]))
     return match
 
@@ -278,29 +278,42 @@ def _wait_template_absent(
     *,
     timeout_sec: float,
 ) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last: Dict[str, Any] = {}
-    while True:
-        last = _match_template(app, vision, template, region)
-        if not last.get("found"):
-            return {"absent": True, "last_match": last}
-        if time.monotonic() >= deadline:
-            return {"absent": False, "last_match": last}
-        time.sleep(_POLL_INTERVAL)
+    budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
+                               check_cancelled=_check_cancelled, immediate_first_probe=True)
+
+    result = wait_for_observation(
+        observe=lambda: observe_template(
+            app=app, vision=vision, template=_template_path(template), region=_coerce_region(region),
+            threshold=_TEMPLATE_THRESHOLD, check_cancelled=_check_cancelled,
+        ),
+        # Unknown stops this observation-only wait; it is never absence evidence.
+        accept=lambda value: value["valid"] is False or value["found"] is False,
+        budget=budget, poll_seconds=_POLL_INTERVAL, sleep=time.sleep,
+    )
+    last = result.value or {}
+    if not result.in_time:
+        last = {"valid": False, "found": None, "reason": "observation_timeout", "last_match": last}
+    # Timely presence never proves absence, but preserves the caller's bounded
+    # retry policy. Every next dismiss still needs a fresh strict source probe.
+    return {"absent": result.matched and last.get("valid") is True and last.get("found") is False,
+            "last_match": last}
 
 
 def _wait_main_stable(app: Any, vision: Any, *, timeout_sec: float = 12.0) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
+                               check_cancelled=_check_cancelled, immediate_first_probe=True)
     confirmations = 0
-    last: Dict[str, Any] = {}
-    while True:
-        last = _match_template(app, vision, _MAIN_SCREEN_TEMPLATE, _MAIN_SCREEN_REGION)
-        confirmations = confirmations + 1 if last.get("found") else 0
-        if confirmations >= 2:
-            return {"confirmed": True, "confirmations": confirmations, "match": last}
-        if time.monotonic() >= deadline:
-            return {"confirmed": False, "confirmations": confirmations, "match": last}
-        time.sleep(_POLL_INTERVAL)
+
+    def accept(value):
+        nonlocal confirmations
+        confirmations = confirmations + 1 if value.get("valid") is True and value.get("found") is True else 0
+        return confirmations >= 2
+
+    result = wait_for_observation(
+        observe=lambda: _match_template(app, vision, _MAIN_SCREEN_TEMPLATE, _MAIN_SCREEN_REGION),
+        accept=accept, budget=budget, poll_seconds=_POLL_INTERVAL, sleep=time.sleep,
+    )
+    return {"confirmed": result.matched, "confirmations": confirmations, "match": result.value or {}}
 
 
 def _click_blank_and_confirm_main(
@@ -610,12 +623,14 @@ def _select_rightmost_dispatch(app: Any, vision: Any) -> Dict[str, Any]:
     center = selected["center"]
     _check_cancelled()
     app.click(x=int(center[0]), y=int(center[1]))
+    budget = ObservationBudget(1.2, monotonic=time.monotonic, check_cancelled=_check_cancelled)
     confirm = _wait_template(
         app,
         vision,
         _DISPATCH_CONFIRM_TEMPLATE,
         _DISPATCH_CONFIRM_REGION,
         timeout_sec=1.2,
+        _budget=budget,
     )
     if not confirm.get("found"):
         _raise(
@@ -623,6 +638,11 @@ def _select_rightmost_dispatch(app: Any, vision: Any) -> Dict[str, Any]:
             "the rightmost unlocked passenger dispatch location could not be selected",
             {"selected": selected, "detection": detection, "confirm_match": confirm},
         )
+    center = confirm.get("center")
+    if not isinstance(center, list) or len(center) != 2 or not budget.active():
+        _raise("dispatch_selection_not_confirmed", "dispatch confirmation expired before input",
+               {"selected": selected, "detection": detection, "confirm_match": confirm})
+    app.click(x=int(center[0]), y=int(center[1]))
     return {
         "success": True,
         "selected": selected,
@@ -690,9 +710,10 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
         )
 
         if stable.get("confirmed"):
+            management_budget = ObservationBudget(3.0, monotonic=time.monotonic, check_cancelled=_check_cancelled)
             management_button = _wait_template(
                 app, vision, _MAIN_BUTTON_TEMPLATE, _MAIN_BUTTON_REGION,
-                timeout_sec=3.0,
+                timeout_sec=3.0, _budget=management_budget,
             )
             record["management_button"] = management_button
             if management_button.get("found"):
@@ -723,7 +744,9 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
                 }
             continue
 
-        _check_cancelled()
+        if not management_budget.active():
+            _raise("passenger_management_not_found", "management entry observation expired before input",
+                   {"attempts": attempts, "management_button": management_button})
         app.click(x=int(center[0]), y=int(center[1]))
         record["clicked"] = True
         record["click_point"] = [int(center[0]), int(center[1])]
@@ -823,9 +846,6 @@ def resonance_pc_recruit_passengers_by_flyer(
     if not dispatch_page.get("found"):
         _raise("passenger_dispatch_page_not_found", "passenger dispatch page did not appear", {"match": dispatch_page})
     dispatch = _select_rightmost_dispatch(app, vision)
-    confirm_match = dispatch["confirm_match"]
-    confirm_center = confirm_match.get("center")
-    app.click(x=int(confirm_center[0]), y=int(confirm_center[1]))
 
     _click_template_required(
         app,
@@ -919,14 +939,16 @@ def resonance_pc_enter_city_and_settle_passengers(
     )
     visit_hit: Optional[Dict[str, Any]] = None
     if not settlement.get("found"):
-        deadline = time.monotonic() + 12.0
-        while True:
+        visit_budget = ObservationBudget(12.0, monotonic=time.monotonic, check_cancelled=_check_cancelled)
+
+        def observe_visit():
             items = _capture_text_items(app, ocr, _VISIT_CITY_REGION)
-            visit_hit = _find_alias_hit(items, ("访问城市", "访问地区", "进入城市"))
-            if visit_hit is not None or time.monotonic() >= deadline:
-                break
-            time.sleep(_POLL_INTERVAL)
-        if visit_hit is None:
+            return _find_alias_hit(items, ("访问城市", "访问地区", "进入城市"))
+
+        visit = wait_for_observation(observe=observe_visit, accept=lambda value: value is not None,
+                                    budget=visit_budget, poll_seconds=_POLL_INTERVAL, sleep=time.sleep)
+        visit_hit = visit.value if visit.matched else None
+        if visit_hit is None or not visit_budget.active():
             _raise(
                 "enter_city_button_not_found",
                 "arrival city entry button was not found",
@@ -954,7 +976,27 @@ def resonance_pc_enter_city_and_settle_passengers(
     dismiss_attempts: List[Dict[str, Any]] = []
     for attempt in range(1, 4):
         _check_cancelled()
-        app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
+        source_budget = ObservationBudget(2.5, monotonic=time.monotonic,
+                                          check_cancelled=_check_cancelled)
+        source = observe_template(
+            app=app, vision=vision, template=_template_path(_SETTLEMENT_TEMPLATE),
+            region=_coerce_region(_SETTLEMENT_REGION), threshold=_TEMPLATE_THRESHOLD,
+            check_cancelled=_check_cancelled,
+        )
+        if not source_budget.active():
+            source = {"valid": False, "found": None, "reason": "observation_timeout",
+                      "last_match": source}
+        if not source["valid"]:
+            _raise("passenger_settlement_observation_failed", "Passenger settlement source is unknown",
+                   {"settlement_match": settlement, "last_match": source,
+                    "settlement_confirmed": True, "revenue": revenue, "attempt": attempt})
+        if source["found"]:
+            if not source_budget.active():
+                _raise("passenger_settlement_observation_failed", "Passenger settlement source expired",
+                       {"settlement_match": settlement, "last_match": source,
+                        "settlement_confirmed": True, "revenue": revenue, "attempt": attempt,
+                        "reason": "observation_timeout"})
+            app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
         absent = _wait_template_absent(
             app,
             vision,
@@ -962,6 +1004,10 @@ def resonance_pc_enter_city_and_settle_passengers(
             _SETTLEMENT_REGION,
             timeout_sec=2.5,
         )
+        if (absent.get("last_match") or {}).get("valid") is False:
+            _raise("passenger_settlement_observation_failed", "Passenger settlement closure is unknown",
+                   {"settlement_match": settlement, "last_match": absent["last_match"],
+                    "settlement_confirmed": True, "revenue": revenue, "attempt": attempt})
         visit_city = (
             _visit_city_entry_evidence(app, ocr)
             if absent.get("absent")

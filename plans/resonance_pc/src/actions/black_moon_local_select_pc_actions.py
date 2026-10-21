@@ -12,6 +12,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from ._black_moon_local_shop_policy import load_black_moon_catalog
 from ._black_moon_local_select_vision import BlackMoonLocalSelectVision
 from ._black_moon_local_scan_contract import validated_scan_completion, validated_selection_presence
+from ._bounded_observation import ObservationBudget, async_wait_for_observation
 from .black_moon_local_prepare_pc_actions import _capture, _cancel_check, _validated_center
 
 
@@ -62,27 +63,42 @@ async def execute_black_moon_select(purchase_table, app, reader=None):
     vx, vy, _, vh = reader.VIEWPORT
     matched_item_ids = set()
 
+    def require_active(budget):
+        if not budget.active():
+            raise BlackMoonLocalSelectError("black_moon_select_not_ready", "LOCAL batch list did not stabilize")
+
     async def stable_frame():
-        deadline = time.monotonic() + _WAIT_SECONDS
+        budget = ObservationBudget(_WAIT_SECONDS, monotonic=time.monotonic,
+                                   check_cancelled=_cancel_check)
         previous = None
-        while time.monotonic() < deadline:
-            frame = _capture(app)
-            _cancel_check()
+
+        def stable(frame):
+            nonlocal previous
             if reader.ready(frame):
-                if previous is not None and _same_view(previous, frame, reader.VIEWPORT):
-                    return frame
+                same = previous is not None and _same_view(previous, frame, reader.VIEWPORT)
                 previous = frame
+                return same
             else:
                 previous = None
-            await asyncio.sleep(_POLL_SECONDS)
+                return False
+
+        observed = await async_wait_for_observation(
+            observe=lambda: _capture(app), accept=stable, budget=budget,
+            poll_seconds=_POLL_SECONDS, sleep=asyncio.sleep,
+        )
+        if observed.matched:
+            return observed.value, budget
         raise BlackMoonLocalSelectError("black_moon_select_not_ready", "LOCAL batch list did not stabilize")
 
-    def targets(frame):
+    def targets(frame, budget):
         matches = []
-        for card in reader.cards(frame):
+        cards = reader.cards(frame)
+        require_active(budget)
+        for card in cards:
             if card.get("partial") or card["state"] not in {"unselected", "selected"}:
                 continue
             hit = reader.identify(frame, card)
+            require_active(budget)
             if hit is not None:
                 matches.append((card, hit))
         return matches
@@ -90,48 +106,61 @@ async def execute_black_moon_select(purchase_table, app, reader=None):
     async def select_one(card, hit):
         x, y, w, h = card["rect"]
         for attempt in range(_MAX_SUPPLEMENTAL_CLICKS + 1):
-            fresh = await stable_frame()
-            rows = [row for row in reader.cards(fresh) if not row.get("partial")
+            fresh, budget = await stable_frame()
+            cards = reader.cards(fresh)
+            require_active(budget)
+            rows = [row for row in cards if not row.get("partial")
                     and abs(row["rect"][0] - x) <= 3 and abs(row["rect"][1] - y) <= 3]
             if len(rows) != 1:
                 raise BlackMoonLocalSelectError("black_moon_select_card_changed",
                                                "Target card moved before selection", {"rect": list(card["rect"])})
             current = rows[0]
             confirmed = reader.identify(fresh, current, candidates=[hit["item_id"]])
+            require_active(budget)
             if confirmed is None or confirmed["item_id"] != hit["item_id"]:
                 raise BlackMoonLocalSelectError("black_moon_select_identity_changed",
                                                "Target identity changed before selection", hit)
             # The badge ROI is relative to this recognized card, never a screen-wide search.
-            if reader.selected_mark(fresh, current)["found"]:
+            mark = reader.selected_mark(fresh, current)
+            require_active(budget)
+            selected = mark["found"]
+            if selected:
                 return
-            _cancel_check()
+            require_active(budget)
             app.click(x=int(x + w * .58), y=int(y + h * .53))
             logger.info("[BlackMoonSelect] item=%s click=%s rect=%s", hit["item_id"], attempt + 1, card["rect"])
             await asyncio.sleep(_SETTLE_SECONDS)
-            deadline, stable = time.monotonic() + _WAIT_SECONDS, 0
-            while time.monotonic() < deadline:
-                fresh = _capture(app)
-                _cancel_check()
+            budget = ObservationBudget(_WAIT_SECONDS, monotonic=time.monotonic,
+                                       check_cancelled=_cancel_check)
+            stable = 0
+
+            def selected_stably(fresh):
+                nonlocal stable
                 selected = reader.ready(fresh) and reader.selected_mark(fresh, current)["found"]
                 stable = stable + 1 if selected else 0
-                if stable >= 2:
-                    return
-                await asyncio.sleep(_POLL_SECONDS)
+                return stable >= 2
+
+            observed = await async_wait_for_observation(
+                observe=lambda: _capture(app), accept=selected_stably, budget=budget,
+                poll_seconds=_POLL_SECONDS, sleep=asyncio.sleep,
+            )
+            if observed.matched:
+                return
         raise BlackMoonLocalSelectError("black_moon_select_click_exhausted",
                                        "Selection exhausted initial click and three supplements", hit)
 
     def finish(reason, boundary=None):
-        _cancel_check()
+        require_active(budget)
         result.update(scan_complete=True, end_reason=reason, matched_item_ids=sorted(matched_item_ids))
         if boundary is not None:
             result["boundary_evidence"] = boundary
         logger.info("[BlackMoonSelect] completed=%s", result)
         return result
 
-    frame = await stable_frame()
+    frame, budget = await stable_frame()
     while True:
         expected_selected = []
-        for card, hit in targets(frame):
+        for card, hit in targets(frame, budget):
             await select_one(card, hit)
             expected_selected.append(card)
             result["has_selected_goods"] = True
@@ -139,19 +168,23 @@ async def execute_black_moon_select(purchase_table, app, reader=None):
 
         # This is the comparison baseline: all clicks and their badge feedback
         # have completed, so changes caused by selection cannot look like scrolling.
-        frame = await stable_frame()
+        frame, budget = await stable_frame()
         for card in expected_selected:
-            if not reader.selected_mark(frame, card)["found"]:
+            mark = reader.selected_mark(frame, card)
+            require_active(budget)
+            if not mark["found"]:
                 raise BlackMoonLocalSelectError("black_moon_select_feedback_changed",
                                                "Target selection feedback disappeared before scrolling",
                                                {"rect": list(card["rect"])})
 
         markers = reader.sold_out_markers(frame)
+        require_active(budget)
         if markers:
             # Confirm the marker in a fresh stable frame; no row registration or
             # proof about clipped cards from previous pages is needed.
-            following_frame = await stable_frame()
+            following_frame, budget = await stable_frame()
             following = reader.sold_out_markers(following_frame)
+            require_active(budget)
             if following:
                 marker = following[0]
                 return finish("sold_out_boundary", {
@@ -166,15 +199,16 @@ async def execute_black_moon_select(purchase_table, app, reader=None):
         if result["scroll_count"] > _MAX_DRAGS:
             return finish("drag_limit")
 
-        _cancel_check()
+        require_active(budget)
         start = vy + vh - 35
         app.drag(start_x=vx + 180, start_y=start,
                  end_x=vx + 180, end_y=start - _DRAG_SPAN,
                  duration=.45, hold_before_release_sec=_DRAG_HOLD_SECONDS)
         result["scroll_count"] += 1
         await asyncio.sleep(_SETTLE_SECONDS)
-        following_frame = await stable_frame()
+        following_frame, budget = await stable_frame()
         unchanged = _same_view(frame, following_frame, reader.VIEWPORT)
+        require_active(budget)
         result["unchanged_drag_count"] = result["unchanged_drag_count"] + 1 if unchanged else 0
         logger.info("[BlackMoonSelect] drag=%s list_unchanged=%s consecutive_unchanged=%s",
                     result["scroll_count"], unchanged, result["unchanged_drag_count"])
@@ -202,26 +236,36 @@ async def execute_black_moon_submit(selection, app, reader=None, before_submit=N
                 "purchase_submitted": False, "purchase_verified": False, **presence,
                 "scan": {**validated_scan_completion(selection), **presence}}
     reader = reader if reader is not None else BlackMoonLocalSelectVision()
-    deadline, stable, point = time.monotonic() + _WAIT_SECONDS, 0, None
-    while time.monotonic() < deadline:
+    budget = ObservationBudget(_WAIT_SECONDS, monotonic=time.monotonic,
+                               check_cancelled=_cancel_check)
+    stable, point = 0, None
+
+    def observe_button():
         frame = _capture(app)
-        hit = reader.button(frame) if reader.ready(frame) and not reader.total_zero(frame) else {"found": False}
+        return reader.button(frame) if reader.ready(frame) and not reader.total_zero(frame) else {"found": False}
+
+    def button_stable(hit):
+        nonlocal stable, point
         if hit["found"]:
             current = _validated_center(hit)
             stable = stable + 1 if current == point else 1
             point = current
-            if stable >= 2:
-                _cancel_check()
-                if before_submit is not None:
-                    before_submit()
-                    _cancel_check()
-                app.click(x=int(point[0]), y=int(point[1]))
-                await asyncio.sleep(_SETTLE_SECONDS)
-                return {"success": True, "status": "purchase_submitted", "purchase_submitted": True,
-                        "purchase_verified": False, **presence}
         else:
             stable, point = 0, None
-        await asyncio.sleep(_POLL_SECONDS)
+        return stable >= 2
+
+    observed = await async_wait_for_observation(
+        observe=observe_button, accept=button_stable, budget=budget,
+        poll_seconds=_POLL_SECONDS, sleep=asyncio.sleep,
+    )
+    if observed.matched and budget.active():
+        if before_submit is not None:
+            before_submit()
+        if budget.active():
+            app.click(x=int(point[0]), y=int(point[1]))
+            await asyncio.sleep(_SETTLE_SECONDS)
+            return {"success": True, "status": "purchase_submitted", "purchase_submitted": True,
+                    "purchase_verified": False, **presence}
     raise BlackMoonLocalSelectError("black_moon_submit_unconfirmed", "Purchase button or nonempty selection is not confirmed")
 
 

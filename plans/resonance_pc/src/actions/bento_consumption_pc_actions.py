@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import copy
-import json
 import math
 import re
 import time
@@ -16,6 +15,9 @@ import numpy as np
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._cancellable_wait import sleep_before_deadline
+from ._recovery_assets import load_plan_image, read_layout_json
+from ._bento_observation import ConsecutiveFrameStability
 from ._bento_consumption_policy import validate_meals, resolve_meal
 from ._bento_consumption_store import load_cached_inventory, record_portion
 from ._bento_target_locator import find_target_on_frame
@@ -42,7 +44,7 @@ def _normalized(text):
 
 
 def load_consumption_layout(vision):
-    layout = json.loads((ROOT / "data/meta/bento_consumption.json").read_text(encoding="utf-8"))
+    layout = read_layout_json(ROOT / "data/meta/bento_consumption.json")
     if layout.get("reference_client") != [1280, 720]:
         raise ValueError("Bento consumption requires reference client 1280x720")
     confidence = layout["ocr_min_confidence"]
@@ -74,10 +76,10 @@ def load_consumption_layout(vision):
         for field in ("path", "mask"):
             if not spec.get(field):
                 continue
-            path = Path(vision.resolve_template("resonance_pc", spec[field], ROOT)).resolve()
-            if not path.is_relative_to(ROOT):
-                raise ValueError(f"Bento asset escapes plan: {key}")
-            image = vision.load_image_file(path, cv2.IMREAD_UNCHANGED)
+            path, image = load_plan_image(
+                vision, spec[field], ROOT, flags=cv2.IMREAD_UNCHANGED,
+                path_error=f"Bento asset escapes plan: {key}",
+            )
             if image is None or image.size == 0 or image.shape[0] > spec["roi"][3] or image.shape[1] > spec["roi"][2]:
                 raise ValueError(f"Invalid bento asset: {key}")
             spec["resolved_" + field] = str(path)
@@ -129,10 +131,8 @@ class BentoConsumptionSession:
 
     def sleep(self, seconds=None):
         until = min(self.deadline, time.monotonic() + (self.layout["poll_interval_sec"] if seconds is None else seconds))
-        while time.monotonic() < until:
-            self.guard()
-            time.sleep(max(0.0, min(0.05, until-time.monotonic())))
-        self.guard()
+        sleep_before_deadline(until, sleep=time.sleep, monotonic=time.monotonic,
+                              check_cancelled=self.guard)
 
     def fail(self, code, message):
         raise BentoConsumptionError(code, message)
@@ -237,17 +237,52 @@ class BentoConsumptionSession:
 
     def scroll_top(self):
         scanner = LoveBentoScanner(self.reader, self.catalog)
-        frame = scanner.stable_frame()
-        stationary = 0
         vx, vy, vw, vh = scanner.cfg["viewport"]
+        cx, cy, _, _ = scanner.cfg["capture_roi"]
+
+        def viewport_frame(frame):
+            # Scanner captures include a margin; readiness/slot ROIs are relative
+            # to the viewport. Inspect the same capture without reading inventory.
+            return frame[vy-cy:vy-cy+vh, vx-cx:vx-cx+vw]
+
+        def ready_frame():
+            until = min(self.deadline, scanner.deadline,
+                        time.monotonic() + scanner.cfg["page_timeout_sec"])
+            stability = ConsecutiveFrameStability(scanner.unchanged)
+            while time.monotonic() < until:
+                self.guard()
+                current = scanner.capture()
+                loaded = self.reader._bento_content_loaded(viewport_frame(current))
+                self.guard()
+                scanner.guard()
+                if time.monotonic() >= until:
+                    break
+                if loaded:
+                    if stability.observe(current) >= 2:
+                        return current
+                else:
+                    stability.reset()
+                time.sleep(scanner.cfg["poll_interval_sec"])
+            self.guard()
+            scanner.guard()
+            self.fail("bento_content_not_ready", "Bento content did not load and settle")
+
+        frame = ready_frame()
+        stationary = 0
+        stability = ConsecutiveFrameStability(scanner.unchanged, previous=frame)
         for _ in range(scanner.cfg["max_drags"]):
             self.guard()
+            scanner.guard()
             x, y = int(vx+vw/2), int(vy+vh*.25)
             self.app.drag(x, y, x, y+scanner.cfg["scroll_distance"], duration=.6, hold_before_release_sec=.2)
-            next_frame = scanner.stable_frame()
-            stationary = stationary+1 if scanner.unchanged(frame, next_frame) else 0
-            frame = next_frame
+            next_frame = ready_frame()
+            stationary = stability.observe(next_frame)
             if stationary >= scanner.cfg["stationary_confirmations"]:
+                top = self.reader._bento_top_visible(viewport_frame(next_frame))
+                self.guard()
+                scanner.guard()
+                if not top:
+                    self.fail("bento_top_not_found", "Bento list stopped away from the top")
                 return
         self.fail("bento_top_not_found", "Could not confirm bento list top")
 

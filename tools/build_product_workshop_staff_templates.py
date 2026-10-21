@@ -21,7 +21,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 REPO = Path(__file__).resolve().parents[1]
 PLAN = REPO / "plans/resonance_pc"
-ASSETS = PLAN / "templates/product_workshop_staff"
+ASSETS = PLAN / "templates/workshop/staffing/editor"
 FIXTURES = REPO / "tests/fixtures/product_workshop_staff"
 SCALE = 2 / 3
 RESOURCES = {
@@ -29,10 +29,32 @@ RESOURCES = {
     "selection": "ui/prison/manage/prisonerlistmanage.asset",
     "prompt": "ui/common/prompt/prompt.asset",
 }
+EDIT_CONTROL = "templates/workshop/staffing/controls/edit.png"
+RETIRED_FEATURES = frozenset({
+    "editor_marker", "editor_count_label", "selection_marker", "selection_count_label", "save_prompt",
+    *(f"editor_digit_{number}" for number in range(10)),
+})
+
+
+def remove_retired_feature_files():
+    """Delete only the explicitly retired outputs owned by this producer."""
+    for name in RETIRED_FEATURES:
+        (ASSETS / (name + ".png")).unlink(missing_ok=True)
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def saved_marker_profile(marker):
+    """Reuse the room builder's pixels with the staffing flow's own threshold."""
+    if marker["image"] != EDIT_CONTROL:
+        raise ValueError("Expected the canonical workshop edit control")
+    l, t, w, h = marker["source_bbox_xywh"]
+    return {"image": marker["image"], "bbox": [l, t, w, h],
+            "search_region": marker["search_region"], "click": [round(l+w/2), round(t+h/2)],
+            "threshold": .90, "source_image": marker["image"],
+            "source_id": marker["source_id"], "sha256": digest(PLAN / marker["image"])}
 
 
 def refresh_feature_blocks(catalog):
@@ -41,6 +63,7 @@ def refresh_feature_blocks(catalog):
     Native full-block variants retain offline prefab coverage. Both the primary
     image and any variant contain icon, text and background, not isolated ink.
     """
+    ASSETS.mkdir(parents=True, exist_ok=True)
     definitions = {
         "room_1_title": ("editor_1", (571, 10, 203, 61), (672, 40)),
         "room_2_title": ("editor_2", (571, 10, 203, 61), (672, 40)),
@@ -56,7 +79,7 @@ def refresh_feature_blocks(catalog):
         source = FIXTURES / (scene+".png")
         path = ASSETS / (key+".png")
         Image.open(source).convert("RGB").crop((x,y,x+w,y+h)).save(path)
-        spec = {"image":"templates/product_workshop_staff/"+path.name,
+        spec = {"image":"templates/workshop/staffing/editor/"+path.name,
                 "bbox":list(box), "search_region":[x-12,y-8,w+24,h+16],
                 "click":list(click), "threshold":0.90, "scene":scene,
                 "kind":"synthetic_native_feature_block", "source_image":"tests/fixtures/product_workshop_staff/"+source.name,
@@ -85,7 +108,7 @@ def refresh_feature_blocks(catalog):
         native = deepcopy(spec)
         variant_path = ASSETS / (key+".native.png")
         Image.open(PLAN/spec["image"]).save(variant_path)
-        native.update(image="templates/product_workshop_staff/"+variant_path.name, sha256=digest(variant_path))
+        native.update(image="templates/workshop/staffing/editor/"+variant_path.name, sha256=digest(variant_path))
         raw = Image.open(source).convert("RGB")
         crop = raw.getbbox()  # remove only the outer black screenshot padding
         target = raw.crop(crop)
@@ -139,6 +162,7 @@ def refresh_feature_blocks(catalog):
     catalog.pop("editor_digits",None)
     catalog["selection_policy"] = {"recognition":"button_only", "select_all":"click_once_then_confirm_and_save",
                                     "cancel_all_on_entry":"return_without_confirming_or_saving", "button_score_margin":.01}
+    remove_retired_feature_files()
 
 
 def rgba(value: dict) -> tuple[int, ...]:
@@ -404,7 +428,7 @@ def main():
         path=ASSETS/(key+".png");image.crop((l,t,r,b)).save(path)
         target=next((n for p,n in nodes.items() if click_suffix and p.endswith(click_suffix)),node)
         a,c,d,e=target["box_xyxy"]
-        catalog["templates"][key]={"image":"templates/product_workshop_staff/"+path.name,"bbox":[l,t,r-l,b-t],"search_region":[max(0,l-12),max(0,t-12),min(1280,r+12)-max(0,l-12),min(720,b+12)-max(0,t-12)],"click":[round((a+d)/2),round((c+e)/2)],"threshold":0.90,"source_nodes":[node],"resource":RESOURCES[model],"scene":scene_key,"sha256":digest(path)}
+        catalog["templates"][key]={"image":"templates/workshop/staffing/editor/"+path.name,"bbox":[l,t,r-l,b-t],"search_region":[max(0,l-12),max(0,t-12),min(1280,r+12)-max(0,l-12),min(720,b+12)-max(0,t-12)],"click":[round((a+d)/2),round((c+e)/2)],"threshold":0.90,"source_nodes":[node],"resource":RESOURCES[model],"scene":scene_key,"sha256":digest(path)}
     for num in (1,2):
         template(f"room_{num}_title",f"editor_{num}","/Group_WorkshopInfo/Txt_Workshop")
     template("quick","editor_1","/Img_QuickEditOFF/Group_/Txt_Quick",2,"/Group_Edit/Btn_QuickEdit")
@@ -424,9 +448,10 @@ def main():
         src=PLAN/marker["image"]
         l,t,w,h=marker["source_bbox_xywh"]
         saved.paste(Image.open(src).convert("RGB"),(l,t))
-        if "workshop_edit" in marker["image"]:
-            dest=ASSETS/"saved_marker.png";Image.open(src).save(dest)
-            catalog["templates"]["saved_marker"]={"image":"templates/product_workshop_staff/saved_marker.png","bbox":[l,t,w,h],"search_region":marker["search_region"],"click":[round(l+w/2),round(t+h/2)],"threshold":0.90,"source_image":marker["image"],"source_id":marker["source_id"],"sha256":digest(dest)}
+        if marker["image"] == EDIT_CONTROL:
+            # The room screenshot builder owns this control. Keep a staffing
+            # observation profile without regenerating another physical copy.
+            catalog["templates"]["saved_marker"] = saved_marker_profile(marker)
     saved.save(FIXTURES/"saved.png")
     catalog["scenes"]["saved"]={"image":"tests/fixtures/product_workshop_staff/saved.png","kind":"synthetic_composite_of_existing_live_template_crops","source_catalog":"data/meta/reforming_center_templates_pc.json","sha256":digest(FIXTURES/"saved.png")}
     catalog["provenance"]["fonts"]=[{"font_path_id":key,"sha256":font["sha256"]} for model in models.values() for key,font in model.fonts.items()]

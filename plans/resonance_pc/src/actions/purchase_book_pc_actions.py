@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from ._cancellable_wait import sleep_until_deadline
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 
@@ -38,19 +39,16 @@ _CONFIRM_BUTTON_REGION = [650, 500, 620, 85]
 _BUY_PAGE_READY_REGION = [850, 590, 380, 110]
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
-_USE_ITEM_BUTTON_TEMPLATE = "templates/purchase_book_use_items_button.png"
-_ITEM_MODAL_HEADER_TEMPLATE = "templates/purchase_book_item_modal_header.png"
-_ITEM_IDENTITY_TEMPLATE = "templates/purchase_book_item_identity.png"
-_FIRST_ITEM_USE_BUTTON_TEMPLATE = "templates/purchase_book_first_use_button.png"
-_QUANTITY_PROMPT_TEMPLATE = "templates/purchase_book_quantity_prompt.png"
-_CANCEL_BUTTON_TEMPLATE = "templates/purchase_book_cancel_button.png"
-_CONFIRM_BUTTON_TEMPLATE = "templates/purchase_book_confirm_button.png"
-_BUY_PAGE_READY_TEMPLATE = "templates/purchase_book_buy_page_ready.png"
+_USE_ITEM_BUTTON_TEMPLATE = "templates/commerce/books/use_items_button.png"
+_ITEM_MODAL_HEADER_TEMPLATE = "templates/commerce/books/item_modal_header.png"
+_ITEM_IDENTITY_TEMPLATE = "templates/commerce/books/item_identity.png"
+_FIRST_ITEM_USE_BUTTON_TEMPLATE = "templates/commerce/books/first_use_button.png"
+_QUANTITY_PROMPT_TEMPLATE = "templates/commerce/books/quantity_prompt.png"
+_CANCEL_BUTTON_TEMPLATE = "templates/commerce/books/cancel_button.png"
+_CONFIRM_BUTTON_TEMPLATE = "templates/commerce/books/confirm_button.png"
+_BUY_PAGE_READY_TEMPLATE = "templates/commerce/books/buy_page_ready.png"
 
-_USE_ITEM_BUTTON_POINT = (1080, 105)
-_FIRST_ITEM_USE_BUTTON_POINT = (922, 170)
 _PLUS_ONE_POINT = (828, 407)
-_CONFIRM_POINT = (960, 538)
 
 _DEFAULT_TEMPLATE_THRESHOLD = 0.8
 _STATE_STABLE_COUNT = 2
@@ -64,13 +62,8 @@ def _check_cancelled() -> None:
 
 
 def _cancelable_sleep(seconds: float) -> None:
-    deadline = time.monotonic() + max(float(seconds), 0.0)
-    while True:
-        _check_cancelled()
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return
-        time.sleep(min(0.05, remaining))
+    sleep_until_deadline(seconds, sleep=time.sleep, monotonic=time.monotonic,
+                         check_cancelled=_check_cancelled)
 
 
 
@@ -305,12 +298,11 @@ def _wait_for_template_state(
         _cancelable_sleep(min(interval, remaining))
 
 
-def _click_template_or_point(
+def _click_template(
     app: Any,
     vision: Any,
     template: str,
     region: List[int] | Tuple[int, int, int, int],
-    fallback_point: Tuple[int, int],
     *,
     threshold: float = 0.8,
     timeout_sec: float = 0.0,
@@ -381,7 +373,6 @@ def _click_template_or_point(
             "timeout_sec": timeout,
             "last_confidence": confidence,
             "best_confidence": best_confidence,
-            "fallback_point_disabled": {"x": int(fallback_point[0]), "y": int(fallback_point[1])},
         },
     )
 
@@ -395,12 +386,11 @@ def _attempt_quantity_dialog_cleanup(
 ) -> Dict[str, Any]:
     cleanup: Dict[str, Any] = {"attempted": True, "succeeded": False}
     try:
-        cleanup["cancel_click"] = _click_template_or_point(
+        cleanup["cancel_click"] = _click_template(
             app,
             vision,
             _CANCEL_BUTTON_TEMPLATE,
             _CANCEL_BUTTON_REGION,
-            (322, 538),
             threshold=_DEFAULT_TEMPLATE_THRESHOLD,
             timeout_sec=min(max(float(dialog_timeout_sec), 0.5), 2.0),
             retry_interval_sec=click_interval_sec,
@@ -471,12 +461,11 @@ def _use_purchase_book_batch(
         open_click: Dict[str, Any] = {}
         for open_attempt in range(1, _ITEM_MODAL_OPEN_ATTEMPTS + 1):
             _check_cancelled()
-            open_click = _click_template_or_point(
+            open_click = _click_template(
                 app,
                 vision,
                 _USE_ITEM_BUTTON_TEMPLATE,
                 _USE_ITEM_BUTTON_REGION,
-                _USE_ITEM_BUTTON_POINT,
                 threshold=0.82,
                 timeout_sec=open_timeout_sec,
                 retry_interval_sec=click_interval_sec,
@@ -551,12 +540,11 @@ def _use_purchase_book_batch(
                 },
             )
 
-        item_use_click = _click_template_or_point(
+        item_use_click = _click_template(
             app,
             vision,
             _FIRST_ITEM_USE_BUTTON_TEMPLATE,
             _FIRST_ITEM_USE_BUTTON_REGION,
-            _FIRST_ITEM_USE_BUTTON_POINT,
             threshold=0.82,
             timeout_sec=dialog_timeout_sec,
             retry_interval_sec=click_interval_sec,
@@ -616,12 +604,11 @@ def _use_purchase_book_batch(
             )
 
         state = "confirm"
-        confirm_click = _click_template_or_point(
+        confirm_click = _click_template(
             app,
             vision,
             _CONFIRM_BUTTON_TEMPLATE,
             _CONFIRM_BUTTON_REGION,
-            _CONFIRM_POINT,
             threshold=_DEFAULT_TEMPLATE_THRESHOLD,
             timeout_sec=dialog_timeout_sec,
             retry_interval_sec=click_interval_sec,

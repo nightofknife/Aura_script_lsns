@@ -9,6 +9,7 @@ import time
 
 import cv2
 import numpy as np
+from ._cancellable_wait import sleep_slices
 
 
 class CheckedClickError(RuntimeError):
@@ -42,13 +43,7 @@ def _sleep(seconds):
     if _CANCEL_CHECK.get() is None:
         time.sleep(seconds)
         return
-    remaining = max(float(seconds), 0.0)
-    _check_cancelled()
-    while remaining > 0:
-        interval = min(remaining, .05)
-        time.sleep(interval)
-        _check_cancelled()
-        remaining -= interval
+    sleep_slices(seconds, sleep=time.sleep, check_cancelled=_check_cancelled)
 
 
 def read_frame(app):

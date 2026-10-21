@@ -12,7 +12,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 REGION = (1120, 620, 160, 100)
 THRESHOLD = 0.9
-TEMPLATE = "templates/depart_button.png"
+TEMPLATE = "templates/navigation/travel/depart.png"
 POLL_INTERVAL = 0.15
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 

@@ -75,7 +75,7 @@ One shared mask excludes discount/type overlays and pack quantities while
 retaining lower-left quality background. Cropped screenshot controls provide
 generic card corners, yellow selection feedback, the purchase button and the
 exact zero-total state. Provenance and the native bank digest are in the new
-`templates/black_moon_local_select/manifest.json`; the old bank is not rewritten.
+`templates/commerce/shop/black_moon/calibrated/manifest.json`; the old bank is not rewritten.
 Use `tools/build_black_moon_local_select_templates.py` with the documented normal
 and selected client frames to regenerate the new bank.
 

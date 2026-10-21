@@ -10,7 +10,7 @@ CONTROL_NAMES = (
 class BlackMoonLocalPrepareVision(BlackMoonLocalShopVision):
     @property
     def _data(self):
-        return _resources(self.template_root, CONTROL_NAMES)
+        return _resources(self.template_root, CONTROL_NAMES, self.plan_root)
 
     def observe(self, frame):
         frame = _image(frame)

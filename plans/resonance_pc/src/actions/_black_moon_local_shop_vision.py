@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -13,8 +12,7 @@ from PIL import Image
 
 
 PLAN_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE_ROOT = PLAN_ROOT / "templates/black_moon_local_shop"
-CATALOG_PATH = PLAN_ROOT / "data/meta/black_moon_local_shop_catalog.json"
+TEMPLATE_ROOT = PLAN_ROOT / "templates/commerce/shop/black_moon/native"
 
 
 class BlackMoonLocalShopRecognitionError(RuntimeError):
@@ -32,18 +30,16 @@ def _entries(value):
 
 
 @lru_cache(maxsize=4)
-def _resources(root: Path, template_names: tuple[str, ...] | None = None):
+def _resources(root: Path, template_names: tuple[str, ...] | None = None, plan_root: Path = PLAN_ROOT):
     try:
         manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        if manifest["schema_version"] != 2:
+            raise ValueError("Native shop resources require schema 2 plan-relative references")
         if manifest["reference_client"] != [1280, 720]:
             raise ValueError("Only RGB 1280x720 is supported")
         entries = _entries(manifest["templates"])
         if template_names is None:
-            cards = manifest["cards"]
-            entries += cards.get("anchors", []) + cards.get("frame_variants", [])
-            entries += cards.get("items", manifest.get("items", []))
-            if len(cards["columns"]) != 2 or not cards["anchors"] or not cards["frame_variants"]:
-                raise ValueError("Native two-column geometry, anchors, and frames are required")
+            entries += manifest["cards"]["items"]
         else:
             entries = [entry for entry in entries if entry["name"] in template_names]
             if {entry["name"] for entry in entries} != set(template_names):
@@ -53,9 +49,10 @@ def _resources(root: Path, template_names: tuple[str, ...] | None = None):
         files.update(entry["mask_file"] for entry in entries if entry.get("mask_file"))
         pixels = {}
         for filename in files:
-            path = (root / filename).resolve()
-            if not path.is_relative_to(root):
-                raise ValueError(f"Resource outside template root: {filename}")
+            reference = Path(filename)
+            path = (plan_root / reference).resolve()
+            if reference.is_absolute() or not path.is_relative_to((plan_root / "templates").resolve()):
+                raise ValueError(f"Resource outside plan templates: {filename}")
             with Image.open(path) as asset:
                 mode = "RGBA" if asset.mode == "RGBA" else "L" if asset.mode == "L" else "RGB"
                 array = np.array(asset.convert(mode))
@@ -64,19 +61,6 @@ def _resources(root: Path, template_names: tuple[str, ...] | None = None):
         return manifest, pixels
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise BlackMoonLocalShopRecognitionError("template_load_failed", str(exc)) from exc
-
-
-@lru_cache(maxsize=4)
-def _catalog(path: Path, signature: tuple[int, int]):
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        rows = data if isinstance(data, list) else data["products"]
-        products = {row["item_id"]: row for row in rows}
-        if not products or len(products) != len(rows):
-            raise ValueError("Canonical product IDs must be nonempty and unique")
-        return products
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        raise BlackMoonLocalShopRecognitionError("catalog_load_failed", str(exc)) from exc
 
 
 def _image(frame):
@@ -140,41 +124,19 @@ def _response(source, template, mask=None, method=None):
 
 
 class BlackMoonLocalShopVision:
-    """Lazy cached native recognition, independent of product slots and prices.
+    """Cached native controls used by preparation; client RGB coordinates.
 
-    All rectangles are client RGB coordinates (x, y, width, height). A partial
-    card retains its logical rectangle and is never assigned a clickable item.
-    Native production assets have not been live- or screenshot-match validated.
+    Resource loading also validates the complete retained native asset bank.
     """
 
-    def __init__(self, template_root: Path | None = None, catalog_path: Path | None = None):
+    def __init__(self, template_root: Path | None = None,
+                 plan_root: Path | None = None):
         self.template_root = (TEMPLATE_ROOT if template_root is None else Path(template_root)).resolve()
-        self.catalog_path = (CATALOG_PATH if catalog_path is None else Path(catalog_path)).resolve()
+        self.plan_root = (PLAN_ROOT if plan_root is None else Path(plan_root)).resolve()
 
     @property
     def _data(self):
-        return _resources(self.template_root)
-
-    @property
-    def metadata(self):
-        manifest = deepcopy(self._data[0])
-        manifest["cards"].setdefault("native_viewport", manifest["cards"].get(
-            "raw_native_viewport", manifest["cards"]["viewport"]))
-        manifest["cards"]["viewport"] = list(self.VIEWPORT)
-        return manifest
-
-    @property
-    def VIEWPORT(self):
-        spec = self._data[0]["cards"]
-        x, y, w, h = spec["viewport"]
-        occlusion = spec.get("viewport_batch_occlusion")
-        if occlusion is not None:
-            ox, oy, ow, oh = occlusion
-            left = min(spec["columns"])
-            right = max(spec["columns"]) + spec["size"][0]
-            if ox <= left + 3 and ox + ow >= right - 3 and y < oy < y + h and oh > 0:
-                h = oy - y
-        return tuple(map(int, (x, y, w, h)))
+        return _resources(self.template_root, plan_root=self.plan_root)
 
     @property
     def _templates(self):
@@ -216,217 +178,9 @@ class BlackMoonLocalShopVision:
         return {"found": bool(found), "score": float(score), "rect": rect if found else None,
                 "center": (rect[0] + rect[2] // 2, rect[1] + rect[3] // 2) if found else None}
 
-    def _match_box(self, frame, name, box):
-        entry = self._templates.get(name)
-        if entry is None:
-            raise BlackMoonLocalShopRecognitionError("unknown_template", name)
-        return self._match_entry(frame, entry, box)
-
     def match(self, frame, name):
         frame = _image(frame)
         entry = self._templates.get(name)
         if entry is None:
             raise BlackMoonLocalShopRecognitionError("unknown_template", name)
         return self._match_entry(frame, entry, entry["roi"])
-
-    def is_local(self, frame):
-        frame = _image(frame)
-        if self.match(frame, "reward")["found"] or not self.match(frame, "shop_page")["found"]:
-            return False
-        selected = self.match(frame, "local_tab_selected")
-        unselected = self.match(frame, "local_tab_unselected")
-        margin = self._data[0].get("state_comparisons", {}).get("local_tab", {}).get(
-            "minimum_margin", self._data[0].get("state_minimum_margin", .035))
-        return bool(selected["found"] and selected["score"] - unselected["score"] >= margin)
-
-    def mode(self, frame):
-        """Return batch/single only on an unobscured LOCAL page; else unknown."""
-        if not self.is_local(frame):
-            return "unknown"
-        on, off = self.match(frame, "batch_on"), self.match(frame, "batch_off")
-        margin = self._data[0].get("state_comparisons", {}).get("batch", {}).get(
-            "minimum_margin", self._data[0].get("state_minimum_margin", .035))
-        if on["found"] and on["score"] - off["score"] >= margin:
-            return "batch"
-        if off["found"] and off["score"] - on["score"] >= margin:
-            return "single"
-        return "unknown"
-
-    def _products(self):
-        try:
-            stat = self.catalog_path.stat()
-        except OSError as exc:
-            raise BlackMoonLocalShopRecognitionError("catalog_load_failed", str(exc)) from exc
-        products = _catalog(self.catalog_path, (stat.st_mtime_ns, stat.st_size))
-        spec = self._data[0]["cards"]
-        bank = spec.get("items", self._data[0].get("items", []))
-        covered = {entry["item_id"] for entry in bank}
-        if covered != set(products):
-            raise BlackMoonLocalShopRecognitionError(
-                "catalog_templates_incomplete", "Native item bank must cover exactly the canonical product catalog")
-        return products
-
-    def _card_origins(self, frame):
-        spec = self._data[0]["cards"]
-        vx, vy, vw, vh = self.VIEWPORT
-        width, height = spec["size"]
-        tolerance = spec.get("position_tolerance", 3)
-        candidates = []
-        for anchor in spec["anchors"]:
-            raw = self._data[1][anchor["file"]]
-            ox, oy = anchor["offset"]
-            for column in spec["columns"]:
-                box = _clip((column + ox - tolerance, vy, raw.shape[1] + tolerance * 2, vh), self.VIEWPORT)
-                response = self._entry_response(frame, anchor, box)
-                if not response.size:
-                    continue
-                maxima = response == cv2.dilate(response, np.ones((9, 3), dtype=np.uint8))
-                ys, xs = np.where(maxima & (response >= anchor.get("threshold", .90)))
-                for px, py in zip(xs, ys):
-                    x, y = int(box[0] + px - ox), int(box[1] + py - oy)
-                    rect = (x, y, width, height)
-                    visible = _clip(rect, self.VIEWPORT)
-                    if abs(x - column) > tolerance or visible[3] < spec.get("minimum_visible_height", 12):
-                        continue
-                    candidates.append({"rect": rect, "anchor_score": float(response[py, px])})
-        unique = []
-        for candidate in sorted(candidates, key=lambda row: row["anchor_score"], reverse=True):
-            x, y, _, _ = candidate["rect"]
-            if not any(abs(x - old["rect"][0]) <= tolerance * 2
-                       and abs(y - old["rect"][1]) <= tolerance * 2 for old in unique):
-                unique.append(candidate)
-        return unique
-
-    def _identify(self, frame, rect, products, selected=False):
-        spec = self._data[0]["cards"]
-        ix, iy, iw, ih = spec["icon_rect"]
-        tolerance = spec.get("icon_position_tolerance", 2)
-        box = (rect[0] + ix - tolerance, rect[1] + iy - tolerance,
-               iw + tolerance * 2, ih + tolerance * 2)
-        scores, thresholds, accepted = {}, {}, {}
-        for entry in spec.get("items", self._data[0].get("items", [])):
-            if entry.get("state") not in (None, "selected" if selected else "normal"):
-                continue
-            item_id = entry["item_id"]
-            if item_id not in products:
-                raise BlackMoonLocalShopRecognitionError("catalog_template_mismatch", str(item_id))
-            result = self._match_entry(frame, entry, box)
-            if result["score"] > scores.get(item_id, -1.):
-                scores[item_id] = result["score"]
-                thresholds[item_id] = entry.get("threshold", spec.get("item_threshold", .88))
-                accepted[item_id] = result["found"]
-        ranked = sorted(scores.items(), key=lambda row: row[1], reverse=True)
-        if not ranked:
-            return None, 0., None
-        item_id, score = ranked[0]
-        margin = score - ranked[1][1] if len(ranked) > 1 else 1.
-        if not accepted[item_id] or score < thresholds[item_id] or margin < spec.get("minimum_item_margin", .04):
-            return None, float(score), None
-        return item_id, float(score), products[item_id]["quality"]
-
-    def detect_cards(self, frame):
-        frame = _image(frame)
-        if not self.is_local(frame):
-            raise BlackMoonLocalShopRecognitionError("not_local", "LOCAL tab/page missing or reward overlay present")
-        if self.mode(frame) == "unknown":
-            raise BlackMoonLocalShopRecognitionError("mode_uncertain", "Batch toggle state is ambiguous or obscured")
-        products = self._products()
-        spec = self._data[0]["cards"]
-        candidates = self._card_origins(frame)
-        if not candidates:
-            raise BlackMoonLocalShopRecognitionError("layout_uncertain", "No native card boundaries; not proof of an empty store")
-        cards = []
-        for candidate in candidates:
-            rect = candidate["rect"]
-            partial = _clip(rect, self.VIEWPORT) != rect
-            tolerance = spec.get("position_tolerance", 3)
-            frame_score = None
-            if not partial:
-                search = _clip((rect[0] - tolerance, rect[1] - tolerance,
-                                rect[2] + tolerance * 2, rect[3] + tolerance * 2), self.VIEWPORT)
-                frames = [(self._match_entry(frame, entry, search), entry) for entry in spec["frame_variants"]]
-                result, _ = max(frames, key=lambda pair: pair[0]["score"])
-                frame_score = result["score"]
-                if not result["found"]:
-                    raise BlackMoonLocalShopRecognitionError("card_frame_uncertain", f"Native boundary at {rect} has no confirmed frame")
-                rect = result["rect"]
-                partial = _clip(rect, self.VIEWPORT) != rect
-            states = {}
-            for name in ("selected", "sold_out"):
-                relative = spec[f"{name}_roi"]
-                box = (rect[0] + relative[0] - tolerance, rect[1] + relative[1] - tolerance,
-                       relative[2] + tolerance * 2, relative[3] + tolerance * 2)
-                visible_box = _clip(box, self.VIEWPORT)
-                states[name] = bool(self._match_box(frame, name, visible_box)["found"])
-            item_id, item_score, quality = (None, 0., None)
-            if not partial and not states["sold_out"]:
-                item_id, item_score, quality = self._identify(frame, rect, products, states["selected"])
-            card = {"rect": tuple(map(int, rect)), "partial": bool(partial), **states,
-                    "item_id": item_id, "item_score": item_score, "quality": quality,
-                    "anchor_score": candidate["anchor_score"], "frame_score": frame_score,
-                    "clickable": bool(not partial and not states["sold_out"] and item_id is not None)}
-            if not partial and not states["sold_out"]:
-                try:
-                    card["fingerprint"] = self.fingerprint(frame, card)
-                except BlackMoonLocalShopRecognitionError:
-                    card["fingerprint"] = None
-            else:
-                card["fingerprint"] = None
-            if not any(abs(rect[0] - old["rect"][0]) <= tolerance * 2
-                       and abs(rect[1] - old["rect"][1]) <= tolerance * 2 for old in cards):
-                cards.append(card)
-        for column in spec["columns"]:
-            ordered = sorted((card for card in cards if abs(card["rect"][0] - column) <= tolerance),
-                             key=lambda card: card["rect"][1])
-            for before, after in zip(ordered, ordered[1:]):
-                if before["rect"][1] + before["rect"][3] > after["rect"][1] + tolerance:
-                    raise BlackMoonLocalShopRecognitionError("layout_uncertain", "Native card boundaries overlap inconsistently")
-        rows = []
-        for card in sorted(cards, key=lambda row: (row["rect"][1], row["rect"][0])):
-            if not rows or abs(card["rect"][1] - rows[-1][0]["rect"][1]) > tolerance * 2:
-                rows.append([])
-            rows[-1].append(card)
-        return [card for row in rows for card in sorted(row, key=lambda card: card["rect"][0])]
-
-    def fingerprint(self, frame, card):
-        """Interior visual evidence only, not identity or purchase/completion proof."""
-        frame = _image(frame)
-        try:
-            rect = tuple(map(int, card["rect"]))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise BlackMoonLocalShopRecognitionError("invalid_card", "Missing card rectangle") from exc
-        if len(rect) != 4 or rect[2] <= 0 or rect[3] <= 0:
-            raise BlackMoonLocalShopRecognitionError("invalid_card", "Invalid card dimensions")
-        if card.get("partial") or card.get("sold_out") or card.get("occluded") or _clip(rect, self.VIEWPORT) != rect:
-            raise BlackMoonLocalShopRecognitionError("fingerprint_unavailable", "Clipped, sold-out, or obscured card")
-        if not self.is_local(frame):
-            raise BlackMoonLocalShopRecognitionError("fingerprint_unavailable", "LOCAL page is obscured or missing")
-        spec = self._data[0]["cards"]
-        relative = spec.get("fingerprint_box", (32, 32, rect[2] - 44, rect[3] - 40))
-        x, y, w, h = relative
-        patch = _crop(frame, (rect[0] + x, rect[1] + y, w, h)).copy()
-        for ex, ey, ew, eh in spec.get("fingerprint_exclude", []):
-            cx, cy, cw, ch = _clip((ex - x, ey - y, ew, eh), (0, 0, w, h))
-            patch[cy:cy + ch, cx:cx + cw] = 0
-        small = cv2.resize(patch, (48, 28), interpolation=cv2.INTER_AREA).astype(np.float32) / 255.
-        deviation = float(small.std())
-        if deviation < .035:
-            raise BlackMoonLocalShopRecognitionError("fingerprint_unavailable", "Interior patch has insufficient contrast")
-        # The native selected overlay uniformly darkens the interior; geometry,
-        # commodity text, and pack differences must survive that state change.
-        return (small - float(small.mean())) / deviation
-
-    @staticmethod
-    def same_fingerprint(a, b):
-        """Conservative overlap comparison; identical-looking packs can still recur."""
-        if not isinstance(a, np.ndarray) or not isinstance(b, np.ndarray) or a.shape != (28, 48, 3) or b.shape != a.shape:
-            return False
-        if not np.isfinite(a).all() or not np.isfinite(b).all():
-            return False
-        av, bv = a.astype(np.float64).ravel(), b.astype(np.float64).ravel()
-        if min(float(av.std()), float(bv.std())) < .035:
-            return False
-        difference = float(np.abs(av - bv).mean())
-        av, bv = av - av.mean(), bv - bv.mean()
-        norm = float(np.linalg.norm(av) * np.linalg.norm(bv))
-        return bool(norm > 1e-8 and float(np.dot(av, bv) / norm) >= .992 and difference <= .08)

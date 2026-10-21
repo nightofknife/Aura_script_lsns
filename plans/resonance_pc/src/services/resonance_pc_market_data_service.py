@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Optional
 from packages.aura_core.api import service_info
 from packages.aura_core.observability.logging.core_logger import logger
 
+from ._buy_lot_normalization import normalize_city_product_buy_lot
+
 
 class ResonancePcMarketDataError(RuntimeError):
     """Structured market data service error."""
@@ -1131,39 +1133,9 @@ class ResonancePcMarketDataService:
         return normalized
 
     def _extract_city_product_buy_lot(self, payload: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
-        city_product_buy_lot = payload.get("city_product_buy_lot")
-        if not isinstance(city_product_buy_lot, dict):
-            raise ResonancePcMarketDataError(
-                code="buy_lot_invalid",
-                message="buy_lot payload must include object field city_product_buy_lot.",
-            )
-        normalized: Dict[str, Dict[str, int]] = {}
-        for city_id, products in city_product_buy_lot.items():
-            if not isinstance(products, dict):
-                continue
-            ckey = str(city_id).strip()
-            if not ckey:
-                continue
-            row: Dict[str, int] = {}
-            for product_id, lot in products.items():
-                pkey = str(product_id).strip()
-                if not pkey:
-                    continue
-                try:
-                    value = int(lot)
-                except (TypeError, ValueError) as exc:
-                    raise ResonancePcMarketDataError(
-                        code="buy_lot_invalid",
-                        message=f"buy_lot '{ckey}->{pkey}' must be integer.",
-                    ) from exc
-                if value < 0:
-                    raise ResonancePcMarketDataError(
-                        code="buy_lot_invalid",
-                        message=f"buy_lot '{ckey}->{pkey}' must be >= 0.",
-                    )
-                row[pkey] = value
-            normalized[ckey] = row
-        return normalized
+        return normalize_city_product_buy_lot(
+            payload.get("city_product_buy_lot"), error_factory=ResonancePcMarketDataError
+        )
 
     def _http_get_text(self, url: str) -> str:
         req = urllib.request.Request(

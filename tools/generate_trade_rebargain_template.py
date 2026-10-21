@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 _ROOT = Path(__file__).resolve().parents[1]
-_OUTPUT = _ROOT / "plans/resonance_pc/templates/trade_buy_rebargain_button.png"
+_OUTPUT = _ROOT / "plans/resonance_pc/templates/commerce/trade/negotiation/buy/rebargain_button.png"
 _PREFAB = "ui/hometrade/hometrade_splited/group_trade.asset"
 _BUTTON_GO = 2913748993047873171
 _LABEL_GO = -5319291662600138162

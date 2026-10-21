@@ -1,5 +1,6 @@
 """Return retries require fresh, positively identified source-page observations."""
 from types import SimpleNamespace
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -24,7 +25,7 @@ def rig(monkeypatch):
         serial = int(source_image[0, 0, 0])
         scene = frames[serial]
         state.now += state.match_delay
-        is_menu = template_image.endswith("trade_shop_menu_ready.png")
+        is_menu = Path(template_image).as_posix().endswith("commerce/trade/shop/menu_ready.png")
         found = scene in {"shop", "ambiguous"} if is_menu else scene != "missing_back"
         return SimpleNamespace(found=found, confidence=float("nan") if scene == "invalid" else .99,
                                center_point=(serial, 37), debug_info={})

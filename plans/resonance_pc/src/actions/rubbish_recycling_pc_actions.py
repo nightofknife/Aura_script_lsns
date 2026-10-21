@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import math
 import time
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
+import numpy as np
+
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService
 
@@ -30,10 +35,10 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CITY_CONFIG_PATH = "data/meta/rubbish_recycling_pc.json"
 _LOCATION_PATH = "data/meta/location_pc.json"
 
-_ENTRY_TEMPLATE = "templates/rubbish_recycle_entry.png"
-_RECYCLE_ALL_TEMPLATE = "templates/rubbish_recycle_all_enabled.png"
-_NO_RUBBISH_TEMPLATE = "templates/rubbish_no_rubbish_disabled.png"
-_BACK_TEMPLATE = "templates/nav_back_button.png"
+_ENTRY_TEMPLATE = "templates/recycling/controls/entry.png"
+_RECYCLE_ALL_TEMPLATE = "templates/recycling/controls/recycle_all_enabled.png"
+_NO_RUBBISH_TEMPLATE = "templates/recycling/controls/no_rubbish_disabled.png"
+_BACK_TEMPLATE = "templates/navigation/global/back.png"
 
 _ENTRY_REGION = (700, 260, 550, 140)
 _STATE_REGION = (970, 85, 290, 105)
@@ -47,8 +52,43 @@ _AMBIGUOUS_CONFIDENCE_GAP = 0.03
 _STEP_INTERVAL_SEC = 0.5
 _RECYCLE_RECHECK_DELAY_SEC = 0.2
 _REWARD_DISMISS_INTERVAL_SEC = 1.0
+_REWARD_DISMISS_TIMEOUT_SEC = 15.0
+_REWARD_DISMISS_MAX_ATTEMPTS = 10
 _ENTRY_MAX_ROUNDS = 3
 _RECYCLE_MAX_ROUNDS = 5
+
+
+def _check_cancelled() -> None:
+    if is_current_task_cancel_requested():
+        raise asyncio.CancelledError("Rubbish recycling cancelled")
+
+
+def _sleep(seconds: float) -> None:
+    deadline = time.monotonic() + max(float(seconds), 0.0)
+    while True:
+        _check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        time.sleep(min(remaining, 0.05))
+
+
+def _capture_frame(app: Any, rect: Tuple[int, int, int, int]) -> np.ndarray:
+    _check_cancelled()
+    try:
+        captured = app.capture(rect=rect)
+    except Exception as exc:
+        _check_cancelled()
+        _raise_error("rubbish_capture_failed", "rubbish frame capture failed",
+                     {"region": list(rect), "cause": str(exc)})
+    _check_cancelled()
+    image = getattr(captured, "image", None)
+    if (not bool(getattr(captured, "success", False))
+            or not isinstance(image, np.ndarray) or image.dtype != np.uint8
+            or image.shape != (rect[3], rect[2], 3)):
+        _raise_error("rubbish_capture_failed", "rubbish frame capture is unusable",
+                     {"region": list(rect)})
+    return image
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:
@@ -136,30 +176,35 @@ def _match_template(
     source_image: Any = None,
     threshold: float = _MATCH_THRESHOLD,
 ) -> Dict[str, Any]:
+    _check_cancelled()
     rect = _coerce_region(region)
     if source_image is None:
-        capture = app.capture(rect=rect)
-        if not bool(getattr(capture, "success", False)):
-            return {
-                "found": False,
-                "template": template,
-                "region": list(rect),
-                "confidence": 0.0,
-                "reason": "capture_failed",
-            }
-        source_image = capture.image
-    match = vision.find_template(
-        source_image=source_image,
-        template_image=str(_resolve_plan_path(template)),
-        threshold=float(threshold),
-        use_grayscale=True,
-    )
+        source_image = _capture_frame(app, rect)
+    try:
+        match = vision.find_template(
+            source_image=source_image,
+            template_image=str(_resolve_plan_path(template)),
+            threshold=float(threshold),
+            use_grayscale=True,
+        )
+        found = getattr(match, "found", None)
+        confidence = float(getattr(match, "confidence", 0.0) or 0.0)
+        raw_debug = getattr(match, "debug_info", None)
+        debug = {} if raw_debug is None else raw_debug
+        if (not isinstance(found, (bool, np.bool_)) or not math.isfinite(confidence)
+                or not isinstance(debug, Mapping) or debug.get("error")):
+            raise ValueError("unusable template matching result")
+    except Exception as exc:
+        _check_cancelled()
+        _raise_error("rubbish_template_matching_failed", "rubbish template matching failed",
+                     {"template": template, "region": list(rect), "cause": str(exc)})
+    _check_cancelled()
     center = getattr(match, "center_point", None)
     result: Dict[str, Any] = {
-        "found": bool(getattr(match, "found", False)),
+        "found": bool(found),
         "template": template,
         "region": list(rect),
-        "confidence": float(getattr(match, "confidence", 0.0) or 0.0),
+        "confidence": confidence,
     }
     if center and len(center) == 2:
         result["center"] = [int(rect[0] + int(center[0])), int(rect[1] + int(center[1]))]
@@ -180,6 +225,7 @@ def _wait_template(
     polls = 0
     last: Dict[str, Any] = {"found": False, "template": template, "region": list(region)}
     while True:
+        _check_cancelled()
         polls += 1
         last = _match_template(app, vision, template=template, region=region)
         logger.debug(
@@ -190,7 +236,7 @@ def _wait_template(
             float(last.get("confidence") or 0.0),
             int((time.monotonic() - started_at) * 1000),
         )
-        if last.get("found"):
+        if last.get("found") and time.monotonic() < deadline:
             return {
                 **last,
                 "polls": polls,
@@ -199,33 +245,32 @@ def _wait_template(
         if time.monotonic() >= deadline:
             return {
                 **last,
+                "found": False,
+                "reason": "detection_timeout",
                 "polls": polls,
                 "elapsed_ms": int((time.monotonic() - started_at) * 1000),
             }
         remaining_sec = max(deadline - time.monotonic(), 0.0)
-        time.sleep(min(max(float(interval_sec), 0.05), remaining_sec))
+        _sleep(min(max(float(interval_sec), 0.05), remaining_sec))
 
 
 def _probe_rubbish_state(app: Any, vision: Any) -> Dict[str, Any]:
-    enabled: Dict[str, Any] = {"found": False, "confidence": 0.0}
-    empty: Dict[str, Any] = {"found": False, "confidence": 0.0}
     rect = _coerce_region(_STATE_REGION)
-    capture = app.capture(rect=rect)
-    if bool(getattr(capture, "success", False)):
-        enabled = _match_template(
-            app,
-            vision,
-            template=_RECYCLE_ALL_TEMPLATE,
-            region=rect,
-            source_image=capture.image,
-        )
-        empty = _match_template(
-            app,
-            vision,
-            template=_NO_RUBBISH_TEMPLATE,
-            region=rect,
-            source_image=capture.image,
-        )
+    image = _capture_frame(app, rect)
+    enabled = _match_template(
+        app,
+        vision,
+        template=_RECYCLE_ALL_TEMPLATE,
+        region=rect,
+        source_image=image,
+    )
+    empty = _match_template(
+        app,
+        vision,
+        template=_NO_RUBBISH_TEMPLATE,
+        region=rect,
+        source_image=image,
+    )
     enabled_found = bool(enabled.get("found"))
     empty_found = bool(empty.get("found"))
     if enabled_found and empty_found:
@@ -268,6 +313,7 @@ def _wait_rubbish_state(app: Any, vision: Any) -> Dict[str, Any]:
         "empty_match": {"found": False, "confidence": 0.0},
     }
     while True:
+        _check_cancelled()
         polls += 1
         last_probe = _probe_rubbish_state(app, vision)
         current_state = last_probe.get("state")
@@ -280,7 +326,7 @@ def _wait_rubbish_state(app: Any, vision: Any) -> Dict[str, Any]:
             float(last_probe["empty_match"].get("confidence") or 0.0),
             int((time.monotonic() - started_at) * 1000),
         )
-        if current_state is not None:
+        if current_state is not None and time.monotonic() < deadline:
             return {
                 **last_probe,
                 "state": str(current_state),
@@ -294,7 +340,7 @@ def _wait_rubbish_state(app: Any, vision: Any) -> Dict[str, Any]:
                 {"last_probe": last_probe, "polls": polls},
             )
         remaining_sec = max(deadline - time.monotonic(), 0.0)
-        time.sleep(min(_MATCH_INTERVAL_SEC, remaining_sec))
+        _sleep(min(_MATCH_INTERVAL_SEC, remaining_sec))
 
 
 def _click_match(app: Any, match: Mapping[str, Any], *, error_code: str) -> Dict[str, Any]:
@@ -302,7 +348,9 @@ def _click_match(app: Any, match: Mapping[str, Any], *, error_code: str) -> Dict
     if not isinstance(center, list) or len(center) != 2:
         _raise_error(error_code, "matched template did not contain a click center", {"match": dict(match)})
     x, y = int(center[0]), int(center[1])
+    _check_cancelled()
     app.click(x=x, y=y)
+    _check_cancelled()
     return {"clicked": True, "x": x, "y": y, "match": dict(match)}
 
 
@@ -311,6 +359,7 @@ def _enter_rubbish_page(app: Any, vision: Any) -> Dict[str, Any]:
     entry_clicks: list[Dict[str, Any]] = []
     rounds: list[Dict[str, Any]] = []
     for round_index in range(1, _ENTRY_MAX_ROUNDS + 1):
+        _check_cancelled()
         entry = _wait_template(
             app,
             vision,
@@ -397,12 +446,13 @@ def _click_recycle_all_until_absent(
     attempts: list[Dict[str, Any]] = []
     current_match = dict(initial_match)
     for round_index in range(1, _RECYCLE_MAX_ROUNDS + 1):
+        _check_cancelled()
         click = _click_match(
             app,
             current_match,
             error_code="rubbish_recycle_button_not_clickable",
         )
-        time.sleep(_RECYCLE_RECHECK_DELAY_SEC)
+        _sleep(_RECYCLE_RECHECK_DELAY_SEC)
         recheck = _match_template(
             app,
             vision,
@@ -436,10 +486,20 @@ def _click_recycle_all_until_absent(
 
 
 def _dismiss_reward_until_empty(app: Any, vision: Any) -> Dict[str, Any]:
+    """Dismiss at one-second intervals, at most ten times and within fifteen seconds."""
     attempts: list[Dict[str, Any]] = []
-    while True:
-        time.sleep(_REWARD_DISMISS_INTERVAL_SEC)
+    deadline = time.monotonic() + _REWARD_DISMISS_TIMEOUT_SEC
+    for _ in range(_REWARD_DISMISS_MAX_ATTEMPTS):
+        _check_cancelled()
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        _sleep(min(_REWARD_DISMISS_INTERVAL_SEC, remaining))
+        _check_cancelled()
+        if time.monotonic() >= deadline:
+            break
         app.click(x=_REWARD_DISMISS_POINT[0], y=_REWARD_DISMISS_POINT[1])
+        _check_cancelled()
         empty_match = _match_template(
             app,
             vision,
@@ -453,6 +513,8 @@ def _dismiss_reward_until_empty(app: Any, vision: Any) -> Dict[str, Any]:
                 "empty_match": empty_match,
             }
         )
+        if time.monotonic() >= deadline:
+            break
         logger.info(
             "Rubbish reward dismiss attempt=%s x=%s y=%s empty=%s confidence=%.4f",
             len(attempts),
@@ -463,6 +525,13 @@ def _dismiss_reward_until_empty(app: Any, vision: Any) -> Dict[str, Any]:
         )
         if bool(empty_match.get("found")):
             return {"success": True, "attempts": attempts, "empty_match": empty_match}
+    _check_cancelled()
+    _raise_error(
+        "rubbish_reward_dismiss_timeout",
+        "rubbish reward dismissal did not confirm the empty state within its bounds",
+        {"attempts": attempts, "max_attempts": _REWARD_DISMISS_MAX_ATTEMPTS,
+         "timeout_sec": _REWARD_DISMISS_TIMEOUT_SEC},
+    )
 
 
 @action_info(
@@ -483,6 +552,7 @@ def resonance_pc_execute_rubbish_recycling_from_city_panel(
     vision: Any = None,
     resonance_pc_city_shop_data: ResonancePcCityShopDataService | None = None,
 ) -> Dict[str, Any]:
+    _check_cancelled()
     if app is None or vision is None or resonance_pc_city_shop_data is None:
         raise RuntimeError("app/vision/resonance_pc_city_shop_data services are required")
     city = resolve_rubbish_recycling_city(city_name=city_name)
@@ -505,13 +575,15 @@ def resonance_pc_execute_rubbish_recycling_from_city_panel(
         point["x"],
         point["y"],
     )
+    _check_cancelled()
     app.click(x=int(point["x"]), y=int(point["y"]))
+    _check_cancelled()
 
     entry_result = _enter_rubbish_page(app, vision)
     entry = dict(entry_result.get("entry") or {})
     entry_clicks = list(entry_result.get("entry_clicks") or [])
     entry_click = entry_clicks[-1] if entry_clicks else None
-    time.sleep(_STEP_INTERVAL_SEC)
+    _sleep(_STEP_INTERVAL_SEC)
 
     initial_state = _wait_rubbish_state(app, vision)
     reward: Optional[Dict[str, Any]] = None
@@ -537,7 +609,7 @@ def resonance_pc_execute_rubbish_recycling_from_city_panel(
         reason = None
 
     recycle_page_back = _click_back(app, vision, from_page="recycle_page")
-    time.sleep(_STEP_INTERVAL_SEC)
+    _sleep(_STEP_INTERVAL_SEC)
     station_menu_back = _click_back(app, vision, from_page="station_menu")
     back_clicks = [recycle_page_back, station_menu_back]
     back_click = station_menu_back
