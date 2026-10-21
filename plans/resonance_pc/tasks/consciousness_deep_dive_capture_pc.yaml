@@ -1,5 +1,7 @@
 consciousness_deep_dive_capture_drag_chunk_pc:
   meta:
+    role: developer
+    domain: 活动玩法
     title: Consciousness Deep Dive Capture Drag Chunk (PC)
     description: Perform one bounded board drag and its inter-chunk wait.
     entry_point: false
@@ -32,6 +34,8 @@ consciousness_deep_dive_capture_drag_chunk_pc:
 
 consciousness_deep_dive_capture_view_pc:
   meta:
+    role: developer
+    domain: 活动玩法
     title: Consciousness Deep Dive Capture View (PC)
     description: Reach and capture one calibrated board displacement.
     entry_point: false
@@ -84,9 +88,11 @@ consciousness_deep_dive_capture_view_pc:
 
 consciousness_deep_dive_capture_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: Consciousness Deep Dive View Capture (PC)
     description: Capture four calibrated board views for recognition material.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: sensitivity
         type: string

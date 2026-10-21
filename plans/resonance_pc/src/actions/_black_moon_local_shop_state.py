@@ -17,7 +17,6 @@ import threading
 import time as monotonic_time
 import uuid
 import weakref
-from collections import Counter
 from collections.abc import Mapping
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, time, timedelta, timezone
@@ -609,42 +608,18 @@ def _wishlist_completion_evidence(record: dict, proof: dict) -> dict:
                  if batch["status"] == "confirmed"]
     if any(batch["evidence"].get("type") != "wishlist_purchase_settled" for batch in confirmed):
         raise ValueError("Wishlist completion requires settled wishlist payment evidence")
-    # Either new field selects this contract. A partial or malformed new proof
-    # must never fall back to historical per-card accounting.
-    if "has_selected_goods" in proof or "matched_item_ids" in proof:
-        presence = validated_selection_presence(proof, record["selected_item_ids"])
-        matched = set(presence["matched_item_ids"])
-        purchased = {item["item_id"] for batch in confirmed for item in batch["items"]}
-        if purchased != matched:
-            raise ValueError("Matched targets require current-visit confirmed payment evidence")
-        return proof
-    return _legacy_wishlist_card_evidence(record, proof, confirmed)
-
-
-def _legacy_wishlist_card_evidence(record: dict, proof: dict, confirmed: list[dict]) -> dict:
-    """Keep historical card counts readable without imposing them on new scans."""
-    count = proof.get("selected_card_count")
-    if type(count) is not int or count < 0:
-        raise ValueError("selected_card_count must be a nonnegative integer")
-    items = proof.get("selected_items")
-    if not isinstance(items, list) or len(items) != count:
-        raise ValueError("Wishlist completion must account for each selected card")
-    if items:
-        _batch_items(items, record["selected_item_ids"])
-    purchased = Counter(item["item_id"] for batch in confirmed for item in batch["items"])
-    selected = Counter(item["item_id"] for item in items)
-    if purchased != selected:
-        raise ValueError("Each selected card requires current-visit confirmed payment evidence")
+    presence = validated_selection_presence(proof, record["selected_item_ids"])
+    matched = set(presence["matched_item_ids"])
+    purchased = {item["item_id"] for batch in confirmed for item in batch["items"]}
+    if purchased != matched:
+        raise ValueError("Matched targets require current-visit confirmed payment evidence")
     return proof
 
 
 def _wishlist_completion_reason(reason: str, proof: dict) -> None:
     if proof.get("type") != "wishlist_scan":
         return
-    if "has_selected_goods" in proof or "matched_item_ids" in proof:
-        empty = not validated_selection_presence(proof)["has_selected_goods"]
-    else:
-        empty = proof["selected_card_count"] == 0
+    empty = not validated_selection_presence(proof)["has_selected_goods"]
     if empty and reason != "no_matching_goods":
         raise ValueError("An empty wishlist scan must use reason no_matching_goods")
 

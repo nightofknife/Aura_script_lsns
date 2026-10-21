@@ -13,17 +13,13 @@ from packages.resonance_gui.config_repository import (
 )
 
 
-class UntouchableLegacySettings:
-    def __getattr__(self, name):
-        pytest.fail(f"Legacy settings must not be accessed: {name}")
-
 
 def test_new_namespace_ignores_old_ini_and_registry(tmp_path):
     old_ini = tmp_path / "gui-settings.ini"
     old_content = b"[game]\nexecutable_path=old.exe\n[runner]\ntimeout_sec=123\n"
     old_ini.write_bytes(old_content)
     repository = ResonanceConfigRepository(
-        base_path=tmp_path, legacy_settings=UntouchableLegacySettings()
+        base_path=tmp_path
     )
     assert Path(repository.settings.fileName()) == tmp_path / PORTABLE_SETTINGS_FILENAME
     assert repository.value("game/executable_path", "") == ""
@@ -78,7 +74,7 @@ def test_layout_v2_settings_survive_reopening_without_legacy_import(tmp_path):
     repository.sync_checked()
 
     reopened = ResonanceConfigRepository(
-        base_path=tmp_path, legacy_settings=UntouchableLegacySettings()
+        base_path=tmp_path
     )
     assert reopened.value("game/executable_path") == "new.exe"
     assert reopened.value("workflow/task_order") == "startup,passenger,trade,battle,close"
@@ -97,7 +93,7 @@ def test_failed_new_settings_write_does_not_import_legacy(tmp_path):
     blocked = tmp_path / "not-a-directory"
     blocked.write_text("occupied", encoding="utf-8")
     repository = ResonanceConfigRepository(
-        base_path=blocked, legacy_settings=UntouchableLegacySettings()
+        base_path=blocked
     )
     with pytest.raises(OSError):
         repository.save_hotkeys("Ctrl+F6", "Ctrl+F7")

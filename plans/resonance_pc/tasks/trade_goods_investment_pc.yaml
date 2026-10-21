@@ -1,8 +1,10 @@
 trade_goods_investment_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Trade Goods Investment (PC)
     description: Invest goods from the current exchange menu in unlock order and return to that menu.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: mode
         type: number

@@ -963,10 +963,6 @@ exports:
       type: Any
       required: false
       default: 60.0
-    - name: metric_timeout_sec
-      type: Any
-      required: false
-      default: null
   - name: resonance_pc.open_city_panel_from_main
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_open_city_panel_from_main
@@ -1048,7 +1044,7 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Click the Nth node in a shop page using fixed MuMu coordinates.
+    description: Click the Nth node in a shop page using fixed PC client coordinates.
     parameters:
     - name: node_index
       type: Any
@@ -2130,8 +2126,7 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Require child framework_data to contain a confirmed business completion
-      node.
+    description: Require the declared child business result to confirm completion.
     parameters:
     - name: session_key
       type: Any
@@ -2504,19 +2499,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.product_workshop_quick_fill
-    module: plans.resonance_pc.src.actions.product_workshop_pc_actions
-    function: resonance_pc_product_workshop_quick_fill
-    public: true
-    read_only: false
-    timeout: null
-    description: Use templates only to quick-select production workers and confirm
-      save on exit, then return to the overview; no OCR, Apply or scheduling.
-    parameters:
-    - name: room_name
-      type: Any
-      required: true
-      default: null
   - name: resonance_pc.product_workshop_staff_assets
     module: plans.resonance_pc.src.actions.product_workshop_staff_pc_actions
     function: resonance_pc_product_workshop_staff_assets
@@ -2856,63 +2838,6 @@ exports:
       type: Any
       required: false
       default: 0.5
-    - name: after_click_sec
-      type: Any
-      required: false
-      default: 0.5
-  - name: resonance_pc.navigate_reforming_center_room
-    module: plans.resonance_pc.src.actions.reforming_center_pc_actions
-    function: resonance_pc_navigate_reforming_center_room
-    public: true
-    read_only: false
-    timeout: null
-    description: Find a Reforming Center room by OCR, safely pan it into the interaction
-      area, and click it.
-    parameters:
-    - name: room_name
-      type: Any
-      required: true
-      default: null
-    - name: room_layout_path
-      type: Any
-      required: false
-      default: null
-    - name: search_region
-      type: Any
-      required: false
-      default: null
-    - name: drag_region
-      type: Any
-      required: false
-      default: null
-    - name: click_region
-      type: Any
-      required: false
-      default: null
-    - name: target_title_point
-      type: Any
-      required: false
-      default: null
-    - name: max_search_steps
-      type: Any
-      required: false
-      default: 12
-    - name: max_no_anchor_polls
-      type: Any
-      required: false
-      default: 2
-    - name: drag_duration_sec
-      type: Any
-      required: false
-      default: 0.8
-    - name: drag_hold_sec
-      type: Any
-      required: false
-      default: 0.2
-    - name: settle_sec
-      type: Any
-      required: false
-      default: 0.8
     - name: after_click_sec
       type: Any
       required: false
@@ -3500,443 +3425,374 @@ exports:
     source: tasks/admit_prisoners_pc.yaml
     description: Fill all available Reforming Center capacity using the safe one-click
       admission flow.
-  - id: admit_prisoners_pc
-    title: Admit Prisoners (PC)
-    source: tasks/admit_prisoners_pc.yaml
-    description: Fill all available Reforming Center capacity using the safe one-click
-      admission flow.
+    role: user_task
+    domain: 整顿中心
   - id: auto_battle_combat_pc/auto_battle_combat_pc
     title: Auto Battle PC Combat
     source: tasks/auto_battle_combat_pc.yaml
     description: Shared combat executor for CT and GP action_summary battle entries.
-  - id: auto_battle_combat_pc
-    title: Auto Battle PC Combat
-    source: tasks/auto_battle_combat_pc.yaml
-    description: Shared combat executor for CT and GP action_summary battle entries.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_run_one_pc
     title: Auto Battle PC CT TieAn Run One
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute one CT tie_an job.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_batch_pc
     title: Auto Battle PC CT TieAn Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Batch executor for CT tie_an jobs.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_run_one_pc
     title: Auto Battle PC CT RegionalOps Run One
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute one CT regional_ops_center job.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_batch_pc
     title: Auto Battle PC CT RegionalOps Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Batch executor for CT regional_ops_center jobs.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_batch_pc
     title: Auto Battle PC CT Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Group CT jobs by tie_an/regional_ops_center and dispatch in order.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_difficulty_pc
     title: Auto Battle PC GP ActionSummary Run Difficulty
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute one action_summary difficulty inside an already opened stage.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_group_pc
     title: Auto Battle PC GP ActionSummary Run Group
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute one consecutive action_summary stage group.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_batch_pc
     title: Auto Battle PC GP ActionSummary Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute grouped action_summary jobs.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_structural_run_one_pc
     title: Auto Battle PC GP Structural Run One
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute one structural_exploration target.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_structural_batch_pc
     title: Auto Battle PC GP Structural Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Execute structural_exploration jobs in order.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_batch_pc
     title: Auto Battle PC GP Batch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Group GP jobs by action_summary and structural_exploration, then
       dispatch in order.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_dispatch_pc
     title: Auto Battle PC Dispatch
     source: tasks/auto_battle_dispatch_pc.yaml
     description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
       batch tasks.
-  - id: auto_battle_dispatch_pc
-    title: Auto Battle PC Dispatch
-    source: tasks/auto_battle_dispatch_pc.yaml
-    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
-      batch tasks.
-  - id: auto_battle_input_preview_pc/auto_battle_input_preview_pc
-    title: Auto Battle PC Input Preview
-    source: tasks/auto_battle_input_preview_pc.yaml
-    description: Preview-only task for validating constrained auto battle inputs.
-  - id: auto_battle_input_preview_pc
-    title: Auto Battle PC Input Preview
-    source: tasks/auto_battle_input_preview_pc.yaml
-    description: Preview-only task for validating constrained auto battle inputs.
+    role: user_task
+    domain: 战斗
   - id: auto_combined_commerce_pc/auto_combined_commerce_pc
     title: Combined Freight and Passenger Workflow (PC)
     source: tasks/auto_combined_commerce_pc.yaml
     description: Run freight and passenger tasks under one fatigue budget with validated
       handoffs.
-  - id: auto_combined_commerce_pc
-    title: Combined Freight and Passenger Workflow (PC)
-    source: tasks/auto_combined_commerce_pc.yaml
-    description: Run freight and passenger tasks under one fatigue budget with validated
-      handoffs.
+    role: orchestration
+    domain: 商贸运输
   - id: auto_cycle_trade_pc/auto_cycle_trade_pc
     title: Exact Auto Trade (PC)
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
-  - id: auto_cycle_trade_pc
-    title: Exact Auto Trade (PC)
-    source: tasks/auto_cycle_trade_pc.yaml
-    description: Plan one exact full-budget route from a frozen market snapshot and
-      execute it once.
+    role: user_task
+    domain: 商贸运输
   - id: auto_passenger_trips_pc/auto_passenger_trips_pc
     title: Passenger Trips (PC)
     source: tasks/auto_passenger_trips_pc.yaml
     description: Run a configured number of alternating one-way passenger trips between
       two cities.
-  - id: auto_passenger_trips_pc
-    title: Passenger Trips (PC)
-    source: tasks/auto_passenger_trips_pc.yaml
-    description: Run a configured number of alternating one-way passenger trips between
-      two cities.
+    role: user_task
+    domain: 商贸运输
   - id: bento_consumption_pc/bento_consumption_pc
     title: Consume Bentos (PC)
     source: tasks/bento_consumption_pc.yaml
     description: Consume top-position work meals and first love bento until the recovery
       target or fatigue floor.
-  - id: bento_consumption_pc
-    title: Consume Bentos (PC)
-    source: tasks/bento_consumption_pc.yaml
-    description: Consume top-position work meals and first love bento until the recovery
-      target or fatigue floor.
+    role: internal
+    domain: 商贸运输
   - id: black_moon_local_prepare_pc/black_moon_local_prepare_pc
     title: Black Moon Local Shopping Preparation (PC)
     source: tasks/black_moon_local_prepare_pc.yaml
     description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch
       mode without purchasing.
-  - id: black_moon_local_prepare_pc
-    title: Black Moon Local Shopping Preparation (PC)
-    source: tasks/black_moon_local_prepare_pc.yaml
-    description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch
-      mode without purchasing.
+    role: internal
+    domain: 商贸运输
   - id: black_moon_local_purchase_pc/black_moon_local_purchase_pc
     title: Black Moon Local Purchase (PC)
     source: tasks/black_moon_local_purchase_pc.yaml
     description: Process a weekly wishlist from the rest menu and restore the requested
       endpoint.
-  - id: black_moon_local_purchase_pc
-    title: Black Moon Local Purchase (PC)
-    source: tasks/black_moon_local_purchase_pc.yaml
-    description: Process a weekly wishlist from the rest menu and restore the requested
-      endpoint.
+    role: internal
+    domain: 商贸运输
   - id: black_moon_local_select_pc/black_moon_local_select_pc
     title: Black Moon Local Goods Selection (PC)
     source: tasks/black_moon_local_select_pc.yaml
     description: Select LOCAL wishlist goods; optional purchase waits for settlement
       and exits to rest menu or main.
-  - id: black_moon_local_select_pc
-    title: Black Moon Local Goods Selection (PC)
-    source: tasks/black_moon_local_select_pc.yaml
-    description: Select LOCAL wishlist goods; optional purchase waits for settlement
-      and exits to rest menu or main.
+    role: internal
+    domain: 商贸运输
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml
     description: Enter Mirage Island from the Cape City main screen, invest once when
       possible, and return.
-  - id: cape_island_investment_pc
-    title: Cape Island Investment (PC)
-    source: tasks/cape_island_investment_pc.yaml
-    description: Enter Mirage Island from the Cape City main screen, invest once when
-      possible, and return.
+    role: internal
+    domain: 商贸运输
   - id: collect_product_workshops_pc/collect_product_workshops_pc
     title: 生产车间收菜
     source: tasks/collect_product_workshops_pc.yaml
     description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
-  - id: collect_product_workshops_pc
-    title: 生产车间收菜
-    source: tasks/collect_product_workshops_pc.yaml
-    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
+    role: user_task
+    domain: 整顿中心
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_drag_chunk_pc
     title: Consciousness Deep Dive Capture Drag Chunk (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
     description: Perform one bounded board drag and its inter-chunk wait.
+    role: developer
+    domain: 活动玩法
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_view_pc
     title: Consciousness Deep Dive Capture View (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
     description: Reach and capture one calibrated board displacement.
+    role: developer
+    domain: 活动玩法
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_pc
     title: Consciousness Deep Dive View Capture (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
     description: Capture four calibrated board views for recognition material.
-  - id: consciousness_deep_dive_capture_pc
-    title: Consciousness Deep Dive View Capture (PC)
-    source: tasks/consciousness_deep_dive_capture_pc.yaml
-    description: Capture four calibrated board views for recognition material.
+    role: developer
+    domain: 深潜诊断
   - id: consciousness_deep_dive_cleanup_pc/consciousness_deep_dive_cleanup_pc
     title: 识海深潜结算收尾（PC）
     source: tasks/consciousness_deep_dive_cleanup_pc.yaml
     description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
-  - id: consciousness_deep_dive_cleanup_pc
-    title: 识海深潜结算收尾（PC）
-    source: tasks/consciousness_deep_dive_cleanup_pc.yaml
-    description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
+    role: internal
+    domain: 活动玩法
   - id: consciousness_deep_dive_drag_distance_probe_pc/consciousness_deep_dive_drag_distance_probe_round_pc
     title: Consciousness Deep Dive Drag Distance Probe Round (PC)
     source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
     description: Capture one frame and perform one 80px upward drag.
+    role: developer
+    domain: 活动玩法
   - id: consciousness_deep_dive_drag_distance_probe_pc/consciousness_deep_dive_drag_distance_probe_pc
     title: 拖动距离测算
     source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
     description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
-  - id: consciousness_deep_dive_drag_distance_probe_pc
-    title: 拖动距离测算
-    source: tasks/consciousness_deep_dive_drag_distance_probe_pc.yaml
-    description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
+    role: developer
+    domain: 深潜诊断
   - id: consciousness_deep_dive_entry_card_probe_pc/consciousness_deep_dive_entry_card_probe_pc
     title: 识海深潜节点卡只读识别（PC）
     source: tasks/consciousness_deep_dive_entry_card_probe_pc.yaml
     description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
-  - id: consciousness_deep_dive_entry_card_probe_pc
-    title: 识海深潜节点卡只读识别（PC）
-    source: tasks/consciousness_deep_dive_entry_card_probe_pc.yaml
-    description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
+    role: developer
+    domain: 深潜诊断
   - id: consciousness_deep_dive_loop_pc/consciousness_deep_dive_loop_pc
     title: 识海深潜循环（PC）
     source: tasks/consciousness_deep_dive_loop_pc.yaml
     description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
-  - id: consciousness_deep_dive_loop_pc
-    title: 识海深潜循环（PC）
-    source: tasks/consciousness_deep_dive_loop_pc.yaml
-    description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
+    role: user_task
+    domain: 活动玩法
   - id: consciousness_deep_dive_loop_pc/deep_dive_cycle_pc
     title: 识海深潜完整一局编排
     source: tasks/consciousness_deep_dive_loop_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: consciousness_deep_dive_pc/consciousness_deep_dive_pc
     title: Consciousness Deep Dive (PC)
     source: tasks/consciousness_deep_dive_pc.yaml
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
-  - id: consciousness_deep_dive_pc
-    title: Consciousness Deep Dive (PC)
-    source: tasks/consciousness_deep_dive_pc.yaml
-    description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+    role: internal
+    domain: 活动玩法
   - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
     title: 识海深潜关卡内自动运行（3×3）
     source: tasks/consciousness_deep_dive_planned_run_pc.yaml
     description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
-  - id: consciousness_deep_dive_planned_run_pc
-    title: 识海深潜关卡内自动运行（3×3）
-    source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+    role: user_task
+    domain: 活动玩法
   - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
     title: 识海深潜移动规划（离线）
     source: tasks/consciousness_deep_dive_plan_pc.yaml
     description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
-  - id: consciousness_deep_dive_plan_pc
-    title: 识海深潜移动规划（离线）
-    source: tasks/consciousness_deep_dive_plan_pc.yaml
-    description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
+    role: developer
+    domain: 深潜诊断
+  - id: consciousness_deep_dive_random_run_pc/consciousness_deep_dive_random_run_pc
+    title: 识海深潜随机单局运行（PC）
+    source: tasks/consciousness_deep_dive_random_run_pc.yaml
+    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
+    role: internal
+    domain: 活动玩法
   - id: consciousness_deep_dive_scan_pc/consciousness_deep_dive_scan_pc
     title: 识海深潜魔方布局扫描（人工对比）
     source: tasks/consciousness_deep_dive_scan_pc.yaml
     description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full
       可继续完整图案扫描。
-  - id: consciousness_deep_dive_scan_pc
-    title: 识海深潜魔方布局扫描（人工对比）
-    source: tasks/consciousness_deep_dive_scan_pc.yaml
-    description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full
-      可继续完整图案扫描。
+    role: developer
+    domain: 深潜诊断
   - id: consciousness_deep_dive_sensitivity_probe_pc/consciousness_deep_dive_sensitivity_probe_pc
     title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
     source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
     description: Drag the board once by 320px and capture one unlabeled probe image.
-  - id: consciousness_deep_dive_sensitivity_probe_pc
-    title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
-    source: tasks/consciousness_deep_dive_sensitivity_probe_pc.yaml
-    description: Drag the board once by 320px and capture one unlabeled probe image.
-  - id: consciousness_deep_dive_single_run_test_pc/consciousness_deep_dive_single_run_test_pc
-    title: 识海深潜单局移动测试（PC）
-    source: tasks/consciousness_deep_dive_single_run_test_pc.yaml
-    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
-  - id: consciousness_deep_dive_single_run_test_pc
-    title: 识海深潜单局移动测试（PC）
-    source: tasks/consciousness_deep_dive_single_run_test_pc.yaml
-    description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
+    role: developer
+    domain: 深潜诊断
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
     description: Enter the Reforming Center from the game main screen through the
       profile menu.
-  - id: enter_reforming_center_pc
-    title: Enter Reforming Center (PC)
-    source: tasks/enter_reforming_center_pc.yaml
-    description: Enter the Reforming Center from the game main screen through the
-      profile menu.
+    role: internal
+    domain: 整顿中心
   - id: eternal_scuffle_pc/eternal_scuffle_pc
     title: 无垠乱斗
     source: tasks/eternal_scuffle_pc.yaml
     description: 从活动首页逐局完成投币、组队、乱斗和共用领奖返回。
-  - id: eternal_scuffle_pc
-    title: 无垠乱斗
-    source: tasks/eternal_scuffle_pc.yaml
-    description: 从活动首页逐局完成投币、组队、乱斗和共用领奖返回。
-  - id: eternal_scuffle_pc/scuffle_checked_round_pc
-    title: 无垠乱斗逐次校验子任务
-    source: tasks/eternal_scuffle_pc.yaml
-    description: ''
-  - id: eternal_scuffle_pc/scuffle_checked_pair_pc
-    title: 无垠乱斗逐次校验选人配装
-    source: tasks/eternal_scuffle_pc.yaml
-    description: ''
-  - id: eternal_scuffle_pc/scuffle_checked_advance_pc
-    title: 无垠乱斗逐次校验关卡推进
-    source: tasks/eternal_scuffle_pc.yaml
-    description: ''
+    role: user_task
+    domain: 活动玩法
   - id: eternal_scuffle_pc/scuffle_round_pc
     title: 无垠乱斗单局
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: eternal_scuffle_pc/scuffle_draft_pair_pc
     title: 无垠乱斗选一名角色和一件装备
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: eternal_scuffle_pc/scuffle_advance_pc
     title: 无垠乱斗推进一个页面阶段
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: eternal_scuffle_pc/scuffle_loot_pc
     title: 无垠乱斗选择和分配战利品
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: eternal_scuffle_pc/scuffle_settle_pc
     title: 无垠乱斗共用开箱与返回
     source: tasks/eternal_scuffle_pc.yaml
     description: ''
+    role: internal
+    domain: 活动玩法
   - id: fill_product_workshop_staff_pc/fill_product_workshop_staff_pc
     title: 生产车间补人
     source: tasks/fill_product_workshop_staff_pc.yaml
     description: 从总览进入指定车间，编辑、快速编队后识别一键选中就点击并确认保存；入口已显示一键取消则直接退出。全程模板，不识别人数。
-  - id: fill_product_workshop_staff_pc
-    title: 生产车间补人
-    source: tasks/fill_product_workshop_staff_pc.yaml
-    description: 从总览进入指定车间，编辑、快速编队后识别一键选中就点击并确认保存；入口已显示一键取消则直接退出。全程模板，不识别人数。
+    role: user_task
+    domain: 整顿中心
   - id: game_startup_pc/enter_main
     title: Enter Resonance Main Screen (PC)
     source: tasks/game_startup_pc.yaml
     description: Start Resonance PC when needed and restore it to the main screen.
+    role: lifecycle
+    domain: 生命周期
   - id: game_startup_pc/close_game
     title: Close Resonance Game (PC)
     source: tasks/game_startup_pc.yaml
     description: Close the verified Resonance PC window and process.
+    role: lifecycle
+    domain: 生命周期
   - id: maintain_raw_material_workshops_pc/maintain_raw_material_workshops_pc
     title: 原料车间维护
     source: tasks/maintain_raw_material_workshops_pc.yaml
     description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
-  - id: maintain_raw_material_workshops_pc
-    title: 原料车间维护
-    source: tasks/maintain_raw_material_workshops_pc.yaml
-    description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
+    role: user_task
+    domain: 整顿中心
   - id: maintain_raw_material_workshop_pc/maintain_raw_material_workshop_pc
     title: 原料车间维护（PC）
     source: tasks/maintain_raw_material_workshop_pc.yaml
     description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
-  - id: maintain_raw_material_workshop_pc
-    title: 原料车间维护（PC）
-    source: tasks/maintain_raw_material_workshop_pc.yaml
-    description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
-  - id: navigate_reforming_center_room_pc/navigate_reforming_center_room_pc
-    title: Navigate Reforming Center Room (PC)
-    source: tasks/navigate_reforming_center_room_pc.yaml
-    description: Safely pan the Reforming Center overview until the requested room
-      is fully interactable, then click it.
-  - id: navigate_reforming_center_room_pc
-    title: Navigate Reforming Center Room (PC)
-    source: tasks/navigate_reforming_center_room_pc.yaml
-    description: Safely pan the Reforming Center overview until the requested room
-      is fully interactable, then click it.
+    role: internal
+    domain: 整顿中心
   - id: open_reforming_center_room_pc/open_reforming_center_room_pc
     title: Open Reforming Center Room (PC)
     source: tasks/open_reforming_center_room_pc.yaml
     description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
-  - id: open_reforming_center_room_pc
-    title: Open Reforming Center Room (PC)
-    source: tasks/open_reforming_center_room_pc.yaml
-    description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
+    role: internal
+    domain: 整顿中心
   - id: player_data_pc/player_data_refresh
     title: Resonance Player Data Refresh (PC)
     source: tasks/player_data_pc.yaml
     description: Refresh location, player profile/status, warehouse and character
       data from the PC client.
+    role: user_tool
+    domain: 用户数据
   - id: player_data_pc/player_data_get_latest
     title: Resonance Player Data Latest (PC)
     source: tasks/player_data_pc.yaml
     description: Read latest cached Resonance PC player data.
+    role: internal
+    domain: 商贸运输
   - id: preview_trade_plan_pc/preview_trade_plan_pc
     title: Preview Exact Trade Plan (PC)
     source: tasks/preview_trade_plan_pc.yaml
     description: Refresh market data and calculate one exact route from a user-selected
       start city.
-  - id: preview_trade_plan_pc
-    title: Preview Exact Trade Plan (PC)
-    source: tasks/preview_trade_plan_pc.yaml
-    description: Refresh market data and calculate one exact route from a user-selected
-      start city.
+    role: user_tool
+    domain: 商贸运输
   - id: rubbish_recycling_pc/rubbish_recycling_pc
     title: Rubbish Recycling (PC)
     source: tasks/rubbish_recycling_pc.yaml
     description: Recycle all rubbish from an eligible city's city panel and return
       to that panel.
-  - id: rubbish_recycling_pc
-    title: Rubbish Recycling (PC)
-    source: tasks/rubbish_recycling_pc.yaml
-    description: Recycle all rubbish from an eligible city's city panel and return
-      to that panel.
+    role: internal
+    domain: 商贸运输
   - id: sparkling_water_pc/sparkling_water_pc
     title: Sparkling Water (PC)
     source: tasks/sparkling_water_pc.yaml
     description: Drink a specified number of free cups from the city panel, then return
       to that city panel.
-  - id: sparkling_water_pc
-    title: Sparkling Water (PC)
-    source: tasks/sparkling_water_pc.yaml
-    description: Drink a specified number of free cups from the city panel, then return
-      to that city panel.
+    role: internal
+    domain: 商贸运输
   - id: team_recommendation_pc/team_recommendation_pc
     title: Fixed Team Recommendations (PC)
     source: tasks/team_recommendation_pc.yaml
     description: Match cached player characters and weapons against fixed team guides.
-  - id: team_recommendation_pc
-    title: Fixed Team Recommendations (PC)
-    source: tasks/team_recommendation_pc.yaml
-    description: Match cached player characters and weapons against fixed team guides.
+    role: user_tool
+    domain: 配队
   - id: trade_goods_investment_pc/trade_goods_investment_pc
     title: Trade Goods Investment (PC)
     source: tasks/trade_goods_investment_pc.yaml
     description: Invest goods from the current exchange menu in unlock order and return
       to that menu.
-  - id: trade_goods_investment_pc
-    title: Trade Goods Investment (PC)
-    source: tasks/trade_goods_investment_pc.yaml
-    description: Invest goods from the current exchange menu in unlock order and return
-      to that menu.
+    role: internal
+    domain: 商贸运输
   - id: use_trailer_service_pc/use_trailer_service_pc
     title: Towing Service (PC)
     source: tasks/use_trailer_service_pc.yaml
     description: Start from a selected destination on the map, submit one eligible
       towing service and confirm departure. Does not wait for arrival or drive normally.
-  - id: use_trailer_service_pc
-    title: Towing Service (PC)
-    source: tasks/use_trailer_service_pc.yaml
-    description: Start from a selected destination on the map, submit one eligible
-      towing service and confirm departure. Does not wait for arrival or drive normally.
+    role: internal
+    domain: 商贸运输
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-21T04:11:31Z'
+  generated_at: '2026-10-21T08:49:07Z'

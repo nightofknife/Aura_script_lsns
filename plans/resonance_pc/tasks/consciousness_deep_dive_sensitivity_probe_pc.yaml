@@ -1,8 +1,10 @@
 consciousness_deep_dive_sensitivity_probe_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: Consciousness Deep Dive Sensitivity Probe Capture (PC)
     description: Drag the board once by 320px and capture one unlabeled probe image.
-    entry_point: true
+    entry_point: false
     inputs: []
 
   steps:

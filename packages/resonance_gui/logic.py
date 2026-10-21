@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 from packages.resonance_shared.freight_parameters import effective_freight_inputs
 
-GAME_NAME = "resonance"
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
@@ -23,20 +22,10 @@ PC_COMBINED_COMMERCE_TASK_REF = (
     "tasks:auto_combined_commerce_pc.yaml:auto_combined_commerce_pc"
 )
 PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
-PC_BATTLE_PREVIEW_TASK_REF = (
-    "tasks:auto_battle_input_preview_pc.yaml:auto_battle_input_preview_pc"
-)
 PC_PLAYER_DATA_REFRESH_TASK_REF = "tasks:player_data_pc.yaml:player_data_refresh"
 PC_PLAYER_DATA_LATEST_TASK_REF = "tasks:player_data_pc.yaml:player_data_get_latest"
 PC_TEAM_RECOMMENDATION_TASK_REF = (
     "tasks:team_recommendation_pc.yaml:team_recommendation_pc"
-)
-PC_CONSCIOUSNESS_DEEP_DIVE_TASK_REF = (
-    "tasks:consciousness_deep_dive_pc.yaml:consciousness_deep_dive_pc"
-)
-PC_CONSCIOUSNESS_DEEP_DIVE_SINGLE_RUN_TASK_REF = (
-    "tasks:consciousness_deep_dive_single_run_test_pc.yaml:"
-    "consciousness_deep_dive_single_run_test_pc"
 )
 PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF = (
     "tasks:consciousness_deep_dive_scan_pc.yaml:consciousness_deep_dive_scan_pc"
@@ -984,79 +973,24 @@ def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:
     return dict(data) if isinstance(data, Mapping) else {}
 
 
+def _declared_deep_dive_result(payload: Mapping[str, Any], field: str) -> dict[str, Any]:
+    result = extract_final_result(payload).get(field)
+    return dict(result) if isinstance(result, Mapping) else {}
+
+
 def extract_deep_dive_scan_result(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Read the scan action result, never the enclosing runner's SUCCESS."""
-    pending = [extract_final_result(payload), normalize_run_payload(payload)]
-    seen: set[int] = set()
-    while pending:
-        result = pending.pop(0)
-        if id(result) in seen:
-            continue
-        seen.add(id(result))
-        scan = result.get("deep_dive_scan")
-        if isinstance(scan, Mapping):
-            return dict(scan)
-        nodes = result.get("nodes")
-        scan = nodes.get("scan") if isinstance(nodes, Mapping) else result.get("scan")
-        if isinstance(scan, Mapping) and isinstance(scan.get("output"), Mapping):
-            return dict(scan["output"])
-        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
-            child = result.get(key)
-            if isinstance(child, Mapping):
-                pending.append(child)
-    return {}
+    """Read the declared scan return, independent of framework completion."""
+    return _declared_deep_dive_result(payload, "deep_dive_scan")
 
 
 def extract_deep_dive_plan_result(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Read the planning result independently of the runner's completion status."""
-    pending = [extract_final_result(payload), normalize_run_payload(payload)]
-    seen: set[int] = set()
-    while pending:
-        result = pending.pop(0)
-        if id(result) in seen:
-            continue
-        seen.add(id(result))
-        plan = result.get("deep_dive_plan")
-        if isinstance(plan, Mapping):
-            return dict(plan)
-        if result.get("schema") == "resonance_pc.deep_dive_plan.v1":
-            return dict(result)
-        nodes = result.get("nodes")
-        plan = nodes.get("plan") if isinstance(nodes, Mapping) else result.get("plan")
-        if isinstance(plan, Mapping) and isinstance(plan.get("output"), Mapping):
-            return dict(plan["output"])
-        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
-            child = result.get(key)
-            if isinstance(child, Mapping):
-                pending.append(child)
-    return {}
+    """Read the declared offline planning return."""
+    return _declared_deep_dive_result(payload, "deep_dive_plan")
 
 
 def extract_deep_dive_planned_run_result(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Read an in-level planning run, including partial and cancelled snapshots."""
-    pending = [extract_final_result(payload), normalize_run_payload(payload)]
-    seen: set[int] = set()
-    while pending:
-        result = pending.pop(0)
-        if id(result) in seen:
-            continue
-        seen.add(id(result))
-        planned_run = result.get("deep_dive_planned_run")
-        if isinstance(planned_run, Mapping):
-            return dict(planned_run)
-        if result.get("schema") == "resonance_pc.deep_dive_planned_run.v1":
-            return dict(result)
-        nodes = result.get("nodes")
-        if isinstance(nodes, Mapping):
-            for node in nodes.values():
-                output = node.get("output") if isinstance(node, Mapping) else None
-                if isinstance(output, Mapping):
-                    pending.append(output)
-        for key in ("user_data", "final_result", "run", "detail", "framework_data"):
-            child = result.get(key)
-            if isinstance(child, Mapping):
-                pending.append(child)
-    return {}
+    """Read the declared in-level run return; live progress arrives as events."""
+    return _declared_deep_dive_result(payload, "deep_dive_planned_run")
 
 
 def validate_recovery_refresh(
@@ -1254,7 +1188,6 @@ def validate_trailer_options(values: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(payment, str) or payment not in ("gold", "mileage"):
         raise ValueError("拖车支付方式必须为铁盟币或里程点。")
     return {"auto_trailer": enabled, "trailer_daily_first_n": count, "trailer_payment": payment}
-
 
 
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:

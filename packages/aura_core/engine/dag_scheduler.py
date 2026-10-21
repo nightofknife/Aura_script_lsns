@@ -25,8 +25,19 @@ class DAGScheduler:
             if all(state == self.engine.StepState.PENDING for state in self.engine.step_states.values()):
                 raise ValueError("Unable to schedule any node; please check dependency configuration.")
 
-        if self.engine.running_tasks:
-            await self.engine.completion_event.wait()
+        try:
+            if self.engine.running_tasks:
+                await self.engine.completion_event.wait()
+            if self.engine._node_cancelled:
+                raise asyncio.CancelledError()
+        except asyncio.CancelledError:
+            pending = tuple(self.engine.running_tasks)
+            for task in pending:
+                if not task.cancelling():
+                    task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+            raise
 
     async def schedule_ready_nodes(self):
         """Find and enqueue all currently runnable nodes."""
@@ -36,17 +47,25 @@ class DAGScheduler:
 
     async def enqueue_ready_node(self, node_id: str):
         """Enqueue a node if it is pending and dependencies are met."""
+        if self.engine._node_cancelled:
+            return
         if node_id in self.engine._ready_set:
             return
         if self.engine.step_states.get(node_id) != self.engine.StepState.PENDING:
             return
         if await self.are_dependencies_met(node_id):
+            if self.engine._node_cancelled:
+                return
             self.engine.ready_queue.append(node_id)
             self.engine._ready_set.add(node_id)
 
     async def drain_ready_queue(self):
         """Launch execution tasks for all queued ready nodes."""
         while self.engine.ready_queue:
+            if self.engine._node_cancelled:
+                self.engine.ready_queue.clear()
+                self.engine._ready_set.clear()
+                return
             node_id = self.engine.ready_queue.popleft()
             self.engine._ready_set.discard(node_id)
             if self.engine.step_states.get(node_id) != self.engine.StepState.PENDING:

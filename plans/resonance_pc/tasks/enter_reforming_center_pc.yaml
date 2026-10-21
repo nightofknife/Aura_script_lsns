@@ -1,8 +1,10 @@
 enter_reforming_center_pc:
   meta:
+    role: internal
+    domain: 整顿中心
     title: Enter Reforming Center (PC)
     description: Enter the Reforming Center from the game main screen through the profile menu.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: main_timeout_sec
         type: number

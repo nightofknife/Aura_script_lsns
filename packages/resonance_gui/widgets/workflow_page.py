@@ -505,9 +505,6 @@ class WorkflowPage(QWidget):
         self._task_rows: dict[str, _TaskRow] = {}
         self._task_order = [task_id for task_id, _title in WORKFLOW_TASKS]
         self._selected_task = "startup"
-        self._commerce_order = ["trade", "passenger"]
-        self._commerce_rows: dict[str, QFrame] = {}
-        self._commerce_checks: dict[str, QCheckBox] = {}
         self._tree_items: dict[str, QTreeWidgetItem] = {}
         self._progress_items: dict[tuple[str, str], QTreeWidgetItem] = {}
         self._freight_progress = WorkflowFreightProgressState()
@@ -720,11 +717,9 @@ class WorkflowPage(QWidget):
         self.center_stack = QStackedWidget(panel)
         self.config_stack = QStackedWidget(panel)
         self.startup_config_page = self._build_startup_config()
-        self.battle_config_page = self._build_battle_config()
         self.close_config_page = self._build_close_config()
         self._task_config_pages = {
             "startup": self.startup_config_page,
-            "battle": self.battle_config_page,
             "close": self.close_config_page,
         }
         for config_page in self._task_config_pages.values():
@@ -899,8 +894,6 @@ class WorkflowPage(QWidget):
         else:
             self.show_runtime_trade_plan()
 
-    def show_commerce_summary(self) -> None:
-        self._select_task("trade")
 
     def attach_battle_editor(self, panel: QWidget) -> None:
         """Reuse the real battle widget rather than maintain a second form."""
@@ -954,21 +947,6 @@ class WorkflowPage(QWidget):
         layout.addStretch(1)
         return page
 
-
-
-    def _build_battle_config(self) -> QWidget:
-        page = QWidget(self)
-        layout = QVBoxLayout(page)
-        layout.addLayout(self._page_heading("自动战斗", "按照现有作战任务单依次执行。", page))
-        self.battle_summary = QLabel("尚未添加作战任务", page)
-        self.battle_summary.setObjectName("linenInsetLabel")
-        self.battle_summary.setWordWrap(True)
-        layout.addWidget(self.battle_summary)
-        button = QPushButton("编辑作战任务单", page)
-        button.clicked.connect(self.openBattleRequested.emit)
-        layout.addWidget(button)
-        layout.addStretch(1)
-        return page
 
     def _build_close_config(self) -> QWidget:
         page = QWidget(self)
@@ -1274,8 +1252,6 @@ class WorkflowPage(QWidget):
                 result.append(task_id)
         return result
 
-    def commerce_steps(self) -> list[str]:
-        return [kind for kind in self.workflow_steps() if kind in {"trade", "passenger"}]
 
     def trade_end_city_constraint_available(self) -> bool:
         return True
@@ -1295,9 +1271,6 @@ class WorkflowPage(QWidget):
             "force_after_timeout": self.close_force.isChecked(),
         }
 
-
-    def set_battle_count(self, count: int) -> None:
-        self.battle_summary.setText(f"当前任务单包含 {count} 个作战任务。" if count else "尚未添加作战任务。")
 
     def begin_workflow(
         self,
@@ -1357,13 +1330,6 @@ class WorkflowPage(QWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, step)
             self.run_tree.addTopLevelItem(item)
             self._tree_items[step] = item
-            if step == "commerce":
-                for kind in commerce_steps:
-                    child = QTreeWidgetItem(["货运" if kind == "trade" else "客运", "等待"])
-                    child.setData(0, Qt.ItemDataRole.UserRole, kind)
-                    item.addChild(child)
-                    self._tree_items[kind] = child
-                item.setExpanded(True)
         for task_id in self._task_status:
             self._set_left_status(task_id, "waiting" if task_id in steps else "skipped")
         self.task_progress_label.setText(f"0 / {len(steps)} · 准备执行")
@@ -1372,6 +1338,9 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setFormat("")
         self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
+        if commerce_steps:
+            ordered = " → ".join("货运" if kind == "trade" else "客运" for kind in commerce_steps)
+            self.append_log(f"客货运组合：{ordered}，共用货运疲劳预算；交接检查通过后继续。")
         self._sync_compact_controls()
 
     def add_freight_preparation(self) -> None:
@@ -2012,33 +1981,14 @@ class WorkflowPage(QWidget):
         raw_order = str(self._settings.value("workflow/task_order", default_order) or "")
         order = [value for value in raw_order.split(",") if value]
         expected_tasks = set(dict(WORKFLOW_TASKS))
-        legacy_commerce_order = str(self._settings.value("workflow/commerce_order", "trade,passenger") or "")
-        commerce_order = list(dict.fromkeys(value for value in legacy_commerce_order.split(",") if value in {"trade", "passenger"}))
-        commerce_order += [value for value in ("trade", "passenger") if value not in commerce_order]
-        expanded = []
-        for task_id in order:
-            expanded.extend(commerce_order if task_id == "commerce" else [task_id])
-        order = list(dict.fromkeys(value for value in expanded if value in expected_tasks))
+        order = list(dict.fromkeys(value for value in order if value in expected_tasks))
         order += [value for value, _title in WORKFLOW_TASKS if value not in order]
         self._task_order = order
         enabled_raw = str(self._settings.value("workflow/enabled", default_order) or "")
         enabled_values = [value for value in enabled_raw.split(",") if value]
         enabled = set(enabled_values)
-        if "commerce" in enabled:
-            legacy_enabled = str(self._settings.value("workflow/commerce_enabled", "trade,passenger") or "")
-            enabled.update(value for value in legacy_enabled.split(",") if value in {"trade", "passenger"})
         for task_id, check in self._task_checks.items():
             check.setChecked(task_id in enabled)
-        commerce_raw = str(self._settings.value("workflow/commerce_order", "trade,passenger") or "")
-        commerce_order = [value for value in commerce_raw.split(",") if value in {"trade", "passenger"}]
-        if set(commerce_order) == {"trade", "passenger"}:
-            self._commerce_order = commerce_order
-        commerce_enabled_raw = str(
-            self._settings.value("workflow/commerce_enabled", "trade,passenger") or ""
-        )
-        commerce_enabled = set(commerce_enabled_raw.split(","))
-        for kind, check in self._commerce_checks.items():
-            check.setChecked(kind in commerce_enabled)
         self._rebuild_task_rows()
         self._loading_state = False
 

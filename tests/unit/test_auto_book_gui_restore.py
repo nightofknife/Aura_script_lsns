@@ -193,7 +193,7 @@ def test_optional_average_history_and_planning(window, books, value, visible):
 def test_formal_planning_event_updates_visible_workflow(window):
     page = window.workflow_page
     window.show()
-    window._switch_page(window.WORKFLOW_PAGE_INDEX)
+    window._switch_page("workflow")
     page._busy = True
     page.set_active_progress_cid("trade", "offline-plan")
     page.apply_progress_event("trade", {"name": TRADE_PROGRESS_EVENT, "payload": {

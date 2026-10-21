@@ -14,6 +14,7 @@ from prompt_toolkit.shortcuts import input_dialog, message_dialog, radiolist_dia
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.runtime.bootstrap import start_runtime, stop_runtime
 from packages.aura_core.scheduler import Scheduler
+from packages.aura_core.packaging.core.task_catalog import catalog_group, select_tasks
 
 _TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 _SKIP_FIELD = object()
@@ -53,6 +54,7 @@ def _main_loop(scheduler: Scheduler, state: TuiState) -> None:
             text="选择操作",
             values=[
                 ("entry_task", "运行入口任务"),
+                ("developer_task", "开发工具"),
                 ("scheduled_task", "手动触发调度项"),
                 ("run_status", "查看最近运行状态"),
                 ("exit", "退出"),
@@ -63,23 +65,26 @@ def _main_loop(scheduler: Scheduler, state: TuiState) -> None:
             return
         if action == "entry_task":
             _run_entry_task(scheduler, state)
+        elif action == "developer_task":
+            _run_entry_task(scheduler, state, developer=True)
         elif action == "scheduled_task":
             _run_scheduled_item(scheduler, state)
         elif action == "run_status":
             _show_recent_status(scheduler, state)
 
 
-def _run_entry_task(scheduler: Scheduler, state: TuiState) -> None:
-    entry_tasks = _load_entry_tasks(scheduler)
+def _run_entry_task(scheduler: Scheduler, state: TuiState, *, developer: bool = False) -> None:
+    entry_tasks = select_tasks(scheduler.get_all_task_definitions_with_meta(), roles=("developer",)) if developer else _load_entry_tasks(scheduler)
     if not entry_tasks:
-        message_dialog(title="提示", text="未找到入口任务（meta.entry_point: true）。").run()
+        message_dialog(title="提示", text="未找到可运行的用户任务或工具。").run()
         return
 
     values = []
     task_map: dict[str, dict[str, Any]] = {}
     for task in entry_tasks:
         task_key = task["full_task_id"]
-        title = f"{task['plan_name']}/{task['task_ref']}"
+        meta = task.get("meta") or {}
+        title = f"[{catalog_group(meta)}] {meta.get('title') or task['task_ref']} ({task['plan_name']})"
         description = ((task.get("meta") or {}).get("description") or "").strip()
         label = f"{title}  -  {description}" if description else title
         values.append((task_key, label))
@@ -158,90 +163,7 @@ def _show_recent_status(scheduler: Scheduler, state: TuiState) -> None:
 
 
 def _load_entry_tasks(scheduler: Scheduler) -> list[dict[str, Any]]:
-    tasks = scheduler.get_all_task_definitions_with_meta()
-    entry_tasks = []
-    for task in tasks:
-        meta = task.get("meta") or {}
-        if bool(meta.get("entry_point", False)):
-            entry_tasks.append(task)
-    entry_tasks.sort(key=lambda x: str(x.get("full_task_id") or ""))
-    return entry_tasks
-
-
-def _collect_inputs(meta: dict[str, Any]) -> dict[str, Any] | None:
-    inputs_meta = meta.get("inputs") or []
-    if not isinstance(inputs_meta, list) or not inputs_meta:
-        raw = input_dialog(
-            title="任务输入",
-            text="输入 JSON（留空使用 {}）:",
-            default="{}",
-        ).run()
-        if raw is None:
-            return None
-        raw = raw.strip()
-        if not raw:
-            return {}
-        try:
-            loaded = json.loads(raw)
-            if not isinstance(loaded, dict):
-                message_dialog(title="输入错误", text="输入必须是 JSON 对象。").run()
-                return None
-            return loaded
-        except Exception as exc:
-            message_dialog(title="输入错误", text=f"JSON 解析失败: {exc}").run()
-            return None
-
-    collected: dict[str, Any] = {}
-    for field in inputs_meta:
-        if not isinstance(field, dict):
-            continue
-        name = str(field.get("name") or "").strip()
-        if not name:
-            continue
-        required = bool(field.get("required", False))
-        field_type = str(field.get("type") or "string").strip().lower()
-        default_value = field.get("default")
-        desc = str(field.get("description") or "").strip()
-        hint_default = "" if default_value is None else f" (默认: {default_value})"
-        prompt = f"{name} [{field_type}]{hint_default}\n{desc}".strip()
-
-        while True:
-            raw = input_dialog(title="任务输入", text=prompt, default="" if default_value is None else str(default_value)).run()
-            if raw is None:
-                return None
-            raw = raw.strip()
-            if not raw:
-                if default_value is not None:
-                    collected[name] = default_value
-                    break
-                if required:
-                    message_dialog(title="输入错误", text=f"参数 {name} 为必填。").run()
-                    continue
-                break
-            try:
-                collected[name] = _convert_input(raw, field_type)
-                break
-            except Exception as exc:
-                message_dialog(title="输入错误", text=f"参数 {name} 解析失败: {exc}").run()
-
-    return collected
-
-
-def _convert_input(raw: str, field_type: str) -> Any:
-    if field_type in {"int", "integer"}:
-        return int(raw)
-    if field_type in {"float", "number"}:
-        return float(raw)
-    if field_type in {"bool", "boolean"}:
-        lowered = raw.lower()
-        if lowered in {"1", "true", "yes", "y", "on"}:
-            return True
-        if lowered in {"0", "false", "no", "n", "off"}:
-            return False
-        raise ValueError("布尔值仅支持 true/false/yes/no/1/0")
-    if field_type in {"array", "list", "object", "dict", "map"}:
-        return json.loads(raw)
-    return raw
+    return select_tasks(scheduler.get_all_task_definitions_with_meta())
 
 
 def _handle_dispatch_result(scheduler: Scheduler, state: TuiState, result: dict[str, Any]) -> None:
@@ -280,7 +202,6 @@ def _watch_task_until_terminal(scheduler: Scheduler, cid: str, timeout_sec: int 
 
     message_dialog(title="状态跟踪结束", text=f"CID: {cid}\n最终状态: {last_status}").run()
 
-# --- Enhanced interactive input collection (overrides previous implementation) ---
 def _collect_inputs(meta: dict[str, Any]) -> dict[str, Any] | None:
     inputs_meta = meta.get("inputs") or []
     if not isinstance(inputs_meta, list) or not inputs_meta:

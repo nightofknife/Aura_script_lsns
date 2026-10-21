@@ -1,5 +1,7 @@
 collect_product_workshops_pc:
   meta:
+    role: user_task
+    domain: 整顿中心
     title: 生产车间收菜
     description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
     entry_point: true
@@ -21,8 +23,6 @@ collect_product_workshops_pc:
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
       # aura.run_task returns framework data; retain the existing room action's business result.
-      outputs:
-        output: "{{ ((result.get('nodes') or {}).get('open_room') or {}).get('output') or {} }}"
     scan:
       action: resonance_pc.product_collection_scan_unlocks
       depends_on: {initial_navigation: "success|skipped"}

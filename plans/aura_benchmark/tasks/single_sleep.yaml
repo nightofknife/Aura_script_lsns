@@ -1,5 +1,8 @@
 single_sleep:
   meta:
+    role: developer
+    domain: 调度基准
+    entry_point: false
     title: Single benchmark sleep
     description: One benchmark action invocation.
     inputs:

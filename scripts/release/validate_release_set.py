@@ -134,8 +134,6 @@ def validate_release_set(
                 raise ValueError(f"{profile_name} artifact dependency inventory does not match its lock.")
         if cpu_info.get("ocr_fingerprint") != gpu_info.get("ocr_fingerprint") or not cpu_info.get("ocr_fingerprint"):
             raise ValueError("CPU and GPU artifacts do not share the same OCR model fingerprint.")
-        if cpu_info.get("mumu_lock_sha256") != gpu_info.get("mumu_lock_sha256") or not cpu_info.get("mumu_lock_sha256"):
-            raise ValueError("CPU and GPU artifacts do not share the same MuMu asset lock fingerprint.")
 
         for relative in contract["comparison"]["exact_roots"]:
             _compare_exact_tree(cpu_root, gpu_root, relative)

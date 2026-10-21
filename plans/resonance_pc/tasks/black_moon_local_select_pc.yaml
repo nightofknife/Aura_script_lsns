@@ -1,8 +1,10 @@
 black_moon_local_select_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Black Moon Local Goods Selection (PC)
     description: Select LOCAL wishlist goods; optional purchase waits for settlement and exits to rest menu or main.
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: purchase_table

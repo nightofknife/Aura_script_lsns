@@ -392,6 +392,4 @@ def _matches_max_size(client_rect: tuple[int, int, int, int] | None, size: tuple
 
 def _summarize_target_config(config: RuntimeTargetConfig) -> dict[str, Any]:
     payload = config.to_dict()
-    payload.pop("adb_serial", None)
-    payload.pop("connect_on_start", None)
     return payload

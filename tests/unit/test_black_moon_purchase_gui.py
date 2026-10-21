@@ -301,10 +301,12 @@ def test_combined_entry_save_failure_does_not_dispatch(repository, monkeypatch):
         widget.requestRunPcCombinedCommerce.connect(lambda *args: dispatched.append(args))
         monkeypatch.setattr(QMessageBox, "warning", lambda *args: errors.append(args[2]))
         monkeypatch.setattr(repository, "sync_checked", lambda: (_ for _ in ()).throw(OSError("不可写")))
-        widget._start_commerce_sequence(True, True)
-        assert errors == ["不可写"]
+        for task_id, check in widget.workflow_page._task_checks.items():
+            check.setChecked(task_id in {"trade", "passenger"})
+        widget._start_workflow()
+        assert len(errors) == 1 and "不可写" in errors[0]
         assert not dispatched
-        assert not widget._commerce_active
+        assert not widget._workflow_active
     finally:
         widget._close_ready = True
         dispose(widget)

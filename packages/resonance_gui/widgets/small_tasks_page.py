@@ -19,6 +19,12 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from ..logic import (
+    PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
+)
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
 from .eternal_scuffle_panel import EternalScufflePanel
 from .data_collection_panel import DataCollectionPanel
@@ -33,26 +39,18 @@ CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
 DATA_COLLECTION_TASK_ID = "data_collection"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 TRADE_PREVIEW_TASK_ID = "trade_preview"
-CATEGORY_TASKS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
-    ("user_data", "用户数据", ((USER_DATA_TASK_ID, "刷新用户数据"),)),
-    ("trade_tools", "跑商工具", ((TRADE_PREVIEW_TASK_ID, "货运试算"),)),
-    ("team_tools", "配队工具", ((TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),)),
-    (
-        "activity_play",
-        "活动玩法",
-        ((CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"), (ETERNAL_SCUFFLE_TASK_ID, "无垠乱斗")),
-    ),
-    ("developer_tools", "开发工具", ((DATA_COLLECTION_TASK_ID, "数据采集"),)),
-)
-SMALL_TASKS: tuple[tuple[str, str], ...] = tuple(
-    task for _category_id, _label, tasks in CATEGORY_TASKS for task in tasks
-    if task[0] != DATA_COLLECTION_TASK_ID
+SMALL_TASKS: tuple[tuple[str, str], ...] = (
+    (USER_DATA_TASK_ID, "刷新用户数据"),
+    (TRADE_PREVIEW_TASK_ID, "货运试算"),
+    (TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),
+    (CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),
+    (ETERNAL_SCUFFLE_TASK_ID, "无垠乱斗"),
 )
 TASK_TOOLTIPS = {
     USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
     TRADE_PREVIEW_TASK_ID: "使用所选城市和货运参数计算交易方案，不执行游戏中的买卖。",
     TEAM_RECOMMENDATION_TASK_ID: "根据最新角色与仓库装备数据匹配固定配队，不自动配置队伍。",
-    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "进入识海深潜，扫描布局、离线规划或运行现有自动流程。",
+    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "执行完整随机循环，或在当前关卡实时规划运行。",
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     DATA_COLLECTION_TASK_ID: "采集识海深潜页面数据或探测拖动灵敏度。",
 }
@@ -92,8 +90,6 @@ class SmallTasksPage(QWidget):
     previewTradeRequested = Signal(object, float)
     returnToTradeRequested = Signal()
     runTeamRecommendationRequested = Signal()
-    runConsciousnessDeepDiveRequested = Signal()
-    runConsciousnessDeepDiveSingleRunRequested = Signal(object)
     runConsciousnessDeepDiveScanRequested = Signal()
     runConsciousnessDeepDivePlanRequested = Signal(object)
     runConsciousnessDeepDivePlannedRunRequested = Signal(object)
@@ -112,25 +108,17 @@ class SmallTasksPage(QWidget):
         super().__init__(parent)
         self._runner_busy = False
         self._active_task_id = ""
-        self._category_tasks = {
-            category_id: tasks for category_id, _label, tasks in CATEGORY_TASKS
-        }
+        self._settings = settings
+        self.data_collection_panel = None
+        self.deep_dive_developer_panel = None
+        self._developer_page = None
+        self._developer_available = False
         self._task_pages: dict[str, QWidget] = {}
 
         root = QHBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(12)
 
-        # Keep the legacy category selector API off-screen for older integrations.
-        # Developer-only panels remain registered, but have no ordinary entry.
-        self.category_list = QListWidget(self)
-        self.category_list.setObjectName("smallTaskCategoryList")
-        self.category_list.hide()
-        for category_id, label, _tasks in CATEGORY_TASKS:
-            item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, category_id)
-            item.setSizeHint(QSize(0, 48))
-            self.category_list.addItem(item)
         self.task_panel = _TaskNavigationColumn("功能", self)
         self.task_panel.setMinimumWidth(140)
         self.task_panel.setMaximumWidth(210)
@@ -145,6 +133,11 @@ class SmallTasksPage(QWidget):
             item.setSizeHint(QSize(0, 42))
             self.task_list.addItem(item)
         self.task_panel.body_layout.addWidget(self.task_list)
+        self.developer_button = QPushButton("开发与维护…", self.task_panel.body)
+        self.developer_button.setToolTip("手动布局扫描、离线规划、素材采集和拖动校准")
+        self.developer_button.clicked.connect(self.show_developer_tools)
+        self.developer_button.hide()
+        self.task_panel.body_layout.addWidget(self.developer_button)
 
         self.detail_panel = _SmallTaskColumn("任务详情", self)
         self.detail_panel.setMinimumWidth(0)
@@ -178,21 +171,9 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel = ConsciousnessDeepDivePanel(
             self.detail_stack
         )
-        self.consciousness_deep_dive_panel.runRequested.connect(
-            self.runConsciousnessDeepDiveRequested.emit
-        )
         self.consciousness_deep_dive_panel.runLoopRequested.connect(self.runConsciousnessDeepDiveLoopRequested.emit)
-        self.consciousness_deep_dive_panel.runScanRequested.connect(
-            self.runConsciousnessDeepDiveScanRequested.emit
-        )
-        self.consciousness_deep_dive_panel.runPlanRequested.connect(
-            self.runConsciousnessDeepDivePlanRequested.emit
-        )
         self.consciousness_deep_dive_panel.runPlannedRunRequested.connect(
             self.runConsciousnessDeepDivePlannedRunRequested.emit
-        )
-        self.consciousness_deep_dive_panel.runSingleRunRequested.connect(
-            self.runConsciousnessDeepDiveSingleRunRequested.emit
         )
         self.consciousness_deep_dive_panel.cancelRequested.connect(
             self.cancelRequested.emit
@@ -208,17 +189,6 @@ class SmallTasksPage(QWidget):
         self.detail_stack.addWidget(self.eternal_scuffle_panel)
         self._task_pages[ETERNAL_SCUFFLE_TASK_ID] = self.eternal_scuffle_panel
 
-        self.data_collection_panel = DataCollectionPanel(self.detail_stack)
-        self.data_collection_panel.captureRequested.connect(
-            self.runConsciousnessDeepDiveCaptureRequested.emit
-        )
-        self.data_collection_panel.sensitivityProbeRequested.connect(
-            self.runConsciousnessDeepDiveSensitivityProbeRequested.emit
-        )
-        self.data_collection_panel.cancelRequested.connect(self.cancelRequested.emit)
-        self.detail_stack.addWidget(self.data_collection_panel)
-        self._task_pages[DATA_COLLECTION_TASK_ID] = self.data_collection_panel
-
         self.trade_preview_panel = TradePage(settings, self.detail_stack, preview_mode=True)
         self.return_to_trade_button = QPushButton("← 返回货运", self.trade_preview_panel)
         self.return_to_trade_button.setObjectName("quietButton")
@@ -233,13 +203,12 @@ class SmallTasksPage(QWidget):
         root.addWidget(self.task_panel)
         root.addWidget(self.detail_panel, 1)
 
-        self.category_list.currentItemChanged.connect(self._category_changed)
         self.task_list.currentItemChanged.connect(self._task_changed)
         self.task_list.setCurrentRow(0)
 
     @property
     def current_task_id(self) -> str:
-        if self.detail_stack.currentWidget() is self.data_collection_panel:
+        if self._developer_page is not None and self.detail_stack.currentWidget() is self._developer_page:
             return DATA_COLLECTION_TASK_ID
         item = self.task_list.currentItem()
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
@@ -254,9 +223,38 @@ class SmallTasksPage(QWidget):
                 self.task_list.setCurrentRow(index)
                 self.detail_stack.setCurrentWidget(self._task_pages[task_id])
                 return
-        if task_id == DATA_COLLECTION_TASK_ID:
-            # Keep explicit developer integrations available off the normal list.
-            self.detail_stack.setCurrentWidget(self.data_collection_panel)
+
+    def set_available_tasks(self, rows: list[dict[str, Any]]) -> None:
+        available = {str(row.get("task_ref") or "") for row in rows if row.get("role") == "developer"}
+        required = {
+            PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
+            PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+            PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
+            PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
+        }
+        self._developer_available = required <= available
+        self.developer_button.setVisible(self._developer_available)
+
+    def show_developer_tools(self) -> None:
+        if not self._developer_available:
+            return
+        if self._developer_page is None:
+            from PySide6.QtWidgets import QTabWidget
+            self._developer_page = QTabWidget(self.detail_stack)
+            self.deep_dive_developer_panel = ConsciousnessDeepDivePanel(self._developer_page, developer_mode=True)
+            self.deep_dive_developer_panel.runScanRequested.connect(self.runConsciousnessDeepDiveScanRequested.emit)
+            self.deep_dive_developer_panel.runPlanRequested.connect(self.runConsciousnessDeepDivePlanRequested.emit)
+            self.deep_dive_developer_panel.cancelRequested.connect(self.cancelRequested.emit)
+            self.data_collection_panel = DataCollectionPanel(self._developer_page)
+            self.data_collection_panel.captureRequested.connect(self.runConsciousnessDeepDiveCaptureRequested.emit)
+            self.data_collection_panel.sensitivityProbeRequested.connect(self.runConsciousnessDeepDiveSensitivityProbeRequested.emit)
+            self.data_collection_panel.cancelRequested.connect(self.cancelRequested.emit)
+            self._developer_page.addTab(self.deep_dive_developer_panel, "手动扫描与规划")
+            self._developer_page.addTab(self.data_collection_panel, "素材与校准")
+            self.detail_stack.addWidget(self._developer_page)
+            self.deep_dive_developer_panel.set_runner_busy(self._runner_busy)
+            self.data_collection_panel.set_runner_busy(self._runner_busy)
+        self.detail_stack.setCurrentWidget(self._developer_page)
 
     def _build_player_action_band(self, parent_layout: QVBoxLayout) -> None:
         run_band = QFrame(self.player_task_page)
@@ -282,17 +280,6 @@ class SmallTasksPage(QWidget):
         run_layout.addWidget(self.run_button)
         parent_layout.addWidget(run_band)
 
-    def _category_changed(
-        self,
-        current: QListWidgetItem | None,
-        _previous: QListWidgetItem | None,
-    ) -> None:
-        if current is None:
-            return
-        category_id = str(current.data(Qt.ItemDataRole.UserRole) or "")
-        tasks = self._category_tasks.get(category_id, ())
-        if tasks:
-            self.show_task(tasks[0][0])
 
     def _task_changed(
         self,
@@ -372,24 +359,15 @@ class SmallTasksPage(QWidget):
         self.eternal_scuffle_panel.show_error(message, cancelled=cancelled)
         self._sync_controls()
 
-    def begin_consciousness_deep_dive_run(self) -> None:
-        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
-        self.consciousness_deep_dive_panel.begin_run()
-        self._sync_controls()
-
-    def begin_consciousness_deep_dive_single_run(self) -> None:
-        self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
-        self.consciousness_deep_dive_panel.begin_single_run()
-        self._sync_controls()
 
     def begin_consciousness_deep_dive_scan(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
-        self.consciousness_deep_dive_panel.begin_scan()
+        self.deep_dive_developer_panel.begin_scan()
         self._sync_controls()
 
     def begin_consciousness_deep_dive_plan(self) -> None:
         self._active_task_id = CONSCIOUSNESS_DEEP_DIVE_TASK_ID
-        self.consciousness_deep_dive_panel.begin_plan()
+        self.deep_dive_developer_panel.begin_plan()
         self._sync_controls()
 
     def begin_consciousness_deep_dive_planned_run(self) -> None:
@@ -409,22 +387,22 @@ class SmallTasksPage(QWidget):
 
     def apply_consciousness_deep_dive_plan_result(self, payload: Mapping[str, Any]) -> None:
         self._active_task_id = ""
-        self.consciousness_deep_dive_panel.apply_plan_result(payload)
+        self.deep_dive_developer_panel.apply_plan_result(payload)
         self._sync_controls()
 
     def show_consciousness_deep_dive_plan_error(self, message: str) -> None:
         self._active_task_id = ""
-        self.consciousness_deep_dive_panel.show_plan_error(message)
+        self.deep_dive_developer_panel.show_plan_error(message)
         self._sync_controls()
 
     def apply_consciousness_deep_dive_scan_result(self, payload: Mapping[str, Any]) -> None:
         self._active_task_id = ""
-        self.consciousness_deep_dive_panel.apply_scan_result(payload)
+        self.deep_dive_developer_panel.apply_scan_result(payload)
         self._sync_controls()
 
     def show_consciousness_deep_dive_scan_error(self, message: str) -> None:
         self._active_task_id = ""
-        self.consciousness_deep_dive_panel.show_scan_error(message)
+        self.deep_dive_developer_panel.show_scan_error(message)
         self._sync_controls()
 
     def begin_consciousness_deep_dive_capture_run(
@@ -441,15 +419,6 @@ class SmallTasksPage(QWidget):
         self.data_collection_panel.begin_sensitivity_probe_run()
         self._sync_controls()
 
-    def apply_consciousness_deep_dive_result(self, payload: Mapping[str, Any]) -> None:
-        self._active_task_id = ""
-        self.consciousness_deep_dive_panel.apply_result(payload)
-        self._sync_controls()
-
-    def apply_consciousness_deep_dive_single_run_result(self, payload: Mapping[str, Any]) -> None:
-        self._active_task_id = ""
-        self.consciousness_deep_dive_panel.apply_single_run_result(payload)
-        self._sync_controls()
 
     def apply_consciousness_deep_dive_capture_result(
         self, payload: Mapping[str, Any]
@@ -465,15 +434,6 @@ class SmallTasksPage(QWidget):
         self.data_collection_panel.apply_sensitivity_probe_result(payload)
         self._sync_controls()
 
-    def show_consciousness_deep_dive_error(self, message: str) -> None:
-        self._active_task_id = ""
-        self.consciousness_deep_dive_panel.show_error(message)
-        self._sync_controls()
-
-    def show_consciousness_deep_dive_single_run_error(self, message: str) -> None:
-        self._active_task_id = ""
-        self.consciousness_deep_dive_panel.show_single_run_error(message)
-        self._sync_controls()
 
     def show_consciousness_deep_dive_capture_error(self, message: str) -> None:
         self._active_task_id = ""
@@ -493,13 +453,15 @@ class SmallTasksPage(QWidget):
         self.team_recommendation_panel.set_runner_busy(busy)
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
         self.eternal_scuffle_panel.set_runner_busy(busy)
-        self.data_collection_panel.set_runner_busy(busy)
+        if self.data_collection_panel is not None:
+            self.data_collection_panel.set_runner_busy(busy)
+            self.deep_dive_developer_panel.set_runner_busy(busy)
         self.trade_preview_panel.set_busy(busy)
         self._sync_controls()
 
     def _sync_controls(self) -> None:
         selection_enabled = not self._runner_busy and not self._active_task_id
-        self.category_list.setEnabled(selection_enabled)
+        self.developer_button.setEnabled(selection_enabled)
         self.task_list.setEnabled(selection_enabled)
         player_running = self._active_task_id == USER_DATA_TASK_ID
         self.run_button.setEnabled(selection_enabled)
@@ -513,7 +475,6 @@ class SmallTasksPage(QWidget):
 
 
 __all__ = [
-    "CATEGORY_TASKS",
     "CONSCIOUSNESS_DEEP_DIVE_TASK_ID",
     "DATA_COLLECTION_TASK_ID",
     "SMALL_TASKS",

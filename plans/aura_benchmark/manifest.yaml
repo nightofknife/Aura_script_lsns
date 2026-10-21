@@ -70,26 +70,20 @@ exports:
     title: Parallel benchmark branches
     source: tasks/parallel_sleep.yaml
     description: Three independent sleep steps to validate node-level concurrency.
-  - id: parallel_sleep
-    title: Parallel benchmark branches
-    source: tasks/parallel_sleep.yaml
-    description: Three independent sleep steps to validate node-level concurrency.
+    role: developer
+    domain: 调度基准
   - id: serial_sleep/serial_sleep
     title: Serial benchmark chain
     source: tasks/serial_sleep.yaml
     description: Three dependent sleep steps for serial execution validation.
-  - id: serial_sleep
-    title: Serial benchmark chain
-    source: tasks/serial_sleep.yaml
-    description: Three dependent sleep steps for serial execution validation.
+    role: developer
+    domain: 调度基准
   - id: single_sleep/single_sleep
     title: Single benchmark sleep
     source: tasks/single_sleep.yaml
     description: One benchmark action invocation.
-  - id: single_sleep
-    title: Single benchmark sleep
-    source: tasks/single_sleep.yaml
-    description: One benchmark action invocation.
+    role: developer
+    domain: 调度基准
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-04-17T14:51:37Z'
+  generated_at: '2026-10-21T08:49:06Z'

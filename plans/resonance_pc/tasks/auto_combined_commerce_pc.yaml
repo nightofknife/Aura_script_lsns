@@ -1,5 +1,7 @@
 auto_combined_commerce_pc:
   meta:
+    role: orchestration
+    domain: 商贸运输
     title: Combined Freight and Passenger Workflow (PC)
     description: Run freight and passenger tasks under one fatigue budget with validated handoffs.
     entry_point: true

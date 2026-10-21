@@ -113,7 +113,6 @@ optional_packages = [
     "windows_capture",
     "dxcam",
     "screeninfo",
-    "av",
     "dotenv",
     "yaml",
 ]
@@ -132,7 +131,6 @@ metadata_distributions = [
     "onnxruntime",
     "numpy",
     "opencv-python",
-    "av",
     "pywin32",
     "screeninfo",
     "psutil",

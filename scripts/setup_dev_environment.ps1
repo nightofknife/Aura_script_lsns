@@ -3,7 +3,6 @@ param(
     [string]$VenvPath = ".venv",
     [ValidateSet("cuda", "cpu", "none")]
     [string]$VisionProvider = "cuda",
-    [switch]$SkipMuMuAssets,
     [switch]$SkipPreflight
 )
 
@@ -17,7 +16,6 @@ try {
     $setupArgs = @{
         VenvPath = $VenvPath
         VisionProvider = $VisionProvider
-        FetchMuMuAssets = -not $SkipMuMuAssets
     }
     if ($BasePython) {
         $setupArgs.BasePython = $BasePython
@@ -49,7 +47,7 @@ try {
 
     Write-Host ""
     Write-Host "Development environment ready: $venvPython"
-    Write-Host "Run the GUI with: .\scripts\run_cli.ps1 gui resonance"
+    Write-Host "Run the GUI with: .\scripts\run_cli.ps1 gui resonance_pc"
 }
 finally {
     Pop-Location

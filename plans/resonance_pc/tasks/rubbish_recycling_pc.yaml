@@ -1,8 +1,10 @@
 rubbish_recycling_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Rubbish Recycling (PC)
     description: Recycle all rubbish from an eligible city's city panel and return to that panel.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: city_name
         type: string

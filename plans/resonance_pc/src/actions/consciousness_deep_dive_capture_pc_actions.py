@@ -133,13 +133,7 @@ def resonance_pc_collect_consciousness_deep_dive_capture_results(
 
     captures: List[Dict[str, Any]] = []
     for index, (expected_view, run) in enumerate(zip(expected_views, run_rows), 1):
-        nodes = run.get("nodes") if isinstance(run, Mapping) else None
-        capture_node = nodes.get("capture_view") if isinstance(nodes, Mapping) else None
-        capture = (
-            capture_node.get("output")
-            if isinstance(capture_node, Mapping)
-            else None
-        )
+        capture = run if isinstance(run, Mapping) else None
         expected_displacement = int(expected_view["displacement_px"])
         actual_displacement = (
             int(capture.get("displacement_px") or 0)

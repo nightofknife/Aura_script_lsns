@@ -14,7 +14,6 @@ import pytest
         "packages.aura_core",
         "packages.aura_game",
         "packages.resonance_gui",
-        "plans.resonance",
         "plans.resonance_pc",
     ),
 )

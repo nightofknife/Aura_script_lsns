@@ -1,8 +1,10 @@
 black_moon_local_purchase_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Black Moon Local Purchase (PC)
     description: Process a weekly wishlist from the rest menu and restore the requested endpoint.
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: city_name

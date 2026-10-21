@@ -529,8 +529,6 @@ class ComplianceChecker:
         runtime_family = str(runtime_cfg.get("family") or "").strip().lower()
         if not runtime_provider and runtime_family == "windows_desktop":
             runtime_provider = "windows"
-        elif not runtime_provider and runtime_family == "android_emulator":
-            runtime_provider = "mumu"
         elif not runtime_provider and (
             "window_spec" in runtime_cfg or "capture" in runtime_cfg or "input" in runtime_cfg
         ):

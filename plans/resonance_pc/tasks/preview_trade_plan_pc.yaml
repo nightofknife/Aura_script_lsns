@@ -1,5 +1,7 @@
 preview_trade_plan_pc:
   meta:
+    role: user_tool
+    domain: 商贸运输
     title: Preview Exact Trade Plan (PC)
     description: Refresh market data and calculate one exact route from a user-selected start city.
     entry_point: true

@@ -42,16 +42,22 @@ def isolated_replay_log_session(monkeypatch):
                 session.close()
 
 
-def build_replay_project(tmp_path, *, missing_finish=False, failed_action=False, cancellation=False):
+def build_replay_project(tmp_path, *, missing_finish=False, missing_returns=False, empty_returns=False, empty_result=False, failed_action=False, cancellation=False):
     base = tmp_path / "project"
     plan = base / "plans/scuffle_replay"
     (plan / "tasks").mkdir(parents=True)
     tasks = yaml.safe_load(TASK.read_text(encoding="utf-8"))
     if missing_finish:
-        # Valid YAML child that performs its actions but omits the contractual completion node.
+        # The business operation loses its completion payload. Keep the merged
+        # exit checkpoint in place: it must reject this before another pair.
         child = tasks["scuffle_draft_pair_pc"]
-        child["steps"].pop("finish")
-        child.pop("returns")
+        child["steps"]["check_phase"]["outputs"] = {"output": "{{ {} }}"}
+    if missing_returns:
+        tasks["scuffle_draft_pair_pc"].pop("returns")
+    if empty_returns:
+        tasks["scuffle_draft_pair_pc"]["returns"] = {}
+    if empty_result:
+        tasks["scuffle_draft_pair_pc"]["returns"] = {"result": {}}
     (plan / "tasks/eternal_scuffle_pc.yaml").write_text(yaml.safe_dump(tasks, allow_unicode=True), encoding="utf-8")
     module = "scuffle_replay_fixture_" + re.sub(r"\W", "_", tmp_path.name)
     wrappers = ACTIONS.read_text(encoding="utf-8")
@@ -145,7 +151,7 @@ def test_real_scuffle_graph_two_round_replay(tmp_path, monkeypatch, subprocess):
         runner.close()
 
 
-@pytest.mark.parametrize("failure", ["missing_finish", "failed_action"])
+@pytest.mark.parametrize("failure", ["missing_finish", "missing_returns", "empty_returns", "empty_result", "failed_action"])
 def test_real_scuffle_graph_failure_stops_before_next_coin(tmp_path, monkeypatch, failure):
     base = build_replay_project(tmp_path, **{failure: True})
     from plans.resonance_pc.src.actions import _eternal_scuffle_runtime as runtime

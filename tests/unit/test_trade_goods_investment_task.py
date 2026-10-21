@@ -69,7 +69,7 @@ def task_engine(monkeypatch):
         if state.get("exception"):
             raise state["exception"]
         return state.get("framework_result", {
-            "status": "SUCCESS", "framework_data": {"nodes": {"invest": {"output": state["result"]}}},
+            "status": "SUCCESS", "user_data": state["result"],
         })
 
     orchestrator = SimpleNamespace(plan_name="resonance_pc", loaded_package=None,
@@ -137,13 +137,16 @@ def test_child_business_failure_cannot_be_framework_success(task_engine, changes
     assert investment._INVESTMENT_PROGRESS_CALLBACK.get() is None
 
 
-@pytest.mark.parametrize("framework", [None, {}, {"nodes": {}}, {"nodes": {"invest": {}}},
-                                      {"nodes": {"invest": {"output": []}}}])
-def test_missing_child_business_output_is_not_success(task_engine, framework):
-    task_engine[2]["framework_result"] = {"status": "SUCCESS", "framework_data": framework}
+@pytest.mark.parametrize("business,code", [
+    (None, "goods_investment_task_failed"), ({}, "goods_investment_task_failed"),
+    ([], "goods_investment_task_incomplete"),
+    ({"unexpected": True}, "goods_investment_task_incomplete"),
+])
+def test_missing_child_business_output_is_not_success(task_engine, business, code):
+    task_engine[2]["framework_result"] = {"status": "SUCCESS", "user_data": business}
     with pytest.raises(trade.CityTradeFlowError) as exc:
         call_task(task_engine)
-    assert exc.value.code == "goods_investment_task_incomplete"
+    assert exc.value.code == code
 
 
 @pytest.mark.parametrize("status", ["FAILED", "ERROR"])
@@ -404,7 +407,7 @@ def test_child_sync_action_inherits_scoped_callback_through_real_injector(task_e
         adapter = ActionInjector(child_context, engine, Renderer(child_context, engine.state_store),
                                  {"mock/app": object(), "mock/vision": object()})
         result = await adapter._invoke_action(definition, child_context, params["inputs"])
-        return {"status": "SUCCESS", "framework_data": {"nodes": {"invest": {"output": result}}}}
+        return {"status": "SUCCESS", "user_data": result}
 
     monkeypatch.setattr(investment, "execute_trade_goods_investment_from_shop", execute_core)
     engine.orchestrator.execute_task = execute_task
@@ -416,7 +419,7 @@ def test_child_sync_action_inherits_scoped_callback_through_real_injector(task_e
 def test_task_contract_is_standalone_and_freight_exposes_shared_result():
     tasks = Path(__file__).resolve().parents[2] / "plans/resonance_pc/tasks"
     standalone = yaml.safe_load((tasks / "trade_goods_investment_pc.yaml").read_text(encoding="utf-8"))["trade_goods_investment_pc"]
-    assert standalone["meta"]["entry_point"] is True
+    assert standalone["meta"]["role"] == "internal" and standalone["meta"]["entry_point"] is False
     assert standalone["steps"]["invest"]["action"] == "resonance_pc.invest_trade_goods_from_shop"
     mode = next(item for item in standalone["meta"]["inputs"] if item["name"] == "mode")
     assert mode["type"] == "number" and mode["strict_integer"] is True

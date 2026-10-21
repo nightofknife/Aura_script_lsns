@@ -278,6 +278,7 @@ class Orchestrator:
         final_status = 'UNKNOWN'
         user_data = None
         framework_data = None
+        root_context = None
         error_details = None
 
         try:
@@ -299,17 +300,9 @@ class Orchestrator:
                     task_data = task_file_data
                     resolved_task_key = None
                 else:
-                    filename = task_file_path.replace('.yaml', '').split('/')[-1]
-                    task_data = task_file_data.get(filename)
-                    if not task_data:
-                        raise ValueError(f"Task '{filename}' not found in file '{task_file_path}'")
-                    resolved_task_key = filename
+                    raise ValueError("Named task files require an explicit task key in task_ref.")
             else:
-                if not task_file_data:
-                    raise ValueError(f"Task file '{task_file_path}' is empty")
-                resolved_task_key = list(task_file_data.keys())[0]
-                task_data = task_file_data[resolved_task_key]
-                logger.debug(f"No .yaml suffix, using first task: '{resolved_task_key}'")
+                raise ValueError("Task references require an explicit .yaml file path.")
 
             normalized_path = task_file_path.replace('.yaml', '')
             if normalized_path.startswith('tasks/'):
@@ -376,11 +369,11 @@ class Orchestrator:
                         returns_template=returns_template,
                         full_task_id=full_task_id,
                     )
-                else:
-                    user_data = True
 
         except asyncio.CancelledError:
             final_status = 'CANCELLED'
+            if root_context is not None:
+                framework_data = root_context.data
             error_details = {'message': 'Task cancellation requested.', 'type': 'CancelledError'}
             logger.warning(
                 "Task execution cancelled at orchestrator level for '%s:%s'.",

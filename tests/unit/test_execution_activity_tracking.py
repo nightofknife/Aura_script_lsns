@@ -19,11 +19,11 @@ from packages.aura_core.scheduler import cancellation
 from packages.aura_game.runner import EmbeddedGameRunner
 
 
-def test_cancelled_root_stays_pending_until_async_node_really_finishes():
+def test_cancelled_root_waits_for_async_node_cleanup_before_finishing():
     async def scenario():
         cid = 'test-node-' + uuid4().hex
         token = set_cid(cid)
-        started, release = asyncio.Event(), asyncio.Event()
+        started, release, cancelling = asyncio.Event(), asyncio.Event(), asyncio.Event()
         engine = ExecutionEngine(SimpleNamespace(services={}, debug_mode=False), None)
         engine.nodes = {'trade': {}}
         engine.dependencies = {}
@@ -34,8 +34,14 @@ def test_cancelled_root_stays_pending_until_async_node_really_finishes():
         async def execute(node_id, context):
             engine.step_states[node_id] = engine.StepState.RUNNING
             started.set()
-            await release.wait()
-            engine.step_states[node_id] = engine.StepState.SUCCESS
+            try:
+                await release.wait()
+                engine.step_states[node_id] = engine.StepState.SUCCESS
+            except asyncio.CancelledError:
+                cancelling.set()
+                await release.wait()
+                engine.step_states[node_id] = engine.StepState.CANCELLED
+                raise
 
         engine.node_executor = SimpleNamespace(execute_dag_node=execute)
         try:
@@ -43,11 +49,13 @@ def test_cancelled_root_stays_pending_until_async_node_really_finishes():
                                                      ExecutionContext(inputs={}, cid=cid)))
             await asyncio.wait_for(started.wait(), 1)
             parent.cancel()
-            with pytest.raises(asyncio.CancelledError):
-                await parent
-            trace.mark_task_terminal(cid, status='cancelled')
+            await asyncio.wait_for(cancelling.wait(), 1)
+            assert not parent.done()
             assert trace.pending_activities(cid)
             release.set()
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(parent, 1)
+            trace.mark_task_terminal(cid, status='cancelled')
             for _ in range(20):
                 await asyncio.sleep(0)
             assert not trace.pending_activities(cid)
@@ -72,6 +80,7 @@ def test_node_cancelled_before_first_instruction_retires_queued_activity():
 
         engine = SimpleNamespace(
             ready_queue=deque(['node']), _ready_set={'node'}, StepState=State,
+            _node_cancelled=False,
             step_states={'node': State.PENDING}, node_contexts={}, running_tasks=set(),
             _prepare_node_context=lambda node_id: SimpleNamespace(data={'cid': cid}),
             node_executor=SimpleNamespace(execute_dag_node=execute),

@@ -1,8 +1,10 @@
 use_trailer_service_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Towing Service (PC)
     description: Start from a selected destination on the map, submit one eligible towing service and confirm departure. Does not wait for arrival or drive normally.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: daily_first_n
         type: number

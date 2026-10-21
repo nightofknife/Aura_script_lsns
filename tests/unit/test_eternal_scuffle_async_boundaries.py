@@ -83,7 +83,7 @@ def log_capture():
 
 
 def checked_round(result):
-    return {"nodes": {"finish": {"output": {"success": True, "status": "completed", "round_result": result}}}}
+    return {"result": {"success": True, "status": "completed", "round_result": result}}
 
 
 async def wait_for_event(event):

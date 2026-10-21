@@ -12,6 +12,7 @@ import yaml
 from packages.aura_core.observability.logging.core_logger import logger
 
 from .scanner import ExportScanner
+from ..core.task_catalog import task_role
 
 
 class ManifestGenerator:
@@ -115,6 +116,8 @@ class ManifestGenerator:
                                 "title": meta.get("title", ""),
                                 "source": source,
                                 "description": meta.get("description", ""),
+                                "role": task_role(meta),
+                                "domain": meta.get("domain", ""),
                             }
                         )
                         continue
@@ -132,17 +135,10 @@ class ManifestGenerator:
                                 "title": meta.get("title", ""),
                                 "source": source,
                                 "description": meta.get("description", ""),
+                                "role": task_role(meta),
+                                "domain": meta.get("domain", ""),
                             }
                         )
-                        if task_key == Path(relative_id).name:
-                            tasks.append(
-                                {
-                                    "id": relative_id,
-                                    "title": meta.get("title", ""),
-                                    "source": source,
-                                    "description": meta.get("description", ""),
-                                }
-                            )
                 except Exception as e:
                     logger.warning("Scan task file failed %s: %s", yaml_file, e)
         return tasks

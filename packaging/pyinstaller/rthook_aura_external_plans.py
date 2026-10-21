@@ -77,7 +77,7 @@ def _prepare_packaged_dll_search_paths() -> None:
             continue
         seen_roots.add(root_key)
 
-        for relative in ("onnxruntime/capi", "av.libs", "numpy.libs"):
+        for relative in ("onnxruntime/capi", "numpy.libs"):
             _add_windows_dll_directory(internal_root / relative)
         _add_nvidia_runtime_directories(internal_root)
 

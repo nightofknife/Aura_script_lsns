@@ -190,6 +190,13 @@ class ActionInjector:
         sub_task_inputs = rendered_params.get("inputs", {})
         if not isinstance(sub_task_inputs, dict):
             raise TypeError("aura.run_task 'inputs' parameter must be a dictionary.")
+        result_assertions = rendered_params.get("result_assertions")
+        if result_assertions is None:
+            result_assertions = {}
+        if not isinstance(result_assertions, dict) or any(
+            not isinstance(path, str) or not all(path.split(".")) for path in result_assertions
+        ):
+            raise ValueError("aura.run_task 'result_assertions' must map nonempty dotted field paths to expected values.")
 
         orchestrator = self.engine.orchestrator
         parent_cid = self.context.data.get("cid")
@@ -209,14 +216,33 @@ class ActionInjector:
 
         if tfr.get('status') == 'CANCELLED':
             raise asyncio.CancelledError()
-        if tfr.get("status") in ("FAILED", "ERROR"):
+        if tfr.get("status") != "SUCCESS":
             error_info = tfr.get("error", {"message": "Unknown error in sub-task."})
             from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from
             error = Exception(f"Sub-task '{task_ref}' failed. Reason: {error_info}")
             attach_evidence(error, evidence_from(tfr) + evidence_from(error_info))
             raise error
 
-        return tfr.get("framework_data")
+        # Validate this iteration before a sequential loop can dispatch another
+        # child. Side-effect-only tasks can explicitly declare `returns: true`.
+        output = tfr.get("user_data")
+        problem = None
+        if output is None or (isinstance(output, dict) and not output):
+            problem = "did not declare a nonempty business result"
+        for path, expected in result_assertions.items():
+            value = output
+            missing = object()
+            for field in path.split("."):
+                value = value.get(field, missing) if isinstance(value, dict) else missing
+            if value is missing or type(value) is not type(expected) or value != expected:
+                problem = f"business result assertion failed for '{path}'"
+                break
+        if problem:
+            from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from
+            error = ValueError(f"Sub-task '{task_ref}' {problem}.")
+            attach_evidence(error, evidence_from(tfr) + evidence_from(output))
+            raise error
+        return output
 
     def _prepare_action_arguments(self, action_def: ActionDefinition, rendered_params: Dict[str, Any]) -> Dict[str, Any]:
         sig = action_def.signature

@@ -531,8 +531,6 @@ class PlayerDataPanel(QWidget):
             fresh_profile_times = fresh_metadata.get("profile_section_updated_at")
             if isinstance(fresh_profile_times, Mapping) and fresh_profile_times:
                 previous_profile_times = metadata.get("profile_section_updated_at")
-                if not previous_profile_times and section_times.get("profile"):
-                    metadata.setdefault("profile_legacy_updated_at", section_times["profile"])
                 sub_times = dict(previous_profile_times) if isinstance(previous_profile_times, Mapping) else {}
                 sub_times.update(copy.deepcopy(dict(fresh_profile_times)))
                 metadata["profile_section_updated_at"] = sub_times
@@ -583,7 +581,6 @@ class PlayerDataPanel(QWidget):
         recovery = snapshot.get("recovery") if isinstance(snapshot.get("recovery"), Mapping) else {}
         sub_times = metadata.get("profile_section_updated_at")
         sub_times = sub_times if isinstance(sub_times, Mapping) else {}
-        legacy_time = metadata.get("profile_legacy_updated_at") or (section_times.get("profile") if not sub_times else None)
         for section in PLAYER_DATA_PROFILE_SECTION_ORDER:
             value = status.get(section) if section in DEFAULT_PROFILE_SECTIONS else recovery.get(section)
             text = "未读取"
@@ -598,9 +595,8 @@ class PlayerDataPanel(QWidget):
                     text = f"{value['count']} / 12 份"
             self.profile_value_labels[section].setText(text)
             timestamp = sub_times.get(section) or (value.get("updated_at") if isinstance(value, Mapping) else None)
-            legacy = not timestamp and section in DEFAULT_PROFILE_SECTIONS and value is not None and legacy_time
             self.profile_time_labels[section].setText(
-                _format_timestamp(timestamp or (legacy_time if legacy else None)) + ("（旧记录）" if legacy else "")
+                _format_timestamp(timestamp)
             )
         currencies = (
             snapshot.get("currencies")

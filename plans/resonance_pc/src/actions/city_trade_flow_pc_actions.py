@@ -1005,7 +1005,7 @@ def resonance_pc_click_city_shop_by_name(
     name="resonance_pc.click_shop_menu_node",
     public=True,
     read_only=False,
-    description="Click the Nth node in a shop page using fixed MuMu coordinates.",
+    description="Click the Nth node in a shop page using fixed PC client coordinates.",
 )
 @requires_services(app="plans/aura_base/app")
 def resonance_pc_click_shop_menu_node(node_index: int, wait_sec: float = 1.0, app: Any = None) -> Dict[str, Any]:
@@ -1599,12 +1599,9 @@ async def _run_trade_goods_investment_task(*, mode: int, city_name: str, progres
             current_package=getattr(engine.orchestrator, "loaded_package", None),
             service_resolver=engine.orchestrator.resolve_service,
         )
-        framework = await injector.execute("aura.run_task", {
+        result = await injector.execute("aura.run_task", {
             "task_ref": _GOODS_INVESTMENT_TASK, "inputs": {"mode": mode, "city_name": city_name},
         })
-        nodes = framework.get("nodes") if isinstance(framework, dict) else None
-        node = nodes.get("invest") if isinstance(nodes, dict) else None
-        result = node.get("output") if isinstance(node, dict) else None
         if (not isinstance(result, dict) or result.get("success") is not True
                 or result.get("page_state") != "shop_page" or result.get("status") not in {"invested", "skipped"}
                 or type(result.get("mode")) is not int or result.get("mode") != mode
@@ -1851,14 +1848,11 @@ async def _run_black_moon_local_purchase_task(
     del progress_context
     from ._black_moon_local_scan_contract import validated_selection_presence
 
-    framework = await _call_recovery_action("aura.run_task", {
+    result = await _call_recovery_action("aura.run_task", {
         "task_ref": "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc",
         "inputs": {"city_name": city_name, "purchase_table": dict(purchase_table),
                    "record_scope": record_scope, "exit_target": "rest_menu"},
     }, context=context, engine=engine)
-    nodes = framework.get("nodes")
-    node = nodes.get("finish_visit") if isinstance(nodes, dict) else None
-    result = node.get("output") if isinstance(node, dict) else None
     try:
         presence = validated_selection_presence(result, [key for key, wanted in purchase_table.items() if wanted])
     except ValueError:
@@ -3696,9 +3690,7 @@ async def resonance_pc_finish_auto_cycle_trade(
         _log_trade_outcome(result)
         return result
 
-    nodes = bento_framework.get("nodes") if isinstance(bento_framework, dict) else None
-    consume_node = nodes.get("consume") if isinstance(nodes, dict) else None
-    child = consume_node.get("output") if isinstance(consume_node, dict) else None
+    child = bento_framework if isinstance(bento_framework, dict) else None
     valid = (isinstance(child, dict) and type(child.get("success")) is bool
              and isinstance(child.get("status"), str) and isinstance(child.get("page_state"), str)
              and type(child.get("consumed_count")) is int
@@ -3719,7 +3711,7 @@ async def resonance_pc_finish_auto_cycle_trade(
     else:
         child_result = {**child, "triggered": True}
     result["bento_consumption"] = child_result
-    attach_evidence(result, collect_node_evidence(bento_framework))
+    attach_evidence(result, evidence_from(bento_framework))
     resources = dict(result.get("resources") or {})
     resources["bento_basic_recovered_fatigue"] = child_result.get("recovered_fatigue")
     resources["bento_computed_fatigue"] = child_result.get("computed_fatigue")

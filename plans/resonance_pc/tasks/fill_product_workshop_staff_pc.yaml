@@ -1,5 +1,7 @@
 fill_product_workshop_staff_pc:
   meta:
+    role: user_task
+    domain: 整顿中心
     title: 生产车间补人
     description: 从总览进入指定车间，编辑、快速编队后识别一键选中就点击并确认保存；入口已显示一键取消则直接退出。全程模板，不识别人数。
     entry_point: true
@@ -25,8 +27,6 @@ fill_product_workshop_staff_pc:
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
       # The injector returns framework_data; explicitly extract child business evidence.
-      outputs:
-        output: "{{ ((result.get('nodes') or {}).get('open_room') or {}).get('output') or {} }}"
     edit:
       action: resonance_pc.product_workshop_staff_step
       depends_on: {navigate: "success|skipped"}

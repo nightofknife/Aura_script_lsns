@@ -1,5 +1,4 @@
 annotated-types==0.7.0
-av==17.0.0
 cachetools==7.0.6
 click==8.3.2
 colorama==0.4.6

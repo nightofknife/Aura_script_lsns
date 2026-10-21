@@ -34,7 +34,7 @@ def test_configuration_and_activity_entry(repository):
     assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == [
         "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗",
     ]
-    assert page.category_list.isHidden()
+    assert not hasattr(page, "category_list")
     panel = page.eternal_scuffle_panel
     panel.coins_spin.setValue(5)
     panel.run_count_spin.setValue(9999)
@@ -121,7 +121,8 @@ def test_main_window_dispatch_and_cancelled_result(repository):
         window.requestRunPcTask.disconnect()
         dispatched = []
         window.requestRunPcTask.connect(lambda *args: dispatched.append(args))
-        window.timeout_spin.setValue(123)
+        from packages.resonance_gui.config_repository import GuiPreferences
+        window._preferences = GuiPreferences(timeout_sec=123)
         window._run_small_task_eternal_scuffle({"coins_per_run": 3, "run_count": 2})
         assert dispatched == [(PC_ETERNAL_SCUFFLE_TASK_REF, {"coins_per_run": 3, "run_count": 2}, "无垠乱斗", 123.0)]
         panel = window.small_tasks_page.eternal_scuffle_panel

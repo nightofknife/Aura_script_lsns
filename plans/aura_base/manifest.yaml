@@ -490,26 +490,6 @@ exports:
       type: Any
       required: false
       default: 0.1
-  - name: launch_app
-    module: plans.aura_base.src.actions.input_actions
-    function: launch_app
-    public: true
-    read_only: false
-    timeout: null
-    description: ''
-    parameters:
-    - name: package_name
-      type: Any
-      required: true
-      default: null
-    - name: activity
-      type: Any
-      required: false
-      default: null
-    - name: timeout_sec
-      type: Any
-      required: false
-      default: null
   - name: press_hotkey
     module: plans.aura_base.src.actions.input_actions
     function: press_hotkey
@@ -1525,13 +1505,17 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: ''
+    description: Run a child and return its declared, nonempty business result.
     parameters:
     - name: task_ref
       type: Any
       required: true
       default: null
     - name: inputs
+      type: Any
+      required: false
+      default: null
+    - name: result_assertions
       type: Any
       required: false
       default: null
@@ -2958,4 +2942,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-09-04T14:50:39Z'
+  generated_at: '2026-10-21T09:04:41Z'

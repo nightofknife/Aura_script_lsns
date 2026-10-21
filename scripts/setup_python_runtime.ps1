@@ -7,8 +7,7 @@ param(
     [string]$VisionProvider = "cuda",
     [string]$VisionCpuRequirements = "requirements/optional-vision-onnx-cpu.txt",
     [string]$VisionCudaRequirements = "requirements/optional-vision-onnx-cuda.txt",
-    [switch]$UseLock = $true,
-    [switch]$FetchMuMuAssets = $true
+    [switch]$UseLock = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -139,13 +138,6 @@ Ensure-VisionRuntime `
 
 if ($refreshLock) {
     Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @("-m", "pip", "freeze", "--all") -CaptureOutput | Set-Content -Path $LockFile -Encoding UTF8
-}
-
-if ($FetchMuMuAssets) {
-    $fetchScript = "scripts/fetch_mumu_runtime_assets.py"
-    Assert-PathExists -PathValue $fetchScript -Label "MuMu asset fetch script"
-    Write-Host "Fetching MuMu runtime assets ..."
-    Invoke-CheckedCommand -FilePath $venvPython -ArgumentList @($fetchScript)
 }
 
 Write-Host "Running pip check ..."

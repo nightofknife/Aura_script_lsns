@@ -1,8 +1,10 @@
 maintain_raw_material_workshop_pc:
   meta:
+    role: internal
+    domain: 整顿中心
     title: 原料车间维护（PC）
     description: 从普通总览进入指定原料车间，预存最多、有限循环补工作、开始生产后有限循环补替补，最终状态确认后返回普通总览；不终止、不加速、不改配方、不领取、不建设。
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: room_name
@@ -32,7 +34,7 @@ maintain_raw_material_workshop_pc:
       action: resonance_pc.raw_workshop_observe
       depends_on: navigate
       # aura.run_task returns framework_data, not the child's user_data.
-      when: "{{ nodes.navigate.output.nodes.open_room.output.success and nodes.navigate.output.nodes.open_room.output.room_entered }}"
+      when: "{{ nodes.navigate.output.success and nodes.navigate.output.room_entered }}"
       params: {room_name: "{{ inputs.room_name }}"}
     deposit:
       action: resonance_pc.raw_workshop_deposit_max
@@ -81,7 +83,7 @@ maintain_raw_material_workshop_pc:
       depends_on: {return_overview: "success|skipped"}
       params:
         room_name: "{{ inputs.room_name }}"
-        navigation: "{{ nodes.navigate.output.nodes.open_room.output | default(none) }}"
+        navigation: "{{ nodes.navigate.output | default(none) }}"
         observation: "{{ nodes.observe.output }}"
         before_start: "{{ nodes.before_start.output }}"
         final_observe: "{{ nodes.final_observe.output }}"

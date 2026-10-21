@@ -49,8 +49,7 @@
       "model_asset": "models-ocr-ppocrv5_server-v1.zip",
       "checksum_asset": "models-ocr-ppocrv5_server-v1.sha256",
       "bundle_directory": "models/ocr/ppocrv5_server"
-    },
-    "mumu_lock": "packaging/assets/mumu-runtime.lock.json"
+    }
   },
   "full_release": {
     "required_paths": [
@@ -64,8 +63,6 @@
       "models/ocr/ppocrv5_server/det.onnx",
       "models/ocr/ppocrv5_server/rec.onnx",
       "plans/aura_base/manifest.yaml",
-      "plans/aura_benchmark/manifest.yaml",
-      "plans/resonance/manifest.yaml",
       "plans/resonance_pc/manifest.yaml",
       "plans/resonance_pc/assets/input_bridge/resonance_bridge_loader.exe",
       "plans/resonance_pc/assets/input_bridge/resonance_bridge_host.dll",
@@ -84,13 +81,17 @@
       "runtime/_internal/paddleocr",
       "runtime/_internal/paddlex",
       "runtime/_internal/nvidia",
-      "plans/resonance/data/cache",
       "plans/resonance_pc/data/cache",
       "user-data",
       "gui-settings.ini",
       "gui-settings-layout-v2.ini",
       "updates",
-      ".update-work"
+      ".update-work",
+      "plans/resonance",
+      "plans/aura_benchmark",
+      "plans/aura_base/assets/mumu",
+      "tools",
+      "research"
     ]
   },
   "comparison": {

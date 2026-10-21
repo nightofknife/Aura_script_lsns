@@ -82,7 +82,7 @@ def temporal_consensus(reports):
 
 def main():
     from research.deep_dive_four_view_template_alignment import FourViewTemplateAligner
-    from research.read_saved_front_view import add_detector_arguments, detector_config
+    from research.detector_config import add_detector_arguments, detector_config
     from plans.resonance_pc.src.services.deep_dive_entity_detector_service import DeepDiveEntityDetectorService
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--annotations', type=Path, required=True)

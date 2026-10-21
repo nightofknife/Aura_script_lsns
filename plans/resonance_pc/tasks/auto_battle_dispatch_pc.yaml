@@ -1,5 +1,7 @@
 auto_battle_ct_tie_an_run_one_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC CT TieAn Run One
     description: Execute one CT tie_an job.
     inputs:
@@ -243,6 +245,8 @@ auto_battle_ct_tie_an_run_one_pc:
 
 auto_battle_ct_tie_an_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC CT TieAn Batch
     description: Batch executor for CT tie_an jobs.
     inputs:
@@ -274,6 +278,8 @@ auto_battle_ct_tie_an_batch_pc:
 
 auto_battle_ct_regional_ops_run_one_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC CT RegionalOps Run One
     description: Execute one CT regional_ops_center job.
     inputs:
@@ -419,6 +425,8 @@ auto_battle_ct_regional_ops_run_one_pc:
 
 auto_battle_ct_regional_ops_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC CT RegionalOps Batch
     description: Batch executor for CT regional_ops_center jobs.
     inputs:
@@ -449,6 +457,8 @@ auto_battle_ct_regional_ops_batch_pc:
 
 auto_battle_ct_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC CT Batch
     description: Group CT jobs by tie_an/regional_ops_center and dispatch in order.
     inputs:
@@ -676,6 +686,8 @@ auto_battle_ct_batch_pc:
 
 auto_battle_gp_action_summary_run_difficulty_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP ActionSummary Run Difficulty
     description: Execute one action_summary difficulty inside an already opened stage.
     inputs:
@@ -791,6 +803,8 @@ auto_battle_gp_action_summary_run_difficulty_pc:
 
 auto_battle_gp_action_summary_run_group_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP ActionSummary Run Group
     description: Execute one consecutive action_summary stage group.
     inputs:
@@ -911,6 +925,8 @@ auto_battle_gp_action_summary_run_group_pc:
 
 auto_battle_gp_action_summary_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP ActionSummary Batch
     description: Execute grouped action_summary jobs.
     inputs:
@@ -946,6 +962,8 @@ auto_battle_gp_action_summary_batch_pc:
 
 auto_battle_gp_structural_run_one_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP Structural Run One
     description: Execute one structural_exploration target.
     inputs:
@@ -1041,6 +1059,8 @@ auto_battle_gp_structural_run_one_pc:
 
 auto_battle_gp_structural_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP Structural Batch
     description: Execute structural_exploration jobs in order.
     inputs:
@@ -1070,6 +1090,8 @@ auto_battle_gp_structural_batch_pc:
 
 auto_battle_gp_batch_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC GP Batch
     description: Group GP jobs by action_summary and structural_exploration, then dispatch in order.
     inputs:
@@ -1273,6 +1295,8 @@ auto_battle_gp_batch_pc:
 
 auto_battle_dispatch_pc:
   meta:
+    role: user_task
+    domain: 战斗
     title: Auto Battle PC Dispatch
     description: Enter battle terminal, validate jobs, switch tabs, and dispatch category batch tasks.
     entry_point: true

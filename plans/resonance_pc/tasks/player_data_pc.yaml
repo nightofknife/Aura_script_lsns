@@ -1,5 +1,7 @@
 player_data_refresh:
   meta:
+    role: user_tool
+    domain: 用户数据
     title: Resonance Player Data Refresh (PC)
     description: Refresh location, player profile/status, warehouse and character data from the PC client.
     entry_point: true
@@ -51,6 +53,8 @@ player_data_refresh:
 
 player_data_get_latest:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Resonance Player Data Latest (PC)
     description: Read latest cached Resonance PC player data.
     inputs: []

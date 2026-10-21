@@ -222,8 +222,6 @@ class TaskLoader:
             for task_name, task_def in raw_data.items():
                 if isinstance(task_def, dict) and isinstance(task_def.get("steps"), dict):
                     refs.append(f"{base_ref}:{task_name}")
-                    if task_name == file_path.stem:
-                        refs.append(base_ref)
         return sorted(set(refs))
 
     def _make_error_record(
@@ -264,46 +262,23 @@ class TaskLoader:
         return None
 
     def get_task_data(self, task_name_in_plan: str) -> Optional[Dict[str, Any]]:
-        parts = task_name_in_plan.split("/")
-        if not parts:
+        """Resolve explicit file/key paths; file-only refs require a root task file."""
+        parts = [part for part in str(task_name_in_plan).split("/") if part]
+        if not parts or any(part in {".", ".."} for part in parts):
             return None
-
-        task_key = parts[-1]
-        attempts = []
-
         for task_dir in self.task_paths:
-            direct_path = task_dir.joinpath(*parts).with_suffix(".yaml")
-            if direct_path.is_file():
-                direct_data = self._load_and_parse_file(direct_path)
-                if isinstance(direct_data, dict):
-                    if isinstance(direct_data.get("steps"), (list, dict)):
-                        return self._normalize_task_concurrency(direct_data)
-                    task_data = direct_data.get(task_key)
+            if len(parts) > 1:
+                keyed_path = task_dir.joinpath(*parts[:-1]).with_suffix(".yaml")
+                if keyed_path.is_file():
+                    task_data = self._load_and_parse_file(keyed_path).get(parts[-1])
                     if isinstance(task_data, dict) and "steps" in task_data:
                         return self._normalize_task_concurrency(task_data)
-
-            file_path_parts = parts[:-1]
-            if not file_path_parts:
-                file_path_parts.append(task_key)
-            file_path = task_dir.joinpath(*file_path_parts).with_suffix(".yaml")
-            if file_path.is_file():
-                all_tasks_in_file = self._load_and_parse_file(file_path)
-                task_data = all_tasks_in_file.get(task_key)
-                if isinstance(task_data, dict) and "steps" in task_data:
+            root_path = task_dir.joinpath(*parts).with_suffix(".yaml")
+            if root_path.is_file():
+                task_data = self._load_and_parse_file(root_path)
+                if isinstance(task_data, dict) and isinstance(task_data.get("steps"), (list, dict)):
                     return self._normalize_task_concurrency(task_data)
-                if isinstance(all_tasks_in_file, dict) and isinstance(all_tasks_in_file.get("steps"), (list, dict)):
-                    return self._normalize_task_concurrency(all_tasks_in_file)
-
-            attempts.append(str(direct_path))
-            if str(file_path) not in attempts:
-                attempts.append(str(file_path))
-
-        logger.warning(
-            "Task definition not found in plan '%s': '%s' (attempts: %s)",
-            self.plan_name,
-            task_name_in_plan,
-            ", ".join(attempts),
-        )
+        logger.warning("Task definition not found in plan '%s': '%s'", self.plan_name, task_name_in_plan)
         return None
 
     def _iter_task_definitions(self, task_file_data: Dict[str, Any], file_path: Path):
@@ -402,12 +377,10 @@ class TaskLoader:
                         task_definition.setdefault("__task_source_file__", f"{relative_path}.yaml")
                         task_definition.setdefault(
                             "__task_ref__",
-                            canonical_file_ref if task_key == Path(relative_path).name else f"{canonical_file_ref}:{task_key}",
+                            f"{canonical_file_ref}:{task_key}",
                         )
                         task_id = f"{relative_path}/{task_key}"
                         all_definitions[task_id] = task_definition
-                        if task_key == Path(relative_path).name:
-                            all_definitions.setdefault(relative_path, task_definition)
 
         return all_definitions
 

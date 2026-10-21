@@ -201,7 +201,7 @@ def child_framework(**overrides):
         "allow_exceed_target": False, "items": [{"consumed": True}],
     }
     child.update(overrides)
-    return {"nodes": {"consume": {"output": child}}}
+    return child
 
 
 def finish(result, framework=None, *, auto_bento=True, event_bus=None, context=None):
