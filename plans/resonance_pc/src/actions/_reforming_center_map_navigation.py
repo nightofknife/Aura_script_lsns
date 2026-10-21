@@ -1,4 +1,7 @@
-"""Measured room-map geometry and bounded, feedback-driven viewport navigation."""
+"""Room-map geometry and bounded, feedback-driven viewport navigation.
+
+Screenshot-measured anchors take precedence over native prefab extensions.
+"""
 from __future__ import annotations
 
 import heapq
@@ -41,9 +44,17 @@ def locate_viewport(hits, model, tolerance=8):
         if (room and len(center) == 2 and math.isfinite(score) and score >= .92
                 and all(math.isfinite(value) for value in center)):
             candidates.append({"room_name": hit["room_name"], "component": room["component"],
-                               "offset": [center[i]-room["world_anchor"][i] for i in (0, 1)]})
+                               "offset": [center[i]-room["world_anchor"][i] for i in (0, 1)],
+                               "native_extension": room.get("geometry_source") == "native_rect_transform_relative"})
     if not candidates:
         raise RoomMapError("room_anchor_not_found")
+    observed_candidates = candidates
+    # Prefab positions are navigation hints, not additional measured evidence.
+    # Keep the existing measured pose whenever any measured label is visible;
+    # extensions can only join that pose if their fresh label agrees with it.
+    measured = [item for item in candidates if not item["native_extension"]]
+    if measured:
+        candidates = measured
     clusters = {}
     for item in candidates:
         members = [index for index, other in enumerate(candidates)
@@ -59,9 +70,14 @@ def locate_viewport(hits, model, tolerance=8):
                            {"anchors": [item["room_name"] for item in candidates]})
     group = [candidates[index] for index in winners[0]]
     offset = [float(median(item["offset"][axis] for item in group)) for axis in (0, 1)]
+    consistent_extensions = [item for item in observed_candidates
+                             if measured and item["native_extension"]
+                             and item["component"] == group[0]["component"]
+                             and max(abs(item["offset"][axis]-offset[axis]) for axis in (0, 1)) <= tolerance]
+    accepted = group+consistent_extensions
     return {"offset": offset, "component": group[0]["component"],
-            "anchors": [item["room_name"] for item in group], "single_anchor": len(group) == 1,
-            "rejected_anchors": [item["room_name"] for item in candidates if item not in group]}
+            "anchors": [item["room_name"] for item in accepted], "single_anchor": len(group) == 1,
+            "rejected_anchors": [item["room_name"] for item in observed_candidates if item not in accepted]}
 
 
 def predict_screen(room, pose, model):
@@ -72,7 +88,7 @@ def predict_screen(room, pose, model):
 
 
 def choose_waypoint(target, pose, model):
-    """Use measured co-visible room links as intermediate navigation anchors."""
+    """Use room links as intermediate navigation anchors; observe before clicking."""
     predict_screen(target, pose, model)  # Refuse a fabricated cross-component link.
     candidates = []
     rooms = model["rooms"]

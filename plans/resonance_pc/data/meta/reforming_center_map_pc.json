@@ -65,7 +65,8 @@
         "1号整顿宿舍",
         "1号生产车间",
         "2号整顿宿舍",
-        "植物纤维原料车间"
+        "植物纤维原料车间",
+        "3号生产车间"
       ],
       "source_frames": [
         "overview_00"
@@ -480,6 +481,89 @@
         "overview_03",
         "overview_04"
       ]
+    },
+    "3号生产车间": {
+      "world_anchor": [
+        669.0,
+        -681.791667
+      ],
+      "component": 0,
+      "neighbors": [
+        "2号生产车间",
+        "4号生产车间"
+      ],
+      "source_frames": [],
+      "geometry_source": "native_rect_transform_relative",
+      "source_resource": "ui/prison/overview/prison.asset",
+      "source_node": "Btn_Workshop3",
+      "native_anchored_position": [
+        513.0,
+        633.904296875
+      ],
+      "measured_reference_room": "2号生产车间",
+      "note": "Native relative layout at 1280x720 scale; navigation hint, not screenshot-measured geometry. Click requires a fresh matching target title."
+    },
+    "4号生产车间": {
+      "world_anchor": [
+        669.0,
+        -793.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "3号生产车间",
+        "5号生产车间"
+      ],
+      "source_frames": [],
+      "geometry_source": "native_rect_transform_relative",
+      "source_resource": "ui/prison/overview/prison.asset",
+      "source_node": "Btn_Workshop4",
+      "native_anchored_position": [
+        513.0,
+        800.904296875
+      ],
+      "measured_reference_room": "2号生产车间",
+      "note": "Native relative layout at 1280x720 scale; navigation hint, not screenshot-measured geometry. Click requires a fresh matching target title."
+    },
+    "5号生产车间": {
+      "world_anchor": [
+        669.0,
+        -905.791667
+      ],
+      "component": 0,
+      "neighbors": [
+        "4号生产车间",
+        "6号生产车间"
+      ],
+      "source_frames": [],
+      "geometry_source": "native_rect_transform_relative",
+      "source_resource": "ui/prison/overview/prison.asset",
+      "source_node": "Btn_Workshop5",
+      "native_anchored_position": [
+        513.0,
+        969.904296875
+      ],
+      "measured_reference_room": "2号生产车间",
+      "note": "Native relative layout at 1280x720 scale; navigation hint, not screenshot-measured geometry. Click requires a fresh matching target title."
+    },
+    "6号生产车间": {
+      "world_anchor": [
+        669.0,
+        -1017.125
+      ],
+      "component": 0,
+      "neighbors": [
+        "5号生产车间"
+      ],
+      "source_frames": [],
+      "geometry_source": "native_rect_transform_relative",
+      "source_resource": "ui/prison/overview/prison.asset",
+      "source_node": "Btn_Workshop6",
+      "native_anchored_position": [
+        513.0,
+        1136.904296875
+      ],
+      "measured_reference_room": "2号生产车间",
+      "note": "Native relative layout at 1280x720 scale; navigation hint, not screenshot-measured geometry. Click requires a fresh matching target title."
     }
   },
   "calibration": {
@@ -1153,5 +1237,20 @@
         }
       }
     ]
+  },
+  "native_workshop_extension": {
+    "geometry_source": "native_rect_transform_relative",
+    "source_resource": "ui/prison/overview/prison.asset",
+    "parent_rect_transform_path_id": "-9219751756911284605",
+    "reference_room": "2号生产车间",
+    "reference_native_anchored_position": [
+      513.0,
+      302.904296875
+    ],
+    "client_scale": 0.6666666666666666,
+    "y_direction": "native_up_to_client_down",
+    "room_count": 4,
+    "measured_calibration_unchanged": true,
+    "note": "Workshops 3-6 extend the measured room graph using native prefab offsets. Existing 24-room screenshot calibration remains unchanged; extension has not been measured in game."
   }
 }
