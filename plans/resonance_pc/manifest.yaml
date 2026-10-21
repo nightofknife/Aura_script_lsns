@@ -1412,7 +1412,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Select an intercity destination via OCR-anchored city waypoint drags.
+    description: Coarse-drag the fresh default 1280x720 map using native city coordinates,
+      then OCR and correct.
     parameters:
     - name: to_city_name
       type: Any
@@ -1433,7 +1434,7 @@ exports:
     - name: drag_span_px
       type: Any
       required: false
-      default: 600
+      default: 900
     - name: max_search_steps
       type: Any
       required: false
@@ -1494,7 +1495,7 @@ exports:
     - name: drag_span_px
       type: Any
       required: false
-      default: 600
+      default: 900
     - name: max_search_steps
       type: Any
       required: false
@@ -2431,6 +2432,78 @@ exports:
     timeout: null
     description: Get latest cached Resonance PC player data.
     parameters: []
+  - name: resonance_pc.product_collection_assets
+    module: plans.resonance_pc.src.actions.product_collection_pc_actions
+    function: resonance_pc_product_collection_assets
+    public: true
+    read_only: true
+    timeout: null
+    description: Prepare native collection and unlock templates before entering any
+      workshop.
+    parameters: []
+  - name: resonance_pc.product_collection_scan_unlocks
+    module: plans.resonance_pc.src.actions.product_collection_pc_actions
+    function: resonance_pc_product_collection_scan_unlocks
+    public: true
+    read_only: false
+    timeout: null
+    description: Read all six native workshop cards from room 1 and return to the
+      overview.
+    parameters:
+    - name: navigation
+      type: Any
+      required: true
+      default: null
+  - name: resonance_pc.product_collection_collect_room
+    module: plans.resonance_pc.src.actions.product_collection_pc_actions
+    function: resonance_pc_product_collection_collect_room
+    public: true
+    read_only: false
+    timeout: null
+    description: Skip a confirmed locked room or reuse room navigation, collect once
+      and return to overview.
+    parameters:
+    - name: room_name
+      type: Any
+      required: true
+      default: null
+    - name: unlocks
+      type: Any
+      required: true
+      default: null
+    - name: previous
+      type: Any
+      required: true
+      default: null
+    - name: max_search_steps
+      type: Any
+      required: false
+      default: 12
+    - name: settle_sec
+      type: Any
+      required: false
+      default: 0.8
+  - name: resonance_pc.product_collection_summarize
+    module: plans.resonance_pc.src.actions.product_collection_pc_actions
+    function: resonance_pc_product_collection_summarize
+    public: true
+    read_only: true
+    timeout: null
+    description: Aggregate six collection results and the confirmed final page without
+      game input.
+    parameters:
+    - name: preflight
+      type: Any
+      required: false
+      default: null
+    - name: scan
+      type: Any
+      required: false
+      default: null
+    - name: results
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.product_workshop_quick_fill
     module: plans.resonance_pc.src.actions.product_workshop_pc_actions
     function: resonance_pc_product_workshop_quick_fill
@@ -2496,74 +2569,6 @@ exports:
       required: false
       default: null
     - name: navigation
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.product_collection_assets
-    module: plans.resonance_pc.src.actions.product_collection_pc_actions
-    function: resonance_pc_product_collection_assets
-    public: true
-    read_only: true
-    timeout: null
-    description: Check packaged native templates for six-workshop collection without game input.
-    parameters: []
-  - name: resonance_pc.product_collection_scan_unlocks
-    module: plans.resonance_pc.src.actions.product_collection_pc_actions
-    function: resonance_pc_product_collection_scan_unlocks
-    public: true
-    read_only: false
-    timeout: null
-    description: Read all six workshop navigation states and return to the ordinary overview.
-    parameters:
-    - name: navigation
-      type: Any
-      required: true
-      default: null
-  - name: resonance_pc.product_collection_collect_room
-    module: plans.resonance_pc.src.actions.product_collection_pc_actions
-    function: resonance_pc_product_collection_collect_room
-    public: true
-    read_only: false
-    timeout: null
-    description: Skip a locked workshop or collect once from an open workshop and return to overview.
-    parameters:
-    - name: room_name
-      type: Any
-      required: true
-      default: null
-    - name: unlocks
-      type: Any
-      required: true
-      default: null
-    - name: previous
-      type: Any
-      required: true
-      default: null
-    - name: max_search_steps
-      type: Any
-      required: false
-      default: 12
-    - name: settle_sec
-      type: Any
-      required: false
-      default: 0.8
-  - name: resonance_pc.product_collection_summarize
-    module: plans.resonance_pc.src.actions.product_collection_pc_actions
-    function: resonance_pc_product_collection_summarize
-    public: true
-    read_only: true
-    timeout: null
-    description: Summarize workshop collection and final overview evidence without game input.
-    parameters:
-    - name: preflight
-      type: Any
-      required: false
-      default: null
-    - name: scan
-      type: Any
-      required: false
-      default: null
-    - name: results
       type: Any
       required: false
       default: null
@@ -3651,6 +3656,14 @@ exports:
     source: tasks/cape_island_investment_pc.yaml
     description: Enter Mirage Island from the Cape City main screen, invest once when
       possible, and return.
+  - id: collect_product_workshops_pc/collect_product_workshops_pc
+    title: 生产车间收菜
+    source: tasks/collect_product_workshops_pc.yaml
+    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
+  - id: collect_product_workshops_pc
+    title: 生产车间收菜
+    source: tasks/collect_product_workshops_pc.yaml
+    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_drag_chunk_pc
     title: Consciousness Deep Dive Capture Drag Chunk (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
@@ -3849,14 +3862,6 @@ exports:
     source: tasks/navigate_reforming_center_room_pc.yaml
     description: Safely pan the Reforming Center overview until the requested room
       is fully interactable, then click it.
-  - id: collect_product_workshops_pc/collect_product_workshops_pc
-    title: 生产车间收菜
-    source: tasks/collect_product_workshops_pc.yaml
-    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
-  - id: collect_product_workshops_pc
-    title: 生产车间收菜
-    source: tasks/collect_product_workshops_pc.yaml
-    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
   - id: open_reforming_center_room_pc/open_reforming_center_room_pc
     title: Open Reforming Center Room (PC)
     source: tasks/open_reforming_center_room_pc.yaml
@@ -3934,4 +3939,4 @@ exports:
       towing service and confirm departure. Does not wait for arrival or drive normally.
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-17T20:47:53Z'
+  generated_at: '2026-10-21T04:11:31Z'

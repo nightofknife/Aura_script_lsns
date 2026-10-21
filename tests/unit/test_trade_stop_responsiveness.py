@@ -52,21 +52,13 @@ def test_async_route_wait_stops_without_waiting_two_seconds(monkeypatch, stop):
 def map_scene(monkeypatch):
     events = []
     app = SimpleNamespace(
+        controller=SimpleNamespace(bridge=SimpleNamespace(enabled=True)),
         get_window_size=lambda: (1280, 720),
         click=lambda **kw: events.append("click"),
-        move_to=lambda **kw: events.append("move"),
-        drag=lambda **kw: events.append("drag"),
+        drag=lambda *args, **kw: events.append("drag"),
     )
-    monkeypatch.setattr(travel, "_load_location_city_table", lambda _: {})
-    monkeypatch.setattr(travel, "_build_alias_lookup", lambda _: {})
-    monkeypatch.setattr(travel, "_resolve_city_key_from_name", lambda *a: "target")
-    monkeypatch.setattr(travel, "_build_target_alias_set", lambda _: {"target"})
-    monkeypatch.setattr(travel, "_extract_maploc", lambda *a: (100, 100))
     monkeypatch.setattr(travel, "_capture_and_ocr_city_labels", lambda **kw: [])
-    monkeypatch.setattr(travel, "_find_target_hit", lambda **kw: None)
-    monkeypatch.setattr(travel, "_build_mappable_city_points", lambda **kw: [{}])
-    monkeypatch.setattr(travel, "_choose_anchor_route", lambda **kw: None)
-    monkeypatch.setattr(travel, "_plan_directional_drag", lambda **kw: ((500, 350), (700, 350), {}))
+    monkeypatch.setattr(travel, "_sleep_with_cancel", lambda _: travel._check_intercity_cancelled())
     return app, events
 
 
@@ -74,7 +66,7 @@ def test_cancelled_map_search_never_starts_input(map_scene, stop):
     app, events = map_scene
     stop()
     with pytest.raises(asyncio.CancelledError):
-        travel.resonance_pc_select_intercity_destination("target", app=app, ocr=object())
+        travel.resonance_pc_select_intercity_destination("栖羽站", from_city_name="海角城", app=app, ocr=object())
     assert events == []
 
 
@@ -86,20 +78,20 @@ def test_cancel_during_map_recognition_prevents_target_click(map_scene, monkeypa
     monkeypatch.setattr(travel, "_capture_and_ocr_city_labels", recognize)
     monkeypatch.setattr(travel, "_find_target_hit", lambda **kw: {"center": [300, 300]})
     with pytest.raises(asyncio.CancelledError):
-        travel.resonance_pc_select_intercity_destination("target", app=app, ocr=object())
+        travel.resonance_pc_select_intercity_destination("海角城", from_city_name="海角城", app=app, ocr=object())
     assert events == []
 
 
 def test_cancel_after_first_drag_prevents_remaining_search(map_scene, monkeypatch, stop):
     app, events = map_scene
-    def drag(**kw):
+    def drag(*args, **kw):
         events.append("drag")
         stop()
     app.drag = drag
     monkeypatch.setattr(travel.time, "sleep", lambda _: pytest.fail("Must stop before settling wait"))
     with pytest.raises(asyncio.CancelledError):
-        travel.resonance_pc_select_intercity_destination("target", app=app, ocr=object(), max_search_steps=12)
-    assert events == ["move", "drag"]
+        travel.resonance_pc_select_intercity_destination("栖羽站", from_city_name="海角城", app=app, ocr=object(), max_search_steps=12)
+    assert events == ["drag"]
 
 
 def test_cancel_during_departure_notice_prevents_confirm_click(monkeypatch, stop):
@@ -151,8 +143,11 @@ def test_inflight_drag_still_releases_button_before_stopping(monkeypatch, stop):
         mouse_up=lambda button: events.append("up"))
     app = AppProviderService(None, controller, None)
     monkeypatch.setattr(travel.time, "sleep", lambda _: None)
-    travel._perform_drag_with_hold(app, (10, 10), (30, 30), 0.1, 0.1)
+    with pytest.raises(asyncio.CancelledError):
+        travel.perform_map_drag(app=app, effective_delta=(20, 20), safe_rect=travel.SAFE_DRAG_RECT,
+                                check_cancelled=travel._check_intercity_cancelled, duration=0.1, hold_sec=0.1)
     assert events == ["down", "up"]
     with pytest.raises(asyncio.CancelledError):
-        travel._perform_drag_with_hold(app, (10, 10), (30, 30), 0.1, 0.1)
+        travel.perform_map_drag(app=app, effective_delta=(20, 20), safe_rect=travel.SAFE_DRAG_RECT,
+                                check_cancelled=travel._check_intercity_cancelled, duration=0.1, hold_sec=0.1)
     assert events == ["down", "up"]

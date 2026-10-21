@@ -3,21 +3,27 @@
 from __future__ import annotations
 
 import asyncio
-import heapq
 import json
 import math
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.runtime_trace import log_event, log_poll
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._city_panel_vision import CityPanelVisionError, probe_visit_entry
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 from ._operation_progress import observe_operation
 from ._freight_trailer_policy import validate_trailer_options, verified_quota_skip
+from ._intercity_map_drag import perform_map_drag
+from ._intercity_map_geometry import (
+    MapNavigationError, REFERENCE_CLIENT, SCREEN_SCALE, SAFE_DRAG_RECT,
+    MAX_CORRECTION_ROUNDS, load_native_cities, require_reference_client,
+    coarse_drag, plan_drag_batch, predict_target_from_labels,
+)
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -77,20 +83,12 @@ _FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.
 
 _GO_DESTINATION_REGION = [900, 580, 340, 120]
 _ARRIVAL_BUTTON_REGION = [780, 325, 240, 70]
-_CITY_MAIN_ENTRY_REGION = [980, 430, 290, 110]
-_CITY_MAIN_ENTRY_MARKERS = ("访问城市", "访问地区", "进入城市")
 _DEPART_CONFIRM_REGION = [450, 360, 760, 220]
 _FATIGUE_PANEL_REGION = [70, 80, 520, 190]
 _FATIGUE_BACK_REGION = [0, 0, 260, 90]
 _FATIGUE_MEDICINE_CONFIRM_REGION = [620, 520, 660, 120]
 
 _DEFAULT_ARRIVAL_TIMEOUT_SECONDS = 1800.0
-_ANCHOR_ROUTE_MAX_HOP_MAP_UNITS = 550.0
-_POST_DRAG_STABILIZE_SECONDS = 0.6
-_POST_DRAG_OCR_RETRIES = 2
-_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS = 0.4
-_MAX_CONSECUTIVE_UNANCHORED_DRAGS = 4
-_MAX_INITIAL_UNANCHORED_DRAGS = 6
 
 _WEEKLY_NOTICE_CHECKBOX = [890, 523]
 _DEPART_CONFIRM_POINT = [852, 447]
@@ -199,64 +197,6 @@ def _normalize_city_ocr_text(text: Any) -> str:
     return normalized
 
 
-def _resolve_location_file_path(location_file_path: str) -> Path:
-    raw_path = Path(str(location_file_path or "").strip())
-    if raw_path.is_absolute():
-        return raw_path
-    if raw_path.is_file():
-        return raw_path.resolve()
-    return (_PLAN_ROOT / raw_path).resolve()
-
-
-def _load_location_city_table(location_file_path: str) -> Dict[str, Any]:
-    file_path = _resolve_location_file_path(location_file_path)
-    if not file_path.is_file():
-        _raise_error(
-            code="location_file_not_found",
-            message=f"Location file not found: {file_path}",
-            detail={"location_file_path": location_file_path, "resolved": str(file_path)},
-        )
-    try:
-        payload = json.loads(file_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        _raise_error(
-            code="location_json_invalid",
-            message="location.json is not valid JSON.",
-            detail={"location_file_path": str(file_path), "cause": str(exc)},
-        )
-    if not isinstance(payload, dict) or not isinstance(payload.get("city"), dict):
-        _raise_error(
-            code="location_json_invalid",
-            message="location.json must include object field 'city'.",
-            detail={"location_file_path": str(file_path)},
-        )
-    return payload["city"]
-
-
-def _extract_maploc(city_table: Dict[str, Any], city_key: str) -> Tuple[int, int]:
-    city_data = city_table.get(city_key)
-    if not isinstance(city_data, dict):
-        _raise_error(
-            code="city_not_found_in_location",
-            message=f"City '{city_key}' not found in location.json.",
-            detail={"city_key": city_key},
-        )
-    maploc = city_data.get("maploc")
-    if not isinstance(maploc, list) or len(maploc) != 2:
-        _raise_error(
-            code="maploc_missing_or_invalid",
-            message=f"City '{city_key}' does not have a valid maploc [x, y].",
-            detail={"city_key": city_key, "maploc": maploc},
-        )
-    try:
-        return int(maploc[0]), int(maploc[1])
-    except (TypeError, ValueError):
-        _raise_error(
-            code="maploc_missing_or_invalid",
-            message=f"City '{city_key}' maploc must be numeric [x, y].",
-            detail={"city_key": city_key, "maploc": maploc},
-        )
-    return (0, 0)
 
 
 def _coerce_region(region: Any, default_region: List[int]) -> List[int]:
@@ -387,14 +327,24 @@ def _capture_and_ocr_city_labels(
         center = getattr(item, "center_point", None)
         if not center or len(center) != 2:
             continue
-        abs_x = int(city_search_region[0] + int(center[0]))
-        abs_y = int(city_search_region[1] + int(center[1]))
+        try:
+            local_x, local_y = float(center[0]), float(center[1])
+            confidence = float(getattr(item, "confidence", 0.0))
+        except (TypeError, ValueError):
+            continue
+        if (not all(math.isfinite(value) for value in (local_x, local_y, confidence))
+                or not 0 <= confidence <= 1
+                or not 0 <= local_x < city_search_region[2]
+                or not 0 <= local_y < city_search_region[3]):
+            continue
+        abs_x = int(city_search_region[0] + int(local_x))
+        abs_y = int(city_search_region[1] + int(local_y))
         observed.append(
             {
                 "text": text,
                 "norm_text": _normalize_city_ocr_text(text),
                 "center": [abs_x, abs_y],
-                "confidence": float(getattr(item, "confidence", 0.0) or 0.0),
+                "confidence": confidence,
             }
         )
     observed.sort(key=lambda x: x["confidence"], reverse=True)
@@ -496,206 +446,6 @@ def _find_target_hit(
     return None
 
 
-def _build_mappable_city_points(
-    observed: List[Dict[str, Any]],
-    alias_lookup: Dict[str, str],
-    city_table: Dict[str, Any],
-) -> List[Dict[str, Any]]:
-    by_city: Dict[str, Dict[str, Any]] = {}
-    for item in observed:
-        city_key = _resolve_city_key_from_ocr_norm(item.get("norm_text", ""), alias_lookup)
-        if not city_key:
-            continue
-        try:
-            map_x, map_y = _extract_maploc(city_table, city_key)
-        except IntercityDestinationError:
-            continue
-        current = by_city.get(city_key)
-        if current is None or item["confidence"] > current["confidence"]:
-            by_city[city_key] = {
-                "city_key": city_key,
-                "screen_x": int(item["center"][0]),
-                "screen_y": int(item["center"][1]),
-                "map_x": map_x,
-                "map_y": map_y,
-                "confidence": float(item["confidence"]),
-                "text": item["text"],
-            }
-    return list(by_city.values())
-
-
-def _median(values: Iterable[int]) -> int:
-    arr = sorted(int(v) for v in values)
-    if not arr:
-        return 0
-    n = len(arr)
-    mid = n // 2
-    if n % 2 == 1:
-        return arr[mid]
-    return int(round((arr[mid - 1] + arr[mid]) / 2))
-
-
-def _clamp_point(point: Tuple[int, int], width: int, height: int) -> Tuple[int, int]:
-    x = min(max(int(point[0]), 0), max(width - 1, 0))
-    y = min(max(int(point[1]), 0), max(height - 1, 0))
-    return x, y
-
-
-def _plan_directional_drag(
-    mappable_points: List[Dict[str, Any]],
-    target_maploc: Tuple[int, int],
-    drag_center: List[int],
-    drag_span_px: int,
-    window_size: Tuple[int, int],
-) -> Tuple[Tuple[int, int], Tuple[int, int], Dict[str, Any]]:
-    tx = _median([p["screen_x"] - p["map_x"] for p in mappable_points])
-    ty = _median([p["screen_y"] - p["map_y"] for p in mappable_points])
-
-    predicted_x = int(target_maploc[0] + tx)
-    predicted_y = int(target_maploc[1] + ty)
-    rel_x = int(predicted_x - drag_center[0])
-    rel_y = int(predicted_y - drag_center[1])
-
-    max_abs = max(abs(rel_x), abs(rel_y), 1)
-    span = max(int(drag_span_px), 60)
-    # A short waypoint must stay a short move.  Enlarging every vector to a
-    # full-span drag can skip all intermediate city labels and leave OCR with
-    # no usable map anchor.
-    scale = min(1.0, float(span) / float(max_abs))
-    dir_x = int(round(rel_x * scale))
-    dir_y = int(round(-rel_y * scale))  # keep old behavior on y axis
-
-    start = (int(drag_center[0] + dir_x / 2), int(drag_center[1] - dir_y / 2))
-    end = (int(drag_center[0] - dir_x / 2), int(drag_center[1] + dir_y / 2))
-    start = _clamp_point(start, window_size[0], window_size[1])
-    end = _clamp_point(end, window_size[0], window_size[1])
-
-    return start, end, {
-        "translation_estimate": {"x": tx, "y": ty},
-        "predicted_target_screen": {"x": predicted_x, "y": predicted_y},
-        "relative_to_center": {"x": rel_x, "y": rel_y},
-        "drag_vector": {"x": dir_x, "y": dir_y},
-    }
-
-
-def _city_maplocs(city_table: Dict[str, Any]) -> Dict[str, Tuple[int, int]]:
-    result: Dict[str, Tuple[int, int]] = {}
-    for city_key in sorted(city_table):
-        try:
-            result[city_key] = _extract_maploc(city_table, city_key)
-        except IntercityDestinationError:
-            continue
-    return result
-
-
-def _shortest_anchor_route(
-    source_city_key: str,
-    target_city_key: str,
-    city_table: Dict[str, Any],
-    max_hop_map_units: float = _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-) -> Optional[Dict[str, Any]]:
-    """Return a shortest city-to-city waypoint chain for map navigation."""
-    maplocs = _city_maplocs(city_table)
-    if source_city_key not in maplocs or target_city_key not in maplocs:
-        return None
-    if source_city_key == target_city_key:
-        return {"route": [source_city_key], "total_distance": 0.0}
-
-    distances: Dict[str, float] = {source_city_key: 0.0}
-    previous: Dict[str, str] = {}
-    queue: List[Tuple[float, str]] = [(0.0, source_city_key)]
-    hop_limit = max(float(max_hop_map_units), 1.0)
-
-    while queue:
-        current_distance, current = heapq.heappop(queue)
-        if current_distance > distances.get(current, math.inf):
-            continue
-        if current == target_city_key:
-            break
-        current_loc = maplocs[current]
-        for neighbor in sorted(maplocs):
-            if neighbor == current:
-                continue
-            hop_distance = math.dist(current_loc, maplocs[neighbor])
-            if hop_distance > hop_limit:
-                continue
-            candidate = current_distance + hop_distance
-            if candidate + 1e-9 < distances.get(neighbor, math.inf):
-                distances[neighbor] = candidate
-                previous[neighbor] = current
-                heapq.heappush(queue, (candidate, neighbor))
-
-    if target_city_key not in distances:
-        return None
-
-    route = [target_city_key]
-    while route[-1] != source_city_key:
-        route.append(previous[route[-1]])
-    route.reverse()
-    return {"route": route, "total_distance": float(distances[target_city_key])}
-
-
-def _choose_anchor_route(
-    mappable_points: List[Dict[str, Any]],
-    target_city_key: str,
-    city_table: Dict[str, Any],
-) -> Optional[Dict[str, Any]]:
-    candidates: List[Tuple[float, int, float, str, Dict[str, Any], Dict[str, Any]]] = []
-    for point in mappable_points:
-        anchor_city_key = str(point["city_key"])
-        route_result = _shortest_anchor_route(
-            source_city_key=anchor_city_key,
-            target_city_key=target_city_key,
-            city_table=city_table,
-        )
-        if route_result is None:
-            continue
-        route = list(route_result["route"])
-        if len(route) < 2:
-            continue
-        candidates.append(
-            (
-                float(route_result["total_distance"]),
-                len(route),
-                -float(point.get("confidence", 0.0) or 0.0),
-                anchor_city_key,
-                point,
-                route_result,
-            )
-        )
-    if not candidates:
-        return None
-    _, _, _, anchor_city_key, point, route_result = min(candidates, key=lambda item: item[:4])
-    route = list(route_result["route"])
-    waypoint_city_key = route[1]
-    return {
-        "anchor_city_key": anchor_city_key,
-        "anchor_point": point,
-        "waypoint_city_key": waypoint_city_key,
-        "waypoint_maploc": _extract_maploc(city_table, waypoint_city_key),
-        "route": route,
-        "total_distance": float(route_result["total_distance"]),
-    }
-
-
-def _perform_drag_with_hold(
-    app: Any,
-    start: Tuple[int, int],
-    end: Tuple[int, int],
-    drag_duration_sec: float,
-    drag_hold_sec: float,
-) -> None:
-    _check_intercity_cancelled()
-    app.move_to(x=int(start[0]), y=int(start[1]), duration=0.1)
-    _check_intercity_cancelled()
-    app.drag(
-        start_x=int(start[0]),
-        start_y=int(start[1]),
-        end_x=int(end[0]),
-        end_y=int(end[1]),
-        duration=max(float(drag_duration_sec), 0.01),
-        hold_before_release_sec=max(float(drag_hold_sec), 0.0),
-    )
 
 
 def _resolve_plan_template_path(template: str) -> str:
@@ -880,21 +630,21 @@ def _click_arrival_template_until_absent(
     )
 
 
-def _detect_city_main_entry(app: Any, ocr: Any, *, poll_count: int) -> Dict[str, Any]:
+def _detect_city_main_entry(app: Any, vision: Any, *, poll_count: int) -> Dict[str, Any]:
     _check_intercity_cancelled()
-    items = _capture_and_ocr_text_items(app=app, ocr=ocr, region=_CITY_MAIN_ENTRY_REGION)
-    wanted = {_normalize_text(marker) for marker in _CITY_MAIN_ENTRY_MARKERS}
-    hit = next((item for item in items if str(item.get("norm_text") or "") in wanted), None)
+    try:
+        match = probe_visit_entry(app=app, vision=vision, check_cancelled=_check_intercity_cancelled)
+    except CityPanelVisionError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
+    found = bool(match.get("found"))
     evidence = {
-        "found": hit is not None,
-        "hit": hit,
-        "region": list(_CITY_MAIN_ENTRY_REGION),
-        "markers": list(_CITY_MAIN_ENTRY_MARKERS),
-        "ocr_items": items[:10],
+        **match,
+        "method": "visit_entry_template",
+        "hit": dict(match) if found else None,
     }
-    log_poll("travel.arrival_city", bool(hit is not None), poll=poll_count,
-             hit_text=hit.get("text") if isinstance(hit, dict) else None,
-             center=hit.get("center") if isinstance(hit, dict) else None, region=_CITY_MAIN_ENTRY_REGION)
+    log_poll("travel.arrival_city", found, poll=poll_count,
+             method="visit_entry_template", confidence=match.get("confidence"),
+             center=match.get("center"), region=match.get("region"))
     return evidence
 
 
@@ -1212,11 +962,26 @@ def _wait_departure_gate(
     }
 
 
+def _native_navigation_context(app: Any, to_city_name: str, from_city_name: Optional[str]):
+    try:
+        require_reference_client(app)
+        cities = load_native_cities()
+    except MapNavigationError as exc:
+        _raise_error(exc.code, exc.message, exc.detail)
+    aliases = _build_alias_lookup(cities)
+    if not str(from_city_name or "").strip():
+        _raise_error("from_city_not_resolved",
+                     "A confirmed starting city is required before opening the default intercity map.")
+    source = _resolve_city_key_from_name(str(from_city_name), cities, aliases)
+    target = _resolve_city_key_from_name(to_city_name, cities, aliases)
+    return cities, aliases, source, target
+
+
 @action_info(
     name="resonance_pc.select_intercity_destination",
     public=True,
     read_only=False,
-    description="Select an intercity destination via OCR-anchored city waypoint drags.",
+    description="Coarse-drag the fresh default 1280x720 map using native city coordinates, then OCR and correct.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1227,7 +992,7 @@ def resonance_pc_select_intercity_destination(
     location_file_path: str = "data/meta/location_pc.json",
     city_search_region: Optional[List[int]] = None,
     drag_center: Optional[List[int]] = None,
-    drag_span_px: int = 600,
+    drag_span_px: int = 900,
     max_search_steps: int = 12,
     fallback_enabled: bool = True,
     target_match_mode: str = "contains",
@@ -1238,316 +1003,153 @@ def resonance_pc_select_intercity_destination(
     ocr: Any = None,
     from_city_name: Optional[str] = None,
 ) -> Dict[str, Any]:
+    """Requires a freshly opened, default-zoom map centered on the known start.
+
+    location_file_path remains accepted for existing callers. Map movement uses
+    the native coordinate catalog; legacy maploc units are never used here.
+    fallback_enabled now controls bounded correction after the coarse batch.
+    """
     _check_intercity_cancelled()
     if app is None or ocr is None:
         raise RuntimeError("app/ocr services are required for select_intercity_destination.")
-
+    cities, aliases, source, target = _native_navigation_context(app, to_city_name, from_city_name)
     region = _coerce_region(city_search_region, _DEFAULT_CITY_SEARCH_REGION)
     center = _coerce_point(drag_center, _DEFAULT_DRAG_CENTER)
-    max_steps = max(int(max_search_steps), 1)
+    if (region[0] < 0 or region[1] < 0 or region[0] + region[2] > REFERENCE_CLIENT[0]
+            or region[1] + region[3] > REFERENCE_CLIENT[1]):
+        _raise_error("invalid_region", "Map OCR region must stay inside the 1280x720 client.",
+                     {"city_search_region": region})
+    if not (region[0] <= center[0] < region[0] + region[2]
+            and region[1] <= center[1] < region[1] + region[3]):
+        _raise_error("invalid_drag_center", "Correction center must be inside the map observation region.",
+                     {"drag_center": center, "city_search_region": region})
     span = max(int(drag_span_px), 60)
-
-    city_table = _load_location_city_table(location_file_path)
-    alias_lookup = _build_alias_lookup(city_table)
-    target_city_key = _resolve_city_key_from_name(to_city_name, city_table, alias_lookup)
-    target_alias_norms = _build_target_alias_set(target_city_key)
-    _extract_maploc(city_table, target_city_key)  # fail early when route metadata is incomplete
-
-    win_size = app.get_window_size() or (1280, 720)
-    if not isinstance(win_size, tuple) or len(win_size) != 2:
-        win_size = (1280, 720)
-    width = max(int(win_size[0]), 1)
-    height = max(int(win_size[1]), 1)
-
+    drag_limit = max(int(max_search_steps), 1)
     attempts: List[Dict[str, Any]] = []
-    last_seen_texts: List[str] = []
-    selected_point: Optional[Tuple[int, int]] = None
-    selected_mode: Optional[str] = None
-    has_dragged = False
-    last_drag_start: Optional[Tuple[int, int]] = None
-    last_drag_end: Optional[Tuple[int, int]] = None
-    consecutive_unanchored_drags = 0
-    initial_blind_active = False
     total_drag_count = 0
-    stop_reason = "search_budget_exhausted"
+    ocr_count = 0
+    last_seen_texts: List[str] = []
+    stop_reason = "target_not_confirmed"
+    previous_prediction = None
 
-    # Each allowed drag gets a subsequent observation, including the final drag.
-    for step in range(max_steps + 1):
-        _check_intercity_cancelled()
-        observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
-        stabilization_retries = 0
-        if has_dragged:
-            while stabilization_retries < _POST_DRAG_OCR_RETRIES:
-                _check_intercity_cancelled()
-                current_mappable = _build_mappable_city_points(
-                    observed=observed,
-                    alias_lookup=alias_lookup,
-                    city_table=city_table,
-                )
-                if current_mappable:
-                    break
-                stabilization_retries += 1
-                _sleep_with_cancel(_POST_DRAG_OCR_RETRY_INTERVAL_SECONDS)
-                observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
-        last_seen_texts = [str(item.get("text", "")) for item in observed[:20]]
-        observed_log = [
-            {
-                "text": str(item.get("text", "")),
-                "norm_text": str(item.get("norm_text", "")),
-                "center": item.get("center"),
-                "confidence": float(item.get("confidence", 0.0) or 0.0),
-            }
-            for item in observed[:20]
-        ]
-        logger.info(
-            "[IntercitySelectOCR] step=%s target=%s target_key=%s observed=%s",
-            step + 1,
-            to_city_name,
-            target_city_key,
-            json.dumps(observed_log, ensure_ascii=False),
-        )
-
-        hit = _find_target_hit(observed=observed, target_alias_norms=target_alias_norms, match_mode=target_match_mode)
-        if hit is not None:
-            click_x = int(hit["center"][0])
-            click_y = int(hit["center"][1] + int(click_y_offset))
-            click_x, click_y = _clamp_point((click_x, click_y), width, height)
-            _check_intercity_cancelled()
-            app.click(x=click_x, y=click_y)
-            selected_point = (click_x, click_y)
-            selected_mode = "direct" if step == 0 else (selected_mode or "directional")
+    def move_batch(delta, phase: str, correction_round: int) -> None:
+        nonlocal total_drag_count
+        try:
+            batch = plan_drag_batch(delta, SAFE_DRAG_RECT, span)
+            if total_drag_count + len(batch) > drag_limit:
+                _raise_error("destination_not_found_after_drag",
+                             "Native map movement exceeds the remaining drag budget; batch not started.",
+                             {"phase": phase, "required_drags": len(batch),
+                              "remaining_drags": drag_limit - total_drag_count,
+                              "requested_delta": list(delta), "attempt_trace": attempts})
             logger.info(
-                "[IntercitySelectHit] step=%s target=%s hit_text=%s click=(%s,%s)",
-                step + 1,
-                to_city_name,
-                hit.get("text"),
-                click_x,
-                click_y,
+                "[IntercityNativeBatch] phase=%s from=%s target=%s native_scale=%s delta=%s drags=%s",
+                phase, source, target, SCREEN_SCALE, list(delta), len(batch),
             )
-            return {
-                "success": True,
-                "to_city_key": target_city_key,
-                "to_city_name": _CITY_KEY_DISPLAY_NAME.get(target_city_key, target_city_key),
-                "selected_point": {"x": click_x, "y": click_y},
-                "mode": selected_mode,
-                "attempts_used": step + 1,
-                "total_drag_count": total_drag_count,
-                "attempt_trace": attempts,
-            }
+            # There are deliberately no capture or OCR calls inside this batch.
+            for requested_delta in batch:
+                _check_intercity_cancelled()
+                require_reference_client(app)
+                gesture = perform_map_drag(
+                    app=app, effective_delta=requested_delta, safe_rect=SAFE_DRAG_RECT,
+                    check_cancelled=_check_intercity_cancelled,
+                    duration=float(drag_duration_sec), hold_sec=float(drag_hold_sec),
+                )
+                total_drag_count += 1
+                record = {"step": total_drag_count, "phase": phase,
+                          "correction_round": correction_round, "gesture": gesture}
+                attempts.append(record)
+                logger.info("[IntercityNativeDrag] target=%s record=%s", target, record)
+                _sleep_with_cancel(0.1)
+        except MapNavigationError as exc:
+            _raise_error(exc.code, exc.message, {**exc.detail, "attempt_trace": attempts})
+        except ValueError as exc:
+            _raise_error("map_drag_invalid", str(exc), {"attempt_trace": attempts})
 
-        mappable_points = _build_mappable_city_points(
-            observed=observed,
-            alias_lookup=alias_lookup,
-            city_table=city_table,
-        )
-        mappable_log = [
-            {
-                "city_key": str(item.get("city_key", "")),
-                "text": str(item.get("text", "")),
-                "screen": {"x": int(item.get("screen_x", 0)), "y": int(item.get("screen_y", 0))},
-                "map": {"x": int(item.get("map_x", 0)), "y": int(item.get("map_y", 0))},
-                "confidence": float(item.get("confidence", 0.0) or 0.0),
-            }
-            for item in mappable_points
-        ]
-
-        if total_drag_count >= max_steps:
-            stop_reason = "search_budget_exhausted"
-            break
-
-        if mappable_points:
-            if initial_blind_active:
-                logger.info(
-                    "[IntercityInitialAnchorRecovered] target=%s cities=%s blind_drags=%s",
-                    to_city_name, json.dumps(mappable_log, ensure_ascii=False), consecutive_unanchored_drags,
-                )
-            initial_blind_active = False
-            consecutive_unanchored_drags = 0
-            anchor_route = _choose_anchor_route(
-                mappable_points=mappable_points,
-                target_city_key=target_city_key,
-                city_table=city_table,
+    move_batch(coarse_drag(cities, source, target), "coarse", 0)
+    _sleep_with_cancel(0.2)
+    target_aliases = _build_target_alias_set(target)
+    for correction_round in range(MAX_CORRECTION_ROUNDS + 1):
+        _check_intercity_cancelled()
+        try:
+            require_reference_client(app)
+        except MapNavigationError as exc:
+            _raise_error(exc.code, exc.message, exc.detail)
+        # Retry a blank/unreadable frame once without issuing another blind drag.
+        for capture_attempt in range(2):
+            observed = _capture_and_ocr_city_labels(app=app, ocr=ocr, city_search_region=region)
+            ocr_count += 1
+            last_seen_texts = [str(item.get("text", "")) for item in observed[:20]]
+            usable = [item for item in observed if float(item.get("confidence") or 0) >= 0.8]
+            hit = _find_target_hit(observed=usable, target_alias_norms=target_aliases,
+                                   match_mode=target_match_mode)
+            anchors = {}
+            for item in usable:
+                key = _resolve_city_key_from_ocr_norm(str(item.get("norm_text") or ""), aliases)
+                if key in cities and key not in anchors:
+                    anchors[key] = {"city_key": key, "center": list(item["center"]),
+                                    "confidence": item["confidence"], "text": item["text"]}
+            logger.info(
+                "[IntercitySelectOCR] phase=post_batch round=%s observation=%s target=%s observed=%s",
+                correction_round, ocr_count, target, json.dumps(observed[:20], ensure_ascii=False),
             )
-            if anchor_route is None:
-                if not fallback_enabled:
-                    selected_mode = "no_anchor_route"
-                    attempts.append(
-                        {
-                            "step": step + 1,
-                            "mode": "no_anchor_route",
-                            "observed_city_count": len(mappable_points),
-                            "observed_text_count": len(observed),
-                            "observed": observed_log,
-                            "mappable": mappable_log,
-                            "stabilization_retries": stabilization_retries,
-                            "plan": {
-                                "reason": "no_connected_anchor_route",
-                                "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-                                "fallback_drag_disabled": True,
-                            },
-                        }
-                    )
-                    break
-                start, end, plan_debug = _plan_directional_drag(
-                    mappable_points=mappable_points,
-                    target_maploc=_extract_maploc(city_table, target_city_key),
-                    drag_center=center,
-                    drag_span_px=span,
-                    window_size=(width, height),
-                )
-                plan_debug.update(
-                    {
-                        "reason": "no_connected_anchor_route",
-                        "target_city_key": target_city_key,
-                        "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-                    }
-                )
-                mode = "target_directional"
-            else:
-                start, end, plan_debug = _plan_directional_drag(
-                    mappable_points=mappable_points,
-                    target_maploc=anchor_route["waypoint_maploc"],
-                    drag_center=center,
-                    drag_span_px=span,
-                    window_size=(width, height),
-                )
-                plan_debug.update(
-                    {
-                        "anchor_city_key": anchor_route["anchor_city_key"],
-                        "waypoint_city_key": anchor_route["waypoint_city_key"],
-                        "anchor_route": anchor_route["route"],
-                        "route_total_distance": anchor_route["total_distance"],
-                        "max_hop_map_units": _ANCHOR_ROUTE_MAX_HOP_MAP_UNITS,
-                    }
-                )
-                mode = "anchor_route"
-        else:
-            seeded_this_step = False
-            if step == 0 and fallback_enabled and from_city_name:
-                source_key = _resolve_city_key_from_name(from_city_name, city_table, alias_lookup)
-                source_x, source_y = _extract_maploc(city_table, source_key)
-                # This assumption is valid only on the first freshly opened map.
-                last_drag_start, last_drag_end, seed_plan = _plan_directional_drag(
-                    mappable_points=[{
-                        "screen_x": width // 2, "screen_y": height // 2,
-                        "map_x": source_x, "map_y": source_y,
-                    }],
-                    target_maploc=_extract_maploc(city_table, target_city_key),
-                    drag_center=center,
-                    drag_span_px=span,
-                    window_size=(width, height),
-                )
-                initial_blind_active = True
-                seeded_this_step = True
-                logger.info(
-                    "[IntercityInitialAnchor] from_city=%s target=%s anchor_source=start_city_center "
-                    "center=%s map=%s observed_city_count=0 blind_limit=%s plan=%s",
-                    from_city_name, to_city_name, [width // 2, height // 2], [source_x, source_y],
-                    _MAX_INITIAL_UNANCHORED_DRAGS, seed_plan,
-                )
-            blind_limit = (
-                _MAX_INITIAL_UNANCHORED_DRAGS if initial_blind_active
-                else _MAX_CONSECUTIVE_UNANCHORED_DRAGS
-            )
-            can_blind_drag = (
-                fallback_enabled
-                and last_drag_start is not None
-                and last_drag_end is not None
-                and consecutive_unanchored_drags < blind_limit
-            )
-            if not can_blind_drag:
-                stop_reason = "blind_budget_exhausted" if consecutive_unanchored_drags >= blind_limit else "no_mappable_city_points"
-                selected_mode = "no_mappable"
-                attempts.append(
-                    {
-                        "step": step + 1,
-                        "mode": "no_mappable",
-                        "observed_city_count": 0,
-                        "observed_text_count": len(observed),
-                        "observed": observed_log,
-                        "mappable": [],
-                        "stabilization_retries": stabilization_retries,
-                        "plan": {
-                            "reason": "no_mappable_city_points",
-                            "fallback_drag_disabled": not can_blind_drag,
-                            "has_previous_drag": last_drag_start is not None and last_drag_end is not None,
-                            "consecutive_unanchored_drags": consecutive_unanchored_drags,
-                            "max_consecutive_unanchored_drags": blind_limit,
-                        },
-                    }
-                )
-                logger.info(
-                    "[IntercitySelectNoDrag] step=%s target=%s observed=%s consecutive_unanchored=%s",
-                    step + 1,
-                    to_city_name,
-                    json.dumps(observed_log, ensure_ascii=False),
-                    consecutive_unanchored_drags,
-                )
+            if hit is not None or anchors or capture_attempt == 1:
                 break
-            start, end = last_drag_start, last_drag_end
-            consecutive_unanchored_drags += 1
-            plan_debug = {
-                "reason": "start_city_center" if seeded_this_step else "repeat_previous_drag_without_anchor",
-                "anchor_source": "start_city_center" if initial_blind_active else "previous_drag",
-                "consecutive_unanchored_drags": consecutive_unanchored_drags,
-                "max_consecutive_unanchored_drags": blind_limit,
-            }
-            mode = "start_city_blind" if seeded_this_step else "blind_repeat"
+            _sleep_with_cancel(0.25)
 
-        selected_mode = mode
-        plan_debug.update(total_drag_count=total_drag_count + 1, max_drag_count=max_steps)
-        attempts.append(
-            {
-                "step": step + 1,
-                "mode": mode,
-                "start": {"x": int(start[0]), "y": int(start[1])},
-                "end": {"x": int(end[0]), "y": int(end[1])},
-                "observed_city_count": len(mappable_points),
-                "observed_text_count": len(observed),
-                "observed": observed_log,
-                "mappable": mappable_log,
-                "stabilization_retries": stabilization_retries,
-                "plan": plan_debug,
-            }
-        )
-        logger.info(
-            "[IntercitySelectDrag] step=%s target=%s mode=%s start=%s end=%s mappable=%s plan=%s",
-            step + 1,
-            to_city_name,
-            mode,
-            {"x": int(start[0]), "y": int(start[1])},
-            {"x": int(end[0]), "y": int(end[1])},
-            json.dumps(mappable_log, ensure_ascii=False),
-            json.dumps(plan_debug, ensure_ascii=False),
-        )
-        _perform_drag_with_hold(
-            app=app,
-            start=start,
-            end=end,
-            drag_duration_sec=drag_duration_sec,
-            drag_hold_sec=drag_hold_sec,
-        )
-        last_drag_start = start
-        last_drag_end = end
-        has_dragged = True
-        total_drag_count += 1
-        _sleep_with_cancel(_POST_DRAG_STABILIZE_SECONDS)
+        if hit is not None:
+            click_x, click_y = int(hit["center"][0]), int(hit["center"][1]) + int(click_y_offset)
+            if not (0 <= click_x < REFERENCE_CLIENT[0] and 0 <= click_y < REFERENCE_CLIENT[1]):
+                _raise_error("destination_click_out_of_bounds", "Recognized city click is outside the client.",
+                             {"hit": hit, "click": [click_x, click_y]})
+            _check_intercity_cancelled()
+            try:
+                require_reference_client(app)
+            except MapNavigationError as exc:
+                _raise_error(exc.code, exc.message, exc.detail)
+            app.click(x=click_x, y=click_y)
+            mode = "native_coarse" if correction_round == 0 else "native_corrected"
+            logger.info("[IntercitySelectHit] target=%s mode=%s hit=%s click=%s",
+                        target, mode, hit, [click_x, click_y])
+            return {"success": True, "to_city_key": target, "to_city_name": cities[target]["name"],
+                    "selected_point": {"x": click_x, "y": click_y}, "mode": mode,
+                    "attempts_used": ocr_count, "ocr_count": ocr_count,
+                    "correction_rounds": correction_round, "total_drag_count": total_drag_count,
+                    "screen_scale": SCREEN_SCALE, "attempt_trace": attempts}
+
+        if not anchors:
+            stop_reason = "no_supported_city_labels"
+            break
+        if not fallback_enabled:
+            stop_reason = "correction_disabled"
+            break
+        if correction_round >= MAX_CORRECTION_ROUNDS:
+            stop_reason = "correction_budget_exhausted"
+            break
+        try:
+            pose = predict_target_from_labels(list(anchors.values()), cities, target)
+        except MapNavigationError as exc:
+            _raise_error(exc.code, exc.message, {**exc.detail, "attempt_trace": attempts})
+        predicted = pose["predicted_target"]
+        if previous_prediction is not None and max(
+                abs(predicted[axis] - previous_prediction[axis]) for axis in (0, 1)) < 3:
+            stop_reason = "map_movement_stalled"
+            break
+        delta = (center[0] - predicted[0], center[1] - predicted[1])
+        if max(abs(value) for value in delta) < 12:
+            stop_reason = "target_label_not_confirmed_near_prediction"
+            break
+        attempts.append({"phase": "correction_pose", "round": correction_round + 1, **pose})
+        previous_prediction = predicted
+        move_batch(delta, "correction", correction_round + 1)
+        _sleep_with_cancel(0.2)
 
     _raise_error(
-        code="destination_not_found_after_drag",
-        message=f"Unable to locate destination '{to_city_name}' after {total_drag_count} drags and {step + 1} search rounds ({stop_reason}).",
-        detail={
-            "to_city_name": to_city_name,
-            "from_city_name": from_city_name,
-            "total_drag_count": total_drag_count,
-            "search_rounds": step + 1,
-            "stop_reason": stop_reason,
-            "to_city_key": target_city_key,
-            "last_seen_texts": last_seen_texts,
-            "attempt_trace": attempts,
-            "selected_mode": selected_mode,
-            "selected_point": selected_point,
-        },
+        "destination_not_found_after_drag",
+        f"Destination '{to_city_name}' was not confirmed after native map movement ({stop_reason}).",
+        {"to_city_name": to_city_name, "from_city_name": from_city_name, "to_city_key": target,
+         "total_drag_count": total_drag_count, "ocr_count": ocr_count, "stop_reason": stop_reason,
+         "last_seen_texts": last_seen_texts, "attempt_trace": attempts},
     )
 
 
@@ -1568,7 +1170,7 @@ def resonance_pc_intercity_depart_and_wait(
     location_file_path: str = "data/meta/location_pc.json",
     city_search_region: Optional[List[int]] = None,
     drag_center: Optional[List[int]] = None,
-    drag_span_px: int = 600,
+    drag_span_px: int = 900,
     max_search_steps: int = 12,
     fallback_enabled: bool = True,
     target_match_mode: str = "contains",
@@ -1593,6 +1195,9 @@ def resonance_pc_intercity_depart_and_wait(
     validate_trailer_options(use_trailer, trailer_daily_first_n, trailer_payment)
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
+
+    # Reject unknown starts or an unsupported viewport before opening the map.
+    _native_navigation_context(app, to_city_name, from_city_name)
 
     pickup_interval = _normalize_pickup_interval(auto_pickup_interval_sec)
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
@@ -1940,15 +1545,15 @@ def resonance_pc_wait_intercity_arrival(
     auto_pickup: bool = False,
     auto_pickup_interval_sec: float = 0.5,
 ) -> Dict[str, Any]:
-    """Wait until the station prompt is detected and handled."""
-    if app is None or ocr is None or vision is None:
-        raise RuntimeError("app/ocr/vision services are required for wait_intercity_arrival.")
+    """Wait for station or city-entry templates; retain ocr for existing callers."""
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required for wait_intercity_arrival.")
 
     with _TravelPickup(app, vision, enabled=auto_pickup, interval_sec=auto_pickup_interval_sec) as pickup:
         return _wait_intercity_arrival_loop(
             timeout_sec, interval_sec, arrival_template, arrival_template_region,
             arrival_template_threshold, arrival_click_max_attempts,
-            arrival_click_verify_interval_sec, app, ocr, vision, pickup,
+            arrival_click_verify_interval_sec, app, vision, pickup,
         )
 
 
@@ -1956,7 +1561,7 @@ def _wait_intercity_arrival_loop(
     timeout_sec: float, interval_sec: float, arrival_template: str,
     arrival_template_region: Optional[List[int]], arrival_template_threshold: float,
     arrival_click_max_attempts: int, arrival_click_verify_interval_sec: float,
-    app: Any, ocr: Any, vision: Any, pickup: "_TravelPickup",
+    app: Any, vision: Any, pickup: "_TravelPickup",
 ) -> Dict[str, Any]:
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
@@ -2013,7 +1618,7 @@ def _wait_intercity_arrival_loop(
                 "trace": trace[-20:],
             }
 
-        city_main = _detect_city_main_entry(app=app, ocr=ocr, poll_count=poll_count)
+        city_main = _detect_city_main_entry(app=app, vision=vision, poll_count=poll_count)
         last_city_main = dict(city_main)
         if city_main.get("found"):
             pickup.end_reason = "city_main"

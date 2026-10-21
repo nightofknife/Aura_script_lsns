@@ -36,7 +36,8 @@ def clock(monkeypatch):
     monkeypatch.setattr(travel.time, "sleep", sleep)
     monkeypatch.setattr(travel, "_check_intercity_cancelled", lambda: None)
     monkeypatch.setattr(travel, "_match_template_in_region", lambda **kw: {"found": state.present})
-    state.app = SimpleNamespace(click=lambda **kw: state.clicks.append(state.now))
+    state.app = SimpleNamespace(click=lambda **kw: state.clicks.append(state.now),
+                                get_window_size=lambda: (1280, 720))
     return state
 
 
@@ -109,7 +110,8 @@ def test_departure_forwards_custom_interval_to_arrival(clock, monkeypatch):
     monkeypatch.setattr(travel, "_wait_departure_gate", lambda **kw: {"state": "confirm_clicked"})
     calls = []
     monkeypatch.setattr(travel, "resonance_pc_wait_intercity_arrival", lambda **kw: calls.append(kw) or {"status": "arrived"})
-    travel.resonance_pc_intercity_depart_and_wait("B", app=clock.app, ocr=object(), vision=object(),
+    travel.resonance_pc_intercity_depart_and_wait("栖羽站", from_city_name="海角城",
+                                               app=clock.app, ocr=object(), vision=object(),
                                                auto_pickup=True, auto_pickup_interval_sec=2.5)
     assert calls[0]["auto_pickup_interval_sec"] == 2.5
 

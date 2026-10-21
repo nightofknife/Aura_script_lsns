@@ -552,6 +552,7 @@ def _run_passenger_trips_sync(
         )
         try:
             travel = resonance_pc_intercity_depart_and_wait(
+                from_city_name=current["city_name"],
                 to_city_name=destination["city_name"],
                 enter_station_timeout_seconds=arrival_timeout_seconds,
                 use_fatigue_medicine=use_fatigue_medicine,
@@ -694,6 +695,7 @@ def _run_passenger_trips_sync(
         _emit("travel", "started", **progress_fields)
         try:
             travel = resonance_pc_intercity_depart_and_wait(
+                from_city_name=source["city_name"],
                 to_city_name=destination["city_name"],
                 enter_station_timeout_seconds=arrival_timeout_seconds,
                 use_fatigue_medicine=use_fatigue_medicine,
