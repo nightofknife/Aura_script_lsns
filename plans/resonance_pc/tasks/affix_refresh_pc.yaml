@@ -1,0 +1,46 @@
+affix_refresh_pc:
+  meta:
+    role: user_task
+    domain: 装备养成
+    title: 刷新词缀
+    description: 在胶卷预算内自动刷新，识别到目标后停止，保留候选供手动替换。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: config
+        type: dict
+        required: true
+        properties:
+          target_affix_id: {name: target_affix_id, type: number, strict_integer: true, required: true, min: 0}
+          comparison: {name: comparison, type: string, required: true, enum: [any, gte, eq, max]}
+          threshold: {name: threshold, type: string, required: true}
+          max_film_cost: {name: max_film_cost, type: number, strict_integer: true, required: true, min: 0, max: 9999}
+          auto_replace: {name: auto_replace, type: boolean, default: false}
+  steps:
+    refresh:
+      action: resonance_pc.affix_refresh_run
+      timeout: -1
+      params:
+        config: '{{ inputs.config }}'
+  returns:
+    affix_refresh: '{{ nodes.refresh.output }}'
+
+affix_refresh_read_pc:
+  meta:
+    role: internal
+    domain: 装备养成
+    title: 读取当前词缀界面
+    description: 只读当前新候选和胶卷余额，不点击游戏，不识别装备或旧词缀列表。
+    entry_point: false
+    concurrency: exclusive
+    inputs:
+      - name: config
+        type: dict
+        default: {}
+  steps:
+    read:
+      action: resonance_pc.affix_refresh_read
+      params:
+        config: '{{ inputs.config }}'
+  returns:
+    affix_refresh: '{{ nodes.read.output }}'

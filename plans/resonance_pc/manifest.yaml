@@ -1966,6 +1966,30 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.affix_refresh_read
+    module: plans.resonance_pc.src.actions.affix_refresh_pc_actions
+    function: read_affix_refresh
+    public: true
+    read_only: true
+    timeout: null
+    description: Read the current affix replacement window without input or spending.
+    parameters:
+    - name: config
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.affix_refresh_run
+    module: plans.resonance_pc.src.actions.affix_refresh_pc_actions
+    function: run_affix_refresh
+    public: true
+    read_only: false
+    timeout: null
+    description: Refresh within a film budget and stop on a target; replacement is disabled.
+    parameters:
+    - name: config
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.eternal_scuffle_initialize
     module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
     function: initialize_eternal_scuffle
@@ -3667,6 +3691,18 @@ exports:
       profile menu.
     role: internal
     domain: 整顿中心
+  - id: affix_refresh_pc/affix_refresh_pc
+    title: 刷新词缀
+    source: tasks/affix_refresh_pc.yaml
+    description: 在胶卷预算内自动刷新，识别到目标后停止，保留候选供手动替换。
+    role: user_task
+    domain: 装备养成
+  - id: affix_refresh_pc/affix_refresh_read_pc
+    title: 读取当前词缀界面
+    source: tasks/affix_refresh_pc.yaml
+    description: 只读当前新候选和胶卷余额，不点击游戏，不识别装备或旧词缀列表。
+    role: internal
+    domain: 装备养成
   - id: eternal_scuffle_pc/eternal_scuffle_pc
     title: 无垠乱斗
     source: tasks/eternal_scuffle_pc.yaml
