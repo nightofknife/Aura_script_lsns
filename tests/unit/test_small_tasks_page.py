@@ -30,7 +30,7 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     assert {"功能", "任务详情"}.issubset(labels)
     assert "任务分类" not in labels
     assert not hasattr(page, "category_list")
-    assert page.task_list.count() == 5
+    assert page.task_list.count() == 6
     assert page.task_list.currentItem().text() == "刷新用户数据"
     assert not page.task_panel.isHidden()
     assert page.current_task_id == "player_data_refresh"
@@ -131,7 +131,7 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
     page = SmallTasksPage(ResonanceConfigRepository(settings))
     page.show_task("team_recommendation")
 
-    assert page.task_list.count() == 5
+    assert page.task_list.count() == 6
     assert page.task_list.currentItem().text() == "配队推荐"
     assert not page.task_panel.isHidden()
     assert page.current_task_id == "team_recommendation"
