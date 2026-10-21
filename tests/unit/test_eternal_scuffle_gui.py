@@ -32,7 +32,7 @@ def test_configuration_and_activity_entry(repository):
     assert page.current_task_id == "eternal_scuffle"
     assert page.detail_stack.currentWidget() is page.eternal_scuffle_panel
     assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == [
-        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗",
+        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗", "刷新词缀",
     ]
     assert not hasattr(page, "category_list")
     panel = page.eternal_scuffle_panel
