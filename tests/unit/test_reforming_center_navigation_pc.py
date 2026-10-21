@@ -205,6 +205,9 @@ def test_running_workshop_original_frame_confirms_destination_without_choose_but
 @pytest.mark.parametrize("room", [f"{number}号{kind}" for number in range(3, 7) for kind in ("整顿宿舍", "生产车间")])
 def test_locked_room_without_user_template_does_not_locate_or_click(monkeypatch, room):
     app = App()
+    catalog = nav.vision.load_catalog()
+    monkeypatch.setattr(nav.vision, "load_catalog", lambda: {
+        **catalog, "rooms": {key: spec for key, spec in catalog["rooms"].items() if key != room}})
     monkeypatch.setattr(nav, "_locate_and_click", lambda *args: pytest.fail("unavailable template must not navigate"))
     result = nav.resonance_pc_open_reforming_center_room(room, app=app)
     assert not result["success"] and result["reason"] == "room_template_unavailable"
