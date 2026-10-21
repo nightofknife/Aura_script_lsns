@@ -44,14 +44,14 @@ def test_flat_navigation_reserves_detail_workspace(page):
     page.show()
     QApplication.processEvents()
     assert [page.task_list.item(i).text() for i in range(page.task_list.count())] == [
-        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗",
+        "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗", "刷新词缀",
     ]
     assert page.layout().count() == 2
     assert not hasattr(page, "category_list")
     assert not hasattr(page, "category_panel")
     assert page.data_collection_panel is None
     assert "data_collection" not in page._task_pages
-    assert page.detail_stack.count() == 5
+    assert page.detail_stack.count() == 6
     assert page.task_panel.minimumWidth() == 140
     assert page.task_panel.maximumWidth() == 210
     assert page.task_panel.sizeHint().width() == 170
@@ -75,7 +75,7 @@ def test_each_task_selects_existing_panel_and_preview_api(page):
     assert page.current_task_id == "trade_preview"
     page.show_task("team_recommendation")
     assert page.current_task_id == "team_recommendation"
-    assert page.task_list.count() == 5
+    assert page.task_list.count() == 6
 
 
 def test_preview_can_return_to_trade_without_running_or_rebuilding(page):

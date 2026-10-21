@@ -24,6 +24,7 @@ REMOVED = {
     "navigate_reforming_center_room_pc": "open_reforming_center_room_pc",
 }
 RENAMED = {"consciousness_deep_dive_single_run_test_pc": "consciousness_deep_dive_random_run_pc"}
+ADDED = {"affix_refresh_pc", "affix_refresh_read_pc"}
 
 
 def definitions():
@@ -47,13 +48,13 @@ def test_all_64_source_definitions_accounted_without_old_aliases():
     original = {row["key"] for row in inventory}
     current = definitions()
     assert len(inventory) == len(original) == 64
-    assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values())
-    assert len(current) == 59
+    assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values()) | ADDED
+    assert len(current) == 61
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
-        "lifecycle": 2, "orchestration": 1, "user_task": 10, "user_tool": 3,
-        "developer": 9, "internal": 34,
+        "lifecycle": 2, "orchestration": 1, "user_task": 11, "user_tool": 3,
+        "developer": 9, "internal": 35,
     }
 
 
@@ -61,7 +62,7 @@ def test_runtime_and_manifest_publish_one_matching_canonical_entry_per_definitio
     loader = TaskLoader("resonance_pc", PLAN)
     runtime = loader.get_all_task_definitions()
     assert not loader.get_task_load_errors()
-    assert len(runtime) == 59
+    assert len(runtime) == 61
     generated = ManifestGenerator(PLAN).generate()["exports"]["tasks"]
     assert {row["id"] for row in generated} == set(runtime)
     assert len(generated) == len(runtime)
@@ -88,7 +89,7 @@ def test_user_discovery_uses_roles_and_keeps_internal_tasks_resolvable():
     rows = [{"plan_name": "resonance_pc", "full_task_id": key, "task_ref": key, "meta": spec["meta"]}
             for key, spec in definitions().items()]
     selected = select_tasks(rows)
-    assert len(selected) == 16
+    assert len(selected) == 17
     assert all(task_role(row["meta"]) in PUBLIC_TASK_ROLES for row in selected)
     assert {row["task_ref"] for row in select_tasks(rows, roles=("developer",))} == {
         key for key, spec in definitions().items() if spec["meta"]["role"] == "developer"}
