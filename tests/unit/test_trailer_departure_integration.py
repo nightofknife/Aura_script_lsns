@@ -37,7 +37,7 @@ def test_tow_success_bypasses_ordinary_departure_and_pickup(flow, monkeypatch):
     result = run(flow, use_trailer=True, trailer_daily_first_n=3, trailer_payment="mileage", auto_pickup=True)
     assert result["success"] and result["travel_method"] == "trailer"
     assert calls[0]["daily_first_n"] == 3 and calls[0]["payment"] == "mileage"
-    assert flow.events == ["open_map", ("select", "B", "A"), "arrival"]
+    assert flow.events == ["open_map", ("select", "栖羽站", "海角城"), "arrival"]
 
 
 @pytest.mark.parametrize("reason", ["quota_exhausted", "daily_limit_reached"])
@@ -46,7 +46,7 @@ def test_quota_skip_falls_through_to_normal_on_the_already_selected_map(flow, mo
     result = run(flow, use_trailer=True)
     assert result["success"] and result["travel_method"] == "normal"
     assert result["trailer_service"]["reason"] == reason and len(calls) == 1
-    assert flow.events == ["open_map", ("select", "B", "A"), "normal_go"]
+    assert flow.events == ["open_map", ("select", "栖羽站", "海角城"), "normal_go"]
 
 
 @pytest.mark.parametrize("value", [

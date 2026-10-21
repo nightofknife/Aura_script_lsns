@@ -31,8 +31,9 @@ def test_real_overview_recognizes_manual_labels_without_extra_rooms(record):
 
 def test_all_provided_open_rooms_are_covered_and_assets_remain_plan_local():
     catalog = vision.load_catalog()
-    assert len(catalog["rooms"]) == 24
+    assert len(catalog["rooms"]) == 28
     expected = {name for row in MANIFEST["fixtures"] for name in row["expected_names"]}
+    expected |= {f"{number}号生产车间" for number in range(3, 7)}
     assert expected == set(catalog["rooms"])
     for spec in catalog["rooms"].values():
         assets = [spec["map_title"], *spec.get("map_title_variants", [])]

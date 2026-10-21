@@ -318,8 +318,14 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
 
 
 _SHOP_MENU_REGION = [720, 280, 280, 420]
-_BUY_BUTTON_REGION = [1000, 630, 140, 50]
+_BUY_BUTTON_TEMPLATE = "templates/purchase_book_buy_page_ready.png"
+_BUY_BUTTON_REGION = [850, 590, 380, 110]
+_BUY_BUTTON_THRESHOLD = 0.8
+# Native title crop [878, 91, 90, 26] from
+# artifacts/auto_cycle_trade_600_20260706_173232/current_buy_fail.png.
+_BUY_CONFIRM_PANEL_TEMPLATE = "templates/trade_buy_preview_title.png"
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
+_BUY_CONFIRM_PANEL_THRESHOLD = 0.86
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
 _SELL_ALL_REGION = [1140, 80, 110, 50]
 _SELL_ALL_TEMPLATE = "templates/trade_sell_all_button.png"
@@ -1037,8 +1043,9 @@ def resonance_pc_buy_goods_on_buy_page(
     ocr: Any = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
-    if app is None or ocr is None or vision is None:
-        raise RuntimeError("app/ocr/vision services are required")
+    # Keep the optional OCR argument for existing callers; purchases use templates.
+    if app is None or vision is None:
+        raise RuntimeError("app/vision services are required")
 
     requested_products = [str(item).strip() for item in (product_list or []) if str(item).strip()]
     logger.info(
@@ -1147,26 +1154,33 @@ def resonance_pc_buy_goods_on_buy_page(
         _raise_error(exc.code, exc.message, {**exc.detail, "book_result": book_result})
 
     try:
-        buy_button_hit = _wait_for_text_hit(app, ocr, ("买入",), _BUY_BUTTON_REGION, timeout_sec=2.0, interval_sec=0.3)
-        if buy_button_hit is None:
+        buy_button_hit = _wait_template(
+            app, vision, _BUY_BUTTON_TEMPLATE, _BUY_BUTTON_REGION,
+            threshold=_BUY_BUTTON_THRESHOLD, timeout_sec=2.0, interval_sec=0.3,
+        )
+        center = buy_button_hit.get("center")
+        if not buy_button_hit.get("found") or not isinstance(center, list) or len(center) != 2:
             logger.error(
-                "[TradeBuy] phase=buy_button_not_found products=%s selected=%s missing=%s region=%s context=%s",
+                "[TradeBuy] phase=buy_button_not_found products=%s selected=%s missing=%s match=%s context=%s",
                 requested_products,
                 selected,
                 pending,
-                _BUY_BUTTON_REGION,
+                buy_button_hit,
                 dict(_WORKER_PROGRESS_CONTEXT.get()),
             )
             _raise_error(
                 "buy_button_not_found",
-                "Unable to find 买入 button on buy page; fixed-coordinate fallback is disabled.",
-                {"region": list(_BUY_BUTTON_REGION), "requested_products": requested_products,
+                "Unable to match 买入 button template on buy page; click skipped.",
+                {"template": _BUY_BUTTON_TEMPLATE, "region": list(_BUY_BUTTON_REGION),
+                 "threshold": _BUY_BUTTON_THRESHOLD, "match": buy_button_hit,
+                 "requested_products": requested_products,
                  "selected_products": selected, "book_result": book_result},
             )
         observe_operation("buy.confirming", "确认买入与结算", "started",
                           selected_products=selected)
         buy_button = _click_hit(app, buy_button_hit)
-        buy_button["method"] = "text"
+        buy_button.update(method="template", template=_BUY_BUTTON_TEMPLATE,
+                          confidence=buy_button_hit.get("confidence"))
         logger.info(
             "[TradeBuy] phase=buy_button_clicked click=%s context=%s",
             buy_button,
@@ -1179,23 +1193,36 @@ def resonance_pc_buy_goods_on_buy_page(
         confirm_click = None
         settlement_after_confirm = None
         if not settlement.get("closed"):
-            confirm_panel = _wait_for_text_hit(
+            panel_match = _wait_template(
                 app,
-                ocr,
-                ("预计买入",),
+                vision,
+                _BUY_CONFIRM_PANEL_TEMPLATE,
                 _BUY_CONFIRM_PANEL_REGION,
+                threshold=_BUY_CONFIRM_PANEL_THRESHOLD,
                 timeout_sec=2.0,
                 interval_sec=0.3,
             )
-            if confirm_panel is not None:
-                confirm_click = _wait_and_click_text(
+            logger.info(
+                "[TradeBuy] phase=confirmation_probe match=%s context=%s",
+                panel_match, dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+            if panel_match.get("found"):
+                confirm_panel = panel_match
+                button_match = _wait_template(
                     app,
-                    ocr,
-                    ("买入",),
+                    vision,
+                    _BUY_BUTTON_TEMPLATE,
                     _BUY_CONFIRM_BUTTON_REGION,
+                    threshold=_BUY_BUTTON_THRESHOLD,
                     timeout_sec=2.0,
                     interval_sec=0.3,
                 )
+                if button_match.get("found"):
+                    confirm_click = _click_hit(app, button_match)
+                else:
+                    confirm_click = {"clicked": False, "reason": "template_not_found"}
+                confirm_click.update(method="template", template=_BUY_BUTTON_TEMPLATE,
+                                     match=button_match)
                 _sleep_with_cancel(0.8)
                 settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
 
@@ -1208,6 +1235,7 @@ def resonance_pc_buy_goods_on_buy_page(
             _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
                          {"book_result": book_result, "negotiation": negotiation,
                           "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
+                          "confirm_panel": confirm_panel, "confirm_click": confirm_click,
                           "selected_products": selected})
         observe_operation("buy.confirming", "确认买入与结算", "completed", bought_confirmed=bought)
         logger.info(
@@ -2343,7 +2371,7 @@ async def _execute_trade_leg(
         location_file_path="data/meta/location_pc.json",
         city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
         drag_center=[640, 360],
-        drag_span_px=450,
+        drag_span_px=900,
         max_search_steps=12,
         fallback_enabled=True,
         target_match_mode="contains",
@@ -2748,7 +2776,7 @@ async def _execute_freight_reposition(
                 to_city_name=leg["to_city"], from_city_name=leg["from_city"],
                 enter_station_timeout_seconds=arrival_timeout_seconds,
                 location_file_path="data/meta/location_pc.json", city_search_region=[130, 120, 1000, 500],
-                drag_center=[640, 360], drag_span_px=450, max_search_steps=12,
+                drag_center=[640, 360], drag_span_px=900, max_search_steps=12,
                 fallback_enabled=True, target_match_mode="contains", click_y_offset=-15,
                 drag_duration_sec=1.0, drag_hold_sec=0.5, auto_pickup=False,
                 use_fatigue_medicine=use_fatigue_medicine,

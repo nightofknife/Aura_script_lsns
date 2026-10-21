@@ -151,7 +151,7 @@ def test_travel_observations_do_not_promote_gate_to_confirmed_departure(flow, mo
     with operation_progress(observations.append):
         result = run(flow)
     assert result["success"] is True
-    assert flow.events == ["open_map", ("select", "B", "A")]
+    assert flow.events == ["open_map", ("select", "栖羽站", "海角城")]
     gate = next(row for row in observations if row["key"] == "travel.departure_confirming" and row["state"] == "progress")
     assert gate["detail"]["gate_state"] == gate_state and gate["detail"]["confirmed"] is False
     arrival = observations[-1]

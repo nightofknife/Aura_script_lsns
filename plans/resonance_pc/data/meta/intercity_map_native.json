@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "canvas_reference": [
+    1920,
+    1080
+  ],
+  "canvas_screen_match": "expand",
+  "default_zoom": 1,
+  "screen_units_per_native_unit_fraction": [
+    2,
+    3
+  ],
+  "coordinate_system": "x_right_y_up",
+  "label_native_offset": [
+    0,
+    -63
+  ],
+  "cities": {
+    "anita_energy_research_institute": {
+      "name": "阿妮塔能源研究所",
+      "native_position": [
+        -1075,
+        -850
+      ],
+      "station_id": 83000014
+    },
+    "anita_rocket_base": {
+      "name": "阿妮塔发射中心",
+      "native_position": [
+        -1750,
+        -800
+      ],
+      "station_id": 83000010
+    },
+    "anita_weapon_research_institute": {
+      "name": "阿妮塔战备工厂",
+      "native_position": [
+        -750,
+        -300
+      ],
+      "station_id": 83000012
+    },
+    "black_moon_amusement_park": {
+      "name": "黑月游乐城",
+      "native_position": [
+        -900,
+        550
+      ],
+      "station_id": 83000007
+    },
+    "brcl_outpost": {
+      "name": "铁盟哨站",
+      "native_position": [
+        325,
+        0
+      ],
+      "station_id": 83000026
+    },
+    "cape_city": {
+      "name": "海角城",
+      "native_position": [
+        -1300,
+        -1650
+      ],
+      "station_id": 83000002
+    },
+    "clarity_data_center_administration_bureau": {
+      "name": "澄明数据中心",
+      "native_position": [
+        -425,
+        175
+      ],
+      "station_id": 83000029
+    },
+    "confluence_tower": {
+      "name": "汇流塔",
+      "native_position": [
+        -1650,
+        -1650
+      ],
+      "station_id": 83000030
+    },
+    "farstar_bridge": {
+      "name": "远星大桥",
+      "native_position": [
+        -600,
+        -1250
+      ],
+      "station_id": 83000023
+    },
+    "freeport": {
+      "name": "7号自由港",
+      "native_position": [
+        -1000,
+        -175
+      ],
+      "station_id": 83000020
+    },
+    "gronru_city": {
+      "name": "贡露城",
+      "native_position": [
+        -300,
+        -1250
+      ],
+      "station_id": 83000052
+    },
+    "lanxin_city": {
+      "name": "岚心城",
+      "native_position": [
+        2950,
+        675
+      ],
+      "station_id": 83000006
+    },
+    "mander_mine": {
+      "name": "曼德矿场",
+      "native_position": [
+        475,
+        -300
+      ],
+      "station_id": 83000053
+    },
+    "onederland": {
+      "name": "淘金乐园",
+      "native_position": [
+        625,
+        -725
+      ],
+      "station_id": 83000004
+    },
+    "qiyu_station": {
+      "name": "栖羽站",
+      "native_position": [
+        2350,
+        675
+      ],
+      "station_id": 83000018
+    },
+    "shoggolith_city": {
+      "name": "修格里城",
+      "native_position": [
+        0,
+        0
+      ],
+      "station_id": 83000001
+    },
+    "tatu_station": {
+      "name": "塔图站",
+      "native_position": [
+        1450,
+        -1100
+      ],
+      "station_id": 83000015
+    },
+    "vitilin_forest": {
+      "name": "维蒂林场",
+      "native_position": [
+        200,
+        -1050
+      ],
+      "station_id": 83000005
+    },
+    "wilderness_station": {
+      "name": "荒原站",
+      "native_position": [
+        700,
+        0
+      ],
+      "station_id": 83000003
+    },
+    "wulin_source": {
+      "name": "武林源",
+      "native_position": [
+        -3425,
+        50
+      ],
+      "station_id": 83000046
+    },
+    "yunxiuqiao_base": {
+      "name": "云岫桥基地",
+      "native_position": [
+        1300,
+        200
+      ],
+      "station_id": 83000017
+    }
+  },
+  "provenance": {
+    "marker_asset": "Patch/Asset/ui/mainui/mainui.asset",
+    "marker_asset_sha256": "c68a3b6f9f9b6c21a3cfc7af5f210e84a965c17d5b712464db0c2c7845f81f61",
+    "marker_hierarchy": "ScrollGrid_Station/Viewport/Grid/Group_Item_NNN",
+    "station_config": "Patch/BinaryConfig/HomeStationFactory.bin",
+    "notes": [
+      "Native positions are the installed map prefab city marker group positions; station IDs are from the installed HomeStationFactory configuration.",
+      "Only the existing 21 canonical navigation cities are included. Unnamed or otherwise unsupported prefab markers are excluded.",
+      "label_native_offset is the common Txt_Name RectTransform anchoredPosition relative to the marker, not an OCR glyph-box correction.",
+      "At 1280x720 and default zoom 1, native deltas become screen deltas by multiplying X by 2/3 and Y by -2/3."
+    ]
+  }
+}

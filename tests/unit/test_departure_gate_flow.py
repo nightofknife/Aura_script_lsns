@@ -29,12 +29,13 @@ def flow(monkeypatch):
     monkeypatch.setattr(m, "_find_allowed_fatigue_medicine", lambda **kwargs:
         {"name": "\u63d0\u795e\u68d2\u68d2\u7cd6", "match": {"found": True, "center": [600, 350]}})
     monkeypatch.setattr(m, "_wait_and_click_fatigue_medicine_confirm", lambda **kwargs: {"clicked": True})
-    app = SimpleNamespace(click=lambda **kwargs: clicks.append(kwargs))
+    app = SimpleNamespace(click=lambda **kwargs: clicks.append(kwargs),
+                          get_window_size=lambda: (1280, 720))
     return SimpleNamespace(events=events, clicks=clicks, app=app)
 
 
 def run(flow, **kwargs):
-    return m.resonance_pc_intercity_depart_and_wait(to_city_name="B", from_city_name="A",
+    return m.resonance_pc_intercity_depart_and_wait(to_city_name="栖羽站", from_city_name="海角城",
                 app=flow.app, ocr=object(), vision=object(), **kwargs)
 
 
@@ -42,7 +43,7 @@ def test_normal_route_keeps_map_selection_without_entry_ocr(flow, monkeypatch):
     monkeypatch.setattr(m, "_wait_departure_gate", lambda **kwargs: {"state": "confirm_clicked"})
     result = run(flow)
     assert result["success"] is True and result["arrival_status"] == "arrived"
-    assert flow.events == ["open_map", ("select", "B", "A")]
+    assert flow.events == ["open_map", ("select", "栖羽站", "海角城")]
 
 
 @pytest.mark.parametrize("ready", [True, False])
@@ -57,9 +58,9 @@ def test_medicine_return_uses_shared_template_and_never_fullscreen_ocr(flow, mon
     result = run(flow, use_fatigue_medicine=True,
                  allowed_fatigue_medicines=["\u63d0\u795e\u68d2\u68d2\u7cd6"])
     assert flow.clicks == [{"x": 600, "y": 350}]
-    assert flow.events[:3] == ["open_map", ("select", "B", "A"), "main_template"]
+    assert flow.events[:3] == ["open_map", ("select", "栖羽站", "海角城"), "main_template"]
     if ready:
-        assert flow.events[3:] == ["open_map", ("select", "B", "A")]
+        assert flow.events[3:] == ["open_map", ("select", "栖羽站", "海角城")]
         assert result["success"] is True and result["fatigue_medicine_use_count"] == 1
     else:
         assert result["status"] == "blocked" and result["reason"] == "fatigue_medicine_return_to_city_failed"

@@ -53,11 +53,14 @@ def buy_rig(monkeypatch):
     monkeypatch.setattr(trade, "execute_bargain_to_cap", record("bargain", {
         "requested_to_cap": True, "actual_fatigue_used": 16}))
 
-    def text_hit(*args, **kwargs):
-        rig.calls.append(("text_hit", args, kwargs))
-        return {"center": [10, 20]} if args[2] == ("买入",) else None
+    def template_hit(*args, **kwargs):
+        rig.calls.append(("template_hit", args, kwargs))
+        return {"found": True, "center": [1050, 650], "confidence": 0.95}
 
-    monkeypatch.setattr(trade, "_wait_for_text_hit", text_hit)
+    monkeypatch.setattr(trade, "_wait_template", template_hit)
+    monkeypatch.setattr(trade, "_wait_for_text_hit", lambda *a, **kw:
+                        pytest.fail("Purchase controls must not invoke OCR"))
+    monkeypatch.setattr(trade, "_match_template", lambda *a, **kw: {"found": False})
     monkeypatch.setattr(trade, "_click_hit", record("click", {"clicked": True}))
     monkeypatch.setattr(trade, "_close_settlement",
                         record("settlement", lambda: rig.settlement))
