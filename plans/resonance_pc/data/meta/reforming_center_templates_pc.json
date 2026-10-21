@@ -4,7 +4,7 @@
     1280,
     720
   ],
-  "annotation_method": "Manual screenshot visual boxes; no OCR and no generated text",
+  "annotation_method": "Manual screenshot visual boxes; additions for production workshops 3-6 rendered from native game sprites, fonts and prefab layout; no OCR",
   "white_ink_hsv": {
     "lower": [
       0,
@@ -2695,6 +2695,326 @@
         }
       ],
       "shared_destination": null
+    },
+    "3号生产车间": {
+      "room_key": "3号生产车间",
+      "aliases": [
+        "生产车间3"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_workshop_3.png",
+        "kind": "native_white_text",
+        "threshold": 0.92,
+        "source_kind": "synthetic_native_game_assets",
+        "source_resource": "ui/prison/overview/btn_rooma.asset",
+        "source_node": "/Btn_RoomA/Txt_",
+        "source_sha256": "b7e26d03d1bffdd2f3a85205c14688d9663804b41a012ffe583234829c030edd",
+        "source_client_xyxy": [
+          508,
+          312,
+          610,
+          335
+        ],
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/physical_workshop_3.png",
+          "kind": "native_white_text",
+          "threshold": 0.92,
+          "source_kind": "synthetic_native_game_assets",
+          "source_resource": "ui/prison/main/prisonmain.asset",
+          "source_node": "/PrisonMain/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "source_sha256": "5a7a1f3e4708e06ae3a67032df64c225b246d8408c75b49832e2fd5d0bd73fba",
+          "source_client_xyxy": [
+            638,
+            20,
+            748,
+            44
+          ],
+          "search_region": [
+            620,
+            8,
+            180,
+            50
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop",
+      "identity_evidence": "numbered_physical_workshop_title_and_workshop_edit_marker"
+    },
+    "4号生产车间": {
+      "room_key": "4号生产车间",
+      "aliases": [
+        "生产车间4"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_workshop_4.png",
+        "kind": "native_white_text",
+        "threshold": 0.92,
+        "source_kind": "synthetic_native_game_assets",
+        "source_resource": "ui/prison/overview/btn_rooma.asset",
+        "source_node": "/Btn_RoomA/Txt_",
+        "source_sha256": "aeee0ae77a06ad9b474e2ea47a2b349d85deaf7c39f09701caae686abf39f483",
+        "source_client_xyxy": [
+          508,
+          312,
+          610,
+          335
+        ],
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/physical_workshop_4.png",
+          "kind": "native_white_text",
+          "threshold": 0.92,
+          "source_kind": "synthetic_native_game_assets",
+          "source_resource": "ui/prison/main/prisonmain.asset",
+          "source_node": "/PrisonMain/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "source_sha256": "e8b9e4dc9121cdd3b0d2f0e9de499e1bb7ab25b403427b1c367a59e3a344d8fb",
+          "source_client_xyxy": [
+            638,
+            20,
+            748,
+            44
+          ],
+          "search_region": [
+            620,
+            8,
+            180,
+            50
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop",
+      "identity_evidence": "numbered_physical_workshop_title_and_workshop_edit_marker"
+    },
+    "5号生产车间": {
+      "room_key": "5号生产车间",
+      "aliases": [
+        "生产车间5"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_workshop_5.png",
+        "kind": "native_white_text",
+        "threshold": 0.92,
+        "source_kind": "synthetic_native_game_assets",
+        "source_resource": "ui/prison/overview/btn_rooma.asset",
+        "source_node": "/Btn_RoomA/Txt_",
+        "source_sha256": "2e6c417a16ccb031f6981250c942d60096878c60a3e229e8a3c895302ea891dd",
+        "source_client_xyxy": [
+          508,
+          312,
+          610,
+          335
+        ],
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/physical_workshop_5.png",
+          "kind": "native_white_text",
+          "threshold": 0.92,
+          "source_kind": "synthetic_native_game_assets",
+          "source_resource": "ui/prison/main/prisonmain.asset",
+          "source_node": "/PrisonMain/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "source_sha256": "0c464d9813eaec7c5396575e3ed118b5afec285cd285a3f1607d04116908d9a2",
+          "source_client_xyxy": [
+            638,
+            20,
+            748,
+            44
+          ],
+          "search_region": [
+            620,
+            8,
+            180,
+            50
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop",
+      "identity_evidence": "numbered_physical_workshop_title_and_workshop_edit_marker"
+    },
+    "6号生产车间": {
+      "room_key": "6号生产车间",
+      "aliases": [
+        "生产车间6"
+      ],
+      "click_offset": [
+        120,
+        55
+      ],
+      "entry_type": "direct",
+      "map_title": {
+        "image": "templates/reforming_center/map_workshop_6.png",
+        "kind": "native_white_text",
+        "threshold": 0.92,
+        "source_kind": "synthetic_native_game_assets",
+        "source_resource": "ui/prison/overview/btn_rooma.asset",
+        "source_node": "/Btn_RoomA/Txt_",
+        "source_sha256": "fe592159836adc0471b5409a1f32b1479b9cc3810801da041289d20b1da8a2d2",
+        "source_client_xyxy": [
+          508,
+          312,
+          610,
+          335
+        ],
+        "search_region": [
+          0,
+          90,
+          1280,
+          630
+        ]
+      },
+      "map_title_variants": [],
+      "destination_markers": [
+        {
+          "image": "templates/reforming_center/physical_workshop_6.png",
+          "kind": "native_white_text",
+          "threshold": 0.92,
+          "source_kind": "synthetic_native_game_assets",
+          "source_resource": "ui/prison/main/prisonmain.asset",
+          "source_node": "/PrisonMain/Group_Top/Group_WorkshopInfo/Txt_Workshop",
+          "source_sha256": "57868e33ab6cf074eb7e7d7387ecf191a9ff90ae4c067079f0dccfedee76f5ca",
+          "source_client_xyxy": [
+            638,
+            20,
+            748,
+            44
+          ],
+          "search_region": [
+            620,
+            8,
+            180,
+            50
+          ]
+        },
+        {
+          "image": "templates/reforming_center/destination_10_workshop_edit.png",
+          "kind": "white_text",
+          "source_id": "249b7a0e-253f-4690-ae3e-4f1d574cd508",
+          "source_bbox_xywh": [
+            1093,
+            674,
+            87,
+            23
+          ],
+          "title_center_offset": [
+            43.5,
+            11.5
+          ],
+          "mask": "templates/reforming_center/destination_10_workshop_edit.mask.png",
+          "search_region": [
+            1081,
+            662,
+            111,
+            47
+          ]
+        }
+      ],
+      "shared_destination": "product_workshop",
+      "identity_evidence": "numbered_physical_workshop_title_and_workshop_edit_marker"
     }
   },
   "buttons": {

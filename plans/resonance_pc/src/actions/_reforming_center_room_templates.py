@@ -1,4 +1,4 @@
-"""Screenshot-derived templates; all input images are BGR. No OCR."""
+"""Screenshot and native game templates; all input images are BGR. No OCR."""
 from __future__ import annotations
 
 import json

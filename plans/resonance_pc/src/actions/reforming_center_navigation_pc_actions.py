@@ -113,7 +113,7 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
     data = {}
     if spec and spec.get("shared_destination"):
         data["shared_destination"] = spec["shared_destination"]
-        data["identity_evidence"] = "overview_room_template"
+        data["identity_evidence"] = spec.get("identity_evidence", "overview_room_template")
 
     def result(status, reason=""):
         return {"success": status in {"completed", "selected_only"}, "status": status,

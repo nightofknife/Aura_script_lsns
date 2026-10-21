@@ -1,0 +1,116 @@
+collect_product_workshops_pc:
+  meta:
+    title: 生产车间收菜
+    description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - {name: max_search_steps, type: number, default: 24, min: 1, max: 24}
+      - {name: settle_sec, type: number, default: 0.8, min: 0.05, max: 10}
+  steps:
+    assets:
+      action: resonance_pc.product_collection_assets
+    initial_navigation:
+      action: aura.run_task
+      depends_on: assets
+      when: "{{ nodes.assets.output is mapping and nodes.assets.output.get('success') == true }}"
+      params:
+        task_ref: tasks:open_reforming_center_room_pc.yaml:open_reforming_center_room_pc
+        inputs:
+          room_name: 1号生产车间
+          max_search_steps: "{{ inputs.max_search_steps }}"
+          settle_sec: "{{ inputs.settle_sec }}"
+      # aura.run_task returns framework data; retain the existing room action's business result.
+      outputs:
+        output: "{{ ((result.get('nodes') or {}).get('open_room') or {}).get('output') or {} }}"
+    scan:
+      action: resonance_pc.product_collection_scan_unlocks
+      depends_on: {initial_navigation: "success|skipped"}
+      when: "{{ nodes.assets.output is mapping and nodes.assets.output.get('success') == true and nodes.initial_navigation.output is mapping }}"
+      params:
+        navigation: "{{ nodes.initial_navigation.output }}"
+    room1:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {scan: "success|skipped"}
+      when: "{{ nodes.scan.output is mapping and nodes.scan.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 1号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.scan.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    room2:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {room1: "success|skipped"}
+      when: "{{ nodes.room1.output is mapping and nodes.room1.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 2号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.room1.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    room3:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {room2: "success|skipped"}
+      when: "{{ nodes.room2.output is mapping and nodes.room2.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 3号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.room2.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    room4:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {room3: "success|skipped"}
+      when: "{{ nodes.room3.output is mapping and nodes.room3.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 4号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.room3.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    room5:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {room4: "success|skipped"}
+      when: "{{ nodes.room4.output is mapping and nodes.room4.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 5号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.room4.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    room6:
+      action: resonance_pc.product_collection_collect_room
+      depends_on: {room5: "success|skipped"}
+      when: "{{ nodes.room5.output is mapping and nodes.room5.output.get('safe_to_continue') == true }}"
+      params:
+        room_name: 6号生产车间
+        unlocks: "{{ nodes.scan.output.unlocks }}"
+        previous: "{{ nodes.room5.output }}"
+        max_search_steps: "{{ inputs.max_search_steps }}"
+        settle_sec: "{{ inputs.settle_sec }}"
+    finish:
+      action: resonance_pc.product_collection_summarize
+      depends_on: {room6: "success|skipped"}
+      params:
+        preflight: "{{ nodes.assets.output }}"
+        scan: "{{ nodes.scan.output }}"
+        results:
+          - "{{ nodes.room1.output }}"
+          - "{{ nodes.room2.output }}"
+          - "{{ nodes.room3.output }}"
+          - "{{ nodes.room4.output }}"
+          - "{{ nodes.room5.output }}"
+          - "{{ nodes.room6.output }}"
+  returns:
+    success: "{{ nodes.finish.output.success }}"
+    status: "{{ nodes.finish.output.status }}"
+    reason: "{{ nodes.finish.output.reason }}"
+    results: "{{ nodes.finish.output.results }}"
+    unlocks: "{{ nodes.finish.output.unlocks }}"
+    visited_count: "{{ nodes.finish.output.visited_count }}"
+    collected_count: "{{ nodes.finish.output.collected_count }}"
+    skipped_count: "{{ nodes.finish.output.skipped_count }}"
+    returned_to_overview: "{{ nodes.finish.output.returned_to_overview }}"
+    page_after: "{{ nodes.finish.output.page_after }}"
+    stopped_room: "{{ nodes.finish.output.stopped_room }}"
