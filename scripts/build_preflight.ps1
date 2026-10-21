@@ -103,16 +103,13 @@ if (Test-Path $LockFile) {
     Write-Host "Lock file not found, skipping freeze diff."
 }
 
-Write-Host "Checking MuMu runtime assets ..."
-Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("scripts/fetch_mumu_runtime_assets.py", "--check")
-
 Write-Host "Running pip check ..."
 Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("-m", "pip", "check")
 
 Write-Host "Running startup smoke checks ..."
 Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("cli.py", "--help")
 Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("cli.py", "games", "--all")
-Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("cli.py", "tasks", "aura_benchmark")
+Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("cli.py", "tasks", "resonance_pc")
 Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("cli.py", "games", "--runner", "subprocess", "--all")
 
 Invoke-CheckedCommand -FilePath $VenvPython -ArgumentList @("-") -StdinText @'
@@ -120,7 +117,7 @@ from packages.aura_game import EmbeddedGameRunner
 
 embedded = EmbeddedGameRunner()
 games = embedded.list_games()
-assert any(row["game_name"] == "aura_benchmark" for row in games)
+assert any(row["game_name"] == "resonance_pc" for row in games)
 embedded.close()
 '@
 

@@ -1,5 +1,8 @@
 serial_sleep:
   meta:
+    role: developer
+    domain: 调度基准
+    entry_point: false
     title: Serial benchmark chain
     description: Three dependent sleep steps for serial execution validation.
     inputs:

@@ -607,7 +607,6 @@ async def resonance_pc_execute_cape_island_investment_from_city_panel(
     transition_attempts: int = 3,
     metric_max_rounds: int = 3,
     metric_total_timeout_sec: float = 60.0,
-    metric_timeout_sec: Optional[float] = None,
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
@@ -622,16 +621,7 @@ async def resonance_pc_execute_cape_island_investment_from_city_panel(
         or engine is None
     ):
         raise RuntimeError("app/ocr/vision/resonance_pc_city_shop_data/engine are required")
-    effective_metric_sample_timeout_sec = (
-        float(metric_timeout_sec)
-        if metric_timeout_sec is not None
-        else float(metric_sample_timeout_sec)
-    )
-    if metric_timeout_sec is not None:
-        logger.warning(
-            "Cape island metric_timeout_sec is a compatibility alias for "
-            "metric_sample_timeout_sec; it no longer limits the full metric phase."
-        )
+    effective_metric_sample_timeout_sec = float(metric_sample_timeout_sec)
     started_at = time.monotonic()
     island_entry = await _enter_island(
         app,

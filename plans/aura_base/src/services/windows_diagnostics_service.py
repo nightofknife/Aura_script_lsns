@@ -189,7 +189,6 @@ class WindowsDiagnosticsService:
             capture_cursor=resolved.capture.capture_cursor,
             candidates=resolved.capture.candidates,
             windows=resolved.capture.windows,
-            mumu=resolved.capture.mumu,
         )
         target = WindowTarget.create(resolved.target)
         try:
@@ -257,7 +256,6 @@ class WindowsDiagnosticsService:
             capture_cursor=resolved.capture.capture_cursor,
             candidates=resolved.capture.candidates,
             windows=resolved.capture.windows,
-            mumu=resolved.capture.mumu,
         )
         target = WindowTarget.create(resolved.target)
         process = psutil.Process()

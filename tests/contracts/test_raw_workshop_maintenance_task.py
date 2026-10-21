@@ -61,10 +61,10 @@ def run_dag(production="idle", overrides=None, budget=8, continue_rounds=False):
             if node_id in overrides_by_node:
                 return overrides_by_node[node_id]
             if node_id == "navigate":
-                return {"nodes": {"open_room": {"output": {
+                return {
                     "success": True, "room_entered": True, "room_name": ROOM,
                     "status": "completed", "reason": "", "data": {},
-                }}}}
+                }
             if node_id == "finish":
                 summaries.append(params)
                 return resonance_pc_raw_workshop_summarize(**params)
@@ -115,7 +115,7 @@ def test_public_task_schema_and_metadata():
     spec = task()
     valid, reason = validate_task_definition({TASK_NAME: spec})
     assert valid, reason
-    assert spec["meta"]["entry_point"] is True
+    assert spec["meta"]["role"] == "internal" and spec["meta"]["entry_point"] is False
     assert spec["meta"]["concurrency"] == "exclusive"
     steps = spec["steps"]
     assert list(steps) == [
@@ -127,13 +127,13 @@ def test_public_task_schema_and_metadata():
         "tasks:open_reforming_center_room_pc.yaml:open_reforming_center_room_pc"
     )
     assert "room_entered" in steps["observe"]["when"]
-    assert "nodes.open_room.output" in steps["observe"]["when"]
+    assert "nodes.navigate.output" in steps["observe"]["when"] and ".output.nodes." not in steps["observe"]["when"]
 
 
 def test_generated_manifest_exports_public_task_and_all_maintenance_actions():
     manifest = yaml.safe_load((ROOT / "plans/resonance_pc/manifest.yaml").read_text(encoding="utf-8"))
     exports = {row["id"]: row for row in manifest["exports"]["tasks"]}
-    for key in (TASK_NAME, f"{TASK_NAME}/{TASK_NAME}"):
+    for key in (f"{TASK_NAME}/{TASK_NAME}",):
         assert exports[key]["source"] == f"tasks/{TASK_NAME}.yaml"
     actions = {row["name"] for row in manifest["exports"]["actions"]}
     assert {node["action"] for node in task()["steps"].values()} - {"aura.run_task"} <= actions
@@ -340,7 +340,7 @@ def test_summary_receives_distinct_ordered_observations_without_snapshot_overwri
 def test_child_node_success_does_not_authorize_writes(success, entered):
     navigation = {"success": success, "room_entered": entered, "reason": "not_entered"}
     calls, summaries, _, _ = run_dag(overrides={
-        "navigate": {"nodes": {"open_room": {"output": navigation}}},
+        "navigate": navigation,
     })
     assert [name for name, _ in calls] == ["navigate", "finish"]
     assert summaries[0]["navigation"] == navigation

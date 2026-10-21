@@ -25,8 +25,8 @@ def validate_count(value):
 
 
 def child_output(stage,result):
-    node='enter_stage' if stage=='entry' else 'finish'
-    return ((result or {}).get('nodes',{}).get(node,{}) or {}).get('output',{})
+    field={'entry':'deep_dive','single':'deep_dive_single_run','cleanup':'deep_dive_cleanup'}[stage]
+    return result.get(field,{}) if isinstance(result,dict) else {}
 
 
 def successful(stage,payload):
@@ -109,7 +109,7 @@ async def checkpoint_loop(session_key:str,stage:str,child_result:dict,state_stor
             s['completed_runs']+=1;s['stage']='activity_home';s['last_frame']=result.get('last_frame','')
             if s['loop_count']!=-1 and s['completed_runs']>=s['loop_count']:s['status']='completed'
     if stage=='cleanup':
-        child_key=child_result.get('nodes',{}).get('initialize',{}).get('output',{}).get('session_key','')
+        child_key=child_result.get('session_key','') if isinstance(child_result,dict) else ''
         if isinstance(child_key,str) and child_key.startswith('deep_dive_cleanup:'):await state_store.delete(child_key)
     await save(s,state_store,event_bus)
     return {'ok':s['status']!='blocked','status':s['status'],'completed_runs':s['completed_runs']}

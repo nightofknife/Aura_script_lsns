@@ -77,14 +77,11 @@ def _player_data(
                 for name in characters
             ],
         },
-        "weapons": {
-            "schema_version": 1,
-            "scan_complete": True,
-            "entries": [
-                {"weapon_id": name, "quantity": quantity}
-                for name, quantity in weapon_counts.items()
-            ],
-        },
+        "inventory": {"categories": {"equipment": {
+            "category": "equipment", "recognition_mode": "presence", "scan_complete": True,
+            "equipment": [{"equipment_id": name, "name": name, "owned": True}
+                          for name in weapon_counts],
+        }}},
     }
 
 
@@ -93,7 +90,7 @@ def test_missing_player_sections_block_recommendation() -> None:
 
     assert result["status"] == "blocked"
     assert result["reason_code"] == "player_data_incomplete"
-    assert result["missing_sections"] == ["characters", "weapons"]
+    assert result["missing_sections"] == ["characters", "inventory.categories.equipment"]
     assert result["recommendations"] == []
 
 
@@ -160,13 +157,33 @@ def test_weapon_status_reuses_owned_weapons_and_accepts_mixed_low_configuration(
 
 def test_invalid_weapon_schema_is_blocked_without_name_fallback() -> None:
     player_data = _player_data()
-    player_data["weapons"]["entries"] = [{"name": "共享满配", "quantity": 2}]
+    player_data["inventory"]["categories"]["equipment"]["equipment"] = [{"name": "共享满配", "count": 2}]
 
     result = recommend_fixed_teams(player_data, _catalog(_team()))
 
     assert result["status"] == "blocked"
     assert result["reason_code"] == "player_data_invalid"
-    assert result["invalid_sections"] == ["weapons"]
+    assert result["invalid_sections"] == ["inventory.categories.equipment"]
+
+
+def test_legacy_quantity_weapon_section_cannot_replace_current_equipment_scan() -> None:
+    player_data = _player_data()
+    player_data.pop("inventory")
+    player_data["weapons"] = {"schema_version": 1, "scan_complete": True,
+                              "entries": [{"weapon_id": "共享满配", "quantity": 99}]}
+    result = recommend_fixed_teams(player_data, _catalog(_team()))
+    assert result["status"] == "blocked"
+    assert result["missing_sections"] == ["inventory.categories.equipment"]
+
+
+def test_unowned_equipment_does_not_match_despite_a_legacy_positive_count() -> None:
+    player_data = _player_data()
+    equipment = player_data["inventory"]["categories"]["equipment"]
+    for row in equipment["equipment"]:
+        row.update(owned=False, count=99)
+    result = recommend_fixed_teams(player_data, _catalog(_team()))
+    assert result["weapon_recognition_mode"] == "presence"
+    assert result["recommendations"][0]["weapon_status"] == "unmet"
 
 
 def test_actual_catalog_contains_all_fixed_wiki_teams() -> None:

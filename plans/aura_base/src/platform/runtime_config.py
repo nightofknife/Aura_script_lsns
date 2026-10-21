@@ -7,29 +7,15 @@ from typing import Any, Mapping
 from .contracts import TargetRuntimeError
 
 WINDOWS_PROVIDER = "windows"
-MUMU_PROVIDER = "mumu"
 
 FAMILY_BY_PROVIDER = {
     WINDOWS_PROVIDER: "windows_desktop",
-    MUMU_PROVIDER: "android_emulator",
 }
 PROVIDER_BY_FAMILY = {value: key for key, value in FAMILY_BY_PROVIDER.items()}
 
 WINDOWS_CAPTURE_BACKENDS = ("wgc", "dxgi", "gdi", "printwindow")
 WINDOWS_INPUT_BACKENDS = ("sendinput", "window_message")
 WINDOWS_TARGET_MODES = ("hwnd", "process", "title")
-
-MUMU_CAPTURE_BACKENDS = ("scrcpy_stream",)
-MUMU_INPUT_BACKENDS = ("android_touch",)
-MUMU_TARGET_MODES = ("adb_serial", "auto")
-DEFAULT_MUMU_INPUT_OPTIONS = {
-    "remote_dir": "/data/local/tmp/aura",
-    "helper_path": "android_touch",
-    "path_fps": 10,
-    "key_input_provider": "adb",
-    "text_input_provider": "adb",
-}
-
 
 @dataclass(frozen=True)
 class RuntimeVisibilityRecoveryConfig:
@@ -55,8 +41,6 @@ class RuntimeTargetConfig:
     class_name: str | None = None
     class_exact: bool = False
     class_regex: str | None = None
-    adb_serial: str = "auto"
-    connect_on_start: bool = False
     require_visible: bool = True
     require_foreground: bool = False
     allow_borderless: bool = True
@@ -87,7 +71,6 @@ class RuntimeCaptureConfig:
     capture_cursor: bool = False
     candidates: tuple[dict[str, Any], ...] = ()
     windows: dict[str, Any] = field(default_factory=dict)
-    mumu: dict[str, Any] = field(default_factory=dict)
 
     def provider_options(self, provider: str) -> dict[str, Any]:
         options = {
@@ -96,7 +79,7 @@ class RuntimeCaptureConfig:
             "capture_cursor": bool(self.capture_cursor),
             "candidates": [dict(item) for item in self.candidates],
         }
-        provider_options = self.windows if provider == WINDOWS_PROVIDER else self.mumu
+        provider_options = self.windows
         options.update(dict(provider_options))
         return options
 
@@ -114,9 +97,6 @@ class RuntimeInputConfig:
     look: "RuntimeLookConfig" = field(default_factory=lambda: RuntimeLookConfig())
     activation: "RuntimeActivationConfig" = field(default_factory=lambda: RuntimeActivationConfig())
     windows: dict[str, Any] = field(default_factory=dict)
-    mumu: dict[str, Any] = field(
-        default_factory=lambda: dict(DEFAULT_MUMU_INPUT_OPTIONS)
-    )
 
     def provider_options(self, provider: str) -> dict[str, Any]:
         options = {
@@ -127,7 +107,7 @@ class RuntimeInputConfig:
             "look": self.look.to_dict(),
             "activation": self.activation.to_dict(),
         }
-        provider_options = self.windows if provider == WINDOWS_PROVIDER else self.mumu
+        provider_options = self.windows
         options.update(dict(provider_options))
         return options
 
@@ -246,26 +226,14 @@ class ResolvedRuntimeConfig:
 
 def resolve_runtime_config(config: Any) -> ResolvedRuntimeConfig:
     runtime = _coerce_dict(_config_get(config, "runtime", {}))
-    legacy_target = _coerce_dict(_config_get(config, "target", {}))
     warnings: list[str] = []
-
-    runtime_provider = _normalized(runtime.get("provider"))
     runtime_family = _normalized(runtime.get("family"))
-    legacy_provider = _normalized(legacy_target.get("provider"))
-
-    if runtime_provider:
-        provider = runtime_provider
-    elif runtime_family:
-        provider = PROVIDER_BY_FAMILY.get(runtime_family, runtime_family)
-    else:
-        provider = legacy_provider
-        if provider:
-            warnings.append("Legacy target.provider is deprecated; migrate to runtime.provider.")
+    provider = _normalized(runtime.get("provider"))
 
     if provider not in FAMILY_BY_PROVIDER:
         raise TargetRuntimeError(
             "provider_unsupported",
-            "Supported runtime providers are 'windows' and 'mumu'.",
+            "Supported runtime provider is 'windows'.",
             {"provider": provider or None, "supported": sorted(FAMILY_BY_PROVIDER)},
         )
 
@@ -278,13 +246,9 @@ def resolve_runtime_config(config: Any) -> ResolvedRuntimeConfig:
             {"provider": provider, "family": family, "expected_family": expected_family},
         )
 
-    legacy_runtime = _map_legacy_target_config(provider, legacy_target, warnings)
-    target_data = _deep_merge(_coerce_dict(legacy_runtime.get("target", {})), _coerce_dict(runtime.get("target", {})))
-    capture_data = _deep_merge(
-        _coerce_dict(legacy_runtime.get("capture", {})),
-        _coerce_dict(runtime.get("capture", {})),
-    )
-    input_data = _deep_merge(_coerce_dict(legacy_runtime.get("input", {})), _coerce_dict(runtime.get("input", {})))
+    target_data = _coerce_dict(runtime.get("target", {}))
+    capture_data = _coerce_dict(runtime.get("capture", {}))
+    input_data = _coerce_dict(runtime.get("input", {}))
     rebind_data = _coerce_dict(runtime.get("rebind", {}))
     coordinates_data = _coerce_dict(runtime.get("coordinates", {}))
     window_spec_data = _coerce_dict(runtime.get("window_spec", {}))
@@ -318,8 +282,6 @@ def supported_capture_backends(provider: str) -> list[str]:
     normalized = _normalized(provider)
     if normalized == WINDOWS_PROVIDER:
         return list(WINDOWS_CAPTURE_BACKENDS)
-    if normalized == MUMU_PROVIDER:
-        return list(MUMU_CAPTURE_BACKENDS)
     return []
 
 
@@ -327,8 +289,6 @@ def supported_input_backends(provider: str) -> list[str]:
     normalized = _normalized(provider)
     if normalized == WINDOWS_PROVIDER:
         return list(WINDOWS_INPUT_BACKENDS)
-    if normalized == MUMU_PROVIDER:
-        return list(MUMU_INPUT_BACKENDS)
     return []
 
 
@@ -342,7 +302,6 @@ def _resolve_target_config(provider: str, target_data: Mapping[str, Any]) -> Run
     title_regex = _coerce_text(target_data.get("title_regex"))
     class_name = _coerce_text(target_data.get("class_name"))
     class_regex = _coerce_text(target_data.get("class_regex"))
-    adb_serial = _coerce_text(target_data.get("adb_serial"), default="auto") or "auto"
 
     if not mode:
         if provider == WINDOWS_PROVIDER:
@@ -352,10 +311,8 @@ def _resolve_target_config(provider: str, target_data: Mapping[str, Any]) -> Run
                 mode = "process"
             elif title or title_regex:
                 mode = "title"
-        else:
-            mode = "adb_serial" if adb_serial != "auto" else "auto"
 
-    valid_modes = WINDOWS_TARGET_MODES if provider == WINDOWS_PROVIDER else MUMU_TARGET_MODES
+    valid_modes = WINDOWS_TARGET_MODES
     if mode not in valid_modes:
         raise TargetRuntimeError(
             "target_mode_invalid_for_provider",
@@ -375,8 +332,6 @@ def _resolve_target_config(provider: str, target_data: Mapping[str, Any]) -> Run
         class_name=class_name,
         class_exact=bool(target_data.get("class_exact", False)),
         class_regex=class_regex,
-        adb_serial=adb_serial,
-        connect_on_start=bool(target_data.get("connect_on_start", False)),
         require_visible=bool(target_data.get("require_visible", True)),
         require_foreground=bool(target_data.get("require_foreground", False)),
         allow_borderless=bool(target_data.get("allow_borderless", True)),
@@ -411,7 +366,7 @@ def _resolve_visibility_recovery_config(
 
 
 def _resolve_capture_config(provider: str, capture_data: Mapping[str, Any]) -> RuntimeCaptureConfig:
-    default_backend = "gdi" if provider == WINDOWS_PROVIDER else "scrcpy_stream"
+    default_backend = "gdi"
     backend = _normalized(capture_data.get("backend"), default=default_backend)
     valid_backends = supported_capture_backends(provider)
     if backend not in valid_backends:
@@ -428,12 +383,11 @@ def _resolve_capture_config(provider: str, capture_data: Mapping[str, Any]) -> R
         capture_cursor=bool(capture_data.get("capture_cursor", False)),
         candidates=_coerce_candidate_tuple(capture_data.get("candidates")),
         windows=_coerce_dict(capture_data.get("windows", {})),
-        mumu=_coerce_dict(capture_data.get("mumu", {})),
     )
 
 
 def _resolve_input_config(provider: str, input_data: Mapping[str, Any]) -> RuntimeInputConfig:
-    default_backend = "sendinput" if provider == WINDOWS_PROVIDER else "android_touch"
+    default_backend = "sendinput"
     backend = _normalized(input_data.get("backend"), default=default_backend)
     valid_backends = supported_input_backends(provider)
     if backend not in valid_backends:
@@ -452,10 +406,6 @@ def _resolve_input_config(provider: str, input_data: Mapping[str, Any]) -> Runti
         look=_resolve_look_config(_coerce_dict(input_data.get("look", {}))),
         activation=_resolve_activation_config(_coerce_dict(input_data.get("activation", {}))),
         windows=_coerce_dict(input_data.get("windows", {})),
-        mumu=_deep_merge(
-            DEFAULT_MUMU_INPUT_OPTIONS,
-            _coerce_dict(input_data.get("mumu", {})),
-        ),
     )
 
 
@@ -645,57 +595,6 @@ def _validate_target_config(provider: str, target: RuntimeTargetConfig) -> None:
                 "Windows target.mode='title' requires title or title_regex.",
             )
         return
-
-    if target.mode == "adb_serial" and target.adb_serial == "auto":
-        raise TargetRuntimeError(
-            "target_config_invalid",
-            "MuMu target.mode='adb_serial' requires runtime.target.adb_serial to be an explicit serial.",
-        )
-
-
-def _map_legacy_target_config(provider: str, legacy_target: Mapping[str, Any], warnings: list[str]) -> dict[str, Any]:
-    if provider != MUMU_PROVIDER:
-        legacy_windows = _coerce_dict(legacy_target.get("windows", {}))
-        if legacy_windows:
-            warnings.append("Legacy target.windows is deprecated; migrate to runtime.target/runtime.capture/runtime.input.")
-        return {}
-
-    legacy_mumu = _coerce_dict(legacy_target.get("mumu", {}))
-    if not legacy_mumu:
-        return {}
-
-    warnings.append("Legacy target.mumu is deprecated; migrate to runtime.target/runtime.capture/runtime.input.")
-
-    adb_cfg = _coerce_dict(legacy_mumu.get("adb", {}))
-    serial = _coerce_text(adb_cfg.get("serial"), default="auto") or "auto"
-    target_mode = "adb_serial" if serial != "auto" else "auto"
-
-    capture_cfg = _coerce_dict(legacy_mumu.get("capture", {}))
-    input_cfg = _coerce_dict(legacy_mumu.get("input", {}))
-    key_cfg = _coerce_dict(legacy_mumu.get("key_input", {}))
-    text_cfg = _coerce_dict(legacy_mumu.get("text_input", {}))
-
-    mapped_input_mumu = dict(input_cfg)
-    if "provider" in key_cfg:
-        mapped_input_mumu["key_input_provider"] = key_cfg.get("provider")
-    if "provider" in text_cfg:
-        mapped_input_mumu["text_input_provider"] = text_cfg.get("provider")
-
-    return {
-        "target": {
-            "mode": target_mode,
-            "adb_serial": serial,
-            "connect_on_start": bool(adb_cfg.get("connect_on_start", False)),
-        },
-        "capture": {
-            "backend": "scrcpy_stream",
-            "mumu": capture_cfg,
-        },
-        "input": {
-            "backend": "android_touch",
-            "mumu": mapped_input_mumu,
-        },
-    }
 
 
 def _config_get(config: Any, key_path: str, default: Any = None) -> Any:

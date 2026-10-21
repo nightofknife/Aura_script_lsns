@@ -223,7 +223,6 @@ class OnnxRuntimeBackend:
                 "nvidia/cusparse/bin",
                 "torch/lib",
                 "torchvision",
-                "av.libs",
             ):
                 yield from emit(site_root / relative)
 

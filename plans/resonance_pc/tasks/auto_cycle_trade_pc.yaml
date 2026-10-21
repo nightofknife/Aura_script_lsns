@@ -1,5 +1,7 @@
 auto_cycle_trade_pc:
   meta:
+    role: user_task
+    domain: 商贸运输
     title: Exact Auto Trade (PC)
     description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
     entry_point: true

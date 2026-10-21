@@ -13,7 +13,7 @@ from packages.resonance_gui.widgets.consciousness_deep_dive_panel import Conscio
 @pytest.fixture
 def panel():
     app = QApplication.instance() or QApplication(['deep-dive-target-result-test'])
-    widget = ConsciousnessDeepDivePanel()
+    widget = ConsciousnessDeepDivePanel(developer_mode=True)
     yield widget
     widget.close()
     widget.deleteLater()

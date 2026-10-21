@@ -77,7 +77,7 @@ async def eternal_scuffle_complete_round(session_key: str, app: Any = None, visi
     return await runtime.invoke(session_key, "complete_round", app, vision, state_store, event_bus, engine)
 
 
-@action_info(name="resonance_pc.eternal_scuffle_checkpoint", public=True, read_only=False, description="Require child framework_data to contain a confirmed business completion node.")
+@action_info(name="resonance_pc.eternal_scuffle_checkpoint", public=True, read_only=False, description="Require the declared child business result to confirm completion.")
 @requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision", state_store="core/state_store", event_bus="core/event_bus")
 async def eternal_scuffle_checkpoint(session_key: str, phases: list | None = None, expected_pairs: int = 0, child_result: dict | None = None, child_results: list | None = None, require_child: bool = False, expected_children: int = 0, label: str = "子任务", collect_round_result: bool = False, app: Any = None, vision: Any = None, state_store: Any = None, event_bus: Any = None, engine: Any = None) -> dict:
     return await runtime.invoke(session_key, "checkpoint", app, vision, state_store, event_bus, engine, phases=phases, expected_pairs=expected_pairs, child_result=child_result, child_results=child_results, require_child=require_child, expected_children=expected_children, label=label, collect_round_result=collect_round_result)

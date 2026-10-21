@@ -12,6 +12,7 @@ from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_GAME_NAME,
@@ -33,8 +34,17 @@ def window(tmp_path, monkeypatch):
     app.processEvents()
 
 
+def open_developer(page):
+    page.set_available_tasks([{"role": "developer", "task_ref": ref} for ref in (
+        PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+        PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
+    )])
+    page.show_developer_tools()
+
+
 def test_plan_button_dispatches_selected_layout_and_strategy(window):
-    panel = window.small_tasks_page.consciousness_deep_dive_panel
+    open_developer(window.small_tasks_page)
+    panel = window.small_tasks_page.deep_dive_developer_panel
     panel.plan_strategy_combo.setCurrentIndex(panel.plan_strategy_combo.findData("inspiration"))
     panel.plan_turn_budget_spin.setValue(8)
     panel.plan_layout_edit.setText("chosen-layout.json")
@@ -75,8 +85,8 @@ def test_planned_run_uses_its_safety_limit_and_consumes_progress_snapshot(window
 ])
 def test_data_collection_entries_still_dispatch_through_existing_panel(window, entry, task_ref):
     page = window.small_tasks_page
-    page.show_task("data_collection")
-    assert page.detail_stack.currentWidget() is page.data_collection_panel
+    open_developer(page)
+    assert page.detail_stack.currentWidget() is page._developer_page
     calls = []
     window.requestRunPcTask.connect(lambda *args: calls.append(args))
     getattr(page.data_collection_panel, entry).click()
@@ -101,12 +111,14 @@ def test_task_completion_renders_business_status_and_preserves_runner_cancellati
     window._active_game_name = PC_GAME_NAME
     window._small_task_active_ref = task_ref
     if field == "deep_dive_plan":
+        open_developer(window.small_tasks_page)
         window.small_tasks_page.begin_consciousness_deep_dive_plan()
     else:
         window.small_tasks_page.begin_consciousness_deep_dive_planned_run()
     window._on_task_finished({"status": runner_status, "gui_item": {"task_ref": task_ref, "kind": "pc_task"},
                               "user_data": {field: result}})
-    panel = window.small_tasks_page.consciousness_deep_dive_panel
+    panel = (window.small_tasks_page.deep_dive_developer_panel if field == "deep_dive_plan"
+             else window.small_tasks_page.consciousness_deep_dive_panel)
     assert panel.status_label.property("resultState") == expected
     assert not panel._task_running
     assert window._small_task_active_ref == ""

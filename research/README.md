@@ -13,14 +13,12 @@
 - `tools/deep_dive_four_view_servo_experiment.py`：实机研究入口，默认5轮，位置参数 `1` 演示一轮。
 - `tools/deep_dive_vertical_capture_broker.py` 与 `deep_dive_vertical_command.py`：研究输入协议。
 
-## 历史研究
+## 入口与运行边界
 
-旧线锚到位、逐面取景、匿名格、图案格、响应拟合等模块保留用于其已有回归和历史复现，
-不作为当前方案的默认接入路径。源代码和相应测试应成组退出，不能单删被import模块。
-`read_saved_front_view` 仍间接依赖旧面扫描模块；其探针配置默认使用 CPU。
-
-`tools/deep_dive_live_acceptance.py` 是旧七路线、单轮不超过90秒的验收工具。
-其报告只适用于该旧扫描协议，不能作为 `four_views` 方案的实机验收证明。
+统一入口为 `python -m tools research`。其中 `saved-view` 使用当前四视角配准与裁格读取，
+`reading-check` 做离线评分，`servo`、`capture-broker`、`command` 使用当前研究协议。
+旧线锚、逐面取景、匿名格、响应拟合及旧七路线验收实现已退出；现存截图、标注和缓存不随源码退出而删除。
+正式运行中的扫描和规划实现留在 PC plan，不通过研究工具提供兼容别名。
 
 ## 研究输入与运行方式
 
@@ -36,7 +34,8 @@ JSON 中每个 `views` 元素包含 `view`、`face`、`image`、`cells`（以及
 .venv\Scripts\python.exe research/deep_dive_four_view_reading_check.py --annotations <标注JSON> --reference-root <图片根目录> --output .pytest_tmp/four_view_reading
 ```
 
-`read_saved_front_view.py <保存帧目录> [U|R|F|D|L|B]` 和离线评分默认使用 CPU。
+`python -m tools research saved-view <图片> --view <1至4> --annotations <标注JSON> --reference-root <图片根目录>`
+与离线评分默认使用 CPU。保存帧读取必须显式选择当前四视角编号和参考图，拒绝配准失败的画面。
 仅当同时显式提供 `--dml-runtime-site`、`--dml-python`、`--dml-device` 时，才使用隔离的
 DirectML worker；`--dml-ort-version` 默认 `1.24.4`，应与所提供运行时一致。
 不再引用某台机器的旧实验虚拟环境或默认选择设备1。

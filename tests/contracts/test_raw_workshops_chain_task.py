@@ -45,11 +45,11 @@ def run_chain(overrides=None, inputs=None, missing_summary=None):
             if node_id == "finish":
                 return resonance_pc_raw_workshops_summarize(**params)
             if node_id == missing_summary:
-                return {"nodes": {}}
+                return {}
             room = params["inputs"]["room_name"]
             business = deepcopy((overrides or {}).get(node_id, outcome(room)))
             # The child's framework status is successful even for business failures.
-            return {"nodes": {"finish": {"output": business, "run_state": {"status": "SUCCESS"}}}}
+            return business
 
         engine.node_executor.execute_single_action = execute
         ok, values = InputValidator(None).validate_inputs_against_meta(task()["meta"]["inputs"], inputs or {})
@@ -74,7 +74,7 @@ def test_task_schema_public_title_inputs_and_child_reuse():
         assert node["action"] == "aura.run_task"
         assert node["params"]["task_ref"] == "tasks:maintain_raw_material_workshop_pc.yaml:maintain_raw_material_workshop_pc"
         assert node["params"]["inputs"]["room_name"] == room
-        assert "outputs" in node
+        assert node["outputs"]["output"] == "{{ result if result is mapping else {} }}"
         assert not {"retry", "loop", "on_exception"}.intersection(node)
     assert not any(row["name"] == "room_name" for row in spec["meta"]["inputs"])
 
@@ -96,7 +96,7 @@ def test_four_rooms_execute_in_order_with_forwarded_limits_and_public_result():
 def test_generated_manifest_exports_chain_and_summary_with_requested_title():
     manifest = yaml.safe_load((ROOT / "plans/resonance_pc/manifest.yaml").read_text(encoding="utf-8"))
     tasks = {row["id"]: row for row in manifest["exports"]["tasks"]}
-    for key in (TASK, f"{TASK}/{TASK}"):
+    for key in (f"{TASK}/{TASK}",):
         assert tasks[key]["source"] == f"tasks/{TASK}.yaml"
         assert tasks[key]["title"] == "原料车间维护"
     actions = {row["name"]: row for row in manifest["exports"]["actions"]}

@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, Tuple
 
 from packages.aura_core.config.validator import validate_task_definition
 from packages.aura_core.types import TaskReference
+from .task_catalog import task_role
 
 
 class TaskValidationError(ValueError):
@@ -29,6 +30,14 @@ class TaskDefinitionValidator:
         self.strict_validation = bool(strict_validation)
 
     def validate_file(self, task_file_data: Dict[str, Any], file_path: Path) -> None:
+        for task_name, task_def in self._iter_task_definitions(task_file_data, file_path):
+            try:
+                role = task_role(task_def.get("meta"))
+                meta = task_def.get("meta") or {}
+                if "role" in meta and bool(meta.get("entry_point", False)) != (role in {"lifecycle", "orchestration", "user_task", "user_tool"}):
+                    raise ValueError("entry_point must agree with the explicit task role")
+            except ValueError as exc:
+                raise TaskValidationError("invalid_task_role", f"{file_path.name}:{task_name}: {exc}") from exc
         self._validate_removed_step_fields(task_file_data, file_path)
         self._validate_schema(task_file_data, file_path)
 

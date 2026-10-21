@@ -36,7 +36,7 @@ def test_public_task_definition_validates():
 
 def test_open_is_resolution_checked_without_state_detection_entry_or_return():
     spec = _task()
-    assert spec["meta"]["entry_point"] is True
+    assert spec["meta"]["role"] == "internal" and spec["meta"]["entry_point"] is False
     assert spec["meta"]["concurrency"] == "exclusive"
     assert list(spec["steps"]) == ["require_resolution", "open_room"]
     assert spec["steps"]["require_resolution"] == {

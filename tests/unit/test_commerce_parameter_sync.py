@@ -44,8 +44,8 @@ def test_single_parameter_components_survive_navigation_without_collecting(windo
     passenger.trip_count.setValue(3)
     for task in ("trade", "passenger", "battle", "trade"):
         workflow._select_task(task)
-        window._switch_page(window.SETTINGS_PAGE_INDEX)
-        window._switch_page(window.WORKFLOW_PAGE_INDEX)
+        window._switch_page("settings")
+        window._switch_page("workflow")
     assert trade.fatigue_budget.value() == 333
     assert passenger.trip_count.value() == 3
     assert not hasattr(workflow, "trade_fatigue")

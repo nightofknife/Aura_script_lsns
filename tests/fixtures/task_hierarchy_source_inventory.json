@@ -1,0 +1,258 @@
+[
+  {
+    "file": "admit_prisoners_pc.yaml",
+    "key": "admit_prisoners_pc"
+  },
+  {
+    "file": "auto_battle_combat_pc.yaml",
+    "key": "auto_battle_combat_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_ct_tie_an_run_one_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_ct_tie_an_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_ct_regional_ops_run_one_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_ct_regional_ops_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_ct_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_action_summary_run_difficulty_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_action_summary_run_group_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_action_summary_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_structural_run_one_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_structural_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_gp_batch_pc"
+  },
+  {
+    "file": "auto_battle_dispatch_pc.yaml",
+    "key": "auto_battle_dispatch_pc"
+  },
+  {
+    "file": "auto_battle_input_preview_pc.yaml",
+    "key": "auto_battle_input_preview_pc"
+  },
+  {
+    "file": "auto_combined_commerce_pc.yaml",
+    "key": "auto_combined_commerce_pc"
+  },
+  {
+    "file": "auto_cycle_trade_pc.yaml",
+    "key": "auto_cycle_trade_pc"
+  },
+  {
+    "file": "auto_passenger_trips_pc.yaml",
+    "key": "auto_passenger_trips_pc"
+  },
+  {
+    "file": "bento_consumption_pc.yaml",
+    "key": "bento_consumption_pc"
+  },
+  {
+    "file": "black_moon_local_prepare_pc.yaml",
+    "key": "black_moon_local_prepare_pc"
+  },
+  {
+    "file": "black_moon_local_purchase_pc.yaml",
+    "key": "black_moon_local_purchase_pc"
+  },
+  {
+    "file": "black_moon_local_select_pc.yaml",
+    "key": "black_moon_local_select_pc"
+  },
+  {
+    "file": "cape_island_investment_pc.yaml",
+    "key": "cape_island_investment_pc"
+  },
+  {
+    "file": "collect_product_workshops_pc.yaml",
+    "key": "collect_product_workshops_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_capture_pc.yaml",
+    "key": "consciousness_deep_dive_capture_drag_chunk_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_capture_pc.yaml",
+    "key": "consciousness_deep_dive_capture_view_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_capture_pc.yaml",
+    "key": "consciousness_deep_dive_capture_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_cleanup_pc.yaml",
+    "key": "consciousness_deep_dive_cleanup_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_drag_distance_probe_pc.yaml",
+    "key": "consciousness_deep_dive_drag_distance_probe_round_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_drag_distance_probe_pc.yaml",
+    "key": "consciousness_deep_dive_drag_distance_probe_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_entry_card_probe_pc.yaml",
+    "key": "consciousness_deep_dive_entry_card_probe_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_loop_pc.yaml",
+    "key": "consciousness_deep_dive_loop_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_loop_pc.yaml",
+    "key": "deep_dive_cycle_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_pc.yaml",
+    "key": "consciousness_deep_dive_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_plan_pc.yaml",
+    "key": "consciousness_deep_dive_plan_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_planned_run_pc.yaml",
+    "key": "consciousness_deep_dive_planned_run_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_scan_pc.yaml",
+    "key": "consciousness_deep_dive_scan_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_sensitivity_probe_pc.yaml",
+    "key": "consciousness_deep_dive_sensitivity_probe_pc"
+  },
+  {
+    "file": "consciousness_deep_dive_single_run_test_pc.yaml",
+    "key": "consciousness_deep_dive_single_run_test_pc"
+  },
+  {
+    "file": "enter_reforming_center_pc.yaml",
+    "key": "enter_reforming_center_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "eternal_scuffle_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_checked_round_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_checked_pair_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_checked_advance_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_round_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_draft_pair_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_advance_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_loot_pc"
+  },
+  {
+    "file": "eternal_scuffle_pc.yaml",
+    "key": "scuffle_settle_pc"
+  },
+  {
+    "file": "fill_product_workshop_staff_pc.yaml",
+    "key": "fill_product_workshop_staff_pc"
+  },
+  {
+    "file": "game_startup_pc.yaml",
+    "key": "enter_main"
+  },
+  {
+    "file": "game_startup_pc.yaml",
+    "key": "close_game"
+  },
+  {
+    "file": "maintain_raw_material_workshop_pc.yaml",
+    "key": "maintain_raw_material_workshop_pc"
+  },
+  {
+    "file": "maintain_raw_material_workshops_pc.yaml",
+    "key": "maintain_raw_material_workshops_pc"
+  },
+  {
+    "file": "navigate_reforming_center_room_pc.yaml",
+    "key": "navigate_reforming_center_room_pc"
+  },
+  {
+    "file": "open_reforming_center_room_pc.yaml",
+    "key": "open_reforming_center_room_pc"
+  },
+  {
+    "file": "player_data_pc.yaml",
+    "key": "player_data_refresh"
+  },
+  {
+    "file": "player_data_pc.yaml",
+    "key": "player_data_get_latest"
+  },
+  {
+    "file": "preview_trade_plan_pc.yaml",
+    "key": "preview_trade_plan_pc"
+  },
+  {
+    "file": "rubbish_recycling_pc.yaml",
+    "key": "rubbish_recycling_pc"
+  },
+  {
+    "file": "sparkling_water_pc.yaml",
+    "key": "sparkling_water_pc"
+  },
+  {
+    "file": "team_recommendation_pc.yaml",
+    "key": "team_recommendation_pc"
+  },
+  {
+    "file": "trade_goods_investment_pc.yaml",
+    "key": "trade_goods_investment_pc"
+  },
+  {
+    "file": "use_trailer_service_pc.yaml",
+    "key": "use_trailer_service_pc"
+  }
+]

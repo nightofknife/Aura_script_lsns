@@ -122,13 +122,7 @@ def test_poll_failures_request_cancel_without_losing_cid_or_unlocking(monkeypatc
     bridge.busyChanged.connect(busy_changes.append)
     monkeypatch.setattr(bridge, 'refresh_history', lambda: None)
     monkeypatch.setattr(bridge, 'refresh_target', lambda: None)
-    run_next = bridge._run_next
-
-    def track_next():
-        queue_advances.append(True)
-        run_next()
-
-    monkeypatch.setattr(bridge, '_run_next', track_next)
+    monkeypatch.setattr(bridge, "_run_item", lambda item: queue_advances.append(item))
     for _ in range(2):
         bridge.poll_current()
     assert not cancelled
@@ -151,7 +145,7 @@ def test_poll_failures_request_cancel_without_losing_cid_or_unlocking(monkeypatc
     assert not bridge.busy and not bridge.current_cid
     assert len(finished) == 1
     assert busy_changes == [False]
-    assert queue_advances == [True]
+    assert queue_advances == []
 
 
 def test_failed_poll_error_cancellation_keeps_lock_and_retries_until_confirmed_exit(monkeypatch):

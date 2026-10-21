@@ -30,7 +30,7 @@ def test_freight_tasks_load_with_nullable_and_strict_integer_schema():
     assert get_task_schema_validator() is not None
     loader = TaskLoader("resonance_pc", ROOT / "plans/resonance_pc")
     for name in ("auto_cycle_trade_pc", "preview_trade_plan_pc", "auto_combined_commerce_pc"):
-        assert loader.get_task_data(name) is not None
+        assert loader.get_task_data(f"{name}/{name}") is not None
     assert loader.get_task_load_errors() == []
 
 

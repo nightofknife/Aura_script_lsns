@@ -202,9 +202,8 @@ def run_runtime_smoke(release_root: Path) -> None:
     powershell = _resolve_powershell_executable()
     run_script = str(release_root / "run.ps1")
     games = _run_checked([powershell, "-NoProfile", "-File", run_script, "games", "--all"], cwd=repo_root, env=env)
-    if '"game_name": "resonance"' not in games or '"game_name": "resonance_pc"' not in games:
-        raise ValueError("Packaged CLI did not discover both Resonance plans.")
-    _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance"], cwd=repo_root, env=env)
+    if '"game_name": "resonance_pc"' not in games:
+        raise ValueError("Packaged CLI did not discover the Resonance PC plan.")
     _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=repo_root, env=env)
     _run_checked(
         [powershell, "-NoProfile", "-File", run_script, "doctor", "--ocr", "--ocr-provider", "cpu"],

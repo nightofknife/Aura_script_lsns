@@ -54,7 +54,7 @@ def test_main_window_sync_locks_during_work(repository):
         repository.set_value("game/use_input_bridge", "true")
         window._sync_input_bridge_setting()
         assert received[-1] is True
-        for flag in ("_busy", "_workflow_active", "_commerce_active"):
+        for flag in ("_busy", "_workflow_active"):
             setattr(window, flag, True)
             count = len(received)
             window._sync_input_bridge_setting()

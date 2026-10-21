@@ -105,15 +105,6 @@ function Ensure-ReleaseEnvironment {
 function Ensure-ReleaseAssets {
     param([string]$PythonPath)
 
-    $mumuLock = Join-Path $repoRoot ($contract.assets.mumu_lock -replace '/', '\')
-    $mumuArgs = @("scripts\fetch_mumu_runtime_assets.py", "--lock-file", $mumuLock)
-    if ($RefreshAssets) { $mumuArgs += "--force" }
-    if ($Offline) {
-        Invoke-CheckedCommand -FilePath $PythonPath -ArgumentList @("scripts\fetch_mumu_runtime_assets.py", "--check", "--lock-file", $mumuLock)
-    } else {
-        Invoke-CheckedCommand -FilePath $PythonPath -ArgumentList $mumuArgs
-    }
-
     $ocrBundle = Join-Path $repoRoot ($contract.assets.ocr.bundle_directory -replace '/', '\')
     $ocrValidator = Join-Path $repoRoot "scripts\release\validate_ocr_bundle.py"
     $ocrValid = $false
@@ -211,8 +202,7 @@ try {
         )
         if ($selectedProfile -ne "overlay") {
             $infoArgs += @(
-                "--ocr-root", (Join-Path $repoRoot $contract.assets.ocr.bundle_directory),
-                "--mumu-lock", (Join-Path $repoRoot $contract.assets.mumu_lock)
+                "--ocr-root", (Join-Path $repoRoot $contract.assets.ocr.bundle_directory)
             )
         }
         Invoke-CheckedCommand -FilePath $environment.Python -ArgumentList $infoArgs

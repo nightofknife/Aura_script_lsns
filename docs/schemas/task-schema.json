@@ -39,7 +39,7 @@
           "$ref": "#/$defs/StepsMap"
         },
         "returns": {
-          "description": "Task-level return template rendered after successful execution as final user_data."
+          "description": "Task-level business return template rendered as user_data. Child calls require a nonempty declared result; side-effect-only children may explicitly return true."
         }
       },
       "additionalProperties": false
@@ -56,6 +56,13 @@
         "entry_point": {
           "type": "boolean",
           "default": false
+        },
+        "role": {
+          "type": "string",
+          "enum": ["lifecycle", "orchestration", "user_task", "user_tool", "internal", "developer"]
+        },
+        "domain": {
+          "type": "string"
         },
         "inputs": {
           "type": "array",
@@ -309,6 +316,14 @@
                 "properties": {
                   "task_ref": {
                     "type": "string"
+                  },
+                  "result_assertions": {
+                    "description": "Dotted business result field paths and strictly typed expected literals, checked before the calling loop advances.",
+                    "type": ["object", "null"],
+                    "patternProperties": {
+                      "^[^.]+(?:\\.[^.]+)*$": {}
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "not": {

@@ -105,6 +105,8 @@ def games_command(include_shared: bool, runner_mode: str) -> None:
 
 @aura.command("tasks")
 @click.argument("game_name")
+@click.option("--all", "include_all", is_flag=True, help="Include internal tasks and developer tools.")
+@click.option("--developer", is_flag=True, help="List developer tools only.")
 @click.option(
     "--runner",
     "runner_mode",
@@ -112,11 +114,16 @@ def games_command(include_shared: bool, runner_mode: str) -> None:
     default="embedded",
     show_default=True,
 )
-def tasks_command(game_name: str, runner_mode: str) -> None:
+def tasks_command(game_name: str, runner_mode: str, include_all: bool, developer: bool) -> None:
     """List tasks for one game module."""
     runner = _make_runner(runner_mode)
     try:
-        _dump(runner.list_tasks(game_name))
+        rows = runner.list_tasks(game_name)
+        if developer:
+            rows = [row for row in rows if row.get("role") == "developer"]
+        elif not include_all:
+            rows = [row for row in rows if row.get("entry_point")]
+        _dump(rows)
     finally:
         if hasattr(runner, "close"):
             runner.close()

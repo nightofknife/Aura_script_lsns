@@ -163,13 +163,13 @@ def test_bento_count_partial_refresh_preserves_other_resources(panel):
     assert panel.profile_value_labels["sparkling_water"].text() == "剩余免费次数 0 / 6"
 
 
-def test_legacy_profile_time_is_frozen_before_first_partial_refresh(panel):
+def test_missing_profile_section_time_stays_unknown_after_partial_refresh(panel):
     old_time = "2026-09-01T00:00:00Z"
     panel.set_snapshot({"status": {"cargo": {"current": 1, "max": 2}}, "metadata": {"section_updated_at": {"profile": old_time}}})
-    expected = _format_timestamp(old_time) + "（旧记录）"
+    expected = "从未更新"
     assert panel.profile_time_labels["cargo"].text() == expected
     panel.apply_refresh_result({"recovery": {"bento_count": {"count": 2}}, "metadata": {"persisted": True, "section_updated_at": {"profile": "new"}, "profile_section_updated_at": {"bento_count": "new"}}})
-    assert panel._snapshot["metadata"]["profile_legacy_updated_at"] == old_time
+    assert "profile_legacy_updated_at" not in panel._snapshot["metadata"]
     assert panel.profile_time_labels["cargo"].text() == expected
     assert panel.profile_time_labels["bento_count"].text() == "new"
     assert panel.profile_time_labels["sparkling_water"].text() == "从未更新"

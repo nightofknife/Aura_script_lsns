@@ -1,8 +1,10 @@
 cape_island_investment_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Cape Island Investment (PC)
     description: Enter Mirage Island from the Cape City main screen, invest once when possible, and return.
-    entry_point: true
+    entry_point: false
   steps:
     require_resolution:
       action: resonance_pc.require_client_resolution

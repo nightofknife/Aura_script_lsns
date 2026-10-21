@@ -24,7 +24,6 @@ def test_required_packages_are_discoverable() -> None:
     assert {
         "plans/aura_base",
         "plans/aura_benchmark",
-        "plans/resonance",
         "plans/resonance_pc",
     }.issubset(packages)
 
@@ -32,5 +31,4 @@ def test_required_packages_are_discoverable() -> None:
 def test_required_plan_catalogs_are_loadable() -> None:
     packages = _discover_packages()
 
-    assert packages["plans/resonance"].exports.tasks
     assert packages["plans/resonance_pc"].exports.tasks

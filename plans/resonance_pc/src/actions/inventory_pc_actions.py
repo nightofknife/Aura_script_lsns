@@ -1679,7 +1679,7 @@ def read_inventory_category(
     category: str,
     catalog: Optional[Dict[str, Any]] = None,
     catalog_path: Optional[Path] = None,
-    max_scrolls: int = _DEFAULT_MAX_SCROLLS,
+    max_scrolls: int | None = None,
 ) -> Dict[str, Any]:
     """Read one supported category until three scans add no new physical stacks."""
 
@@ -1704,6 +1704,8 @@ def read_inventory_category(
     if not isinstance(prepared_catalog.get("_template_paths"), list):
         _resolve_inventory_template_paths(prepared_catalog, vision)
     if normalized_category == "equipment":
+        if max_scrolls is not None:
+            raise ValueError("max_scrolls applies only to item and material quantity scans")
         return _read_equipment_presence(
             app, ocr, vision, prepared_catalog,
         )
@@ -1766,7 +1768,7 @@ def read_inventory_category(
         if scans_without_new_items >= 3:
             completion_reason = "three_consecutive_scans_without_new_items"
             break
-        if pages_scanned > max(int(max_scrolls), 0):
+        if pages_scanned > max(int(_DEFAULT_MAX_SCROLLS if max_scrolls is None else max_scrolls), 0):
             raise _inventory_error("warehouse scan exceeded maximum scroll count")
         previous_image = page_image
         previous_observations = page_observations
@@ -1883,9 +1885,8 @@ def read_inventory_equipment(
     *,
     catalog: Optional[Dict[str, Any]] = None,
     catalog_path: Optional[Path] = None,
-    max_scrolls: int = _DEFAULT_MAX_SCROLLS,
 ) -> Dict[str, Any]:
-    """Read equipment ownership; legacy max_scrolls is accepted but ignored."""
+    """Read equipment ownership until all supported equipment or an unchanged grid."""
 
     return read_inventory_category(
         app,
@@ -1894,5 +1895,4 @@ def read_inventory_equipment(
         category="equipment",
         catalog=catalog,
         catalog_path=catalog_path,
-        max_scrolls=max_scrolls,
     )

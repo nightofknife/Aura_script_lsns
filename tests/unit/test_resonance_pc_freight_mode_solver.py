@@ -656,7 +656,12 @@ def test_randomized_all_objectives_and_complete_tie_order_against_exhaustive_ora
                 if mode == "target":
                     assert actual["maximum_reachable_profit"] == maximum
                 if mode in {"profit", "quick"} and books is not None:
-                    assert semantic(solve(model, _backend="dense", **args)) == semantic(
-                        solve(model, _backend="sparse", **args))
+                    backend = actual.get("solver_backend")
+                    if actual["status"] == "ok" and backend in {"dense", "sparse"}:
+                        other_backend = "sparse" if backend == "dense" else "dense"
+                        assert semantic(actual) == semantic(solve(model, _backend=other_backend, **args))
+                    else:
+                        assert semantic(solve(model, _backend="dense", **args)) == semantic(
+                            solve(model, _backend="sparse", **args))
             except AssertionError as exc:
                 raise AssertionError(f"case={case}, args={args}, expected={expected}, actual={actual}") from exc

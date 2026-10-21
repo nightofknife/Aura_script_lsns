@@ -18,7 +18,7 @@ def task():
 
 def test_independent_task_is_also_callable_from_freight():
     spec = task()
-    assert spec["meta"]["entry_point"] is True
+    assert spec["meta"]["role"] == "internal" and spec["meta"]["entry_point"] is False
     assert spec["meta"]["concurrency"] == "exclusive"
     assert spec["steps"]["consume"]["action"] == "resonance_pc.consume_bentos_to_floor"
     assert {"success", "status", "reason", "page_state", "consumed_count", "completed_count",

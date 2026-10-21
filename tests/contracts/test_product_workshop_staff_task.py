@@ -42,7 +42,7 @@ def run_staffing(overrides=None, inputs=None, selection_action="selected", missi
                 value = {"success": True, "reason": ""}
             elif node_id == "navigate":
                 if missing_navigation:
-                    return {"nodes": {}}
+                    return {}
                 value = {"success": True, "room_entered": True,
                          "room_name": params["inputs"]["room_name"], "reason": ""}
             else:
@@ -56,8 +56,8 @@ def run_staffing(overrides=None, inputs=None, selection_action="selected", missi
                              page_after="reforming_center_overview" if node_id == "return_overview" else "editor")
             value = deepcopy((overrides or {}).get(node_id, value))
             if node_id == "navigate":
-                # aura.run_task returns the child's framework_data, not its returns.
-                return {"nodes": {"open_room": {"output": value, "run_state": {"status": "SUCCESS"}}}}
+                # Child operations export stable business results.
+                return value
             return value
 
         engine.node_executor.execute_single_action = execute
@@ -86,7 +86,7 @@ def test_schema_inputs_and_native_workflow_order():
     navigation = spec["steps"]["navigate"]
     assert navigation["action"] == "aura.run_task"
     assert navigation["params"]["task_ref"] == "tasks:open_reforming_center_room_pc.yaml:open_reforming_center_room_pc"
-    assert "outputs" in navigation
+    assert "outputs" not in navigation
     for step in STEPS:
         node = spec["steps"][step]
         assert node["action"] == "resonance_pc.product_workshop_staff_step"
@@ -240,7 +240,7 @@ def test_invalid_or_missing_public_inputs_rejected_before_navigation(inputs):
 def test_generated_manifest_exports_public_task_and_actions():
     manifest = yaml.safe_load((ROOT / "plans/resonance_pc/manifest.yaml").read_text(encoding="utf-8"))
     tasks = {row["id"]: row for row in manifest["exports"]["tasks"]}
-    for key in (TASK, f"{TASK}/{TASK}"):
+    for key in (f"{TASK}/{TASK}",):
         assert tasks[key]["source"] == f"tasks/{TASK}.yaml"
         assert tasks[key]["title"] == "生产车间补人"
     actions = {row["name"]: row for row in manifest["exports"]["actions"]}

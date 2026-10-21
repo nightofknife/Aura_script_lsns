@@ -25,19 +25,18 @@ from PySide6.QtWidgets import (
 
 
 class ConsciousnessDeepDivePanel(QWidget):
-    runRequested = Signal()
-    runSingleRunRequested = Signal(object)
     runLoopRequested = Signal(object)
     runScanRequested = Signal()
     runPlanRequested = Signal(object)
     runPlannedRunRequested = Signal(object)
     cancelRequested = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, developer_mode: bool = False) -> None:
         super().__init__(parent)
+        self._developer_mode = developer_mode
         self._runner_busy = False
         self._task_running = False
-        self._mode = "entry"
+        self._mode = ""
         self._scan_report_path = ""
         self._plan_report_path = ""
         self._planned_run_snapshot: dict[str, Any] = {}
@@ -59,7 +58,7 @@ class ConsciousnessDeepDivePanel(QWidget):
 
         title = QLabel("识海深潜", self)
         title.setObjectName("workflowTitle")
-        note = QLabel("进入关卡并停留在识海深潜棋盘。", self)
+        note = QLabel("完整随机循环从活动首页开始；关卡内规划运行从当前棋盘或位面间隙开始。", self)
         note.setWordWrap(True)
         note.setProperty("caption", True)
         layout.addWidget(title)
@@ -76,109 +75,99 @@ class ConsciousnessDeepDivePanel(QWidget):
         self.summary_label.setProperty("caption", True)
         layout.addWidget(self.summary_label)
 
-        test_note = QLabel("单局测试从已打开的魔方界面开始，结算时停止并保留画面。", self)
-        test_note.setWordWrap(True)
-        test_note.setProperty("caption", True)
-        layout.addWidget(test_note)
-        budget_row = QHBoxLayout()
-        budget_row.addWidget(QLabel("回合安全上限", self))
-        self.round_budget_spin = QSpinBox(self)
-        self.round_budget_spin.setRange(1, 100)
-        self.round_budget_spin.setValue(20)
-        budget_row.addWidget(self.round_budget_spin)
-        budget_row.addStretch(1)
-        layout.addLayout(budget_row)
-        loop_row = QHBoxLayout()
-        loop_row.addWidget(QLabel('循环次数（-1 持续循环）', self))
-        self.loop_count_spin = QSpinBox(self)
-        self.loop_count_spin.setRange(-1, 2147483647)
-        self.loop_count_spin.setValue(1)
-        loop_row.addWidget(self.loop_count_spin)
-        loop_row.addStretch(1)
-        layout.addLayout(loop_row)
-        loop_note = QLabel('完整循环从活动首页开始，回到首页后才计为完成一局。',self)
-        loop_note.setWordWrap(True)
-        layout.addWidget(loop_note)
-        planned_run_note = QLabel(
-            "关卡内自动运行从玩家棋盘或位面间隙开始，实时扫描、规划并执行行动。"
-            "队员不足五人时暂停；到达结算后保存结果并保留画面。", self
-        )
-        planned_run_note.setWordWrap(True)
-        planned_run_note.setProperty("caption", True)
-        layout.addWidget(planned_run_note)
-        planned_run_options = QHBoxLayout()
-        planned_run_options.addWidget(QLabel("运行策略", self))
-        self.planned_run_strategy_combo = QComboBox(self)
-        self.planned_run_strategy_combo.addItem("只追奇点", "chase")
-        self.planned_run_strategy_combo.addItem("灵感收益优先", "inspiration")
-        planned_run_options.addWidget(self.planned_run_strategy_combo)
-        planned_run_options.addWidget(QLabel("自动运行回合安全上限", self))
-        self.planned_run_safety_limit_spin = QSpinBox(self)
-        self.planned_run_safety_limit_spin.setRange(1, 100)
-        self.planned_run_safety_limit_spin.setValue(100)
-        planned_run_options.addWidget(self.planned_run_safety_limit_spin)
-        planned_run_options.addStretch(1)
-        layout.addLayout(planned_run_options)
-        self.planned_run_button = QPushButton("关卡内自动运行", self)
-        self.planned_run_button.clicked.connect(self._request_planned_run)
-        layout.addWidget(self.planned_run_button)
-        scan_note = QLabel("布局扫描从魔方界面开始，拖动观察六面并导出目标位置和节点图标，供人工对照。", self)
-        scan_note.setWordWrap(True)
-        scan_note.setProperty("caption", True)
-        layout.addWidget(scan_note)
-        scan_row = QHBoxLayout()
-        self.scan_button = QPushButton("扫描魔方布局", self)
-        self.scan_button.clicked.connect(self.runScanRequested.emit)
-        scan_row.addWidget(self.scan_button)
-        self.scan_report_button = QPushButton("打开扫描报告", self)
-        self.scan_report_button.setEnabled(False)
-        self.scan_report_button.clicked.connect(self._open_scan_report)
-        scan_row.addWidget(self.scan_report_button)
-        scan_row.addStretch(1)
-        layout.addLayout(scan_row)
+        if not self._developer_mode:
+            loop_row = QHBoxLayout()
+            loop_row.addWidget(QLabel('循环次数（-1 持续循环）', self))
+            self.loop_count_spin = QSpinBox(self)
+            self.loop_count_spin.setRange(-1, 2147483647)
+            self.loop_count_spin.setValue(1)
+            loop_row.addWidget(self.loop_count_spin)
+            loop_row.addStretch(1)
+            layout.addLayout(loop_row)
+            loop_note = QLabel('完整循环从活动首页开始，回到首页后才计为完成一局。',self)
+            loop_note.setWordWrap(True)
+            layout.addWidget(loop_note)
+            planned_run_note = QLabel(
+                "关卡内自动运行从玩家棋盘或位面间隙开始，实时扫描、规划并执行行动。"
+                "队员不足五人时暂停；到达结算后保存结果并保留画面。", self
+            )
+            planned_run_note.setWordWrap(True)
+            planned_run_note.setProperty("caption", True)
+            layout.addWidget(planned_run_note)
+            planned_run_options = QHBoxLayout()
+            planned_run_options.addWidget(QLabel("运行策略", self))
+            self.planned_run_strategy_combo = QComboBox(self)
+            self.planned_run_strategy_combo.addItem("只追奇点", "chase")
+            self.planned_run_strategy_combo.addItem("灵感收益优先", "inspiration")
+            planned_run_options.addWidget(self.planned_run_strategy_combo)
+            planned_run_options.addWidget(QLabel("自动运行回合安全上限", self))
+            self.planned_run_safety_limit_spin = QSpinBox(self)
+            self.planned_run_safety_limit_spin.setRange(1, 100)
+            self.planned_run_safety_limit_spin.setValue(100)
+            planned_run_options.addWidget(self.planned_run_safety_limit_spin)
+            planned_run_options.addStretch(1)
+            layout.addLayout(planned_run_options)
+            self.planned_run_button = QPushButton("关卡内自动运行", self)
+            self.planned_run_button.clicked.connect(self._request_planned_run)
+            layout.addWidget(self.planned_run_button)
+        if self._developer_mode:
+            scan_note = QLabel("布局扫描从魔方界面开始，拖动观察六面并导出目标位置和节点图标，供人工对照。", self)
+            scan_note.setWordWrap(True)
+            scan_note.setProperty("caption", True)
+            layout.addWidget(scan_note)
+            scan_row = QHBoxLayout()
+            self.scan_button = QPushButton("扫描魔方布局", self)
+            self.scan_button.clicked.connect(self.runScanRequested.emit)
+            scan_row.addWidget(self.scan_button)
+            self.scan_report_button = QPushButton("打开扫描报告", self)
+            self.scan_report_button.setEnabled(False)
+            self.scan_report_button.clicked.connect(self._open_scan_report)
+            scan_row.addWidget(self.scan_report_button)
+            scan_row.addStretch(1)
+            layout.addLayout(scan_row)
 
-        plan_note = QLabel(
-            "移动规划默认使用最近一次完整扫描或目标已确认的扫描，也可选择已有布局 JSON。"
-            "请确认游戏布局仍与扫描一致。生成方案仅离线计算，不会操作游戏。", self
-        )
-        plan_note.setWordWrap(True)
-        plan_note.setProperty("caption", True)
-        layout.addWidget(plan_note)
-        plan_options = QHBoxLayout()
-        plan_options.addWidget(QLabel("规划策略", self))
-        self.plan_strategy_combo = QComboBox(self)
-        self.plan_strategy_combo.addItem("只追奇点", "chase")
-        self.plan_strategy_combo.addItem("灵感收益优先", "inspiration")
-        plan_options.addWidget(self.plan_strategy_combo)
-        plan_options.addWidget(QLabel("规划回合数", self))
-        self.plan_turn_budget_spin = QSpinBox(self)
-        self.plan_turn_budget_spin.setRange(1, 30)
-        self.plan_turn_budget_spin.setValue(6)
-        plan_options.addWidget(self.plan_turn_budget_spin)
-        plan_options.addStretch(1)
-        layout.addLayout(plan_options)
-        layout_row = QHBoxLayout()
-        self.plan_layout_edit = QLineEdit(self)
-        self.plan_layout_edit.setReadOnly(True)
-        self.plan_layout_edit.setPlaceholderText("自动使用最近可规划扫描")
-        layout_row.addWidget(self.plan_layout_edit, 1)
-        self.plan_layout_button = QPushButton("选择布局", self)
-        self.plan_layout_button.clicked.connect(self._select_plan_layout)
-        layout_row.addWidget(self.plan_layout_button)
-        self.plan_latest_button = QPushButton("使用最近扫描", self)
-        self.plan_latest_button.clicked.connect(self.plan_layout_edit.clear)
-        layout_row.addWidget(self.plan_latest_button)
-        layout.addLayout(layout_row)
-        plan_actions = QHBoxLayout()
-        self.plan_button = QPushButton("生成移动方案", self)
-        self.plan_button.clicked.connect(self._request_plan)
-        plan_actions.addWidget(self.plan_button)
-        self.plan_report_button = QPushButton("打开方案", self)
-        self.plan_report_button.setEnabled(False)
-        self.plan_report_button.clicked.connect(self._open_plan_report)
-        plan_actions.addWidget(self.plan_report_button)
-        plan_actions.addStretch(1)
-        layout.addLayout(plan_actions)
+            plan_note = QLabel(
+                "移动规划默认使用最近一次完整扫描或目标已确认的扫描，也可选择已有布局 JSON。"
+                "请确认游戏布局仍与扫描一致。生成方案仅离线计算，不会操作游戏。", self
+            )
+            plan_note.setWordWrap(True)
+            plan_note.setProperty("caption", True)
+            layout.addWidget(plan_note)
+            plan_options = QHBoxLayout()
+            plan_options.addWidget(QLabel("规划策略", self))
+            self.plan_strategy_combo = QComboBox(self)
+            self.plan_strategy_combo.addItem("只追奇点", "chase")
+            self.plan_strategy_combo.addItem("灵感收益优先", "inspiration")
+            plan_options.addWidget(self.plan_strategy_combo)
+            plan_options.addWidget(QLabel("规划回合数", self))
+            self.plan_turn_budget_spin = QSpinBox(self)
+            self.plan_turn_budget_spin.setRange(1, 30)
+            self.plan_turn_budget_spin.setValue(6)
+            plan_options.addWidget(self.plan_turn_budget_spin)
+            plan_options.addStretch(1)
+            layout.addLayout(plan_options)
+            layout_row = QHBoxLayout()
+            self.plan_layout_edit = QLineEdit(self)
+            self.plan_layout_edit.setReadOnly(True)
+            self.plan_layout_edit.setPlaceholderText("自动使用最近可规划扫描")
+            layout_row.addWidget(self.plan_layout_edit, 1)
+            self.plan_layout_button = QPushButton("选择布局", self)
+            self.plan_layout_button.clicked.connect(self._select_plan_layout)
+            layout_row.addWidget(self.plan_layout_button)
+            self.plan_latest_button = QPushButton("使用最近扫描", self)
+            self.plan_latest_button.clicked.connect(self.plan_layout_edit.clear)
+            layout_row.addWidget(self.plan_latest_button)
+            layout.addLayout(layout_row)
+            plan_actions = QHBoxLayout()
+            self.plan_button = QPushButton("生成移动方案", self)
+            self.plan_button.clicked.connect(self._request_plan)
+            plan_actions.addWidget(self.plan_button)
+            self.plan_report_button = QPushButton("打开方案", self)
+            self.plan_report_button.setEnabled(False)
+            self.plan_report_button.clicked.connect(self._open_plan_report)
+            plan_actions.addWidget(self.plan_report_button)
+            plan_actions.addStretch(1)
+            layout.addLayout(plan_actions)
         self.plan_details = QPlainTextEdit(self)
         self.plan_details.setReadOnly(True)
         self.plan_details.setMaximumHeight(180)
@@ -202,20 +191,10 @@ class ConsciousnessDeepDivePanel(QWidget):
         self.cancel_button.setEnabled(False)
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
         entry_actions.addWidget(self.cancel_button)
-        self.run_button = QPushButton("开始下潜", action_band)
-        self.run_button.setObjectName("primaryButton")
-        self.run_button.clicked.connect(self.runRequested.emit)
-        entry_actions.addWidget(self.run_button)
-        run_actions = QHBoxLayout()
-        action_layout.addLayout(run_actions)
-        self.test_button = QPushButton("测试移动循环", action_band)
-        self.test_button.clicked.connect(
-            lambda: self.runSingleRunRequested.emit({"round_budget": self.round_budget_spin.value()})
-        )
-        run_actions.addWidget(self.test_button)
-        self.loop_button = QPushButton('开始完整循环',action_band)
-        self.loop_button.clicked.connect(self._request_loop)
-        run_actions.addWidget(self.loop_button)
+        if not self._developer_mode:
+            self.loop_button = QPushButton("开始完整随机循环", action_band)
+            self.loop_button.clicked.connect(self._request_loop)
+            entry_actions.addWidget(self.loop_button)
         root.addWidget(action_band)
 
     def begin_scan(self) -> None:
@@ -460,13 +439,6 @@ class ConsciousnessDeepDivePanel(QWidget):
             else:
                 self._set_result_status("扫描报告文件不存在，请查看输出目录。", "error")
 
-    def begin_run(self) -> None:
-        self._mode = "entry"
-        self._task_running = True
-        self.summary_label.clear()
-        self._set_result_status("正在进入识海深潜关卡……", "running")
-        self._set_run_status("正在进入关卡……", "running")
-        self._sync_controls()
 
     def _request_loop(self):
         value=self.loop_count_spin.value()
@@ -503,97 +475,23 @@ class ConsciousnessDeepDivePanel(QWidget):
     def show_loop_error(self,message):
         self.apply_loop_result({'reason':message,'success':False})
 
-    def begin_single_run(self) -> None:
-        self._mode = "single_run"
-        self._task_running = True
-        self.summary_label.clear()
-        self._set_result_status("正在运行魔方单局测试……", "running")
-        self._set_run_status("测试运行中", "running")
-        self._sync_controls()
-
-    def apply_single_run_result(self, payload: Mapping[str, Any]) -> None:
-        self._task_running = False
-        status = str(payload.get("status") or "")
-        turns = int(payload.get("turns_completed") or 0)
-        frame = str(payload.get("last_frame") or "")
-        self.summary_label.setText(
-            f"已确认 {turns} 回合 · 截图：{frame or '未保存'}"
-        )
-        if status == "completed" and payload.get("terminal") == "settlement":
-            outcome = {"failure": "失败结算", "victory": "胜利结算"}.get(
-                str(payload.get("outcome") or ""), "结算"
-            )
-            self._set_result_status(f"已到达{outcome}，画面保持不动", "success")
-            self._set_run_status("测试完成", "success")
-        else:
-            reason = str(payload.get("reason") or "未能确认下一步画面")
-            self._set_result_status(f"单局测试停止：{reason}", "error")
-            self._set_run_status("待补样本", "error")
-        self._sync_controls()
-
-    def show_single_run_error(self, message: str) -> None:
-        self._mode = "single_run"
-        self._task_running = False
-        self.summary_label.clear()
-        self._set_result_status(f"单局测试失败：{message}", "error")
-        self._set_run_status("测试失败", "error")
-        self._sync_controls()
-
-    def apply_result(self, payload: Mapping[str, Any]) -> None:
-        self._task_running = False
-        status = str(payload.get("status") or "")
-        page_state = str(payload.get("page_state") or "")
-        if status != "completed" or page_state != "deep_dive_board":
-            self.show_error(str(payload.get("reason") or "任务未进入识海深潜棋盘。"))
-            return
-
-        transitions = payload.get("transitions")
-        transition_rows = list(transitions) if isinstance(transitions, list) else []
-        click_attempts = sum(
-            int(row.get("click_attempts") or 0)
-            for row in transition_rows
-            if isinstance(row, Mapping)
-        )
-        elapsed_ms = int(payload.get("elapsed_ms") or 0)
-        self.summary_label.setText(
-            f"完成 {len(transition_rows)} 个页面转换 · 点击 {click_attempts} 次 · "
-            f"耗时 {elapsed_ms / 1000:.1f} 秒"
-        )
-        self._set_result_status("已进入识海深潜棋盘", "success")
-        self._set_run_status("进入完成", "success")
-        self._sync_controls()
-
-    def show_error(self, message: str) -> None:
-        self._task_running = False
-        text = str(message or "未知错误")
-        self.summary_label.clear()
-        self._set_result_status(f"进入失败：{text}", "error")
-        self._set_run_status("进入失败", "error")
-        self._sync_controls()
 
     def set_runner_busy(self, busy: bool) -> None:
         self._runner_busy = bool(busy)
         self._sync_controls()
 
     def _sync_controls(self) -> None:
-        self.run_button.setEnabled(not self._runner_busy and not self._task_running)
-        self.test_button.setEnabled(not self._runner_busy and not self._task_running)
-        self.scan_button.setEnabled(not self._runner_busy and not self._task_running)
         idle = not self._runner_busy and not self._task_running
-        self.plan_button.setEnabled(idle)
-        self.planned_run_button.setEnabled(idle)
-        self.planned_run_strategy_combo.setEnabled(idle)
-        self.planned_run_safety_limit_spin.setEnabled(idle)
-        self.plan_strategy_combo.setEnabled(idle)
-        self.plan_turn_budget_spin.setEnabled(idle)
-        self.plan_layout_button.setEnabled(idle)
-        self.plan_latest_button.setEnabled(idle)
-        self.plan_layout_edit.setEnabled(idle)
-        self.plan_report_button.setEnabled(bool(self._plan_report_path) and not self._task_running)
-        self.scan_report_button.setEnabled(bool(self._scan_report_path) and not self._task_running)
-        self.round_budget_spin.setEnabled(not self._runner_busy and not self._task_running)
-        self.loop_button.setEnabled(not self._runner_busy and not self._task_running)
-        self.loop_count_spin.setEnabled(not self._runner_busy and not self._task_running)
+        for name in ("loop_button", "loop_count_spin", "planned_run_button",
+                     "planned_run_strategy_combo", "planned_run_safety_limit_spin",
+                     "scan_button", "plan_button", "plan_strategy_combo", "plan_turn_budget_spin",
+                     "plan_layout_button", "plan_latest_button", "plan_layout_edit"):
+            control = getattr(self, name, None)
+            if control is not None:
+                control.setEnabled(idle)
+        if self._developer_mode:
+            self.plan_report_button.setEnabled(bool(self._plan_report_path) and not self._task_running)
+            self.scan_report_button.setEnabled(bool(self._scan_report_path) and not self._task_running)
         self.cancel_button.setEnabled(self._runner_busy and self._task_running)
 
     def _set_result_status(self, text: str, state: str) -> None:

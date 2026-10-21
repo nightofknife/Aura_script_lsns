@@ -121,9 +121,9 @@ def run_child(monkeypatch, framework, table=None):
     return result, calls
 
 
-def test_child_adapter_uses_finish_visit_and_frozen_purchase_map(monkeypatch):
+def test_child_adapter_uses_declared_receipt_and_frozen_purchase_map(monkeypatch):
     source = dict(TABLE)
-    result, calls = run_child(monkeypatch, {"nodes": {"finish_visit": {"output": child_result()}}}, source)
+    result, calls = run_child(monkeypatch, child_result(), source)
     assert result["reason"] == "no_matching_goods"
     name, params = calls[0]
     assert name == "aura.run_task"
@@ -145,7 +145,7 @@ def test_child_adapter_uses_finish_visit_and_frozen_purchase_map(monkeypatch):
 ])
 def test_child_adapter_rejects_malformed_receipt_and_wrong_endpoint(monkeypatch, changes):
     with pytest.raises(flow.CityTradeFlowError, match="Local purchase"):
-        run_child(monkeypatch, {"nodes": {"finish_visit": {"output": child_result(**changes)}}})
+        run_child(monkeypatch, child_result(**changes))
 
 
 def test_child_adapter_rejects_old_monolithic_node(monkeypatch):
@@ -337,7 +337,7 @@ def test_purchase_failure_stops_route_before_next_trade_and_cleans_state(route_h
 def test_child_adapter_accepts_selected_product_presence_without_card_counts(monkeypatch):
     expected = child_result(has_selected_goods=True, matched_item_ids=["purchase_order_book"],
                             reason="wishlist_processed", purchase_verified=True)
-    result, _ = run_child(monkeypatch, {"nodes": {"finish_visit": {"output": expected}}})
+    result, _ = run_child(monkeypatch, expected)
     assert result == expected
     assert "selected_card_count" not in result and "selected_items" not in result
 

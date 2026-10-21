@@ -61,44 +61,51 @@ def test_default_disabled_and_not_registered_as_gui_task(page, repository):
     assert not any("investment" in key for key, _ in SMALL_TASKS + WORKFLOW_TASKS)
 
 
-@pytest.mark.parametrize("mode", range(1, 21))
-def test_enabled_mode_round_trip_and_busy_controls(page, repository, mode):
-    page.auto_trade_goods_investment.setChecked(True)
-    page.trade_goods_investment_mode.setValue(mode)
-    assert page.collect_task_inputs()["auto_trade_goods_investment"] is True
-    assert page.collect_task_inputs()["trade_goods_investment_mode"] == mode
-    page.save_ui_state()
-    loaded = repository.load_trade_inputs()
-    assert loaded["auto_trade_goods_investment"] is True
-    assert loaded["trade_goods_investment_mode"] == mode
-    page.trade_goods_investment_mode.setValue(10)
-    page.set_inputs(loaded)
-    assert page.trade_goods_investment_mode.value() == mode
-    assert normalize_trade_task_inputs(loaded)["trade_goods_investment_mode"] == mode
-    page.set_busy(True)
-    assert not page.auto_trade_goods_investment.isEnabled()
-    assert not page.trade_goods_investment_mode.isEnabled()
-    page.set_busy(False)
-    assert page.trade_goods_investment_mode.isEnabled()
-    page.auto_trade_goods_investment.setChecked(False)
-    assert not page.trade_goods_investment_mode.isEnabled()
-    assert page.trade_goods_investment_mode.value() == mode
+def test_enabled_mode_round_trip_and_busy_controls(page, repository):
+    baseline = page.collect_ui_state()
+    for mode in range(1, 21):
+        page.set_busy(False)
+        page.set_inputs(baseline)
+        page.auto_trade_goods_investment.setChecked(True)
+        page.trade_goods_investment_mode.setValue(mode)
+        assert page.collect_task_inputs()["auto_trade_goods_investment"] is True, mode
+        assert page.collect_task_inputs()["trade_goods_investment_mode"] == mode, mode
+        page.save_ui_state()
+        loaded = repository.load_trade_inputs()
+        assert loaded["auto_trade_goods_investment"] is True, mode
+        assert loaded["trade_goods_investment_mode"] == mode, mode
+        page.trade_goods_investment_mode.setValue(10)
+        page.set_inputs(loaded)
+        assert page.trade_goods_investment_mode.value() == mode, mode
+        assert normalize_trade_task_inputs(loaded)["trade_goods_investment_mode"] == mode, mode
+        page.set_busy(True)
+        assert not page.auto_trade_goods_investment.isEnabled(), mode
+        assert not page.trade_goods_investment_mode.isEnabled(), mode
+        page.set_busy(False)
+        assert page.trade_goods_investment_mode.isEnabled(), mode
+        page.auto_trade_goods_investment.setChecked(False)
+        assert not page.trade_goods_investment_mode.isEnabled(), mode
+        assert page.trade_goods_investment_mode.value() == mode, mode
 
 
-@pytest.mark.parametrize("value", [None, "unlock", "balanced", "full", "10", "invalid", True, False, 1.0, 10.5, [], {}, -1, 0, 21])
-def test_invalid_mode_rejected(page, repository, value):
-    with pytest.raises(ValueError, match="交易品投资目标等级"):
-        normalize_trade_task_inputs({"trade_goods_investment_mode": value})
+def test_invalid_mode_rejected(page, repository):
+    baseline = page.collect_ui_state()
     page.save_ui_state()
     previous = repository.settings.value("trade/two_mode_inputs_json")
-    with pytest.raises(ValueError, match="交易品投资目标等级"):
-        repository.save_trade_inputs({"trade_goods_investment_mode": value})
-    assert repository.settings.value("trade/two_mode_inputs_json") == previous
-    with pytest.raises(ValueError, match="交易品投资目标等级"):
-        page.set_inputs({"trade_goods_investment_mode": value})
-    repository.settings.setValue("trade/two_mode_inputs_json", json.dumps({"trade_goods_investment_mode": value}))
-    with pytest.raises(ValueError, match="交易品投资目标等级"):
-        repository.load_trade_inputs()
+    for value in (None, "unlock", "balanced", "full", "10", "invalid", True, False, 1.0, 10.5, [], {}, -1, 0, 21):
+        # Invalid stored JSON from the previous case must not become its baseline.
+        repository.settings.setValue("trade/two_mode_inputs_json", previous)
+        page.set_inputs(baseline)
+        with pytest.raises(ValueError, match="交易品投资目标等级"):
+            normalize_trade_task_inputs({"trade_goods_investment_mode": value})
+        with pytest.raises(ValueError, match="交易品投资目标等级"):
+            repository.save_trade_inputs({"trade_goods_investment_mode": value})
+        assert repository.settings.value("trade/two_mode_inputs_json") == previous, value
+        with pytest.raises(ValueError, match="交易品投资目标等级"):
+            page.set_inputs({"trade_goods_investment_mode": value})
+        repository.settings.setValue("trade/two_mode_inputs_json", json.dumps({"trade_goods_investment_mode": value}))
+        with pytest.raises(ValueError, match="交易品投资目标等级"):
+            repository.load_trade_inputs()
 
 
 def test_missing_level_loads_default_and_malformed_json_keeps_existing_fallback(repository):

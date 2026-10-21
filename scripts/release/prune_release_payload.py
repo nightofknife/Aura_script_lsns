@@ -67,7 +67,6 @@ def classify_runtime_file(relative: Path) -> str | None:
         ("_internal", "onnxruntime", "quantization"),
         ("_internal", "onnxruntime", "tools"),
         ("_internal", "onnxruntime", "transformers"),
-        ("_internal", "av", "datasets"),
     }:
         return "unused_dependency_data"
     if (

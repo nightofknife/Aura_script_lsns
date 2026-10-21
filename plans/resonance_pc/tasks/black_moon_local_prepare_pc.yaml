@@ -1,8 +1,10 @@
 black_moon_local_prepare_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Black Moon Local Shopping Preparation (PC)
     description: Start at the guaranteed rest menu and stop at confirmed LOCAL batch mode without purchasing.
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
   steps:
     require_resolution:

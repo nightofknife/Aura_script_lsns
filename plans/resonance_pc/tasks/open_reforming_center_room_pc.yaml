@@ -1,8 +1,10 @@
 open_reforming_center_room_pc:
   meta:
+    role: internal
+    domain: 整顿中心
     title: Open Reforming Center Room (PC)
     description: 从普通整顿中心总览通过图像模板定位并点击指定房间，按房间类型进入功能页面；不使用 OCR，仅有建设按钮的房间只选中，不进行建设。调用方负责保证普通总览起点，本任务不识别初始页面、不返回总览。
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: room_name

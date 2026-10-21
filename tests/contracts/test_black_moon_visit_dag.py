@@ -56,7 +56,7 @@ class City:
 def task():
     assert get_task_schema_validator() is not None
     loader = TaskLoader("resonance_pc", ROOT / "plans/resonance_pc")
-    result = loader.get_task_data(NAME)
+    result = loader.get_task_data(f"{NAME}/{NAME}")
     assert result is not None and loader.get_task_load_errors() == []
     return result
 

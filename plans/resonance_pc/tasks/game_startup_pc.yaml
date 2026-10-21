@@ -1,5 +1,7 @@
 enter_main:
   meta:
+    role: lifecycle
+    domain: 生命周期
     title: Enter Resonance Main Screen (PC)
     description: Start Resonance PC when needed and restore it to the main screen.
     entry_point: true
@@ -54,6 +56,8 @@ enter_main:
 
 close_game:
   meta:
+    role: lifecycle
+    domain: 生命周期
     title: Close Resonance Game (PC)
     description: Close the verified Resonance PC window and process.
     entry_point: true

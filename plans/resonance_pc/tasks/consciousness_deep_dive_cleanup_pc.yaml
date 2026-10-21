@@ -1,8 +1,10 @@
 consciousness_deep_dive_cleanup_pc:
   meta:
+    role: internal
+    domain: 活动玩法
     title: 识海深潜结算收尾（PC）
     description: 独立从结算第一页或详情页返回活动首页，确认开始下潜入口后停止，不启动下一局。
-    entry_point: true
+    entry_point: false
     inputs: []
 
   steps:
@@ -26,4 +28,5 @@ consciousness_deep_dive_cleanup_pc:
         session_key: "{{ nodes.initialize.output.session_key }}"
 
   returns:
+    session_key: "{{ nodes.initialize.output.session_key }}"
     deep_dive_cleanup: "{{ nodes.finish.output }}"

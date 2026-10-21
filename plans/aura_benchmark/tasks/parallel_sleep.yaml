@@ -1,5 +1,8 @@
 parallel_sleep:
   meta:
+    role: developer
+    domain: 调度基准
+    entry_point: false
     title: Parallel benchmark branches
     description: Three independent sleep steps to validate node-level concurrency.
     inputs:

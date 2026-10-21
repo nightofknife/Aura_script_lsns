@@ -37,6 +37,7 @@ class StepState(Enum):
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+    CANCELLED = "CANCELLED"
 
 
 class ExecutionEngine:
@@ -91,6 +92,7 @@ class ExecutionEngine:
         # ===== 异步任务管理 =====
         self.running_tasks: Set[asyncio.Task] = set()
         self.completion_event: Optional[asyncio.Event] = None
+        self._node_cancelled = False
 
         # ===== 依赖的服务 =====
         self.state_store: StateStoreService = self.services.get('state_store')
@@ -234,14 +236,36 @@ class ExecutionEngine:
         self.running_tasks.discard(task)
         try:
             task.result()
+        except asyncio.CancelledError:
+            self._node_cancelled = True
+            self.ready_queue.clear()
+            self._ready_set.clear()
+            for pending_id, state in tuple(self.step_states.items()):
+                if state == StepState.PENDING:
+                    self.step_states[pending_id] = StepState.CANCELLED
+                    self.root_context.add_node_result(pending_id, {"run_state": self._create_run_state(
+                        StepState.CANCELLED, time.time(),
+                        error={"type": "CancelledError", "message": "Task cancellation requested."},
+                    )})
+            for pending in tuple(self.running_tasks):
+                if not pending.cancelling():
+                    pending.cancel()
+            if self.completion_event:
+                self.completion_event.set()
+            return
         except Exception as e:
             logger.critical(f"DAG节点执行任务发生未捕获异常: {e}", exc_info=True)
+
+        if self._node_cancelled:
+            return
 
         activity_id = start_activity("node_dispatch", node_id)
 
         async def reschedule_and_maybe_finish():
             with bind_activity(activity_id):
                 try:
+                    if self._node_cancelled:
+                        return
                     for downstream_id in self.reverse_dependencies.get(node_id, set()):
                         await self.dag_scheduler.enqueue_ready_node(downstream_id)
                     await self.dag_scheduler.drain_ready_queue()

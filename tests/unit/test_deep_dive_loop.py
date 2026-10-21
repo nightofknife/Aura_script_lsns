@@ -25,7 +25,7 @@ def child(stage,ok=True):
     p={'success':ok,'status':'completed' if ok else 'blocked','reason':'sample blocked',
        'page_state':'deep_dive_board' if stage=='entry' else 'deep_dive_activity_home',
        'terminal':'settlement','outcome':'failure','last_frame':'saved.png','turns_completed':6}
-    return {'nodes':{'enter_stage' if stage=='entry' else 'finish':{'output':p}}}
+    return {{'entry':'deep_dive','single':'deep_dive_single_run','cleanup':'deep_dive_cleanup'}[stage]:p}
 
 
 def seed(count):
@@ -154,7 +154,7 @@ def test_real_cycle_dag_skips_later_children_on_business_failure(failed_stage):
             name=node['action']
             if name=='aura.run_task':
                 ref=params['task_ref']
-                stage='cleanup' if 'cleanup' in ref else 'single' if 'single_run' in ref else 'entry'
+                stage='cleanup' if 'cleanup' in ref else 'single' if 'random_run' in ref else 'entry'
                 calls.append(stage)
                 return child(stage,stage!=failed_stage)
             if name.endswith('loop_begin'):return await loop.begin_loop_run(**params,state_store=store)
@@ -188,7 +188,7 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
                     ref=params['task_ref']
                     if ref.endswith(':deep_dive_cycle_pc'):
                         return (await run_task('deep_dive_cycle_pc',params['inputs'])).data
-                    stage='cleanup' if 'cleanup' in ref else 'single' if 'single_run' in ref else 'entry'
+                    stage='cleanup' if 'cleanup' in ref else 'single' if 'random_run' in ref else 'entry'
                     calls.append(stage);return child(stage)
                 if name.endswith('loop_begin'):return await loop.begin_loop_run(**params,state_store=store)
                 if name.endswith('loop_checkpoint'):return await loop.checkpoint_loop(**params,state_store=store)
@@ -201,4 +201,15 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
         assert calls==['entry','single','cleanup']*2
         assert len(context.data['nodes']['cycles']['output'])==1
         assert await store.get('test') is None
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("payload", [None, [], "invalid", {}])
+def test_malformed_cleanup_return_blocks_without_crashing(payload):
+    async def run():
+        store=Store(); state=seed(1); state['stage']='cleanup'; await store.set('test',state)
+        result=await loop.checkpoint_loop('test','cleanup',payload,state_store=store)
+        assert not result['ok']
+        assert (await store.get('test'))['completed_runs']==0
+        assert (await store.get('test'))['status']=='blocked'
     asyncio.run(run())

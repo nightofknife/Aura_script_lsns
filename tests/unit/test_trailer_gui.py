@@ -152,13 +152,12 @@ def test_workflow_and_combined_forward_only_to_freight(repository, monkeypatch):
         pending = []
         monkeypatch.setattr(window, "_begin_workflow", lambda tasks, *args: pending.extend(tasks))
         window._start_workflow()
-        assert [step["step"] for step in pending] == ["trade", "passenger"]
-        assert pending[0]["inputs"]["trailer_daily_first_n"] == 7
-        assert pending[0]["inputs"]["trailer_payment"] == "mileage"
-        assert not KEYS & pending[1]["inputs"].keys()
+        assert [step["dispatch"] for step in pending] == ["combined_commerce"]
+        combined = pending[0]["inputs"]
+        assert combined["trade_inputs"]["trailer_daily_first_n"] == 7
+        assert combined["trade_inputs"]["trailer_payment"] == "mileage"
+        assert not KEYS & combined["passenger_inputs"].keys()
         page.trailer_daily_first_n.setText("4")
-        assert pending[0]["inputs"]["trailer_daily_first_n"] == 7
-        combined = window._combined_commerce_inputs(order="trade_first", trade=pending[0]["inputs"], passenger=pending[1]["inputs"])
         assert combined["trade_inputs"]["auto_trailer"] is True
         assert combined["trade_inputs"]["trailer_daily_first_n"] == 7
         assert not KEYS & combined["passenger_inputs"].keys()

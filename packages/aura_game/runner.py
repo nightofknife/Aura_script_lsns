@@ -17,6 +17,7 @@ from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.runtime.bootstrap import create_runtime, peek_runtime, start_runtime, stop_runtime
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.logging.log_session import get_log_session, start_log_session
+from packages.aura_core.packaging.core.task_catalog import catalog_group, is_user_entry, task_role
 
 _TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 _DEFAULT_PROFILE = "embedded_full"
@@ -154,7 +155,7 @@ class EmbeddedGameRunner:
                 },
             )
             unique_task_refs.setdefault(plan_name, set()).add(task_ref)
-            if bool((task.get("meta") or {}).get("entry_point", False)):
+            if is_user_entry(task.get("meta")):
                 unique_entry_refs.setdefault(plan_name, set()).add(task_ref)
             row["task_count"] = len(unique_task_refs.get(plan_name, set()))
             row["entry_task_count"] = len(unique_entry_refs.get(plan_name, set()))
@@ -198,7 +199,10 @@ class EmbeddedGameRunner:
                     "task_ref": task_ref,
                     "title": meta.get("title") or task_ref,
                     "description": meta.get("description") or "",
-                    "entry_point": bool(meta.get("entry_point", False)),
+                    "entry_point": is_user_entry(meta),
+                    "role": task_role(meta),
+                    "domain": meta.get("domain") or "",
+                    "group": catalog_group(meta),
                     "inputs": meta.get("inputs") or [],
                 }
             )

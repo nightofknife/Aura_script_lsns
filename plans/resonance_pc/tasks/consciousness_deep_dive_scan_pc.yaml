@@ -1,8 +1,10 @@
 consciousness_deep_dive_scan_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: 识海深潜魔方布局扫描（人工对比）
     description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full 可继续完整图案扫描。
-    entry_point: true
+    entry_point: false
     inputs:
       - {name: max_steps, type: number, default: 96, min: 1, max: 300}
       - {name: time_budget_sec, type: number, default: 300, min: 5, max: 900}

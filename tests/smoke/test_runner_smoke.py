@@ -18,7 +18,7 @@ def test_embedded_runner_discovers_required_games_and_tasks() -> None:
     runner = EmbeddedGameRunner()
     try:
         games = {row["game_name"]: row for row in runner.list_games()}
-        required_games = {"aura_benchmark", "resonance", "resonance_pc"}
+        required_games = {"aura_benchmark", "resonance_pc"}
         assert required_games.issubset(games)
 
         for game_name in required_games:
@@ -33,7 +33,7 @@ def test_embedded_runner_executes_framework_benchmark() -> None:
     try:
         result = runner.run_task(
             game_name="aura_benchmark",
-            task_ref="tasks:single_sleep.yaml",
+            task_ref="tasks:single_sleep.yaml:single_sleep",
             inputs={"duration_ms": 1, "scenario": "project_smoke"},
             wait=True,
             timeout_sec=60,
@@ -56,6 +56,6 @@ def test_subprocess_runner_discovers_games() -> None:
     runner = SubprocessGameRunner()
     try:
         games = {row["game_name"] for row in runner.list_games()}
-        assert {"aura_benchmark", "resonance", "resonance_pc"}.issubset(games)
+        assert {"aura_benchmark", "resonance_pc"}.issubset(games)
     finally:
         runner.close()

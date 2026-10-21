@@ -26,7 +26,6 @@ def build_information(
     contract_path: Path,
     lock_path: Path,
     ocr_root: Path | None,
-    mumu_lock: Path | None,
 ) -> dict:
     contract = load_contract(contract_path)
     profile_contract = contract["profiles"][profile]
@@ -66,7 +65,6 @@ def build_information(
                 "release_directory": profile_contract["release_directory"].format(label=label),
                 "onnxruntime_distribution": profile_contract["onnxruntime_distribution"],
                 "ocr_fingerprint": tree_fingerprint(ocr_root) if ocr_root and ocr_root.is_dir() else None,
-                "mumu_lock_sha256": file_sha256(mumu_lock) if mumu_lock and mumu_lock.is_file() else None,
             }
         )
     return result
@@ -115,7 +113,6 @@ def main() -> int:
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--lock", type=Path, required=True)
     parser.add_argument("--ocr-root", type=Path)
-    parser.add_argument("--mumu-lock", type=Path)
     args = parser.parse_args()
 
     root = args.root.resolve()
@@ -127,7 +124,6 @@ def main() -> int:
         contract_path=args.contract.resolve(),
         lock_path=args.lock.resolve(),
         ocr_root=args.ocr_root.resolve() if args.ocr_root else None,
-        mumu_lock=args.mumu_lock.resolve() if args.mumu_lock else None,
     )
     path = write_information(root, information)
     print(path)

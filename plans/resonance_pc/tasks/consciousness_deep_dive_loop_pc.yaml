@@ -1,5 +1,7 @@
 consciousness_deep_dive_loop_pc:
   meta:
+    role: user_task
+    domain: 活动玩法
     title: 识海深潜循环（PC）
     description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
     entry_point: true
@@ -32,6 +34,8 @@ consciousness_deep_dive_loop_pc:
 
 deep_dive_cycle_pc:
   meta:
+    role: internal
+    domain: 活动玩法
     title: 识海深潜完整一局编排
     entry_point: false
     inputs:
@@ -62,7 +66,7 @@ deep_dive_cycle_pc:
       depends_on: {check_entry: "success|skipped"}
       when: "{{ state[inputs.session_key].status == 'running' }}"
       params:
-        task_ref: tasks:consciousness_deep_dive_single_run_test_pc.yaml:consciousness_deep_dive_single_run_test_pc
+        task_ref: tasks:consciousness_deep_dive_random_run_pc.yaml:consciousness_deep_dive_random_run_pc
         inputs: {round_budget: 20}
     check_single:
       action: resonance_pc.deep_dive_loop_checkpoint

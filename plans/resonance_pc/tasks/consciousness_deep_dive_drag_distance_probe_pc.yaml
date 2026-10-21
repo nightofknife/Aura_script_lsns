@@ -1,5 +1,7 @@
 consciousness_deep_dive_drag_distance_probe_round_pc:
   meta:
+    role: developer
+    domain: 活动玩法
     title: Consciousness Deep Dive Drag Distance Probe Round (PC)
     description: Capture one frame and perform one 80px upward drag.
     entry_point: false
@@ -49,9 +51,11 @@ consciousness_deep_dive_drag_distance_probe_round_pc:
 
 consciousness_deep_dive_drag_distance_probe_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: 拖动距离测算
     description: 连续执行100次截图与80px拖动，用于校准识海深潜魔方视角。
-    entry_point: true
+    entry_point: false
     inputs: []
 
   steps:

@@ -194,8 +194,8 @@ async def read_session(state_store, key: str) -> dict:
 
 
 def child_completed(result: Any, label: str) -> dict:
-    """aura.run_task returns framework_data, not the task's user_data."""
-    output = (result or {}).get("nodes", {}).get("finish", {}).get("output") if isinstance(result, dict) else None
+    """Require the business completion exported by a scuffle child task."""
+    output = result.get("result") if isinstance(result, dict) else None
     if not isinstance(output, dict) or output.get("success") is not True or output.get("status") != "completed":
         raise ScuffleError("scuffle_child_incomplete", f"{label}未返回已确认的完成结果。")
     return output

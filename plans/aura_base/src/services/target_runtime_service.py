@@ -17,11 +17,6 @@ from packages.aura_core.observability.runtime_trace import (
 
 from ..platform.contracts import CaptureResult, RuntimeAdapter, TargetRuntimeError
 from ..platform.windows.debug_artifacts import DebugArtifactsManager
-from ..platform.mumu.adb_discovery import AdbController
-from ..platform.mumu.android_touch_input import MuMuAndroidTouchInputBackend
-from ..platform.mumu.helper_manager import AndroidTouchHelperManager
-from ..platform.mumu.scrcpy_capture import MuMuScrcpyCaptureBackend
-from ..platform.mumu.session import MuMuSession
 from ..platform.runtime_config import (
     ResolvedRuntimeConfig,
     resolve_runtime_config,
@@ -192,32 +187,6 @@ class TargetRuntimeService:
         self._record_debug_input_event("press_key", {"key": key, "presses": presses, "interval": interval})
         return self._call_session("press_key", key, presses, interval)
 
-    def launch_app(
-        self,
-        package_name: str,
-        *,
-        activity: str | None = None,
-        timeout_sec: float | None = None,
-    ) -> dict[str, Any]:
-        resolved = self._resolve_runtime_config()
-        if resolved.provider != "mumu":
-            raise TargetRuntimeError(
-                "launch_app_provider_unsupported",
-                "launch_app is only supported for the MuMu Android runtime.",
-                {"provider": resolved.provider},
-        )
-        return dict(self._call_session("launch_app", package_name, activity=activity, timeout_sec=timeout_sec) or {})
-
-    def force_stop_app(self, package_name: str, *, timeout_sec: float | None = None) -> dict[str, Any]:
-        resolved = self._resolve_runtime_config()
-        if resolved.provider != "mumu":
-            raise TargetRuntimeError(
-                "force_stop_app_provider_unsupported",
-                "force_stop_app is only supported for the MuMu Android runtime.",
-                {"provider": resolved.provider},
-            )
-        return dict(self._call_session("force_stop_app", package_name, timeout_sec=timeout_sec) or {})
-
     def key_down(self, key: str):
         self._record_debug_input_event("key_down", {"key": key})
         return self._call_session("key_down", key)
@@ -272,8 +241,6 @@ class TargetRuntimeService:
         target_summary = dict(resolved.target.to_dict())
         if isinstance(session_check.get("target"), dict):
             target_summary = dict(session_check["target"])
-        elif resolved.provider == "mumu" and session_check.get("serial"):
-            target_summary["resolved_serial"] = session_check.get("serial")
 
         return {
             "ok": bool(session_check.get("ok", True)),
@@ -498,74 +465,7 @@ class TargetRuntimeService:
                 input_config=resolved.input,
                 window_spec_config=resolved.window_spec,
             )
-        if resolved.provider == "mumu":
-            return self._build_mumu_session(resolved)
         raise TargetRuntimeError(
-            "provider_unsupported",
-            "Supported runtime providers are 'windows' and 'mumu'.",
+            "provider_unsupported", "Supported runtime provider is 'windows'.",
             {"provider": resolved.provider},
-        )
-
-    def _build_mumu_session(self, resolved: ResolvedRuntimeConfig) -> MuMuSession:
-        preferred_serial = resolved.target.adb_serial if resolved.target.mode == "adb_serial" else "auto"
-        capture_cfg = resolved.capture.provider_options("mumu")
-        input_cfg = resolved.input.provider_options("mumu")
-        adb_executable = str(capture_cfg.get("adb_executable") or input_cfg.get("adb_executable") or "adb")
-        adb = AdbController(executable=adb_executable, default_timeout_sec=15.0)
-        if preferred_serial != "auto" and resolved.target.connect_on_start and ":" in preferred_serial:
-            adb.connect(preferred_serial)
-
-        candidates = adb.list_devices() if preferred_serial == "auto" else [preferred_serial]
-        if not candidates:
-            raise TargetRuntimeError(
-                "adb_device_not_found",
-                "No usable adb device is connected for MuMu session.",
-                {"serial": preferred_serial},
-            )
-
-        errors = []
-        for serial in candidates:
-            session = None
-            try:
-                session = self._make_mumu_session(serial, adb, resolved)
-                session.ensure_ready()
-                return session
-            except Exception as exc:
-                if session is not None:
-                    try:
-                        session.close()
-                    except Exception:
-                        pass
-                errors.append({"serial": serial, "error": str(exc)})
-
-        raise TargetRuntimeError(
-            "mumu_session_init_failed",
-            "Failed to initialize a healthy MuMu session from adb candidates.",
-            {"candidates": candidates, "errors": errors},
-        )
-
-    def _make_mumu_session(self, serial: str, adb: AdbController, resolved: ResolvedRuntimeConfig) -> MuMuSession:
-        capture_cfg = resolved.capture.provider_options("mumu")
-        input_cfg = resolved.input.provider_options("mumu")
-        display_info = adb.get_display_info(serial)
-
-        capture_backend = MuMuScrcpyCaptureBackend(serial, capture_cfg)
-        helper_manager = AndroidTouchHelperManager(adb, serial, input_cfg)
-        input_backend = MuMuAndroidTouchInputBackend(
-            helper_manager=helper_manager,
-            viewport_provider=capture_backend.get_client_rect,
-            touch_physical_size=(display_info.physical_width, display_info.physical_height),
-            display_rotation=display_info.current_orientation,
-            config=input_cfg,
-        )
-        return MuMuSession(
-            serial=serial,
-            adb=adb,
-            capture_backend=capture_backend,
-            input_backend=input_backend,
-            key_input_provider=str(input_cfg.get("key_input_provider") or "adb"),
-            text_input_provider=str(input_cfg.get("text_input_provider") or "adb"),
-            capture_backend_name=resolved.capture.backend,
-            input_backend_name=resolved.input.backend,
-            timing_config=input_cfg,
         )

@@ -61,7 +61,7 @@ def scuffle_logs():
 
 def checked_round(result):
     summary = {key: result[key] for key in ("run_index", "outcome", "elapsed_ms")}
-    return {"nodes": {"finish": {"output": {"success": True, "status": "completed", "round_result": summary}}}}
+    return {"result": {"success": True, "status": "completed", "round_result": summary}}
 
 
 def frame(scene, **values):
@@ -550,8 +550,8 @@ def test_action_wrapper_cancellation_logs_diagnostics_without_new_files_or_later
     assert rig.event_bus.events[-1].payload["status"] == "cancelled"
 
 
-@pytest.mark.parametrize("result", [None, {}, {"nodes": {"finish": {"output": {"success": False, "status": "completed"}}}},
-    {"nodes": {"finish": {"output": {"success": True, "status": "failed"}}}},
+@pytest.mark.parametrize("result", [None, {}, {"result": {"success": False, "status": "completed"}},
+    {"result": {"success": True, "status": "failed"}},
     {"user_data": {"success": True, "status": "completed"}}])
 def test_child_checkpoint_rejects_absent_or_failed_framework_result(rig, result):
     with pytest.raises(runtime.ScuffleError, match="child_incomplete"):
@@ -592,7 +592,7 @@ def test_finish_uses_checked_results_without_file_readback_and_deletes_only_own_
     assert rig.event_bus.events[-1].payload["status"] == "completed"
 
 
-@pytest.mark.parametrize("results", [None, [], [{}], [{"nodes": {"finish": {"output": {"success": True, "status": "completed"}}}}]])
+@pytest.mark.parametrize("results", [None, [], [{}], [{"result": {"success": True, "status": "completed"}}]])
 def test_finish_rejects_missing_checked_round_results_and_preserves_session(rig, results):
     rig.round.update(phase="home", returned_home=True, outcome="cleared")
     asyncio.run(rig.complete_round())
@@ -633,9 +633,9 @@ def test_finish_validates_result_order_contents_and_counts_without_logs(rig, def
     elif defect == "missing":
         rows.pop()
     elif defect == "wrong_outcome":
-        rows[1]["nodes"]["finish"]["output"]["round_result"]["outcome"] = "victory"
+        rows[1]["result"]["round_result"]["outcome"] = "victory"
     elif defect == "negative_elapsed":
-        rows[1]["nodes"]["finish"]["output"]["round_result"]["elapsed_ms"] = -1
+        rows[1]["result"]["round_result"]["elapsed_ms"] = -1
     else:
         rig.state.update(cleared_runs=2, abandoned_runs=0)
     asyncio.run(rig.store.set(rig.key, rig.state))
@@ -648,7 +648,7 @@ def test_finish_validates_result_order_contents_and_counts_without_logs(rig, def
 def test_checkpoint_forwards_validated_round_result_without_journal(rig):
     rig.round.update(phase="home", returned_home=True, outcome="cleared")
     completed = asyncio.run(rig.complete_round())
-    child = {"nodes": {"finish": {"output": completed}}}
+    child = {"result": completed}
     forwarded = asyncio.run(rig.checkpoint(phases=["completed"], require_child=True,
                                           child_result=child, collect_round_result=True))
     assert forwarded["success"] is True
@@ -659,7 +659,7 @@ def test_checkpoint_forwards_validated_round_result_without_journal(rig):
 @pytest.mark.parametrize("output", [None, {"success": True, "status": "completed"},
     {"success": True, "status": "completed", "run_index": 1, "outcome": "cleared", "elapsed_ms": -1}])
 def test_collect_round_result_checkpoint_requires_valid_business_result(rig, output):
-    child = None if output is None else {"nodes": {"finish": {"output": output}}}
+    child = None if output is None else {"result": output}
     with pytest.raises(runtime.ScuffleError):
         asyncio.run(rig.checkpoint(child_result=child, collect_round_result=True))
     assert not Path(rig.state["log_dir"]).exists()
@@ -732,7 +732,7 @@ def test_real_vision_candidate_click_guards_run_off_event_loop(rig, monkeypatch,
 
 def test_checkpoint_keeps_collected_result_when_validating_child_list(rig):
     completed = {"run_index": 1, "outcome": "cleared", "elapsed_ms": 20}
-    child = {"nodes": {"finish": {"output": {"success": True, "status": "completed", **completed}}}}
+    child = {"result": {"success": True, "status": "completed", **completed}}
     result = asyncio.run(rig.checkpoint(
         child_result=child, child_results=[child], collect_round_result=True,
     ))

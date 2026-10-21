@@ -29,7 +29,7 @@ def test_small_tasks_page_exposes_player_data_refresh(tmp_path) -> None:
     labels = {label.text() for label in page.findChildren(QLabel)}
     assert {"功能", "任务详情"}.issubset(labels)
     assert "任务分类" not in labels
-    assert page.category_list.isHidden()
+    assert not hasattr(page, "category_list")
     assert page.task_list.count() == 5
     assert page.task_list.currentItem().text() == "刷新用户数据"
     assert not page.task_panel.isHidden()
@@ -142,7 +142,7 @@ def test_small_tasks_page_runs_and_renders_team_recommendations(tmp_path) -> Non
 
     page.begin_team_recommendation_run()
     page.set_runner_busy(True)
-    assert not page.category_list.isEnabled()
+    assert not page.task_list.isEnabled()
     assert page.team_recommendation_panel.cancel_button.isEnabled()
     page.set_runner_busy(False)
     page.apply_team_recommendation_result(
@@ -208,7 +208,7 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         refresh_requests: list[bool] = []
         window.requestRefreshTarget.disconnect()  # This is an offline navigation test.
         window.requestRefreshTarget.connect(lambda: refresh_requests.append(True))
-        window.primary_nav_buttons[window.SMALL_TASKS_PAGE_INDEX].click()
+        window.primary_nav_buttons["tools"].click()
 
         assert window.page_stack.currentWidget() is window.small_tasks_page
         assert window.refresh_target_button.text() == "刷新目标"
@@ -303,9 +303,9 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         window.refresh_target_button.click()
         assert refresh_requests == [True]
 
-        window.primary_nav_buttons[window.SETTINGS_PAGE_INDEX].click()
+        window.primary_nav_buttons["settings"].click()
         assert window.page_stack.currentWidget() is window.settings_page
-        window.primary_nav_buttons[window.WORKFLOW_PAGE_INDEX].click()
+        window.primary_nav_buttons["workflow"].click()
         assert window.page_stack.currentWidget() is window.workflow_page
     finally:
         window.close()
@@ -329,6 +329,6 @@ def test_workflow_migrates_removed_player_data_configuration(tmp_path) -> None:
     repository = ResonanceConfigRepository(settings)
 
     page = WorkflowPage(repository)
-    assert page._task_order == ["startup", "trade", "passenger", "battle", "close"]
+    assert page._task_order == ["startup", "battle", "close", "trade", "passenger"]
     assert "player_data" not in page._task_checks
     page.close()

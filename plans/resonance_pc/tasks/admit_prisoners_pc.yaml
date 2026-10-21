@@ -1,5 +1,7 @@
 admit_prisoners_pc:
   meta:
+    role: user_task
+    domain: 整顿中心
     title: Admit Prisoners (PC)
     description: Fill all available Reforming Center capacity using the safe one-click admission flow.
     entry_point: true

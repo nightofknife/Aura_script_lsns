@@ -282,7 +282,7 @@ def test_equipment_scroll_dedupes_overlap_and_stops_on_catalog_coverage(
     assert all(kwargs["hold_before_release_sec"] == 0.5 for _args, kwargs in app.drags)
 
 
-def test_equipment_ignores_legacy_scroll_limit_and_stops_on_unchanged_grid(monkeypatch) -> None:
+def test_equipment_presence_stops_on_unchanged_grid(monkeypatch) -> None:
     image = np.zeros((626, 680, 3), dtype=np.uint8)
     monkeypatch.setattr(inventory, "_capture_stable_grid", lambda *_args, **_kwargs: image)
     monkeypatch.setattr(
@@ -299,11 +299,18 @@ def test_equipment_ignores_legacy_scroll_limit_and_stops_on_unchanged_grid(monke
         object(),
         category="equipment",
         catalog=_prepared_test_catalog(),
-        max_scrolls=0,
     )
     assert result["pages_scanned"] == 4
     assert result["completion_reason"] == "three_consecutive_unchanged_scrolls"
     assert result["matched_equipment_count"] == 1
+
+
+def test_equipment_rejects_retired_scroll_limit_instead_of_ignoring_it() -> None:
+    with pytest.raises(TypeError, match="max_scrolls"):
+        inventory.read_inventory_equipment(object(), object(), object(), max_scrolls=0)
+    with pytest.raises(ValueError, match="only to item and material"):
+        inventory.read_inventory_category(object(), object(), object(), category="equipment",
+                                          catalog=_prepared_test_catalog(), max_scrolls=0)
 
 
 def test_equipment_categories_normalize_and_merge_without_touching_currencies() -> None:

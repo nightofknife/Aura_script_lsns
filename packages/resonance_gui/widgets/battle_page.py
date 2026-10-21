@@ -42,7 +42,6 @@ from ..logic import extract_run_id, extract_status, pretty_json, render_result_t
 
 class BattlePage(QWidget):
     startRequested = Signal(object, float)
-    validateRequested = Signal(object, float)
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
 
@@ -262,7 +261,7 @@ class BattlePage(QWidget):
 
         self.result_view = QTextBrowser(panel)
         self.result_view.setMinimumHeight(120)
-        self.result_view.setPlaceholderText("校验结果、执行结果和失败原因会显示在这里。")
+        self.result_view.setPlaceholderText("执行结果和失败原因会显示在这里。")
         layout.addWidget(self.result_view, 2)
         return panel
 
@@ -279,15 +278,11 @@ class BattlePage(QWidget):
         self.cancel_button.setObjectName("dangerButton")
         self.cancel_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
-        self.validate_button = QPushButton("校验任务单", band)
-        self.validate_button.setToolTip("只校验任务参数，不操作游戏")
-        self.validate_button.clicked.connect(self._request_validation)
         self.start_button = QPushButton("开始战斗", band)
         self.start_button.setObjectName("primaryButton")
         self.start_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
         self.start_button.clicked.connect(self._request_start)
         layout.addWidget(self.cancel_button)
-        layout.addWidget(self.validate_button)
         layout.addWidget(self.start_button)
         return band
 
@@ -488,13 +483,6 @@ class BattlePage(QWidget):
             }
         )
 
-    def _request_validation(self) -> None:
-        try:
-            inputs = self.collect_inputs()
-        except ValueError as exc:
-            QMessageBox.warning(self, "任务单为空", str(exc))
-            return
-        self.validateRequested.emit(inputs, 0.0)
 
     def _request_start(self) -> None:
         try:
@@ -519,10 +507,6 @@ class BattlePage(QWidget):
             self.ready_hint.setText(str(payload.get("error") or "未找到可用的雷索纳斯 PC 窗口"))
         self._sync_actions()
 
-    def begin_validation(self, payload: Mapping[str, Any]) -> None:
-        self._begin(payload, mode="preview")
-        self.run_status_value.setText("正在校验")
-        self.stage_detail.setText("正在检查任务字段与关卡兼容性")
 
     def begin_run(self, payload: Mapping[str, Any]) -> None:
         self._begin(payload, mode="run")
@@ -561,12 +545,6 @@ class BattlePage(QWidget):
             self._current_cid = run_id
             self.cid_value.setText(run_id)
 
-    def finish_validation(self, payload: Mapping[str, Any]) -> None:
-        status = extract_status(payload)
-        self.run_status_value.setText("校验通过" if status == "success" else "校验失败")
-        self.stage_detail.setText("任务单参数校验已结束")
-        self.result_view.setPlainText(render_result_text(payload))
-        self._finish_common()
 
     def finish_run(self, payload: Mapping[str, Any]) -> None:
         status = extract_status(payload)
@@ -630,7 +608,6 @@ class BattlePage(QWidget):
         self.duplicate_button.setEnabled(editable and has_selection and len(self._jobs) < 50)
         self.delete_button.setEnabled(editable and has_selection)
         self.add_button.setEnabled(editable and self._selected_route() is not None and len(self._jobs) < 50)
-        self.validate_button.setEnabled(editable and bool(self._jobs))
         self.start_button.setEnabled(editable and bool(self._jobs) and self._target_ready)
         self.cancel_button.setEnabled(self._busy)
         self.stop_on_failure.setEnabled(editable)

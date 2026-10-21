@@ -13,6 +13,18 @@ from PySide6.QtWidgets import QApplication, QFrame, QLabel
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.widgets.small_tasks_page import SmallTasksPage
 from packages.resonance_gui.widgets.team_recommendation_panel import TeamRecommendationPanel
+from packages.resonance_gui.logic import (
+    PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
+)
+
+def open_developer(page):
+    page.set_available_tasks([{"role": "developer", "task_ref": ref} for ref in (
+        PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
+        PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
+    )])
+    page.show_developer_tools()
+
 
 
 @pytest.fixture
@@ -35,11 +47,11 @@ def test_flat_navigation_reserves_detail_workspace(page):
         "刷新用户数据", "货运试算", "配队推荐", "识海深潜", "无垠乱斗",
     ]
     assert page.layout().count() == 2
-    assert page.category_list.isHidden()
+    assert not hasattr(page, "category_list")
     assert not hasattr(page, "category_panel")
-    assert hasattr(page, "data_collection_panel")
-    assert "data_collection" in page._task_pages
-    assert page.detail_stack.count() == 6
+    assert page.data_collection_panel is None
+    assert "data_collection" not in page._task_pages
+    assert page.detail_stack.count() == 5
     assert page.task_panel.minimumWidth() == 140
     assert page.task_panel.maximumWidth() == 210
     assert page.task_panel.sizeHint().width() == 170
@@ -61,8 +73,7 @@ def test_each_task_selects_existing_panel_and_preview_api(page):
     assert page.detail_stack.currentWidget() is page.trade_preview_panel
     page.show_task("missing-task")
     assert page.current_task_id == "trade_preview"
-    team_category = page.category_list.findItems("配队工具", Qt.MatchFlag.MatchExactly)[0]
-    page.category_list.setCurrentItem(team_category)
+    page.show_task("team_recommendation")
     assert page.current_task_id == "team_recommendation"
     assert page.task_list.count() == 5
 
@@ -79,13 +90,14 @@ def test_preview_can_return_to_trade_without_running_or_rebuilding(page):
     assert page.trade_preview_panel is original_panel
 
 
-def test_data_collection_has_no_ordinary_entry_but_keeps_developer_api(page):
+def test_data_collection_has_explicit_lazy_developer_entry(page):
     ids = [page.task_list.item(i).data(Qt.ItemDataRole.UserRole)
            for i in range(page.task_list.count())]
     assert "data_collection" not in ids
-    page.show_task("data_collection")
+    assert page.data_collection_panel is None
+    open_developer(page)
     assert page.current_task_id == "data_collection"
-    assert page.detail_stack.currentWidget() is page.data_collection_panel
+    assert page.detail_stack.currentWidget() is page._developer_page
     page.show_trade_preview()
     assert page.detail_stack.currentWidget() is page.trade_preview_panel
 
@@ -115,11 +127,11 @@ def test_run_cancel_scan_and_data_snapshot_contracts(page):
     page.set_runner_busy(False)
     page.show_team_recommendation_error("测试取消")
     assert page.task_list.isEnabled()
-    page.show_task("consciousness_deep_dive")
-    page.consciousness_deep_dive_panel.scan_button.click()
+    open_developer(page)
+    page.deep_dive_developer_panel.scan_button.click()
     assert scan_requests == [True]
-    assert hasattr(page.consciousness_deep_dive_panel, "scan_report_button")
-    assert hasattr(page.consciousness_deep_dive_panel, "plan_report_button")
+    assert hasattr(page.deep_dive_developer_panel, "scan_report_button")
+    assert hasattr(page.deep_dive_developer_panel, "plan_report_button")
 
 
 def test_team_status_and_controls_stay_below_result_workspace():
@@ -141,6 +153,7 @@ def test_team_status_and_controls_stay_below_result_workspace():
 
 
 def test_capture_status_api_keeps_existing_panel(page):
+    open_developer(page)
     page.begin_consciousness_deep_dive_capture_run({"sensitivity": "slow"})
     page.set_runner_busy(True)
     assert not page.task_list.isEnabled()
@@ -150,4 +163,4 @@ def test_capture_status_api_keeps_existing_panel(page):
     page.begin_consciousness_deep_dive_sensitivity_probe_run()
     page.show_consciousness_deep_dive_sensitivity_probe_error("测试失败")
     assert page.task_list.isEnabled()
-    assert hasattr(page, "data_collection_panel")
+    assert page.data_collection_panel is not None

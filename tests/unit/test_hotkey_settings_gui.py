@@ -191,7 +191,7 @@ def test_hotkey_start_uses_workflow_and_is_ignored_while_busy_or_closing(window,
     monkeypatch.setattr(window, "_start_workflow", start)
     window._hotkeys.activated.emit("start")
     start.assert_called_once()
-    for flag in ("_busy", "_workflow_active", "_commerce_active", "_closing"):
+    for flag in ("_busy", "_workflow_active", "_closing"):
         setattr(window, flag, True)
         window._hotkeys.activated.emit("start")
         assert start.call_count == 1
@@ -199,9 +199,8 @@ def test_hotkey_start_uses_workflow_and_is_ignored_while_busy_or_closing(window,
 
 
 def test_stop_cancels_current_and_remaining_workflow_without_running_tasks(window):
-    cancelled, cleared = [], []
+    cancelled = []
     window.requestCancelCurrent.connect(lambda: cancelled.append(True))
-    window.requestClearQueue.connect(lambda: cleared.append(True))
     window._workflow_active = True
     window._busy = True
     window._workflow_pending = [{"step": "trade"}, {"step": "passenger"}]
@@ -209,7 +208,6 @@ def test_stop_cancels_current_and_remaining_workflow_without_running_tasks(windo
     assert window._workflow_pending == []
     assert window._workflow_stopping
     assert cancelled == [True]
-    assert cleared == [True]
     window._hotkeys.activated.emit("stop")
     assert cancelled == [True]
 
@@ -227,7 +225,7 @@ def test_stop_handles_independent_task_and_does_nothing_when_idle(window):
 def test_recording_pauses_hotkeys_does_not_save_and_cancel_restores_bindings(window, repository, monkeypatch):
     page = window.settings_page
     page.categories.setCurrentRow(1)
-    window._switch_page(window.SETTINGS_PAGE_INDEX)
+    window._switch_page("settings")
     window.show()
     QApplication.processEvents()
     start = Mock()
@@ -247,7 +245,7 @@ def test_recording_pauses_hotkeys_does_not_save_and_cancel_restores_bindings(win
 
 def test_execution_settings_visual_at_small_window(window):
     window.settings_page.categories.setCurrentRow(1)
-    window._switch_page(window.SETTINGS_PAGE_INDEX)
+    window._switch_page("settings")
     window.resize(1180, 720)
     window.show()
     QApplication.processEvents()

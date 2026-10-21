@@ -83,6 +83,8 @@ class ExportedTask:
     title: str
     source: str
     description: Optional[str] = None
+    role: str = "internal"
+    domain: str = ""
     visibility: Literal["public", "private"] = "public"
     schedule: Optional[str] = None
     config_template: Optional[str] = None

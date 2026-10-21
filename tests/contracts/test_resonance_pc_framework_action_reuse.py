@@ -74,7 +74,6 @@ def test_removed_pc_action_and_drag_controller_are_not_exported() -> None:
         city_travel_pc_actions.resonance_pc_select_intercity_destination,
         city_travel_pc_actions.resonance_pc_intercity_depart_and_wait,
         passenger_pc_actions.resonance_pc_recruit_passengers_by_flyer,
-        reforming_center_pc_actions.resonance_pc_navigate_reforming_center_room,
         passenger_flow_pc_actions.resonance_pc_auto_passenger_trips_flow,
         city_trade_flow_pc_actions.resonance_pc_auto_cycle_trade_flow,
         combined_commerce_pc_actions.resonance_pc_auto_combined_commerce_flow,

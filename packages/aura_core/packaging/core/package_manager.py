@@ -51,12 +51,7 @@ class PackageManager:
         return self.manifest_mode in {"hybrid", "off"}
 
     def _iter_package_dirs(self) -> Iterable[Path]:
-        candidates = [
-            (self.packages_dir, False),
-            (self.plans_dir, True),
-            (self.games_dir, True),
-        ]
-        for base_dir, include_all in candidates:
+        for base_dir in (self.packages_dir, self.plans_dir, self.games_dir):
             if not base_dir.exists() or not base_dir.is_dir():
                 continue
 
@@ -66,13 +61,13 @@ class PackageManager:
                 if item.name.startswith(".") or item.name.startswith("__"):
                     continue
 
-                if include_all:
-                    yield item
-                    continue
-
                 manifest_path = item / "manifest.yaml"
-                has_runtime_layout = (item / "src").is_dir() or (item / "tasks").is_dir()
-                if manifest_path.is_file() or has_runtime_layout:
+                # An importable source package may opt into manifest generation.
+                # Cache, screenshots and abandoned empty layouts are not packages.
+                has_runtime_source = (item / "__init__.py").is_file() and (
+                    any((item / "src").rglob("*.py")) or any((item / "tasks").rglob("*.yaml"))
+                )
+                if manifest_path.is_file() or has_runtime_source:
                     yield item
 
     def _auto_sync_manifests(self):

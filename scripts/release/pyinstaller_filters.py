@@ -16,10 +16,6 @@ _EXCLUDED_SUBMODULE_PREFIXES = {
         "onnxruntime.tools",
         "onnxruntime.transformers",
     ),
-    "av": (
-        "av.__main__",
-        "av.datasets",
-    ),
     "screeninfo": ("screeninfo.__main__",),
     "dotenv": ("dotenv.__main__",),
 }
@@ -60,10 +56,6 @@ _EXCLUDED_DATA_GLOBS = {
         "tools/**",
         "transformers",
         "transformers/**",
-    ),
-    "av": (
-        "datasets",
-        "datasets/**",
     ),
 }
 

@@ -100,4 +100,4 @@ QQ群：`454978565`
 
 新版本发布后，从 [Releases](https://github.com/nightofknife/Aura_script_lsns/releases) 下载完整压缩包并解压到新目录。不要只覆盖旧版本中的个别可执行文件。
 
-当前图形界面主要面向《雷索纳斯》PC 客户端。模拟器任务仍保留在发布包中，但不是本 README 推荐的使用入口。
+当前应用与发布包面向《雷索纳斯》Windows PC 客户端。开发诊断、素材生产与四视角研究的使用方式见 [开发指南](docs/developer-guide/resonance-development.md)。

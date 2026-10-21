@@ -1,8 +1,10 @@
 consciousness_deep_dive_entry_card_probe_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: 识海深潜节点卡只读识别（PC）
     description: 从当前游戏画面识别移动确认前的节点类型，不点击进入。
-    entry_point: true
+    entry_point: false
     inputs: []
 
   steps:

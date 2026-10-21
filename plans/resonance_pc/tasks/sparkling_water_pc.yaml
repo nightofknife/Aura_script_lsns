@@ -1,8 +1,10 @@
 sparkling_water_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Sparkling Water (PC)
     description: Drink a specified number of free cups from the city panel, then return to that city panel.
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: city_name

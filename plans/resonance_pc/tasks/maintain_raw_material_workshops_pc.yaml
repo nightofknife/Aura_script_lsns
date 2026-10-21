@@ -1,5 +1,7 @@
 maintain_raw_material_workshops_pc:
   meta:
+    role: user_task
+    domain: 整顿中心
     title: 原料车间维护
     description: 从普通整顿中心总览依次维护植物纤维、动物纤维、缝纫工具和人造纤维原料车间；每间确认返回总览后继续，汇总四间结果。
     entry_point: true
@@ -21,9 +23,9 @@ maintain_raw_material_workshops_pc:
           max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
-      # aura.run_task returns framework_data; project the child's business summary.
+      # A missing business return is an attempted room failure, not a skipped room.
       outputs:
-        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+        output: "{{ result if result is mapping else {} }}"
     animal:
       action: aura.run_task
       depends_on: plant
@@ -35,8 +37,9 @@ maintain_raw_material_workshops_pc:
           max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
+      # A missing business return is an attempted room failure, not a skipped room.
       outputs:
-        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+        output: "{{ result if result is mapping else {} }}"
     tools:
       action: aura.run_task
       depends_on: {animal: "success|skipped"}
@@ -48,8 +51,9 @@ maintain_raw_material_workshops_pc:
           max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
+      # A missing business return is an attempted room failure, not a skipped room.
       outputs:
-        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+        output: "{{ result if result is mapping else {} }}"
     synthetic:
       action: aura.run_task
       depends_on: {tools: "success|skipped"}
@@ -61,8 +65,9 @@ maintain_raw_material_workshops_pc:
           max_reserve_rounds: "{{ inputs.max_reserve_rounds }}"
           max_search_steps: "{{ inputs.max_search_steps }}"
           settle_sec: "{{ inputs.settle_sec }}"
+      # A missing business return is an attempted room failure, not a skipped room.
       outputs:
-        output: "{{ ((result.get('nodes') or {}).get('finish') or {}).get('output') or {} }}"
+        output: "{{ result if result is mapping else {} }}"
     finish:
       action: resonance_pc.raw_workshops_summarize
       depends_on: {synthetic: "success|skipped"}

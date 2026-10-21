@@ -1,8 +1,10 @@
 consciousness_deep_dive_pc:
   meta:
+    role: internal
+    domain: 活动玩法
     title: Consciousness Deep Dive (PC)
     description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
-    entry_point: true
+    entry_point: false
     inputs: []
 
   steps:

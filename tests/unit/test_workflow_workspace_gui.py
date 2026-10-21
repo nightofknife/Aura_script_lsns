@@ -46,14 +46,14 @@ def window(repository, monkeypatch):
     QApplication.processEvents()
 
 
-def test_legacy_commerce_expands_in_place_and_keeps_enabled_subset(repository):
+def test_retired_commerce_key_is_ignored_and_canonical_order_restored(repository):
     repository.set_value("workflow/task_order", "close,commerce,startup,battle")
     repository.set_value("workflow/commerce_order", "passenger,trade")
     repository.set_value("workflow/enabled", "startup,commerce")
     repository.set_value("workflow/commerce_enabled", "passenger")
     page = WorkflowPage(repository)
-    assert page._task_order == ["close", "passenger", "trade", "startup", "battle"]
-    assert page.workflow_steps() == ["passenger", "startup"]
+    assert page._task_order == ["close", "startup", "battle", "trade", "passenger"]
+    assert page.workflow_steps() == ["startup"]
     assert list(page._task_checks) == [task for task, _ in WORKFLOW_TASKS]
     assert "commerce" not in page._task_checks
     page._save_state()
@@ -143,7 +143,7 @@ def assert_workspace_three_columns(window, tmp_path, size, task):
     assert window.grab().save(str(tmp_path / f"workspace-{task}-{size[0]}.png"))
 
 
-def test_business_tasks_stay_separate_without_budget_combination_or_auto_book(window, monkeypatch):
+def test_business_tasks_share_budget_without_restoring_auto_book(window, monkeypatch):
     page = window.workflow_page
     for key, check in page._task_checks.items():
         check.setChecked(key in {"trade", "passenger"})
@@ -156,21 +156,23 @@ def test_business_tasks_stay_separate_without_budget_combination_or_auto_book(wi
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
     pending = window._workflow_pending
-    assert [row["step"] for row in pending] == ["passenger", "trade"]
-    assert [row["dispatch"] for row in pending] == ["passenger", "trade"]
+    assert [row["step"] for row in pending] == ["passenger"]
+    assert [row["dispatch"] for row in pending] == ["combined_commerce"]
+    assert pending[0]["inputs"]["order"] == "passenger_first"
+    assert pending[0]["inputs"]["total_fatigue_budget"] == 333
     assert all("parent" not in row and "budget_pending" not in row for row in pending)
     assert "fatigue_budget" not in pending[0]["inputs"]
-    assert pending[0]["inputs"]["trade_during_trip"] is True
-    assert pending[1]["inputs"]["fatigue_budget"] == 333
-    assert pending[1]["inputs"]["cargo_capacity"] == 950
+    assert pending[0]["inputs"]["passenger_inputs"]["trade_during_trip"] is True
+    assert pending[0]["inputs"]["trade_inputs"]["fatigue_budget"] == 333
+    assert pending[0]["inputs"]["trade_inputs"]["cargo_capacity"] == 950
     assert all("auto_book" not in row["inputs"] for row in pending)
     assert not hasattr(trade, "auto_book")
     assert not any("自动进货书" in button.text() for button in window.findChildren(ToggleButton))
     assert page.run_tree.topLevelItemCount() == 2
     trade.fatigue_budget.setValue(999)
     window.passenger_page.trip_count.setValue(6)
-    assert pending[0]["inputs"]["trip_count"] == 3
-    assert pending[1]["inputs"]["fatigue_budget"] == 333
+    assert pending[0]["inputs"]["passenger_inputs"]["trip_count"] == 3
+    assert pending[0]["inputs"]["trade_inputs"]["fatigue_budget"] == 333
 
 
 def assert_no_sibling_control_overlap(window):
@@ -194,10 +196,10 @@ def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
     window.resize(*size)
     page = window.workflow_page
     if surface == "settings":
-        window._switch_page(window.SETTINGS_PAGE_INDEX)
+        window._switch_page("settings")
     elif surface.startswith("feature-"):
         window.small_tasks_page.show_task(surface.removeprefix("feature-"))
-        window._switch_page(window.SMALL_TASKS_PAGE_INDEX)
+        window._switch_page("tools")
     else:
         task = "trade" if surface.startswith("trade-") else surface
         page._select_task(task)
@@ -278,7 +280,7 @@ def test_freight_trial_link_navigates_without_changing_parameters_or_calculating
     assert window.trade_page.cargo_capacity.value() == 950
     assert window.trade_preview_page.tabs.currentIndex() == 0
     assert window.small_tasks_page.current_task_id == "trade_preview"
-    assert window.page_stack.currentIndex() == window.SMALL_TASKS_PAGE_INDEX
+    assert window.page_stack.currentWidget() is window._pages["tools"]
     assert not runs
     assert not window._workflow_active
     assert window._workflow_pending == []
@@ -295,7 +297,7 @@ def test_freight_trial_link_accepts_incomplete_parameters_without_validation(win
     window.freight_trial_button.click()
     assert requests == []
     assert window.small_tasks_page.current_task_id == "trade_preview"
-    assert window.page_stack.currentIndex() == window.SMALL_TASKS_PAGE_INDEX
+    assert window.page_stack.currentWidget() is window._pages["tools"]
 
 
 @pytest.mark.parametrize("size", [(1180, 720), (1440, 860)])
@@ -309,7 +311,7 @@ def test_populated_freight_result_keeps_readable_rows_and_can_scroll(window, siz
                          "warnings": ["该结果为预计收益，实际收益需要在交易后确认。"]})
     page.tabs.setCurrentIndex(1)
     window.small_tasks_page.show_trade_preview()
-    window._switch_page(window.SMALL_TASKS_PAGE_INDEX)
+    window._switch_page("tools")
     window.resize(*size)
     window.show()
     QApplication.processEvents()

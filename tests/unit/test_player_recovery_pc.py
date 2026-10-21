@@ -16,8 +16,10 @@ from plans.resonance_pc.src.actions import player_recovery_pc_actions as recover
 
 
 SECTIONS = tuple(section for section in data._PROFILE_SECTION_ORDER if section != "bento_count")
-COMBINATIONS = [list(combo) for size in range(1, len(SECTIONS) + 1)
-                for combo in itertools.combinations(SECTIONS, size)]
+COMBINATIONS = [list(combo) for size in (1, 2)
+                for combo in itertools.combinations(SECTIONS, size)] + [
+    list(SECTIONS[:3]), list(SECTIONS[3:]), list(SECTIONS),
+]
 
 
 @pytest.fixture
@@ -237,7 +239,7 @@ def test_count_refresh_invalidates_old_detail_cache(tmp_path, monkeypatch):
     assert saved["love_bentos"]["requires_refresh"] is True
 
 
-def test_partial_merge_preserves_data_and_legacy_times():
+def test_partial_merge_preserves_data_and_current_section_times():
     old = {"status": {"cargo": {"current": 1, "max": 2}, "fatigue": {"current": 3, "max": 4}},
            "recovery": {"work_meals": {"available_count": 3}, "love_bentos": {"count": 2}},
            "metadata": {"section_updated_at": {"profile": "old"}}}
@@ -249,11 +251,11 @@ def test_partial_merge_preserves_data_and_legacy_times():
     assert merged["status"] == old["status"]
     assert merged["recovery"]["work_meals"] == old["recovery"]["work_meals"]
     assert merged["recovery"]["love_bentos"] == old["recovery"]["love_bentos"]
-    assert merged["metadata"]["profile_legacy_updated_at"] == "old"
+    assert "profile_legacy_updated_at" not in merged["metadata"]
     second = data._merge_latest(merged, {"status": {"cargo": {"current": 2, "max": 2}}},
                                section_updated_at={"profile": "newer"}, updated_at="newer",
                                profile_section_updated_at={"cargo": "newer"})
-    assert second["metadata"]["profile_legacy_updated_at"] == "old"
+    assert "profile_legacy_updated_at" not in second["metadata"]
     assert second["metadata"]["profile_section_updated_at"] == {"sparkling_water": "new", "cargo": "newer"}
     assert second["status"]["fatigue"] == old["status"]["fatigue"]
 

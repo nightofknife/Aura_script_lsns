@@ -683,10 +683,6 @@ def _merge_latest(
     else:
         previous_section_times = copy.deepcopy(previous_section_times)
     if "profile" in section_updated_at:
-        # Freeze the old aggregate timestamp before the first partial refresh;
-        # unrefreshed legacy values must not appear newly read in the GUI.
-        if not metadata.get("profile_section_updated_at") and previous_section_times.get("profile"):
-            metadata.setdefault("profile_legacy_updated_at", previous_section_times["profile"])
         sub_times = metadata.get("profile_section_updated_at")
         sub_times = dict(sub_times) if isinstance(sub_times, Mapping) else {}
         fresh_sub_times = profile_section_updated_at

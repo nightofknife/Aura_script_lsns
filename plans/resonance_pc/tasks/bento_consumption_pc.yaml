@@ -1,8 +1,10 @@
 bento_consumption_pc:
   meta:
+    role: internal
+    domain: 商贸运输
     title: Consume Bentos (PC)
     description: Consume top-position work meals and first love bento until the recovery target or fatigue floor.
-    entry_point: true
+    entry_point: false
     concurrency: exclusive
     inputs:
       - name: eat_work_meals
@@ -47,6 +49,7 @@ bento_consumption_pc:
         allow_exceed_target: "{{ inputs.allow_exceed_target }}"
         base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
+    allow_exceed_target: "{{ nodes.consume.output.allow_exceed_target }}"
     success: "{{ nodes.consume.output.success }}"
     status: "{{ nodes.consume.output.status }}"
     reason: "{{ nodes.consume.output.reason }}"

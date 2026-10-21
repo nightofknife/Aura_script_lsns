@@ -72,15 +72,12 @@ class SettingsHubPage(QWidget):
         self.categories = QListWidget(self)
         self.categories.setObjectName("settingsCategories")
         self.categories.setFixedWidth(190)
-        for label in ("游戏与启动", "执行设置", "日志与历史", "更新", "关于"):
+        for label in ("游戏与启动", "执行设置"):
             self.categories.addItem(label)
         body.addWidget(self.categories)
         self.stack = QStackedWidget(self)
         self.stack.addWidget(self._build_game_page())
         self.stack.addWidget(self._build_execution_page())
-        self.stack.addWidget(self._placeholder("日志与历史", "日志与运行历史沿用现有本机存储。"))
-        self.stack.addWidget(self._placeholder("更新", "启动检查更新与便携更新逻辑保持不变。"))
-        self.stack.addWidget(self._placeholder("关于", "AURA 雷索纳斯控制台\n开发中"))
         self.categories.currentRowChanged.connect(self.stack.setCurrentIndex)
         body.addWidget(self.stack, 1)
         root.addLayout(body, 1)
@@ -275,19 +272,6 @@ class SettingsHubPage(QWidget):
         label.setObjectName("sectionTitle")
         return label
 
-    def _placeholder(self, title: str, text: str) -> QWidget:
-        page = QFrame(self)
-        page.setObjectName("workflowPanel")
-        layout = QVBoxLayout(page)
-        heading = QLabel(title, page)
-        heading.setObjectName("workflowTitle")
-        body = QLabel(text, page)
-        body.setWordWrap(True)
-        body.setProperty("caption", True)
-        layout.addWidget(heading)
-        layout.addWidget(body)
-        layout.addStretch(1)
-        return page
 
     def _browse_executable(self) -> None:
         current = self.executable_path.text().strip()

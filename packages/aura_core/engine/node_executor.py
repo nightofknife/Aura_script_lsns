@@ -246,6 +246,13 @@ class NodeExecutor:
                 })
 
 
+        # Cancellation must stay distinct from business or execution failure.
+        except asyncio.CancelledError:
+            execution_success = False
+            self.engine.step_states[node_id] = self.engine.StepState.CANCELLED
+            error_details = {"type": "CancelledError", "message": "Task cancellation requested."}
+            raise
+
         # 统一异常处理
         except StopTaskException as e:
             execution_success = False
@@ -323,6 +330,8 @@ class NodeExecutor:
                 final_state = self.engine.step_states.get(node_id, self.engine.StepState.FAILED)
                 if final_state == self.engine.StepState.SKIPPED:
                     status = 'skipped'
+                elif error_details and error_details.get("type") == "CancelledError":
+                    status = 'cancelled'
                 elif error_details:
                     status = 'failed'
                 else:
@@ -549,6 +558,18 @@ class NodeExecutor:
             raise ValueError(f"节点 '{node_id}' 的 loop 格式错误: {loop_config}")
 
         parallelism = rendered_config.get('parallelism', len(tasks))
+        if parallelism == 1:
+            # A semaphore around eager gather still releases the next iteration
+            # before gather reports the previous failure. Sequential loops must
+            # await and validate each child before dispatching its successor.
+            try:
+                results = []
+                for task in tasks:
+                    results.append(await task)
+                return results
+            finally:
+                for task in tasks:
+                    task.close()
         semaphore = asyncio.Semaphore(parallelism)
 
         async def run_with_semaphore(task) -> Any:

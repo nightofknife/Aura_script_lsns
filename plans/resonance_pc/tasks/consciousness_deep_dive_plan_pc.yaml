@@ -1,8 +1,10 @@
 consciousness_deep_dive_plan_pc:
   meta:
+    role: developer
+    domain: 深潜诊断
     title: 识海深潜移动规划（离线）
     description: 读取完整成功的魔方扫描结果，计算只追奇点或最大化灵感收益的策略并保存报告，不操作游戏。
-    entry_point: true
+    entry_point: false
     inputs:
       - {name: layout_path, type: string, default: ""}
       - {name: strategy, type: string, default: chase}

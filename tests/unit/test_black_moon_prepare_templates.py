@@ -33,9 +33,9 @@ def frame(row):
 def test_native_templates_match_all_expected_control_states(row):
     reader = prepare.BlackMoonLocalPrepareVision()
     pixels = frame(row)
-    matches = {name: reader.match(pixels, name) for name in prepare.CONTROL_NAMES}
-    assert {name for name, value in matches.items() if value["found"]} == set(row["expected_matches"])
     state = reader.observe(pixels)
+    matches = {**state["matches"], "shop_entry": reader.match(pixels, "shop_entry")}
+    assert {name for name, value in matches.items() if value["found"]} == set(row["expected_matches"])
     for key in ("page_state", "local_selected", "batch_enabled", "ready"):
         assert state[key] == row[key]
     for name in row["expected_matches"]:
@@ -71,7 +71,7 @@ def test_unknown_templates_do_not_imply_off_or_ready():
 def test_standalone_task_has_only_ordered_preparation_nodes():
     task_path = ROOT / "plans/resonance_pc/tasks/black_moon_local_prepare_pc.yaml"
     task = yaml.safe_load(task_path.read_text(encoding="utf-8"))["black_moon_local_prepare_pc"]
-    assert task["meta"]["entry_point"] is True and task["meta"]["concurrency"] == "exclusive"
+    assert task["meta"]["role"] == "internal" and task["meta"]["entry_point"] is False and task["meta"]["concurrency"] == "exclusive"
     assert not task["meta"].get("inputs")
     nodes = task["steps"]
     assert list(nodes) == ["require_resolution", "enter_shop", "select_local", "enable_batch", "verify_ready"]

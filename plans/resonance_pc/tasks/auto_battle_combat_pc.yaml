@@ -1,8 +1,10 @@
 auto_battle_combat_pc:
   meta:
+    role: internal
+    domain: 战斗
     title: Auto Battle PC Combat
     description: Shared combat executor for CT and GP action_summary battle entries.
-    entry_point: true
+    entry_point: false
     inputs:
       - name: formation_index
         type: number

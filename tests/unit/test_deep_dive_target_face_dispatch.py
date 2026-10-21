@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import consciousness_deep_dive_scan_pc_actions as scan
-from tools.deep_dive_live_acceptance import validate_config
 
 
 @pytest.mark.parametrize('route', ['target_faces', 'target_framed'])
@@ -38,11 +37,7 @@ def test_target_face_route_requires_model_and_explicit_target_goal(route):
         asyncio.run(scan.run_layout_scan(object(), scan_route=route, entity_detector=object()))
     with pytest.raises(ValueError, match='entity model'):
         asyncio.run(scan.run_layout_scan(object(), scan_route=route, recognition_goal='targets'))
-    value = dict(opencv_threads=1,
-        scan_inputs=dict(recognition_goal='targets', scan_route=route, time_budget_sec=90),
-        entity_detector={'execution_provider': 'dml_worker'},
-        runtime_assertions={'entity_provider': 'DmlExecutionProvider'})
-    assert validate_config(value) == value
+
 
 
 @pytest.mark.parametrize('route,module_name,class_name', [
