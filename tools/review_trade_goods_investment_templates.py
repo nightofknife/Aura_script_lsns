@@ -14,7 +14,7 @@ from build_trade_goods_investment_templates import bright_mask, crop, dark_mask,
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATES = ROOT / "plans/resonance_pc/templates/trade_goods_investment"
+TEMPLATES = ROOT / "plans/resonance_pc/templates/commerce/investment"
 FIXTURES = ROOT / "tests/fixtures/trade_goods_investment"
 
 

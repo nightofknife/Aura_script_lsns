@@ -14,7 +14,7 @@
       "character": "0",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_0.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_0.png",
       "size": [
         15,
         18
@@ -26,7 +26,7 @@
       "character": "1",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_1.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_1.png",
       "size": [
         15,
         18
@@ -38,7 +38,7 @@
       "character": "2",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_2.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_2.png",
       "size": [
         15,
         18
@@ -50,7 +50,7 @@
       "character": "3",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_3.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_3.png",
       "size": [
         15,
         18
@@ -62,7 +62,7 @@
       "character": "4",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_4.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_4.png",
       "size": [
         15,
         18
@@ -74,7 +74,7 @@
       "character": "5",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_5.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_5.png",
       "size": [
         15,
         18
@@ -86,7 +86,7 @@
       "character": "6",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_6.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_6.png",
       "size": [
         15,
         18
@@ -98,7 +98,7 @@
       "character": "7",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_7.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_7.png",
       "size": [
         15,
         18
@@ -110,7 +110,7 @@
       "character": "8",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_8.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_8.png",
       "size": [
         15,
         18
@@ -122,7 +122,7 @@
       "character": "9",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_9.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_9.png",
       "size": [
         15,
         18
@@ -134,7 +134,7 @@
       "character": "/",
       "style": "list",
       "variant": "native26_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/list_native26_scaled_slash.png",
+      "image": "templates/workshop/production/digits/list_native26_scaled_slash.png",
       "size": [
         12,
         23
@@ -146,7 +146,7 @@
       "character": "0",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_0.png",
+      "image": "templates/workshop/production/digits/list_direct17_0.png",
       "size": [
         18,
         21
@@ -158,7 +158,7 @@
       "character": "1",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_1.png",
+      "image": "templates/workshop/production/digits/list_direct17_1.png",
       "size": [
         18,
         21
@@ -170,7 +170,7 @@
       "character": "2",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_2.png",
+      "image": "templates/workshop/production/digits/list_direct17_2.png",
       "size": [
         18,
         21
@@ -182,7 +182,7 @@
       "character": "3",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_3.png",
+      "image": "templates/workshop/production/digits/list_direct17_3.png",
       "size": [
         18,
         21
@@ -194,7 +194,7 @@
       "character": "4",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_4.png",
+      "image": "templates/workshop/production/digits/list_direct17_4.png",
       "size": [
         18,
         21
@@ -206,7 +206,7 @@
       "character": "5",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_5.png",
+      "image": "templates/workshop/production/digits/list_direct17_5.png",
       "size": [
         18,
         21
@@ -218,7 +218,7 @@
       "character": "6",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_6.png",
+      "image": "templates/workshop/production/digits/list_direct17_6.png",
       "size": [
         18,
         21
@@ -230,7 +230,7 @@
       "character": "7",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_7.png",
+      "image": "templates/workshop/production/digits/list_direct17_7.png",
       "size": [
         18,
         21
@@ -242,7 +242,7 @@
       "character": "8",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_8.png",
+      "image": "templates/workshop/production/digits/list_direct17_8.png",
       "size": [
         18,
         21
@@ -254,7 +254,7 @@
       "character": "9",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_9.png",
+      "image": "templates/workshop/production/digits/list_direct17_9.png",
       "size": [
         18,
         21
@@ -266,7 +266,7 @@
       "character": "/",
       "style": "list",
       "variant": "direct17",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct17_slash.png",
+      "image": "templates/workshop/production/digits/list_direct17_slash.png",
       "size": [
         15,
         25
@@ -278,7 +278,7 @@
       "character": "0",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_0.png",
+      "image": "templates/workshop/production/digits/list_direct18_0.png",
       "size": [
         18,
         22
@@ -290,7 +290,7 @@
       "character": "1",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_1.png",
+      "image": "templates/workshop/production/digits/list_direct18_1.png",
       "size": [
         18,
         22
@@ -302,7 +302,7 @@
       "character": "2",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_2.png",
+      "image": "templates/workshop/production/digits/list_direct18_2.png",
       "size": [
         18,
         22
@@ -314,7 +314,7 @@
       "character": "3",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_3.png",
+      "image": "templates/workshop/production/digits/list_direct18_3.png",
       "size": [
         18,
         22
@@ -326,7 +326,7 @@
       "character": "4",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_4.png",
+      "image": "templates/workshop/production/digits/list_direct18_4.png",
       "size": [
         18,
         22
@@ -338,7 +338,7 @@
       "character": "5",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_5.png",
+      "image": "templates/workshop/production/digits/list_direct18_5.png",
       "size": [
         18,
         22
@@ -350,7 +350,7 @@
       "character": "6",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_6.png",
+      "image": "templates/workshop/production/digits/list_direct18_6.png",
       "size": [
         18,
         22
@@ -362,7 +362,7 @@
       "character": "7",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_7.png",
+      "image": "templates/workshop/production/digits/list_direct18_7.png",
       "size": [
         18,
         22
@@ -374,7 +374,7 @@
       "character": "8",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_8.png",
+      "image": "templates/workshop/production/digits/list_direct18_8.png",
       "size": [
         18,
         22
@@ -386,7 +386,7 @@
       "character": "9",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_9.png",
+      "image": "templates/workshop/production/digits/list_direct18_9.png",
       "size": [
         18,
         22
@@ -398,7 +398,7 @@
       "character": "/",
       "style": "list",
       "variant": "direct18",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct18_slash.png",
+      "image": "templates/workshop/production/digits/list_direct18_slash.png",
       "size": [
         15,
         26
@@ -410,7 +410,7 @@
       "character": "0",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_0.png",
+      "image": "templates/workshop/production/digits/list_direct20_0.png",
       "size": [
         19,
         23
@@ -422,7 +422,7 @@
       "character": "1",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_1.png",
+      "image": "templates/workshop/production/digits/list_direct20_1.png",
       "size": [
         19,
         23
@@ -434,7 +434,7 @@
       "character": "2",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_2.png",
+      "image": "templates/workshop/production/digits/list_direct20_2.png",
       "size": [
         19,
         23
@@ -446,7 +446,7 @@
       "character": "3",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_3.png",
+      "image": "templates/workshop/production/digits/list_direct20_3.png",
       "size": [
         19,
         23
@@ -458,7 +458,7 @@
       "character": "4",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_4.png",
+      "image": "templates/workshop/production/digits/list_direct20_4.png",
       "size": [
         19,
         23
@@ -470,7 +470,7 @@
       "character": "5",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_5.png",
+      "image": "templates/workshop/production/digits/list_direct20_5.png",
       "size": [
         19,
         23
@@ -482,7 +482,7 @@
       "character": "6",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_6.png",
+      "image": "templates/workshop/production/digits/list_direct20_6.png",
       "size": [
         19,
         23
@@ -494,7 +494,7 @@
       "character": "7",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_7.png",
+      "image": "templates/workshop/production/digits/list_direct20_7.png",
       "size": [
         19,
         23
@@ -506,7 +506,7 @@
       "character": "8",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_8.png",
+      "image": "templates/workshop/production/digits/list_direct20_8.png",
       "size": [
         19,
         23
@@ -518,7 +518,7 @@
       "character": "9",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_9.png",
+      "image": "templates/workshop/production/digits/list_direct20_9.png",
       "size": [
         19,
         23
@@ -530,7 +530,7 @@
       "character": "/",
       "style": "list",
       "variant": "direct20",
-      "image": "templates/reforming_center/raw_workshop/digits/list_direct20_slash.png",
+      "image": "templates/workshop/production/digits/list_direct20_slash.png",
       "size": [
         16,
         28
@@ -542,7 +542,7 @@
       "character": "0",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_0.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_0.png",
       "size": [
         18,
         21
@@ -554,7 +554,7 @@
       "character": "1",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_1.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_1.png",
       "size": [
         18,
         21
@@ -566,7 +566,7 @@
       "character": "2",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_2.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_2.png",
       "size": [
         18,
         21
@@ -578,7 +578,7 @@
       "character": "3",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_3.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_3.png",
       "size": [
         18,
         21
@@ -590,7 +590,7 @@
       "character": "4",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_4.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_4.png",
       "size": [
         18,
         21
@@ -602,7 +602,7 @@
       "character": "5",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_5.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_5.png",
       "size": [
         18,
         21
@@ -614,7 +614,7 @@
       "character": "6",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_6.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_6.png",
       "size": [
         18,
         21
@@ -626,7 +626,7 @@
       "character": "7",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_7.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_7.png",
       "size": [
         18,
         21
@@ -638,7 +638,7 @@
       "character": "8",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_8.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_8.png",
       "size": [
         18,
         21
@@ -650,7 +650,7 @@
       "character": "9",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_9.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_9.png",
       "size": [
         18,
         21
@@ -662,7 +662,7 @@
       "character": "/",
       "style": "selection",
       "variant": "native32_scaled",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_native32_scaled_slash.png",
+      "image": "templates/workshop/production/digits/selection_native32_scaled_slash.png",
       "size": [
         14,
         21
@@ -674,7 +674,7 @@
       "character": "0",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_0.png",
+      "image": "templates/workshop/production/digits/selection_direct21_0.png",
       "size": [
         20,
         23
@@ -686,7 +686,7 @@
       "character": "1",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_1.png",
+      "image": "templates/workshop/production/digits/selection_direct21_1.png",
       "size": [
         20,
         23
@@ -698,7 +698,7 @@
       "character": "2",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_2.png",
+      "image": "templates/workshop/production/digits/selection_direct21_2.png",
       "size": [
         20,
         23
@@ -710,7 +710,7 @@
       "character": "3",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_3.png",
+      "image": "templates/workshop/production/digits/selection_direct21_3.png",
       "size": [
         20,
         23
@@ -722,7 +722,7 @@
       "character": "4",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_4.png",
+      "image": "templates/workshop/production/digits/selection_direct21_4.png",
       "size": [
         20,
         23
@@ -734,7 +734,7 @@
       "character": "5",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_5.png",
+      "image": "templates/workshop/production/digits/selection_direct21_5.png",
       "size": [
         20,
         23
@@ -746,7 +746,7 @@
       "character": "6",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_6.png",
+      "image": "templates/workshop/production/digits/selection_direct21_6.png",
       "size": [
         20,
         23
@@ -758,7 +758,7 @@
       "character": "7",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_7.png",
+      "image": "templates/workshop/production/digits/selection_direct21_7.png",
       "size": [
         20,
         23
@@ -770,7 +770,7 @@
       "character": "8",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_8.png",
+      "image": "templates/workshop/production/digits/selection_direct21_8.png",
       "size": [
         20,
         23
@@ -782,7 +782,7 @@
       "character": "9",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_9.png",
+      "image": "templates/workshop/production/digits/selection_direct21_9.png",
       "size": [
         20,
         23
@@ -794,7 +794,7 @@
       "character": "/",
       "style": "selection",
       "variant": "direct21",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct21_slash.png",
+      "image": "templates/workshop/production/digits/selection_direct21_slash.png",
       "size": [
         17,
         23
@@ -806,7 +806,7 @@
       "character": "0",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_0.png",
+      "image": "templates/workshop/production/digits/selection_direct22_0.png",
       "size": [
         21,
         25
@@ -818,7 +818,7 @@
       "character": "1",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_1.png",
+      "image": "templates/workshop/production/digits/selection_direct22_1.png",
       "size": [
         21,
         25
@@ -830,7 +830,7 @@
       "character": "2",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_2.png",
+      "image": "templates/workshop/production/digits/selection_direct22_2.png",
       "size": [
         21,
         25
@@ -842,7 +842,7 @@
       "character": "3",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_3.png",
+      "image": "templates/workshop/production/digits/selection_direct22_3.png",
       "size": [
         21,
         25
@@ -854,7 +854,7 @@
       "character": "4",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_4.png",
+      "image": "templates/workshop/production/digits/selection_direct22_4.png",
       "size": [
         21,
         25
@@ -866,7 +866,7 @@
       "character": "5",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_5.png",
+      "image": "templates/workshop/production/digits/selection_direct22_5.png",
       "size": [
         21,
         25
@@ -878,7 +878,7 @@
       "character": "6",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_6.png",
+      "image": "templates/workshop/production/digits/selection_direct22_6.png",
       "size": [
         21,
         25
@@ -890,7 +890,7 @@
       "character": "7",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_7.png",
+      "image": "templates/workshop/production/digits/selection_direct22_7.png",
       "size": [
         21,
         25
@@ -902,7 +902,7 @@
       "character": "8",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_8.png",
+      "image": "templates/workshop/production/digits/selection_direct22_8.png",
       "size": [
         21,
         25
@@ -914,7 +914,7 @@
       "character": "9",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_9.png",
+      "image": "templates/workshop/production/digits/selection_direct22_9.png",
       "size": [
         21,
         25
@@ -926,7 +926,7 @@
       "character": "/",
       "style": "selection",
       "variant": "direct22",
-      "image": "templates/reforming_center/raw_workshop/digits/selection_direct22_slash.png",
+      "image": "templates/workshop/production/digits/selection_direct22_slash.png",
       "size": [
         17,
         25

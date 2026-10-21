@@ -39,7 +39,7 @@
 
 ## 文件与重现
 
-- 字库：`plans/resonance_pc/templates/reforming_center/raw_workshop/digits/`。
+- 字库：`plans/resonance_pc/templates/navigation/rooms/raw_workshop/digits/`。
 - 索引：`plans/resonance_pc/data/meta/raw_workshop_digits_pc.json`。
 - 生成器：`tools/build_raw_workshop_digit_templates.py`，显式提供两份原生字体导出文件。
 - 实机／合成回归样本：`tests/fixtures/raw_workshop_digits/manifest.json`，逐样本区分来源并记录 SHA-256。

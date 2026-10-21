@@ -40,7 +40,7 @@ def test_catalog_covers_canonical_city_names_and_fixed_matching_contract():
         "use_grayscale": True, "preprocess": "edge",
     }
     assert CATALOG["visit_entry"] == {
-        "template": "templates/visit_city_entry.png", "method": "TM_SQDIFF_NORMED",
+        "template": "templates/navigation/city/visit_entry.png", "method": "TM_SQDIFF_NORMED",
         "threshold": .9, "roi": VISIT_ROI, "use_grayscale": False, "preprocess": "none",
     }
 

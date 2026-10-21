@@ -35,7 +35,7 @@ def frames():
     city = np.full((720, 1280, 3), 128, dtype=np.uint8)
     city[520:570, 170:570] = np.random.default_rng(9).integers(0, 256, (50, 400, 3), dtype=np.uint8)
     city[500:633, 35:168] = np.array(Image.open(
-        water.PLAN_ROOT / "templates/city_identity/lanxin_city.png").convert("RGB"))
+        water.PLAN_ROOT / "templates/navigation/city/identity/lanxin_city.png").convert("RGB"))
     result["city_panel"] = city
     return result
 

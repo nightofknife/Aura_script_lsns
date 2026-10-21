@@ -1846,7 +1846,7 @@ def resonance_pc_try_select_action_summary_stage(
 )
 def resonance_pc_wait_and_click_back_button(
     region: Optional[List[int]] = None,
-    template: str = "templates/battle_back_button.png",
+    template: str = "templates/battle/navigation/back_button.png",
     threshold: float = 0.9,
     use_grayscale: bool = True,
     timeout_sec: float = 8.0,
@@ -2355,10 +2355,10 @@ def resonance_pc_prepare_battle_formation(
 )
 def resonance_pc_detect_and_cancel_insufficient_stamina(
     dialog_region: Optional[List[int]] = None,
-    dialog_template: str = "templates/battle_insufficient_stamina_dialog.png",
+    dialog_template: str = "templates/battle/combat/insufficient_stamina_dialog.png",
     dialog_threshold: float = 0.9,
     cancel_region: Optional[List[int]] = None,
-    cancel_template: str = "templates/battle_insufficient_stamina_cancel.png",
+    cancel_template: str = "templates/battle/combat/insufficient_stamina_cancel.png",
     cancel_threshold: float = 0.9,
     timeout_sec: float = 2.0,
     interval_sec: float = 0.2,

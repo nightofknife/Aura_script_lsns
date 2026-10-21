@@ -13,6 +13,9 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 
 from ._black_moon_local_prepare_vision import BlackMoonLocalPrepareVision
 from ._black_moon_local_shop_vision import BlackMoonLocalShopRecognitionError
+from ._template_click_transition import (
+    TransitionProbe, run_template_transition, wait_for_transition_probe,
+)
 
 
 _STEP_TIMEOUT_SECONDS = 7.0
@@ -82,48 +85,38 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
     button = {"enter_shop": "shop_entry", "select_local": "local_tab_unselected",
               "enable_batch": "batch_off"}.get(step)
 
-    def observe(frame):
+    def observe(before_click):
         nonlocal last
-        last = reader.observe(frame)
-        return last
+        frame = _capture(app)
+        try:
+            # The user guarantees the initial rest menu; only locate its entry.
+            if before_click and step == "enter_shop" and clicks == 0:
+                hit = reader.match(frame, button)
+                return (TransitionProbe("source", hit=hit, immediate=True)
+                        if hit["found"] else TransitionProbe())
+            last = reader.observe(frame)
+            if _target(step, last):
+                kind, hit = "target", None
+            elif before_click and button and (
+                    (step == "enter_shop" and last["page_state"] == "unknown") or _source(step, last)):
+                hit = reader.match(frame, button)
+                kind = "source" if hit["found"] else "unknown"
+            else:
+                kind, hit = "unknown", None
+            key = (kind, last["page_state"], last["local_selected"], last["batch_enabled"],
+                   _validated_center(hit) if kind == "source" else None)
+            return TransitionProbe(kind, key=key, hit=hit)
+        except BlackMoonLocalShopRecognitionError as exc:
+            if exc.code in {"template_load_failed", "unknown_template", "invalid_image"}:
+                raise
+            return TransitionProbe()
 
     async def wait_probe(before_click=False):
-        deadline = time.monotonic() + _STEP_TIMEOUT_SECONDS
-        previous, stable = None, 0
-        while time.monotonic() < deadline:
-            frame = _capture(app)
-            try:
-                # The user guarantees the initial rest menu; only locate its entry.
-                if before_click and step == "enter_shop" and clicks == 0:
-                    hit = reader.match(frame, button)
-                    if hit["found"]:
-                        return "source", hit
-                    kind, key, hit = None, None, None
-                else:
-                    state = observe(frame)
-                    if _target(step, state):
-                        kind, hit = "target", None
-                    elif before_click and button and (
-                            (step == "enter_shop" and state["page_state"] == "unknown") or _source(step, state)):
-                        hit = reader.match(frame, button)
-                        kind = "source" if hit["found"] else None
-                    else:
-                        kind, hit = None, None
-                    key = (kind, state["page_state"], state["local_selected"], state["batch_enabled"],
-                           _validated_center(hit) if kind == "source" else None)
-            except BlackMoonLocalShopRecognitionError as exc:
-                if exc.code in {"template_load_failed", "unknown_template", "invalid_image"}:
-                    raise
-                kind, key, hit = None, None, None
-            if kind is not None:
-                stable = stable + 1 if key == previous else 1
-                previous = key
-                if stable >= 2:
-                    return kind, hit
-            else:
-                previous, stable = None, 0
-            await asyncio.sleep(_POLL_SECONDS)
-        return None, None
+        return await wait_for_transition_probe(
+            observe, allow_source=before_click, timeout_seconds=_STEP_TIMEOUT_SECONDS,
+            poll_seconds=_POLL_SECONDS, monotonic=time.monotonic, sleep=asyncio.sleep,
+            check_cancelled=_cancel_check,
+        )
 
     def completed():
         _cancel_check()
@@ -133,29 +126,29 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
         return result
 
     if step == "verify_ready":
-        kind, _ = await wait_probe()
-        if kind == "target":
+        observed = await wait_probe()
+        if observed is not None and observed.kind == "target":
             return completed()
         raise BlackMoonLocalPrepareError("black_moon_prepare_not_ready", "LOCAL batch shopping is not confirmed", last)
 
-    for _ in range(_MAX_SUPPLEMENTAL_CLICKS + 1):
-        kind, hit = await wait_probe(before_click=True)
-        if kind == "target":
-            return completed()
-        if kind != "source":
-            raise BlackMoonLocalPrepareError("black_moon_prepare_source_unconfirmed", "Required control state is not confirmed",
-                                            {"step": step, "click_count": clicks, **last})
-        center = _validated_center(hit)
-        _cancel_check()
+    def click(observed, attempt):
+        nonlocal clicks
+        center = _validated_center(observed.hit)
         app.click(x=int(center[0]), y=int(center[1]))
-        clicks += 1
+        clicks = attempt
         logger.info("[BlackMoonPrepare] step=%s click_count=%s", step, clicks)
-        await asyncio.sleep(_CLICK_SETTLE_SECONDS)
-        kind, _ = await wait_probe()
-        if kind == "target":
-            return completed()
-    raise BlackMoonLocalPrepareError("black_moon_prepare_transition_timeout", "Shopping preparation exhausted bounded clicks",
-                                    {"step": step, "click_count": clicks, **last})
+
+    await run_template_transition(
+        wait_probe, click, max_clicks=_MAX_SUPPLEMENTAL_CLICKS + 1,
+        settle_seconds=_CLICK_SETTLE_SECONDS, sleep=asyncio.sleep, check_cancelled=_cancel_check,
+        source_unconfirmed=lambda: BlackMoonLocalPrepareError(
+            "black_moon_prepare_source_unconfirmed", "Required control state is not confirmed",
+            {"step": step, "click_count": clicks, **last}),
+        exhausted=lambda: BlackMoonLocalPrepareError(
+            "black_moon_prepare_transition_timeout", "Shopping preparation exhausted bounded clicks",
+            {"step": step, "click_count": clicks, **last}),
+    )
+    return completed()
 
 
 @action_info(name="resonance_pc.prepare_black_moon_local_shop_step", public=True, read_only=False,

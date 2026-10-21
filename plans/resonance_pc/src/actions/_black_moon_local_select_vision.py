@@ -13,13 +13,13 @@ from ._black_moon_local_prepare_vision import BlackMoonLocalPrepareVision
 from ._black_moon_local_shop_vision import _crop, _image, _response
 
 
-ROOT = Path(__file__).resolve().parents[2] / "templates/black_moon_local_select"
+ROOT = Path(__file__).resolve().parents[2] / "templates/commerce/shop/black_moon/calibrated"
 
 
 @lru_cache(maxsize=256)
 def _pixels(root, filename):
     path = (root / filename).resolve()
-    if not path.is_relative_to(root):
+    if Path(filename).is_absolute() or not path.is_relative_to(root.resolve()):
         raise ValueError("Selection template path escapes bank")
     with Image.open(path) as image:
         array = np.asarray(image.convert("L" if image.mode == "L" else "RGB")).copy()

@@ -1,6 +1,6 @@
 # Native exhausted-negotiation marker
 
-`plans/resonance_pc/templates/trade_buy_rebargain_button.png` is a 103×34 RGB
+`plans/resonance_pc/templates/commerce/trade/negotiation/buy/rebargain_button.png` is a 103×34 RGB
 template for the stable **再交涉** label and request-book icon on the white replacement negotiation
 button. It is composed from the installed game's materials, without screenshot
 pixels. The changing `x1` cost is excluded.

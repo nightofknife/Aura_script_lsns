@@ -118,11 +118,10 @@ def load_character_catalog(
     plan_root: Optional[Path] = None,
     vision: Any = None,
 ) -> Dict[str, Any]:
-    """Load layout config and discover templates from named character folders.
+    """Load explicit business identities and ordered portrait samples.
 
-    Named folders without PNG files are catalog placeholders for characters whose
-    templates have not been collected yet. They are intentionally ignored until a
-    template is added.
+    Several identities may reference the same physical art. Catalog order stays
+    significant for equal-score matches; directory names never supply identity.
     """
 
     root = Path(plan_root or _PLAN_ROOT).resolve()
@@ -223,40 +222,30 @@ def load_character_catalog(
     if no_new_limit <= 0 or max_scrolls < 0 or stable_attempts <= 0:
         raise ValueError("character scan limits are invalid")
 
-    character_root_ref = str(raw_templates.get("character_root") or "").strip()
-    character_root = (root / character_root_ref).resolve()
-    if not _path_is_within(character_root, root) or not character_root.is_dir():
-        raise ValueError(f"character template root is unavailable: {character_root}")
-
     characters: List[Dict[str, Any]] = []
     flattened: List[Dict[str, Any]] = []
-    directories = sorted(
-        (item for item in character_root.iterdir() if item.is_dir()),
-        key=lambda item: item.name,
-    )
-    if not directories:
-        raise ValueError("character template root must contain at least one named folder")
-    for directory in directories:
-        character_name = directory.name.strip()
-        if not character_name or character_name != directory.name:
-            raise ValueError(f"invalid character template directory name: {directory.name!r}")
-        template_files = sorted(
-            (
-                item
-                for item in directory.iterdir()
-                if item.is_file() and item.suffix.lower() == ".png"
-            ),
-            key=lambda item: item.name,
-        )
-        if not template_files:
-            continue
+    rows = payload.get("characters")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("character config must contain explicit characters")
+    seen_ids: set[str] = set()
+    for row in rows:
+        if not isinstance(row, Mapping):
+            raise ValueError("character catalog entries must be objects")
+        character_id = str(row.get("character_id") or "")
+        character_name = str(row.get("name") or "")
+        if not character_id or character_id.strip() != character_id or character_id in seen_ids:
+            raise ValueError("character IDs must be nonempty and unique")
+        if not character_name or character_name.strip() != character_name:
+            raise ValueError("character names must be nonempty")
+        seen_ids.add(character_id)
+        template_files = row.get("templates")
+        if not isinstance(template_files, list) or not template_files:
+            raise ValueError("each character must declare portrait templates")
         template_paths: List[str] = []
         template_refs: List[str] = []
-        for template_file in template_files:
-            resolved_file = template_file.resolve()
-            if not _path_is_within(resolved_file, directory.resolve()):
-                raise ValueError(f"character template escapes its directory: {template_file}")
-            template_ref = resolved_file.relative_to(root).as_posix()
+        for template_ref in template_files:
+            if not isinstance(template_ref, str):
+                raise ValueError("character template reference must be a string")
             resolved = _resolve_template_path(
                 template_ref,
                 plan_root=root,
@@ -268,7 +257,7 @@ def load_character_catalog(
             template_paths.append(str(resolved))
             flattened.append(
                 {
-                    "character_id": character_name,
+                    "character_id": character_id,
                     "name": character_name,
                     "template_ref": template_ref,
                     "template_path": str(resolved),
@@ -277,7 +266,7 @@ def load_character_catalog(
             )
         characters.append(
             {
-                "character_id": character_name,
+                "character_id": character_id,
                 "name": character_name,
                 "template_refs": template_refs,
                 "template_paths": template_paths,
@@ -285,7 +274,7 @@ def load_character_catalog(
         )
 
     if not flattened:
-        raise ValueError("character template root must contain at least one PNG template")
+        raise ValueError("character catalog must contain portrait templates")
 
     entry_template = _resolve_template_path(
         str(raw_templates.get("entry") or ""),
@@ -800,7 +789,7 @@ def read_player_characters(
     templates = catalog.get("templates")
     return {
         "schema_version": 1,
-        "scan_scope": "template_directories",
+        "scan_scope": "character_catalog",
         "supported_character_count": len(characters) if isinstance(characters, list) else 0,
         "supported_template_count": len(templates) if isinstance(templates, list) else 0,
         "matched_character_count": len(entries),

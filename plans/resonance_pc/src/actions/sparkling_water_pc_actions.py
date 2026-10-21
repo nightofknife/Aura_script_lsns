@@ -22,6 +22,7 @@ from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ._player_data_persistence import USER_INFO_FILE, load_pc_user_info
 from ._city_shop_entry import CityShopEntryError, enter_city_shop
+from ._recovery_assets import read_layout_json, resolve_plan_asset
 
 PLAN_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PLAN_ROOT / "data/meta/sparkling_water.json"
@@ -47,26 +48,41 @@ def _check_cancelled() -> None:
 
 
 def load_sparkling_water_layout(vision: Any) -> dict:
-    layout = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    layout = read_layout_json(CONFIG_PATH)
     if layout.get("reference_client") != [1280, 720]:
         raise ValueError("Sparkling water layout requires a 1280x720 client")
     for name, spec in layout["templates"].items():
         for field in ("path", "mask"):
             if not spec.get(field):
                 continue
-            path = vision.resolve_template("resonance_pc", spec[field], PLAN_ROOT).resolve()
-            if not path.is_relative_to(PLAN_ROOT):
-                raise ValueError(f"Invalid sparkling water template path: {name}")
+            try:
+                path = resolve_plan_asset(
+                    vision, spec[field], PLAN_ROOT,
+                    error=f"Invalid sparkling water template path: {name}",
+                )
+            except OSError as exc:
+                kind = "template" if field == "path" else "mask"
+                raise ValueError(f"Invalid sparkling water {kind}: {name}") from exc
             spec[f"resolved_{field}"] = str(path)
-        template = vision.load_image_file(spec["resolved_path"], cv2.IMREAD_COLOR)
+        try:
+            template = vision.load_image_file(spec["resolved_path"], cv2.IMREAD_COLOR)
+        except (OSError, cv2.error) as exc:
+            raise ValueError(f"Invalid sparkling water template: {name}") from exc
+        if (not isinstance(template, np.ndarray) or not template.size
+                or template.ndim != 3 or template.shape[2] != 3 or template.dtype != np.uint8):
+            raise ValueError(f"Invalid sparkling water template: {name}")
         x, y, w, h = spec["roi"]
         if not (0 <= x < x + w <= 1280 and 0 <= y < y + h <= 720):
             raise ValueError(f"Invalid sparkling water ROI: {name}")
         if template.shape[0] > h or template.shape[1] > w:
             raise ValueError(f"Sparkling water template exceeds ROI: {name}")
         if spec.get("resolved_mask"):
-            mask = vision.load_image_file(spec["resolved_mask"], cv2.IMREAD_UNCHANGED)
-            if mask.ndim != 2 or mask.shape != template.shape[:2] or not np.any(mask):
+            try:
+                mask = vision.load_image_file(spec["resolved_mask"], cv2.IMREAD_UNCHANGED)
+            except (OSError, cv2.error) as exc:
+                raise ValueError(f"Invalid sparkling water mask: {name}") from exc
+            if (not isinstance(mask, np.ndarray) or not mask.size or mask.dtype != np.uint8
+                    or mask.ndim != 2 or mask.shape != template.shape[:2] or not np.any(mask)):
                 raise ValueError(f"Invalid sparkling water mask: {name}")
     return layout
 

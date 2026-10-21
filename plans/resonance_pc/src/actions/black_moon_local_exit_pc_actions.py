@@ -11,6 +11,9 @@ from ._black_moon_local_exit_vision import BlackMoonLocalExitVision
 from .black_moon_local_prepare_pc_actions import _capture, _cancel_check, _validated_center
 from .black_moon_local_select_pc_actions import _same_view
 from ._black_moon_local_scan_contract import validated_scan_completion, validated_selection_presence
+from ._template_click_transition import (
+    TransitionProbe, run_template_transition, wait_for_transition_probe,
+)
 
 
 _WAIT_SECONDS = 7.
@@ -57,9 +60,14 @@ async def execute_black_moon_wait_purchase(submission, app, reader=None):
     while time.monotonic() < deadline:
         frame = _capture(app)
         last = reader.observe(frame)
+        _cancel_check()
+        if time.monotonic() >= deadline:
+            break
         if _settled(last):
             if previous is not None and _same_view(previous, frame, reader.VIEWPORT):
                 _cancel_check()
+                if time.monotonic() >= deadline:
+                    break
                 result = {"success": True, "status": "purchase_settled", "ready_to_exit": True,
                           "purchase_verified": True, "page_state": "local_shop"}
                 logger.info("[BlackMoonExit] purchase_settled=%s", result)
@@ -68,6 +76,7 @@ async def execute_black_moon_wait_purchase(submission, app, reader=None):
         else:
             previous = None
         await asyncio.sleep(_POLL_SECONDS)
+    _cancel_check()
     raise BlackMoonLocalExitError("black_moon_purchase_not_settled",
                                  "Purchase did not return to a stable zero-total LOCAL shop; no exit input", last)
 
@@ -89,33 +98,30 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
     # a submitted purchase has been verified, never as an initial condition.
     require_zero_total = purchase_result.get("purchase_verified") is True
 
-    async def probe(allow_source):
+    def observe(allow_source):
         nonlocal last
-        deadline = time.monotonic() + _WAIT_SECONDS
-        previous_frame, previous_key, stable = None, None, 0
-        while time.monotonic() < deadline:
-            frame = _capture(app)
-            last = reader.observe(frame)
-            kind, hit, key = None, None, None
-            if last.get("page_state") == exit_target:
-                kind, key = "target", ("target", exit_target)
-            elif allow_source and ((last.get("page_state") == "local_shop"
-                    and last.get("shop_ready") is True
-                    and (not require_zero_total or last.get("total_zero") is True)) or (
-                    exit_target == "main" and last.get("page_state") == "rest_menu")):
-                hit = reader.button(frame, exit_target)
-                if hit["found"]:
-                    kind, key = "source", ("source", _validated_center(hit))
-            if kind is not None:
-                stable = stable + 1 if (key == previous_key and (
-                    kind == "target" or _same_view(previous_frame, frame, reader.VIEWPORT))) else 1
-                previous_key, previous_frame = key, frame
-                if stable >= 2:
-                    return kind, hit
-            else:
-                previous_key, previous_frame, stable = None, None, 0
-            await asyncio.sleep(_POLL_SECONDS)
-        return None, None
+        frame = _capture(app)
+        last = reader.observe(frame)
+        if last.get("page_state") == exit_target:
+            return TransitionProbe("target", key=("target", exit_target), frame=frame)
+        if allow_source and ((last.get("page_state") == "local_shop"
+                and last.get("shop_ready") is True
+                and (not require_zero_total or last.get("total_zero") is True)) or (
+                exit_target == "main" and last.get("page_state") == "rest_menu")):
+            hit = reader.button(frame, exit_target)
+            if hit["found"]:
+                return TransitionProbe("source", key=("source", _validated_center(hit)),
+                                       hit=hit, frame=frame)
+        return TransitionProbe()
+
+    async def probe(allow_source):
+        return await wait_for_transition_probe(
+            observe, allow_source=allow_source, timeout_seconds=_WAIT_SECONDS,
+            poll_seconds=_POLL_SECONDS, monotonic=time.monotonic, sleep=asyncio.sleep,
+            check_cancelled=_cancel_check,
+            equivalent=lambda previous, current: current.kind == "target" or
+            _same_view(previous.frame, current.frame, reader.VIEWPORT),
+        )
 
     def completed():
         _cancel_check()
@@ -125,24 +131,23 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
         logger.info("[BlackMoonExit] completed=%s", result)
         return result
 
-    for _ in range(_MAX_SUPPLEMENTAL_CLICKS + 1):
-        kind, hit = await probe(allow_source=True)
-        if kind == "target":
-            return completed()
-        if kind != "source":
-            raise BlackMoonLocalExitError("black_moon_exit_source_unknown",
-                                         "Ready LOCAL shop and fresh exit button are not confirmed", last)
-        point = _validated_center(hit)
-        _cancel_check()
+    def click(observed, attempt):
+        nonlocal clicks
+        point = _validated_center(observed.hit)
         app.click(x=int(point[0]), y=int(point[1]))
-        clicks += 1
-        await asyncio.sleep(_SETTLE_SECONDS)
-        kind, _ = await probe(allow_source=False)
-        if kind == "target":
-            return completed()
-    raise BlackMoonLocalExitError("black_moon_exit_click_exhausted",
-                                 "Exit exhausted initial click and three supplements",
-                                 {"exit_target": exit_target, "click_count": clicks, **last})
+        clicks = attempt
+
+    await run_template_transition(
+        probe, click, max_clicks=_MAX_SUPPLEMENTAL_CLICKS + 1,
+        settle_seconds=_SETTLE_SECONDS, sleep=asyncio.sleep, check_cancelled=_cancel_check,
+        source_unconfirmed=lambda: BlackMoonLocalExitError(
+            "black_moon_exit_source_unknown",
+            "Ready LOCAL shop and fresh exit button are not confirmed", last),
+        exhausted=lambda: BlackMoonLocalExitError(
+            "black_moon_exit_click_exhausted", "Exit exhausted initial click and three supplements",
+            {"exit_target": exit_target, "click_count": clicks, **last}),
+    )
+    return completed()
 
 
 @action_info(name="resonance_pc.wait_black_moon_local_purchase", public=True, read_only=True,

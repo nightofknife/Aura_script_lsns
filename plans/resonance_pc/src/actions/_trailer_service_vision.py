@@ -14,7 +14,8 @@ import numpy as np
 
 
 THRESHOLD = 0.90
-TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates/trailer_service"
+PLAN_ROOT = Path(__file__).resolve().parents[2]
+TEMPLATE_ROOT = PLAN_ROOT / "templates/navigation/trailer"
 QUOTA_REGION = (790, 674, 80, 28)
 PAYMENT_POINTS = {"gold": (715, 469), "mileage": (887, 469)}
 
@@ -81,7 +82,7 @@ class TrailerVision:
 
     def match_existing(self, frame, template: str, region, threshold: float) -> dict:
         # Existing navigation evidence keeps its original grayscale/CCOEFF contract.
-        return self._match(frame, str(TEMPLATE_ROOT.parents[1] / template), region,
+        return self._match(frame, str(PLAN_ROOT / template), region,
                            threshold, cv2.TM_CCOEFF_NORMED, True)
 
     def _match(self, frame, template, region, threshold, method, grayscale):

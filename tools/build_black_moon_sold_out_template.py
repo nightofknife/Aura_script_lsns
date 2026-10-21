@@ -14,7 +14,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BANK = ROOT / "plans/resonance_pc/templates/black_moon_local_select"
+BANK = ROOT / "plans/resonance_pc/templates/commerce/shop/black_moon/calibrated"
 
 
 def main():
@@ -32,12 +32,13 @@ def main():
         if cx + cw > source.width or cy + ch > source.height or bx + bw > cw or by + bh > ch:
             raise ValueError("Source/badge rectangle is outside the supplied frame")
         plate = source.crop((cx + bx, cy + by, cx + bx + bw, cy + by + bh)).convert("L")
-    path = BANK / "sold_out_badge.png"
+    path = BANK / "controls/sold_out_badge.png"
+    path.parent.mkdir(parents=True, exist_ok=True)
     plate.save(path)
     manifest_path = BANK / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["sold_out_boundary"] = {
-        "file": path.name, "threshold": 0.9, "preprocess": "gray",
+        "file": path.relative_to(BANK).as_posix(), "threshold": 0.9, "preprocess": "gray",
         "method": "1-TM_SQDIFF_NORMED",
         "card_relative_roi": [bx - args.card_origin[0], by - args.card_origin[1], bw, bh],
         "row_pitch": 196 / 1.5,
@@ -45,7 +46,7 @@ def main():
                    "client_box": args.client_box, "client_badge_box": args.badge_box,
                    "client_card_origin": args.card_origin},
     }
-    manifest["files"][path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest["files"][path.relative_to(BANK).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Generated {path.relative_to(ROOT).as_posix()}; no matching or live validation performed")
 

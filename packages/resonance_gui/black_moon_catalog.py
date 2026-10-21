@@ -66,7 +66,7 @@ def load_black_moon_catalog(root: Path | None = None, *, include_icons: bool = T
         return BlackMoonCatalog(tuple(products))
 
     # Icons are optional. Resource names in the catalog are not HTTP URLs.
-    bank = plan / "templates/black_moon_local_select"
+    bank = plan / "templates/commerce/shop/black_moon/calibrated"
     icons: dict[str, Path] = {}
     try:
         manifest = json.loads((bank / "manifest.json").read_text(encoding="utf-8"))

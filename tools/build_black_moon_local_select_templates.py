@@ -15,14 +15,41 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "plans/resonance_pc/templates/black_moon_local_shop"
-OUTPUT = ROOT / "plans/resonance_pc/templates/black_moon_local_select"
+PLAN_ROOT = ROOT / "plans/resonance_pc"
+SOURCE = ROOT / "plans/resonance_pc/templates/commerce/shop/black_moon/native"
+OUTPUT = ROOT / "plans/resonance_pc/templates/commerce/shop/black_moon/calibrated"
 PAPER_ITEMS = {"advertising_ticket", "order_request", "renegotiation_request",
                "task_commission_letter", "purchase_order_book"}
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def bank_path(reference: str) -> Path:
+    path = (OUTPUT / reference).resolve()
+    if Path(reference).is_absolute() or not path.is_relative_to(OUTPUT.resolve()):
+        raise ValueError(f"Selection resource outside bank: {reference}")
+    return path
+
+
+def cleanup_previous_resources(previous, current):
+    """A bank manifest owns its declared files; unrelated neighbours stay untouched."""
+    for reference in set(previous.get("files", {})) - set(current["files"]):
+        path = bank_path(reference)
+        if path.is_file():
+            path.unlink()
+
+
+def write_identity_mask(path: Path) -> Image.Image:
+    """Write the shared quantity/decoration exclusions once for this bank."""
+    mask = Image.new("L", (96, 96), 255)
+    draw = ImageDraw.Draw(mask)
+    draw.rectangle((0, 0, 95, 23), fill=0)
+    draw.rectangle((65, 67, 95, 95), fill=0)
+    draw.rectangle((0, 92, 95, 95), fill=0)
+    mask.save(path)
+    return mask
 
 
 def main() -> None:
@@ -37,8 +64,12 @@ def main() -> None:
     if any(frame.size != (1280, 720) for frame in frames.values()):
         raise ValueError("Supply exact 1280x720 client frames without window chrome")
     source = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    previous_path = OUTPUT / "manifest.json"
+    previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.is_file() else {}
     OUTPUT.mkdir(parents=True, exist_ok=True)
     (OUTPUT / "items").mkdir(exist_ok=True)
+    (OUTPUT / "controls").mkdir(exist_ok=True)
+    (OUTPUT / "masks").mkdir(exist_ok=True)
     manifest = {
         "schema_version": 1, "reference_client": [1280, 720],
         "method": "1-TM_SQDIFF_NORMED", "viewport": [594, 143, 684, 500],
@@ -50,27 +81,24 @@ def main() -> None:
                    "normal_client_sha256": digest(args.normal_frame),
                    "selected_client_sha256": digest(args.selected_frame)},
     }
+    mask_file = None
     for row in source["cards"]["items"]:
         if row["state"] != "normal":
             continue
-        icon = Image.open(SOURCE / row["file"]).convert("RGB").resize((96, 96), Image.Resampling.BILINEAR)
-        mask = Image.new("L", (96, 96), 255)
-        draw = ImageDraw.Draw(mask)
-        draw.rectangle((0, 0, 95, 23), fill=0)
-        draw.rectangle((65, 67, 95, 95), fill=0)
-        draw.rectangle((0, 92, 95, 95), fill=0)
+        source_path = (PLAN_ROOT / row["file"]).resolve()
+        if Path(row["file"]).is_absolute() or not source_path.is_relative_to((PLAN_ROOT / "templates").resolve()):
+            raise ValueError(f"Native resource outside plan templates: {row['file']}")
+        icon = Image.open(source_path).convert("RGB").resize((96, 96), Image.Resampling.BILINEAR)
         file = f"items/{row['item_id']}.png"
-        mask_file = "icon.mask.png"
         icon.save(OUTPUT / file)
-        mask.save(OUTPUT / mask_file)
+        if mask_file is None:
+            mask_file = "masks/item_identity_96x96.png"
+            mask = write_identity_mask(OUTPUT / mask_file)
         manifest["items"].append({"item_id": row["item_id"], "name": row["name"],
                                   "category": row["category"], "quality": row["quality"],
                                   "file": file, "mask_file": mask_file,
                                   "threshold": .92 if row["item_id"] in PAPER_ITEMS else .86,
                                   "source": row["source"]})
-
-    for obsolete in (OUTPUT / "items").glob("*.mask.png"):
-        obsolete.unlink()
 
     shared_mask = np.asarray(mask, dtype=bool)
     signatures = np.asarray([np.asarray(Image.open(OUTPUT / row["file"]).convert("RGB"))[shared_mask].ravel()
@@ -100,7 +128,7 @@ def main() -> None:
 
     def crop(name: str, frame_name: str, rect: list[int], threshold=.90):
         x, y, w, h = rect
-        file = f"{name}.png"
+        file = f"controls/{name}.png"
         frames[frame_name].crop((x, y, x + w, y + h)).save(OUTPUT / file)
         return {"file": file, "threshold": threshold,
                 "source": {"type": "user_client_crop", "frame": frame_name,
@@ -116,14 +144,15 @@ def main() -> None:
     manifest["total_zero"]["roi"] = [1000, 652, 47, 37]
     # The independently supplied SOLD OUT crop is not reconstructed from a
     # normal/selected frame. Preserve it when regenerating the icon bank.
-    previous_path = OUTPUT / "manifest.json"
-    if previous_path.is_file():
-        previous = json.loads(previous_path.read_text(encoding="utf-8"))
-        if "sold_out_boundary" in previous:
-            manifest["sold_out_boundary"] = previous["sold_out_boundary"]
-    manifest["files"] = {path.relative_to(OUTPUT).as_posix(): digest(path)
-                         for path in sorted(OUTPUT.rglob("*.png"))}
+    if "sold_out_boundary" in previous:
+        manifest["sold_out_boundary"] = previous["sold_out_boundary"]
+    entries = (manifest["items"] + list(manifest["geometry"].values())
+               + [manifest[key] for key in ("selected", "confirm_purchase", "total_zero", "sold_out_boundary")
+                  if key in manifest])
+    files = {row[key] for row in entries for key in ("file", "mask_file") if row.get(key)}
+    manifest["files"] = {filename: digest(bank_path(filename)) for filename in sorted(files)}
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    cleanup_previous_resources(previous, manifest)
     print(json.dumps({"items": len(manifest["items"]), "output": str(OUTPUT)}))
 
 

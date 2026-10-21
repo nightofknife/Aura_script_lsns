@@ -3,22 +3,27 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+from contextvars import ContextVar
 import hashlib
 import io
 import json
 from pathlib import Path
+import re
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 from _trade_investment_native import configure, inspect_prefab, load_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "plans/resonance_pc/templates/black_moon_local_shop"
-PREFABS = ("ui/home/barstore/barstore.asset", "ui/common/showitem.asset", "ui/mainui/mainui.asset")
+PLAN_ROOT = ROOT / "plans/resonance_pc"
+OUTPUT = PLAN_ROOT / "templates/commerce/shop/black_moon/native"
+PREFABS = ("ui/home/barstore/barstore.asset",)
 LIBRARIES = ("ui/common.asset", "ui/home.asset", "ui/home/barstore.asset", "ui/store.asset",
-             "ui/hometrade.asset", "ui/hometrade/update.asset", "ui/font.asset", "ui/font/originpack.asset",
-             "ui/mainui.asset")
+             "ui/hometrade.asset", "ui/hometrade/update.asset", "ui/font.asset", "ui/font/originpack.asset")
 STATUS = "native_generated_unvalidated"
+_STAGED_OUTPUT = ContextVar("black_moon_native_staged_output", default=None)
 PREPARE_NAMES = ("shop_entry", "shop_page", "local_tab_selected", "local_tab_unselected", "batch_on", "batch_off")
 PREPARE_TAB_RECT = [996, 91, 160, 29]
 PREPARE_BATCH_RECT = [1171, 88, 96, 33]
@@ -213,11 +218,211 @@ class Native:
         return source
 
 
+def _output_path(path):
+    """Redirect producer writes to staging without changing manifest references."""
+    path = Path(path).resolve()
+    if not path.is_relative_to(OUTPUT.resolve()):
+        raise ValueError(f"Output outside native bank: {path}")
+    staged = _STAGED_OUTPUT.get()
+    return staged / path.relative_to(OUTPUT.resolve()) if staged is not None else path
+
+
+def _resource_path(reference):
+    path = (PLAN_ROOT / reference).resolve()
+    if Path(reference).is_absolute() or not path.is_relative_to((PLAN_ROOT / "templates").resolve()):
+        raise ValueError(f"Resource outside plan templates: {reference}")
+    if _STAGED_OUTPUT.get() is not None and path.is_relative_to(OUTPUT.resolve()):
+        candidate = _output_path(path)
+        if candidate.is_file():
+            return candidate
+    return path
+
+
+@contextmanager
+def staged_generation():
+    # Keep temporary output in this checkout, independent of OS temp settings.
+    temporary_root = ROOT / ".pytest_tmp/black-moon-native-generation"
+    temporary_root.mkdir(parents=True, exist_ok=True)
+    if not temporary_root.resolve().is_relative_to(ROOT.resolve()):
+        raise ValueError("Native staging directory escapes repository")
+    with TemporaryDirectory(prefix="bank-", dir=temporary_root) as directory:
+        stage = Path(directory)
+        token = _STAGED_OUTPUT.set(stage)
+        try:
+            yield stage
+        finally:
+            _STAGED_OUTPUT.reset(token)
+
+
 def save_image(file, image):
-    path = OUTPUT / file
+    if "/" not in file:
+        file = "controls/" + file
+    reference = OUTPUT / file
+    path = _output_path(reference)
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path)
-    return file
+    return reference.relative_to(PLAN_ROOT).as_posix()
+
+
+def resource_files(manifest):
+    """Hash declared resources only; neighbouring functions do not belong to this bank."""
+    cards = manifest.get("cards", {})
+    entries = list(manifest["templates"])
+    entries.extend(cards.get("items", []))
+    references = {row[key] for row in entries for key in ("file", "mask_file") if row.get(key)}
+    files = {}
+    for reference in sorted(references):
+        path = _resource_path(reference)
+        files[reference] = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    return files
+
+
+def obsolete_resources(previous, current):
+    """Resolve the producer's old outputs without enrolling neighbouring banks."""
+    roots = (OUTPUT.resolve(), (PLAN_ROOT / "templates/commerce/shop/black_moon/cards").resolve())
+    retired_identity_mask = (PLAN_ROOT / "templates/commerce/shop/black_moon/masks/item_identity_120x119.png").resolve()
+    for reference in set(previous.get("files", {})) - set(current.get("files", {})):
+        path = (PLAN_ROOT / reference).resolve()
+        if Path(reference).is_absolute() or not (any(path.is_relative_to(root) for root in roots)
+                                                or path == retired_identity_mask):
+            continue
+        if path.is_file():
+            yield path
+
+
+def cleanup_previous_resources(previous, current):
+    """Remove only resources previously declared by this producer, after success."""
+    for path in obsolete_resources(previous, current):
+        path.unlink()
+
+
+def publish_generation(stage, previous, manifest):
+    """Publish validated files and retire old outputs as one rollback scope."""
+    staged = sorted((path for path in stage.rglob("*") if path.is_file()),
+                    key=lambda path: (path.name == "manifest.json", path.as_posix()))
+    replacements = [(path, OUTPUT / path.relative_to(stage)) for path in staged]
+    retired = list(obsolete_resources(previous, manifest))
+    targets = [*(target for _, target in replacements), *retired]
+    # Read every backup before the first mutation. A failed backup is harmless.
+    backups = {path: path.read_bytes() if path.exists() else None for path in targets}
+    try:
+        for source, target in replacements:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source.replace(target)
+        cleanup_previous_resources(previous, manifest)
+    except BaseException:
+        for path, content in reversed(tuple(backups.items())):
+            if content is None:
+                path.unlink(missing_ok=True)
+            elif not path.is_file() or path.read_bytes() != content:
+                # An unchanged read-only target may have caused publication to
+                # fail. Do not rewrite it and interrupt the remaining rollback.
+                path.write_bytes(content)
+        raise
+
+
+def catalog_products(path):
+    catalog = json.loads(path.read_text(encoding="utf-8"))
+    products = catalog.get("products", [])
+    if isinstance(products, dict):
+        products = [{"item_id": item_id, **product} for item_id, product in products.items()]
+    if not isinstance(products, list) or not products:
+        raise ValueError("Native generation requires a nonempty product catalog")
+    ids = []
+    for product in products:
+        item_id = product.get("item_id") if isinstance(product, dict) else None
+        if not isinstance(item_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", item_id):
+            raise ValueError(f"Invalid catalog item ID: {item_id!r}")
+        ids.append(item_id)
+    if len(set(ids)) != len(ids):
+        raise ValueError("Duplicate catalog item IDs")
+    return products
+
+
+def validate_generation(manifest, expected_ids, *, prepare_only=False):
+    from PIL import Image
+
+    if manifest.get("blockers"):
+        raise ValueError(f"Native generation blockers: {manifest['blockers']}")
+    controls = manifest["templates"]
+    if (len(controls) != len(PREPARE_NAMES)
+            or {row["name"] for row in controls} != set(PREPARE_NAMES)):
+        raise ValueError("Native preparation controls are incomplete")
+    items = manifest.get("cards", {}).get("items", [])
+    if (not expected_ids or len(expected_ids) != len(set(expected_ids))
+            or len(items) != len(expected_ids) or {row["item_id"] for row in items} != set(expected_ids)
+            or any(row.get("state") != "normal" or "mask_file" in row for row in items)):
+        raise ValueError("Native product coverage is incomplete")
+
+    def dimensions(rect, label):
+        if (not isinstance(rect, (list, tuple)) or len(rect) != 4
+                or any(type(value) is not int for value in rect)
+                or min(rect[:2]) < 0 or min(rect[2:]) <= 0):
+            raise ValueError(f"Invalid native {label} geometry")
+        return tuple(rect[2:])
+
+    item_size = dimensions(manifest.get("cards", {}).get("icon_rect"), "item crop")
+    image_owners, mask_owners = {}, {}
+    for row in [*controls, *items]:
+        is_control = "item_id" not in row
+        identity = row["name"] if is_control else row["item_id"]
+        size = (dimensions(row.get("source", {}).get("crop"), f"control {identity} crop")
+                if is_control else item_size)
+        if not is_control and row.get("source", {}).get("icon_rect") != manifest["cards"]["icon_rect"]:
+            raise ValueError(f"Native item crop metadata disagrees: {identity}")
+        path = _resource_path(row["file"]).resolve()
+        if path in image_owners:
+            raise ValueError(f"Duplicate native image output: {identity} and {image_owners[path]}")
+        image_owners[path] = identity
+        with Image.open(path) as image:
+            image.load()
+            if image.mode != "RGB" or image.size != size:
+                raise ValueError(f"Invalid native image size/mode: {identity}")
+        if row.get("mask_file"):
+            mask_path = _resource_path(row["mask_file"]).resolve()
+            mask_owners.setdefault(mask_path, []).append(identity)
+            with Image.open(mask_path) as mask:
+                mask.load()
+                if mask.mode != "L" or mask.size != size or mask.getbbox() is None:
+                    raise ValueError(f"Invalid native mask size/mode/content: {identity}")
+    if set(image_owners) & set(mask_owners):
+        raise ValueError("Native image output cannot also be a mask")
+    for identities in mask_owners.values():
+        if len(identities) > 1 and set(identities) != {"local_tab_selected", "local_tab_unselected"}:
+            raise ValueError(f"Unexpected shared native mask: {identities}")
+    generated = set()
+    for row in [*controls, *([] if prepare_only else items)]:
+        for key in ("file", "mask_file"):
+            if row.get(key):
+                path = _output_path(PLAN_ROOT / row[key])
+                if not path.is_file():
+                    raise ValueError(f"Generated resource missing from staging: {row[key]}")
+                generated.add(path)
+    if generated != set(_STAGED_OUTPUT.get().rglob("*.png")):
+        raise ValueError("Unexpected resources in native staging bank")
+    for reference in manifest["files"]:
+        with Image.open(_resource_path(reference)) as image:
+            image.verify()
+    if manifest["files"] != resource_files(manifest):
+        raise ValueError("Generated resource hashes do not match")
+
+
+def share_prepare_masks(entries):
+    """Share tab geometry only when both generated masks have equal pixels."""
+    from PIL import Image
+
+    tabs = [row for row in entries if row["name"].startswith("local_tab_")]
+    if len(tabs) != 2:
+        return
+    paths = [_resource_path(row["mask_file"]) for row in tabs]
+    with Image.open(paths[0]) as left, Image.open(paths[1]) as right:
+        equal = (left.mode, left.size, left.tobytes()) == (right.mode, right.size, right.tobytes())
+        shared = save_image("local_tab.mask.png", left) if equal else None
+    if shared:
+        for row, path in zip(tabs, paths):
+            row["mask_file"] = shared
+            if path.resolve() != _resource_path(shared).resolve():
+                path.unlink()
 
 
 def manufacture_prepare_controls(native):
@@ -268,15 +473,29 @@ def manufacture_prepare_controls(native):
         prefix = STORE + "/Btn_PL/Group_" + state.title()
         canvas, sources = compose([prefix + "/Txt_", prefix + "/Img_"])
         entry("batch_" + state, canvas, PREPARE_BATCH_RECT, sources)
+    share_prepare_masks(entries)
     return entries
 
 
 def update_prepare_controls(assets, metadata, records):
+    previous = json.loads((OUTPUT / "manifest.json").read_text(encoding="utf-8"))
+    expected_ids = [row["item_id"] for row in normal_item_catalog(previous.get("cards", {}))["items"]]
+    with staged_generation() as stage:
+        manifest = _update_prepare_controls(assets, metadata, records)
+        validate_generation(manifest, expected_ids, prepare_only=True)
+        publish_generation(stage, previous, manifest)
+    print(json.dumps({"mode": "prepare_only", "templates": list(PREPARE_NAMES)}))
+
+
+def _update_prepare_controls(assets, metadata, records):
     manifest_path = OUTPUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     native = Native(assets, metadata, records)
     entries = manufacture_prepare_controls(native)
-    manifest["templates"] = [row for row in manifest["templates"] if row["name"] not in PREPARE_NAMES] + entries
+    manifest["templates"] = entries
+    manifest["cards"] = normal_item_catalog(manifest.get("cards", {}))
+    if "catalog" in manifest:
+        manifest["catalog"]["manufactured"] = len(manifest["cards"]["items"])
     for group, rect in (("local_tab", PREPARE_TAB_RECT), ("batch", PREPARE_BATCH_RECT)):
         manifest["state_comparisons"][group]["roi"] = list(rect)
     manifest["prepare_controls"] = {"names": list(PREPARE_NAMES), "threshold": .90,
@@ -287,19 +506,47 @@ def update_prepare_controls(assets, metadata, records):
     note = "Only six preparation controls have four real-frame ROI checks; stock, purchase and live transitions remain unvalidated."
     if note not in manifest["limitations"]:
         manifest["limitations"].append(note)
-    manifest["files"] = {path.relative_to(OUTPUT).as_posix(): {"sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-                         for path in sorted(OUTPUT.rglob("*.png"))}
+    manifest["files"] = resource_files(manifest)
+    if getattr(native, "blockers", []):
+        raise ValueError(f"Native generation blockers: {native.blockers}")
     write_json(manifest_path, manifest)
-    print(json.dumps({"mode": "prepare_only", "templates": list(PREPARE_NAMES)}))
+    return manifest
+
+
+def normal_item_catalog(cards):
+    """Keep native artwork inputs used by the calibrated item producer only."""
+    result = {key: cards[key] for key in ("icon_rect", "native_icon_rect", "quality", "catalog_products")
+              if key in cards}
+    result["items"] = [{key: value for key, value in row.items() if key != "mask_file"}
+                       for row in cards.get("items", []) if row["state"] == "normal"]
+    return result
 
 
 def manufacturing(assets, metadata, records, catalog_path):
-    from PIL import Image, ImageDraw
+    products = catalog_products(catalog_path)
+    previous_path = OUTPUT / "manifest.json"
+    previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.is_file() else {}
+    with staged_generation() as stage:
+        manifest = _manufacturing(assets, metadata, records, catalog_path)
+        validate_generation(manifest, [row["item_id"] for row in products])
+        for name in ("native_ui.json", "native_assets.json"):
+            if not (stage / "sources" / name).is_file():
+                raise ValueError(f"Native provenance missing from staging: {name}")
+        publish_generation(stage, previous, manifest)
+    cards = manifest["cards"]
+    print(json.dumps({"templates": len(manifest["templates"]), "items": len(cards["items"]),
+                      "icon_rect": cards["icon_rect"], "native_icon_rect": cards["native_icon_rect"],
+                      "blockers": manifest["blockers"]}, ensure_ascii=False))
+    return manifest
+
+
+def _manufacturing(assets, metadata, records, catalog_path):
+    from PIL import Image
 
     native = Native(assets, metadata, records)
-    manifest = {"schema_version": 1, "reference_client": [1280, 720], "status": STATUS,
+    manifest = {"schema_version": 2, "reference_client": [1280, 720], "status": STATUS,
                 "state_minimum_margin": .035,
-                "templates": [], "source": {"prefab": STORE_PREFAB,
+                "templates": manufacture_prepare_controls(native), "source": {"prefab": STORE_PREFAB,
                 "prefab_sha256": records[STORE_PREFAB]["bundle_sha256"],
                 "layout": "1920x1080 native RectTransforms composed at 1280x720; not inventory geometry"},
                 "limitations": ["No tests, matching, GUI, game or screenshot validation performed",
@@ -307,196 +554,22 @@ def manufacturing(assets, metadata, records, catalog_path):
                                  "Native font memory rendered by Pillow, not Unity's text rasterizer"],
                 "blockers": native.blockers}
 
-    def entry(name, canvas, rect, roi=None, sources=None, threshold=.86, mask=None, **extra):
-        image = canvas.crop(box(rect))
-        file = save_image(f"{name}.png", image.convert("RGB"))
-        if mask is None:
-            mask = image.getchannel("A").point(lambda v: 255 if v >= 240 else 0)
-        else:
-            mask = mask.crop(box(rect))
-        row = {"name": name, "file": file, "mask_file": save_image(f"{name}.mask.png", mask),
-               "roi": roi or rect, "preprocess": "rgb", "method": "1-TM_SQDIFF_NORMED",
-               "threshold": threshold, "status": STATUS,
-               "source": {"prefab": STORE_PREFAB, "nodes": sources or [], "crop": rect}, **extra}
-        manifest["templates"].append(row)
-        return row
-
-    def compose(paths, prefab=STORE_PREFAB, background=None):
-        canvas = background.copy() if background is not None else Image.new("RGBA", (1280, 720))
-        sources = []
-        for path in paths:
-            for node in native.nodes(path, prefab):
-                sources.append(native.layer(canvas, node))
-        return canvas, sources
-
-    # Invariant menu and page navigation, with dynamic NPC/currency regions absent.
-    for name, parent, rect in (
-        ("rest_menu", "/BarStore/Group_Main/Btn_Talk", [742, 470, 201, 41]),
-    ):
-        canvas, sources = compose([parent, parent + "/Img_", parent + "/Txt_"])
-        entry(name, canvas, rect, sources=sources, threshold=.88)
-    for name, path in (("page_back", "/BarStore/Group_CommonTopLeft/Btn_Return"),
-                       ("page_home", "/BarStore/Group_CommonTopLeft/Btn_Home")):
-        node = native.node(path)
-        canvas, sources = compose([path])
-        entry(name, canvas, node["rect_client"], sources=sources, threshold=.9)
-    main_prefab = "ui/mainui/mainui.asset"
-    canvas, sources = compose(["/MainUI/Btn_Map", "/MainUI/Btn_Map/Img_P", "/MainUI/Btn_Map/Txt_Name"], main_prefab)
-    row = entry("main_nav", canvas, [1083, 402, 150, 48], sources=sources)
-    row["source"]["prefab"] = main_prefab
-
-    panel, panel_sources = compose([STORE + "/Img_BG"])
-    manifest["templates"].extend(manufacture_prepare_controls(native))
-    tab_rect, batch_rect = PREPARE_TAB_RECT, PREPARE_BATCH_RECT
-    canvas, sources = compose([STORE + "/Group_PL/Img_", STORE + "/Group_PL/Btn_Buy",
-                               STORE + "/Group_PL/Btn_Buy/Txt_"], background=panel)
-    entry("confirm_enabled", canvas, [1139, 651, 120, 36], sources=panel_sources + sources,
-          threshold=.9, color_mae_limit=24)
-
-    reward_prefab = "ui/common/showitem.asset"
-    canvas, sources = compose(["/ShowItem/Group_580/Group_Title/Img_Title",
-                               "/ShowItem/Group_580/Group_Title/Txt_Title"], reward_prefab)
-    row = entry("reward", canvas, [523, 93, 234, 67], roi=[480, 0, 320, 320], sources=sources)
-    row["source"]["prefab"] = reward_prefab
-
+    # The visible core and native icon crop are unchanged. Geometry is a local
+    # manufacturing input; the calibrated scanner owns runtime card recognition.
     frame_node = native.node(CARD)
     logical_origin = frame_node["rect_client"][:2]
-    logical_size = frame_node["rect_client"][2:]
-    logical_frame = Image.new("RGBA", tuple(logical_size))
-    frame_sources = [native.layer(logical_frame, native.node(CARD + "/Group_Item/Btn_Item"), logical_origin)]
-    alpha = logical_frame.getchannel("A")
-    artwork_bounds = alpha.getbbox()
-    core_bounds = alpha.point(lambda value: 255 if value >= 128 else 0).getbbox()
+    logical_frame = Image.new("RGBA", tuple(frame_node["rect_client"][2:]))
+    native.layer(logical_frame, native.node(CARD + "/Group_Item/Btn_Item"), logical_origin)
+    core_bounds = logical_frame.getchannel("A").point(lambda value: 255 if value >= 128 else 0).getbbox()
     inset = list(core_bounds[:2])
     origin = [logical_origin[i] + inset[i] for i in (0, 1)]
     size = [core_bounds[2] - core_bounds[0], core_bounds[3] - core_bounds[1]]
     frame_base = logical_frame.crop(core_bounds)
-    raw_viewport = native.node(STORE + "/ScrollGrid_Commodity/Viewport")["rect_client"]
-    viewport = [*raw_viewport[:3], 643 - raw_viewport[1]]
     native_icon_rect = relative_rect(native.node(CARD + "/Group_Item/Btn_Item/Img_ItemBG/Img_Item")["rect_client"], origin)
     icon_rect = [*native_icon_rect[:2], min(native_icon_rect[2], size[0] - native_icon_rect[0]),
                  min(native_icon_rect[3], size[1] - native_icon_rect[1])]
-    selected_roi = relative_rect([217, 4, 115, 27], inset)
-    sold_out_roi = relative_rect([117, 29, 107, 65], inset)
-    logical_columns = [native.node(STORE + "/ScrollGrid_Commodity/Viewport/Grid/Group_Item_00" + str(i))["rect_client"][0] for i in (0, 1)]
-    columns = [x + inset[0] for x in logical_columns]
-    cards = {"viewport": viewport, "raw_native_viewport": raw_viewport, "size": size, "columns": columns,
-             "column_offsets": [x - viewport[0] for x in columns],
-             "icon_rect": icon_rect, "native_icon_rect": native_icon_rect,
-             "selected_roi": selected_roi, "sold_out_roi": sold_out_roi,
-             "anchors": [], "frame_variants": [], "items": [], "minimum_item_margin": .04,
-             "fingerprint_box": [32, 32, size[0] - 44, size[1] - 40],
-             "fingerprint_exclude": [selected_roi], "status": STATUS,
-             "row_pitch_native": 196, "row_pitch_client": 196 * 2 / 3,
-             "fixed_slot_mapping": False, "partial_cards": "recover origin from top/bottom anchor offset; constrain x to columns",
-             "viewport_batch_occlusion": [592, 643, 679, 52],
-             "source": {"prefab": STORE_PREFAB, "card_node": CARD,
-                        "card_transform_id": frame_node["transform_id"], "viewport_node": STORE + "/ScrollGrid_Commodity/Viewport"}}
+    cards = {"items": [], "icon_rect": icon_rect, "native_icon_rect": native_icon_rect}
     manifest["cards"] = cards
-    cards["scroll_layout"] = scroll_layout(native, raw_viewport, viewport, logical_size, inset, size)
-    cards["artwork_alpha_bbox"] = relative_rect(
-        [artwork_bounds[0], artwork_bounds[1], artwork_bounds[2] - artwork_bounds[0], artwork_bounds[3] - artwork_bounds[1]], inset)
-    cards["artwork_rect"] = [0, 0, *size]
-    cards["artwork_core_rect"] = cards["artwork_rect"].copy()
-    cards["origin"] = origin.copy()
-    cards["logical_size"] = logical_size
-    cards["logical_origin"] = logical_origin
-    cards["logical_columns"] = logical_columns
-    cards["native_artwork_rect"] = [*inset, *size]
-    cards["logical_to_artwork_offset"] = inset
-    cards["artwork_source"] = {"nodes": frame_sources, "alpha_threshold": 128,
-                               "full_alpha_bbox_threshold": 1, "coordinates": "card-relative",
-                               "partial_policy": "require translated artwork_rect fully inside effective viewport; low-alpha fringe outside visible core is excluded",
-                               "limitation": "Visible-core threshold is explicit manufacturing policy, not screenshot-calibrated; nonzero alpha fringe extends across full logical rectangle"}
-    cards["frames_determine_state"] = False
-    cards["state_evidence"] = {"selected": "selected", "sold_out": "sold_out",
-                               "policy": "markers only; native dark-overlay frame appearances can be identical"}
-    logical_excluded = [
-        [20, 0, 139, 130],  # Quality/icon/name overlap and pack count.
-        [141, 23, 178, 49], [130, 57, 193, 56], [217, 4, 115, 27],
-        [263, 0, 74, 27],  # Dynamic residue count protrudes across the card edge.
-    ]
-    excluded = [relative_rect(rect, inset) for rect in logical_excluded]
-    frame_mask = Image.new("L", tuple(size), 255)
-    draw = ImageDraw.Draw(frame_mask)
-    for rect in excluded:
-        x, y, w, h = rect
-        draw.rectangle((x, y, x + w - 1, y + h - 1), fill=0)
-    import numpy as np
-
-    frame_mask = Image.fromarray(np.minimum(np.asarray(frame_mask), np.asarray(frame_base.getchannel("A"))))
-    selected_frame_mask = frame_mask.copy()
-    selected_excluded = [[0, 0, 25, size[1]], [size[0] - 130, 0, 130, 32],
-                         [0, 0, size[0], 4], [0, size[1] - 4, size[0], 4],
-                         [0, 0, 4, size[1]], [size[0] - 4, 0, 4, size[1]]]
-    selected_draw = ImageDraw.Draw(selected_frame_mask)
-    for x, y, w, h in selected_excluded:
-        selected_draw.rectangle((x, y, x + w - 1, y + h - 1), fill=0)
-    frames = {"normal": frame_base}
-    state_sources = {"normal": frame_sources}
-    for state, suffix in (("selected", None),
-                          ("soldout", "/Group_Item/Btn_Item/Img_Sold")):
-        canvas = frame_base.copy()
-        sources = frame_sources.copy()
-        if state == "selected":
-            sources.append(native.layer(canvas, native.node(CARD + "/Group_Item/Btn_Item/Img_Sold"), origin))
-        if suffix:
-            for node in native.nodes(CARD + suffix):
-                sources.append(native.layer(canvas, node, origin))
-        frames[state] = canvas
-        state_sources[state] = sources
-    for state, image in frames.items():
-        file = save_image(f"cards/{state}.png", image.convert("RGB"))
-        geometry_mask = selected_frame_mask if state == "selected" else frame_mask
-        mask_file = save_image(f"cards/{state}.mask.png", geometry_mask)
-        appearance = "normal" if state == "normal" else "native_dark_overlay"
-        variant = {"file": file, "mask_file": mask_file, "appearance": appearance,
-                   "role": "geometry_only", "preprocess": "rgb",
-                   "threshold": .86, "status": STATUS, "source": state_sources[state]}
-        cards["frame_variants"].append(variant)
-        anchor_rows = (("top", 6, 12), ("bottom", size[1] - 10, 6)) if state == "selected" else (
-            ("top", 0, 12), ("bottom", size[1] - 12, 12))
-        for edge, y, height in anchor_rows:
-            offset = [0, y]
-            rect = [*offset, size[0], height]
-            cards["anchors"].append({"file": save_image(f"cards/{state}_{edge}.png", image.crop(box(rect)).convert("RGB")),
-                                     "mask_file": save_image(f"cards/{state}_{edge}.mask.png", geometry_mask.crop(box(rect))),
-                                     "offset": offset, "threshold": .86, "preprocess": "rgb",
-                                     "appearance": appearance, "role": "geometry_only",
-                                     "status": STATUS, "source": {"frame": file, "crop": rect}})
-    cards["frame_exclude"] = excluded
-    cards["selected_frame_exclude"] = selected_excluded
-    cards["selected_darkening"] = {"source_node": CARD + "/Group_Item/Btn_Item/Img_Sold",
-                                    "sprite_id": 8735325811154869955,
-                                    "kind": "native_dark_overlay_reuse",
-                                    "limitation": "Darkening observed statically; selected runtime alpha/tint unavailable in serialized prefab. Native sold dark overlay reused, not calibrated."}
-    manifest["limitations"].append(cards["selected_darkening"]["limitation"])
-    native.blockers.append({"kind": "selected_state_sprite_unavailable", "sprite_id": 5556224950374819097,
-                            "prefab_node": CARD + "/Group_Select/Img_",
-                            "reason": "Serialized selected banner reference absent in current UI atlas; serialized full-card sprite di_select is tab-style, not the observed yellow frame",
-                            "fallback": "Native-font dark selected label and native dark-overlay frame/item variants; yellow border/banner not manufactured"})
-    manifest["limitations"].append("Local tab text omitted/masked: serialized label is outdated and current label absent from native TextFactory string pool")
-
-    selected = Image.new("RGBA", (1280, 720))
-    selected_sources = []
-    for path in (CARD + "/Group_Select/Txt_",):
-        for node in native.nodes(path):
-            selected_sources.append(native.layer(selected, node))
-    text_rect = native.node(CARD + "/Group_Select/Txt_")["rect_client"]
-    row = entry("selected", selected, text_rect, roi=viewport, sources=selected_sources,
-                threshold=.86, card_relative_roi=selected_roi)
-    glyph_alpha = selected.crop(box(text_rect)).getchannel("A")
-    save_image(row["file"], glyph_alpha.point(lambda value: 255 if value >= 128 else 0))
-    save_image(row["mask_file"], Image.new("L", tuple(text_rect[2:]), 255))
-    row["preprocess"] = "dark"
-    row["source"]["prepared_pixels"] = {"mode": "L", "foreground": 255, "background": 0,
-                                         "native_font_alpha_threshold": 128,
-                                         "mask": "full text rectangle, including negative background evidence"}
-    sold, sold_sources = compose([CARD + "/Group_Item/Btn_Item/Img_Sold",
-                                 CARD + "/Group_Item/Btn_Item/Img_Sold/Img_",
-                                 CARD + "/Group_Item/Btn_Item/Img_Sold/Txt_"])
-    entry("sold_out", sold, [origin[0] + sold_out_roi[0], origin[1] + sold_out_roi[1], *sold_out_roi[2:]],
-          roi=viewport, sources=sold_sources, threshold=.86, card_relative_roi=sold_out_roi)
     build_items(native, catalog_path, cards, frame_base, origin)
     manifest["catalog"] = {"path": catalog_path.relative_to(ROOT).as_posix() if catalog_path.is_relative_to(ROOT) else str(catalog_path),
                            "present": catalog_path.exists(), "manufactured": len(cards["items"])}
@@ -505,24 +578,20 @@ def manufacturing(assets, metadata, records, catalog_path):
     manifest["source"]["bundle_sha256"] = native.hashes
     manifest["source"]["prefab_hashes"] = {path: record["bundle_sha256"] for path, record in records.items()}
     manifest["state_comparisons"] = {
-        "local_tab": {"on": "local_tab_selected", "off": "local_tab_unselected", "roi": tab_rect,
+        "local_tab": {"on": "local_tab_selected", "off": "local_tab_unselected", "roi": PREPARE_TAB_RECT,
                       "preprocess": "rgb", "method": "1-TM_SQDIFF_NORMED", "minimum_margin": .035,
                       "color_mae_limit": 24, "ties": "unconfirmed; no purchase"},
-        "batch": {"on": "batch_on", "off": "batch_off", "roi": batch_rect,
+        "batch": {"on": "batch_on", "off": "batch_off", "roi": PREPARE_BATCH_RECT,
                   "preprocess": "rgb", "method": "1-TM_SQDIFF_NORMED", "minimum_margin": .035,
                   "color_mae_limit": 24, "ties": "unconfirmed"}}
-    manifest["files"] = {path.relative_to(OUTPUT).as_posix(): {"sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-                         for path in sorted(OUTPUT.rglob("*.png"))}
+    manifest["files"] = resource_files(manifest)
     write_json(OUTPUT / "manifest.json", manifest)
     evidence(native)
-    print(json.dumps({"templates": len(manifest["templates"]), "items": len(cards["items"]),
-                      "cards": {k: cards[k] for k in ("viewport", "size", "columns", "icon_rect", "artwork_rect", "artwork_core_rect")},
-                      "scroll_layout": cards["scroll_layout"], "blockers": native.blockers}, ensure_ascii=False))
     return manifest
 
 
 def build_items(native, catalog_path, cards, frame_base, origin):
-    from PIL import Image, ImageDraw
+    from PIL import Image
     from aura_resonance_devtools.item_catalog import QUALITY_NUMBERS
 
     if not catalog_path.exists():
@@ -563,73 +632,21 @@ def build_items(native, catalog_path, cards, frame_base, origin):
             canvas.alpha_composite(background, tuple(bg_rect[:2]))
             canvas.alpha_composite(icon, tuple(native_icon_rect[:2]))
             canvas.alpha_composite(border, tuple(border_rect[:2]))
-            image = canvas.crop(box(icon_rect)).convert("RGB")
-            mask = Image.new("L", image.size, 255)
-            draw = ImageDraw.Draw(mask)
-            draw.rectangle((0, 0, 32, 27), fill=0)  # Optional equipment type marker.
-            draw.rectangle((11, 81, image.width - 1, image.height - 1), fill=0)  # Dynamic pack quantity.
             source = {"catalog_product": product, "icon": native.provenance(key, obj),
                       "quality_background": native.provenance(background_key, background_obj),
                       "quality_border": native.provenance(border_key, border_obj),
                       "prefab": STORE_PREFAB, "icon_node": CARD + "/Group_Item/Btn_Item/Img_ItemBG/Img_Item",
                       "icon_rect": icon_rect, "native_icon_rect": native_icon_rect,
                       "background_rect": bg_rect, "border_rect": border_rect}
-            selected = canvas.copy()
-            dark_source = native.layer(selected, native.node(CARD + "/Group_Item/Btn_Item/Img_Sold"), origin)
-            for state, state_canvas in (("normal", canvas), ("selected", selected)):
-                file = save_image(f"items/{item_id}_{state}.png", state_canvas.crop(box(icon_rect)).convert("RGB"))
-                mask_file = save_image(f"items/{item_id}_{state}.mask.png", mask)
-                state_source = {**source, "selected_overlay": dark_source} if state == "selected" else source
-                cards["items"].append({"item_id": item_id, "name": product["name"], "quality": quality_name,
-                                       "quality_number": quality, "state": state,
-                                       "category": product["category"], "file": file, "mask_file": mask_file,
-                                       "threshold": .86, "preprocess": "rgb", "status": STATUS, "source": state_source})
+            file = save_image(f"items/{item_id}_normal.png", canvas.crop(box(icon_rect)).convert("RGB"))
+            cards["items"].append({"item_id": item_id, "name": product["name"], "quality": quality_name,
+                                   "quality_number": quality, "state": "normal",
+                                   "category": product["category"], "file": file,
+                                   "threshold": .86, "preprocess": "rgb", "status": STATUS, "source": source})
             cards["quality"][str(quality)] = {"background": source["quality_background"], "border": source["quality_border"]}
         except (KeyError, ValueError, FileNotFoundError) as exc:
             native.blockers.append({"kind": "item_extraction", "item_id": item_id,
                                     "icon_resource_url": product.get("icon_resource_url"), "reason": str(exc)})
-
-
-def scroll_layout(native, raw_viewport, effective_viewport, logical_size, inset, artwork_size):
-    nodes = []
-    for suffix in ("", "/Viewport", "/Viewport/Grid"):
-        node = native.node(STORE + "/ScrollGrid_Commodity" + suffix)
-        components = []
-        for component in node["components"]:
-            tree = component["tree"]
-            fields = {key: tree[key] for key in SCROLL_FIELDS if key in tree}
-            references = {key: value for key, value in tree.items()
-                          if isinstance(value, dict) and "m_PathID" in value
-                          and key not in ("m_GameObject", "m_Script", "m_Material", "m_Sprite")}
-            components.append({"path_id": component["path_id"], "fields": fields,
-                               "references": references, "serialized_field_names": sorted(tree)})
-        nodes.append({"node": node["path"], "transform_id": node["transform_id"],
-                      "game_object_id": node["game_object_id"], "rect_native": node["rect_native"],
-                      "rect_client": node["rect_client"], "components": components})
-    padding_explanation = {"status": "serialized_bottom_padding_absent"}
-    for node in nodes:
-        for component in node["components"]:
-            fields = component["fields"]
-            padding = fields.get("Padding", fields.get("m_Padding"))
-            if padding is None:
-                continue
-            bottom_native = padding["m_Bottom"]
-            bottom_client = bottom_native * 2 / 3
-            fringe = logical_size[1] - inset[1] - artwork_size[1]
-            padding_explanation = {
-                "status": "conditional_source_explanation_not_runtime_proof",
-                "source_node": node["node"], "source_component_id": component["path_id"],
-                "bottom_padding_native": bottom_native, "bottom_padding_client": bottom_client,
-                "rounded_logical_card_bottom_fringe_client": fringe,
-                "conditional_final_art_bottom_client": raw_viewport[1] + raw_viewport[3] - bottom_client - fringe,
-                "assumption": "Runtime custom grid applies serialized bottom padding and aligns content bottom to raw viewport bottom. Actual runtime content height/scroll-end alignment is not serialized."}
-    return {"source": {"prefab": STORE_PREFAB, "sha256": native.records[STORE_PREFAB]["bundle_sha256"]},
-            "native_to_client_scale": 2 / 3, "nodes": nodes,
-            "raw_viewport_bottom_client": raw_viewport[1] + raw_viewport[3],
-            "effective_viewport_bottom_client": effective_viewport[1] + effective_viewport[3],
-            "runtime_scroll_end_fit": "not_established_by_serialized_geometry",
-            "padding_explanation": padding_explanation,
-            "limitation": "Serialized content geometry/references and padding alone do not establish runtime content height, scroll-end position, or toolbar-driven viewport changes. Static screenshot final art ending at643 is user-provided evidence, not inferred runtime configuration. Safe footer remains643."}
 
 
 def evidence(native):
@@ -652,6 +669,7 @@ def evidence(native):
 
 
 def write_json(path: Path, data) -> None:
+    path = _output_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 import time
 from datetime import datetime, timezone
@@ -15,6 +14,8 @@ import numpy as np
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.observability.logging.core_logger import logger
+from ._recovery_assets import load_plan_image, read_layout_json, validated_roi as _roi
+from ._bento_observation import ConsecutiveFrameStability, work_meal_slot_state
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CONFIG_PATH = _PLAN_ROOT / "data/meta/player_recovery.json"
@@ -33,21 +34,10 @@ def check_cancelled() -> None:
         raise _error("cancelled")
 
 
-def _roi(raw: Any, reference: Sequence[int], label: str) -> tuple[int, int, int, int]:
-    if not isinstance(raw, (list, tuple)) or len(raw) != 4:
-        raise ValueError(f"{label}: ROI must contain x, y, width, height")
-    if any(isinstance(v, bool) or not isinstance(v, int) for v in raw):
-        raise ValueError(f"{label}: ROI coordinates must be integers")
-    x, y, w, h = raw
-    if min(x, y) < 0 or min(w, h) <= 0 or x+w > reference[0] or y+h > reference[1]:
-        raise ValueError(f"{label}: ROI is outside reference client")
-    return x, y, w, h
-
-
 def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
                          plan_root: Path = _PLAN_ROOT) -> dict[str, Any]:
     """Validate all selected-feature assets before any game input."""
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = read_layout_json(config_path)
     if not isinstance(config, dict) or config.get("schema_version") != 1:
         raise ValueError("unsupported player recovery layout")
     if config.get("reference_client") != [1280, 720]:
@@ -66,10 +56,8 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
     count_paths = []
     for number in range(13):
         ref = str(Path(count_digits["directory"]) / f"{number}.png")
-        path = Path(vision.resolve_template("resonance_pc", ref, root)).resolve()
-        if not path.is_relative_to(root):
-            raise ValueError("bento count template escapes plan root")
-        image = vision.load_image_file(path, cv2.IMREAD_GRAYSCALE)
+        path, image = load_plan_image(vision, ref, root, flags=cv2.IMREAD_GRAYSCALE,
+                                      path_error="bento count template escapes plan root")
         if image is None or image.shape != (22, 24) or image.dtype != np.uint8:
             raise ValueError(f"invalid bento count asset: {number}")
         count_paths.append(str(path))
@@ -90,10 +78,8 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
     for digit in range(7):
         for suffix, paths in (("", digit_paths), ("_mask", mask_paths)):
             ref = str(Path(digits["directory"]) / f"{digit}{suffix}.png")
-            path = Path(vision.resolve_template("resonance_pc", ref, root)).resolve()
-            if not path.is_relative_to(root):
-                raise ValueError("free uses digit template escapes plan root")
-            image = vision.load_image_file(path, cv2.IMREAD_UNCHANGED)
+            path, image = load_plan_image(vision, ref, root, flags=cv2.IMREAD_UNCHANGED,
+                                          path_error="free uses digit template escapes plan root")
             if image is None or image.shape[:2] != (48, 32) or image.dtype != np.uint8:
                 raise ValueError(f"invalid free uses digit asset: {digit}{suffix}")
             if suffix:
@@ -127,12 +113,12 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
         target = targets[key]
         if not 0 < float(target["threshold"]) <= 1:
             raise ValueError(f"invalid recovery template threshold: {key}")
-        resolved = Path(vision.resolve_template("resonance_pc", target["path"], root)).resolve()
-        if not resolved.is_relative_to(root):
-            raise ValueError(f"recovery template escapes plan root: {key}")
         # The framework owns Unicode-safe loading. Paths passed to matching retain
         # the framework's BGR-file -> RGB-source conversion contract.
-        image = vision.load_image_file(resolved, cv2.IMREAD_UNCHANGED)
+        resolved, image = load_plan_image(
+            vision, target["path"], root, flags=cv2.IMREAD_UNCHANGED,
+            path_error=f"recovery template escapes plan root: {key}",
+        )
         if image is None or image.size == 0 or image.ndim not in (2, 3):
             raise ValueError(f"unreadable recovery template: {key}")
         target["resolved_path"] = str(resolved)
@@ -143,7 +129,7 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
                 raise ValueError(f"recovery template exceeds ROI: {key}")
         if "roi" in target:
             target["roi"] = _roi(target["roi"], reference, key)
-    catalog = json.loads((root / "data/meta/love_bento.json").read_text(encoding="utf-8"))
+    catalog = read_layout_json(root / "data/meta/love_bento.json")
     scanner = catalog["scanner"]
     viewport = _roi(scanner["viewport"], reference, "bento viewport")
     for key in ("max_drags", "stationary_confirmations"):
@@ -155,10 +141,10 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
         raise ValueError("invalid bento navigation threshold or timeout")
     foods = []
     for food in catalog["items"]:
-        path = Path(vision.resolve_template("resonance_pc", food["template"], root)).resolve()
-        if not path.is_relative_to(root):
-            raise ValueError("bento content template escapes plan root")
-        image = vision.load_image_file(path, cv2.IMREAD_UNCHANGED)
+        path, image = load_plan_image(
+            vision, food["template"], root, flags=cv2.IMREAD_UNCHANGED,
+            path_error="bento content template escapes plan root",
+        )
         if image is None or not image.size or image.shape[0] > viewport[3] or image.shape[1] > viewport[2]:
             raise ValueError("invalid bento content template")
         foods.append(str(path))
@@ -311,21 +297,19 @@ class RecoveryReader:
 
         def ready_frame():
             until = min(deadline, time.monotonic() + self.layout["bento_ready_timeout_sec"])
-            previous, stable = None, 0
+            stability = ConsecutiveFrameStability(LoveBentoScanner.unchanged)
             while time.monotonic() < until:
                 guard()
                 if self.is_page("bento_cabinet"):
                     frame = self.capture(cfg["viewport"])
                     if self._bento_content_loaded(frame):
-                        stable = stable + 1 if previous is not None and LoveBentoScanner.unchanged(previous, frame) else 0
-                        previous = frame
-                        if stable >= 2:
+                        if stability.observe(frame) >= 2:
                             guard()
                             return frame
                     else:
-                        previous, stable = None, 0
+                        stability.reset()
                 else:
-                    previous, stable = None, 0
+                    stability.reset()
                 time.sleep(interval)
             raise _error("bento cabinet/content did not finish loading; old inventory retained")
 
@@ -335,6 +319,7 @@ class RecoveryReader:
         vx, vy, vw, vh = cfg["viewport"]
         x, start_y, end_y = round(vx + vw * .5), round(vy + vh * .15), round(vy + vh * .85)
         stationary = 0
+        stability = ConsecutiveFrameStability(LoveBentoScanner.unchanged, previous=frame)
         for count in range(1, cfg["max_drags"] + 1):
             guard()
             if not self.is_page("bento_cabinet"):
@@ -344,7 +329,7 @@ class RecoveryReader:
             if getattr(result, "success", True) is False:
                 raise _error("bento rewind input failed")
             following = ready_frame()
-            stationary = stationary + 1 if LoveBentoScanner.unchanged(frame, following) else 0
+            stationary = stability.observe(following)
             frame = following
             top = self._bento_top_visible(frame)
             logger.info("[RecoveryBento] phase=rewind drag=%s/%s stationary=%s top_visible=%s direction=down",
@@ -493,8 +478,7 @@ class RecoveryReader:
                     raise _error("bento template result count mismatch")
                 if any(getattr(hit, "debug_info", {}).get("error") for hit in results):
                     raise _error("bento template matching failed")
-                present, absent = [hit.found and hit.confidence >= templates[key]["threshold"]
-                                   for key, hit in zip(keys, results)]
+                state = work_meal_slot_state(results, [templates[key]["threshold"] for key in keys])
                 observation = {
                     "issue_time": slot["issue_time"], "roi": list(slot["roi"]),
                     "matches": {
@@ -502,14 +486,13 @@ class RecoveryReader:
                               "threshold": templates[key]["threshold"]}
                         for key, hit in zip(keys, results)
                     },
-                    "result": ("ambiguous_both" if present else "unrecognized_neither")
-                    if present == absent else ("present" if present else "absent"),
+                    "result": state,
                 }
                 last_observations.append(observation)
                 logger.info("[RecoveryBento] phase=slot attempt=%s observation=%s", attempt, observation)
-                if present == absent:
+                if state not in ("present", "absent"):
                     continue
-                slots.append({"issue_time": slot["issue_time"], "available": bool(present)})
+                slots.append({"issue_time": slot["issue_time"], "available": state == "present"})
             if len(slots) == 3 and time.monotonic() < deadline:
                 logger.info("[RecoveryBento] phase=completed attempt=%s elapsed_sec=%.3f slots=%s", attempt, time.monotonic() - started_at, slots)
                 return {"available_count": sum(slot["available"] for slot in slots), "slots": slots,

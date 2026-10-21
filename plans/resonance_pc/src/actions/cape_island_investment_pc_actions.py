@@ -40,33 +40,33 @@ _CAPE_CITY_NAME = "海角城"
 _MIRAGE_ISLAND_NAME = "蜃息岛"
 
 # Page and command templates are populated independently from card grade samples.
-_ISLAND_HOME_TEMPLATE = "templates/cape_island_home_anchor.png"
-_REVENUE_OVERVIEW_TEMPLATE = "templates/cape_island_revenue_overview_anchor.png"
-_INVESTMENT_TAB_TEMPLATE = "templates/cape_island_investment_tab.png"
-_INVESTMENT_PAGE_TEMPLATE = "templates/cape_island_investment_page_anchor.png"
-_INVEST_BUTTON_TEMPLATE = "templates/cape_island_invest_button.png"
-_INVESTMENT_SUCCESS_TEMPLATE = "templates/cape_island_investment_success.png"
+_ISLAND_HOME_TEMPLATE = "templates/commerce/investment/cape_island/controls/home_anchor.png"
+_REVENUE_OVERVIEW_TEMPLATE = "templates/commerce/investment/cape_island/controls/revenue_overview_anchor.png"
+_INVESTMENT_TAB_TEMPLATE = "templates/commerce/investment/cape_island/controls/investment_tab.png"
+_INVESTMENT_PAGE_TEMPLATE = "templates/commerce/investment/cape_island/controls/investment_page_anchor.png"
+_INVEST_BUTTON_TEMPLATE = "templates/commerce/investment/cape_island/controls/invest_button.png"
+_INVESTMENT_SUCCESS_TEMPLATE = "templates/commerce/investment/cape_island/controls/investment_success.png"
 
 CARD_OPTION_TEMPLATES: Dict[str, Dict[str, Tuple[str, ...]]] = {
     "share": {
-        "bronze": ("templates/cape_island_card_share_bronze.png",),
-        "silver": ("templates/cape_island_card_share_silver.png",),
-        "gold": ("templates/cape_island_card_share_gold.png",),
+        "bronze": ("templates/commerce/investment/cape_island/cards/share_bronze.png",),
+        "silver": ("templates/commerce/investment/cape_island/cards/share_silver.png",),
+        "gold": ("templates/commerce/investment/cape_island/cards/share_gold.png",),
     },
     "ticket": {
-        "bronze": ("templates/cape_island_card_ticket_bronze.png",),
-        "silver": ("templates/cape_island_card_ticket_silver.png",),
+        "bronze": ("templates/commerce/investment/cape_island/cards/ticket_bronze.png",),
+        "silver": ("templates/commerce/investment/cape_island/cards/ticket_silver.png",),
         "gold": (),
     },
     "tax": {
-        "bronze": ("templates/cape_island_card_tax_bronze.png",),
-        "silver": ("templates/cape_island_card_tax_silver.png",),
+        "bronze": ("templates/commerce/investment/cape_island/cards/tax_bronze.png",),
+        "silver": ("templates/commerce/investment/cape_island/cards/tax_silver.png",),
         "gold": (),
     },
     "all": {
-        "bronze": ("templates/cape_island_card_all_basic.png",),
+        "bronze": ("templates/commerce/investment/cape_island/cards/all_basic.png",),
         "silver": (),
-        "gold": ("templates/cape_island_card_all_advanced.png",),
+        "gold": ("templates/commerce/investment/cape_island/cards/all_advanced.png",),
     },
 }
 _CARD_TEMPLATE_METADATA = {
@@ -84,8 +84,8 @@ _INVESTMENT_SUCCESS_REGION = (500, 180, 300, 350)
 
 # WGC client coordinates, excluding the window title bar.
 _INCOME_ENTRY_REGION = (80, 570, 200, 150)
-_INCOME_ENTRY_TEMPLATE = "templates/cape_island_income_entry.png"
-_INCOME_ENTRY_MASK = "templates/cape_island_income_entry_mask.png"
+_INCOME_ENTRY_TEMPLATE = "templates/commerce/investment/cape_island/controls/income_entry.png"
+_INCOME_ENTRY_MASK = "templates/commerce/investment/cape_island/masks/income_entry.png"
 _INCOME_CLICK_INTERVAL_SEC = 0.5
 _INCOME_CLICK_TIMEOUT_SEC = 8.0
 _SUCCESS_DISMISS_POINT = (470, 610)
@@ -114,8 +114,8 @@ _CATEGORY_LABELS = {"tax": "税率", "ticket": "票价", "share": "分成", "all
 
 _CARD_MATCH_METHOD = cv2.TM_SQDIFF_NORMED
 _CARD_MATCH_THRESHOLD = 0.84
-_CARD_TEMPLATE_SET = "templates/cape_island_card_*.png"
-_CARD_TEMPLATE_MASK = "templates/cape_island_medal_circle_mask.png"
+_CARD_TEMPLATE_SET = "templates/commerce/investment/cape_island/cards/*.png"
+_CARD_TEMPLATE_MASK = "templates/commerce/investment/cape_island/masks/medal_circle.png"
 
 
 def _raise_error(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> None:

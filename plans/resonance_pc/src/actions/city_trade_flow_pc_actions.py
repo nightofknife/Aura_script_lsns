@@ -27,6 +27,9 @@ from packages.aura_core.observability.failure_evidence import (
 )
 from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ._bounded_observation import ObservationBudget, wait_for_observation
+from ._template_observation import observe_template
+from ._cancellable_wait import async_sleep_slices, sleep_slices
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService, CityShopDataError
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
@@ -220,23 +223,11 @@ _WORKER_PROGRESS_CONTEXT: contextvars.ContextVar[Dict[str, Any]] = contextvars.C
 
 def _sleep_with_cancel(duration: float) -> None:
     """Keep UI settling waits responsive without interrupting held gestures."""
-    remaining = max(float(duration), 0.0)
-    _check_trade_cancelled()
-    while remaining > 0:
-        interval = min(remaining, 0.05)
-        time.sleep(interval)
-        _check_trade_cancelled()
-        remaining -= interval
+    sleep_slices(duration, sleep=time.sleep, check_cancelled=_check_trade_cancelled)
 
 
 async def _sleep_with_cancel_async(duration: float) -> None:
-    remaining = max(float(duration), 0.0)
-    _check_trade_cancelled()
-    while remaining > 0:
-        interval = min(remaining, 0.05)
-        await asyncio.sleep(interval)
-        _check_trade_cancelled()
-        remaining -= interval
+    await async_sleep_slices(duration, sleep=asyncio.sleep, check_cancelled=_check_trade_cancelled)
 
 
 
@@ -318,29 +309,29 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
 
 
 _SHOP_MENU_REGION = [720, 280, 280, 420]
-_BUY_BUTTON_TEMPLATE = "templates/purchase_book_buy_page_ready.png"
+_BUY_BUTTON_TEMPLATE = "templates/commerce/books/buy_page_ready.png"
 _BUY_BUTTON_REGION = [850, 590, 380, 110]
 _BUY_BUTTON_THRESHOLD = 0.8
 # Native title crop [878, 91, 90, 26] from
 # artifacts/auto_cycle_trade_600_20260706_173232/current_buy_fail.png.
-_BUY_CONFIRM_PANEL_TEMPLATE = "templates/trade_buy_preview_title.png"
+_BUY_CONFIRM_PANEL_TEMPLATE = "templates/commerce/trade/buy_preview_title.png"
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_PANEL_THRESHOLD = 0.86
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
 _SELL_ALL_REGION = [1140, 80, 110, 50]
-_SELL_ALL_TEMPLATE = "templates/trade_sell_all_button.png"
+_SELL_ALL_TEMPLATE = "templates/commerce/trade/sell/all_button.png"
 _SELL_BUTTON_REGION = [1000, 630, 120, 40]
 
 _BACK_POINT = (82, 37)
 _CITY_MAIN_POINT = (198, 37)
-_BACK_BUTTON_TEMPLATE = "templates/nav_back_button.png"
-_CITY_MAIN_BUTTON_TEMPLATE = "templates/nav_city_main_button.png"
+_BACK_BUTTON_TEMPLATE = "templates/navigation/global/back.png"
+_CITY_MAIN_BUTTON_TEMPLATE = "templates/navigation/global/city_main.png"
 _BACK_BUTTON_REGION = [0, 0, 170, 80]
 _CITY_MAIN_BUTTON_REGION = [140, 0, 130, 80]
 _NAV_BUTTON_THRESHOLD = 0.86
 _NAV_BUTTON_TIMEOUT_SEC = 3.0
 _NAV_BUTTON_INTERVAL_SEC = 0.4
-_SHOP_MENU_READY_TEMPLATE = "templates/trade_shop_menu_ready.png"
+_SHOP_MENU_READY_TEMPLATE = "templates/commerce/trade/shop/menu_ready.png"
 _SHOP_MENU_READY_REGION = [720, 350, 220, 120]
 _SHOP_MENU_READY_THRESHOLD = 0.86
 _SHOP_MENU_READY_TIMEOUT_SEC = 15.0
@@ -354,11 +345,11 @@ _BUY_SCROLL_START = (670, 450)
 _BUY_SCROLL_END = (670, 200)
 
 _BUY_SETTLEMENT = {
-    "template": "templates/buy_settlement_scale_badge.png",
+    "template": "templates/commerce/trade/settlement/buy_scale_badge.png",
     "region": [520, 240, 320, 320],
 }
 _SELL_SETTLEMENT = {
-    "template": "templates/sell_settlement_scale_badge.png",
+    "template": "templates/commerce/trade/settlement/sell_scale_badge.png",
     "region": [930, 240, 300, 300],
 }
 
@@ -515,27 +506,14 @@ def _match_template(
     threshold: float,
 ) -> Dict[str, Any]:
     region_tuple = _coerce_region(region)
-    from pathlib import Path
-
     template_path = Path(__file__).resolve().parents[2] / template
-    capture = app.capture(rect=region_tuple)
-    if not capture.success:
-        return {"found": False, "template": template, "region": list(region_tuple), "reason": "capture_failed"}
-    match = vision.find_template(
-        source_image=capture.image,
-        template_image=str(template_path),
-        threshold=float(threshold),
-        use_grayscale=True,
+    result = observe_template(
+        app=app, vision=vision, template=template_path, region=region_tuple,
+        threshold=threshold, check_cancelled=_check_trade_cancelled, require_center=True,
     )
-    center = getattr(match, "center_point", None)
-    result: Dict[str, Any] = {
-        "found": bool(getattr(match, "found", False)),
-        "template": template,
-        "region": list(region_tuple),
-        "confidence": float(getattr(match, "confidence", 0.0) or 0.0),
-    }
-    if center and len(center) == 2:
-        result["center"] = [int(region_tuple[0] + int(center[0])), int(region_tuple[1] + int(center[1]))]
+    result["template"] = template
+    if not result["valid"]:
+        _raise_error("trade_template_observation_failed", "trade template observation is unknown", result)
     return result
 
 
@@ -548,17 +526,21 @@ def _wait_template(
     threshold: float = 0.82,
     timeout_sec: float = 3.0,
     interval_sec: float = 0.3,
+    _budget: Optional[ObservationBudget] = None,
 ) -> Dict[str, Any]:
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
-    last: Dict[str, Any] = {"found": False, "template": template, "region": list(region)}
-    while True:
-        _check_trade_cancelled()
-        last = _match_template(app, vision, template, region, threshold)
-        if last.get("found"):
-            return last
-        if time.monotonic() >= deadline:
-            return last
-        _sleep_with_cancel(max(float(interval_sec), 0.05))
+    budget = _budget if _budget is not None else ObservationBudget(
+        timeout_sec, monotonic=time.monotonic, check_cancelled=_check_trade_cancelled,
+        immediate_first_probe=True,
+    )
+    result = wait_for_observation(
+        observe=lambda: _match_template(app, vision, template, region, threshold),
+        accept=lambda value: value.get("valid") is True and value.get("found") is True,
+        budget=budget, poll_seconds=max(float(interval_sec), 0.05), sleep=_sleep_with_cancel,
+    )
+    if result.matched:
+        return result.value
+    return {"valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
+            "template": template, "region": list(region), "last_match": result.value}
 
 
 def _probe_shop_menu(app: Any, vision: Any) -> Dict[str, Any]:
@@ -597,7 +579,8 @@ def _wait_for_shop_menu_ready(
     stable_matches: int = _SHOP_MENU_READY_STABLE_MATCHES,
 ) -> Dict[str, Any]:
     required_stable_matches = max(int(stable_matches), 1)
-    deadline = time.monotonic() + max(float(timeout_sec), 0.0)
+    budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
+                               check_cancelled=_check_trade_cancelled, immediate_first_probe=True)
     consecutive_matches = 0
     poll = 0
     last_match: Dict[str, Any] = {
@@ -605,49 +588,72 @@ def _wait_for_shop_menu_ready(
         "template": _SHOP_MENU_READY_TEMPLATE,
         "region": list(_SHOP_MENU_READY_REGION),
     }
-    while True:
-        _check_trade_cancelled()
+    def observe():
+        nonlocal poll
         poll += 1
-        last_match = _probe_shop_menu(app, vision)
-        if valid_probe(last_match) and last_match.get("found"):
+        return _probe_shop_menu(app, vision)
+
+    def accept(value):
+        nonlocal consecutive_matches
+        if valid_probe(value) and value.get("found"):
             consecutive_matches += 1
         else:
             consecutive_matches = 0
         logger.info(
             "[TradeShopMenuReady] poll=%s found=%s confidence=%.4f stable=%s/%s",
             poll,
-            bool(last_match.get("found")),
-            float(last_match.get("confidence") or 0.0),
+            bool(value.get("found")),
+            float(value.get("confidence") or 0.0),
             consecutive_matches,
             required_stable_matches,
         )
-        if consecutive_matches >= required_stable_matches:
-            return {
-                "success": True,
-                "page_state": "shop_page",
-                "polls": poll,
-                "stable_matches": consecutive_matches,
-                "template": _SHOP_MENU_READY_TEMPLATE,
-                "region": list(_SHOP_MENU_READY_REGION),
-                "threshold": _SHOP_MENU_READY_THRESHOLD,
-                "match": last_match,
-            }
-        if time.monotonic() >= deadline:
-            _raise_error(
-                "shop_menu_not_ready",
-                "trade shop menu template was not detected stably before timeout",
-                {
-                    "polls": poll,
-                    "stable_matches": consecutive_matches,
-                    "required_stable_matches": required_stable_matches,
-                    "timeout_sec": max(float(timeout_sec), 0.0),
-                    "template": _SHOP_MENU_READY_TEMPLATE,
-                    "region": list(_SHOP_MENU_READY_REGION),
-                    "threshold": _SHOP_MENU_READY_THRESHOLD,
-                    "last_match": last_match,
-                },
-            )
-        _sleep_with_cancel(max(float(interval_sec), 0.05))
+        return consecutive_matches >= required_stable_matches
+
+    result = wait_for_observation(observe=observe, accept=accept, budget=budget,
+                                  poll_seconds=max(float(interval_sec), 0.05), sleep=_sleep_with_cancel)
+    last_match = result.value or last_match
+    if result.matched:
+        return {
+            "success": True, "page_state": "shop_page", "polls": poll,
+            "stable_matches": consecutive_matches, "template": _SHOP_MENU_READY_TEMPLATE,
+            "region": list(_SHOP_MENU_READY_REGION), "threshold": _SHOP_MENU_READY_THRESHOLD,
+            "match": last_match,
+        }
+    _raise_error(
+        "shop_menu_not_ready",
+        "trade shop menu template was not detected stably before timeout",
+        {
+            "polls": poll, "stable_matches": consecutive_matches,
+            "required_stable_matches": required_stable_matches,
+            "timeout_sec": max(float(timeout_sec), 0.0), "template": _SHOP_MENU_READY_TEMPLATE,
+            "region": list(_SHOP_MENU_READY_REGION), "threshold": _SHOP_MENU_READY_THRESHOLD,
+            "last_match": last_match,
+        },
+    )
+
+
+def _wait_settlement_template(app, vision, template, region, *, threshold, timeout_sec,
+                              interval_sec=0.3, _budget=None):
+    budget = _budget if _budget is not None else ObservationBudget(
+        timeout_sec, monotonic=time.monotonic, check_cancelled=_check_trade_cancelled,
+        immediate_first_probe=True,
+    )
+
+    result = wait_for_observation(
+        observe=lambda: observe_template(
+            app=app, vision=vision, template=Path(__file__).resolve().parents[2] / template,
+            region=_coerce_region(region), threshold=threshold, check_cancelled=_check_trade_cancelled,
+        ),
+        accept=lambda value: value["valid"] is False or value["found"] is True,
+        budget=budget, poll_seconds=max(float(interval_sec), 0.05), sleep=_sleep_with_cancel,
+    )
+    # A timely valid negative remains evidence after the presence-wait elapses.
+    # A late observation/classification cannot establish presence or absence.
+    last = result.value or {"valid": False, "found": None, "reason": "observation_timeout"}
+    if not result.in_time:
+        return {"valid": False, "found": None, "reason": "observation_timeout", "last_match": last}
+    return last
+
 
 
 def _close_settlement(
@@ -668,7 +674,9 @@ def _close_settlement(
         float(timeout_sec),
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
-    first = _wait_template(
+    first_budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
+                                     check_cancelled=_check_trade_cancelled, immediate_first_probe=True)
+    first = _wait_settlement_template(
         app,
         vision,
         str(cfg["template"]),
@@ -676,6 +684,7 @@ def _close_settlement(
         threshold=threshold,
         timeout_sec=timeout_sec,
         interval_sec=0.3,
+        _budget=first_budget,
     )
     if not first.get("found"):
         logger.warning(
@@ -684,7 +693,9 @@ def _close_settlement(
             first,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        return {"closed": False, "found": False, "kind": kind, "first_match": first}
+        return {"closed": False, "found": first.get("found"), "kind": kind, "first_match": first,
+                "settlement_confirmed": False, "final_absence_verified": False,
+                "observation_unknown": first.get("valid") is not True}
 
     logger.info(
         "[TradeSettlement] phase=initial_found kind=%s match=%s exit_point=%s context=%s",
@@ -693,94 +704,112 @@ def _close_settlement(
         _SETTLEMENT_EXIT_POINT,
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
-    _check_trade_cancelled()
-    app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
-    _sleep_with_cancel(0.8)
-    recheck = _wait_template(
-        app,
-        vision,
-        str(cfg["template"]),
-        list(cfg["region"]),
-        threshold=threshold,
-        timeout_sec=1.5,
-        interval_sec=0.3,
-    )
-    logger.info(
-        "[TradeSettlement] phase=after_first_exit kind=%s still_visible=%s match=%s context=%s",
-        kind,
-        bool(recheck.get("found")),
-        recheck,
-        dict(_WORKER_PROGRESS_CONTEXT.get()),
-    )
-    retried = False
-    final_match = recheck
-    if recheck.get("found"):
-        _check_trade_cancelled()
+    try:
+        if not first_budget.active():
+            return {"closed": False, "found": True, "kind": kind, "first_match": first,
+                    "settlement_confirmed": True, "final_absence_verified": False,
+                    "observation_unknown": True, "reason": "observation_timeout"}
         app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
-        retried = True
         _sleep_with_cancel(0.8)
-        try:
-            final_match = _match_template(
-                app,
-                vision,
-                str(cfg["template"]),
-                list(cfg["region"]),
-                threshold,
-            )
-        except Exception as exc:  # noqa: BLE001 - diagnostics must not change flow behavior
-            final_match = {
-                "found": None,
-                "template": str(cfg["template"]),
-                "region": list(cfg["region"]),
-                "reason": "diagnostic_match_failed",
-                "error_type": type(exc).__name__,
-                "message": str(exc),
-            }
+        recheck_budget = ObservationBudget(1.5, monotonic=time.monotonic, check_cancelled=_check_trade_cancelled)
+        recheck = _wait_settlement_template(
+            app,
+            vision,
+            str(cfg["template"]),
+            list(cfg["region"]),
+            threshold=threshold,
+            timeout_sec=1.5,
+            interval_sec=0.3,
+            _budget=recheck_budget,
+        )
+        logger.info(
+            "[TradeSettlement] phase=after_first_exit kind=%s still_visible=%s match=%s context=%s",
+            kind,
+            bool(recheck.get("found")),
+            recheck,
+            dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
+        retried = False
+        final_match = recheck
+        if recheck.get("found"):
+            if not recheck_budget.active():
+                final_match = {"valid": False, "found": None, "reason": "observation_timeout", "last_match": recheck}
+            else:
+                app.click(x=_SETTLEMENT_EXIT_POINT[0], y=_SETTLEMENT_EXIT_POINT[1])
+                retried = True
+                _sleep_with_cancel(0.8)
+                final_budget = ObservationBudget(1.5, monotonic=time.monotonic,
+                                                 check_cancelled=_check_trade_cancelled)
+                try:
+                    final_match = observe_template(
+                        app=app, vision=vision,
+                        template=Path(__file__).resolve().parents[2] / str(cfg["template"]),
+                        region=_coerce_region(cfg["region"]), threshold=threshold,
+                        check_cancelled=_check_trade_cancelled,
+                    )
+                    if not final_budget.active():
+                        final_match = {"valid": False, "found": None,
+                                       "reason": "observation_timeout", "last_match": final_match}
+                except CityTradeFlowError:
+                    raise
+                except Exception as exc:  # noqa: BLE001 - unknown evidence cannot authorize closure
+                    final_match = {
+                        "found": None,
+                        "template": str(cfg["template"]),
+                        "region": list(cfg["region"]),
+                        "reason": "diagnostic_match_failed",
+                        "error_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
+                    logger.warning(
+                        "[TradeSettlement] phase=after_second_exit_diagnostic_failed kind=%s error_type=%s message=%s context=%s",
+                        kind, type(exc).__name__, exc, dict(_WORKER_PROGRESS_CONTEXT.get()),
+                    )
+                else:
+                    log_method = logger.warning if final_match.get("found") else logger.info
+                    log_method(
+                        "[TradeSettlement] phase=after_second_exit kind=%s still_visible=%s match=%s context=%s",
+                        kind, bool(final_match.get("found")), final_match, dict(_WORKER_PROGRESS_CONTEXT.get()),
+                    )
+        final_absence_verified = bool(
+            final_match.get("valid") is True and final_match.get("found") is False
+        )
+        if not final_absence_verified:
             logger.warning(
-                "[TradeSettlement] phase=after_second_exit_diagnostic_failed kind=%s error_type=%s message=%s context=%s",
+                "[TradeSettlement] phase=completed kind=%s reported_closed=false final_absence_verified=false retried=%s final_match=%s context=%s",
                 kind,
-                type(exc).__name__,
-                exc,
-                dict(_WORKER_PROGRESS_CONTEXT.get()),
-            )
-        else:
-            log_method = logger.warning if final_match.get("found") else logger.info
-            log_method(
-                "[TradeSettlement] phase=after_second_exit kind=%s still_visible=%s match=%s context=%s",
-                kind,
-                bool(final_match.get("found")),
+                retried,
                 final_match,
                 dict(_WORKER_PROGRESS_CONTEXT.get()),
             )
-    final_absence_verified = bool(
-        final_match.get("found") is False and final_match.get("reason") != "capture_failed"
-    )
-    if not final_absence_verified:
-        logger.warning(
-            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=false retried=%s final_match=%s context=%s",
-            kind,
-            retried,
-            final_match,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-    else:
-        logger.info(
-            "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=true retried=%s context=%s",
-            kind,
-            retried,
-            dict(_WORKER_PROGRESS_CONTEXT.get()),
-        )
-    return {
-        "closed": True,
-        "found": True,
-        "kind": kind,
-        "first_match": first,
-        "recheck": recheck,
-        "retried": retried,
-        "final_match": final_match,
-        "final_absence_verified": final_absence_verified,
-        "exit_point": {"x": _SETTLEMENT_EXIT_POINT[0], "y": _SETTLEMENT_EXIT_POINT[1]},
-    }
+        else:
+            logger.info(
+                "[TradeSettlement] phase=completed kind=%s reported_closed=true final_absence_verified=true retried=%s context=%s",
+                kind,
+                retried,
+                dict(_WORKER_PROGRESS_CONTEXT.get()),
+            )
+        return {
+            "closed": final_absence_verified,
+            "settlement_confirmed": True,
+            "observation_unknown": final_match.get("valid") is not True,
+            "found": True,
+            "kind": kind,
+            "first_match": first,
+            "recheck": recheck,
+            "retried": retried,
+            "final_match": final_match,
+            "final_absence_verified": final_absence_verified,
+            "exit_point": {"x": _SETTLEMENT_EXIT_POINT[0], "y": _SETTLEMENT_EXIT_POINT[1]},
+        }
+
+    except CityTradeFlowError as exc:
+        exc.detail.update(settlement_confirmed=True, first_match=first, page_state="unknown")
+        raise
+    except Exception as exc:
+        _raise_error("trade_settlement_close_failed", "Transaction confirmed but settlement closure failed",
+                     {"settlement_confirmed": True, "first_match": first, "page_state": "unknown",
+                      "error_type": type(exc).__name__, "message": str(exc)})
 
 
 def _click_required_nav_button(
@@ -801,6 +830,8 @@ def _click_required_nav_button(
         _NAV_BUTTON_THRESHOLD,
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
+    budget = ObservationBudget(_NAV_BUTTON_TIMEOUT_SEC, monotonic=time.monotonic,
+                               check_cancelled=_check_trade_cancelled)
     match = _wait_template(
         app,
         vision,
@@ -809,6 +840,7 @@ def _click_required_nav_button(
         threshold=_NAV_BUTTON_THRESHOLD,
         timeout_sec=_NAV_BUTTON_TIMEOUT_SEC,
         interval_sec=_NAV_BUTTON_INTERVAL_SEC,
+        _budget=budget,
     )
     center = match.get("center")
     if not match.get("found") or not isinstance(center, list) or len(center) != 2:
@@ -830,7 +862,8 @@ def _click_required_nav_button(
             },
         )
     x, y = int(center[0]), int(center[1])
-    _check_trade_cancelled()
+    if not budget.active():
+        _raise_error(error_code, "required navigation observation expired before input", {"match": match})
     app.click(x=x, y=y)
     _sleep_with_cancel(max(float(wait_sec), 0.0))
     logger.info(
@@ -932,10 +965,12 @@ def resonance_pc_go_city_main_direct(timeout_sec: float = 5.0, app: Any = None, 
         ready = confirm_main()
         if not ready["confirmed"]:
             # Retry only while the observed source-page navigation is still present.
+            retry_budget = ObservationBudget(_NAV_BUTTON_TIMEOUT_SEC, monotonic=time.monotonic,
+                                             check_cancelled=_check_trade_cancelled)
             back = _match_template(app, vision, _CITY_MAIN_BUTTON_TEMPLATE,
                                    _CITY_MAIN_BUTTON_REGION, _NAV_BUTTON_THRESHOLD)
-            if back.get("found") and isinstance(back.get("center"), list) and len(back["center"]) == 2:
-                _check_trade_cancelled()
+            if (back.get("found") and isinstance(back.get("center"), list)
+                    and len(back["center"]) == 2 and retry_budget.active()):
                 app.click(x=int(back["center"][0]), y=int(back["center"][1]))
                 clicks.append({"match": back})
                 logger.info("[TradeNavigation] phase=return_main_retry match=%s", back)
@@ -1153,10 +1188,15 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         _raise_error(exc.code, exc.message, {**exc.detail, "book_result": book_result})
 
+    bought = False
+    settlement = settlement_after_confirm = None
     try:
+        buy_budget = ObservationBudget(2.0, monotonic=time.monotonic,
+                                       check_cancelled=_check_trade_cancelled)
         buy_button_hit = _wait_template(
             app, vision, _BUY_BUTTON_TEMPLATE, _BUY_BUTTON_REGION,
             threshold=_BUY_BUTTON_THRESHOLD, timeout_sec=2.0, interval_sec=0.3,
+            _budget=buy_budget,
         )
         center = buy_button_hit.get("center")
         if not buy_button_hit.get("found") or not isinstance(center, list) or len(center) != 2:
@@ -1178,6 +1218,9 @@ def resonance_pc_buy_goods_on_buy_page(
             )
         observe_operation("buy.confirming", "确认买入与结算", "started",
                           selected_products=selected)
+        if not buy_budget.active():
+            _raise_error("buy_button_not_found", "Purchase button evidence expired before input",
+                         {"match": buy_button_hit, "selected_products": selected})
         buy_button = _click_hit(app, buy_button_hit)
         buy_button.update(method="template", template=_BUY_BUTTON_TEMPLATE,
                           confidence=buy_button_hit.get("confidence"))
@@ -1192,7 +1235,7 @@ def resonance_pc_buy_goods_on_buy_page(
         confirm_panel = None
         confirm_click = None
         settlement_after_confirm = None
-        if not settlement.get("closed"):
+        if not settlement.get("settlement_confirmed") and not settlement.get("observation_unknown"):
             panel_match = _wait_template(
                 app,
                 vision,
@@ -1208,6 +1251,8 @@ def resonance_pc_buy_goods_on_buy_page(
             )
             if panel_match.get("found"):
                 confirm_panel = panel_match
+                confirm_budget = ObservationBudget(2.0, monotonic=time.monotonic,
+                                                   check_cancelled=_check_trade_cancelled)
                 button_match = _wait_template(
                     app,
                     vision,
@@ -1216,8 +1261,9 @@ def resonance_pc_buy_goods_on_buy_page(
                     threshold=_BUY_BUTTON_THRESHOLD,
                     timeout_sec=2.0,
                     interval_sec=0.3,
+                    _budget=confirm_budget,
                 )
-                if button_match.get("found"):
+                if button_match.get("found") and confirm_budget.active():
                     confirm_click = _click_hit(app, button_match)
                 else:
                     confirm_click = {"clicked": False, "reason": "template_not_found"}
@@ -1226,8 +1272,8 @@ def resonance_pc_buy_goods_on_buy_page(
                 _sleep_with_cancel(0.8)
                 settlement_after_confirm = _close_settlement(app, vision, "buy", timeout_sec=3.0)
 
-        bought = bool(settlement.get("closed")) or bool(
-            isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("closed")
+        bought = bool(settlement.get("settlement_confirmed")) or bool(
+            isinstance(settlement_after_confirm, dict) and settlement_after_confirm.get("settlement_confirmed")
         )
         if not bought:
             observe_operation("buy.confirming", "确认买入与结算", "failed",
@@ -1237,6 +1283,12 @@ def resonance_pc_buy_goods_on_buy_page(
                           "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
                           "confirm_panel": confirm_panel, "confirm_click": confirm_click,
                           "selected_products": selected})
+        confirmed_settlement = settlement_after_confirm if settlement_after_confirm is not None else settlement
+        if not confirmed_settlement.get("closed") or not confirmed_settlement.get("final_absence_verified"):
+            _raise_error("buy_settlement_close_unconfirmed", "Purchase confirmed but settlement closure is unknown",
+                         {"settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
+                          "selected_products": selected, "page_state": "unknown"})
+        shop_ready = _wait_for_shop_menu_ready(app, vision)
         observe_operation("buy.confirming", "确认买入与结算", "completed", bought_confirmed=bought)
         logger.info(
             "[TradeBuy] phase=confirmation_completed bought_confirmed=%s initial_settlement=%s confirm_panel_found=%s confirm_click=%s settlement_after_confirm=%s context=%s",
@@ -1249,12 +1301,15 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         back = {
             "skipped": True,
-            "reason": "buy_success_returns_to_shop_page",
+            "reason": "buy_shop_page_verified",
             "page_state": "shop_page",
+            "shop_ready": shop_ready,
         }
         result = {
             "success": True,
             "page_state": "shop_page",
+            "bought_confirmed": True,
+            "shop_ready": shop_ready,
             "requested_products": requested_products,
             "buy_result": buy_result,
             "selected_product_ids": list(selection["selected_product_ids"]),
@@ -1290,7 +1345,10 @@ def resonance_pc_buy_goods_on_buy_page(
         )
         return result
     except CityTradeFlowError as exc:
-        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result})
+        _raise_error(exc.code, str(exc), {**exc.detail, "book_result": book_result,
+                     "bought_confirmed": bought or bool(exc.detail.get("bought_confirmed"))
+                                         or bool(exc.detail.get("settlement_confirmed")),
+                     "settlement": settlement, "settlement_after_confirm": settlement_after_confirm})
 
 
 @action_info(

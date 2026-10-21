@@ -32,16 +32,6 @@ def load_black_moon_catalog() -> dict:
     return deepcopy(_catalog())
 
 
-def normalize_selected_items(value) -> list[str]:
-    if value is None:
-        return []
-    if not isinstance(value, list) or any(not isinstance(item, str) or item != item.strip() for item in value):
-        raise ValueError("Black Moon selections must be a list of canonical item IDs")
-    known = {row["item_id"] for row in _catalog()["products"]}
-    unknown = set(value) - known
-    if unknown:
-        raise ValueError(f"Unknown Black Moon item IDs: {sorted(unknown)}")
-    return list(dict.fromkeys(value))
 
 
 def normalize_record_scope(value: str) -> str:

@@ -1,7 +1,6 @@
 """Screenshot-only love-bento scanning with bounded scrolling and tuple identity."""
 from __future__ import annotations
 
-import json
 import math
 import time
 from datetime import datetime, timezone
@@ -11,20 +10,25 @@ import cv2
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
+from ._recovery_assets import load_plan_image, read_layout_json
+from ._bento_observation import ConsecutiveFrameStability, frames_unchanged
 from .player_recovery_pc_actions import _error, check_cancelled
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def load_love_bento_catalog(vision, *, navigation_only=False):
-    catalog = json.loads((ROOT / 'data/meta/love_bento.json').read_text(encoding='utf-8'))
+    catalog = read_layout_json(ROOT / 'data/meta/love_bento.json')
     if catalog.get('reference_client') != [1280, 720]:
         raise ValueError('Unsupported love-bento reference resolution')
     if navigation_only:
         return {'items': [], 'scanner': catalog['scanner']}
     def resolve(ref):
-        path = Path(vision.resolve_template('resonance_pc', ref, ROOT)).resolve()
-        if not path.is_relative_to(ROOT) or vision.load_image_file(path, cv2.IMREAD_UNCHANGED) is None:
+        path, image = load_plan_image(
+            vision, ref, ROOT, flags=cv2.IMREAD_UNCHANGED,
+            path_error=f'Invalid love-bento asset: {ref}',
+        )
+        if image is None:
             raise ValueError(f'Invalid love-bento asset: {ref}')
         return str(path)
     for section in ('items', 'roles', 'days'):
@@ -58,21 +62,16 @@ class LoveBentoScanner:
 
     @staticmethod
     def unchanged(a, b):
-        # Ignore a few bright/animated pixels; movement must affect very little area.
-        delta = np.max(np.abs(a.astype(np.int16)-b.astype(np.int16)), axis=2)
-        return float(np.mean(delta > 15)) < 0.01
+        return frames_unchanged(a, b)
 
     def stable_frame(self):
         until = min(self.deadline, time.monotonic()+self.cfg['page_timeout_sec'])
-        previous = self.capture()
-        stable = 0
+        stability = ConsecutiveFrameStability(self.unchanged, previous=self.capture())
         while time.monotonic() < until:
             time.sleep(self.cfg['poll_interval_sec'])
             current = self.capture()
-            stable = stable+1 if self.unchanged(previous, current) else 0
-            if stable >= 2:
+            if stability.observe(current) >= 2:
                 return current
-            previous = current
         raise _error('love-bento page did not settle')
 
     def classify(self, frame, point, section):
@@ -191,6 +190,7 @@ class LoveBentoScanner:
         found={}
         frame,rows=self.read_page()
         stationary=0
+        stability=ConsecutiveFrameStability(self.unchanged,previous=frame)
         for drag_index in range(self.cfg['max_drags']+1):
             self.guard()
             for row in rows:
@@ -208,7 +208,6 @@ class LoveBentoScanner:
             if getattr(result,'success',True) is False:
                 raise _error('love-bento scroll input failed')
             next_frame,rows=self.read_page()
-            stationary=stationary+1 if self.unchanged(frame,next_frame) else 0
-            frame=next_frame
+            stationary=stability.observe(next_frame)
             logger.info('[LoveBento] page=%s unique=%s stationary=%s',drag_index+1,len(found),stationary)
         raise _error('love-bento scan exceeded maximum drags')

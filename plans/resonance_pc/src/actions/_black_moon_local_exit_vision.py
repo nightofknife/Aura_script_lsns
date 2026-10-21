@@ -1,9 +1,14 @@
 """Small-template evidence for settled shopping and either exit destination."""
+from pathlib import Path
+
 import cv2
 
 from ._black_moon_local_select_vision import BlackMoonLocalSelectVision, _pixels
 from ._black_moon_local_shop_vision import _crop, _image, _response
 from ._depart_button_vision import REGION, THRESHOLD, _load_template
+
+
+NAVIGATION_ROOT = Path(__file__).resolve().parents[2] / "templates/navigation/global"
 
 
 class BlackMoonLocalExitVision:
@@ -32,13 +37,13 @@ class BlackMoonLocalExitVision:
 
     def button(self, frame, target):
         if target == "rest_menu":
-            filename, roi = "nav_back_button.png", (0, 0, 170, 80)
+            filename, roi = "back.png", (0, 0, 170, 80)
         elif target == "main":
-            filename, roi = "nav_city_main_button.png", (140, 0, 130, 80)
+            filename, roi = "city_main.png", (140, 0, 130, 80)
         else:
             raise ValueError("Unknown Black Moon exit destination")
         # Existing shared navigation artwork; paths remain inside the template root.
-        template = _pixels(self.shop.root.parent, filename)
+        template = _pixels(NAVIGATION_ROOT.resolve(), filename)
         response = _response(_crop(_image(frame), roi), template, method="1-TM_SQDIFF_NORMED")
         if not response.size:
             return {"found": False, "score": 0., "center": None}

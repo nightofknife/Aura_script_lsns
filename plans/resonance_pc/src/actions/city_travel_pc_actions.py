@@ -8,6 +8,8 @@ import math
 import re
 import time
 from pathlib import Path
+
+import numpy as np
 from typing import Any, Dict, List, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
@@ -17,6 +19,7 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 from ._city_panel_vision import CityPanelVisionError, probe_visit_entry
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 from ._operation_progress import observe_operation
+from ._cancellable_wait import sleep_slices
 from ._freight_trailer_policy import validate_trailer_options, verified_quota_skip
 from ._intercity_map_drag import perform_map_drag
 from ._intercity_map_geometry import (
@@ -50,9 +53,9 @@ _DEFAULT_FULL_SCREEN_REGION = [0, 0, 1280, 720]
 
 _DEPART_CONFIRM_MARKERS = ("立即出发",)
 
-_GO_DESTINATION_TEMPLATE = "templates/go_destination_button.png"
-_ARRIVAL_BUTTON_TEMPLATE = "templates/enter_station_button.png"
-_TRAVEL_HORN_TEMPLATE = "templates/travel_horn.png"
+_GO_DESTINATION_TEMPLATE = "templates/navigation/travel/go_destination.png"
+_ARRIVAL_BUTTON_TEMPLATE = "templates/navigation/travel/enter_station.png"
+_TRAVEL_HORN_TEMPLATE = "templates/navigation/travel/horn.png"
 _TRAVEL_HORN_REGION = [960, 640, 80, 80]
 _TRAVEL_HORN_THRESHOLD = 0.90
 _AUTO_PICKUP_POINT = (770, 400)
@@ -61,13 +64,7 @@ _AUTO_PICKUP_INTERVAL = 0.5
 
 def _sleep_with_cancel(duration: float) -> None:
     """Keep UI settling waits responsive without interrupting held gestures."""
-    remaining = max(float(duration), 0.0)
-    _check_intercity_cancelled()
-    while remaining > 0:
-        interval = min(remaining, 0.05)
-        time.sleep(interval)
-        _check_intercity_cancelled()
-        remaining -= interval
+    sleep_slices(duration, sleep=time.sleep, check_cancelled=_check_intercity_cancelled)
 
 
 
@@ -77,9 +74,9 @@ def _normalize_pickup_interval(value: Any) -> float:
     return float(value)
 
 
-_FATIGUE_PANEL_TEMPLATE = "templates/fatigue_recovery_panel_title.png"
-_FATIGUE_BACK_TEMPLATE = "templates/fatigue_recovery_back_button.png"
-_FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/fatigue_medicine_confirm_button.png"
+_FATIGUE_PANEL_TEMPLATE = "templates/recovery/fatigue/controls/panel_title.png"
+_FATIGUE_BACK_TEMPLATE = "templates/recovery/fatigue/controls/back_button.png"
+_FATIGUE_MEDICINE_CONFIRM_TEMPLATE = "templates/recovery/fatigue/medicine/confirm_button.png"
 
 _GO_DESTINATION_REGION = [900, 580, 340, 120]
 _ARRIVAL_BUTTON_REGION = [780, 325, 240, 70]
@@ -97,22 +94,22 @@ _FATIGUE_BACK_FALLBACK_POINT = [82, 36]
 _FATIGUE_MEDICINE_ORDER: List[Dict[str, Any]] = [
     {
         "name": "提神棒棒糖",
-        "template": "templates/fatigue_medicine_stimulant_lollipop_button.png",
+        "template": "templates/recovery/fatigue/medicine/stimulant_lollipop_button.png",
         "region": [540, 310, 240, 90],
     },
     {
         "name": "提神口香糖",
-        "template": "templates/fatigue_medicine_stimulant_gum_button.png",
+        "template": "templates/recovery/fatigue/medicine/stimulant_gum_button.png",
         "region": [780, 310, 240, 90],
     },
     {
         "name": "仙人掌提神跳糖",
-        "template": "templates/fatigue_medicine_cactus_jump_candy_button.png",
+        "template": "templates/recovery/fatigue/medicine/cactus_jump_candy_button.png",
         "region": [540, 560, 240, 90],
     },
     {
         "name": "桦石",
-        "template": "templates/fatigue_medicine_birch_stone_button.png",
+        "template": "templates/recovery/fatigue/medicine/birch_stone_button.png",
         "region": [780, 560, 240, 90],
     },
 ]
@@ -462,17 +459,59 @@ def _match_template_in_region(
     region: List[int],
     threshold: float,
     use_grayscale: bool = True,
+    *,
+    require_valid_capture: bool = False,
 ) -> Dict[str, Any]:
     _check_intercity_cancelled()
-    capture = app.capture(rect=tuple(region))
+    try:
+        capture = app.capture(rect=tuple(region))
+    except Exception as exc:
+        if not require_valid_capture:
+            raise
+        _check_intercity_cancelled()
+        _raise_error("arrival_capture_failed", "Unable to capture the arrival button region.",
+                     {"template": template, "region": list(region), "error": str(exc)})
+    if require_valid_capture:
+        _check_intercity_cancelled()
+        image = getattr(capture, "image", None)
+        if (not getattr(capture, "success", False) or not isinstance(image, np.ndarray)
+                or image.dtype != np.uint8 or image.shape != (region[3], region[2], 3)):
+            _raise_error("arrival_capture_failed", "Invalid capture of the arrival button region.",
+                         {"template": template, "region": list(region)})
     if not capture.success:
         return {"found": False, "template": template, "region": list(region), "reason": "capture_failed"}
-    match = vision.find_template(
-        source_image=capture.image,
-        template_image=_resolve_plan_template_path(template),
-        threshold=float(threshold),
-        use_grayscale=bool(use_grayscale),
-    )
+    try:
+        match = vision.find_template(
+            source_image=capture.image,
+            template_image=_resolve_plan_template_path(template),
+            threshold=float(threshold),
+            use_grayscale=bool(use_grayscale),
+        )
+    except Exception as exc:
+        if not require_valid_capture:
+            raise
+        _check_intercity_cancelled()
+        _raise_error("arrival_template_match_failed", "Arrival button matching failed.",
+                     {"template": template, "region": list(region), "error": str(exc)})
+    if require_valid_capture:
+        _check_intercity_cancelled()
+        try:
+            valid = (isinstance(getattr(match, "found", None), (bool, np.bool_))
+                     and math.isfinite(float(match.confidence))
+                     and isinstance(getattr(match, "debug_info", {}), dict)
+                     and not getattr(match, "debug_info", {}).get("error"))
+            for key, length in (("center_point", 2), ("rect", 4)):
+                value = getattr(match, key, None)
+                if value is not None:
+                    valid = valid and isinstance(value, (list, tuple)) and len(value) == length
+                    valid = valid and all(isinstance(item, (int, float, np.integer, np.floating))
+                                          and not isinstance(item, (bool, np.bool_))
+                                          and math.isfinite(float(item)) for item in value)
+        except (AttributeError, TypeError, ValueError, OverflowError):
+            valid = False
+        if not valid:
+            _raise_error("arrival_template_match_failed", "Invalid arrival button matching result.",
+                         {"template": template, "region": list(region)})
     found = bool(getattr(match, "found", False))
     center = getattr(match, "center_point", None)
     rect = getattr(match, "rect", None)
@@ -514,14 +553,22 @@ def _click_arrival_template_until_absent(
     max_click_attempts: int,
     verify_interval_sec: float,
 ) -> Dict[str, Any]:
+    def observe():
+        match = _match_template_in_region(
+            app=app, vision=vision, template=template, region=region, threshold=threshold,
+            require_valid_capture=True,
+        )
+        _check_intercity_cancelled()
+        # Only a valid negative observation proves absence. Technical failures
+        # and unknown observations must neither confirm arrival nor permit input.
+        if (match.get("reason") or match.get("error")
+                or type(match.get("found")) is not bool):
+            _raise_error("arrival_template_match_failed", "Arrival button state is unknown.",
+                         {"poll_count": poll_count, "match": match})
+        return match
+
     _check_intercity_cancelled()
-    match = _match_template_in_region(
-        app=app,
-        vision=vision,
-        template=template,
-        region=region,
-        threshold=threshold,
-    )
+    match = observe()
     log_poll("travel.arrival_template", bool(match.get("found")), poll=poll_count,
              confidence=float(match.get("confidence") or 0.0), center=match.get("center"), region=region)
     if not match.get("found"):
@@ -570,13 +617,7 @@ def _click_arrival_template_until_absent(
         if verify_interval > 0:
             _sleep_with_cancel(verify_interval)
         _check_intercity_cancelled()
-        match = _match_template_in_region(
-            app=app,
-            vision=vision,
-            template=template,
-            region=region,
-            threshold=threshold,
-        )
+        match = observe()
         logger.info(
             "[IntercityArrivalTemplate] poll=%s phase=verify attempt=%s found=%s confidence=%.4f center=%s",
             poll_count,
@@ -589,13 +630,7 @@ def _click_arrival_template_until_absent(
             if verify_interval > 0:
                 _sleep_with_cancel(verify_interval)
             _check_intercity_cancelled()
-            confirmation = _match_template_in_region(
-                app=app,
-                vision=vision,
-                template=template,
-                region=region,
-                threshold=threshold,
-            )
+            confirmation = observe()
             logger.info(
                 "[IntercityArrivalTemplate] poll=%s phase=confirm_absent attempt=%s found=%s confidence=%.4f center=%s",
                 poll_count,

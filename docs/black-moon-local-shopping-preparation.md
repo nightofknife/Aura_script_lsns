@@ -46,7 +46,7 @@ their click, supplemental-click and skipped counts. No purchase is implied.
 
 ## Native Controls
 
-The six controls share the existing `templates/black_moon_local_shop` bank.
+The six controls share the existing `templates/commerce/shop/black_moon/native` bank.
 Native construction is reproducible through
 `tools/build_black_moon_local_shop_templates.py --prepare-only`; full-bank
 construction uses the same recipes. Crops search within an eight-pixel local

@@ -15,7 +15,7 @@ from plans.resonance_pc.src.actions import _trailer_service_vision as trailer
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests/fixtures/trailer_service"
-TEMPLATES = ROOT / "plans/resonance_pc/templates/trailer_service"
+TEMPLATES = ROOT / "plans/resonance_pc/templates/navigation/trailer"
 NAMES = {"trailer_entry", "trailer_prompt", "gold_selected", "mileage_selected", "confirm", "cancel"}
 COUNT_ROI = (790, 674, 80, 28)
 

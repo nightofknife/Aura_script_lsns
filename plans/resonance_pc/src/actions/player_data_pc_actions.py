@@ -75,7 +75,7 @@ def _scan_inventory_stage(
 _CLICK_PROFILE = (150, 655)
 _CLICK_BACK = (82, 34)
 _CLICK_PROFILE_CLOSE = (900, 150)
-_PROFILE_MENU_TEMPLATE = "templates/player_recovery/profile.png"
+_PROFILE_MENU_TEMPLATE = "templates/navigation/global/profile_entry.png"
 _PROFILE_MENU_MARKER_REGION = (305, 293, 215, 45)
 _CLICK_INVENTORY = (165, 615)
 _CLICK_INVENTORY_CATEGORY = {
@@ -84,10 +84,10 @@ _CLICK_INVENTORY_CATEGORY = {
     "equipment": (1205, 203),
 }
 _WAREHOUSE_ENTRY_TIMEOUT_SEC = 3.0
-_WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates" / "player_data_warehouse_entry.png"
+_WAREHOUSE_ENTRY_TEMPLATE = _PLAN_ROOT / "templates/navigation/warehouse/entry.png"
 _WAREHOUSE_ENTRY_TEMPLATE_THRESHOLD = 0.82
 _WAREHOUSE_PAGE_ICON_THRESHOLD = 0.85
-_WAREHOUSE_PAGE_TEMPLATE_ROOT = _PLAN_ROOT / "templates" / "warehouse_navigation"
+_WAREHOUSE_PAGE_TEMPLATE_ROOT = _PLAN_ROOT / "templates/navigation/warehouse/tabs"
 _WAREHOUSE_PAGE_ICON_REGIONS: Dict[str, Region] = {
     "items": (1090, 15, 70, 70),
     "materials": (1090, 91, 70, 70),

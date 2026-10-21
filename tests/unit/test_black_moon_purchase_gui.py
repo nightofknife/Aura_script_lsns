@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QSettings, Qt
 from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
@@ -37,6 +38,18 @@ def app():
 @pytest.fixture
 def catalog():
     return load_black_moon_catalog()
+
+
+def test_every_catalog_product_has_readable_functional_icon(catalog):
+    """Optional icon loading must not hide a broken shipped bank reference."""
+    root = Path(__file__).resolve().parents[2] / "plans/resonance_pc/templates/commerce/shop/black_moon/calibrated"
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    icons = {row["item_id"]: (root / row["file"]).resolve() for row in manifest["items"]}
+    assert set(icons) == set(catalog.item_ids)
+    for product in catalog.products:
+        assert product.icon_path == icons[product.item_id]
+        assert product.icon_path.is_relative_to(root.resolve())
+        assert not QImage(str(product.icon_path)).isNull(), product.item_id
 
 
 @pytest.fixture

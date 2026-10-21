@@ -46,10 +46,10 @@ auto_battle_combat_pc:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
       params:
         dialog_region: [430, 300, 500, 120]
-        dialog_template: "templates/battle_insufficient_stamina_dialog.png"
+        dialog_template: "templates/battle/combat/insufficient_stamina_dialog.png"
         dialog_threshold: 0.9
         cancel_region: [240, 450, 220, 110]
-        cancel_template: "templates/battle_insufficient_stamina_cancel.png"
+        cancel_template: "templates/battle/combat/insufficient_stamina_cancel.png"
         cancel_threshold: 0.9
         timeout_sec: 2.0
         interval_sec: 0.2

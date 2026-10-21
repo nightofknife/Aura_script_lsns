@@ -22,7 +22,8 @@ def buy_rig(monkeypatch):
                    "missing_products": [], "selected_product_ids": ["101", "102"],
                    "warnings": [], "scan_trace": [{"round": 1}],
                    "stop_reason": "all_confirmed"},
-        book_result={"ok": True, "used": 2}, settlement={"closed": True},
+        book_result={"ok": True, "used": 2},
+        settlement={"closed": True, "settlement_confirmed": True, "final_absence_verified": True},
     )
 
     def record(name, result):
@@ -55,7 +56,7 @@ def buy_rig(monkeypatch):
 
     def template_hit(*args, **kwargs):
         rig.calls.append(("template_hit", args, kwargs))
-        return {"found": True, "center": [1050, 650], "confidence": 0.95}
+        return {"valid": True, "found": True, "center": [1050, 650], "confidence": 0.95}
 
     monkeypatch.setattr(trade, "_wait_template", template_hit)
     monkeypatch.setattr(trade, "_wait_for_text_hit", lambda *a, **kw:

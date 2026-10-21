@@ -16,7 +16,7 @@ from _trade_investment_native import configure, inspect_prefab, load_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATES = ROOT / "plans/resonance_pc/templates/trade_goods_investment"
+TEMPLATES = ROOT / "plans/resonance_pc/templates/commerce/investment"
 LEVEL_ROIS = {"current": [899, 217, 81, 48], "preview": [1030, 217, 80, 48]}
 SLOT_ORIGINS = [[61 + col * 127, 143 + row * 132] for row in range(3) for col in range(3)]
 MAX_PREFIX = "/HomeTradeUpgrade/Group_Right/Group_Max/"
@@ -90,6 +90,18 @@ def save(name: str, pixels: np.ndarray) -> None:
     path = TEMPLATES / name
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(pixels).save(path)
+
+
+def save_frame_mask(pixels: np.ndarray, width: int, height: int, *, maximum=False) -> str:
+    """Share only equal pixels at equal geometry; maximum state keeps its own row."""
+    filename = f"cards/masks/frame_{width}x{height}.png"
+    path = TEMPLATES / filename
+    if maximum and path.exists():
+        with Image.open(path) as current:
+            if current.mode != "L" or not np.array_equal(np.array(current), pixels):
+                filename = f"cards/masks/maximum_{width}x{height}.png"
+    save(filename, pixels)
+    return filename
 
 
 def add_entry_availability(assets: Path, metadata: Path, manifest: dict) -> None:
@@ -237,18 +249,17 @@ def add_maximum_cards(assets: Path, metadata: Path, nodes: dict, manifest: dict,
         x, y = x - frame_rect[0], y - frame_rect[1]
         excluded.append([x, y, w, h])
         mask[max(0, y - 1):min(size[1], y + h + 1), max(0, x - 1):min(size[0], x + w + 1)] = 0
-    save("cards/maximum.png", cv2.GaussianBlur(pixels, (3, 3), 0))
     save("cards/maximum_header.png", cv2.GaussianBlur(crop(header, cards["header_box"]), (3, 3), 0))
     sizes = sorted({tuple(row["size"]) for row in cards["frame_variants"]})
     variants = []
     for width, height in sizes:
         filename = f"cards/maximum_{width}x{height}.png"
-        mask_file = f"cards/maximum_frame_mask_{width}x{height}.png"
         save(filename, cv2.GaussianBlur(cv2.resize(pixels, (width, height), interpolation=cv2.INTER_AREA), (3, 3), 0))
-        save(mask_file, cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST))
+        mask_file = save_frame_mask(cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST),
+                                    width, height, maximum=True)
         variants.append({"file": filename, "mask": mask_file, "size": [width, height], "state": "maximum"})
     cards["frame_variants"] = [row for row in cards["frame_variants"] if row["state"] != "maximum"] + variants
-    for key, filename in (("variants", "cards/maximum.png"), ("header_variants", "cards/maximum_header.png")):
+    for key, filename in (("variants", f"cards/maximum_{size[0]}x{size[1]}.png"), ("header_variants", "cards/maximum_header.png")):
         if filename not in cards[key]:
             cards[key].append(filename)
     cards["maximum"] = {"prefab_node": node, "sprite_path_id": sprite_id, "sprite": "itemLvMax",
@@ -586,16 +597,14 @@ def main() -> None:
     header_box = [47, 0, 22, 14]
     frame_variants = []
     for name, pixels in (("normal", normal_pixels), ("locked", locked_pixels), ("selected", selected_pixels)):
-        save(f"cards/{name}.png", cv2.GaussianBlur(pixels, (3, 3), 0))
         save(f"cards/{name}_header.png", cv2.GaussianBlur(crop(header_pixels[name], header_box), (3, 3), 0))
         for width, height in ((115, 129), (114, 129), (115, 128), (114, 128)):
             filename = f"cards/{name}_{width}x{height}.png"
-            mask_filename = f"cards/frame_mask_{width}x{height}.png"
             resized = cv2.resize(pixels, (width, height), interpolation=cv2.INTER_AREA)
             save(filename, cv2.GaussianBlur(resized, (3, 3), 0))
-            save(mask_filename, cv2.resize(card_mask, (width, height), interpolation=cv2.INTER_NEAREST))
+            mask_filename = save_frame_mask(cv2.resize(card_mask, (width, height), interpolation=cv2.INTER_NEAREST), width, height)
             frame_variants.append({"file": filename, "mask": mask_filename, "size": [width, height], "state": name})
-    save("cards/frame_mask.png", card_mask)
+    native_frame_mask = save_frame_mask(card_mask, *card_size)
     save("cards/header_mask.png", np.full((header_box[3], header_box[2]), 255, dtype=np.uint8))
     cards = {"source": "native_game_assets_only", "bundle": sprites[background_id][2],
              "normal_sprite": sprites[background_id][1], "normal_sprite_id": background_id,
@@ -603,7 +612,7 @@ def main() -> None:
              "size": card_size, "header_box": header_box, "header_mask": "cards/header_mask.png",
              "bottom_sprite_id": bottom_id, "lock_sprite_id": lock_id, "panel_sprite_id": panel_id,
              "backdrop_node": "/HomeTradeUpgrade/Img_Bg", "backdrop_color": list(backdrop_rgba),
-             "frame_mask": "cards/frame_mask.png", "variants": ["cards/normal.png", "cards/locked.png", "cards/selected.png"],
+             "frame_mask": native_frame_mask, "variants": [f"cards/{state}_{card_size[0]}x{card_size[1]}.png" for state in ("normal", "locked", "selected")],
              "header_variants": ["cards/normal_header.png", "cards/locked_header.png", "cards/selected_header.png"],
              "frame_variants": frame_variants,
              "viewport": nodes["/HomeTradeUpgrade/Group_Left/ScrollGrid_Left/Viewport"]["rect_client"],

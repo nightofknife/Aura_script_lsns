@@ -49,7 +49,7 @@ def contour_template(rgba: Image.Image) -> tuple[Image.Image, Image.Image]:
 
 
 def build(research: Path, plan: Path = PLAN) -> dict:
-    folder = plan / "templates/city_identity"
+    folder = plan / "templates/navigation/city/identity"
     folder.mkdir(parents=True, exist_ok=True)
     entries, assets, sources = [], {}, {}
     for key, name in city_names(plan).items():
@@ -70,7 +70,7 @@ def build(research: Path, plan: Path = PLAN) -> dict:
         if image.size != (35, 29):
             raise ValueError("Expected reviewed 35x29 visit-city icon crop")
         visit = image.convert("RGB")
-    visit_target = plan / "templates/visit_city_entry.png"
+    visit_target = plan / "templates/navigation/city/visit_entry.png"
     visit.save(visit_target)
     visit_relative = visit_target.relative_to(plan).as_posix()
     assets[visit_relative] = {"sha256": digest(visit_target), "size": list(visit.size), "mode": visit.mode}

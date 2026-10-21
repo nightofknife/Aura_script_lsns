@@ -113,7 +113,7 @@ def build(game_data: Path, devtools_src: Path, plan: Path = PLAN) -> dict:
     if fonts.keys() != FONT_IDS.keys():
         raise ValueError("The required original game fonts were not found")
 
-    folder = plan / "templates/trade_products"
+    folder = plan / "templates/commerce/trade/products"
     folder.mkdir(parents=True, exist_ok=True)
     entries = {}
     assets = {}
@@ -133,7 +133,8 @@ def build(game_data: Path, devtools_src: Path, plan: Path = PLAN) -> dict:
                                        common["common_mask_rarity01"], fonts)
                 entry["supported"] = True
                 for state, image in states.items():
-                    target = folder / f"{product_id}_{state}.png"
+                    target = folder / product_id / f"{state}.png"
+                    target.parent.mkdir(parents=True, exist_ok=True)
                     image.save(target)
                     relative = target.relative_to(plan).as_posix()
                     entry[state] = relative

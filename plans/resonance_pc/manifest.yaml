@@ -62,8 +62,7 @@ exports:
     public: true
     singleton: true
     replace: null
-    description: ResonancePc exact full-budget trade planner with legacy planning
-      helpers.
+    description: ResonancePc exact full-budget trade planner.
   actions:
   - name: resonance_pc.affix_refresh_read
     module: plans.resonance_pc.src.actions.affix_refresh_pc_actions
@@ -489,7 +488,7 @@ exports:
     - name: template
       type: Any
       required: false
-      default: templates/battle_back_button.png
+      default: templates/battle/navigation/back_button.png
     - name: threshold
       type: Any
       required: false
@@ -624,7 +623,7 @@ exports:
     - name: dialog_template
       type: Any
       required: false
-      default: templates/battle_insufficient_stamina_dialog.png
+      default: templates/battle/combat/insufficient_stamina_dialog.png
     - name: dialog_threshold
       type: Any
       required: false
@@ -636,7 +635,7 @@ exports:
     - name: cancel_template
       type: Any
       required: false
-      default: templates/battle_insufficient_stamina_cancel.png
+      default: templates/battle/combat/insufficient_stamina_cancel.png
     - name: cancel_threshold
       type: Any
       required: false
@@ -855,27 +854,6 @@ exports:
       type: Any
       required: true
       default: null
-  - name: resonance_pc.purchase_black_moon_local_from_rest_menu
-    module: plans.resonance_pc.src.actions.black_moon_local_shop_pc_actions
-    function: resonance_pc_purchase_black_moon_local_from_rest_menu
-    public: true
-    read_only: false
-    timeout: null
-    description: Purchase selected LOCAL stock once per city/week from an open rest
-      menu and return there.
-    parameters:
-    - name: city_name
-      type: Any
-      required: true
-      default: null
-    - name: selected_item_ids
-      type: Any
-      required: false
-      default: null
-    - name: record_scope
-      type: Any
-      required: false
-      default: default
   - name: resonance_pc.begin_black_moon_local_visit
     module: plans.resonance_pc.src.actions.black_moon_local_visit_pc_actions
     function: resonance_pc_begin_black_moon_local_visit
@@ -3046,211 +3024,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.trade_plan_next
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_plan_next
-    public: false
-    read_only: true
-    timeout: null
-    description: Plan the next ResonancePc trade step with rolling horizon optimization.
-    parameters:
-    - name: start_city_id
-      type: Any
-      required: true
-      default: null
-    - name: fatigue_budget
-      type: Any
-      required: true
-      default: null
-    - name: book_budget
-      type: Any
-      required: true
-      default: null
-    - name: cargo_capacity
-      type: Any
-      required: true
-      default: null
-    - name: book_profit_threshold
-      type: Any
-      required: true
-      default: null
-    - name: available_city_ids
-      type: Any
-      required: true
-      default: null
-    - name: station_product_whitelist
-      type: Any
-      required: false
-      default: null
-    - name: snapshot_id
-      type: Any
-      required: false
-      default: null
-    - name: current_holdings
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.trade_plan_best_cycle
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_plan_best_cycle
-    public: false
-    read_only: true
-    timeout: null
-    description: Plan one fixed best-profit trade cycle.
-    parameters:
-    - name: cargo_capacity
-      type: Any
-      required: false
-      default: 120
-    - name: book_budget
-      type: Any
-      required: false
-      default: 0
-    - name: book_profit_threshold
-      type: Any
-      required: false
-      default: 500000
-    - name: available_city_ids
-      type: Any
-      required: false
-      default: null
-    - name: start_city_id
-      type: Any
-      required: false
-      default: null
-    - name: current_city_id
-      type: Any
-      required: false
-      default: null
-    - name: current_city
-      type: Any
-      required: false
-      default: null
-    - name: max_cycle_hops
-      type: Any
-      required: false
-      default: 6
-    - name: station_product_whitelist
-      type: Any
-      required: false
-      default: null
-    - name: snapshot_id
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.trade_plan_cycle_execution
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_plan_cycle_execution
-    public: false
-    read_only: true
-    timeout: null
-    description: Build executable auto-trade cycle plan under fatigue budget with
-      whitelist constraints.
-    parameters:
-    - name: fatigue_budget
-      type: Any
-      required: true
-      default: null
-    - name: current_city_key
-      type: Any
-      required: false
-      default: null
-    - name: current_city_id
-      type: Any
-      required: false
-      default: null
-    - name: current_city
-      type: Any
-      required: false
-      default: null
-    - name: cargo_capacity
-      type: Any
-      required: false
-      default: 650
-    - name: book_budget
-      type: Any
-      required: false
-      default: 0
-    - name: book_profit_threshold
-      type: Any
-      required: false
-      default: 500000
-    - name: max_cycle_hops
-      type: Any
-      required: false
-      default: 6
-    - name: snapshot_id
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.trade_plan_next_cycle_execution
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_plan_next_cycle_execution
-    public: false
-    read_only: true
-    timeout: null
-    description: Build the next executable trade cycle or final budgeted prefix.
-    parameters:
-    - name: fatigue_budget
-      type: Any
-      required: true
-      default: null
-    - name: current_city_key
-      type: Any
-      required: false
-      default: null
-    - name: current_city_id
-      type: Any
-      required: false
-      default: null
-    - name: current_city
-      type: Any
-      required: false
-      default: null
-    - name: cargo_capacity
-      type: Any
-      required: false
-      default: 650
-    - name: book_budget
-      type: Any
-      required: false
-      default: 0
-    - name: book_profit_threshold
-      type: Any
-      required: false
-      default: 500000
-    - name: max_cycle_hops
-      type: Any
-      required: false
-      default: 6
-    - name: snapshot_id
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.trade_loop_init
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_loop_init
-    public: false
-    read_only: false
-    timeout: null
-    description: Initialize one auto-cycle trade loop state.
-    parameters:
-    - name: current_city
-      type: Any
-      required: true
-      default: null
-    - name: current_city_key
-      type: Any
-      required: false
-      default: null
-    - name: fatigue_budget
-      type: Any
-      required: false
-      default: 0
-    - name: book_budget
-      type: Any
-      required: false
-      default: 0
   - name: resonance_pc.trade_route_execution_init
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_route_execution_init
@@ -3323,50 +3096,6 @@ exports:
       type: Any
       required: true
       default: null
-  - name: resonance_pc.trade_loop_update
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_loop_update
-    public: false
-    read_only: false
-    timeout: null
-    description: Accumulate one executed auto-cycle trade round into loop state.
-    parameters:
-    - name: run_key
-      type: Any
-      required: true
-      default: null
-    - name: plan
-      type: Any
-      required: false
-      default: null
-    - name: execution
-      type: Any
-      required: false
-      default: null
-  - name: resonance_pc.trade_loop_summary
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_loop_summary
-    public: false
-    read_only: true
-    timeout: null
-    description: Return one auto-cycle trade loop summary.
-    parameters:
-    - name: run_key
-      type: Any
-      required: true
-      default: null
-  - name: resonance_pc.trade_loop_cleanup
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_loop_cleanup
-    public: false
-    read_only: false
-    timeout: null
-    description: Remove one auto-cycle trade loop state.
-    parameters:
-    - name: run_key
-      type: Any
-      required: true
-      default: null
   - name: resonance_pc.trade_assert_allowed_city
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_assert_allowed_city
@@ -3383,50 +3112,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.trade_simulate
-    module: plans.resonance_pc.src.actions.trade_planner_pc_actions
-    function: resonance_pc_trade_simulate
-    public: false
-    read_only: true
-    timeout: null
-    description: Simulate ResonancePc rolling trade until stop condition.
-    parameters:
-    - name: start_city_id
-      type: Any
-      required: true
-      default: null
-    - name: fatigue_budget
-      type: Any
-      required: true
-      default: null
-    - name: book_budget
-      type: Any
-      required: true
-      default: null
-    - name: cargo_capacity
-      type: Any
-      required: true
-      default: null
-    - name: book_profit_threshold
-      type: Any
-      required: true
-      default: null
-    - name: available_city_ids
-      type: Any
-      required: true
-      default: null
-    - name: station_product_whitelist
-      type: Any
-      required: false
-      default: null
-    - name: snapshot_id
-      type: Any
-      required: false
-      default: null
-    - name: max_iterations
-      type: Any
-      required: false
-      default: 128
   - name: resonance_pc.use_trailer_service_from_map
     module: plans.resonance_pc.src.actions.trailer_service_pc_actions
     function: resonance_pc_use_trailer_service_from_map
@@ -3832,4 +3517,4 @@ exports:
     domain: 商贸运输
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-21T10:51:42Z'
+  generated_at: '2026-10-21T15:14:13Z'

@@ -79,8 +79,8 @@
     }
   },
   "selection_checks": {
-    "love_anchor_template": "templates/player_recovery/love_bento/native/card_background_1280.png",
-    "love_anchor_mask": "templates/player_recovery/love_bento/masks/card.png",
+    "love_anchor_template": "templates/recovery/bento/love/native/card_background_1280.png",
+    "love_anchor_mask": "templates/recovery/bento/love/masks/card.png",
     "love_capture_roi": [97, 111, 724, 551],
     "love_anchors_client": [[112, 347], [347, 347], [581, 347]],
     "love_anchors_capture_local": [[15, 236], [250, 236], [484, 236]],

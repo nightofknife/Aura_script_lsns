@@ -7,17 +7,18 @@ import cv2
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
+from ._cancellable_wait import sleep_before_deadline
 
 ROOT = Path(__file__).resolve().parents[2]
 TARGETS = {
-    'empty': ('trade_sell_empty_cargo.png', (500, 330, 390, 150), .86),
-    'local': ('trade_sell_local_badge.png', (515, 175, 120, 65), .80),
-    'all': ('trade_sell_all_button.png', (1140, 80, 110, 50), .86),
-    'cancel': ('trade_sell_all_cancel_button.png', (1140, 80, 110, 50), .86),
-    'commit': ('trade_sell_commit_button.png', (930, 620, 320, 100), .86),
-    'settlement': ('sell_settlement_scale_badge.png', (930, 240, 300, 300), .82),
-    'shop': ('trade_shop_menu_ready.png', (720, 350, 220, 120), .86),
-    'back': ('nav_back_button.png', (0, 0, 170, 80), .86),
+    'empty': ('commerce/trade/sell/empty_cargo.png', (500, 330, 390, 150), .86),
+    'local': ('commerce/trade/sell/local_badge.png', (515, 175, 120, 65), .80),
+    'all': ('commerce/trade/sell/all_button.png', (1140, 80, 110, 50), .86),
+    'cancel': ('commerce/trade/sell/all_cancel_button.png', (1140, 80, 110, 50), .86),
+    'commit': ('commerce/trade/sell/commit_button.png', (930, 620, 320, 100), .86),
+    'settlement': ('commerce/trade/settlement/sell_scale_badge.png', (930, 240, 300, 300), .82),
+    'shop': ('commerce/trade/shop/menu_ready.png', (720, 350, 220, 120), .86),
+    'back': ('navigation/global/back.png', (0, 0, 170, 80), .86),
 }
 
 
@@ -27,10 +28,8 @@ class SellSession:
 
     def pause(self, seconds):
         end = time.monotonic() + seconds
-        while time.monotonic() < end:
-            self.guard()
-            time.sleep(min(.05, max(0., end-time.monotonic())))
-        self.guard()
+        sleep_before_deadline(end, sleep=time.sleep, monotonic=time.monotonic,
+                              check_cancelled=self.guard)
 
     def capture(self):
         self.guard()

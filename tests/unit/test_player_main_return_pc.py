@@ -26,7 +26,7 @@ def fake_ui(monkeypatch, *, initial="profile", success_after=2):
         clicks.append((x,y))
         if len(clicks)>=success_after:
             state[0]="main"
-    monkeypatch.setattr(passenger,"_match_template",lambda *args,**kwargs:{"found":state[0]=="main","confidence":.99 if state[0]=="main" else .1})
+    monkeypatch.setattr(passenger,"_match_template",lambda *args,**kwargs:{"valid":True,"found":state[0]=="main","confidence":.99 if state[0]=="main" else .1})
     monkeypatch.setattr(player,"_match_navigation_template",lambda *args,**kwargs:{"found":state[0]=="profile"})
     return NS(click=click),state,clicks
 
@@ -85,7 +85,7 @@ def test_two_consecutive_main_matches_required(monkeypatch,clock):
     def match(*args,**kwargs):
         value=next(sequence)
         consumed.append(value)
-        return {"found":value}
+        return {"valid":True,"found":value}
     monkeypatch.setattr(passenger,"_match_template",match)
     result=passenger._wait_main_stable(None,None,timeout_sec=3)
     assert result["confirmed"] and result["confirmations"]==2

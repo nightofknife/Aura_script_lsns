@@ -16,6 +16,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
+from ._bento_observation import work_meal_slot_state
 from .bento_consumption_pc_actions import (
     BentoConsumptionError,
     BentoConsumptionSession,
@@ -247,13 +248,13 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
                 )
                 if len(hits) != 2 or any((getattr(hit, "debug_info", None) or {}).get("error") for hit in hits):
                     self.fail("bento_work_slot_match_failed", "Work-meal template matching failed")
-                flags = [bool(hit.found) and math.isfinite(float(hit.confidence))
-                         and float(hit.confidence) >= targets[key]["threshold"]
-                         for key, hit in zip(keys, hits)]
-                if flags[0] == flags[1]:
+                state = work_meal_slot_state(
+                    hits, [targets[key]["threshold"] for key in keys], require_finite=True,
+                )
+                if state not in ("present", "absent"):
                     states = []
                     break
-                states.append(flags[0])
+                states.append(state == "present")
             if len(states) == 3:
                 if previous == states:
                     logger.info("[AutoBento] work_slots=%s", states)
