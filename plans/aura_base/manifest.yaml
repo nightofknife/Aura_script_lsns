@@ -16,13 +16,6 @@ exports:
     singleton: true
     replace: null
     description: High-level app interactor facade built on the runtime adapter.
-  - name: composite-interaction
-    module: plans.aura_base.src.services.composite_interaction_service
-    class: CompositeInteractionService
-    public: true
-    singleton: true
-    replace: null
-    description: 【异步升级版】提供高级、可复用的复合交互行为。
   - name: controller
     module: plans.aura_base.src.services.controller_service
     class: ControllerService
@@ -44,9 +37,23 @@ exports:
     singleton: true
     replace: null
     description: ''
+  - name: interaction
+    module: plans.aura_base.src.services.interaction_service
+    class: InteractionService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
   - name: navigation
     module: plans.aura_base.src.services.navigation_service
     class: NavigationService
+    public: true
+    singleton: true
+    replace: null
+    description: ''
+  - name: observation
+    module: plans.aura_base.src.services.observation_service
+    class: ObservationService
     public: true
     singleton: true
     replace: null
@@ -57,7 +64,7 @@ exports:
     public: true
     singleton: true
     replace: null
-    description: OCR service backed by PP-OCRv5 ONNX Runtime artifacts.
+    description: OCR service backed by PP-OCR ONNX Runtime artifacts.
   - name: process_manager
     module: plans.aura_base.src.services.process_manager_service
     class: ProcessManagerService
@@ -85,7 +92,7 @@ exports:
     public: true
     singleton: true
     replace: null
-    description: 【异步升级版】一个无状态的视觉服务。
+    description: 同步模板接口在调用线程计算；异步接口完整卸载到工作线程。
   - name: windows_diagnostics
     module: plans.aura_base.src.services.windows_diagnostics_service
     class: WindowsDiagnosticsService
@@ -930,6 +937,22 @@ exports:
       type: Any
       required: false
       default: null
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: drag_to_find
     module: plans.aura_base.src.actions.interaction_actions
     function: drag_to_find
@@ -1028,7 +1051,8 @@ exports:
     public: true
     read_only: true
     timeout: null
-    description: ''
+    description: Find text; recognition_only treats the captured region as one horizontal
+      text line.
     parameters:
     - name: text_to_find
       type: Any
@@ -1050,18 +1074,51 @@ exports:
       type: Any
       required: false
       default: 0.0
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: recognize_all_text
     module: plans.aura_base.src.actions.ocr_actions
     function: recognize_all_text
     public: true
     read_only: true
     timeout: null
-    description: ''
+    description: Recognize text, optionally skipping detection and orientation for
+      a single line.
     parameters:
     - name: region
       type: Any
       required: false
       default: null
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: get_text_in_region
     module: plans.aura_base.src.actions.ocr_actions
     function: get_text_in_region
@@ -1082,6 +1139,22 @@ exports:
       type: Any
       required: false
       default: ' '
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: check_text_exists
     module: plans.aura_base.src.actions.ocr_actions
     function: check_text_exists
@@ -1102,6 +1175,22 @@ exports:
       type: Any
       required: false
       default: exact
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: assert_text_exists
     module: plans.aura_base.src.actions.ocr_actions
     function: assert_text_exists
@@ -1126,6 +1215,22 @@ exports:
       type: Any
       required: false
       default: null
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: assert_text_not_exists
     module: plans.aura_base.src.actions.ocr_actions
     function: assert_text_not_exists
@@ -1150,6 +1255,22 @@ exports:
       type: Any
       required: false
       default: null
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: assert_text_equals
     module: plans.aura_base.src.actions.ocr_actions
     function: assert_text_equals
@@ -1174,6 +1295,22 @@ exports:
       type: Any
       required: false
       default: null
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: persistent_data_read
     module: plans.aura_base.src.actions.persistent_data_actions
     function: persistent_data_read
@@ -2207,6 +2344,22 @@ exports:
       type: Any
       required: false
       default: 0.0
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: wait_for_text_to_disappear
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_text_to_disappear
@@ -2247,6 +2400,22 @@ exports:
       type: Any
       required: false
       default: 0.0
+    - name: recognition_only
+      type: Any
+      required: false
+      default: false
+    - name: det_resize_long
+      type: Any
+      required: false
+      default: null
+    - name: use_textline_orientation
+      type: Any
+      required: false
+      default: true
+    - name: rotate_tall_crops
+      type: Any
+      required: false
+      default: false
   - name: wait_for_image
     module: plans.aura_base.src.actions.wait_actions
     function: wait_for_image
@@ -2942,4 +3111,4 @@ exports:
   tasks: []
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-21T09:04:41Z'
+  generated_at: '2026-10-22T08:28:29Z'

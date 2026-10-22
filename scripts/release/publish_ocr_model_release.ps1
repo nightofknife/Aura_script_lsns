@@ -1,7 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Repository,
-    [string]$ReleaseTag = "",
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^v\d+\.\d+\.\d+$')]
+    [string]$ReleaseTag,
     [string]$BundleDirectory = "",
     [string]$ModelAsset = "",
     [string]$ChecksumAsset = "",
@@ -12,7 +14,6 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $contract = Get-Content -Raw -LiteralPath (Join-Path $repoRoot "packaging\release-contract.json") | ConvertFrom-Json
-if (-not $ReleaseTag) { $ReleaseTag = $contract.assets.ocr.release_tag }
 if (-not $BundleDirectory) { $BundleDirectory = $contract.assets.ocr.bundle_directory -replace '/', '\' }
 if (-not $ModelAsset) { $ModelAsset = $contract.assets.ocr.model_asset }
 if (-not $ChecksumAsset) { $ChecksumAsset = $contract.assets.ocr.checksum_asset }
@@ -37,11 +38,14 @@ gh release view $ReleaseTag --repo $Repository *> $null
 if ($LASTEXITCODE -ne 0) {
     gh release create $ReleaseTag `
         --repo $Repository `
-        --title "PP-OCRv5 Server ONNX model bundle" `
+        --title $ReleaseTag `
         --notes "Build-time OCR model asset for Aura Resonance release workflows." `
         --prerelease
     if ($LASTEXITCODE -ne 0) { throw "Failed to create OCR model release '$ReleaseTag'." }
 }
+
+gh release edit $ReleaseTag --repo $Repository --title $ReleaseTag
+if ($LASTEXITCODE -ne 0) { throw "Failed to normalize OCR model release title for '$ReleaseTag'." }
 
 gh release upload $ReleaseTag $zipPath $checksumPath --repo $Repository --clobber
 if ($LASTEXITCODE -ne 0) { throw "Failed to upload OCR model release assets." }

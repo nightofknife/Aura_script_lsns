@@ -1,54 +1,53 @@
 from __future__ import annotations
 
-import asyncio
-import time
-
 import cv2
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
-from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.scheduler.operation_scope import OperationScope, OperationTimeout, current_operation_scope
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from ..services.app_provider_service import AppProviderService
+from ..services.interaction_service import InteractionService
+from ..services.observation_service import ObservationService
 from ..services.ocr_service import OcrService
 from ..services.vision_service import MatchResult, VisionService
-from .ocr_actions import find_text
+from ._shared import resolve_template_path
 from .vision_actions import find_all_images, find_image
 
 
-def _check_cancelled() -> None:
-    if is_current_task_cancel_requested():
-        raise asyncio.CancelledError
+def _click_scope(app, timeout):
+    seconds = max(float(timeout), 0.0)
+    return OperationScope(None if seconds == 0 else seconds, parent=current_operation_scope(),
+                          target=getattr(app, "target_runtime", None))
 
 
-def _sleep_sync_cancellable(seconds: float) -> None:
-    deadline = time.monotonic() + max(float(seconds), 0.0)
-    while True:
-        _check_cancelled()
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return
-        time.sleep(min(0.05, remaining))
-        _check_cancelled()
+def _inspect_click(engine, params, *, vision=None, template=None):
+    if not engine.root_context.data.get("initial", {}).get("__is_inspect_mode__", False):
+        return None
 
+    def annotate(observation, frame):
+        debug = getattr(observation.value, "debug_info", None)
+        if debug is not None:
+            debug.update(source_image=frame.image.copy(), params=params)
+            if template is not None:
+                try:
+                    image = vision.load_template_image(template)
+                    if image is None:
+                        preview = None
+                    elif image.ndim == 2:
+                        preview = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+                    elif image.ndim == 3 and image.shape[2] == 1:
+                        preview = cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2BGR)
+                    else:
+                        preview = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                    debug["template_image"] = preview
+                except Exception as exc:
+                    logger.warning("Cannot load click template preview: %s", exc)
+        return observation
 
-def _poll_sync(*, probe, predicate, timeout: float, interval: float):
-    deadline = time.monotonic() + max(float(timeout), 0.0)
-    poll_interval = max(float(interval), 0.01)
-    while True:
-        _check_cancelled()
-        result = probe()
-        _check_cancelled()
-        matched = predicate(result)
-        _check_cancelled()
-        if matched:
-            return True, result
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            return False, result
-        _sleep_sync_cancellable(min(poll_interval, remaining))
+    return annotate
 
 
 def _required_failure(required: bool, message: str) -> None:
@@ -57,7 +56,7 @@ def _required_failure(required: bool, message: str) -> None:
 
 
 @action_info(name="find_image_and_click", public=True)
-@requires_services(vision="vision", app="app")
+@requires_services(vision="vision", app="app", interaction="plans/aura_base/interaction")
 def find_image_and_click(
     app: AppProviderService,
     vision: VisionService,
@@ -77,71 +76,32 @@ def find_image_and_click(
     after_click_sec: float = 0.0,
     required: bool = False,
     failure_message: str | None = None,
+    interaction: InteractionService | None = None,
 ) -> bool:
-    required_stable_scans = max(int(stable_scans), 1)
-    tolerance = (
-        None
-        if stable_center_tolerance_px is None
-        else max(int(stable_center_tolerance_px), 0)
-    )
-    consecutive_matches = 0
-    last_center: tuple[int, int] | None = None
-
-    def probe() -> MatchResult:
-        return find_image(
-            app,
-            vision,
-            engine,
-            template,
-            region,
-            threshold,
-            use_grayscale,
-            match_method,
-            preprocess,
-        )
-
-    def is_stable_match(value: MatchResult) -> bool:
-        nonlocal consecutive_matches, last_center
-        if not value.found:
-            consecutive_matches = 0
-            last_center = None
-            return False
-        center = getattr(value, "center_point", None)
-        current_center = (
-            (int(center[0]), int(center[1]))
-            if isinstance(center, (list, tuple)) and len(center) == 2
-            else None
-        )
-        position_is_stable = bool(
-            tolerance is None
-            or last_center is None
-            or (
-                current_center is not None
-                and abs(current_center[0] - last_center[0]) <= tolerance
-                and abs(current_center[1] - last_center[1]) <= tolerance
+    scope = _click_scope(app, timeout)
+    service = interaction if interaction is not None else InteractionService(app, ObservationService(app, vision=vision))
+    try:
+        with scope.activate():
+            template_path = resolve_template_path(engine, vision, template)
+            scope.checkpoint()
+            result = service.find_template_and_click(
+                template_path, scope=scope, roi=region, threshold=threshold,
+                use_grayscale=use_grayscale, match_method=match_method, preprocess=preprocess,
+                button=button, move_duration=move_duration, stable_scans=max(int(stable_scans), 1),
+                center_tolerance=(None if stable_center_tolerance_px is None else max(int(stable_center_tolerance_px), 0)),
+                interval=max(float(interval), .01), max_probes=1 if float(timeout) <= 0 else None,
+                after_click_sec=max(float(after_click_sec), 0.0),
+                inspect=_inspect_click(engine, {"template": template, "region": region, "threshold": threshold,
+                                               "use_grayscale": use_grayscale, "match_method": match_method,
+                                               "preprocess": preprocess}, vision=vision, template=template_path),
             )
-        )
-        consecutive_matches = consecutive_matches + 1 if position_is_stable else 1
-        last_center = current_center
-        return consecutive_matches >= required_stable_scans
-
-    found, match_result = _poll_sync(
-        probe=probe,
-        predicate=is_stable_match,
-        timeout=timeout,
-        interval=interval,
-    )
-    if found and match_result.found and match_result.center_point is not None:
-        found_x, found_y = match_result.center_point
-        logger.info("图像找到，位于窗口坐标 (%s, %s)，置信度: %.2f", found_x, found_y, match_result.confidence)
-        _check_cancelled()
-        app.move_to(found_x, found_y, duration=move_duration)
-        _check_cancelled()
-        app.click(x=found_x, y=found_y, button=button)
-        if float(after_click_sec) > 0:
-            _sleep_sync_cancellable(float(after_click_sec))
-        logger.info("点击操作完成。")
-        return True
+            scope.checkpoint()
+    except OperationTimeout:
+        scope.check_cancelled()
+    else:
+        if result.sent:
+            logger.info("图像找到并已发送点击，窗口坐标: %s。", result.observation.client_center)
+            return True
     resolved_failure_message = failure_message or f"未能在指定区域找到图像 '{template}'。"
     logger.warning("%s", resolved_failure_message)
     _required_failure(bool(required), resolved_failure_message)
@@ -149,7 +109,7 @@ def find_image_and_click(
 
 
 @action_info(name="find_text_and_click", public=True)
-@requires_services(ocr="ocr", app="app")
+@requires_services(ocr="ocr", app="app", interaction="plans/aura_base/interaction")
 def find_text_and_click(
     app: AppProviderService,
     ocr: OcrService,
@@ -167,56 +127,40 @@ def find_text_and_click(
     after_click_sec: float = 0.0,
     required: bool = False,
     failure_message: str | None = None,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
+    interaction: InteractionService | None = None,
 ) -> bool:
-    required_stable_scans = max(int(stable_scans), 1)
-    consecutive_matches = 0
-    last_target: str | None = None
+    scope = _click_scope(app, timeout)
+    service = interaction if interaction is not None else InteractionService(app, ObservationService(app, ocr=ocr))
+    result = None
+    try:
+        with scope.activate():
+            result = service.find_text_and_click(
+                text_to_find, scope=scope, roi=region, match_mode=match_mode, normalize=normalize,
+                min_confidence=min_confidence, recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation, rotate_tall_crops=rotate_tall_crops,
+                button=button, move_duration=move_duration, stable_scans=max(int(stable_scans), 1),
+                interval=max(float(interval), .01), max_probes=1 if float(timeout) <= 0 else None,
+                after_click_sec=max(float(after_click_sec), 0.0),
+                inspect=_inspect_click(engine, {"text_to_find": text_to_find, "region": region, "match_mode": match_mode,
+                                               "normalize": bool(normalize), "min_confidence": float(min_confidence),
+                                               "recognition_only": bool(recognition_only), "det_resize_long": det_resize_long,
+                                               "use_textline_orientation": bool(use_textline_orientation),
+                                               "rotate_tall_crops": bool(rotate_tall_crops)}),
+            )
+            scope.checkpoint()
+    except OperationTimeout:
+        scope.check_cancelled()
+    else:
+        if result.sent:
+            logger.info("文本找到并已发送点击，窗口坐标: %s。", result.observation.client_center)
+            return True
 
-    def probe():
-        return find_text(
-            app,
-            ocr,
-            engine,
-            text_to_find,
-            region,
-            match_mode,
-            normalize,
-            min_confidence,
-        )
-
-    def is_stable_match(value) -> bool:
-        nonlocal consecutive_matches, last_target
-        if not value.found:
-            consecutive_matches = 0
-            last_target = None
-            return False
-        matched_target = str(value.debug_info.get("matched_target") or text_to_find)
-        if matched_target == last_target:
-            consecutive_matches += 1
-        else:
-            last_target = matched_target
-            consecutive_matches = 1
-        return consecutive_matches >= required_stable_scans
-
-    found, ocr_result = _poll_sync(
-        probe=probe,
-        predicate=is_stable_match,
-        timeout=timeout,
-        interval=interval,
-    )
-    if found and ocr_result.found and ocr_result.center_point is not None:
-        found_x, found_y = ocr_result.center_point
-        logger.info("文本找到: '%s'，位于窗口坐标 (%s, %s)，置信度: %.2f", ocr_result.text, found_x, found_y, ocr_result.confidence)
-        _check_cancelled()
-        app.move_to(found_x, found_y, duration=move_duration)
-        _check_cancelled()
-        app.click(x=found_x, y=found_y, button=button)
-        if float(after_click_sec) > 0:
-            _sleep_sync_cancellable(float(after_click_sec))
-        logger.info("点击操作完成。")
-        return True
-
-    all_recognized_results = ocr_result.debug_info.get("all_recognized_results", [])
+    ocr_result = result.observation.value if result is not None else None
+    all_recognized_results = getattr(ocr_result, "debug_info", {}).get("all_recognized_results", [])
     if all_recognized_results:
         recognized_items = [f"{idx}. '{result.text}' (conf={result.confidence:.3f})" for idx, result in enumerate(all_recognized_results, start=1)]
         logger.warning(

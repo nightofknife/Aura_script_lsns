@@ -6,7 +6,7 @@ from test_deep_dive_eye_matmul_guard import original_scores
 
 
 def test_batched_eye_scores_preserve_native_rotation_and_translation(monkeypatch):
-    root = semantics.Path(semantics.__file__).resolve().parents[2] / 'templates/deep_dive_layout'
+    root = semantics.Path(semantics.__file__).resolve().parents[2] / 'templates/deep_dive/deep_dive_layout'
     examples = 0
     for path in root.glob('icon_*eye*.png'):
         rgb = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)

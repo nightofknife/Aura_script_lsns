@@ -11,7 +11,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-BANK = ROOT / "plans/resonance_pc/templates/navigation/profile/status_digits"
+BANK = ROOT / "plans/resonance_pc/development/template_sources/navigation/profile/status_digits"
 FIXTURES = ROOT / "tests/fixtures/profile_status_digits"
 
 

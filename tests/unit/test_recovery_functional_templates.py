@@ -11,6 +11,7 @@ from PIL import Image, ImageFont
 
 from tools import generate_bento_count_templates as count_builder
 from tools import generate_bento_recovery_digit_templates as digit_builder
+from plans.resonance_pc.src.actions._navigation_templates import navigation_profile_layout
 
 
 PLAN = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
@@ -30,6 +31,8 @@ def test_recovery_catalogs_resolve_functional_assets_without_old_directories():
 
         def check(value):
             if isinstance(value, dict):
+                if isinstance(value.get("profile"), str):
+                    check(navigation_profile_layout(value["profile"]))
                 for key, child in value.items():
                     check(key)
                     check(child)

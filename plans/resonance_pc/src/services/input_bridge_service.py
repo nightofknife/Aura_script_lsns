@@ -17,6 +17,7 @@ from packages.aura_core.observability.logging.core_logger import current_cid
 from packages.aura_core.observability.runtime_trace import (
     activity, current_root_cid, log_event, update_runtime, register_diagnostic_provider, tracked_to_thread,
 )
+from packages.aura_core.scheduler.operation_scope import target_operation_guard
 from ....aura_base.src.platform.contracts import TargetRuntimeError
 from ....aura_base.src.platform.runtime_config import resolve_runtime_config
 from ..bridge.client import BridgeClient
@@ -263,11 +264,18 @@ class ResonancePcInputBridgeService:
         parameters = {key: value for key, value in args.items()
                       if key in {"x", "y", "to_x", "to_y", "button", "clicks", "interval", "post_delay",
                                  "duration", "hold", "stop_inertia", "signed_detents"}}
-        with activity("input", op, backend="bridge", parameters=parameters, target=self._identity):
+        with target_operation_guard(self.target_runtime, cleanup=op == "button_up"), activity(
+                "input", op, backend="bridge", parameters=parameters, target=self._identity):
             return self._execute_request(op, args, capability, endpoint, timeout, complete)
 
     def _execute_request(self, op, args, capability, endpoint, timeout, complete):
         with self._lock:
+            if op == "button_up":
+                # Release only the existing bridge session. Cancellation must
+                # not trigger runtime rebinding, HELLO or block this request.
+                if self._client is not None:
+                    self._accept(self._client.request(op, args, self._viewport, timeout))
+                return
             self._ready()
             token = _CANCEL_TOKEN.get()
             if token is not None and token.is_set():

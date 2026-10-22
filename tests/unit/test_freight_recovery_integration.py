@@ -4,14 +4,15 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 import threading
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 
 import pytest
 import numpy as np
 
 from packages.aura_core.api import ACTION_REGISTRY, ActionDefinition
 from packages.aura_core.context.execution import ExecutionContext
-from packages.aura_core.engine import action_injector
+from packages.aura_core.engine import ExecutionEngine
+from packages.aura_core.scheduler import operation_scope
 from packages.aura_core.scheduler.cancellation import (
     clear_task_cancel, has_pending_sync_actions,
 )
@@ -50,16 +51,7 @@ def recovery_runtime(monkeypatch):
         loaded_package=package, resolve_service=lambda key: store,
     ))
 
-    class Renderer:
-        def __init__(self, actual_context, state_store):
-            assert actual_context is context
-            assert state_store is engine.state_store
-
-        async def get_render_scope(self):
-            return {}
-
-        async def render(self, params, *, scope):
-            return deepcopy(params)
+    engine.bind_execution = MethodType(ExecutionEngine.bind_execution, engine)
 
     def register(name, function, dependencies=None):
         definition = ActionDefinition(
@@ -86,7 +78,6 @@ def recovery_runtime(monkeypatch):
         calls.append(("open_panel", params))
         return deepcopy(state.get("panel_result", {"success": True, "page_state": "city_panel"}))
 
-    monkeypatch.setattr(trade, "TemplateRenderer", Renderer)
     register("resonance_pc.player_data_refresh", refresh)
     register("resonance_pc.go_city_main_direct", go_main)
     register("resonance_pc.open_city_panel_from_main", open_panel)
@@ -423,8 +414,8 @@ def test_registered_recovery_adapter_tracks_cancelled_sync_worker(
     runtime = recovery_runtime
     cid = f"freight-integration-cancel-{action_name}"
     started, release, exited = threading.Event(), threading.Event(), threading.Event()
-    monkeypatch.setattr(action_injector, "current_cid", lambda: cid)
-    monkeypatch.setattr(action_injector, "get_config_value", lambda *args: -1)
+    runtime.context.data["cid"] = cid
+    monkeypatch.setattr(operation_scope, "get_config_value", lambda *args: 0)
 
     def worker(**kwargs):
         assert kwargs == params

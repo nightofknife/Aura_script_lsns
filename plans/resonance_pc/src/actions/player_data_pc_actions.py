@@ -33,6 +33,7 @@ from ._player_data_persistence import (
     load_pc_user_info,
 )
 from .player_recovery_pc_actions import RecoveryReader, check_cancelled, load_recovery_layout
+from ._navigation_templates import PROFILE_MENU
 from .passenger_pc_actions import (
     PassengerPcError,
     _click_blank_and_confirm_main,
@@ -75,8 +76,8 @@ def _scan_inventory_stage(
 _CLICK_PROFILE = (150, 655)
 _CLICK_BACK = (82, 34)
 _CLICK_PROFILE_CLOSE = (900, 150)
-_PROFILE_MENU_TEMPLATE = "templates/navigation/global/profile_entry.png"
-_PROFILE_MENU_MARKER_REGION = (305, 293, 215, 45)
+_PROFILE_MENU_TEMPLATE = PROFILE_MENU.path
+_PROFILE_MENU_MARKER_REGION = PROFILE_MENU.roi
 _CLICK_INVENTORY = (165, 615)
 _CLICK_INVENTORY_CATEGORY = {
     "items": (1205, 51),
@@ -230,7 +231,7 @@ def _wait_for_profile_panel(
     last_confidence = 0.0
     while time.monotonic() < deadline:
         match = _match_navigation_template(
-            app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=0.85,
+            app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=PROFILE_MENU.threshold,
         )
         attempts += 1
         last_confidence = float(match.get("confidence") or 0.0)
@@ -302,7 +303,7 @@ def _match_warehouse_page(app: Any, templates: Mapping[str, Sequence[Any]]) -> D
     return {"found": all(hit["found"] for hit in icons.values()), "icons": icons}
 
 
-def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
+def _match_warehouse_entry(app: Any, vision: Any, *, template_cache=None) -> Dict[str, Any]:
     capture = app.capture(rect=_WAREHOUSE_ENTRY_REGION)
     if not getattr(capture, "success", False):
         return {"found": False, "confidence": 0.0, "reason": "capture_failed"}
@@ -311,10 +312,14 @@ def _match_warehouse_entry(app: Any, vision: Any) -> Dict[str, Any]:
     if source is None:
         return {"found": False, "confidence": 0.0, "reason": "capture_empty"}
     try:
-        template = vision.load_image_file(
-            _WAREHOUSE_ENTRY_TEMPLATE,
-            cv2.IMREAD_GRAYSCALE,
-        )
+        template = template_cache.get("entry") if template_cache is not None else None
+        if template is None:
+            template = vision.load_image_file(
+                _WAREHOUSE_ENTRY_TEMPLATE,
+                cv2.IMREAD_GRAYSCALE,
+            )
+            if template_cache is not None:
+                template_cache["entry"] = template
     except (OSError, ValueError) as exc:
         raise StopTaskException(
             f"Player data refresh failed: warehouse entry template is unavailable: {_WAREHOUSE_ENTRY_TEMPLATE}",
@@ -356,6 +361,7 @@ def _enter_warehouse_page(
     """Confirm all three category icons in two consecutive frames; no page OCR."""
 
     templates = _load_warehouse_page_templates(vision)
+    entry_template_cache = {}
     started_at = time.monotonic()
     deadline = started_at + max(float(timeout_sec), 0.1)
     next_click_at = 0.0
@@ -379,7 +385,7 @@ def _enter_warehouse_page(
             )
             return
         if not last_page_match.get("reason") and not last_page_match["found"] and now >= next_click_at:
-            last_entry_match = _match_warehouse_entry(app, vision)
+            last_entry_match = _match_warehouse_entry(app, vision, template_cache=entry_template_cache)
             if last_entry_match.get("found") and time.monotonic() < deadline:
                 center = last_entry_match["center"]
                 check_cancelled()
@@ -518,7 +524,7 @@ def _close_profile_panel_to_main(app: Any, vision: Any) -> None:
             app, vision, error_code="player_data_main_screen_not_restored",
             exit_point=_CLICK_PROFILE_CLOSE,
             can_exit=lambda: bool(_match_navigation_template(
-                app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=0.85,
+                app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION, threshold=PROFILE_MENU.threshold,
             ).get("found")),
         )
     except PassengerPcError as exc:

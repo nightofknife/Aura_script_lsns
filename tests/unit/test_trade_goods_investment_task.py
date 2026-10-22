@@ -4,13 +4,14 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 from pathlib import Path
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 
 import pytest
 import yaml
 
-from packages.aura_core.api import ActionDefinition
-from packages.aura_core.engine.action_injector import ActionInjector
+from packages.aura_core.api import ACTION_REGISTRY, ActionDefinition
+from packages.aura_core.engine import ExecutionEngine
+from packages.aura_core.scheduler.cancellation import clear_task_cancel
 from packages.aura_core.scheduler.validation import InputValidator, _MISSING
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
@@ -43,17 +44,6 @@ def test_task_input_validator_enforces_numeric_target_contract(task_name):
         assert validator.validate_input_value(schema, value, "mode")[0] is False
 
 
-class Renderer:
-    def __init__(self, context, state_store):
-        self.context = context
-
-    async def get_render_scope(self):
-        return {}
-
-    async def render(self, params, *, scope):
-        return deepcopy(params)
-
-
 @pytest.fixture
 def task_engine(monkeypatch):
     state = {"result": business_result(), "calls": [], "callback": None}
@@ -75,8 +65,12 @@ def task_engine(monkeypatch):
     orchestrator = SimpleNamespace(plan_name="resonance_pc", loaded_package=None,
                                    resolve_service=lambda key: None, execute_task=execute_task)
     engine = SimpleNamespace(orchestrator=orchestrator, services={}, state_store=object())
-    monkeypatch.setattr(trade, "TemplateRenderer", Renderer)
-    return context, engine, state
+    engine.bind_execution = MethodType(ExecutionEngine.bind_execution, engine)
+    clear_task_cancel(context.data["cid"])
+    try:
+        yield context, engine, state
+    finally:
+        clear_task_cancel(context.data["cid"])
 
 
 def call_task(task_engine, mode=10):
@@ -404,9 +398,9 @@ def test_child_sync_action_inherits_scoped_callback_through_real_injector(task_e
             plugin=SimpleNamespace(package=SimpleNamespace(canonical_id="@plans/resonance_pc")),
         )
         child_context = SimpleNamespace(data={"cid": "child-investment-cid"})
-        adapter = ActionInjector(child_context, engine, Renderer(child_context, engine.state_store),
-                                 {"mock/app": object(), "mock/vision": object()})
-        result = await adapter._invoke_action(definition, child_context, params["inputs"])
+        monkeypatch.setitem(ACTION_REGISTRY._actions_by_fqid, definition.fqid, definition)
+        engine.services.update({"mock/app": object(), "mock/vision": object()})
+        result = await engine.bind_execution(child_context).call_action(definition.fqid, params["inputs"])
         return {"status": "SUCCESS", "user_data": result}
 
     monkeypatch.setattr(investment, "execute_trade_goods_investment_from_shop", execute_core)

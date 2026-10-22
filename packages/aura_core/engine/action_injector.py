@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextvars
 import inspect
 from typing import TYPE_CHECKING, Any, Dict
 
@@ -19,15 +18,15 @@ except ImportError:
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.logging.core_logger import current_cid
-from packages.aura_core.observability.runtime_trace import activity, bind_activity, end_activity, start_activity
-from packages.aura_core.scheduler.cancellation import request_task_cancel, begin_sync_action, end_sync_action
-from packages.aura_core.config.loader import get_config_value
+from packages.aura_core.observability.runtime_trace import activity
+from packages.aura_core.scheduler.operation_scope import OperationScope, current_operation_scope
 
 from ..api import ACTION_REGISTRY, ActionDefinition
 from ..config.template import TemplateRenderer
 from ..context.execution import ExecutionContext
 from ..types import TaskRefResolver
 from .action_resolver import ActionResolver
+from .execution_facade import _await_scoped
 from ..utils.middleware import middleware_manager
 
 if TYPE_CHECKING:
@@ -41,7 +40,7 @@ class ActionInjector:
         self,
         context: ExecutionContext,
         engine: "ExecutionEngine",
-        renderer: TemplateRenderer,
+        renderer: TemplateRenderer | None,
         services: Dict[str, Any],
         current_package=None,
         service_resolver=None,
@@ -67,94 +66,111 @@ class ActionInjector:
         if action_name == "aura.run_task":
             return await self._execute_run_task(raw_params)
 
+        if self.renderer is None:
+            raise ValueError("YAML action execution requires a TemplateRenderer; use execute_typed for Python values")
+        render_scope = await self.renderer.get_render_scope()
+        rendered_params = await self.renderer.render(raw_params, scope=render_scope)
+        return await self.execute_typed(action_name, rendered_params)
+
+    def _operation_scope(self, scope: OperationScope | None) -> OperationScope:
+        active = current_operation_scope()
+        if scope is not None and active is not None:
+            if scope._stop is not active._stop:
+                raise ValueError("Explicit execution scope must share the current operation's stop state")
+            if active.deadline is not None and (scope.deadline is None or scope.deadline > active.deadline):
+                raise ValueError("Explicit execution scope cannot extend the current operation's deadline")
+            if active.target is not None and scope.target is not active.target:
+                raise ValueError("Explicit execution scope cannot change the current operation's target")
+        inherited = scope if scope is not None else active
+        cid = self.context.data.get("cid") or current_cid()
+        if inherited is None:
+            return OperationScope(cid=cid)
+        if cid and cid != inherited.cid:
+            # A child task has its own trace CID but must still observe its
+            # parent's cancellation flag as well as the shared stop token.
+            return OperationScope(parent=inherited, cid=cid, cancel_check=lambda: inherited.cancelled)
+        return inherited
+
+    async def execute_typed(self, action_name: str, values: Dict[str, Any], *,
+                            scope: OperationScope | None = None) -> Any:
+        """Execute already evaluated values without invoking the template renderer."""
+        if action_name == "run_task":
+            raise ValueError("Action 'run_task' has been removed. Please use 'aura.run_task'.")
+        if not isinstance(action_name, str) or not action_name:
+            raise ValueError("action_ref must be a nonempty string")
+        if not isinstance(values, dict):
+            raise TypeError("Typed action values must be a dictionary")
+        operation = self._operation_scope(scope)
+        with operation.activate():
+            try:
+                if action_name == "aura.run_task":
+                    result = await self._run_task_values(dict(values), scope=operation)
+                else:
+                    result = await self._execute_typed_action(action_name, dict(values), operation)
+                operation.checkpoint()
+                return result
+            except asyncio.CancelledError as exc:
+                raise operation.cancellation_error(exc)
+
+    async def _execute_typed_action(self, action_name, values, scope):
+
         resolved_fqid = self.action_resolver.resolve(action_name)
         action_def = ACTION_REGISTRY.get(resolved_fqid)
         if not action_def:
             raise ValueError(f"Action '{action_name}' (resolved: '{resolved_fqid}') not found.")
 
-        render_scope = await self.renderer.get_render_scope()
-        rendered_params = await self.renderer.render(raw_params, scope=render_scope)
-        return await middleware_manager.process(
+        async def invoke(action_def, context, params):
+            # A synchronous middleware may call next from a thread with no
+            # ContextVars. Rebind the captured scope at the actual call boundary.
+            with scope.activate():
+                return await self._invoke_action(action_def, context, params, scope=scope)
+
+        return await _await_scoped(middleware_manager.process(
             action_def=action_def,
             context=self.context,
-            params=rendered_params,
-            final_handler=self._invoke_action,
-        )
+            params=values,
+            final_handler=invoke,
+        ), scope)
 
     async def _invoke_action(
         self,
         action_def: ActionDefinition,
         _context: ExecutionContext,
         rendered_params: Dict[str, Any],
+        *, scope: OperationScope | None = None,
     ) -> Any:
         call_args = self._prepare_action_arguments(action_def, rendered_params)
         if action_def.is_async:
             with activity("async_action", action_def.name):
                 return await action_def.func(**call_args)
 
-        loop = asyncio.get_running_loop()
-        context_snapshot = contextvars.copy_context()
-        cid = current_cid()
-        begin_sync_action(cid)
-        activity_id = start_activity("sync_action", action_def.name, cid=cid)
+        operation = self._operation_scope(scope)
 
-        def run_sync_action():
-            status = "completed"
+        def invoke():
+            with activity("sync_action", action_def.name):
+                return action_def.func(**call_args)
 
-            def invoke():
-                with bind_activity(activity_id):
-                    return action_def.func(**call_args)
-
-            try:
-                return context_snapshot.run(invoke)
-            except BaseException as exc:
-                status = "cancelled" if isinstance(exc, asyncio.CancelledError) else "failed"
-                raise
-            finally:
-                end_sync_action(cid)
-                end_activity(activity_id, status=status)
-
-        try:
-            future = loop.run_in_executor(None, run_sync_action)
-        except BaseException:
-            end_sync_action(cid)
-            end_activity(activity_id, status="schedule_failed")
-            raise
-        try:
-            return await asyncio.shield(future)
-        except asyncio.CancelledError:
-            cid = current_cid()
-            request_task_cancel(cid)
-            grace_sec = max(float(get_config_value("execution.sync_action_cancel_grace_sec", 2.0) or 2.0), 0.0)
-            if grace_sec > 0:
-                try:
-                    await asyncio.wait_for(asyncio.shield(future), timeout=grace_sec)
-                    logger.info(
-                        "Sync action '%s' finished cleanup after cancellation request (cid=%s).",
-                        action_def.name,
-                        cid,
-                    )
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        "Sync action '%s' did not finish within %.1fs after cancellation request (cid=%s).",
-                        action_def.name,
-                        grace_sec,
-                        cid,
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug(
-                        "Sync action '%s' ended with %s during cancellation cleanup (cid=%s).",
-                        action_def.name,
-                        type(exc).__name__,
-                        cid,
-                    )
-            raise
+        return await operation.run_async(invoke)
 
     async def _execute_run_task(self, raw_params: Dict[str, Any]) -> Any:
-        logger.info("Executing sub-task via aura.run_task")
-
+        if self.renderer is None:
+            raise ValueError("YAML task execution requires a TemplateRenderer; use run_task_typed for Python values")
         render_scope = await self.renderer.get_render_scope()
         rendered_params = await self.renderer.render(raw_params, scope=render_scope)
+        return await self.execute_typed("aura.run_task", rendered_params)
+
+    async def run_task_typed(self, task_ref: str, inputs: Dict[str, Any] | None = None, *,
+                             scope: OperationScope | None = None,
+                             result_assertions: Dict[str, Any] | None = None) -> Any:
+        return await self.execute_typed("aura.run_task", {
+            "task_ref": task_ref,
+            "inputs": {} if inputs is None else inputs,
+            "result_assertions": result_assertions,
+        }, scope=scope)
+
+    async def _run_task_values(self, rendered_params: Dict[str, Any], *, scope: OperationScope) -> Any:
+        """Single task contract used by YAML and context-bound Python callers."""
+        logger.info("Executing sub-task via aura.run_task")
 
         if "task_name" in rendered_params:
             raise ValueError("aura.run_task no longer accepts 'task_name'. Please use 'task_ref'.")
@@ -207,15 +223,19 @@ class ActionInjector:
             parent_cid,
         )
 
-        tfr = await orchestrator.execute_task(
+        scope.checkpoint()
+        tfr = await _await_scoped(orchestrator.execute_task(
             task_file_path=task_file_path,
             task_key=task_key,
             inputs=sub_task_inputs,
             parent_cid=parent_cid,
-        )
+        ), scope)
 
         if tfr.get('status') == 'CANCELLED':
-            raise asyncio.CancelledError()
+            from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from
+            error = asyncio.CancelledError()
+            attach_evidence(error, evidence_from(tfr) + evidence_from(tfr.get("error")))
+            raise error
         if tfr.get("status") != "SUCCESS":
             error_info = tfr.get("error", {"message": "Unknown error in sub-task."})
             from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from

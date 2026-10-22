@@ -19,6 +19,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "plans/resonance_pc"
+LEGACY_STAND_ROOT = "templates/characters/stand/scuffle/"
+STAND_SOURCE_ROOT = "development/template_sources/characters/stand/scuffle/"
+STAND_SOURCE_MANIFEST = STAND_SOURCE_ROOT + "manifest.json"
 
 CONTROL_FILENAMES = {
     "H01": "home_title", "H02": "play_button", "C01": "coin_dialog_title",
@@ -51,7 +54,8 @@ class FunctionalAssetWriter:
 
     def _path(self, relative):
         path = (self.plan / relative).resolve()
-        if not relative.startswith("templates/") or not path.is_relative_to(self.plan / "templates") or path.suffix != ".png":
+        if (not relative.startswith("templates/") or relative.startswith(LEGACY_STAND_ROOT)
+                or not path.is_relative_to(self.plan / "templates") or path.suffix != ".png"):
             raise ValueError(f"Functional asset escapes plan templates: {relative}")
         return path
 
@@ -177,6 +181,117 @@ class FunctionalAssetWriter:
                 parent.rmdir()
                 parent = parent.parent
         self.pending.clear()
+
+
+class StandSourceWriter:
+    """Own development animation sources independently of runtime templates."""
+
+    def __init__(self, plan, *, previous_assets=None):
+        self.plan = plan.resolve()
+        self.previous_assets = previous_assets or {}
+        self.assets, self.pending, self.seen = {}, {}, {}
+        for relative in self.previous_assets:
+            self._path(relative)
+
+    def _path(self, relative):
+        path = (self.plan / relative).resolve()
+        if (not relative.startswith(STAND_SOURCE_ROOT)
+                or not path.is_relative_to(self.plan)
+                or not path.is_relative_to((self.plan / STAND_SOURCE_ROOT).resolve()) or path.suffix != ".png"):
+            raise ValueError(f"Stand source escapes development bank: {relative}")
+        return path
+
+    def write(self, image, relative, view, metadata):
+        path = self._path(relative)
+        identity = (view, image.mode, image.size, hashlib.sha256(image.tobytes()).hexdigest())
+        shared = self.seen.get(identity)
+        if shared is None:
+            encoded = io.BytesIO()
+            image.save(encoded, format="PNG")
+            payload = encoded.getvalue()
+            checksum = hashlib.sha256(payload).hexdigest()
+            variant = path.with_name(path.stem + "." + checksum + path.suffix)
+            if path.exists() and digest(path) != checksum:
+                if relative not in self.previous_assets:
+                    raise ValueError(f"Refusing to replace unowned development source: {relative}")
+                relative = variant.relative_to(self.plan).as_posix()
+            elif not path.exists() and variant.exists():
+                relative = variant.relative_to(self.plan).as_posix()
+            if relative in self.pending and self.pending[relative] != payload:
+                raise ValueError(f"Conflicting stand source output: {relative}")
+            self.pending[relative] = payload
+            self.assets[relative] = {"sha256": checksum, "size": list(image.size), "mode": image.mode, **metadata}
+            self.seen[identity] = shared = relative
+        record = {"sha256": self.assets[shared]["sha256"], "size": list(image.size), "mode": image.mode, **metadata}
+        existing = self.assets[shared]
+        original = {key: value for key, value in existing.items() if key != "source_variants"}
+        if record != original:
+            variants = existing.setdefault("source_variants", [original])
+            if record not in variants:
+                variants.append(record)
+        return shared
+
+    def finalize(self, manifest):
+        references = {reference for row in manifest["characters"]
+                      for key in ("stand_templates", "stand_masks") for reference in row[key]}
+        if references != set(self.assets) or manifest["assets"] != self.assets:
+            raise ValueError("Incomplete development stand index")
+        stale = set(self.previous_assets) - set(self.assets)
+        for relative in stale:
+            path = self._path(relative)
+            if path.exists() and digest(path) != self.previous_assets[relative]["sha256"]:
+                raise ValueError(f"Previously owned stand source changed externally: {relative}")
+        for relative, payload in self.pending.items():
+            path = self._path(relative)
+            if path.exists() and digest(path) != self.assets[relative]["sha256"]:
+                raise ValueError(f"Development destination changed externally: {relative}")
+        created = []
+        try:
+            for relative, payload in self.pending.items():
+                path = self._path(relative)
+                if not path.exists():
+                    # Track before writing so an interruption just after the
+                    # atomic replacement still rolls back the new resource.
+                    created.append(path)
+                    FunctionalAssetWriter._atomic_write(path, payload)
+            target = self.plan / STAND_SOURCE_MANIFEST
+            FunctionalAssetWriter._atomic_write(target, (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+        except BaseException:
+            for path in reversed(created):
+                path.unlink(missing_ok=True)
+            raise
+        for relative in stale:
+            self._path(relative).unlink(missing_ok=True)
+        self.pending.clear()
+
+
+def migrated_stand_paths(plan, legacy_assets, development, *, pending=None):
+    """Preflight byte-preserving legacy retirement before either catalog publishes."""
+    pending = pending or {}
+    retired = []
+    for relative, metadata in legacy_assets.items():
+        path = (plan / relative).resolve()
+        if (not relative.startswith(LEGACY_STAND_ROOT)
+                or not path.is_relative_to(plan.resolve())
+                or not path.is_relative_to((plan / LEGACY_STAND_ROOT).resolve()) or path.suffix != ".png"):
+            raise ValueError(f"Legacy stand asset escapes its owned bank: {relative}")
+        if not path.exists():
+            continue
+        target = STAND_SOURCE_ROOT + relative.removeprefix(LEGACY_STAND_ROOT)
+        destination = (plan / target).resolve()
+        if not destination.is_relative_to(plan.resolve()):
+            raise ValueError(f"Migrated stand destination escapes plan: {target}")
+        target_metadata = development["assets"].get(target)
+        payload = pending.get(target)
+        target_hash = (hashlib.sha256(payload).hexdigest() if payload is not None
+                       else digest(destination) if destination.is_file() else None)
+        if (not target_metadata or target_metadata["sha256"] != metadata["sha256"]
+                or digest(path) != metadata["sha256"] or target_hash != metadata["sha256"]):
+            # Changed research inputs cannot replace an unmigrated original.
+            # Archive that original first, then rebuild from the new inputs.
+            raise ValueError(f"Archive the original legacy stand source byte-for-byte before rebuilding: {relative}")
+        retired.append(path)
+    return retired
 
 
 def read(path):
@@ -337,20 +452,27 @@ def build(research: Path, metadata_research: Path, review_v1: Path):
     target = PLAN / "templates/battle/scuffle"
     out = PLAN / "data/meta/eternal_scuffle.json"
     previous = read(out)["assets"] if out.exists() else {}
+    legacy_stand = {relative: metadata for relative, metadata in previous.items()
+                    if relative.startswith(LEGACY_STAND_ROOT)}
+    previous = {relative: metadata for relative, metadata in previous.items() if relative not in legacy_stand}
     assets = {}
     writer = FunctionalAssetWriter(PLAN, assets, previous_assets=previous, deferred=True)
+    stand_manifest_path = PLAN / STAND_SOURCE_MANIFEST
+    previous_stand = read(stand_manifest_path).get("assets", {}) if stand_manifest_path.exists() else {}
+    stand_writer = StandSourceWriter(PLAN, previous_assets=previous_stand)
 
     def copy(source, name):
         relative = (target / name).relative_to(PLAN).as_posix()
         return writer.write_encoded(source.read_bytes(), relative, {"source_sha256": digest(source)})
 
-    def image_pair(image, name, source_hash, view):
+    def image_pair(image, name, source_hash, view, *, asset_writer=None):
+        output_writer = asset_writer or writer
         image = image.convert("RGBA")
-        relative = writer.write(image, name, view + "/image", {"source_sha256": source_hash})
+        relative = output_writer.write(image, name, view + "/image", {"source_sha256": source_hash})
         mask = image.getchannel("A").point(lambda value: 255 if value > 245 else 0)
         path = Path(name)
-        mask_relative = writer.write(mask, path.with_name(path.stem + "_mask.png").as_posix(),
-                                     view + "/mask", {"source_sha256": source_hash})
+        mask_relative = output_writer.write(mask, path.with_name(path.stem + "_mask.png").as_posix(),
+                                            view + "/mask", {"source_sha256": source_hash})
         return relative, mask_relative
 
     controls = {}
@@ -386,7 +508,7 @@ def build(research: Path, metadata_research: Path, review_v1: Path):
     if extra_dates.exists():
         for name, row in read(extra_dates).items():
             character_dates[name] = {"release_date": row["release_date"], "release_date_source_url": row.get("source_url", row.get("release_date_source_url"))}
-    characters = []
+    characters, stand_characters = [], {}
     for row in sorted(role_meta["characters"], key=lambda row: row["id"]):
         rid = row["id"]
         entry = {key: row[key] for key in ("id", "name", "rarity", "source_quality")}
@@ -398,16 +520,20 @@ def build(research: Path, metadata_research: Path, review_v1: Path):
             entry["name_template"] = writer.write(name_image, f"templates/characters/nameplates/scuffle/{rid}.png",
                                                   "character_names", {"source_sha256": digest(name_source)})
         entry["name_template_size"] = role_names["context_size"]
-        entry["stand_templates"], entry["stand_masks"], entry["stand_sources"] = [], [], []
+        development_entry = {key: value for key, value in entry.items() if key not in {"name_template", "name_template_size"}}
+        development_entry["stand_templates"], development_entry["stand_masks"], development_entry["stand_sources"] = [], [], []
         stand = stand_index[rid]
         for i, source in enumerate(stand["frames"]):
             source_path = research / "role_spine" / source.replace("\\", "/")
-            template, mask = image_pair(Image.open(source_path), f"templates/characters/stand/scuffle/{rid}/frame_{i:02}.png", digest(source_path), f"stand/{rid}")
-            entry["stand_templates"].append(template)
-            entry["stand_masks"].append(mask)
-            entry["stand_sources"].append({"source_sha256": digest(source_path)})
+            template, mask = image_pair(Image.open(source_path), f"{STAND_SOURCE_ROOT}{rid}/frame_{i:02}.png",
+                                        digest(source_path), f"stand/{rid}", asset_writer=stand_writer)
+            development_entry["stand_templates"].append(template)
+            development_entry["stand_masks"].append(mask)
+            development_entry["stand_sources"].append({"source_sha256": digest(source_path)})
         entry["source"] = {"factory": "UnitFactory", "factory_sha256": role_meta["source_sha256"],
                            "res_dir": stand["resDir"], "bundle_sha256": stand["source_sha256"], "animation": "stand"}
+        development_entry["source"] = dict(entry["source"])
+        stand_characters[rid] = development_entry
         characters.append(entry)
 
     base_equipment = read(metadata_research / "equipment/equipment_priority_by_id.json")
@@ -455,7 +581,18 @@ def build(research: Path, metadata_research: Path, review_v1: Path):
     add_occupied_templates(catalog, research, PLAN, writer=writer)
     add_selected_marker_mask(catalog, PLAN, writer=writer)
     add_defeat_title_mask(catalog, PLAN, writer=writer)
+    development = {"schema_version": 1, "status": "development_source_not_runtime",
+                   "source_version": catalog["source_version"], "reference_client": catalog["reference_client"],
+                   "ranking_version": catalog["ranking_version"],
+                   "characters": [dict(stand_characters[row["id"]], rank=row["rank"]) for row in characters],
+                   "assets": stand_writer.assets}
+    retired_stand = migrated_stand_paths(PLAN, legacy_stand, development, pending=stand_writer.pending)
+    stand_writer.finalize(development)
     writer.finalize(catalog, out)
+    for path in retired_stand:
+        relative = path.relative_to(PLAN.resolve()).as_posix()
+        if path.is_file() and digest(path) == legacy_stand[relative]["sha256"]:
+            path.unlink()
     print(json.dumps({"characters": len(characters), "equipment": len(equipment), "controls": len(controls), "assets": len(assets)}, ensure_ascii=False))
 
 

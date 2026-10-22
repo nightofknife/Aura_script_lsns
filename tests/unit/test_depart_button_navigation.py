@@ -181,6 +181,10 @@ def test_invalid_matching_result_fails_closed(result):
 
 @pytest.mark.parametrize("variant", ["missing", "wrong_size", "alpha"])
 def test_missing_or_invalid_template_is_structured_and_does_not_capture(tmp_path, monkeypatch, variant):
+    catalog = depart._PLAN_ROOT / "data/meta/depart_button_template.json"
+    metadata = tmp_path / "data/meta/depart_button_template.json"
+    metadata.parent.mkdir(parents=True)
+    metadata.write_bytes(catalog.read_bytes())
     monkeypatch.setattr(depart, "_PLAN_ROOT", tmp_path)
     if variant != "missing":
         path = tmp_path / depart.TEMPLATE

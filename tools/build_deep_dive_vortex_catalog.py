@@ -70,12 +70,12 @@ def main():
             options[o['id']]={'id':o['id'],'title':o['optionName'],
                 'description':re.sub('<[^>]+>','',o['optionDes']),
                 'effects':o['effects'],'text_key':refs[o['id']]['text_key'],**policy}
-    output=args.plan/'templates/deep_dive_vortex';output.mkdir(parents=True,exist_ok=True)
+    output=args.plan/'templates/deep_dive/deep_dive_vortex';output.mkdir(parents=True,exist_ok=True)
     for key in {o['text_key'] for o in options.values()}:
         for state in ('normal','disabled','selected'):
             name=key+'_'+state+'.png';shutil.copyfile(args.review/name,output/name)
     # Physical copies: changing healing templates later cannot change vortex.
-    for path in (args.plan/'templates/deep_dive_events').glob('*.png'):
+    for path in (args.plan/'templates/deep_dive/deep_dive_events').glob('*.png'):
         if not path.name.startswith('text_'):shutil.copyfile(path,output/path.name)
     out=args.plan/'data/deep_dive_vortex';out.mkdir(parents=True,exist_ok=True)
     data={'source_hashes':review['source_hashes'],'events':events,'options':list(options.values())}

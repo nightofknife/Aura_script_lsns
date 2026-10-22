@@ -86,15 +86,16 @@ def test_last_allowed_drag_is_followed_by_observation_and_safe_click(monkeypatch
     monkeypatch.setattr(nav, "_settle", lambda _: None)
     monkeypatch.setattr(nav.room_map, "load_map", model)
     rows = iter([[hit("A", [1050, 300])], [hit("A", [520, 300])]])
-    monkeypatch.setattr(nav.vision, "room_hits", lambda *_: next(rows))
-    result = nav._locate_and_click(app, "A", {"A": {"click_offset": [120, 55]}}, {}, 1, .05)
+    matcher = nav.RoomTemplateMatcher(SimpleNamespace())
+    monkeypatch.setattr(matcher, "room_hits", lambda *_: next(rows))
+    result = nav._locate_and_click(app, "A", {"A": {"click_offset": [120, 55]}}, {}, 1, .05, matcher)
     assert len(captures) == 2 and len(drags) == 1
     assert clicks == [{"x": 640, "y": 355}] and result["drag_count"] == 1
 
 
 def test_measured_map_covers_current_templates_and_all_rooms_have_a_route():
     measured = mapping.load_map()
-    assert set(measured["rooms"]) == set(nav.vision.load_catalog()["rooms"])
+    assert set(measured["rooms"]) == set(nav.RoomTemplateMatcher.load_catalog()["rooms"])
     components = {room["component"] for room in measured["rooms"].values()}
     assert len(components) == 1
     start = next(iter(measured["rooms"]))
@@ -114,6 +115,7 @@ def test_target_rejected_by_map_consensus_cannot_be_clicked(monkeypatch):
     monkeypatch.setattr(nav.room_map, "load_map", model)
     rows = iter([[hit("A", [520, 300]), hit("B", [800, 300]), hit("C", [800, 600])],
                  [hit("A", [500, 300])]])
-    monkeypatch.setattr(nav.vision, "room_hits", lambda *_: next(rows))
-    nav._locate_and_click(app, "A", {"A": {"click_offset": [120, 55]}}, {}, 1, .05)
+    matcher = nav.RoomTemplateMatcher(SimpleNamespace())
+    monkeypatch.setattr(matcher, "room_hits", lambda *_: next(rows))
+    nav._locate_and_click(app, "A", {"A": {"click_offset": [120, 55]}}, {}, 1, .05, matcher)
     assert len(drags) == 1 and clicks == [{"x": 620, "y": 355}]

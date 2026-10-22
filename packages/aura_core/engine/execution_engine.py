@@ -93,6 +93,7 @@ class ExecutionEngine:
         self.running_tasks: Set[asyncio.Task] = set()
         self.completion_event: Optional[asyncio.Event] = None
         self._node_cancelled = False
+        self._node_cancel_error = None
 
         # ===== 依赖的服务 =====
         self.state_store: StateStoreService = self.services.get('state_store')
@@ -115,6 +116,12 @@ class ExecutionEngine:
     # ========================================
     # 公共API - 主执行方法
     # ========================================
+
+    def bind_execution(self, context: ExecutionContext):
+        """Bind typed action/task execution to this operation's current context."""
+        from .execution_facade import ExecutionFacade
+
+        return ExecutionFacade(self, context)
 
     async def run(
         self,
@@ -236,8 +243,9 @@ class ExecutionEngine:
         self.running_tasks.discard(task)
         try:
             task.result()
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as exc:
             self._node_cancelled = True
+            self._node_cancel_error = exc
             self.ready_queue.clear()
             self._ready_set.clear()
             for pending_id, state in tuple(self.step_states.items()):
@@ -249,7 +257,7 @@ class ExecutionEngine:
                     )})
             for pending in tuple(self.running_tasks):
                 if not pending.cancelling():
-                    pending.cancel()
+                    pending.cancel(exc.args[0] if exc.args else None)
             if self.completion_event:
                 self.completion_event.set()
             return

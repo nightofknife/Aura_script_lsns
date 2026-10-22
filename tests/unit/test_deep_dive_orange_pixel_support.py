@@ -8,7 +8,7 @@ import pytest
 from plans.resonance_pc.src.actions import _deep_dive_layout_vision as vision
 
 
-NATIVE = Path(vision.__file__).resolve().parents[2] / 'templates/deep_dive_layout'
+NATIVE = Path(vision.__file__).resolve().parents[2] / 'templates/deep_dive/deep_dive_layout'
 
 
 def read_rgb(path):

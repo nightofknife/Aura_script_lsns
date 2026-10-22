@@ -9,6 +9,7 @@ import yaml
 
 from plans.resonance_pc.src.actions import black_moon_local_exit_pc_actions as exits
 from plans.resonance_pc.src.actions import black_moon_local_prepare_pc_actions as prepare
+from plans.aura_base.src.services.interaction_service import InteractionError
 
 
 STATES = {
@@ -85,10 +86,10 @@ def fast_poll(monkeypatch):
 
     monkeypatch.setattr(exits, "time", SimpleNamespace(monotonic=lambda: clock.now))
     monkeypatch.setattr(exits.asyncio, "sleep", sleep)
-    monkeypatch.setattr(exits, "_WAIT_SECONDS", .01)
-    monkeypatch.setattr(exits, "_PURCHASE_WAIT_SECONDS", .01)
-    monkeypatch.setattr(exits, "_POLL_SECONDS", .001)
-    monkeypatch.setattr(exits, "_SETTLE_SECONDS", .001)
+    monkeypatch.setattr(exits, "_WAIT_SECONDS", 1.)
+    monkeypatch.setattr(exits, "_PURCHASE_WAIT_SECONDS", 1.)
+    monkeypatch.setattr(exits, "_POLL_SECONDS", .1)
+    monkeypatch.setattr(exits, "_SETTLE_SECONDS", .1)
     return clock
 
 
@@ -410,3 +411,22 @@ def test_task_exposes_two_exit_targets_and_gates_both_exit_nodes_on_submission()
     assert steps["exit_shop"]["depends_on"] == {"wait_purchase": "success|skipped"}
     assert steps["exit_shop"]["params"]["purchase_result"] == "{{ nodes.wait_purchase.output }}"
     assert steps["exit_shop"]["params"]["exit_target"] == "{{ inputs.exit_target }}"
+
+
+@pytest.mark.parametrize("returned", [False, SimpleNamespace(success=False)])
+def test_rejected_exit_input_retains_receipt_without_another_click(returned):
+    app = App([1])
+    original = app.click
+
+    def click(*args, **kwargs):
+        original(*args, **kwargs)
+        return returned
+
+    app.click = click
+    with pytest.raises(InteractionError) as error:
+        leave(app)
+    assert error.value.code == "input_rejected"
+    assert len(app.clicks) == 1
+    receipt, = error.value.receipts
+    assert receipt.attempted and receipt.call_returned
+    assert receipt.acknowledged is False and receipt.sent is False

@@ -2,7 +2,8 @@
 
 The source font is an extracted game asset and is intentionally not committed.
 Run from the repository root with its path as the sole argument. The output
-is a normalized binary glyph bank for the 1280x720 PC profile panel.
+is a development-only binary glyph bank for the 1280x720 PC profile panel;
+the live profile reader does not use it and player releases exclude it.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "plans/resonance_pc/templates/navigation/profile/status_digits"
+OUTPUT = ROOT / "plans/resonance_pc/development/template_sources/navigation/profile/status_digits"
 FONT_SHA256 = "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
 FONT_NAME = "SourceHanSansCN-Bold"
 FONT_SIZE = 16

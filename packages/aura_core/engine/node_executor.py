@@ -21,6 +21,8 @@ from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.config.template import TemplateRenderer
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.scheduler.operation_scope import OperationScope, OperationTimeout, current_operation_scope
+from packages.aura_core.engine.execution_facade import _await_scoped
 from packages.aura_core.observability.failure_evidence import (
     failure_scope, capture_failure, attach_evidence, evidence_from,
 )
@@ -164,7 +166,17 @@ class NodeExecutor:
 
                     timeout_sec = self.resolve_node_timeout(node_data)
                     if timeout_sec:
-                        action_result = await asyncio.wait_for(_run_action(), timeout=timeout_sec)
+                        operation = OperationScope(timeout_sec, parent=current_operation_scope(),
+                                                   cid=node_context.data.get("cid"))
+                        try:
+                            with operation.activate():
+                                action_result = await _await_scoped(_run_action(), operation)
+                        except OperationTimeout as exc:
+                            # Keep the node's existing TimeoutError retry/error
+                            # contract without promoting its deadline to a user stop.
+                            error = TimeoutError(str(exc))
+                            attach_evidence(error, evidence_from(exc))
+                            raise error from exc
                     else:
                         action_result = await _run_action()
 

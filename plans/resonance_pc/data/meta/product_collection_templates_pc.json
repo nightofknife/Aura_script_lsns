@@ -8,7 +8,7 @@
   "live_calibrated": false,
   "templates": {
     "room_1_title": {
-      "image": "templates/workshop/collection/workshop_1_title.png",
+      "image": "templates/workshop/collection/room/workshop_1_title.png",
       "bbox": [
         638,
         20,
@@ -84,7 +84,7 @@
       "number_min_margin": 0.06
     },
     "collect_all_block": {
-      "image": "templates/workshop/collection/collect_all_block.png",
+      "image": "templates/workshop/collection/controls/collect_all_block.png",
       "bbox": [
         1142,
         501,
@@ -246,7 +246,7 @@
       ]
     },
     "collect_all_icon": {
-      "image": "templates/workshop/collection/collect_all_icon.png",
+      "image": "templates/workshop/collection/controls/collect_all_icon.png",
       "bbox": [
         1143,
         525,
@@ -284,7 +284,7 @@
       ]
     },
     "collect_all_text": {
-      "image": "templates/workshop/collection/collect_all_text.png",
+      "image": "templates/workshop/collection/controls/collect_all_text.png",
       "bbox": [
         1166,
         643,
@@ -356,7 +356,7 @@
       ]
     },
     "collectable_badge": {
-      "image": "templates/workshop/collection/collectable_badge.png",
+      "image": "templates/workshop/collection/controls/collectable_badge.png",
       "bbox": [
         1143,
         501,
@@ -456,7 +456,7 @@
       ]
     },
     "back": {
-      "image": "templates/workshop/collection/back.png",
+      "image": "templates/workshop/collection/controls/back.png",
       "bbox": [
         9,
         6,
@@ -494,7 +494,7 @@
       ]
     },
     "workshop_edit_marker": {
-      "image": "templates/workshop/collection/workshop_edit_marker.png",
+      "image": "templates/workshop/collection/room/workshop_edit_marker.png",
       "bbox": [
         862,
         622,
@@ -562,7 +562,7 @@
       ]
     },
     "room_2_title": {
-      "image": "templates/workshop/collection/workshop_2_title.png",
+      "image": "templates/workshop/collection/room/workshop_2_title.png",
       "bbox": [
         638,
         20,
@@ -638,7 +638,7 @@
       "number_min_margin": 0.06
     },
     "collection_complete": {
-      "image": "templates/workshop/collection/collection_complete.png",
+      "image": "templates/workshop/collection/controls/collection_complete.png",
       "bbox": [
         519,
         176,
@@ -722,7 +722,7 @@
       ]
     },
     "collection_complete_icon": {
-      "image": "templates/workshop/collection/collection_complete_icon.png",
+      "image": "templates/workshop/collection/controls/collection_complete_icon.png",
       "bbox": [
         519,
         176,
@@ -760,7 +760,7 @@
       ]
     },
     "collection_complete_title": {
-      "image": "templates/workshop/collection/collection_complete_title.png",
+      "image": "templates/workshop/collection/controls/collection_complete_title.png",
       "bbox": [
         593,
         189,
@@ -828,7 +828,7 @@
       ]
     },
     "capacity_warning_text": {
-      "image": "templates/workshop/collection/capacity_warning_text.png",
+      "image": "templates/workshop/collection/capacity/capacity_warning_text.png",
       "bbox": [
         470,
         344,
@@ -896,7 +896,7 @@
       ]
     },
     "capacity_cancel": {
-      "image": "templates/workshop/collection/capacity_cancel.png",
+      "image": "templates/workshop/collection/capacity/capacity_cancel.png",
       "bbox": [
         3,
         481,
@@ -980,7 +980,7 @@
       ]
     },
     "capacity_confirm": {
-      "image": "templates/workshop/collection/capacity_confirm.png",
+      "image": "templates/workshop/collection/capacity/capacity_confirm.png",
       "bbox": [
         638,
         481,
@@ -1064,7 +1064,7 @@
       ]
     },
     "exit_hint": {
-      "image": "templates/workshop/collection/exit_hint.png",
+      "image": "templates/workshop/collection/controls/exit_hint.png",
       "bbox": [
         566,
         643,
@@ -1148,7 +1148,7 @@
       ]
     },
     "navigation_1_open": {
-      "image": "templates/workshop/collection/navigation_1_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_open.png",
       "bbox": [
         562,
         287,
@@ -1354,7 +1354,7 @@
       ]
     },
     "navigation_1_open_identity": {
-      "image": "templates/workshop/collection/navigation_1_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_open_identity.png",
       "bbox": [
         562,
         287,
@@ -1576,7 +1576,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_1_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_1_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -1796,7 +1796,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_1_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_1_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -1808,7 +1808,7 @@
       ]
     },
     "number_1_white": {
-      "image": "templates/workshop/collection/number_1_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_1_white.png",
       "bbox": [
         618,
         332,
@@ -1876,7 +1876,7 @@
       ]
     },
     "navigation_2_open": {
-      "image": "templates/workshop/collection/navigation_2_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_open.png",
       "bbox": [
         562,
         287,
@@ -2082,7 +2082,7 @@
       ]
     },
     "navigation_2_open_identity": {
-      "image": "templates/workshop/collection/navigation_2_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_open_identity.png",
       "bbox": [
         562,
         287,
@@ -2304,7 +2304,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_2_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_2_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -2524,7 +2524,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_2_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_2_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -2536,7 +2536,7 @@
       ]
     },
     "number_2_white": {
-      "image": "templates/workshop/collection/number_2_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_2_white.png",
       "bbox": [
         614,
         332,
@@ -2604,7 +2604,7 @@
       ]
     },
     "navigation_3_open": {
-      "image": "templates/workshop/collection/navigation_3_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_open.png",
       "bbox": [
         562,
         287,
@@ -2810,7 +2810,7 @@
       ]
     },
     "navigation_3_open_identity": {
-      "image": "templates/workshop/collection/navigation_3_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_open_identity.png",
       "bbox": [
         562,
         287,
@@ -3032,7 +3032,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_3_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_3_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -3252,7 +3252,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_3_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_3_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -3264,7 +3264,7 @@
       ]
     },
     "number_3_white": {
-      "image": "templates/workshop/collection/number_3_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_3_white.png",
       "bbox": [
         614,
         332,
@@ -3332,7 +3332,7 @@
       ]
     },
     "navigation_4_open": {
-      "image": "templates/workshop/collection/navigation_4_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_open.png",
       "bbox": [
         562,
         287,
@@ -3538,7 +3538,7 @@
       ]
     },
     "navigation_4_open_identity": {
-      "image": "templates/workshop/collection/navigation_4_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_open_identity.png",
       "bbox": [
         562,
         287,
@@ -3760,7 +3760,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_4_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_4_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -3980,7 +3980,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_4_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_4_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -3992,7 +3992,7 @@
       ]
     },
     "number_4_white": {
-      "image": "templates/workshop/collection/number_4_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_4_white.png",
       "bbox": [
         613,
         332,
@@ -4060,7 +4060,7 @@
       ]
     },
     "navigation_5_open": {
-      "image": "templates/workshop/collection/navigation_5_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_open.png",
       "bbox": [
         562,
         287,
@@ -4266,7 +4266,7 @@
       ]
     },
     "navigation_5_open_identity": {
-      "image": "templates/workshop/collection/navigation_5_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_open_identity.png",
       "bbox": [
         562,
         287,
@@ -4488,7 +4488,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_5_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_5_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -4708,7 +4708,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_5_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_5_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -4720,7 +4720,7 @@
       ]
     },
     "number_5_white": {
-      "image": "templates/workshop/collection/number_5_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_5_white.png",
       "bbox": [
         614,
         332,
@@ -4788,7 +4788,7 @@
       ]
     },
     "navigation_6_open": {
-      "image": "templates/workshop/collection/navigation_6_open.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_open.png",
       "bbox": [
         562,
         287,
@@ -4994,7 +4994,7 @@
       ]
     },
     "navigation_6_open_identity": {
-      "image": "templates/workshop/collection/navigation_6_open_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_open_identity.png",
       "bbox": [
         562,
         287,
@@ -5216,7 +5216,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_6_open_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_6_open_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -5436,7 +5436,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_6_open_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_6_open_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -5448,7 +5448,7 @@
       ]
     },
     "number_6_white": {
-      "image": "templates/workshop/collection/number_6_white.png",
+      "image": "templates/workshop/collection/navigation/digits/number_6_white.png",
       "bbox": [
         614,
         332,
@@ -5516,7 +5516,7 @@
       ]
     },
     "navigation_1_locked": {
-      "image": "templates/workshop/collection/navigation_1_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_locked.png",
       "bbox": [
         562,
         287,
@@ -5722,7 +5722,7 @@
       ]
     },
     "navigation_1_locked_identity": {
-      "image": "templates/workshop/collection/navigation_1_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -5944,7 +5944,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_1_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_1_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -6164,7 +6164,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_1_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_1_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -6176,7 +6176,7 @@
       ]
     },
     "number_1_gray": {
-      "image": "templates/workshop/collection/number_1_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_1_gray.png",
       "bbox": [
         618,
         332,
@@ -6244,7 +6244,7 @@
       ]
     },
     "locked_hint": {
-      "image": "templates/workshop/collection/locked_hint.png",
+      "image": "templates/workshop/collection/controls/locked_hint.png",
       "bbox": [
         606,
         404,
@@ -6312,7 +6312,7 @@
       ]
     },
     "locked_label": {
-      "image": "templates/workshop/collection/locked_label.png",
+      "image": "templates/workshop/collection/controls/locked_label.png",
       "bbox": [
         586,
         384,
@@ -6380,7 +6380,7 @@
       ]
     },
     "navigation_2_locked": {
-      "image": "templates/workshop/collection/navigation_2_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_locked.png",
       "bbox": [
         562,
         287,
@@ -6586,7 +6586,7 @@
       ]
     },
     "navigation_2_locked_identity": {
-      "image": "templates/workshop/collection/navigation_2_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -6808,7 +6808,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_2_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_2_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -7028,7 +7028,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_2_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_2_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -7040,7 +7040,7 @@
       ]
     },
     "number_2_gray": {
-      "image": "templates/workshop/collection/number_2_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_2_gray.png",
       "bbox": [
         614,
         332,
@@ -7108,7 +7108,7 @@
       ]
     },
     "navigation_3_locked": {
-      "image": "templates/workshop/collection/navigation_3_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_locked.png",
       "bbox": [
         562,
         287,
@@ -7314,7 +7314,7 @@
       ]
     },
     "navigation_3_locked_identity": {
-      "image": "templates/workshop/collection/navigation_3_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -7536,7 +7536,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_3_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_3_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -7756,7 +7756,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_3_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_3_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -7768,7 +7768,7 @@
       ]
     },
     "number_3_gray": {
-      "image": "templates/workshop/collection/number_3_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_3_gray.png",
       "bbox": [
         614,
         332,
@@ -7836,7 +7836,7 @@
       ]
     },
     "navigation_4_locked": {
-      "image": "templates/workshop/collection/navigation_4_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_locked.png",
       "bbox": [
         562,
         287,
@@ -8042,7 +8042,7 @@
       ]
     },
     "navigation_4_locked_identity": {
-      "image": "templates/workshop/collection/navigation_4_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -8264,7 +8264,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_4_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_4_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -8484,7 +8484,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_4_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_4_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -8496,7 +8496,7 @@
       ]
     },
     "number_4_gray": {
-      "image": "templates/workshop/collection/number_4_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_4_gray.png",
       "bbox": [
         613,
         332,
@@ -8564,7 +8564,7 @@
       ]
     },
     "navigation_5_locked": {
-      "image": "templates/workshop/collection/navigation_5_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_locked.png",
       "bbox": [
         562,
         287,
@@ -8770,7 +8770,7 @@
       ]
     },
     "navigation_5_locked_identity": {
-      "image": "templates/workshop/collection/navigation_5_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -8992,7 +8992,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_5_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_5_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -9212,7 +9212,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_5_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_5_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -9224,7 +9224,7 @@
       ]
     },
     "number_5_gray": {
-      "image": "templates/workshop/collection/number_5_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_5_gray.png",
       "bbox": [
         614,
         332,
@@ -9292,7 +9292,7 @@
       ]
     },
     "navigation_6_locked": {
-      "image": "templates/workshop/collection/navigation_6_locked.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_locked.png",
       "bbox": [
         562,
         287,
@@ -9498,7 +9498,7 @@
       ]
     },
     "navigation_6_locked_identity": {
-      "image": "templates/workshop/collection/navigation_6_locked_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_locked_identity.png",
       "bbox": [
         562,
         287,
@@ -9720,7 +9720,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_6_locked_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_6_locked_identity_inner.png",
           "bbox": [
             564,
             295,
@@ -9940,7 +9940,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_6_locked_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_6_locked_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -9952,7 +9952,7 @@
       ]
     },
     "number_6_gray": {
-      "image": "templates/workshop/collection/number_6_gray.png",
+      "image": "templates/workshop/collection/navigation/digits/number_6_gray.png",
       "bbox": [
         614,
         332,
@@ -10020,7 +10020,7 @@
       ]
     },
     "navigation_1_selected": {
-      "image": "templates/workshop/collection/navigation_1_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_selected.png",
       "bbox": [
         562,
         284,
@@ -10242,7 +10242,7 @@
       ]
     },
     "navigation_1_selected_identity": {
-      "image": "templates/workshop/collection/navigation_1_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_1_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -10480,7 +10480,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_1_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_1_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -10716,7 +10716,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_1_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_1_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -10728,7 +10728,7 @@
       ]
     },
     "selection_outline": {
-      "image": "templates/workshop/collection/selection_outline.png",
+      "image": "templates/workshop/collection/navigation/controls/selection_outline.png",
       "bbox": [
         562,
         284,
@@ -10766,7 +10766,7 @@
       ]
     },
     "navigation_2_selected": {
-      "image": "templates/workshop/collection/navigation_2_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_selected.png",
       "bbox": [
         562,
         284,
@@ -10988,7 +10988,7 @@
       ]
     },
     "navigation_2_selected_identity": {
-      "image": "templates/workshop/collection/navigation_2_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_2_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -11226,7 +11226,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_2_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_2_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -11462,7 +11462,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_2_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_2_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -11474,7 +11474,7 @@
       ]
     },
     "navigation_3_selected": {
-      "image": "templates/workshop/collection/navigation_3_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_selected.png",
       "bbox": [
         562,
         284,
@@ -11696,7 +11696,7 @@
       ]
     },
     "navigation_3_selected_identity": {
-      "image": "templates/workshop/collection/navigation_3_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_3_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -11934,7 +11934,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_3_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_3_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -12170,7 +12170,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_3_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_3_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -12182,7 +12182,7 @@
       ]
     },
     "navigation_4_selected": {
-      "image": "templates/workshop/collection/navigation_4_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_selected.png",
       "bbox": [
         562,
         284,
@@ -12404,7 +12404,7 @@
       ]
     },
     "navigation_4_selected_identity": {
-      "image": "templates/workshop/collection/navigation_4_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_4_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -12642,7 +12642,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_4_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_4_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -12878,7 +12878,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_4_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_4_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -12890,7 +12890,7 @@
       ]
     },
     "navigation_5_selected": {
-      "image": "templates/workshop/collection/navigation_5_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_selected.png",
       "bbox": [
         562,
         284,
@@ -13112,7 +13112,7 @@
       ]
     },
     "navigation_5_selected_identity": {
-      "image": "templates/workshop/collection/navigation_5_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_5_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -13350,7 +13350,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_5_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_5_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -13586,7 +13586,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_5_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_5_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -13598,7 +13598,7 @@
       ]
     },
     "navigation_6_selected": {
-      "image": "templates/workshop/collection/navigation_6_selected.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_selected.png",
       "bbox": [
         562,
         284,
@@ -13820,7 +13820,7 @@
       ]
     },
     "navigation_6_selected_identity": {
-      "image": "templates/workshop/collection/navigation_6_selected_identity.png",
+      "image": "templates/workshop/collection/navigation/cards/navigation_6_selected_identity.png",
       "bbox": [
         562,
         284,
@@ -14058,7 +14058,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/collection/navigation_6_selected_identity_inner.png",
+          "image": "templates/workshop/collection/navigation/cards/navigation_6_selected_identity_inner.png",
           "bbox": [
             564,
             292,
@@ -14294,7 +14294,7 @@
             152,
             158
           ],
-          "derived_from": "templates/workshop/collection/navigation_6_selected_identity.png",
+          "derived_from": "templates/workshop/collection/navigation/cards/navigation_6_selected_identity.png",
           "source_crop_xyxy": [
             2,
             8,
@@ -14306,7 +14306,7 @@
       ]
     },
     "navigation_button": {
-      "image": "templates/workshop/collection/navigation_button.png",
+      "image": "templates/workshop/collection/navigation/controls/navigation_button.png",
       "bbox": [
         120,
         596,
@@ -14390,7 +14390,7 @@
       ]
     },
     "navigation_button_label": {
-      "image": "templates/workshop/collection/navigation_button_label.png",
+      "image": "templates/workshop/collection/navigation/controls/navigation_button_label.png",
       "bbox": [
         125,
         673,
@@ -14462,7 +14462,7 @@
       ]
     },
     "navigation_popup_title": {
-      "image": "templates/workshop/collection/navigation_popup_title.png",
+      "image": "templates/workshop/collection/navigation/controls/navigation_popup_title.png",
       "bbox": [
         604,
         253,
@@ -14530,7 +14530,7 @@
       ]
     },
     "room_3_title": {
-      "image": "templates/workshop/collection/physical_workshop_3_title.png",
+      "image": "templates/navigation/rooms/destination/physical_workshop_3.png",
       "bbox": [
         638,
         20,
@@ -14606,7 +14606,7 @@
       "number_min_margin": 0.06
     },
     "room_4_title": {
-      "image": "templates/workshop/collection/physical_workshop_4_title.png",
+      "image": "templates/navigation/rooms/destination/physical_workshop_4.png",
       "bbox": [
         638,
         20,
@@ -14682,7 +14682,7 @@
       "number_min_margin": 0.06
     },
     "room_5_title": {
-      "image": "templates/workshop/collection/physical_workshop_5_title.png",
+      "image": "templates/navigation/rooms/destination/physical_workshop_5.png",
       "bbox": [
         638,
         20,
@@ -14758,7 +14758,7 @@
       "number_min_margin": 0.06
     },
     "room_6_title": {
-      "image": "templates/workshop/collection/physical_workshop_6_title.png",
+      "image": "templates/navigation/rooms/destination/physical_workshop_6.png",
       "bbox": [
         638,
         20,

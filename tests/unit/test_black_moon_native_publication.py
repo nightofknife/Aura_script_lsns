@@ -62,8 +62,8 @@ def generation(tmp_path, monkeypatch):
                 for name in module.PREPARE_NAMES]
 
     def evidence(native):
-        module.write_json(module.OUTPUT / "sources/native_ui.json", {"source": "ui"})
-        module.write_json(module.OUTPUT / "sources/native_assets.json", {"source": native.hashes})
+        module.write_json(module.source_output() / "native_ui.json", {"source": "ui"})
+        module.write_json(module.source_output() / "native_assets.json", {"source": native.hashes})
 
     monkeypatch.setattr(module, "Native", Native)
     monkeypatch.setattr(module, "manufacture_prepare_controls", controls)
@@ -78,6 +78,9 @@ def generation(tmp_path, monkeypatch):
     (output / "sources").mkdir()
     (output / "sources/native_ui.json").write_text('{"old": "ui"}', encoding="utf-8")
     (output / "sources/native_assets.json").write_text('{"old": "assets"}', encoding="utf-8")
+    module.source_output().mkdir(parents=True)
+    (module.source_output() / "native_ui.json").write_text('{"old": "development ui"}', encoding="utf-8")
+    (module.source_output() / "native_assets.json").write_text('{"old": "development assets"}', encoding="utf-8")
     neighbour = plan / "templates/commerce/shop/black_moon/calibrated/keep.png"
     neighbour.parent.mkdir(parents=True)
     Image.new("L", (3, 3), 255).save(neighbour)
@@ -124,14 +127,17 @@ def test_failed_provenance_write_preserves_bank(generation, monkeypatch):
     assert snapshot(plan) == before
 
 
-def test_failed_publish_rolls_back_resources_and_manifest(generation, monkeypatch):
+@pytest.mark.parametrize("target_name", ["manifest.json", "native_ui.json", "native_assets.json"])
+def test_failed_publish_rolls_back_resources_and_manifest(generation, monkeypatch, target_name):
     module, plan, output, catalog, records = generation
     original = Path.replace
     failed = False
+    failed_target = (output / target_name if target_name == "manifest.json"
+                     else module.source_output() / target_name)
 
     def replace(path, target):
         nonlocal failed
-        if Path(target) == output / "manifest.json" and not failed:
+        if Path(target) == failed_target and not failed:
             failed = True
             raise OSError("publish interrupted")
         return original(path, target)
@@ -234,6 +240,10 @@ def test_success_publishes_complete_bank_and_is_idempotent(generation):
     assert result["catalog"]["sha256"] == sha256(catalog.read_bytes()).hexdigest()
     assert all((plan / ref).is_file() for ref in result["files"])
     assert json.loads((output / "manifest.json").read_text(encoding="utf-8")) == result
+    assert json.loads((module.source_output() / "native_ui.json").read_text(encoding="utf-8")) == {"source": "ui"}
+    assert json.loads((module.source_output() / "native_assets.json").read_text(encoding="utf-8")) == {"source": {"ui/items.asset": "native-hash"}}
+    assert not any((output / "sources" / name).exists() for name in module.SOURCE_REPORTS)
+    assert all(not reference.startswith("development/") for reference in result["files"])
     first = snapshot(plan)
     assert module.manufacturing(None, None, records, catalog) == result
     assert snapshot(plan) == first
@@ -258,6 +268,7 @@ def test_staging_is_inside_repository_and_removed_on_failure(generation, monkeyp
     assert snapshot(plan) == before
     assert staging and all(not path.exists() for path in staging)
     assert module._STAGED_OUTPUT.get() is None
+    assert module._STAGED_SOURCES.get() is None
 
 
 @pytest.mark.parametrize("fault", ["missing_control", "orphan", "corrupt", "wrong_size",
@@ -400,12 +411,17 @@ def test_prepare_only_failure_preserves_existing_items_and_controls(generation, 
     assert snapshot(plan) == before
 
 
-def test_prepare_only_preserves_items_and_provenance_without_catalog(generation):
+@pytest.mark.parametrize("legacy_sources", [False, True])
+def test_prepare_only_preserves_items_and_provenance_without_catalog(generation, legacy_sources):
     module, plan, output, catalog, records = generation
     module.manufacturing(None, None, records, catalog)
     catalog.unlink()
     items = snapshot(output / "items")
-    sources = snapshot(output / "sources")
+    sources = snapshot(module.source_output())
+    if legacy_sources:
+        for name in module.SOURCE_REPORTS:
+            (module.source_output() / name).replace(output / "sources" / name)
     module.update_prepare_controls(None, None, records)
     assert snapshot(output / "items") == items
-    assert snapshot(output / "sources") == sources
+    assert snapshot(module.source_output()) == sources
+    assert not any((output / "sources" / name).exists() for name in module.SOURCE_REPORTS)

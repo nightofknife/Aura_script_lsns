@@ -102,14 +102,14 @@ def test_node_cancelled_before_first_instruction_retires_queued_activity():
 
 
 def test_sync_action_retains_activity_after_cancel_grace_until_worker_exit(monkeypatch):
-    from packages.aura_core.engine import action_injector as module
+    from packages.aura_core.scheduler import operation_scope as module
     monkeypatch.setattr(module, 'get_config_value', lambda *a, **kw: .001)
 
     async def scenario():
         cid = 'test-sync-worker-' + uuid4().hex
         token = set_cid(cid)
         started, release = threading.Event(), threading.Event()
-        injector = object.__new__(ActionInjector)
+        injector = ActionInjector(ExecutionContext(inputs={}, cid=cid), None, None, {})
         injector._prepare_action_arguments = lambda *a: {}
 
         def worker():
@@ -131,7 +131,7 @@ def test_sync_action_retains_activity_after_cancel_grace_until_worker_exit(monke
             assert trace.pending_activities(cid)
             release.set()
             for _ in range(1000):
-                if not trace.pending_activities(cid):
+                if not trace.pending_activities(cid) and not cancellation.has_pending_sync_actions(cid):
                     break
                 await asyncio.sleep(.001)
             assert not trace.pending_activities(cid)

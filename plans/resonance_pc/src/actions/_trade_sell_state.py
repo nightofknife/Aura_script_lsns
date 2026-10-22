@@ -8,6 +8,7 @@ import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
 from ._cancellable_wait import sleep_before_deadline
+from ._navigation_templates import GLOBAL_BACK
 
 ROOT = Path(__file__).resolve().parents[2]
 TARGETS = {
@@ -18,7 +19,7 @@ TARGETS = {
     'commit': ('commerce/trade/sell/commit_button.png', (930, 620, 320, 100), .86),
     'settlement': ('commerce/trade/settlement/sell_scale_badge.png', (930, 240, 300, 300), .82),
     'shop': ('commerce/trade/shop/menu_ready.png', (720, 350, 220, 120), .86),
-    'back': ('navigation/global/back.png', (0, 0, 170, 80), .86),
+    'back': (GLOBAL_BACK.path.removeprefix('templates/'), GLOBAL_BACK.roi, GLOBAL_BACK.threshold),
 }
 
 

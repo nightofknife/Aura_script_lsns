@@ -107,6 +107,12 @@ def build(source_dir, preview_dir):
     if not preview_dir.is_relative_to(ROOT) or preview_dir == ROOT:
         raise ValueError("Preview directory must be a dedicated repo-local directory")
     output = PLAN / "templates/workshop/production/controls/raw"
+    catalog = PLAN / "data/meta/raw_workshop_templates_pc.json"
+    previous = json.loads(catalog.read_text("utf-8")) if catalog.exists() else {}
+    legacy = PLAN / "templates/workshop/staffing/controls/selection"
+    owned_legacy = {PLAN / entry["image"] for entry in previous.get("assets", [])
+                    if entry.get("name") in SHARED_SELECTION
+                    and entry.get("image") == (legacy / SHARED_SELECTION[entry["name"]]).relative_to(PLAN).as_posix()}
     output.mkdir(parents=True, exist_ok=True)
     preview_dir.mkdir(parents=True, exist_ok=True)
     frames, provenance = {}, {}
@@ -125,7 +131,7 @@ def build(source_dir, preview_dir):
         if not (0 <= x < x+w <= 1280 and 0 <= y < y+h <= 720):
             raise ValueError(f"Invalid crop: {name}: {box}")
         crop = frames[source].crop((x, y, x+w, y+h))
-        destination = (PLAN / "templates/workshop/staffing/controls/selection" / SHARED_SELECTION[name]
+        destination = (PLAN / "templates/workshop/staffing/selection/raw" / SHARED_SELECTION[name]
                        if name in SHARED_SELECTION else output / f"{name}.png")
         destination.parent.mkdir(parents=True, exist_ok=True)
         crop.save(destination)
@@ -142,8 +148,9 @@ def build(source_dir, preview_dir):
                 "color_contract": "PNG preserves native RGB; OpenCV loading yields BGR; runtime captures must convert RGB to BGR once",
                 "matching_tested": False, "click_points": CLICK_POINTS,
                 "missing_source_states": MISSING, "assets": records}
-    catalog = PLAN / "data/meta/raw_workshop_templates_pc.json"
     catalog.write_text(json.dumps(metadata, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+    for path in owned_legacy:
+        path.unlink(missing_ok=True)
     sheets = []
     for prefix, title in [("A", "原料车间候选模板 A：预存与生产"), ("B", "原料车间候选模板 B：名单与人数")]:
         path = preview_dir / f"templates_{prefix.lower()}.png"

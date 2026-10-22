@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 
 
-ROOT = Path(__file__).resolve().parents[2] / 'templates/deep_dive_planned_run/hud_numbers/pairs'
+ROOT = Path(__file__).resolve().parents[2] / 'templates/deep_dive/deep_dive_planned_run/hud_numbers/pairs'
 REGIONS = {
     'moves': (1165, 386, 1250, 432),
     'rotations': (1165, 457, 1250, 505),

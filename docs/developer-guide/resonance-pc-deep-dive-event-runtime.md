@@ -15,7 +15,7 @@
 ## 资源与职责
 
 - `plans/resonance_pc/data/deep_dive_events/healing.json`：源配置哈希、选项组合、效果命令、行为类别、优先级、禁止标记。
-- `plans/resonance_pc/templates/deep_dive_events/`：部署使用的三态文字与通用控件图片、事件标题蒙版，不依赖 docs 或临时文件。
+- `plans/resonance_pc/templates/deep_dive/deep_dive_events/`：部署使用的三态文字与通用控件图片、事件标题蒙版，不依赖 docs 或临时文件。
 - `_deep_dive_event_vision.py`：识别完整选项组合、勾选标记、结果展示、结束布局与魔方界面。
 - `_deep_dive_event_flow.py`：每次观察只决定一步操作、确认或等待；由原有 YAML 循环驱动，使用已有取消／输入／截图接口。
 

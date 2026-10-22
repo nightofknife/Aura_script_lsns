@@ -1,6 +1,6 @@
 """Pure observations for production collection; native 1280x720 assets, BGR frames.
 
-No input or task execution lives here. Matching uses the shared prison matcher.
+No input or task execution lives here. Matching owns immutable collection assets.
 Synthetic card positions are provenance only; runtime positions come from hits.
 """
 from __future__ import annotations
@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 
 from . import _reforming_center_room_templates as rooms
+from . import _product_collection_matching as matching
 
 PLAN = Path(__file__).resolve().parents[2]
 ROOMS = tuple(f"{number}号生产车间" for number in range(1, 7))
@@ -38,9 +39,12 @@ def validate_assets():
         required.update(f"number_{number}_{color}" for color in ("white", "gray"))
     if not required.issubset(data.get("templates", {})) or not data.get("navigation_viewport"):
         raise ValueError("Incomplete production collection template catalog")
-    for spec in data["templates"].values():
-        for variant in (spec, *spec.get("variants", [])):
-            rooms._asset(variant["image"])
+    # A fresh preflight scope still checks every file/version on every call;
+    # sibling PNGs share only this call's canonical directory resolution.
+    with matching.observe_frame(None):
+        for spec in data["templates"].values():
+            for variant in (spec, *spec.get("variants", [])):
+                matching.validate_asset(variant["image"])
     return True
 
 
@@ -52,7 +56,7 @@ def _hit(frame, name, region=None):
     if not _frame(frame):
         return None
     spec = catalog()["templates"].get(name)
-    return rooms.match_asset(frame, spec, region) if spec else None
+    return matching.match_asset(frame, spec, region) if spec else None
 
 
 def _clip(rect):
@@ -65,18 +69,19 @@ def _clip(rect):
 def _number_score(frame, anchor, spec):
     """Compare the numbered region at this anchor, not elsewhere on screen."""
     x, y, w, h = spec["number_region"]
-    target = rooms._asset(spec["image"])[y:y+h, x:x+w]
+    target = matching.gray_asset(spec["image"], frame=frame)[y:y+h, x:x+w]
     ax, ay = anchor["rect"][:2]
     sx, sy, sw, sh = _clip([ax+x-1, ay+y-1, w+2, h+2])
     source = frame[sy:sy+sh, sx:sx+sw]
     if source.shape[0] < h or source.shape[1] < w:
         return -1.0
-    scores = cv2.matchTemplate(cv2.cvtColor(source, cv2.COLOR_BGR2GRAY),
-                               cv2.cvtColor(target, cv2.COLOR_BGR2GRAY), cv2.TM_CCOEFF_NORMED)
+    scores = cv2.matchTemplate(matching.gray_region(frame, (sx, sy, sw, sh)),
+                               target, cv2.TM_CCOEFF_NORMED)
     scores[~np.isfinite(scores)] = -1
     return float(scores.max())
 
 
+@matching.frame_observation
 def _title(frame, number):
     spec = catalog()["templates"][f"room_{number}_title"]
     hit = _hit(frame, f"room_{number}_title")
@@ -95,6 +100,7 @@ def navigation_open(frame):
     return _hit(frame, "navigation_popup_title") is not None
 
 
+@matching.frame_observation
 def navigation_region(frame):
     """The real Viewport relative to the popup title, allowing popup movement."""
     hit = _hit(frame, "navigation_popup_title")
@@ -130,19 +136,23 @@ def _digit_matches(frame, identity_hit, spec):
         return False
     digit_scores = []
     for number in range(1, 7):
-        candidate = {**catalog()["templates"][f"number_{number}_{color}"], "threshold": -1.0}
-        other = rooms.match_asset(frame, candidate, region)
+        if number == spec["number"]:
+            other = digit
+        else:
+            candidate = {**catalog()["templates"][f"number_{number}_{color}"], "threshold": -1.0}
+            other = matching.match_asset(frame, candidate, region)
         digit_scores.append(other["score"] if other else -1.0)
     n = spec["number"]
     if digit_scores[n-1] - max(s for i, s in enumerate(digit_scores, 1) if i != n) < spec["number_min_margin"]:
         return False
-    target = cv2.cvtColor(rooms._asset(catalog()["templates"][digit_key]["image"]), cv2.COLOR_BGR2GRAY)
+    target = matching.gray_asset(catalog()["templates"][digit_key]["image"], frame=frame)
     dx, dy, dw, dh = digit["rect"]
     source = cv2.cvtColor(frame[dy:dy+dh, dx:dx+dw], cv2.COLOR_BGR2GRAY)
     bright = target >= float(np.percentile(target, 95)) - 3
     return bool(bright.any() and abs(float(np.median(source[bright])) - float(np.median(target[bright]))) <= 32)
 
 
+@matching.frame_observation
 def navigation_cards(frame):
     region = navigation_region(frame)
     if region is None:
@@ -152,7 +162,7 @@ def navigation_cards(frame):
         for state in ("open", "selected", "locked"):
             primary = catalog()["templates"][f"navigation_{number}_{state}_identity"]
             for spec in (primary, *primary.get("variants", [])):
-                hit = rooms.match_asset(frame, spec, region)
+                hit = matching.match_asset(frame, spec, region)
                 if hit is None or not _digit_matches(frame, hit, spec):
                     continue
                 dx, dy, w, h = spec["card_offset"]
@@ -176,6 +186,7 @@ def navigation_cards(frame):
             and rooms._overlap(c["rect"], other["rect"]) > .5 for other in result)]
 
 
+@matching.frame_observation
 def control(frame, name):
     """Return a matched control with its runtime click center, or None."""
     aliases = {"navigation_button": "navigation_button_label", "complete": "collection_complete",
@@ -205,6 +216,7 @@ def control(frame, name):
     return hit
 
 
+@matching.frame_observation
 def physical(frame, room_name):
     if room_name not in ROOMS or not _frame(frame):
         return False
@@ -214,6 +226,7 @@ def physical(frame, room_name):
     return bool(_title(frame, number) and _hit(frame, "workshop_edit_marker"))
 
 
+@matching.frame_observation
 def collection_state(frame, room_name):
     if not _frame(frame):
         return None

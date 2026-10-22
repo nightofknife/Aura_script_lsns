@@ -10,9 +10,31 @@ from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
 
+from ..services._vision_timing import start_vision_timing
 from ..services.app_provider_service import AppProviderService
+from ..services.screen_service import CaptureResult
 from ..services.vision_service import MatchResult, MultiMatchResult, VisionService
 from ._shared import expand_template_paths, resolve_template_path
+
+
+def _capture_for_template(
+    app: AppProviderService,
+    region: tuple[int, int, int, int] | None,
+    *,
+    action: str,
+) -> CaptureResult:
+    timer = start_vision_timing("template_capture", action=action, region=region)
+    if timer is not None:
+        timer.start_work()
+    status = "completed"
+    try:
+        return app.capture(rect=region)
+    except BaseException:
+        status = "failed"
+        raise
+    finally:
+        if timer is not None:
+            timer.finish(status=status)
 
 
 def _offset_match_result(
@@ -67,15 +89,14 @@ def find_image(
     mask: str | None = None,
 ) -> MatchResult:
     is_inspect_mode = engine.root_context.data.get("initial", {}).get("__is_inspect_mode__", False)
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="find_image")
     if not capture.success:
         logger.error("行为 'find_image' 失败：无法截图。")
         return MatchResult(found=False, debug_info={"error": "capture_failed"})
 
-    source_image_for_debug = capture.image.copy()
+    source_image_for_debug = capture.image.copy() if is_inspect_mode else capture.image
     template_path = resolve_template_path(engine, vision, template)
     mask_path = resolve_template_path(engine, vision, mask) if mask else None
-
     match_result = vision.find_template(
         source_image=source_image_for_debug,
         template_image=template_path,
@@ -90,7 +111,26 @@ def find_image(
 
     if is_inspect_mode:
         try:
-            template_image_for_debug = cv2.imread(template_path)
+            load_template_image = getattr(vision, "load_template_image", None)
+            if callable(load_template_image):
+                # The real service reuses its versioned RGB/gray snapshot;
+                # inspect previews keep the existing BGR color contract.
+                try:
+                    template_snapshot = load_template_image(template_path)
+                except FileNotFoundError:
+                    # imread historically returned None for missing/undecodable
+                    # files; keep the remaining inspect evidence on failures.
+                    template_image_for_debug = None
+                else:
+                    if template_snapshot.ndim == 2:
+                        template_image_for_debug = cv2.cvtColor(template_snapshot, cv2.COLOR_GRAY2BGR)
+                    elif template_snapshot.ndim == 3 and template_snapshot.shape[2] == 1:
+                        template_image_for_debug = cv2.cvtColor(template_snapshot[:, :, 0], cv2.COLOR_GRAY2BGR)
+                    else:
+                        template_image_for_debug = cv2.cvtColor(template_snapshot, cv2.COLOR_RGB2BGR)
+            else:
+                # Older/custom providers retain their previous debug interface.
+                template_image_for_debug = cv2.imread(template_path)
             match_result.debug_info.update(
                 {
                     "source_image": source_image_for_debug,
@@ -124,7 +164,7 @@ def find_all_images(
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
 ) -> MultiMatchResult:
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="find_all_images")
     if not capture.success:
         logger.error("行为 'find_all_images' 失败：无法截图。")
         return MultiMatchResult()
@@ -155,7 +195,7 @@ def find_best_image(
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
 ) -> MatchResult:
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="find_best_image")
     if not capture.success:
         logger.error("行为 'find_best_image' 失败：无法截图。")
         return MatchResult(found=False)
@@ -187,7 +227,7 @@ def find_templates_in_set(
     preprocess: str = "none",
     mask: str | None = None,
 ) -> dict[str, Any]:
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="find_templates_in_set")
     if not capture.success:
         logger.error("行为 'find_templates_in_set' 失败：无法截图。")
         return {"count": 0, "matches": []}
@@ -230,7 +270,7 @@ def find_all_templates_in_set(
     match_method: int = cv2.TM_CCOEFF_NORMED,
     preprocess: str = "none",
 ) -> dict[str, Any]:
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="find_all_templates_in_set")
     if not capture.success:
         logger.error("Action 'find_all_templates_in_set' failed: capture failed.")
         return {"count": 0, "matches": []}
@@ -379,7 +419,7 @@ def assert_all_templates_in_set(
         logger.error(error_message)
         raise StopTaskException(error_message, success=False)
 
-    capture = app.capture(rect=region)
+    capture = _capture_for_template(app, region, action="assert_all_templates_in_set")
     if not capture.success:
         error_message = message or "Assertion failed: capture failed while checking template set."
         logger.error(error_message)

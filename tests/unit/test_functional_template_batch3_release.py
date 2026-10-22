@@ -40,6 +40,8 @@ def references(value):
 
 def test_staged_character_equipment_and_digit_banks_preserve_business_records(tmp_path):
     selected = {destination: source for source, destination in collect_plan_files(ROOT / "plans")}
+    assert not any(destination.is_relative_to(PLAN / "development") for destination in selected)
+    assert not any(destination.is_relative_to(PLAN / "templates/characters/stand") for destination in selected)
     required = {PLAN / "data/meta" / name for name in CATALOGS}
     for name in CATALOGS:
         payload = json.loads((ROOT / PLAN / "data/meta" / name).read_text(encoding="utf-8"))

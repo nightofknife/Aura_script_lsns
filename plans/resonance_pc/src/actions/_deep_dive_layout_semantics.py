@@ -323,7 +323,7 @@ def _warm_glyph(rgb: np.ndarray, *, whole=False) -> np.ndarray | None:
 def _eye_templates(whole=False) -> dict[str, list[np.ndarray]]:
     # User recording 2026-09-27 16-39-22, frame at 0.100 s: red U21;
     # orange F10/R02/R11, rectified from the fitted initial cube geometry.
-    root = Path(__file__).resolve().parents[2] / "templates" / "deep_dive_layout"
+    root = Path(__file__).resolve().parents[2] / "templates" / "deep_dive" / "deep_dive_layout"
     result = {}
     for name in ("red_single_eye", "orange_triple_eye"):
         variants = []

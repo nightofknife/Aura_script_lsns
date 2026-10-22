@@ -10,7 +10,7 @@ from typing import Any, Dict, Mapping, Tuple
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._bounded_observation import ObservationBudget, wait_for_observation
-from ._template_observation import observe_template
+from ._template_observation import capture_template_frame, observe_template
 from ._cancellable_wait import sleep_until_deadline
 
 
@@ -74,11 +74,12 @@ def _match_template(
     region: Tuple[int, int, int, int],
     threshold: float,
     require_center: bool = False,
+    frame=None,
 ) -> Dict[str, Any]:
     result = observe_template(
         app=app, vision=vision, template=_template_path(template), region=region,
         threshold=threshold, check_cancelled=_check_cancelled,
-        require_center=require_center,
+        require_center=require_center, frame=frame,
     )
     result["template"] = template
     if not result["valid"]:
@@ -112,6 +113,7 @@ def _wait_for_template_state(
     exhausted_stable = 0
 
     def observe():
+        frame = capture_template_frame(app=app, region=region, check_cancelled=_check_cancelled)
         last = _match_template(
             app=app,
             vision=vision,
@@ -119,6 +121,7 @@ def _wait_for_template_state(
             region=region,
             threshold=threshold,
             require_center=expected_found,
+            frame=frame,
         )
         if exhausted_template and budget.active():
             exhausted = _match_template(
@@ -127,6 +130,7 @@ def _wait_for_template_state(
                 template=exhausted_template,
                 region=region,
                 threshold=_EXHAUSTED_THRESHOLD,
+                frame=frame,
             )
             return {**last, "exhausted_match": exhausted}
         return last

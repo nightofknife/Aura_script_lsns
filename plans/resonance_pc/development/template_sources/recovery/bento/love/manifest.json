@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "runtime_catalog": "data/meta/love_bento.json",
+  "source_hashes": {
+    "config": "d38666930712deda4f06eb839edbac2631110c4184f723d643682c93b32bbe7d",
+    "prefab": "df85f93d6313ce8947de0191ab00257feffe474483c252ae9d3ada7103a2979c",
+    "food": "09617f3cb5ab6b0a0763a7df9c8f97bd8f5956862cc76a26a35da3c3daa2024a",
+    "ui": "5b400e63c968e461b3e808ed42df8b60f77e17271287635baaf2c89f261271d5",
+    "font": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "name_font": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "roles": "de110fbb69482a6e6f641579094d127b337c5dc03afe9c306f71161b4c42dbc2"
+  },
+  "items": [
+    {
+      "id": 83300002,
+      "name": "菜肉俱全汉堡",
+      "resource": "Item/Food/Bento/BurgerLow",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300002.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300002.png"
+    },
+    {
+      "id": 83300011,
+      "name": "焦香水果派",
+      "resource": "Item/Food/Bento/PieLow",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300011.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300011.png"
+    },
+    {
+      "id": 83300012,
+      "name": "香甜水果派",
+      "resource": "Item/Food/Bento/PieMiddle",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300012.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300012.png"
+    },
+    {
+      "id": 83300013,
+      "name": "多汁肉饼汉堡",
+      "resource": "Item/Food/Bento/BurgerMiddle",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300013.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300013.png"
+    },
+    {
+      "id": 83300014,
+      "name": "暖洋洋汤面",
+      "resource": "Item/Food/Bento/RamenMiddle",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300014.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300014.png"
+    },
+    {
+      "id": 83300015,
+      "name": "香喷喷浓郁咖喱",
+      "resource": "Item/Food/Bento/CurryMiddle",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300015.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300015.png"
+    },
+    {
+      "id": 83300016,
+      "name": "甜美奶油蛋糕",
+      "resource": "Item/Food/Bento/CakeMiddle",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300016.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300016.png"
+    },
+    {
+      "id": 83300017,
+      "name": "三重高塔堆堆汉堡",
+      "resource": "Item/Food/Bento/BurgerHigh",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300017.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300017.png"
+    },
+    {
+      "id": 83300018,
+      "name": "魔法流心水果派",
+      "resource": "Item/Food/Bento/PieHigh",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300018.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300018.png"
+    },
+    {
+      "id": 83300019,
+      "name": "超丰盛汤面",
+      "resource": "Item/Food/Bento/RamenHigh",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300019.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300019.png"
+    },
+    {
+      "id": 83300055,
+      "name": "泡菜炒饭",
+      "resource": "Item/Food/Bento/FreeBentoHigh",
+      "native_file": "development/template_sources/recovery/bento/love/native/83300055.png",
+      "runtime_template": "templates/recovery/bento/love/food/83300055.png"
+    }
+  ],
+  "assets": {
+    "development/template_sources/recovery/bento/love/native/83300002.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b5fafd24d2c8e38f148248c3db5fa94e388d380845fca20e33cef55f5340de85"
+    },
+    "development/template_sources/recovery/bento/love/native/83300011.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "db2b84ec6c06fa4cd9d35cd31ccd0f8667c4df80b7d7170998b273d513d92ec4"
+    },
+    "development/template_sources/recovery/bento/love/native/83300012.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b4fbc136133b1c70a0fe6b0b841ff49ed49fe4aff037f58823f70a39ed9fb603"
+    },
+    "development/template_sources/recovery/bento/love/native/83300013.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "b43021d6ff2e34ef206f28a1b45065dd65a74c6db3f58b5c4e7371f9fcc5946c"
+    },
+    "development/template_sources/recovery/bento/love/native/83300014.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "f44f6ba298cab6d55b28bec5a4add7889f78025f83a6cc73e21f7719845f9f79"
+    },
+    "development/template_sources/recovery/bento/love/native/83300015.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "8291bd9e6ce9a1ddcfcff9eace860d8f8f99a51f890a47d238ea152e04c080cf"
+    },
+    "development/template_sources/recovery/bento/love/native/83300016.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "645e2e24ea6ab941e9200a94b100734b7db45290b6b7e38c3dc46f962e1c7db0"
+    },
+    "development/template_sources/recovery/bento/love/native/83300017.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "315914e02666751bc96b077b96cdbcb326d387df11357c3e0cae56534363f9b1"
+    },
+    "development/template_sources/recovery/bento/love/native/83300018.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "d83797f3729023a67d5d97518f3b517ffde885ae40393d27bfcd58d100ad08de"
+    },
+    "development/template_sources/recovery/bento/love/native/83300019.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "8c8da209a66d0e4c6de6c511ef32f4a8a7f7cc30c6658feb0e31689029e47058"
+    },
+    "development/template_sources/recovery/bento/love/native/83300055.png": {
+      "size": [
+        180,
+        180
+      ],
+      "sha256": "60c5231b8ac2782aedd08fa68af0a1e2e289b87cc132325d01005313d5898c8a"
+    },
+    "development/template_sources/recovery/bento/love/native/background.png": {
+      "size": [
+        334,
+        296
+      ],
+      "sha256": "cef1f4aa2430be61bb59c3ac424c54a8b91bf4c2bc7648d18887c5dd985e80fd"
+    },
+    "development/template_sources/recovery/bento/love/native/expiration.png": {
+      "size": [
+        57,
+        51
+      ],
+      "sha256": "f6e153fb124b3d027112067e76fdc991ccea1590be3453b53e53027fbc87eca0"
+    }
+  }
+}

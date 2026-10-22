@@ -108,7 +108,7 @@ def confirmation_scenario(buy_rig, monkeypatch, *, panel_found=True, button_foun
 
     def wait_template(app, vision, template, region, **kwargs):
         events.append(("template", template, list(region), kwargs["threshold"]))
-        found = panel_found if template == "templates/commerce/trade/buy_preview_title.png" else (
+        found = panel_found if template == "templates/commerce/trade/buy/preview_title.png" else (
             button_found if list(region) == [900, 620, 330, 70] else True)
         return {"valid": True, "found": found, "center": [1060, 652] if found else None, "confidence": .95}
 
@@ -134,7 +134,7 @@ def test_extra_confirmation_requires_title_then_existing_button_then_final_settl
     assert events == [
         ("template", "templates/commerce/books/buy_page_ready.png", [850, 590, 380, 110], .8),
         ("click", [1060, 652]), ("settlement", False),
-        ("template", "templates/commerce/trade/buy_preview_title.png", [850, 80, 180, 60], .86),
+        ("template", "templates/commerce/trade/buy/preview_title.png", [850, 80, 180, 60], .86),
         ("template", "templates/commerce/books/buy_page_ready.png", [900, 620, 330, 70], .8),
         ("click", [1060, 652]), ("settlement", True),
     ]
@@ -150,7 +150,7 @@ def test_missing_confirmation_title_cannot_trigger_second_button_or_success(buy_
         buy_rig.run()
     assert error.value.code == "buy_transaction_not_confirmed"
     assert [event[0] for event in events] == ["template", "click", "settlement", "template"]
-    assert events[-1][1] == "templates/commerce/trade/buy_preview_title.png"
+    assert events[-1][1] == "templates/commerce/trade/buy/preview_title.png"
 
 
 def test_missing_confirmation_button_cannot_click_a_guessed_position(buy_rig, monkeypatch):
@@ -175,7 +175,7 @@ def test_matching_both_controls_still_cannot_replace_final_settlement_confirmati
 
 @pytest.mark.parametrize("template,region", [
     ("templates/commerce/books/buy_page_ready.png", [850, 590, 380, 110]),
-    ("templates/commerce/trade/buy_preview_title.png", [850, 80, 180, 60]),
+    ("templates/commerce/trade/buy/preview_title.png", [850, 80, 180, 60]),
 ])
 def test_buy_template_capture_offsets_match_center_to_client_coordinates(template, region):
     captures, calls = [], []

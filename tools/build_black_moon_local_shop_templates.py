@@ -24,6 +24,8 @@ LIBRARIES = ("ui/common.asset", "ui/home.asset", "ui/home/barstore.asset", "ui/s
              "ui/hometrade.asset", "ui/hometrade/update.asset", "ui/font.asset", "ui/font/originpack.asset")
 STATUS = "native_generated_unvalidated"
 _STAGED_OUTPUT = ContextVar("black_moon_native_staged_output", default=None)
+_STAGED_SOURCES = ContextVar("black_moon_native_staged_sources", default=None)
+SOURCE_REPORTS = ("native_ui.json", "native_assets.json")
 PREPARE_NAMES = ("shop_entry", "shop_page", "local_tab_selected", "local_tab_unselected", "batch_on", "batch_off")
 PREPARE_TAB_RECT = [996, 91, 160, 29]
 PREPARE_BATCH_RECT = [1171, 88, 96, 33]
@@ -218,13 +220,19 @@ class Native:
         return source
 
 
+def source_output():
+    """Keep full extraction reports outside the runtime image bank."""
+    return PLAN_ROOT / "development/template_sources/commerce/black_moon/native/sources"
+
+
 def _output_path(path):
     """Redirect producer writes to staging without changing manifest references."""
     path = Path(path).resolve()
-    if not path.is_relative_to(OUTPUT.resolve()):
-        raise ValueError(f"Output outside native bank: {path}")
-    staged = _STAGED_OUTPUT.get()
-    return staged / path.relative_to(OUTPUT.resolve()) if staged is not None else path
+    for root, staged in ((OUTPUT.resolve(), _STAGED_OUTPUT.get()),
+                         (source_output().resolve(), _STAGED_SOURCES.get())):
+        if path.is_relative_to(root):
+            return staged / path.relative_to(root) if staged is not None else path
+    raise ValueError(f"Output outside native bank or development sources: {path}")
 
 
 def _resource_path(reference):
@@ -239,18 +247,30 @@ def _resource_path(reference):
 
 
 @contextmanager
-def staged_generation():
+def staged_generation(*, retain_sources=False):
     # Keep temporary output in this checkout, independent of OS temp settings.
     temporary_root = ROOT / ".pytest_tmp/black-moon-native-generation"
     temporary_root.mkdir(parents=True, exist_ok=True)
     if not temporary_root.resolve().is_relative_to(ROOT.resolve()):
         raise ValueError("Native staging directory escapes repository")
     with TemporaryDirectory(prefix="bank-", dir=temporary_root) as directory:
-        stage = Path(directory)
+        stage = Path(directory) / "runtime"
+        sources = Path(directory) / "sources"
+        stage.mkdir()
+        sources.mkdir()
         token = _STAGED_OUTPUT.set(stage)
+        source_token = _STAGED_SOURCES.set(sources)
         try:
+            # Prepare-only rebuilds retain full provenance. Migrate the two
+            # known legacy reports only when no development copy exists.
+            if retain_sources:
+                for name in SOURCE_REPORTS:
+                    legacy = OUTPUT / "sources" / name
+                    if legacy.is_file() and not (source_output() / name).exists():
+                        (sources / name).write_bytes(legacy.read_bytes())
             yield stage
         finally:
+            _STAGED_SOURCES.reset(source_token)
             _STAGED_OUTPUT.reset(token)
 
 
@@ -281,12 +301,26 @@ def obsolete_resources(previous, current):
     """Resolve the producer's old outputs without enrolling neighbouring banks."""
     roots = (OUTPUT.resolve(), (PLAN_ROOT / "templates/commerce/shop/black_moon/cards").resolve())
     retired_identity_mask = (PLAN_ROOT / "templates/commerce/shop/black_moon/masks/item_identity_120x119.png").resolve()
+    retired = set()
     for reference in set(previous.get("files", {})) - set(current.get("files", {})):
         path = (PLAN_ROOT / reference).resolve()
         if Path(reference).is_absolute() or not (any(path.is_relative_to(root) for root in roots)
                                                 or path == retired_identity_mask):
             continue
         if path.is_file():
+            retired.add(path)
+            yield path
+    # These exact legacy reports/logs are producer-owned development outputs,
+    # never runtime resources. Do not enroll neighbouring files or directories.
+    for relative in (*("sources/" + name for name in SOURCE_REPORTS),
+                     "sources/native_prefabs.json", "native_extraction.log"):
+        path = (OUTPUT / relative).resolve()
+        if path.name in SOURCE_REPORTS:
+            staged_sources = _STAGED_SOURCES.get()
+            if not ((source_output() / path.name).is_file()
+                    or (staged_sources is not None and (staged_sources / path.name).is_file())):
+                continue
+        if path.is_relative_to(OUTPUT.resolve()) and path not in retired and path.is_file():
             yield path
 
 
@@ -301,6 +335,11 @@ def publish_generation(stage, previous, manifest):
     staged = sorted((path for path in stage.rglob("*") if path.is_file()),
                     key=lambda path: (path.name == "manifest.json", path.as_posix()))
     replacements = [(path, OUTPUT / path.relative_to(stage)) for path in staged]
+    source_stage = _STAGED_SOURCES.get()
+    if source_stage is not None:
+        replacements.extend((path, source_output() / path.relative_to(source_stage))
+                            for path in source_stage.rglob("*") if path.is_file())
+    replacements.sort(key=lambda pair: (pair[1].name == "manifest.json", pair[1].as_posix()))
     retired = list(obsolete_resources(previous, manifest))
     targets = [*(target for _, target in replacements), *retired]
     # Read every backup before the first mutation. A failed backup is harmless.
@@ -480,7 +519,7 @@ def manufacture_prepare_controls(native):
 def update_prepare_controls(assets, metadata, records):
     previous = json.loads((OUTPUT / "manifest.json").read_text(encoding="utf-8"))
     expected_ids = [row["item_id"] for row in normal_item_catalog(previous.get("cards", {}))["items"]]
-    with staged_generation() as stage:
+    with staged_generation(retain_sources=True) as stage:
         manifest = _update_prepare_controls(assets, metadata, records)
         validate_generation(manifest, expected_ids, prepare_only=True)
         publish_generation(stage, previous, manifest)
@@ -529,8 +568,8 @@ def manufacturing(assets, metadata, records, catalog_path):
     with staged_generation() as stage:
         manifest = _manufacturing(assets, metadata, records, catalog_path)
         validate_generation(manifest, [row["item_id"] for row in products])
-        for name in ("native_ui.json", "native_assets.json"):
-            if not (stage / "sources" / name).is_file():
+        for name in SOURCE_REPORTS:
+            if not (_STAGED_SOURCES.get() / name).is_file():
                 raise ValueError(f"Native provenance missing from staging: {name}")
         publish_generation(stage, previous, manifest)
     cards = manifest["cards"]
@@ -661,11 +700,11 @@ def evidence(native):
                      "components": [{"path_id": component["path_id"],
                                      **{key: component["tree"][key] for key in fields if key in component["tree"]}}
                                     for component in node["components"] if any(key in component["tree"] for key in fields)]})
-    write_json(OUTPUT / "sources/native_ui.json", {"reference_client": [1280, 720], "status": STATUS,
+    write_json(source_output() / "native_ui.json", {"reference_client": [1280, 720], "status": STATUS,
               "prefabs": {path: {"sha256": record["bundle_sha256"],
                                   "excluded_non_ui_transform_count": len(record.get("excluded_transform_ids", []))}
                           for path, record in native.records.items()}, "nodes": rows})
-    write_json(OUTPUT / "sources/native_assets.json", {"bundle_hashes": native.hashes, "objects": list(native.used_objects.values())})
+    write_json(source_output() / "native_assets.json", {"bundle_hashes": native.hashes, "objects": list(native.used_objects.values())})
 
 
 def write_json(path: Path, data) -> None:
@@ -731,13 +770,11 @@ def main() -> None:
         for path in paths:
             node = native.node(path)
             print(json.dumps({"node": path, "rect_client": node["rect_client"]}))
-        evidence(native)
+        with staged_generation() as stage:
+            evidence(native)
+            publish_generation(stage, {}, {})
     else:
         manufacturing(assets, metadata, records, args.catalog.resolve())
-    for relative in ("sources/native_prefabs.json", "native_extraction.log"):
-        obsolete = OUTPUT / relative
-        if obsolete.exists():
-            obsolete.unlink()
 
 
 if __name__ == "__main__":

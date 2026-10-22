@@ -55,7 +55,7 @@ def clock(monkeypatch):
 @pytest.mark.parametrize("selected", ["items", "materials", "equipment"])
 def test_native_icons_confirm_already_open_warehouse_without_entry_click(templates, clock, monkeypatch, selected):
     app = Frames([warehouse_frame(templates, selected=selected)])
-    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args: pytest.fail("must observe open page before entry input"))
+    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args, **kwargs: pytest.fail("must observe open page before entry input"))
     navigation._enter_warehouse_page(app, VisionService())
     assert app.captures == 2
     assert app.clicks == []
@@ -65,7 +65,7 @@ def test_transient_warehouse_frame_is_not_enough_to_start_scanning(templates, cl
     profile = np.full((720, 1280, 3), 40, dtype=np.uint8)
     warehouse = warehouse_frame(templates)
     app = Frames([profile, warehouse, profile, warehouse, warehouse])
-    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args: {
+    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args, **kwargs: {
         "found": not app.clicks, "center": [165, 615], "confidence": .998,
     })
     navigation._enter_warehouse_page(app, VisionService())
@@ -77,7 +77,7 @@ def test_transient_warehouse_frame_is_not_enough_to_start_scanning(templates, cl
 def test_failed_capture_resets_confirmation_and_only_retries_observation(templates, clock, monkeypatch, failed_frame):
     warehouse = warehouse_frame(templates)
     app = Frames([warehouse, failed_frame, warehouse, warehouse])
-    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args: pytest.fail("capture failure must not cause input"))
+    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args, **kwargs: pytest.fail("capture failure must not cause input"))
     navigation._enter_warehouse_page(app, VisionService())
     assert app.captures == 4
     assert app.clicks == []
@@ -92,7 +92,7 @@ def test_slow_capture_cannot_trigger_entry_input_after_deadline(templates, clock
         return capture(**kwargs)
 
     app.capture = slow_capture
-    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args: pytest.fail("deadline passed"))
+    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args, **kwargs: pytest.fail("deadline passed"))
     with pytest.raises(navigation.StopTaskException, match="category icons were not confirmed"):
         navigation._enter_warehouse_page(app, VisionService())
     assert app.clicks == []
@@ -101,7 +101,7 @@ def test_slow_capture_cannot_trigger_entry_input_after_deadline(templates, clock
 @pytest.mark.parametrize("missing", ["items", "materials", "equipment"])
 def test_incomplete_sidebar_times_out_without_blind_entry_click(templates, clock, monkeypatch, missing):
     app = Frames([warehouse_frame(templates, missing=missing)])
-    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args: {"found": False, "confidence": .1})
+    monkeypatch.setattr(navigation, "_match_warehouse_entry", lambda *args, **kwargs: {"found": False, "confidence": .1})
     with pytest.raises(navigation.StopTaskException, match="category icons were not confirmed twice consecutively"):
         navigation._enter_warehouse_page(app, VisionService(), timeout_sec=.6)
     assert app.clicks == []

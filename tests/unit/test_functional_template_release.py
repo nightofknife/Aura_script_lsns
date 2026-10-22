@@ -15,6 +15,7 @@ CATALOGS = (
     "data/meta/reforming_center_templates_pc.json",
     "data/meta/raw_workshop_templates_pc.json",
     "data/meta/product_workshop_staff_templates_pc.json",
+    "data/meta/product_collection_templates_pc.json",
     "templates/commerce/shop/black_moon/native/manifest.json",
 )
 

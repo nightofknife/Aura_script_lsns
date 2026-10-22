@@ -1,79 +1,52 @@
-"""PC-local observation and bounded supplementary-click execution.
-
-Callers own page recognition, stability keys, input points, timing and errors.
-Unknown observations reset confirmation; they never authorize input or success.
-"""
+"""Compatibility names for public framework transitions; no local poll loop."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
-
-
-@dataclass(frozen=True)
-class TransitionProbe:
-    kind: str = "unknown"
-    key: Any = None
-    hit: Any = None
-    frame: Any = None
-    immediate: bool = False
+from packages.aura_core.scheduler.operation_scope import (
+    OperationScope, OperationTimeout, current_operation_scope,
+)
+from ....aura_base.src.services.interaction_service import (
+    TransitionPolicy, TransitionProbe, probe_transition_async, run_transition_async,
+)
 
 
 async def wait_for_transition_probe(observe, *, allow_source, timeout_seconds,
                                     poll_seconds, monotonic, sleep, check_cancelled,
-                                    equivalent=None):
-    """Give each probe its own budget; require two equivalent valid observations."""
-    deadline = monotonic() + timeout_seconds
-    previous, stable = None, 0
-    while monotonic() < deadline:
+                                    equivalent=None, scope=None, interaction=None):
+    parent = scope if scope is not None else current_operation_scope()
+    budget = OperationScope(timeout_seconds, parent=parent, monotonic=monotonic)
+    probe = interaction.probe_transition_async if interaction is not None else probe_transition_async
+    try:
+        return await probe(
+            observe, allow_source=allow_source, scope=budget, stable_scans=2,
+            poll_seconds=poll_seconds, equivalent=equivalent, sleep=sleep,
+            check_cancelled=check_cancelled, allow_immediate_source=True,
+        )
+    except OperationTimeout:
+        budget.check_cancelled()
         check_cancelled()
-        current = observe(allow_source)
-        check_cancelled()
-        # Synchronous capture/recognition may consume the remaining budget.
-        if monotonic() >= deadline:
-            break
-        if current.kind not in {"source", "target", "unknown"}:
-            raise ValueError("Invalid transition observation")
-        valid = current.kind == "target" or (allow_source and current.kind == "source")
-        if valid:
-            if current.immediate and current.kind == "source":
-                stable = 2
-            else:
-                same = (previous is not None and current.kind == previous.kind
-                        and current.key == previous.key
-                        and (equivalent is None or equivalent(previous, current)))
-                stable = stable + 1 if same else 1
-                previous = current
-            if stable >= 2:
-                check_cancelled()
-                # Domain frame comparison is also part of confirmation work.
-                if monotonic() >= deadline:
-                    break
-                return current
-        else:
-            previous, stable = None, 0
-        await sleep(poll_seconds)
-    check_cancelled()
-    return None
+        return None
 
 
 async def run_template_transition(probe, click, *, max_clicks, settle_seconds,
                                   sleep, check_cancelled, source_unconfirmed,
-                                  exhausted):
-    """Reconfirm and relocate the source for every attempt; target always wins."""
-    for attempt in range(1, max_clicks + 1):
+                                  exhausted, scope=None, interaction=None):
+    budget = scope if scope is not None else current_operation_scope()
+    if budget is None:
+        raise ValueError("Template transition requires a total operation scope")
+    run = interaction.run_transition_async if interaction is not None else run_transition_async
+    try:
+        await run(
+            probe, click, scope=budget,
+            policy=TransitionPolicy(max_clicks=max_clicks, allow_retry=max_clicks > 1,
+                                    settle_seconds=settle_seconds),
+            sleep=sleep, check_cancelled=check_cancelled,
+            source_unconfirmed=source_unconfirmed, exhausted=exhausted,
+        )
+    except OperationTimeout as exc:
+        budget.check_cancelled()
         check_cancelled()
-        observed = await probe(True)
-        check_cancelled()
-        if observed is not None and observed.kind == "target":
-            return
-        if observed is None or observed.kind != "source":
-            raise source_unconfirmed()
-        check_cancelled()
-        click(observed, attempt)
-        await sleep(settle_seconds)
-        check_cancelled()
-        observed = await probe(False)
-        check_cancelled()
-        if observed is not None and observed.kind == "target":
-            return
-    raise exhausted()
+        error = exhausted()
+        error.last_observation = getattr(exc, "last_observation", None)
+        error.receipts = tuple(getattr(exc, "receipts", ()))
+        error.phase = getattr(exc, "phase", "transition")
+        raise error from None

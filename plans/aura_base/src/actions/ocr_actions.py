@@ -10,48 +10,11 @@ from packages.aura_core.utils.exceptions import StopTaskException
 
 from ..services.app_provider_service import AppProviderService
 from ..services.ocr_service import MultiOcrResult, OcrResult, OcrService
-
-
-_COMPACT_TEXT_PATTERN = re.compile(
-    r"[\s\u3000\|:：,，。.!！?？（）()\[\]【】<>《》'\"`~\-]+"
+from ..services.observation_service import (
+    normalize_match_text as _normalize_match_text,
+    normalize_targets as _normalize_targets,
+    matches_text as _matches_text,
 )
-
-
-def _normalize_match_text(value: Any) -> str:
-    return _COMPACT_TEXT_PATTERN.sub("", str(value or "")).casefold()
-
-
-def _normalize_targets(text_to_find: str | list[str]) -> list[str]:
-    if isinstance(text_to_find, str):
-        targets = [text_to_find]
-    elif isinstance(text_to_find, list):
-        targets = [str(value) for value in text_to_find]
-    else:
-        raise TypeError("text_to_find must be a string or a list of strings")
-    targets = [target for target in targets if target.strip()]
-    if not targets:
-        raise ValueError("text_to_find must contain at least one non-empty target")
-    return targets
-
-
-def _matches_text(actual: str, target: str, match_mode: str, *, normalize: bool) -> bool:
-    if normalize:
-        actual_value = _normalize_match_text(actual)
-        target_value = target if match_mode == "regex" else _normalize_match_text(target)
-    else:
-        actual_value = str(actual or "")
-        target_value = str(target or "")
-    if match_mode == "exact":
-        return actual_value == target_value
-    if match_mode == "contains":
-        return target_value in actual_value
-    if match_mode == "regex":
-        try:
-            return bool(re.search(target_value, actual_value))
-        except re.error:
-            logger.warning("Invalid OCR regex %r; falling back to contains matching.", target_value)
-            return target_value in actual_value
-    return False
 
 
 def _offset_ocr_result(
@@ -123,7 +86,12 @@ def find_text(
     match_mode: str = "exact",
     normalize: bool = False,
     min_confidence: float = 0.0,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ) -> OcrResult:
+    """Find text; recognition_only treats the captured region as one horizontal text line."""
     is_inspect_mode = engine.root_context.data.get("initial", {}).get("__is_inspect_mode__", False)
     confidence_floor = float(min_confidence)
     if not 0.0 <= confidence_floor <= 1.0:
@@ -134,7 +102,8 @@ def find_text(
         logger.error("行为 'find_text' 失败：无法截图。")
         return OcrResult(found=False)
 
-    source_image_for_debug = capture.image.copy()
+    source_image = capture.image
+    source_image_for_debug = source_image.copy() if is_inspect_mode else None
     use_legacy_lookup = (
         isinstance(text_to_find, str)
         and not bool(normalize)
@@ -142,14 +111,24 @@ def find_text(
     )
     if use_legacy_lookup:
         ocr_result = ocr.find_text(
-            source_image=source_image_for_debug,
+            source_image=source_image,
             text_to_find=text_to_find,
             match_mode=match_mode,
+            recognition_only=recognition_only,
+            det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
         )
         if ocr_result.found:
             ocr_result.debug_info.setdefault("matched_target", text_to_find)
     else:
-        recognized = ocr.recognize_all(source_image=source_image_for_debug)
+        recognized = ocr.recognize_all(
+            source_image=source_image,
+            recognition_only=recognition_only,
+            det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
+        )
         recognized_results = list(getattr(recognized, "results", []) or [])
         candidates: list[tuple[float, OcrResult, str]] = []
         for result in recognized_results:
@@ -183,6 +162,10 @@ def find_text(
                     "match_mode": match_mode,
                     "normalize": bool(normalize),
                     "min_confidence": confidence_floor,
+                    "recognition_only": bool(recognition_only),
+                    "det_resize_long": det_resize_long,
+                    "use_textline_orientation": bool(use_textline_orientation),
+                    "rotate_tall_crops": bool(rotate_tall_crops),
                 },
             }
         )
@@ -196,12 +179,23 @@ def recognize_all_text(
     app: AppProviderService,
     ocr: OcrService,
     region: tuple[int, int, int, int] | None = None,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ) -> MultiOcrResult:
+    """Recognize text, optionally skipping detection and orientation for a single line."""
     capture = app.capture(rect=region)
     if not capture.success:
         logger.error("行为 'recognize_all_text' 失败：无法截图。")
         return MultiOcrResult()
-    multi_ocr_result = ocr.recognize_all(source_image=capture.image)
+    multi_ocr_result = ocr.recognize_all(
+        source_image=capture.image,
+        recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    )
     return _offset_multi_ocr_result(multi_ocr_result, region=region)
 
 
@@ -213,9 +207,18 @@ def get_text_in_region(
     region: tuple[int, int, int, int],
     whitelist: str | None = None,
     join_with: str = " ",
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ) -> str:
     logger.info("正在读取区域 %s 内的文本...", region)
-    multi_ocr_result = recognize_all_text(app, ocr, region)
+    multi_ocr_result = recognize_all_text(
+        app, ocr, region, recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    )
     if not multi_ocr_result.results:
         return ""
     detected_texts = [res.text for res in multi_ocr_result.results]
@@ -239,8 +242,18 @@ def check_text_exists(
     text_to_find: str,
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "exact",
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ) -> bool:
-    return find_text(app, ocr, engine, text_to_find, region, match_mode).found
+    return find_text(
+        app, ocr, engine, text_to_find, region, match_mode,
+        recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    ).found
 
 
 @action_info(name="assert_text_exists", read_only=True, public=True)
@@ -253,8 +266,18 @@ def assert_text_exists(
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "contains",
     message: str | None = None,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ):
-    ocr_result = find_text(app, ocr, engine, text_to_find, region, match_mode)
+    ocr_result = find_text(
+        app, ocr, engine, text_to_find, region, match_mode,
+        recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    )
     if not ocr_result.found:
         error_message = message or f"断言失败：期望的文本 '{text_to_find}' 不存在。"
         logger.error(error_message)
@@ -273,8 +296,18 @@ def assert_text_not_exists(
     region: tuple[int, int, int, int] | None = None,
     match_mode: str = "contains",
     message: str | None = None,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ):
-    ocr_result = find_text(app, ocr, engine, text_to_find, region, match_mode)
+    ocr_result = find_text(
+        app, ocr, engine, text_to_find, region, match_mode,
+        recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    )
     if ocr_result.found:
         error_message = message or f"断言失败：不期望的文本 '{ocr_result.text}' 却存在了。"
         logger.error(error_message)
@@ -293,8 +326,18 @@ def assert_text_equals(
     expected_value: str,
     region: tuple[int, int, int, int] | None = None,
     message: str | None = None,
+    recognition_only: bool = False,
+    det_resize_long: int | None = None,
+    use_textline_orientation: bool = True,
+    rotate_tall_crops: bool = False,
 ):
-    ocr_result = find_text(app, ocr, engine, text_to_find, region, match_mode="exact")
+    ocr_result = find_text(
+        app, ocr, engine, text_to_find, region, match_mode="exact",
+        recognition_only=recognition_only,
+        det_resize_long=det_resize_long,
+        use_textline_orientation=use_textline_orientation,
+        rotate_tall_crops=rotate_tall_crops,
+    )
     if not ocr_result.found:
         error_message = message or f"断言失败：期望的文本 '{text_to_find}' 不存在。"
         raise StopTaskException(error_message, success=False)

@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
+from ....aura_base.src.services.prepared_template import PreparedTemplate
 
 
 CITY_REGION = (25, 490, 175, 170)
@@ -27,6 +28,18 @@ class CityPanelVisionError(RuntimeError):
     def __init__(self, code, message, detail=None):
         super().__init__(message)
         self.code, self.message, self.detail = code, message, detail or {}
+
+
+class _CityTemplateCatalog(tuple):
+    """Keep the raw catalog interface and own its reusable template snapshots."""
+
+    def __new__(cls, cities, templates, masks, visit):
+        catalog = super().__new__(cls, (cities, templates, masks, visit))
+        catalog.prepared_templates = tuple(
+            PreparedTemplate(template, mask, use_grayscale=True, preprocess="edge")
+            for template, mask in zip(templates, masks)
+        )
+        return catalog
 
 
 def _image(path, *, mask=False):
@@ -55,7 +68,7 @@ def load_templates():
         visit = _image(catalog["visit_entry"]["template"])
         if visit.shape != (29, 35, 3):
             raise ValueError("City entry template must be an opaque 35x29 RGB image")
-        return cities, templates, masks, visit
+        return _CityTemplateCatalog(cities, templates, masks, visit)
     except (OSError, ValueError, KeyError, TypeError, cv2.error) as exc:
         raise CityPanelVisionError("city_identity_templates_invalid", str(exc)) from exc
 
@@ -80,13 +93,19 @@ def _score(hit):
         return None
 
 
-def probe_city(*, app, vision, check_cancelled):
+def probe_city(*, app, vision, check_cancelled, source_image=None):
     check_cancelled()
-    cities, templates, masks, _ = load_templates()
+    catalog = load_templates()
+    cities, _, _, _ = catalog
     started = time.monotonic()
-    image = _capture(app, CITY_REGION, check_cancelled)
+    image = (_capture(app, CITY_REGION, check_cancelled)
+             if source_image is None else source_image)
+    if (not isinstance(image, np.ndarray) or image.dtype != np.uint8
+            or image.shape != (CITY_REGION[3], CITY_REGION[2], 3)):
+        raise CityPanelVisionError("city_identity_capture_failed", "Unusable city identity frame",
+                                   {"region": list(CITY_REGION)})
     hits = vision.find_templates_batch(
-        source_image=image, template_images=templates, mask_images=masks,
+        source_image=image, template_images=catalog.prepared_templates, mask_images=None,
         threshold=CITY_THRESHOLD, use_grayscale=True,
         match_method=cv2.TM_CCORR_NORMED, preprocess="edge",
     )

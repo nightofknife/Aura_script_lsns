@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 
 from .ocr_contract import OcrModelMetadata
+from ._ocr_timing import OcrTiming, timed
+from ._ocr_recognition import OcrRecognitionOptions
 
 
 @dataclass(frozen=True)
@@ -19,65 +21,194 @@ class OcrOnnxSessions:
 
 
 class OnnxOcrPipeline:
-    """PP-OCRv5 ONNX Runtime inference pipeline."""
+    """Metadata-driven PP-OCR ONNX Runtime inference pipeline."""
 
-    def __init__(self, *, metadata: OcrModelMetadata, sessions: OcrOnnxSessions, provider: str):
+    def __init__(
+        self, *, metadata: OcrModelMetadata, sessions: OcrOnnxSessions, provider: str,
+        recognition_options: OcrRecognitionOptions | None = None,
+    ):
         self.metadata = metadata
         self.sessions = sessions
         self.provider = provider
+        self.recognition_options = recognition_options or OcrRecognitionOptions()
+        if (self.recognition_options.width_mode == "adaptive"
+                and self.recognition_options.min_width > metadata.rec_preprocess.max_width):
+            raise ValueError("ocr.recognition.min_width must not exceed the model's max_width.")
 
-    def predict(self, image: np.ndarray) -> list[dict[str, Any]]:
-        image_bgr = self._ensure_bgr_image(image)
-        boxes = self._detect_text_boxes(image_bgr)
-        if not boxes:
-            return [{"rec_texts": [], "rec_scores": [], "rec_polys": []}]
+    def warmup(self) -> tuple[str, ...]:
+        """Exercise every enabled session independently of detected text.
 
-        crops = [self._get_rotate_crop_image(image_bgr, box) for box in boxes]
+        Warm representative full-screen detection and both single-line and
+        configured batch inference, reusing the sessions used by task OCR.
+        """
+        completed: list[str] = []
+
+        def run(stage: str, operation: Any) -> None:
+            try:
+                operation()
+            except Exception as exc:
+                raise RuntimeError(f"OCR {stage} warmup failed: {exc}") from exc
+            completed.append(stage)
+
+        det_long = int(self.metadata.det_preprocess.resize_long)
+        detection_image = np.zeros((max(32, round(det_long * 9 / 16)), det_long, 3), dtype=np.uint8)
+        run("det", lambda: self._detect_text_boxes(detection_image))
+
         if self._use_textline_orientation():
-            crops = self._apply_textline_orientation(crops)
-        texts, scores = self._recognize_crops(crops)
+            width, height = self.metadata.textline_orientation.image_size
+            crop = np.zeros((height, width, 3), dtype=np.uint8)
+            for batch_size in self._warmup_batch_sizes(self.sessions.textline_orientation):
+                run(
+                    f"textline_orientation(batch={batch_size})",
+                    lambda size=batch_size: self._apply_textline_orientation([crop] * size),
+                )
 
-        results: list[tuple[np.ndarray, str, float]] = []
-        threshold = float(self.metadata.default_score_threshold)
-        for box, text, score in zip(boxes, texts, scores):
-            if not text:
-                continue
-            if float(score) < threshold:
-                continue
-            results.append((box, text, float(score)))
+        _channels, height, width = self.metadata.rec_preprocess.image_shape
+        warmup_widths = [width]
+        if (self.recognition_options.width_mode == "adaptive"
+                and self._session_input_width(self.sessions.rec) is None):
+            warmup_widths = list(dict.fromkeys(
+                min(self.metadata.rec_preprocess.max_width,
+                    math.ceil(max(value, self.recognition_options.min_width) / 32) * 32)
+                for value in (self.recognition_options.min_width, max(192, self.recognition_options.min_width), width)
+            ))
+        for warmup_width in warmup_widths:
+            crop = np.zeros((height, warmup_width, 3), dtype=np.uint8)
+            for batch_size in self._warmup_batch_sizes(self.sessions.rec):
+                label = f"rec(batch={batch_size})"
+                if len(warmup_widths) > 1:
+                    label = f"rec(width={warmup_width},batch={batch_size})"
+                run(label, lambda size=batch_size, image=crop: self._recognize_crops([image] * size))
 
-        results.sort(key=lambda item: self._sort_key(item[0]))
-        return [
-            {
-                "rec_texts": [item[1] for item in results],
-                "rec_scores": [item[2] for item in results],
-                "rec_polys": [item[0].astype(np.float32) for item in results],
-                "backend": "onnxruntime",
-                "provider": self.provider,
-            }
-        ]
+        if self.metadata.pipeline.use_doc_orientation and self.sessions.doc_orientation is not None:
+            run("doc_orientation", self._warmup_doc_orientation)
+        return tuple(completed)
 
-    def _detect_text_boxes(self, image_bgr: np.ndarray) -> list[np.ndarray]:
-        tensor, shape_info = self._preprocess_det(image_bgr)
-        outputs = self._run_session(self.sessions.det, tensor)
-        pred = np.asarray(outputs[0], dtype=np.float32)
-        while pred.ndim > 2:
-            pred = pred[0]
-        return self._postprocess_det(pred, shape_info)
+    def _warmup_batch_sizes(self, session: Any) -> tuple[int, ...]:
+        shape = session.get_inputs()[0].shape
+        if shape and isinstance(shape[0], int) and shape[0] > 0:
+            return (shape[0],)
+        batch_size = int(self.metadata.pipeline.batch_size)
+        if session is self.sessions.rec:
+            batch_size = self.recognition_options.batch_size or batch_size
+        return tuple(dict.fromkeys((1, batch_size)))
 
-    def _preprocess_det(self, image_bgr: np.ndarray) -> tuple[np.ndarray, dict[str, float]]:
+    def _warmup_doc_orientation(self) -> None:
+        # Document orientation has no preprocessing contract in this pipeline.
+        # Use its declared tensor dimensions rather than guessing image sizes.
+        session = self.sessions.doc_orientation
+        inputs = session.get_inputs()
+        if len(inputs) != 1:
+            raise ValueError("Document orientation warmup requires exactly one model input.")
+        model_input = inputs[0]
+        if getattr(model_input, "type", "tensor(float)") != "tensor(float)":
+            raise ValueError("Document orientation warmup requires a float32 model input.")
+        shape = list(model_input.shape)
+        if shape and not isinstance(shape[0], int):
+            shape[0] = 1
+        if not shape or any(not isinstance(size, int) or size <= 0 for size in shape):
+            raise ValueError("Document orientation warmup requires concrete non-batch input dimensions.")
+        self._run_session(session, np.zeros(shape, dtype=np.float32))
+
+    def predict(
+        self, image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None, timing: OcrTiming | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Recognize a full image, or one already cropped upright text line.
+
+        In recognition-only mode the returned polygon describes the input
+        region, not a detected text boundary.
+        det_resize_long explicitly sets the detection long-side target; when
+        omitted, the metadata size is an upper limit without proactive upscaling.
+        use_textline_orientation only controls this call's 0/180 classifier;
+        detection and geometric crop correction remain enabled in full mode.
+        rotate_tall_crops opts into the legacy 90-degree rotation of crops
+        whose height/width is at least 1.5; upright crops keep their direction
+        by default. It is independent of the 0/180 classifier.
+        """
+        with timed(timing, "image_prepare"):
+            image_bgr = self._ensure_bgr_image(image)
+        timing_kwargs = {"timing": timing} if timing is not None else {}
+        if recognition_only:
+            height, width = image_bgr.shape[:2]
+            if height <= 0 or width <= 0:
+                raise ValueError("Recognition-only OCR requires a non-empty input image.")
+            boxes = [np.asarray([[0, 0], [width, 0], [width, height], [0, height]], dtype=np.float32)]
+            crops = [image_bgr]
+        else:
+            boxes = self._detect_text_boxes(image_bgr, det_resize_long=det_resize_long, **timing_kwargs)
+            if not boxes:
+                return [{"rec_texts": [], "rec_scores": [], "rec_polys": []}]
+
+            with timed(timing, "crop"):
+                crops = [self._get_rotate_crop_image(image_bgr, box, rotate_tall_crops=rotate_tall_crops)
+                         for box in boxes]
+            if use_textline_orientation and self._use_textline_orientation():
+                crops = self._apply_textline_orientation(crops, **timing_kwargs)
+        texts, scores = self._recognize_crops(crops, **timing_kwargs)
+
+        with timed(timing, "result_pack"):
+            results: list[tuple[np.ndarray, str, float]] = []
+            threshold = float(self.metadata.default_score_threshold)
+            for box, text, score in zip(boxes, texts, scores):
+                if not text:
+                    continue
+                if float(score) < threshold:
+                    continue
+                results.append((box, text, float(score)))
+
+            results.sort(key=lambda item: self._sort_key(item[0]))
+            return [
+                {
+                    "rec_texts": [item[1] for item in results],
+                    "rec_scores": [item[2] for item in results],
+                    "rec_polys": [item[0].astype(np.float32) for item in results],
+                    "backend": "onnxruntime",
+                    "provider": self.provider,
+                    **({"recognition_only": True} if recognition_only else {}),
+                }
+            ]
+
+    def _detect_text_boxes(
+        self, image_bgr: np.ndarray, *, det_resize_long: int | None = None,
+        timing: OcrTiming | None = None,
+    ) -> list[np.ndarray]:
+        with timed(timing, "det_preprocess"):
+            tensor, shape_info = self._preprocess_det(image_bgr, det_resize_long=det_resize_long)
+        with timed(timing, "det_inference"):
+            outputs = self._run_session(self.sessions.det, tensor)
+        with timed(timing, "det_postprocess"):
+            pred = np.asarray(outputs[0], dtype=np.float32)
+            while pred.ndim > 2:
+                pred = pred[0]
+            return self._postprocess_det(pred, shape_info)
+
+    def _preprocess_det(
+        self, image_bgr: np.ndarray, *, det_resize_long: int | None = None,
+    ) -> tuple[np.ndarray, dict[str, float]]:
         src_h, src_w = image_bgr.shape[:2]
-        resize_long = int(self.metadata.det_preprocess.resize_long)
+        resize_long = int(
+            self.metadata.det_preprocess.resize_long if det_resize_long is None else det_resize_long
+        )
+        if resize_long <= 0:
+            raise ValueError("det_resize_long must be positive.")
         scale = resize_long / max(float(src_h), float(src_w))
+        if det_resize_long is None:
+            scale = min(1.0, scale)
         resized_h = max(32, int(round(src_h * scale / 32.0)) * 32)
         resized_w = max(32, int(round(src_w * scale / 32.0)) * 32)
-        resized = cv2.resize(image_bgr, (resized_w, resized_h), interpolation=cv2.INTER_LINEAR)
+        resized = (
+            image_bgr if (resized_h, resized_w) == (src_h, src_w)
+            else cv2.resize(image_bgr, (resized_w, resized_h), interpolation=cv2.INTER_LINEAR)
+        )
 
-        image = resized.astype(np.float32) * float(self.metadata.det_preprocess.scale)
-        mean = np.asarray(self.metadata.det_preprocess.mean, dtype=np.float32).reshape(1, 1, 3)
-        std = np.asarray(self.metadata.det_preprocess.std, dtype=np.float32).reshape(1, 1, 3)
-        image = (image - mean) / std
-        tensor = np.transpose(image, (2, 0, 1))[None, ...].astype(np.float32)
+        tensor = np.empty((1, 3, resized_h, resized_w), dtype=np.float32)
+        tensor[0] = np.transpose(resized, (2, 0, 1))
+        tensor *= float(self.metadata.det_preprocess.scale)
+        tensor -= np.asarray(self.metadata.det_preprocess.mean, dtype=np.float32).reshape(1, 3, 1, 1)
+        tensor /= np.asarray(self.metadata.det_preprocess.std, dtype=np.float32).reshape(1, 3, 1, 1)
         return tensor, {
             "src_h": float(src_h),
             "src_w": float(src_w),
@@ -118,66 +249,137 @@ class OnnxOcrPipeline:
         boxes.sort(key=self._sort_key)
         return boxes
 
-    def _apply_textline_orientation(self, crops: list[np.ndarray]) -> list[np.ndarray]:
+    def _apply_textline_orientation(
+        self, crops: list[np.ndarray], *, timing: OcrTiming | None = None,
+    ) -> list[np.ndarray]:
         session = self.sessions.textline_orientation
         if session is None or not crops:
             return crops
 
         output: list[np.ndarray] = []
         batch_size = int(self.metadata.pipeline.batch_size)
+        width, height = [int(item) for item in self.metadata.textline_orientation.image_size]
         for chunk in self._chunks(crops, batch_size):
-            tensor = np.stack([self._preprocess_textline_orientation(crop) for crop in chunk], axis=0)
-            preds = np.asarray(self._run_session(session, tensor)[0], dtype=np.float32)
-            for crop, pred in zip(chunk, preds):
-                label_index = int(np.argmax(pred))
-                score = float(pred[label_index])
-                label = self._orientation_label(label_index)
-                if label == self.metadata.textline_orientation.rotate_label and score >= float(
-                    self.metadata.textline_orientation.rotate_threshold
-                ):
-                    output.append(cv2.rotate(crop, cv2.ROTATE_180))
-                else:
-                    output.append(crop)
+            with timed(timing, "ori_preprocess"):
+                tensor = np.empty((len(chunk), 3, height, width), dtype=np.float32)
+                for index, crop in enumerate(chunk):
+                    self._preprocess_textline_orientation(crop, out=tensor[index])
+            with timed(timing, "ori_inference"):
+                raw_preds = self._run_session(session, tensor)[0]
+            with timed(timing, "ori_postprocess"):
+                preds = np.asarray(raw_preds, dtype=np.float32)
+                for crop, pred in zip(chunk, preds):
+                    label_index = int(np.argmax(pred))
+                    score = float(pred[label_index])
+                    label = self._orientation_label(label_index)
+                    if label == self.metadata.textline_orientation.rotate_label and score >= float(
+                        self.metadata.textline_orientation.rotate_threshold
+                    ):
+                        output.append(cv2.rotate(crop, cv2.ROTATE_180))
+                    else:
+                        output.append(crop)
         return output
 
-    def _recognize_crops(self, crops: list[np.ndarray]) -> tuple[list[str], list[float]]:
+    def _recognize_crops(
+        self, crops: list[np.ndarray], *, timing: OcrTiming | None = None,
+    ) -> tuple[list[str], list[float]]:
         if not crops:
             return [], []
 
-        texts: list[str] = []
-        scores: list[float] = []
-        batch_size = int(self.metadata.pipeline.batch_size)
-        for chunk in self._chunks(crops, batch_size):
-            target_width = self._resolve_recognition_width(chunk)
-            tensor = np.stack([self._preprocess_rec_image(crop, target_width) for crop in chunk], axis=0)
-            preds = np.asarray(self._run_session(self.sessions.rec, tensor)[0], dtype=np.float32)
-            chunk_texts, chunk_scores = self._ctc_decode(preds)
-            texts.extend(chunk_texts)
-            scores.extend(chunk_scores)
+        with timed(timing, "rec_preprocess"):
+            texts = [""] * len(crops)
+            scores = [0.0] * len(crops)
+            channels, height, _base_width = [int(item) for item in self.metadata.rec_preprocess.image_shape]
+            batches = self._plan_recognition_batches(crops)
+        for chunk_indices, target_width in batches:
+            with timed(timing, "rec_preprocess"):
+                chunk = [crops[index] for index in chunk_indices]
+                tensor = np.empty((len(chunk), channels, height, target_width), dtype=np.float32)
+                for index, crop in enumerate(chunk):
+                    self._preprocess_rec_image(crop, target_width, out=tensor[index])
+            if timing is not None:
+                timing.record_recognition_batch(
+                    tensor.shape,
+                    [min(target_width, max(1, math.ceil(height * image.shape[1] / max(image.shape[0], 1))))
+                     for image in chunk],
+                )
+            with timed(timing, "rec_inference"):
+                raw_preds = self._run_session(self.sessions.rec, tensor)[0]
+            with timed(timing, "rec_decode"):
+                preds = np.asarray(raw_preds, dtype=np.float32)
+                chunk_texts, chunk_scores = self._ctc_decode(preds)
+                for index, text, score in zip(chunk_indices, chunk_texts, chunk_scores):
+                    texts[index] = text
+                    scores[index] = score
         return texts, scores
 
-    def _preprocess_textline_orientation(self, image_bgr: np.ndarray) -> np.ndarray:
+    def _plan_recognition_batches(self, crops: list[np.ndarray]) -> list[tuple[list[int], int]]:
+        """Split only when removing padding saves enough input area.
+
+        Shapes are chosen before preprocessing, so glyph scaling is independent
+        of how the crops are grouped. Original indices preserve result order.
+        """
+        options = self.recognition_options
+        batch_size = options.batch_size or int(self.metadata.pipeline.batch_size)
+        sorted_indices = sorted(
+            range(len(crops)), key=lambda index: crops[index].shape[1] / max(float(crops[index].shape[0]), 1.0),
+        )
+        input_shape = self.sessions.rec.get_inputs()[0].shape
+        fixed_batch = bool(input_shape and isinstance(input_shape[0], int) and input_shape[0] > 0)
+
+        def width(indices: list[int]) -> int:
+            return self._resolve_recognition_width([crops[index] for index in indices])
+
+        def split(indices: list[int]) -> list[tuple[list[int], int]]:
+            target_width = width(indices)
+            if options.batch_mode == "fixed" or fixed_batch or len(indices) < 2:
+                return [(indices, target_width)]
+            original_cost = len(indices) * target_width
+            best_cost, best_cut = original_cost, None
+            for cut in range(1, len(indices)):
+                cost = cut * width(indices[:cut]) + (len(indices) - cut) * width(indices[cut:])
+                if cost < best_cost:
+                    best_cost, best_cut = cost, cut
+            if best_cut is not None and (original_cost - best_cost) / original_cost >= options.split_min_saving:
+                return split(indices[:best_cut]) + split(indices[best_cut:])
+            return [(indices, target_width)]
+
+        return [batch for chunk in self._chunks(sorted_indices, batch_size) for batch in split(list(chunk))]
+
+    def _preprocess_textline_orientation(
+        self, image_bgr: np.ndarray, *, out: np.ndarray | None = None,
+    ) -> np.ndarray:
         width, height = [int(item) for item in self.metadata.textline_orientation.image_size]
         resized = cv2.resize(image_bgr, (width, height), interpolation=cv2.INTER_LINEAR)
-        image = resized.astype(np.float32) * float(self.metadata.textline_orientation.scale)
-        mean = np.asarray(self.metadata.textline_orientation.mean, dtype=np.float32).reshape(1, 1, 3)
-        std = np.asarray(self.metadata.textline_orientation.std, dtype=np.float32).reshape(1, 1, 3)
-        image = (image - mean) / std
-        return np.transpose(image, (2, 0, 1)).astype(np.float32)
+        if out is None:
+            out = np.empty((3, height, width), dtype=np.float32)
+        out[...] = np.transpose(resized, (2, 0, 1))
+        out *= float(self.metadata.textline_orientation.scale)
+        out -= np.asarray(self.metadata.textline_orientation.mean, dtype=np.float32).reshape(3, 1, 1)
+        out /= np.asarray(self.metadata.textline_orientation.std, dtype=np.float32).reshape(3, 1, 1)
+        return out
 
-    def _preprocess_rec_image(self, image_bgr: np.ndarray, target_width: int) -> np.ndarray:
+    def _preprocess_rec_image(
+        self, image_bgr: np.ndarray, target_width: int, *, out: np.ndarray | None = None,
+    ) -> np.ndarray:
         _channels, target_height, base_width = [int(item) for item in self.metadata.rec_preprocess.image_shape]
-        target_width = max(int(target_width), int(base_width))
+        if self._session_input_width(self.sessions.rec) is None and self.recognition_options.width_mode == "legacy":
+            target_width = max(int(target_width), int(base_width))
+        else:
+            target_width = int(target_width)
         h, w = image_bgr.shape[:2]
         ratio = w / max(float(h), 1.0)
         resized_width = min(target_width, max(1, int(math.ceil(target_height * ratio))))
         resized = cv2.resize(image_bgr, (resized_width, target_height), interpolation=cv2.INTER_LINEAR)
-        image = resized.astype(np.float32) / 255.0
-        image = (image - 0.5) / 0.5
-        image = np.transpose(image, (2, 0, 1))
-        padded = np.zeros((3, target_height, target_width), dtype=np.float32)
-        padded[:, :, :resized_width] = image
-        return padded
+        if out is None:
+            out = np.empty((3, target_height, target_width), dtype=np.float32)
+        out.fill(0.0)
+        image = out[:, :, :resized_width]
+        image[...] = np.transpose(resized, (2, 0, 1))
+        image /= 255.0
+        image -= 0.5
+        image /= 0.5
+        return out
 
     def _resolve_recognition_width(self, crops: Sequence[np.ndarray]) -> int:
         _channels, target_height, base_width = [int(item) for item in self.metadata.rec_preprocess.image_shape]
@@ -186,7 +388,10 @@ class OnnxOcrPipeline:
             return int(session_width)
         max_ratio = max((crop.shape[1] / max(float(crop.shape[0]), 1.0) for crop in crops), default=base_width / target_height)
         dynamic_width = int(math.ceil(max_ratio * target_height / 32.0) * 32)
-        return min(max(dynamic_width, base_width), int(self.metadata.rec_preprocess.max_width))
+        minimum = base_width
+        if self.recognition_options.width_mode == "adaptive":
+            minimum = math.ceil(self.recognition_options.min_width / 32) * 32
+        return min(max(dynamic_width, minimum), int(self.metadata.rec_preprocess.max_width))
 
     def _ctc_decode(self, preds: np.ndarray) -> tuple[list[str], list[float]]:
         if preds.ndim != 3:
@@ -198,7 +403,7 @@ class OnnxOcrPipeline:
 
         for batch_pred in preds:
             indices = np.argmax(batch_pred, axis=1)
-            probs = np.max(batch_pred, axis=1)
+            probs = batch_pred[np.arange(batch_pred.shape[0]), indices]
             chars: list[str] = []
             char_scores: list[float] = []
             previous = None
@@ -222,7 +427,7 @@ class OnnxOcrPipeline:
         if not inputs:
             raise RuntimeError("ONNX session has no inputs.")
         input_name = inputs[0].name
-        return list(session.run(None, {input_name: tensor.astype(np.float32)}))
+        return list(session.run(None, {input_name: np.ascontiguousarray(tensor, dtype=np.float32)}))
 
     @staticmethod
     def _ensure_bgr_image(image: np.ndarray) -> np.ndarray:
@@ -237,7 +442,9 @@ class OnnxOcrPipeline:
         raise ValueError(f"Unsupported OCR image channel count: {image.shape[2]}")
 
     @staticmethod
-    def _get_rotate_crop_image(image: np.ndarray, points: np.ndarray) -> np.ndarray:
+    def _get_rotate_crop_image(
+        image: np.ndarray, points: np.ndarray, *, rotate_tall_crops: bool = False,
+    ) -> np.ndarray:
         points = OnnxOcrPipeline._order_points_clockwise(points.astype(np.float32))
         width = int(
             max(
@@ -256,7 +463,7 @@ class OnnxOcrPipeline:
         dst = np.array([[0, 0], [width, 0], [width, height], [0, height]], dtype=np.float32)
         matrix = cv2.getPerspectiveTransform(points, dst)
         crop = cv2.warpPerspective(image, matrix, (width, height), borderMode=cv2.BORDER_REPLICATE)
-        if crop.shape[0] / max(float(crop.shape[1]), 1.0) >= 1.5:
+        if rotate_tall_crops and crop.shape[0] / max(float(crop.shape[1]), 1.0) >= 1.5:
             crop = cv2.rotate(crop, cv2.ROTATE_90_CLOCKWISE)
         return crop
 

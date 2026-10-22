@@ -37,6 +37,8 @@ def strings(value):
 
 def test_functional_banks_and_catalogs_survive_release_assembly(tmp_path):
     selected = {destination: source for source, destination in collect_plan_files(ROOT / "plans")}
+    assert not any(destination.is_relative_to(PLAN / "development") for destination in selected)
+    assert not any(destination.name in {"catalog_preview.png", "roles_preview.png"} for destination in selected)
     prefixes = [PLAN / "templates" / bank for bank in BANKS]
     required = {destination for destination in selected
                 if any(destination.is_relative_to(prefix) for prefix in prefixes)}

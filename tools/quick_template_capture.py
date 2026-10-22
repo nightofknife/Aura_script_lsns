@@ -168,7 +168,7 @@ def _update_library_index(
         templates = []
         data["templates"] = templates
 
-    rel_file = saved_template_path.name
+    rel_file = saved_template_path.resolve().relative_to(output_dir.resolve()).as_posix()
     existing = None
     for item in templates:
         if isinstance(item, dict) and item.get("file") == rel_file:
@@ -235,6 +235,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--plan", help="Optional plan name. Defaults save path to plans/<plan>/templates.")
     parser.add_argument("--output-dir", type=Path, help="Custom output directory for saved templates.")
+    parser.add_argument(
+        "--category",
+        type=Path,
+        help="Relative category under plans/<plan>/templates, e.g. commerce/trade/controls. Requires --plan.",
+    )
     parser.add_argument("--backend", default="gdi", help="Capture backend to use. Defaults to gdi.")
     parser.add_argument("--library-name", default="captured", help="Template library name to register/update.")
     parser.add_argument("--hwnd", type=int, help="Initial hwnd selector.")
@@ -260,6 +265,7 @@ def run_gui(
     pid: int | None,
     class_name: str | None,
     class_exact: bool,
+    library_dir: Path | None = None,
 ) -> int:
     import tkinter as tk
     from tkinter import messagebox, simpledialog
@@ -597,10 +603,17 @@ def run_gui(
                 return
             processed_cropped = apply_color_preprocess(cropped, preprocess_config)
             output_path = ensure_directory(output_dir) / f"{name}.png"
+            if output_path.exists():
+                messagebox.showwarning(
+                    "Template already exists",
+                    f"A template already exists at:\n{output_path}\n\nChoose a different template name to save this crop.",
+                    parent=dialog,
+                )
+                return
             processed_cropped.save(output_path)
             metadata_result = persist_template_metadata(
                 plan_name=plan_name,
-                output_dir=output_dir,
+                output_dir=library_dir or output_dir,
                 library_name=selected_library,
                 saved_template_path=output_path,
                 bound_window=bound_window,
@@ -669,8 +682,21 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    if args.category is not None:
+        if not args.plan:
+            parser.error("--category requires --plan")
+        if args.output_dir is not None:
+            parser.error("--category cannot be combined with --output-dir")
+        templates_dir = (plan_path(args.plan) / "templates").resolve()
+        category_dir = (templates_dir / args.category).resolve()
+        if (args.category.is_absolute() or args.category.drive or args.category.root
+                or category_dir == templates_dir or not category_dir.is_relative_to(templates_dir)):
+            parser.error("--category must be a nonempty relative subdirectory within the plan templates directory")
+
     if args.output_dir is not None:
         output_dir = args.output_dir.expanduser().resolve()
+    elif args.category is not None:
+        output_dir = category_dir
     elif args.plan:
         output_dir = (plan_path(args.plan) / "templates").resolve()
     else:
@@ -689,6 +715,7 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             pid=args.pid,
             class_name=args.class_name,
             class_exact=bool(args.class_exact),
+            library_dir=templates_dir if args.category is not None else None,
         )
     except Exception as exc:
         print(str(exc), file=sys.stderr)

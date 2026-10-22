@@ -175,12 +175,12 @@ print(
 
 function Assert-OcrModelBundle {
     param(
-        [string]$ModelsRoot,
+        [string]$BundleDirectory,
         [string]$PythonPath,
         [string]$ValidatorPath
     )
 
-    $bundleDir = Join-Path $ModelsRoot "ppocrv5_server"
+    $bundleDir = $BundleDirectory
     Assert-PathExists -PathValue $bundleDir -Label "OCR ONNX model bundle"
 
     Assert-PathExists -PathValue $ValidatorPath -Label "OCR bundle validator"
@@ -284,12 +284,12 @@ function Copy-OcrModels {
         [string]$ValidatorPath
     )
 
-    Assert-OcrModelBundle -ModelsRoot $Source -PythonPath $PythonPath -ValidatorPath $ValidatorPath
+    Assert-OcrModelBundle -BundleDirectory $Source -PythonPath $PythonPath -ValidatorPath $ValidatorPath
     Invoke-RobocopySafe `
         -Source $Source `
         -Destination $Destination `
         -ExtraArgs @("/XD", "__pycache__", ".pytest_cache", "/XF", "*.pyc", "*.pyo")
-    Assert-OcrModelBundle -ModelsRoot $Destination -PythonPath $PythonPath -ValidatorPath $ValidatorPath
+    Assert-OcrModelBundle -BundleDirectory $Destination -PythonPath $PythonPath -ValidatorPath $ValidatorPath
 }
 
 function Copy-YoloModels {
@@ -490,6 +490,7 @@ function New-NvidiaRuntimeOverlay {
 }
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$releaseContract = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot "packaging/release-contract.json") | ConvertFrom-Json
 $VenvPythonPath = Join-Path $RepoRoot $VenvPython
 $SpecFilePath = Join-Path $RepoRoot $SpecPath
 $RuntimeRootPath = Join-Path $RepoRoot $RuntimeRoot
@@ -506,7 +507,7 @@ $BuiltGuiLauncherExe = Join-Path $LauncherDistPath "AuraResonanceGui.exe"
 $BuiltUpdaterExe = Join-Path $UpdaterDistPath $UpdaterExecutableName
 $ReleaseRuntimeDir = Join-Path $ReleaseRoot "runtime"
 $ReleasePlansDir = Join-Path $ReleaseRoot "plans"
-$ReleaseOcrModelsDir = Join-Path $ReleaseRoot "models\\ocr"
+$ReleaseOcrModelsDir = Join-Path $ReleaseRoot $releaseContract.assets.ocr.bundle_directory
 $ReleaseYoloModelsDir = Join-Path $ReleaseRoot "models\\yolo"
 $GuiLauncherSource = Join-Path $RepoRoot "packaging\\launcher\\aura_resonance_launcher.py"
 $UpdaterSource = Join-Path $RepoRoot "updater\\aura_updater.py"
@@ -514,7 +515,7 @@ $GuiIconPath = Join-Path $RepoRoot "packaging\\assets\\aura_resonance_chibi_icon
 $RunTemplate = Join-Path $RepoRoot "packaging\\templates\\run.ps1"
 $ConfigTemplate = Join-Path $RepoRoot "packaging\\templates\\config.yaml"
 $SourcePlansDir = Join-Path $RepoRoot "plans"
-$SourceOcrModelsDir = Join-Path $RepoRoot "models\\ocr"
+$SourceOcrModelsDir = Join-Path $RepoRoot $releaseContract.assets.ocr.bundle_directory
 $SourceYoloModelsDir = Join-Path $RepoRoot "models\\yolo"
 $PlanAssembler = Join-Path $RepoRoot "scripts\\release\\assemble_release_plans.py"
 $OcrBundleValidator = Join-Path $RepoRoot "scripts\\release\\validate_ocr_bundle.py"

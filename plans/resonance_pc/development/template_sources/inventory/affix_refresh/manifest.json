@@ -1,0 +1,6201 @@
+{
+  "schema_version": 1,
+  "kind": "affix_refresh_native_backups",
+  "runtime_manifest": "../../../../templates/inventory/affix_refresh/manifest.json",
+  "assets": {
+    "native/tokens/replacement_header.png": {
+      "sha256": "ccf51ee15596a8b6b869dccde34ac0cdc871cf3a5980c414c9254436cffcd379",
+      "size": [
+        210,
+        18
+      ],
+      "runtime_file": "tokens/replacement_header.png",
+      "runtime_spec_paths": [
+        "/tokens/replacement_header"
+      ]
+    },
+    "native/tokens/no_candidate_label.png": {
+      "sha256": "8771a97132aa1ae12943b70bc75d3ce566435969a391906361b1fd86c88b3aae",
+      "size": [
+        106,
+        20
+      ],
+      "runtime_file": "tokens/no_candidate_label.png",
+      "runtime_spec_paths": [
+        "/tokens/no_candidate_label"
+      ]
+    },
+    "native/tokens/no_candidate_hint.png": {
+      "sha256": "c895a1d5a733ecd984838a8ead3f1e6b12997de93f126a33acb836328341762c",
+      "size": [
+        179,
+        18
+      ],
+      "runtime_file": "tokens/no_candidate_hint.png",
+      "runtime_spec_paths": [
+        "/tokens/no_candidate_hint"
+      ]
+    },
+    "native/tokens/refresh_label.png": {
+      "sha256": "2de8a9b6b4c9929c1b0eaf274185d88cfdf5ba2ea01fd2ad3870a79a94adf1bf",
+      "size": [
+        82,
+        24
+      ],
+      "runtime_file": "tokens/refresh_label.png",
+      "runtime_spec_paths": [
+        "/tokens/refresh_label"
+      ]
+    },
+    "native/tokens/film_label.png": {
+      "sha256": "f448a4cdb9fd04615e2d4b84b233bf2abefab07edfd05e835fad1e41714a7f35",
+      "size": [
+        104,
+        18
+      ],
+      "runtime_file": "tokens/film_label.png",
+      "runtime_spec_paths": [
+        "/tokens/film_label"
+      ]
+    },
+    "native/tokens/confirm_label.png": {
+      "sha256": "133cf823704a5d2e0362671cf4ff9de543a13e22e8ec0f2ebc0757a2b31a6d80",
+      "size": [
+        39,
+        20
+      ],
+      "runtime_file": "tokens/confirm_label.png",
+      "runtime_spec_paths": [
+        "/tokens/confirm_label"
+      ]
+    },
+    "native/tokens/cancel_label.png": {
+      "sha256": "4f745868f0ec6d82a7ab75b7f139add0c1d9b80090252ceef5f64d4e0f831512",
+      "size": [
+        39,
+        22
+      ],
+      "runtime_file": "tokens/cancel_label.png",
+      "runtime_spec_paths": [
+        "/tokens/cancel_label"
+      ]
+    },
+    "native/tokens/level_prefix.png": {
+      "sha256": "b4b48a3ffa04fe3caf961e553930c5dd3cae9cf112ebff96441e52fc83129e6a",
+      "size": [
+        21,
+        16
+      ],
+      "runtime_file": "tokens/level_prefix.png",
+      "runtime_spec_paths": [
+        "/tokens/level_prefix"
+      ]
+    },
+    "native/tokens/replace_label.png": {
+      "sha256": "abb5ccc6229d2896505c1489103d2e8093eaaa1099652e29d1370061d6b09f13",
+      "size": [
+        114,
+        20
+      ],
+      "runtime_file": "tokens/replace_label.png",
+      "runtime_spec_paths": [
+        "/tokens/replace_label"
+      ]
+    },
+    "native/equipment/11800258.png": {
+      "sha256": "32447232496690a55b82ac5d0bef1edec92decf35447d105039e9d6f64992638",
+      "size": [
+        85,
+        20
+      ],
+      "runtime_file": "equipment/11800258.png",
+      "runtime_spec_paths": [
+        "/equipment/114"
+      ]
+    },
+    "native/digits/level/5.png": {
+      "sha256": "2fe36861eb623387be1b615f630eeff43d6acd7019388d03627c3c05a027b3c6",
+      "size": [
+        12,
+        16
+      ],
+      "runtime_file": "digits/level/5.png",
+      "runtime_spec_paths": [
+        "/digits/level/reference_samples/5"
+      ]
+    },
+    "native/digits/level/9.png": {
+      "sha256": "2358a8404c7d9b72cc0e9f75be4203a4830f1fe1d45884b38dda2bd407428f56",
+      "size": [
+        12,
+        16
+      ],
+      "runtime_file": "digits/level/9.png",
+      "runtime_spec_paths": [
+        "/digits/level/reference_samples/9"
+      ]
+    },
+    "native/digits/film/8.png": {
+      "sha256": "edd01993f3b5ba7556e3276f72a37814194086181c9236ab2bd4c838b147270e",
+      "size": [
+        11,
+        16
+      ],
+      "runtime_file": "digits/film/8.png",
+      "runtime_spec_paths": [
+        "/digits/film/reference_samples/8"
+      ]
+    },
+    "native/digits/film/5.png": {
+      "sha256": "eb56991ea969bb13ff48cfcfd5db28b81cfd212b3b6416ff2a37623eb254b647",
+      "size": [
+        11,
+        16
+      ],
+      "runtime_file": "digits/film/5.png",
+      "runtime_spec_paths": [
+        "/digits/film/reference_samples/5"
+      ]
+    },
+    "native/digits/replace/9.png": {
+      "sha256": "e112b7096f0a16b3ece0ffcabded3db50cd4d5fc2e50183aec94aabea334846f",
+      "size": [
+        12,
+        16
+      ],
+      "runtime_file": "digits/replace/9.png",
+      "runtime_spec_paths": [
+        "/digits/replace/reference_samples/9"
+      ]
+    },
+    "native/digits/replace/5.png": {
+      "sha256": "008b5c612b2d93ac57ccb3e41d52b308889a12c817453bd6cbf8b8871499e72d",
+      "size": [
+        11,
+        16
+      ],
+      "runtime_file": "digits/replace/5.png",
+      "runtime_spec_paths": [
+        "/digits/replace/reference_samples/5"
+      ]
+    },
+    "native/equipment/11800007.png": {
+      "sha256": "1483efaf112fa09353e2336a1984e5e10e48cdb19da010d2c92a0f610a1b58ae",
+      "size": [
+        68,
+        20
+      ],
+      "runtime_file": "equipment/11800007.png",
+      "runtime_spec_paths": [
+        "/equipment/4"
+      ]
+    },
+    "native/digits/level/6.png": {
+      "sha256": "a82c76b47ed6202594796a6d167a1f1bc6ef7e50e297789c9ee197bba1a03f66",
+      "size": [
+        12,
+        16
+      ],
+      "runtime_file": "digits/level/6.png",
+      "runtime_spec_paths": [
+        "/digits/level/reference_samples/6"
+      ]
+    },
+    "native/digits/level/7.png": {
+      "sha256": "b0668374793a12b5ecd7334214d86578f9f2617e28b989fcaf302fd88ed19964",
+      "size": [
+        12,
+        16
+      ],
+      "runtime_file": "digits/level/7.png",
+      "runtime_spec_paths": [
+        "/digits/level/reference_samples/7"
+      ]
+    },
+    "native/digits/film/4.png": {
+      "sha256": "bb0375d2792a80dfc9dc5c5f630c80c7ae8f4ba5e8030b9030944e84f69b31cc",
+      "size": [
+        11,
+        16
+      ],
+      "runtime_file": "digits/film/4.png",
+      "runtime_spec_paths": [
+        "/digits/film/reference_samples/4"
+      ]
+    },
+    "native/tokens/refresh_prompt.png": {
+      "sha256": "0b18d05ee9c8bc17332eda71d72c6e89becc3a933e543bd994d53c716f3056f5",
+      "size": [
+        433,
+        26
+      ],
+      "runtime_file": "tokens/refresh_prompt.png",
+      "runtime_spec_paths": [
+        "/tokens/refresh_prompt"
+      ]
+    },
+    "native/tokens/dialog_confirm.png": {
+      "sha256": "a04c28edbc9524b460baf9ed4916a8ba4d30ba8dd675545bb6be8cee84b9f5e7",
+      "size": [
+        47,
+        25
+      ],
+      "runtime_file": "tokens/dialog_confirm.png",
+      "runtime_spec_paths": [
+        "/tokens/dialog_confirm"
+      ]
+    },
+    "native/tokens/dialog_cancel.png": {
+      "sha256": "ff2ca093d7be68cbe763455a3d487da83955b7f2b562d9b60521ae6f431fe77c",
+      "size": [
+        47,
+        26
+      ],
+      "runtime_file": "tokens/dialog_cancel.png",
+      "runtime_spec_paths": [
+        "/tokens/dialog_cancel"
+      ]
+    }
+  },
+  "provenance": {
+    "schema_version": 1,
+    "reference_client": [
+      1280,
+      720
+    ],
+    "tokens": {
+      "replacement_header": {
+        "file": "tokens/replacement_header.png",
+        "roi": [
+          240,
+          299,
+          450,
+          30
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "请选择以下其中一个随机词缀",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Txt_Tips",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 24,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          205,
+          14
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/replacement_header.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          248,
+          304,
+          220,
+          24
+        ],
+        "reference_foreground_bounds": [
+          4,
+          6,
+          205,
+          14
+        ]
+      },
+      "no_candidate_label": {
+        "file": "tokens/no_candidate_label.png",
+        "roi": [
+          240,
+          205,
+          230,
+          55
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "暂无替换词缀",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Img_NoHaveChangeEntry/Txt_NoHaveChangeEntry",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 26,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          99,
+          15
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/no_candidate_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+        "reference_client_crop": [
+          246,
+          215,
+          115,
+          27
+        ],
+        "reference_foreground_bounds": [
+          6,
+          5,
+          99,
+          15
+        ]
+      },
+      "no_candidate_hint": {
+        "file": "tokens/no_candidate_hint.png",
+        "roi": [
+          470,
+          205,
+          320,
+          55
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "需提升装备等级或使用道具",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Img_NoHaveChangeEntry/Txt_Condition",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 23,
+        "native_tint": [
+          217,
+          216,
+          216
+        ],
+        "glyph_size": [
+          176,
+          12
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/no_candidate_hint.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+        "reference_client_crop": [
+          560,
+          215,
+          185,
+          28
+        ],
+        "reference_foreground_bounds": [
+          4,
+          6,
+          176,
+          12
+        ]
+      },
+      "refresh_label": {
+        "file": "tokens/refresh_label.png",
+        "roi": [
+          884,
+          203,
+          148,
+          30
+        ],
+        "mode": "dark",
+        "threshold": 0.9,
+        "text": "刷新词缀",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Btn_Add/Txt_",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 30,
+        "native_tint": [
+          0,
+          0,
+          0
+        ],
+        "glyph_size": [
+          78,
+          19
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/refresh_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          900,
+          206,
+          100,
+          28
+        ],
+        "reference_foreground_bounds": [
+          5,
+          4,
+          78,
+          19
+        ]
+      },
+      "film_label": {
+        "file": "tokens/film_label.png",
+        "roi": [
+          874,
+          229,
+          165,
+          25
+        ],
+        "mode": "dark",
+        "threshold": 0.9,
+        "text": "剩余胶卷数量：",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Btn_Add/Txt_RemainingNum",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 24,
+        "native_tint": [
+          79,
+          79,
+          79
+        ],
+        "glyph_size": [
+          100,
+          14
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/film_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          880,
+          233,
+          111,
+          18
+        ],
+        "reference_foreground_bounds": [
+          2,
+          2,
+          100,
+          14
+        ]
+      },
+      "confirm_label": {
+        "file": "tokens/confirm_label.png",
+        "roi": [
+          650,
+          606,
+          186,
+          38
+        ],
+        "mode": "dark",
+        "threshold": 0.9,
+        "text": "确认",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Btn_Confirm/Img_Use/Txt_Confirm",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 28,
+        "native_tint": [
+          50,
+          50,
+          50
+        ],
+        "glyph_size": [
+          34,
+          16
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/confirm_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          720,
+          612,
+          50,
+          23
+        ],
+        "reference_foreground_bounds": [
+          6,
+          4,
+          34,
+          16
+        ]
+      },
+      "cancel_label": {
+        "file": "tokens/cancel_label.png",
+        "roi": [
+          444,
+          606,
+          186,
+          38
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "取消",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Btn_Cancel/Txt_Cancel",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 28,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          34,
+          16
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/cancel_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          515,
+          612,
+          50,
+          23
+        ],
+        "reference_foreground_bounds": [
+          5,
+          4,
+          34,
+          16
+        ]
+      },
+      "level_prefix": {
+        "file": "tokens/level_prefix.png",
+        "roi": [
+          995,
+          75,
+          67,
+          32
+        ],
+        "mode": "yellow",
+        "threshold": 0.9,
+        "text": "LV",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentLvNum/Txt_EquipmentLv",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          185,
+          0
+        ],
+        "glyph_size": [
+          16,
+          12
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/level_prefix.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          1015,
+          80,
+          20,
+          24
+        ],
+        "reference_foreground_bounds": [
+          3,
+          4,
+          16,
+          12
+        ]
+      },
+      "replace_label": {
+        "file": "tokens/replace_label.png",
+        "roi": [
+          705,
+          298,
+          170,
+          30
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "剩余可替换次数",
+        "prefab": "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset",
+        "prefab_node": "/Group_Windows/Txt_RemainingChangeNum",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 24,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          110,
+          14
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/replace_label.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          716,
+          306,
+          116,
+          23
+        ],
+        "reference_foreground_bounds": [
+          2,
+          4,
+          110,
+          14
+        ]
+      },
+      "refresh_prompt": {
+        "file": "tokens/refresh_prompt.png",
+        "roi": [
+          220,
+          180,
+          840,
+          250
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "是否确认使用该道具获得1条新的替换词缀？",
+        "prefab": "ui/common/prompt/prompt.asset",
+        "prefab_node": "/Prompt/Txt_Prompt",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 34,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          418,
+          20
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/refresh_prompt.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
+        "reference_client_crop": [
+          455,
+          342,
+          435,
+          36
+        ],
+        "reference_foreground_bounds": [
+          6,
+          8,
+          418,
+          20
+        ]
+      },
+      "replace_prompt": {
+        "file": "tokens/replace_prompt.png",
+        "roi": [
+          220,
+          180,
+          840,
+          250
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "是否确认替换该词缀？",
+        "prefab": "ui/common/prompt/prompt.asset",
+        "prefab_node": "/Prompt/Txt_Prompt",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 34,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          212,
+          21
+        ],
+        "padding": 2
+      },
+      "dialog_confirm": {
+        "file": "tokens/dialog_confirm.png",
+        "roi": [
+          650,
+          465,
+          615,
+          75
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "确认",
+        "prefab": "ui/common/prompt/prompt.asset",
+        "prefab_node": "/Prompt/Btn_Confirm/Group_/Txt_Confirm",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 34,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          42,
+          20
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/dialog_confirm.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
+        "reference_client_crop": [
+          958,
+          486,
+          56,
+          35
+        ],
+        "reference_foreground_bounds": [
+          5,
+          6,
+          42,
+          20
+        ]
+      },
+      "dialog_cancel": {
+        "file": "tokens/dialog_cancel.png",
+        "roi": [
+          15,
+          465,
+          615,
+          75
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "text": "取消",
+        "prefab": "ui/common/prompt/prompt.asset",
+        "prefab_node": "/Prompt/Btn_Cancel/Group_/Txt_Cancel",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+        "native_font_size": 34,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          41,
+          21
+        ],
+        "padding": 2,
+        "native_file": "native/tokens/dialog_cancel.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
+        "reference_client_crop": [
+          320,
+          486,
+          56,
+          35
+        ],
+        "reference_foreground_bounds": [
+          5,
+          6,
+          41,
+          21
+        ]
+      }
+    },
+    "equipment": [
+      {
+        "id": 11800001,
+        "name": "逻各斯之眼",
+        "file": "equipment/11800001.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800002,
+        "name": "炽焰侵蚀者",
+        "file": "equipment/11800002.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800003,
+        "name": "古老偏方三八面体",
+        "file": "equipment/11800003.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          131,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800006,
+        "name": "蓝色虚幻",
+        "file": "equipment/11800006.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800007,
+        "name": "靡草龙雀",
+        "file": "equipment/11800007.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          14
+        ],
+        "padding": 2,
+        "native_file": "native/equipment/11800007.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "reference_client_crop": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "reference_foreground_bounds": [
+          5,
+          8,
+          62,
+          14
+        ]
+      },
+      {
+        "id": 11800008,
+        "name": "缩退炸弹3号",
+        "file": "equipment/11800008.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          90,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800009,
+        "name": "断剑之火",
+        "file": "equipment/11800009.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800010,
+        "name": "断火之剑II",
+        "file": "equipment/11800010.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          74,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800011,
+        "name": "仙人掌板甲",
+        "file": "equipment/11800011.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800012,
+        "name": "内存清心咒",
+        "file": "equipment/11800012.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800013,
+        "name": "鹅制发射器",
+        "file": "equipment/11800013.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800014,
+        "name": "抗拒从严",
+        "file": "equipment/11800014.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800015,
+        "name": "五雷供电符",
+        "file": "equipment/11800015.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800016,
+        "name": "战术风水无人机",
+        "file": "equipment/11800016.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          114,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800017,
+        "name": "雷击深眠木剑",
+        "file": "equipment/11800017.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          97,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800018,
+        "name": "八方伏龙阵",
+        "file": "equipment/11800018.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800019,
+        "name": "雷击深眠木甲",
+        "file": "equipment/11800019.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          97,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800020,
+        "name": "骨龙护甲",
+        "file": "equipment/11800020.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800021,
+        "name": "逆位斗篷",
+        "file": "equipment/11800021.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800022,
+        "name": "113号没收物品",
+        "file": "equipment/11800022.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          108,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800024,
+        "name": "违禁工艺品",
+        "file": "equipment/11800024.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800027,
+        "name": "深红谶言",
+        "file": "equipment/11800027.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800028,
+        "name": "狩猎左轮",
+        "file": "equipment/11800028.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800029,
+        "name": "深海探针",
+        "file": "equipment/11800029.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800030,
+        "name": "简并黑石",
+        "file": "equipment/11800030.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800031,
+        "name": "星弧波纹",
+        "file": "equipment/11800031.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800032,
+        "name": "世界团结",
+        "file": "equipment/11800032.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800033,
+        "name": "无限非概率护甲",
+        "file": "equipment/11800033.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          113,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800034,
+        "name": "β世界线之盒",
+        "file": "equipment/11800034.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          91,
+          17
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800035,
+        "name": "A77航天手枪",
+        "file": "equipment/11800035.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          95,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800036,
+        "name": "质量投射器",
+        "file": "equipment/11800036.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800037,
+        "name": "引魔法杖",
+        "file": "equipment/11800037.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800038,
+        "name": "黑月毒镖",
+        "file": "equipment/11800038.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800039,
+        "name": "万用起子",
+        "file": "equipment/11800039.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800040,
+        "name": "祖父反应装甲",
+        "file": "equipment/11800040.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          97,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800041,
+        "name": "百万超磁体",
+        "file": "equipment/11800041.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800042,
+        "name": "雷击深眠木护符",
+        "file": "equipment/11800042.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          114,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800043,
+        "name": "荒野猎刀",
+        "file": "equipment/11800043.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800044,
+        "name": "高热量军粮",
+        "file": "equipment/11800044.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800045,
+        "name": "核子辐射",
+        "file": "equipment/11800045.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800046,
+        "name": "特浓功能饮料",
+        "file": "equipment/11800046.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800047,
+        "name": "破片套",
+        "file": "equipment/11800047.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          48,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800048,
+        "name": "清醒梦纤维",
+        "file": "equipment/11800048.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800049,
+        "name": "紫宵宝甲",
+        "file": "equipment/11800049.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800050,
+        "name": "身代勾玉",
+        "file": "equipment/11800050.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800051,
+        "name": "谎话纸条",
+        "file": "equipment/11800051.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800052,
+        "name": "艾尔摩之火",
+        "file": "equipment/11800052.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800053,
+        "name": "双星法杖",
+        "file": "equipment/11800053.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800054,
+        "name": "治愈防弹衣",
+        "file": "equipment/11800054.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800055,
+        "name": "阻燃护甲",
+        "file": "equipment/11800055.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800056,
+        "name": "黑月叛忍护额",
+        "file": "equipment/11800056.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          97,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800057,
+        "name": "绝缘护甲",
+        "file": "equipment/11800057.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800058,
+        "name": "魔抗护甲",
+        "file": "equipment/11800058.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800059,
+        "name": "外部记忆矩阵",
+        "file": "equipment/11800059.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800060,
+        "name": "璀璨星石",
+        "file": "equipment/11800060.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800061,
+        "name": "奥尼兰法杖",
+        "file": "equipment/11800061.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800062,
+        "name": "天罡伏魔剑",
+        "file": "equipment/11800062.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800063,
+        "name": "光谱破碎",
+        "file": "equipment/11800063.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800064,
+        "name": "液氮喷射器",
+        "file": "equipment/11800064.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800065,
+        "name": "尼克塔尔最后解",
+        "file": "equipment/11800065.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          115,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800066,
+        "name": "球状闪电",
+        "file": "equipment/11800066.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800067,
+        "name": "克拉尼弧光",
+        "file": "equipment/11800067.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800068,
+        "name": "机神甲胄",
+        "file": "equipment/11800068.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800069,
+        "name": "不休陀螺",
+        "file": "equipment/11800069.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800078,
+        "name": "被封印的四重灾厄",
+        "file": "equipment/11800078.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          131,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800079,
+        "name": "凤凰尾羽",
+        "file": "equipment/11800079.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800080,
+        "name": "蕴魔石",
+        "file": "equipment/11800080.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          48,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800081,
+        "name": "使魔护具",
+        "file": "equipment/11800081.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800082,
+        "name": "梦境偷渡",
+        "file": "equipment/11800082.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800084,
+        "name": "自抛光餐刀",
+        "file": "equipment/11800084.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          78,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800089,
+        "name": "无尽焚灭",
+        "file": "equipment/11800089.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800090,
+        "name": "受缚之风",
+        "file": "equipment/11800090.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800091,
+        "name": "圣裁螺旋",
+        "file": "equipment/11800091.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800092,
+        "name": "快速请假糖",
+        "file": "equipment/11800092.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800093,
+        "name": "返魂光弧",
+        "file": "equipment/11800093.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800094,
+        "name": "百万吨启示",
+        "file": "equipment/11800094.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800095,
+        "name": "命运之重",
+        "file": "equipment/11800095.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800096,
+        "name": "老兵步枪",
+        "file": "equipment/11800096.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800097,
+        "name": "绝境行者",
+        "file": "equipment/11800097.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800098,
+        "name": "动力伐木斧",
+        "file": "equipment/11800098.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800099,
+        "name": "巨象颅盾",
+        "file": "equipment/11800099.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800100,
+        "name": "千年幻梦",
+        "file": "equipment/11800100.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800101,
+        "name": "宏观形而上材料",
+        "file": "equipment/11800101.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          114,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800102,
+        "name": "北阵防御纤维",
+        "file": "equipment/11800102.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800103,
+        "name": "动能回收器",
+        "file": "equipment/11800103.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800104,
+        "name": "延展时间线",
+        "file": "equipment/11800104.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800105,
+        "name": "黑石护甲",
+        "file": "equipment/11800105.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800106,
+        "name": "升构手术器",
+        "file": "equipment/11800106.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800107,
+        "name": "急救护甲",
+        "file": "equipment/11800107.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800108,
+        "name": "脉冲X-27",
+        "file": "equipment/11800108.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          66,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800109,
+        "name": "防暴盾牌",
+        "file": "equipment/11800109.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800113,
+        "name": "独乐琶音",
+        "file": "equipment/11800113.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800114,
+        "name": "白夜·真辉",
+        "file": "equipment/11800114.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          73,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800237,
+        "name": "非金属材料镀层",
+        "file": "equipment/11800237.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          114,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800238,
+        "name": "便携除颤器",
+        "file": "equipment/11800238.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800239,
+        "name": "唤雷线圈MK1",
+        "file": "equipment/11800239.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          99,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800240,
+        "name": "内脏采集器MK0",
+        "file": "equipment/11800240.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          115,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800241,
+        "name": "共振体纤维",
+        "file": "equipment/11800241.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800242,
+        "name": "“极坐标”指挥无人机",
+        "file": "equipment/11800242.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          155,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800243,
+        "name": "逆熵严冬",
+        "file": "equipment/11800243.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800244,
+        "name": "活火熔岩",
+        "file": "equipment/11800244.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800245,
+        "name": "模拟星辰",
+        "file": "equipment/11800245.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800246,
+        "name": "单极磁星",
+        "file": "equipment/11800246.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800247,
+        "name": "放逐代码",
+        "file": "equipment/11800247.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800248,
+        "name": "空间切线",
+        "file": "equipment/11800248.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800249,
+        "name": "伪神低语",
+        "file": "equipment/11800249.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800250,
+        "name": "二号玩具",
+        "file": "equipment/11800250.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800251,
+        "name": "标准防御纤维",
+        "file": "equipment/11800251.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800252,
+        "name": "提神醒脑仪",
+        "file": "equipment/11800252.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800253,
+        "name": "御敌闪光器",
+        "file": "equipment/11800253.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800254,
+        "name": "解剖工具C",
+        "file": "equipment/11800254.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          75,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800255,
+        "name": "御险金属",
+        "file": "equipment/11800255.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800256,
+        "name": "无意识学习装置",
+        "file": "equipment/11800256.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          114,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800257,
+        "name": "狡诈背叛",
+        "file": "equipment/11800257.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800258,
+        "name": "不可见之触",
+        "file": "equipment/11800258.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          77,
+          14
+        ],
+        "padding": 2,
+        "native_file": "native/equipment/11800258.png",
+        "kind": "approved_reference_glyph",
+        "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+        "reference_client_crop": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "reference_foreground_bounds": [
+          6,
+          8,
+          77,
+          14
+        ]
+      },
+      {
+        "id": 11800259,
+        "name": "高维构造体",
+        "file": "equipment/11800259.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800260,
+        "name": "万变眼眸",
+        "file": "equipment/11800260.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800261,
+        "name": "原型临界不测兵器",
+        "file": "equipment/11800261.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          131,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800262,
+        "name": "悔恨之钩",
+        "file": "equipment/11800262.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800263,
+        "name": "赦免织物",
+        "file": "equipment/11800263.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800264,
+        "name": "超因果之骰",
+        "file": "equipment/11800264.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800265,
+        "name": "附魔短剑",
+        "file": "equipment/11800265.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800266,
+        "name": "红铜护甲",
+        "file": "equipment/11800266.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800267,
+        "name": "猫纹章",
+        "file": "equipment/11800267.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          48,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800268,
+        "name": "光明之愿",
+        "file": "equipment/11800268.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800269,
+        "name": "良夜远星",
+        "file": "equipment/11800269.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800270,
+        "name": "异界星光",
+        "file": "equipment/11800270.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800271,
+        "name": "狮子纹章",
+        "file": "equipment/11800271.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800272,
+        "name": "光芒追击者",
+        "file": "equipment/11800272.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800273,
+        "name": "暗夜寻星",
+        "file": "equipment/11800273.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800274,
+        "name": "花园守护",
+        "file": "equipment/11800274.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800275,
+        "name": "星核余烬",
+        "file": "equipment/11800275.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800276,
+        "name": "外界星辰",
+        "file": "equipment/11800276.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800277,
+        "name": "内向延展",
+        "file": "equipment/11800277.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800278,
+        "name": "黎明回音",
+        "file": "equipment/11800278.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800279,
+        "name": "月神誓约",
+        "file": "equipment/11800279.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800280,
+        "name": "鱼肠短刀",
+        "file": "equipment/11800280.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800281,
+        "name": "西装凯夫拉",
+        "file": "equipment/11800281.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800282,
+        "name": "黑月烟雾弹",
+        "file": "equipment/11800282.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800283,
+        "name": "“罪证”",
+        "file": "equipment/11800283.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          45,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800284,
+        "name": "“清算”",
+        "file": "equipment/11800284.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          45,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800285,
+        "name": "热光学迷彩",
+        "file": "equipment/11800285.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800286,
+        "name": "“四翼妖龙”",
+        "file": "equipment/11800286.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          78,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800287,
+        "name": "灵狐名弓",
+        "file": "equipment/11800287.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          62,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800288,
+        "name": "雾夜流星",
+        "file": "equipment/11800288.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800289,
+        "name": "天王宝铠",
+        "file": "equipment/11800289.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800290,
+        "name": "春秋合诚印",
+        "file": "equipment/11800290.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800291,
+        "name": "天龙揽月锁",
+        "file": "equipment/11800291.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800292,
+        "name": "奔雷破影剑",
+        "file": "equipment/11800292.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800293,
+        "name": "回风轻烟甲",
+        "file": "equipment/11800293.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800294,
+        "name": "月落红云宝玺",
+        "file": "equipment/11800294.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          97,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800295,
+        "name": "错峰出行",
+        "file": "equipment/11800295.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800296,
+        "name": "胡尔顿气球",
+        "file": "equipment/11800296.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800297,
+        "name": "临界质量",
+        "file": "equipment/11800297.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800298,
+        "name": "阿古纳托",
+        "file": "equipment/11800298.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800299,
+        "name": "七弦弓",
+        "file": "equipment/11800299.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          47,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800300,
+        "name": "北方荆棘",
+        "file": "equipment/11800300.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800301,
+        "name": "野心",
+        "file": "equipment/11800301.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          31,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800302,
+        "name": "雷神",
+        "file": "equipment/11800302.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          31,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800303,
+        "name": "火山",
+        "file": "equipment/11800303.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          29,
+          15
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800304,
+        "name": "哈里森装置",
+        "file": "equipment/11800304.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          80,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800305,
+        "name": "接功铁锅",
+        "file": "equipment/11800305.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800306,
+        "name": "锡纸帽",
+        "file": "equipment/11800306.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          48,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800307,
+        "name": "掐人中抢救器",
+        "file": "equipment/11800307.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800308,
+        "name": "N射线枪",
+        "file": "equipment/11800308.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          59,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800309,
+        "name": "克里安照相机",
+        "file": "equipment/11800309.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          98,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800310,
+        "name": "探宝枪",
+        "file": "equipment/11800310.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          48,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800311,
+        "name": "紫色星期四",
+        "file": "equipment/11800311.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          81,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800312,
+        "name": "洛克维尔金属",
+        "file": "equipment/11800312.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          96,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800313,
+        "name": "催眠怀表",
+        "file": "equipment/11800313.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800314,
+        "name": "灵泉",
+        "file": "equipment/11800314.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          30,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800315,
+        "name": "莫比乌斯",
+        "file": "equipment/11800315.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          65,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800316,
+        "name": "二级相变",
+        "file": "equipment/11800316.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800317,
+        "name": "静影沉璧",
+        "file": "equipment/11800317.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800318,
+        "name": "玄铁朱契",
+        "file": "equipment/11800318.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          63,
+          16
+        ],
+        "padding": 2
+      },
+      {
+        "id": 11800319,
+        "name": "绯霆之律",
+        "file": "equipment/11800319.png",
+        "roi": [
+          372,
+          75,
+          590,
+          31
+        ],
+        "mode": "bright",
+        "threshold": 0.9,
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentName",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+        "native_font_size": 25,
+        "native_tint": [
+          255,
+          255,
+          255
+        ],
+        "glyph_size": [
+          64,
+          16
+        ],
+        "padding": 2
+      }
+    ],
+    "digits": {
+      "level": {
+        "files": {
+          "0": "digits/level/0.png",
+          "1": "digits/level/1.png",
+          "2": "digits/level/2.png",
+          "3": "digits/level/3.png",
+          "4": "digits/level/4.png",
+          "5": "digits/level/5.png",
+          "6": "digits/level/6.png",
+          "7": "digits/level/7.png",
+          "8": "digits/level/8.png",
+          "9": "digits/level/9.png"
+        },
+        "roi": [
+          995,
+          75,
+          67,
+          32
+        ],
+        "mode": "yellow",
+        "min_digits": 1,
+        "max_digits": 3,
+        "threshold": 0.9,
+        "padding": 2,
+        "glyph_sizes": {
+          "0": [
+            8,
+            12
+          ],
+          "1": [
+            8,
+            12
+          ],
+          "2": [
+            8,
+            12
+          ],
+          "3": [
+            8,
+            12
+          ],
+          "4": [
+            8,
+            12
+          ],
+          "5": [
+            7,
+            12
+          ],
+          "6": [
+            7,
+            12
+          ],
+          "7": [
+            7,
+            12
+          ],
+          "8": [
+            8,
+            12
+          ],
+          "9": [
+            7,
+            12
+          ]
+        },
+        "prefab_node": "/Group_Windows/Group_Equipment_Row/Txt_EquipmentLvNum",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "native_font_size": 25,
+        "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
+        "reference_samples": {
+          "5": {
+            "native_file": "native/digits/level/5.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              1038,
+              84,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "9": {
+            "native_file": "native/digits/level/9.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              1047,
+              84,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "6": {
+            "native_file": "native/digits/level/6.png",
+            "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+            "reference_client_crop": [
+              1038,
+              84,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "7": {
+            "native_file": "native/digits/level/7.png",
+            "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+            "reference_client_crop": [
+              1047,
+              84,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          }
+        }
+      },
+      "film": {
+        "files": {
+          "0": "digits/film/0.png",
+          "1": "digits/film/1.png",
+          "2": "digits/film/2.png",
+          "3": "digits/film/3.png",
+          "4": "digits/film/4.png",
+          "5": "digits/film/5.png",
+          "6": "digits/film/6.png",
+          "7": "digits/film/7.png",
+          "8": "digits/film/8.png",
+          "9": "digits/film/9.png"
+        },
+        "roi": [
+          874,
+          229,
+          151,
+          25
+        ],
+        "mode": "dark",
+        "min_digits": 1,
+        "max_digits": 7,
+        "threshold": 0.9,
+        "padding": 2,
+        "glyph_sizes": {
+          "0": [
+            7,
+            12
+          ],
+          "1": [
+            6,
+            12
+          ],
+          "2": [
+            7,
+            12
+          ],
+          "3": [
+            7,
+            12
+          ],
+          "4": [
+            8,
+            12
+          ],
+          "5": [
+            7,
+            12
+          ],
+          "6": [
+            7,
+            12
+          ],
+          "7": [
+            7,
+            12
+          ],
+          "8": [
+            7,
+            12
+          ],
+          "9": [
+            7,
+            12
+          ]
+        },
+        "prefab_node": "/Group_Windows/Btn_Add/Txt_RemainingNum",
+        "font": "SourceHanSansCN-Medium",
+        "font_path_id": 6136794397608061395,
+        "native_font_size": 24,
+        "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
+        "reference_samples": {
+          "8": {
+            "native_file": "native/digits/film/8.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              994,
+              236,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "5": {
+            "native_file": "native/digits/film/5.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              1012,
+              236,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "4": {
+            "native_file": "native/digits/film/4.png",
+            "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+            "reference_client_crop": [
+              1011,
+              236,
+              8,
+              12
+            ],
+            "glyph_size": [
+              8,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          }
+        }
+      },
+      "replace": {
+        "files": {
+          "0": "digits/replace/0.png",
+          "1": "digits/replace/1.png",
+          "2": "digits/replace/2.png",
+          "3": "digits/replace/3.png",
+          "4": "digits/replace/4.png",
+          "5": "digits/replace/5.png",
+          "6": "digits/replace/6.png",
+          "7": "digits/replace/7.png",
+          "8": "digits/replace/8.png",
+          "9": "digits/replace/9.png"
+        },
+        "roi": [
+          705,
+          298,
+          170,
+          30
+        ],
+        "mode": "yellow",
+        "min_digits": 1,
+        "max_digits": 7,
+        "threshold": 0.9,
+        "padding": 2,
+        "glyph_sizes": {
+          "0": [
+            8,
+            12
+          ],
+          "1": [
+            7,
+            12
+          ],
+          "2": [
+            7,
+            12
+          ],
+          "3": [
+            7,
+            12
+          ],
+          "4": [
+            9,
+            12
+          ],
+          "5": [
+            7,
+            12
+          ],
+          "6": [
+            8,
+            12
+          ],
+          "7": [
+            8,
+            12
+          ],
+          "8": [
+            8,
+            12
+          ],
+          "9": [
+            7,
+            12
+          ]
+        },
+        "prefab_node": "/Group_Windows/Txt_RemainingChangeNum",
+        "font": "SourceHanSansCN-Bold",
+        "font_path_id": -2237384480076949585,
+        "native_font_size": 24,
+        "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
+        "reference_samples": {
+          "9": {
+            "native_file": "native/digits/replace/9.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              838,
+              311,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          },
+          "5": {
+            "native_file": "native/digits/replace/5.png",
+            "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+            "reference_client_crop": [
+              856,
+              311,
+              7,
+              12
+            ],
+            "glyph_size": [
+              7,
+              12
+            ],
+            "kind": "single_digit_from_approved_reference"
+          }
+        }
+      }
+    },
+    "image_format": "L8 binary foreground (0 background, 255 glyph), tight + 2px padding",
+    "foreground_modes": {
+      "bright": "minRGB>=180 and ptpRGB<=65",
+      "dark": "maxRGB<=150 and ptpRGB<=65",
+      "yellow": "R>=170,G>=110,B<=130,R-B>=65"
+    },
+    "source_files": {
+      "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset": {
+        "sha256": "5f3bf7d5789d4ddbf2af72b91fd8334c70e85a12ef8ac26049f2eb42acd96a42"
+      },
+      "ui/common/prompt/prompt.asset": {
+        "sha256": "02670ec8499a9898956ec5d1091b6522ad6328638696941a5ffcb10ddac91ce5"
+      },
+      "ui/font/originpack.asset": {
+        "sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+      }
+    },
+    "status": "native_generated_with_scoped_reference_glyphs",
+    "reference": {
+      "sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+      "client_box": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "kind": "user_supplied_starting_screenshot",
+      "scope": "Fixed labels, equipment title, and individual visible digit glyphs only"
+    },
+    "references": [
+      {
+        "sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
+        "client_box": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "kind": "user_supplied_starting_screenshot",
+        "scope": "Fixed labels, equipment title, and individual visible digit glyphs only"
+      },
+      {
+        "sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
+        "client_box": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "kind": "user_supplied_starting_screenshot",
+        "scope": "Fixed labels, equipment title, and individual visible digit glyphs only"
+      },
+      {
+        "sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
+        "client_box": [
+          0,
+          0,
+          1280,
+          720
+        ],
+        "kind": "authorized_run_refresh_confirmation_capture",
+        "scope": "Refresh confirmation prompt and two button labels only"
+      }
+    ],
+    "limitations": [
+      "Reference glyphs are calibrated to the recorded source screenshots and any explicitly listed modal capture; other equipment titles, unseen digits, selection states, and replacement-confirmation wording retain unvalidated native rendering.",
+      "Native text and shapes target the 1280x720 Simplified Chinese client only.",
+      "Equipment titles must match complete foreground bounds, not a substring of a longer title."
+    ]
+  }
+}

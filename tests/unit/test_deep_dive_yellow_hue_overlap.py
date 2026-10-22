@@ -16,7 +16,7 @@ def test_filled_yellow_wall_and_curved_ring_do_not_establish_hex_outline():
 
 @pytest.mark.parametrize('name',['red_single_eye','orange_triple_eye'])
 def test_warm_eye_coloured_like_overlap_band_is_not_reclassified_as_hex(name):
-    root=Path(semantics.__file__).resolve().parents[2]/'templates/deep_dive_layout'
+    root=Path(semantics.__file__).resolve().parents[2]/'templates/deep_dive/deep_dive_layout'
     image=cv2.cvtColor(cv2.imread(str(root/f'icon_{name}.png')),cv2.COLOR_BGR2HSV)
     image[:,:,0]=23
     result=semantics.classify_icon(cv2.cvtColor(image,cv2.COLOR_HSV2RGB))

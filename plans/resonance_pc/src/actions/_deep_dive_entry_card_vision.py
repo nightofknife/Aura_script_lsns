@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 
-_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "templates" / "consciousness_deep_dive_single_run"
+_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "templates" / "deep_dive" / "consciousness_deep_dive_single_run"
 _KINDS = ("empty", "battle", "elite_battle", "reward", "adventure", "healing", "shop")
 _ENEMY_PORTRAIT_KINDS = frozenset({"battle", "elite_battle"})
 _ENTER_SEARCH = (990, 500, 1200, 590)

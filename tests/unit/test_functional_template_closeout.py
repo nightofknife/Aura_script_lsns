@@ -8,14 +8,14 @@ from PIL import Image
 import pytest
 
 from plans.resonance_pc.src.actions import cape_island_investment_pc_actions as cape
-from plans.resonance_pc.src.actions import rubbish_recycling_pc_actions as recycling
+from plans.resonance_pc.src.actions import _rubbish_recycling_vision as recycling
 from scripts.release.assemble_release_plans import collect_plan_files, stage_plan_tree, validate_selected_files
 
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "plans/resonance_pc"
 RETIRED = ("black_moon_local_shop", "black_moon_local_select", "eternal_scuffle", "reforming_center", "product_workshop_staff")
-BANKS = ("battle", "navigation/rooms", "workshop/staffing/editor", "workshop/production/controls", "commerce/shop/black_moon/native", "commerce/shop/black_moon/calibrated", "commerce/investment/cape_island", "recycling")
+BANKS = ("battle", "navigation/rooms", "workshop/staffing", "workshop/production/controls", "workshop/collection", "commerce/shop/black_moon/native", "commerce/shop/black_moon/calibrated", "commerce/investment/cape_island", "recycling")
 
 
 def test_no_task_banks_or_loose_root_png_remain():
@@ -44,7 +44,7 @@ def test_closeout_assets_and_contract_survive_real_release_staging(tmp_path):
     serialized = json.dumps(contract)
     assert "plans/resonance_pc/" + cape._INCOME_ENTRY_TEMPLATE in serialized
     assert "plans/resonance_pc/" + cape._INCOME_ENTRY_MASK in serialized
-    for reference in (recycling._ENTRY_TEMPLATE, recycling._RECYCLE_ALL_TEMPLATE, recycling._NO_RUBBISH_TEMPLATE, recycling._BACK_TEMPLATE):
+    for reference in (recycling._ENTRY_TEMPLATE, recycling._RECYCLE_ALL_TEMPLATE, recycling._NO_RUBBISH_TEMPLATE, recycling.GLOBAL_BACK.path):
         assert (PLAN / reference).is_file()
 
 

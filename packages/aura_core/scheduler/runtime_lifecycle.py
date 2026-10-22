@@ -22,7 +22,6 @@ class RuntimeLifecycleService:
         scheduler = self._scheduler
         profile = scheduler.runtime_profile
         scheduler.lifecycle.initialize_async_components()
-        scheduler.is_running.set()
         scheduler._loop = asyncio.get_running_loop()
         scheduler._main_task = asyncio.current_task()
 
@@ -60,6 +59,7 @@ class RuntimeLifecycleService:
                 scheduler.observability.start_cleanup_task()
                 tg.create_task(self.monitor_event_subscriptions())
                 scheduler.file_watcher_service.start()
+                scheduler.is_running.set()
                 scheduler.startup_complete_event.set()
         except asyncio.CancelledError:
             logger.info("Scheduler runtime loop cancelled.")
@@ -69,7 +69,6 @@ class RuntimeLifecycleService:
             scheduler.file_watcher_service.stop()
             scheduler._loop = None
             scheduler._main_task = None
-            scheduler.startup_complete_event.set()
             logger.info("Scheduler runtime loop exited.")
 
     async def async_reload_subscriptions(self):

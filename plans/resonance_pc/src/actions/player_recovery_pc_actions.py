@@ -14,8 +14,10 @@ import numpy as np
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.utils.exceptions import StopTaskException
 from packages.aura_core.observability.logging.core_logger import logger
+from ....aura_base.src.services.observation_service import CaptureError, Frame, ObservationService
 from ._recovery_assets import load_plan_image, read_layout_json, validated_roi as _roi
 from ._bento_observation import ConsecutiveFrameStability, work_meal_slot_state
+from ._navigation_templates import navigation_profile_layout
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CONFIG_PATH = _PLAN_ROOT / "data/meta/player_recovery.json"
@@ -111,6 +113,10 @@ def load_recovery_layout(vision: Any, *, config_path: Path = _CONFIG_PATH,
     targets = config["templates"]
     for key in _TEMPLATE_KEYS:
         target = targets[key]
+        if "profile" in target:
+            if set(target) != {"profile"}:
+                raise ValueError(f"shared navigation profile cannot be overridden: {key}")
+            target = targets[key] = navigation_profile_layout(target["profile"])
         if not 0 < float(target["threshold"]) <= 1:
             raise ValueError(f"invalid recovery template threshold: {key}")
         # The framework owns Unicode-safe loading. Paths passed to matching retain
@@ -167,37 +173,60 @@ class RecoveryReader:
         self.on_page = on_page
         self.page = "profile"
 
-    def capture(self, region: Sequence[int]) -> np.ndarray:
-        check_cancelled()
-        result = self.app.capture(rect=tuple(region))
-        image = getattr(result, "image", None)
-        if not getattr(result, "success", False) or not isinstance(image, np.ndarray):
-            raise _error(f"capture failed for ROI {tuple(region)}")
-        if image.shape[:2] != (region[3], region[2]):
-            raise _error(f"capture size does not match ROI {tuple(region)}")
-        return image
+    def snapshot(self) -> Frame:
+        """Capture one observation round; callers explicitly pass it to readers."""
+        return self._capture_frame((0, 0, 1280, 720))
 
-    def match(self, key: str) -> Any:
+    def _check_capture(self) -> None:
+        check_cancelled()
+        guard = getattr(self.app, "guard", None)
+        if callable(guard):
+            guard()
+
+    def _capture_frame(self, region: Sequence[int]) -> Frame:
+        self._check_capture()
+        try:
+            frame = ObservationService(app=self.app).capture_regions((tuple(region),))
+        except CaptureError as exc:
+            # A guarded app may have rejected the capture at its own deadline.
+            # Preserve that task failure instead of reporting invalid pixels.
+            self._check_capture()
+            if exc.reason == "capture_size_invalid":
+                raise _error(f"capture size does not match ROI {tuple(region)}") from exc
+            raise _error(f"capture failed for ROI {tuple(region)}") from exc
+        self._check_capture()
+        return frame
+
+    def capture(self, region: Sequence[int], *, frame: Frame | None = None) -> np.ndarray:
+        check_cancelled()
+        if frame is not None:
+            return frame.crop(tuple(region)).rgb_image()
+        return self._capture_frame(region).rgb_image()
+
+    def match(self, key: str, *, frame: Frame | None = None) -> Any:
         target = self.layout["templates"][key]
         result = self.vision.find_template(
-            source_image=self.capture(target["roi"]),
+            source_image=self.capture(target["roi"], frame=frame),
             template_image=target["resolved_path"],
-            threshold=target["threshold"], use_grayscale=True,
-            match_method=cv2.TM_CCOEFF_NORMED, preprocess="none",
+            threshold=target["threshold"], use_grayscale=target.get("use_grayscale", True),
+            match_method=target.get("match_method", cv2.TM_CCOEFF_NORMED),
+            preprocess=target.get("preprocess", "none"),
         )
         if getattr(result, "debug_info", {}).get("error"):
             raise _error(f"template matching failed: {key}")
         return result
 
-    def is_page(self, page: str) -> bool:
+    def is_page(self, page: str, *, frame: Frame | None = None) -> bool:
+        if frame is None:
+            frame = self.snapshot()
         key = {"profile": "profile", "fatigue_recovery": "fatigue_page",
                "sparkling_water_popup": "popup", "bento_cabinet": "bento_page"}[page]
-        if not self.match(key).found:
+        if not self.match(key, frame=frame).found:
             return False
-        if page == "bento_cabinet" and not self.match("bento_train").found:
+        if page == "bento_cabinet" and not self.match("bento_train", frame=frame).found:
             return False
         # Fatigue title stays visible behind the tooltip.
-        if page == "fatigue_recovery" and self.match("popup").found:
+        if page == "fatigue_recovery" and self.match("popup", frame=frame).found:
             return False
         return True
 
@@ -213,7 +242,8 @@ class RecoveryReader:
         next_click = 0.0
         while time.monotonic() < deadline:
             check_cancelled()
-            if self.is_page(target):
+            frame = self.snapshot()
+            if self.is_page(target, frame=frame):
                 logger.info(
                     "[RecoveryNavigation] phase=target_detected source=%s target=%s control=%s "
                     "elapsed_sec=%.3f clicks=%s since_last_click_sec=%s",
@@ -222,8 +252,8 @@ class RecoveryReader:
                 )
                 self.set_page(target)
                 return
-            if time.monotonic() >= next_click and self.is_page(source):
-                hit = self.match(control)
+            if time.monotonic() >= next_click and self.is_page(source, frame=frame):
+                hit = self.match(control, frame=frame)
                 if not hit.found:
                     time.sleep(self.layout["poll_interval_sec"])
                     continue
@@ -300,8 +330,9 @@ class RecoveryReader:
             stability = ConsecutiveFrameStability(LoveBentoScanner.unchanged)
             while time.monotonic() < until:
                 guard()
-                if self.is_page("bento_cabinet"):
-                    frame = self.capture(cfg["viewport"])
+                snapshot = self.snapshot()
+                if self.is_page("bento_cabinet", frame=snapshot):
+                    frame = self.capture(cfg["viewport"], frame=snapshot)
                     if self._bento_content_loaded(frame):
                         if stability.observe(frame) >= 2:
                             guard()
@@ -370,11 +401,12 @@ class RecoveryReader:
         last_diagnostic = "no reliable digits"
         digits = self.layout["sparkling_water_digits"]
         while time.monotonic() < deadline:
-            if not self.is_page("sparkling_water_popup"):
+            frame = self.snapshot()
+            if not self.is_page("sparkling_water_popup", frame=frame):
                 raise _error("free-uses popup disappeared")
             # One raw RGB frame, two small independent ROIs. Never search the
             # denominator in the numerator ROI or fall back to OCR/default zero.
-            image = self.capture(self.layout["sparkling_water_roi"])
+            image = self.capture(self.layout["sparkling_water_roi"], frame=frame)
             values, diagnostics = [], []
             for key in ("remaining_roi", "limit_roi"):
                 x, y, w, h = digits[key]
@@ -396,9 +428,10 @@ class RecoveryReader:
         last_diagnostic = "no stable count"
         while time.monotonic() < deadline:
             check_cancelled()
-            if not self.is_page("fatigue_recovery"):
+            snapshot = self.snapshot()
+            if not self.is_page("fatigue_recovery", frame=snapshot):
                 raise _error("fatigue page disappeared while reading bento count")
-            frame = self.capture(self.layout["bento_count_roi"])
+            frame = self.capture(self.layout["bento_count_roi"], frame=snapshot)
             # The badge text is #323232. Thresholding removes the variable
             # coloured badge background before comparing the original font glyphs.
             if frame.ndim == 3:
@@ -458,11 +491,12 @@ class RecoveryReader:
         bx, by, _, _ = self.layout["bento_region"]
         while time.monotonic() < deadline:
             attempt += 1
-            if not self.is_page("bento_cabinet"):
+            frame = self.snapshot()
+            if not self.is_page("bento_cabinet", frame=frame):
                 logger.warning("[RecoveryBento] phase=page_missing attempt=%s elapsed_sec=%.3f", attempt, time.monotonic() - started_at)
                 time.sleep(self.layout["poll_interval_sec"])
                 continue
-            image = self.capture(self.layout["bento_region"])
+            image = self.capture(self.layout["bento_region"], frame=frame)
             logger.info("[RecoveryBento] phase=captured attempt=%s elapsed_sec=%.3f", attempt, time.monotonic() - started_at)
             slots = []
             last_observations = []

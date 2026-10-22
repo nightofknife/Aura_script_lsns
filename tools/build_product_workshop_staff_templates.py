@@ -42,6 +42,56 @@ def remove_retired_feature_files():
         (ASSETS / (name + ".png")).unlink(missing_ok=True)
 
 
+def feature_path(key, suffix=".png"):
+    """Keep selection and save controls beside their own scene variants."""
+    directory = (ASSETS.parent / "selection/product" if key in {"select_all", "cancel_all", "confirm"}
+                 else ASSETS.parent / "save_prompt" if key in {"apply", "discard"} else ASSETS)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / (key + suffix)
+
+
+def remove_legacy_feature_locations(previous, current):
+    """Retire unchanged, previously indexed files after catalog publication."""
+    retained = set()
+    for spec in current.get("templates", {}).values():
+        retained.update(item["image"] for item in (spec, *spec.get("variants", [])) if item.get("image"))
+    retired = []
+    for key in ("select_all", "cancel_all", "confirm", "apply", "discard"):
+        spec = previous.get("templates", {}).get(key, {})
+        for item in (spec, *spec.get("variants", [])):
+            reference = item.get("image")
+            expected = {(ASSETS / (key + suffix)).relative_to(PLAN).as_posix()
+                        for suffix in (".png", ".native.png")}
+            if reference not in expected or reference in retained or not item.get("sha256"):
+                continue
+            path = PLAN / reference
+            if path.is_file():
+                if digest(path) != item["sha256"]:
+                    raise ValueError(f"Previously owned feature changed externally: {reference}")
+                retired.append(path)
+    for path in retired:
+        path.unlink()
+
+
+def unique_font_records(records):
+    """Keep first-seen font identities; distinct native bytes remain separate."""
+    result, seen = [], {}
+    for record in records:
+        identity = (record["font_path_id"], record["sha256"])
+        source = {key: deepcopy(value) for key, value in record.items() if key != "source_variants"}
+        if identity not in seen:
+            seen[identity] = source
+            result.append(seen[identity])
+        existing = seen[identity]
+        original = {key: value for key, value in existing.items() if key != "source_variants"}
+        for variant in (source, *record.get("source_variants", [])):
+            if variant != original:
+                variants = existing.setdefault("source_variants", [deepcopy(original)])
+                if variant not in variants:
+                    variants.append(deepcopy(variant))
+    return result
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -77,9 +127,9 @@ def refresh_feature_blocks(catalog):
     for key, (scene, box, click) in definitions.items():
         x,y,w,h = box
         source = FIXTURES / (scene+".png")
-        path = ASSETS / (key+".png")
+        path = feature_path(key)
         Image.open(source).convert("RGB").crop((x,y,x+w,y+h)).save(path)
-        spec = {"image":"templates/workshop/staffing/editor/"+path.name,
+        spec = {"image":path.relative_to(PLAN).as_posix(),
                 "bbox":list(box), "search_region":[x-12,y-8,w+24,h+16],
                 "click":list(click), "threshold":0.90, "scene":scene,
                 "kind":"synthetic_native_feature_block", "source_image":"tests/fixtures/product_workshop_staff/"+source.name,
@@ -106,9 +156,9 @@ def refresh_feature_blocks(catalog):
             continue
         spec = catalog["templates"][key]
         native = deepcopy(spec)
-        variant_path = ASSETS / (key+".native.png")
+        variant_path = feature_path(key, ".native.png")
         Image.open(PLAN/spec["image"]).save(variant_path)
-        native.update(image="templates/workshop/staffing/editor/"+variant_path.name, sha256=digest(variant_path))
+        native.update(image=variant_path.relative_to(PLAN).as_posix(), sha256=digest(variant_path))
         raw = Image.open(source).convert("RGB")
         crop = raw.getbbox()  # remove only the outer black screenshot padding
         target = raw.crop(crop)
@@ -163,6 +213,7 @@ def refresh_feature_blocks(catalog):
     catalog["selection_policy"] = {"recognition":"button_only", "select_all":"click_once_then_confirm_and_save",
                                     "cancel_all_on_entry":"return_without_confirming_or_saving", "button_score_margin":.01}
     remove_retired_feature_files()
+    catalog["provenance"]["fonts"] = unique_font_records(catalog["provenance"]["fonts"])
 
 
 def rgba(value: dict) -> tuple[int, ...]:
@@ -382,11 +433,14 @@ def main():
     args.scope.mkdir(parents=True,exist_ok=True)
     for key in ("TEMP","TMP","TMPDIR"):
         os.environ[key]=str(args.scope)
+    previous_path = PLAN / "data/meta/product_workshop_staff_templates_pc.json"
+    previous_catalog = json.loads(previous_path.read_text("utf-8")) if previous_path.exists() else {}
     if args.refresh_feature_blocks:
         dest = PLAN/"data/meta/product_workshop_staff_templates_pc.json"
         catalog = json.loads(dest.read_text("utf-8"))
         refresh_feature_blocks(catalog)
         dest.write_text(json.dumps(catalog,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+        remove_legacy_feature_locations(previous_catalog, catalog)
         (FIXTURES/"manifest.json").write_text(json.dumps({"kind":catalog["kind"],"live_calibrated":False,"scenes":catalog["scenes"],"limitations":catalog["limitations"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
         print("Refreshed complete editor and selection control blocks")
         return
@@ -425,10 +479,10 @@ def main():
         l,t,r,b=max(0,l-pad),max(0,t-pad),min(1280,r+pad),min(720,b+pad)
         if r<=l or b<=t:
             raise ValueError((key,"invalid native bounds",node))
-        path=ASSETS/(key+".png");image.crop((l,t,r,b)).save(path)
+        path=feature_path(key);image.crop((l,t,r,b)).save(path)
         target=next((n for p,n in nodes.items() if click_suffix and p.endswith(click_suffix)),node)
         a,c,d,e=target["box_xyxy"]
-        catalog["templates"][key]={"image":"templates/workshop/staffing/editor/"+path.name,"bbox":[l,t,r-l,b-t],"search_region":[max(0,l-12),max(0,t-12),min(1280,r+12)-max(0,l-12),min(720,b+12)-max(0,t-12)],"click":[round((a+d)/2),round((c+e)/2)],"threshold":0.90,"source_nodes":[node],"resource":RESOURCES[model],"scene":scene_key,"sha256":digest(path)}
+        catalog["templates"][key]={"image":path.relative_to(PLAN).as_posix(),"bbox":[l,t,r-l,b-t],"search_region":[max(0,l-12),max(0,t-12),min(1280,r+12)-max(0,l-12),min(720,b+12)-max(0,t-12)],"click":[round((a+d)/2),round((c+e)/2)],"threshold":0.90,"source_nodes":[node],"resource":RESOURCES[model],"scene":scene_key,"sha256":digest(path)}
     for num in (1,2):
         template(f"room_{num}_title",f"editor_{num}","/Group_WorkshopInfo/Txt_Workshop")
     template("quick","editor_1","/Img_QuickEditOFF/Group_/Txt_Quick",2,"/Group_Edit/Btn_QuickEdit")
@@ -454,7 +508,8 @@ def main():
             catalog["templates"]["saved_marker"] = saved_marker_profile(marker)
     saved.save(FIXTURES/"saved.png")
     catalog["scenes"]["saved"]={"image":"tests/fixtures/product_workshop_staff/saved.png","kind":"synthetic_composite_of_existing_live_template_crops","source_catalog":"data/meta/reforming_center_templates_pc.json","sha256":digest(FIXTURES/"saved.png")}
-    catalog["provenance"]["fonts"]=[{"font_path_id":key,"sha256":font["sha256"]} for model in models.values() for key,font in model.fonts.items()]
+    catalog["provenance"]["fonts"]=unique_font_records(
+        [{"font_path_id":key,"sha256":font["sha256"]} for model in models.values() for key,font in model.fonts.items()])
     logic_names=("CommonTips.lua","UIPrompt/UIPromptLuaBehaviour.lua","UIPrisonEdit/UIPrisonEditController.lua","UIPrisonEdit/UIPrisonEditViewFunction.lua")
     catalog["provenance"]["logic_sources"]=[{"script":name,"sha256":digest(args.data_root/"Patch/Script"/name)} for name in logic_names]
     catalog["provenance"]["text_bindings"]={"room_title":{"text_id":80600296,"binding":"CurRoomIndex","examples":[1,2]},"save_prompt":{"text_id":80600202,"node":"/Prompt/Group_Prompt/TextIcon_Prompt"},"button_labels":"native prefab defaults; nil yesTxt/noTxt in OnPrompt","example_counts":"synthetic inputs, not player data"}
@@ -463,6 +518,7 @@ def main():
     refresh_feature_blocks(catalog)
     dest=PLAN/"data/meta/product_workshop_staff_templates_pc.json"
     dest.write_text(json.dumps(catalog,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+    remove_legacy_feature_locations(previous_catalog, catalog)
     (FIXTURES/"manifest.json").write_text(json.dumps({"kind":catalog["kind"],"live_calibrated":False,"scenes":catalog["scenes"],"limitations":catalog["limitations"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"templates":len(catalog["templates"]),"scenes":len(catalog["scenes"]),"catalog":str(dest),"errors":{k:len(m.errors) for k,m in models.items()}}))
 

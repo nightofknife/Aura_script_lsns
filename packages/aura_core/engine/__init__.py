@@ -18,5 +18,6 @@
 """
 
 from .execution_engine import ExecutionEngine, StepState
+from .execution_facade import ExecutionFacade
 
-__all__ = ['ExecutionEngine', 'StepState']
+__all__ = ['ExecutionEngine', 'StepState', 'ExecutionFacade']

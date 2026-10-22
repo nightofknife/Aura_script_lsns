@@ -10,8 +10,19 @@ from packages.aura_core.api import ACTION_REGISTRY, ActionDefinition
 from packages.aura_core.context.persistence.store_service import StateStoreService
 from packages.aura_core.observability.events import EventBus
 from packages.aura_core.scheduler.orchestrator import Orchestrator
+from packages.aura_core.scheduler.cancellation import clear_task_cancel, is_task_cancel_requested
 
 UNSET = object()
+
+
+@pytest.fixture(autouse=True)
+def isolate_parent_cancellation():
+    # These independent projects deliberately use a fixed CID for event checks.
+    clear_task_cancel("parent-contract")
+    try:
+        yield
+    finally:
+        clear_task_cancel("parent-contract")
 
 
 def execute_project(tmp_path, monkeypatch, *, behavior="completed", child_node="private_work",
@@ -28,6 +39,18 @@ def execute_project(tmp_path, monkeypatch, *, behavior="completed", child_node="
                 raise asyncio.CancelledError()
             if behavior == "timeout":
                 await asyncio.sleep(1)
+            if behavior == "timeout_then_complete" and calls.count("work") == 1:
+                try:
+                    await asyncio.sleep(1)
+                finally:
+                    await asyncio.sleep(0)
+                    calls.append("timeout_cleanup")
+            if behavior == "parent_timeout":
+                try:
+                    await asyncio.sleep(1)
+                finally:
+                    await asyncio.sleep(0)
+                    calls.append("child_cleanup")
             return {"success": behavior != "blocked", "status": behavior, "receipt": 17}
 
         async def after():
@@ -47,16 +70,29 @@ def execute_project(tmp_path, monkeypatch, *, behavior="completed", child_node="
             calls.append("normal")
             return True
 
+        async def retrying():
+            calls.append("retrying")
+            raise ValueError("retry delay must also retain the parent's timeout source")
+
         definitions = {name: ActionDefinition(func=func, name=name, read_only=True, public=True,
                         service_deps={}, plugin=None, is_async=True)
                        for name, func in {"work": work, "after": after, "parallel_work": parallel_work,
-                                          "normal_root": normal_root}.items()}
+                                          "normal_root": normal_root, "retrying": retrying}.items()}
         monkeypatch.setattr(ACTION_REGISTRY, "get", definitions.get)
         folder = tmp_path / "plans/business_contract/tasks"
         folder.mkdir(parents=True)
         child = {"meta": {"role": "internal", "entry_point": False},
                  "steps": {child_node: {"action": "work", **({"timeout_sec": .01} if behavior == "timeout" else {})}},
                  "returns": "{{ nodes." + child_node + ".output }}"}
+        if behavior == "timeout_then_complete":
+            child["steps"][child_node].update(timeout_sec=.03, on_exception={
+                "retry": 1, "delay": 0, "retry_on": ["TimeoutError"],
+            })
+        if behavior == "parent_timeout":
+            child["steps"]["parallel"] = {"action": "parallel_work"}
+            child["steps"]["retrying"] = {"action": "retrying", "on_exception": {
+                "retry": 1, "delay": 1, "retry_on": ["ValueError"],
+            }}
         if behavior == "cancelled":
             child["steps"]["parallel"] = {"action": "parallel_work"}
             child["steps"]["normal"] = {"action": "normal_root"}
@@ -71,6 +107,8 @@ def execute_project(tmp_path, monkeypatch, *, behavior="completed", child_node="
                       "after": {"action": "after", "depends_on": "child",
                                 "when": "{{ nodes.child.output.success }}"}},
                   "returns": {"business": "{{ nodes.child.output }}"}}
+        if behavior == "parent_timeout":
+            parent["steps"]["child"]["timeout_sec"] = .05
         if result_assertions is not UNSET:
             parent["steps"]["child"]["params"]["result_assertions"] = result_assertions
         if repeat > 1:
@@ -127,6 +165,7 @@ def test_child_failure_timeout_and_cancellation_stop_parent(tmp_path, monkeypatc
         assert parent.payload["final_result"]["framework_data"]["nodes"]["after"]["run_state"]["status"] == "CANCELLED"
     else:
         assert calls == ["work"]
+        assert not is_task_cancel_requested("parent-contract")
     assert any(event.payload["parent_cid"] == "parent-contract" for event in events)
 
 
@@ -139,6 +178,22 @@ def test_file_only_named_task_alias_is_rejected(tmp_path, monkeypatch):
     definitions = loader.get_all_task_definitions()
     assert set(definitions) == {"child/child", "parent/parent"}
     assert definitions["child/child"]["__task_ref__"] == "tasks:child.yaml:child"
+
+
+def test_local_node_timeout_finishes_cleanup_then_retries_without_cancelling_parent(tmp_path, monkeypatch):
+    result, calls, _ = execute_project(tmp_path, monkeypatch, behavior="timeout_then_complete")
+    assert result["status"] == "SUCCESS"
+    assert calls == ["work", "timeout_cleanup", "work", "after"]
+    assert result["user_data"]["business"]["success"] is True
+    assert not is_task_cancel_requested("parent-contract")
+
+
+def test_parent_node_timeout_drains_nested_dag_actions_and_retry_delay(tmp_path, monkeypatch):
+    result, calls, events = execute_project(tmp_path, monkeypatch, behavior="parent_timeout")
+    assert result["status"] == "FAILED"
+    assert sorted(calls) == ["child_cleanup", "parallel", "parallel_cleanup", "retrying", "work"]
+    assert not is_task_cancel_requested("parent-contract")
+    assert any(event.payload["parent_cid"] == "parent-contract" for event in events)
 
 
 @pytest.mark.parametrize("spec", [

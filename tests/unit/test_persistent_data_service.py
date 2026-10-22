@@ -57,11 +57,19 @@ def test_rejects_symlink_escape(tmp_path: Path) -> None:
     link = service.root / "linked"
     try:
         link.symlink_to(outside, target_is_directory=True)
-    except OSError:
-        pytest.skip("Directory symlinks are not available for this Windows test user")
+    except OSError as exc:
+        if getattr(exc, "winerror", None) != 1314:
+            raise
+        # Directory junctions exercise real path resolution without requiring
+        # the Windows symbolic-link privilege or skipping the escape guard.
+        import _winapi
+
+        _winapi.CreateJunction(str(outside), str(link))
+    assert link.resolve() == outside.resolve()
     with pytest.raises(PersistentDataValidationError) as exc_info:
         service.set("linked/escape.json", [], {})
     assert exc_info.value.code == "persistent_data_path_escape"
+    assert not (outside / "escape.json").exists()
 
 
 def test_mutation_operations_and_noop_write(tmp_path: Path) -> None:

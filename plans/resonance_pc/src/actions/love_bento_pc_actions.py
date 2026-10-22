@@ -56,9 +56,10 @@ class LoveBentoScanner:
 
     def capture(self):
         self.guard()
-        if not self.reader.is_page('bento_cabinet'):
+        frame = self.reader.snapshot()
+        if not self.reader.is_page('bento_cabinet', frame=frame):
             raise _error('love-bento cabinet disappeared')
-        return self.reader.capture(self.cfg['capture_roi'])
+        return self.reader.capture(self.cfg['capture_roi'], frame=frame)
 
     @staticmethod
     def unchanged(a, b):

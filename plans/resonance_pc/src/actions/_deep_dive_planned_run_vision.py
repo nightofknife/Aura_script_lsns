@@ -20,7 +20,7 @@ from . import _deep_dive_hud_templates as hud_templates
 from ._deep_dive_match_cache import exact_roi_cache
 
 
-ROOT = Path(__file__).resolve().parents[2] / "templates/deep_dive_planned_run"
+ROOT = Path(__file__).resolve().parents[2] / "templates/deep_dive/deep_dive_planned_run"
 BOARD_ROI = (295, 80, 955, 620)
 REGIONS = {
     "settlement_victory": (430, 0, 850, 195),

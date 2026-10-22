@@ -754,7 +754,7 @@ def _write_cell_crops(result, output_dir):
 
 async def _reset_view(app, output_dir, deadline):
     """Require two ordinary-board observations and an actual reset UI match."""
-    template_path = Path(__file__).resolve().parents[2] / "templates" / "deep_dive_layout" / "reset_view.png"
+    template_path = Path(__file__).resolve().parents[2] / "templates" / "deep_dive" / "deep_dive_layout" / "reset_view.png"
     template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
     mask = cv2.imread(str(template_path.with_name("reset_view_mask.png")), cv2.IMREAD_GRAYSCALE)
     if template is None or mask is None or mask.shape != template.shape:

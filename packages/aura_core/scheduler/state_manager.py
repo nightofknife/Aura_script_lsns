@@ -101,6 +101,9 @@ class StateManager:
             hasattr(self.scheduler.lifecycle, "_scheduler_thread")
             and self.scheduler.lifecycle._scheduler_thread is not None
             and self.scheduler.lifecycle._scheduler_thread.is_alive()
+            and self.scheduler.is_running is not None
+            and self.scheduler.is_running.is_set()
+            and self.scheduler.startup_complete_event.is_set()
         )
         return {"is_running": is_running}
 

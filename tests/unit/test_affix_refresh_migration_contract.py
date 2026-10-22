@@ -1,11 +1,54 @@
 """Keep the new refresh budget, candidate handoff and uncertain spending."""
 import asyncio
 from copy import deepcopy
+import hashlib
+import json
+from pathlib import Path
 
 import pytest
 
 from plans.resonance_pc.src.actions import _affix_refresh_policy as policy
 from plans.resonance_pc.src.actions import _affix_refresh_runtime as runtime
+from tools import build_affix_refresh_templates as template_builder
+
+
+def test_native_backups_belong_to_development_and_retain_runtime_provenance():
+    plan = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
+    active_root = plan / "templates/inventory/affix_refresh"
+    source_root = plan / "development/template_sources/inventory/affix_refresh"
+    active = json.loads((active_root / "manifest.json").read_text(encoding="utf-8"))
+    sources = json.loads((source_root / "manifest.json").read_text(encoding="utf-8"))
+    assert not (active_root / "native").exists()
+    assert "native_file" not in json.dumps(active)
+    assert all(not file.startswith("native/") for file in active["assets"])
+    assert len(sources["assets"]) == 23
+    assert (source_root / sources["runtime_manifest"]).resolve() == active_root / "manifest.json"
+    assert set(sources["assets"]) == {path.relative_to(source_root).as_posix()
+                                      for path in (source_root / "native").rglob("*.png")}
+    for file, asset in sources["assets"].items():
+        assert hashlib.sha256((source_root / file).read_bytes()).hexdigest() == asset["sha256"]
+        assert len(asset["size"]) == 2 and asset["runtime_file"] in active["assets"]
+        assert asset["runtime_spec_paths"]
+        for pointer in asset["runtime_spec_paths"]:
+            original = sources["provenance"]
+            for segment in pointer.removeprefix("/").split("/"):
+                key = segment.replace("~1", "/").replace("~0", "~")
+                original = original[int(key)] if isinstance(original, list) else original[key]
+            assert original["native_file"] == file
+
+
+def test_affix_generator_output_defaults_keep_runtime_and_development_separate(tmp_path):
+    output, development = template_builder.output_directories(template_builder.DEFAULT_OUTPUT)
+    assert output == template_builder.DEFAULT_OUTPUT.resolve()
+    assert development == template_builder.DEFAULT_DEVELOPMENT_OUTPUT.resolve()
+    custom = tmp_path / "runtime"
+    assert template_builder.output_directories(custom) == (custom, tmp_path / "runtime_sources")
+    explicit = tmp_path / "source_archive"
+    assert template_builder.output_directories(custom, explicit) == (custom, explicit)
+    for invalid in (custom, custom / "native", tmp_path,
+                    template_builder.PLAN / "templates/development"):
+        with pytest.raises(ValueError, match="outside runtime templates"):
+            template_builder.output_directories(custom, invalid)
 
 
 @pytest.fixture

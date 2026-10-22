@@ -7,8 +7,16 @@ import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import raw_workshop_pc_actions as actions
+from packages.aura_core.scheduler import operation_scope
+from tests.interaction_clock import advance, install_clock
 
 ROOM = "动物纤维原料车间"
+
+
+@pytest.fixture(autouse=True)
+def operation_clock(monkeypatch):
+    with install_clock(monkeypatch, actions.clicks) as clock:
+        yield clock
 
 
 def fraction(current, capacity):
@@ -80,7 +88,7 @@ def scene(monkeypatch):
         return None
 
     app.click = clicked
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "snapshot", lambda image, room: deepcopy(app.state) if app.page == "room" else None)
     monkeypatch.setattr(actions.ui, "room_ready", lambda image, room: app.page == "room")
     monkeypatch.setattr(actions.ui, "control_visible", lambda image, name: True)
@@ -321,7 +329,7 @@ def test_snapshot_canonicalization_ignores_volatile_digit_match_scores(monkeypat
     states = [snapshot(work=(15, 15), reserve=(10, 10)) for _ in range(2)]
     states[0]["work"]["score"], states[1]["work"]["score"] = .94, .99
     values = iter(states)
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "snapshot", lambda image, room: next(values))
     result = actions.resonance_pc_raw_workshop_observe(ROOM, app=app)
     assert result["success"]
@@ -458,7 +466,7 @@ def test_summary_reports_explicit_reserve_round_budget_exhaustion():
 def test_return_overview_clicks_once_then_confirms_effect_and_two_ready_frames(monkeypatch, production):
     app = App()
     patch_snapshot(monkeypatch, snapshot(production))
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
     monkeypatch.setattr(actions.ui, "control_visible", lambda image, name: name == "selection_back")
     probes = []
@@ -486,7 +494,7 @@ def test_return_overview_unknown_room_does_not_click(monkeypatch):
 def test_return_overview_missing_arrow_or_missing_destination_never_retries(monkeypatch, back_visible):
     app = App()
     patch_snapshot(monkeypatch, snapshot("running"))
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
     monkeypatch.setattr(actions.ui, "control_visible", lambda *args: back_visible)
     monkeypatch.setattr(actions.ui, "overview_state", lambda image: None)
@@ -498,7 +506,7 @@ def test_return_overview_missing_arrow_or_missing_destination_never_retries(monk
 def test_return_overview_unknown_after_effect_stops_without_second_click(monkeypatch):
     app = App()
     patch_snapshot(monkeypatch, snapshot())
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
     monkeypatch.setattr(actions.ui, "control_visible", lambda *args: True)
     values = iter([{"page": "reforming_center_overview"}] + [None] * 10)
@@ -539,7 +547,7 @@ def test_return_overview_cancellation_before_click_never_inputs(monkeypatch, sta
     state = {"cancelled": stage == "before"}
     app = App()
     monkeypatch.setattr(actions, "is_current_task_cancel_requested", lambda: state["cancelled"])
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     captures = []
     original_capture = app.capture
 
@@ -575,7 +583,7 @@ def test_return_overview_cancellation_during_effect_or_ready_stops_confirmation(
     state = {"cancelled": False, "probes": 0}
     monkeypatch.setattr(actions, "is_current_task_cancel_requested", lambda: state["cancelled"])
     patch_snapshot(monkeypatch, snapshot())
-    monkeypatch.setattr(actions.clicks, "_sleep", lambda _: None)
+    monkeypatch.setattr(actions.clicks, "_sleep", advance)
     monkeypatch.setattr(actions.ui, "room_ready", lambda *args: True)
     monkeypatch.setattr(actions.ui, "control_visible", lambda *args: True)
 
@@ -604,7 +612,7 @@ def test_return_confirmation_wait_polls_cancellation_at_fifty_ms(monkeypatch):
         sleeps.append(seconds)
         state["cancelled"] = True
 
-    monkeypatch.setattr(actions.clicks.time, "sleep", sleep)
+    monkeypatch.setattr(operation_scope.time, "sleep", sleep)
     with pytest.raises(asyncio.CancelledError):
         with actions.clicks.cancellation_checks(actions._check_return_cancelled):
             actions.clicks.wait_confirmed(App(), lambda image: True)

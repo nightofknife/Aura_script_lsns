@@ -9,6 +9,7 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 from . import _product_collection_ui as ui
 from . import _reforming_center_clicks as clicks
 from . import _raw_workshop_ui as overview_ui
+from ._product_collection_matching import frame_observation, observe_frame
 from . import reforming_center_pc_actions as layout
 from .reforming_center_navigation_pc_actions import resonance_pc_open_reforming_center_room
 from .city_trade_flow_pc_actions import resonance_pc_tap_back_once
@@ -24,23 +25,24 @@ def _cancelled():
 
 
 def _physical(frame, room):
-    return ui.physical(frame, room) and not ui.navigation_open(frame)
+    return ui.physical(frame, room)
 
 
 def _page(app, room=None):
     try:
         image = clicks.read_frame(app)
-        if ui.navigation_open(image):
-            return "product_workshop_navigation"
-        state = ui.collection_state(image, room) if room else None
-        if state == "complete":
-            return "product_collection_reward"
-        if state == "capacity_blocked":
-            return "product_collection_capacity_prompt"
-        if room and _physical(image, room):
-            return "product_workshop"
-        if overview_ui.overview_state(image):
-            return OVERVIEW
+        with observe_frame(image):
+            if ui.navigation_open(image):
+                return "product_workshop_navigation"
+            state = ui.collection_state(image, room) if room else None
+            if state == "complete":
+                return "product_collection_reward"
+            if state == "capacity_blocked":
+                return "product_collection_capacity_prompt"
+            if state in {"collectable", "idle"} or (room and _physical(image, room)):
+                return "product_workshop"
+            if overview_ui.overview_state(image):
+                return OVERVIEW
     except (clicks.CheckedClickError, OSError, ValueError, KeyError):
         pass
     return None
@@ -48,9 +50,10 @@ def _page(app, room=None):
 
 def _control(app, name, data, before, effect):
     image = clicks.read_frame(app)
-    if not before(image):
-        raise clicks.CheckedClickError("collection_source_not_confirmed", {"control": name})
-    hit = ui.control(image, name)
+    with observe_frame(image):
+        if not before(image):
+            raise clicks.CheckedClickError("collection_source_not_confirmed", {"control": name})
+        hit = ui.control(image, name)
     if hit is None:
         raise clicks.CheckedClickError("collection_control_not_recognized", {"control": name})
     record = {"control": name}
@@ -71,6 +74,7 @@ def _back_to_overview(app, vision, room, data):
 
 
 def _states(app):
+    @frame_observation
     def probe(image):
         if not ui.navigation_open(image):
             return None
@@ -87,9 +91,10 @@ def _states(app):
 
 def _scroll_navigation(app, data, direction):
     image = clicks.read_frame(app)
-    if not ui.navigation_open(image):
-        raise clicks.CheckedClickError("collection_navigation_lost")
-    region = ui.navigation_region(image)
+    with observe_frame(image):
+        if not ui.navigation_open(image):
+            raise clicks.CheckedClickError("collection_navigation_lost")
+        region = ui.navigation_region(image)
     if not region or len(region) != 4:
         raise clicks.CheckedClickError("collection_navigation_region_unknown")
     x, y, w, h = region
@@ -154,9 +159,10 @@ def resonance_pc_product_collection_scan_unlocks(navigation: dict, app: Any = No
                 raise clicks.CheckedClickError("collection_unlock_order_inconsistent", {"states": seen})
             result["unlocks"] = {ROOMS[number-1]: seen[number] for number in range(1, 7)}
             image = clicks.read_frame(app)
-            point = ui.navigation_close_point(image)
-            if point is None or not ui.navigation_open(image):
-                raise clicks.CheckedClickError("collection_navigation_close_not_ready")
+            with observe_frame(image):
+                point = ui.navigation_close_point(image)
+                if point is None or not ui.navigation_open(image):
+                    raise clicks.CheckedClickError("collection_navigation_close_not_ready")
             record = {"control": "native_navigation_background"}
             result["clicks"].append(record)
             clicks.checked_click(app, point, lambda f: _physical(f, ROOMS[0]),
@@ -202,7 +208,8 @@ def resonance_pc_product_collection_collect_room(room_name: str, unlocks: dict, 
         try:
             _cancelled()
             navigation = resonance_pc_open_reforming_center_room(
-                room_name=room_name, max_search_steps=max_search_steps, settle_sec=settle_sec, app=app)
+                room_name=room_name, max_search_steps=max_search_steps, settle_sec=settle_sec, app=app,
+                vision=vision)
             result["navigation"] = navigation
             _cancelled()
             if navigation.get("success") is not True or navigation.get("room_entered") is not True:
@@ -210,14 +217,17 @@ def resonance_pc_product_collection_collect_room(room_name: str, unlocks: dict, 
 
             def ready(image):
                 state = ui.collection_state(image, room_name)
-                return state if state in {"collectable", "idle"} and _physical(image, room_name) else None
+                # Both states are emitted only after physical() confirms this
+                # room on this frame; do not run its six-number check twice.
+                return state if state in {"collectable", "idle"} else None
             state = clicks.wait_confirmed(app, ready, timeout_sec=6, poll_sec=.4)
             status = "no_collectable"
             if state == "collectable":
                 image = clicks.read_frame(app)
-                if ready(image) != "collectable":
-                    raise clicks.CheckedClickError("collection_button_state_changed")
-                hit = ui.control(image, "collect_all")
+                with observe_frame(image):
+                    if ready(image) != "collectable":
+                        raise clicks.CheckedClickError("collection_button_state_changed")
+                    hit = ui.control(image, "collect_all")
                 if hit is None:
                     raise clicks.CheckedClickError("collection_button_missing")
                 record = {"control": "collect_all"}

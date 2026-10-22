@@ -16,6 +16,8 @@ from packages.aura_core.services.onnx_runtime_backend import OnnxRuntimeBackend
 
 from .ocr_contract import OcrModelMetadata, load_ocr_metadata, metadata_path_for_bundle
 from .ocr_onnx_pipeline import OcrOnnxSessions, OnnxOcrPipeline
+from ._ocr_timing import OcrTiming, timed
+from ._ocr_recognition import OcrRecognitionOptions
 
 
 @dataclass
@@ -42,7 +44,7 @@ class _DefaultConfig:
 
 @service_info(alias="ocr", public=True)
 class OcrService:
-    """OCR service backed by PP-OCRv5 ONNX Runtime artifacts."""
+    """OCR service backed by PP-OCR ONNX Runtime artifacts."""
 
     def __init__(self, config: ConfigService | None = None):
         self._config = config or _DefaultConfig()
@@ -51,9 +53,11 @@ class OcrService:
             config_prefix="ocr",
             runtime_name="Aura OCR service",
             install_hint="requirements/optional-vision-onnx-cpu.txt or requirements/optional-vision-onnx-cuda.txt",
+            session_defaults={"intra_op_num_threads": 8, "allow_spinning": False},
         )
 
         self._engine: Optional[OnnxOcrPipeline] = None
+        self._warmed_engine: Optional[OnnxOcrPipeline] = None
         self._engine_device: Optional[str] = None
         self._engine_provider: Optional[str] = None
         self._engine_model: Optional[str] = None
@@ -95,9 +99,8 @@ class OcrService:
             return False
 
     async def _self_check_async(self) -> None:
-        await self._initialize_engine_async()
-        test_image = np.zeros((32, 32, 3), dtype=np.uint8)
-        await self._recognize_all_async(test_image)
+        # A blank detection result must not skip recognition or orientation.
+        await self._warmup_engine_async(force=True)
 
     def get_backend(self) -> str:
         return "onnxruntime"
@@ -114,9 +117,19 @@ class OcrService:
         source_image: np.ndarray,
         match_mode: str = "exact",
         synonyms: Optional[Dict[str, str]] = None,
+        *,
+        recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
     ) -> OcrResult:
         return self._submit_to_loop_and_wait(
-            self._find_text_async(text_to_find, source_image, match_mode, synonyms)
+            self._find_text_async(
+                text_to_find, source_image, match_mode, synonyms,
+                recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation,
+                rotate_tall_crops=rotate_tall_crops,
+            )
         )
 
     def find_all_text(
@@ -125,16 +138,50 @@ class OcrService:
         source_image: np.ndarray,
         match_mode: str = "exact",
         synonyms: Optional[Dict[str, str]] = None,
+        *,
+        recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
     ) -> MultiOcrResult:
         return self._submit_to_loop_and_wait(
-            self._find_all_text_async(text_to_find, source_image, match_mode, synonyms)
+            self._find_all_text_async(
+                text_to_find, source_image, match_mode, synonyms,
+                recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation,
+                rotate_tall_crops=rotate_tall_crops,
+            )
         )
 
-    def recognize_text(self, source_image: np.ndarray) -> OcrResult:
-        return self._submit_to_loop_and_wait(self._recognize_text_async(source_image))
+    def recognize_text(
+        self, source_image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> OcrResult:
+        """Recognize text; recognition_only treats the input as one upright line."""
+        return self._submit_to_loop_and_wait(
+            self._recognize_text_async(
+                source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation,
+                rotate_tall_crops=rotate_tall_crops,
+            )
+        )
 
-    def recognize_all(self, source_image: np.ndarray) -> MultiOcrResult:
-        return self._submit_to_loop_and_wait(self._recognize_all_async(source_image))
+    def recognize_all(
+        self, source_image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> MultiOcrResult:
+        """Recognize regions; recognition_only returns at most one input region."""
+        return self._submit_to_loop_and_wait(
+            self._recognize_all_async(
+                source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation,
+                rotate_tall_crops=rotate_tall_crops,
+            )
+        )
 
     async def _initialize_engine_async(self):
         async with self._engine_lock:
@@ -145,7 +192,10 @@ class OcrService:
             bundle_dir, metadata_path = self._resolve_bundle_paths()
             metadata = await asyncio.to_thread(load_ocr_metadata, metadata_path)
             sessions, provider = await asyncio.to_thread(self._create_pipeline_sessions, metadata, bundle_dir)
-            self._engine = OnnxOcrPipeline(metadata=metadata, sessions=sessions, provider=provider)
+            self._engine = OnnxOcrPipeline(
+                metadata=metadata, sessions=sessions, provider=provider,
+                recognition_options=OcrRecognitionOptions.from_config(self._config),
+            )
             self._engine_provider = provider
             self._engine_device = "gpu" if provider == "CUDAExecutionProvider" else "cpu"
             self._engine_model = bundle_dir.name
@@ -161,11 +211,15 @@ class OcrService:
             await self._warmup_engine_async()
         return self._engine_device
 
-    async def _warmup_engine_async(self) -> bool:
+    async def _warmup_engine_async(self, *, force: bool = False) -> bool:
         engine = await self._get_engine_async()
-        warmup_image = np.zeros((64, 64, 3), dtype=np.uint8)
         async with self._ocr_semaphore:
-            await asyncio.to_thread(self._run_ocr_sync, engine, warmup_image)
+            if not force and self._warmed_engine is engine:
+                return True
+            self._warmed_engine = None
+            stages = await asyncio.to_thread(engine.warmup)
+            self._warmed_engine = engine
+            logger.info("OCR warmup completed (model=%s, stages=%s).", self._engine_model, ",".join(stages))
         return True
 
     async def _get_engine_async(self) -> OnnxOcrPipeline:
@@ -181,8 +235,17 @@ class OcrService:
         source_image: np.ndarray,
         match_mode: str,
         synonyms: Optional[Dict[str, str]],
+        *,
+        recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
     ) -> OcrResult:
-        all_parsed_results = await self._recognize_all_and_parse_async(source_image)
+        all_parsed_results = await self._recognize_all_and_parse_async(
+            source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
+        )
         for result in all_parsed_results:
             normalized_text = synonyms.get(result.text, result.text) if synonyms else result.text
             if self._is_match(normalized_text, text_to_find, match_mode):
@@ -195,8 +258,17 @@ class OcrService:
         source_image: np.ndarray,
         match_mode: str,
         synonyms: Optional[Dict[str, str]],
+        *,
+        recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
     ) -> MultiOcrResult:
-        all_parsed_results = await self._recognize_all_and_parse_async(source_image)
+        all_parsed_results = await self._recognize_all_and_parse_async(
+            source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
+        )
         found_matches = []
         for result in all_parsed_results:
             normalized_text = synonyms.get(result.text, result.text) if synonyms else result.text
@@ -204,26 +276,77 @@ class OcrService:
                 found_matches.append(result)
         return MultiOcrResult(count=len(found_matches), results=found_matches)
 
-    async def _recognize_text_async(self, source_image: np.ndarray) -> OcrResult:
-        all_parsed_results = await self._recognize_all_and_parse_async(source_image)
+    async def _recognize_text_async(
+        self, source_image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> OcrResult:
+        all_parsed_results = await self._recognize_all_and_parse_async(
+            source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
+        )
         if not all_parsed_results:
             return OcrResult(found=False)
         best_result = max(all_parsed_results, key=lambda r: r.confidence)
         best_result.found = True
         return best_result
 
-    async def _recognize_all_async(self, source_image: np.ndarray) -> MultiOcrResult:
-        all_parsed_results = await self._recognize_all_and_parse_async(source_image)
+    async def _recognize_all_async(
+        self, source_image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> MultiOcrResult:
+        all_parsed_results = await self._recognize_all_and_parse_async(
+            source_image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops,
+        )
         return MultiOcrResult(count=len(all_parsed_results), results=all_parsed_results)
 
-    async def _recognize_all_and_parse_async(self, source_image: np.ndarray) -> List[OcrResult]:
+    async def _recognize_all_and_parse_async(
+        self, source_image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> List[OcrResult]:
         engine = await self._get_engine_async()
         async with self._ocr_semaphore:
-            raw_results = await asyncio.to_thread(self._run_ocr_sync, engine, source_image)
-        return self._parse_results(raw_results)
+            enabled = self._config.get("ocr.profiling.enabled", False)
+            if isinstance(enabled, str):
+                enabled = enabled.strip().lower() in {"1", "true", "yes", "on"}
+            timing = OcrTiming() if enabled else None
+            timing_kwargs = {"timing": timing} if timing is not None else {}
+            raw_results = await asyncio.to_thread(
+                self._run_ocr_sync, engine, source_image,
+                recognition_only=recognition_only, det_resize_long=det_resize_long,
+                use_textline_orientation=use_textline_orientation,
+                rotate_tall_crops=rotate_tall_crops,
+                **timing_kwargs,
+            )
+        with timed(timing, "result_parse"):
+            results = self._parse_results(raw_results)
+        if timing is not None:
+            report = timing.snapshot()
+            logger.info("OCR timing (ms; excludes capture, engine loading and semaphore wait): %s", report)
+            for result in results:
+                result.debug_info["timing"] = report
+        return results
 
-    def _run_ocr_sync(self, engine: OnnxOcrPipeline, image: np.ndarray) -> List[Dict[str, Any]]:
-        return engine.predict(image)
+    def _run_ocr_sync(
+        self, engine: OnnxOcrPipeline, image: np.ndarray, *, recognition_only: bool = False,
+        det_resize_long: int | None = None, timing: OcrTiming | None = None,
+        use_textline_orientation: bool = True,
+        rotate_tall_crops: bool = False,
+    ) -> List[Dict[str, Any]]:
+        timing_kwargs = {"timing": timing} if timing is not None else {}
+        return engine.predict(
+            image, recognition_only=recognition_only, det_resize_long=det_resize_long,
+            use_textline_orientation=use_textline_orientation,
+            rotate_tall_crops=rotate_tall_crops, **timing_kwargs,
+        )
 
     def _parse_results(self, ocr_raw_results: List[Dict[str, Any]]) -> List[OcrResult]:
         parsed_list: list[OcrResult] = []
@@ -252,6 +375,7 @@ class OcrService:
                         "backend": "onnxruntime",
                         "provider": self._engine_provider,
                         "polygon": box.astype(float).tolist(),
+                        **({"recognition_only": True} if data.get("recognition_only") else {}),
                     },
                 )
             )
@@ -300,7 +424,7 @@ class OcrService:
 
     def _resolve_bundle_paths(self) -> tuple[Path, Path]:
         models_root_value = self._config.get("ocr.models_root", "models/ocr")
-        model_name = str(self._config.get("ocr.default_model", "ppocrv5_server") or "ppocrv5_server").strip()
+        model_name = str(self._config.get("ocr.default_model", "ppocrv6_small") or "ppocrv6_small").strip()
         if not model_name:
             raise ValueError("ocr.default_model must not be empty.")
 

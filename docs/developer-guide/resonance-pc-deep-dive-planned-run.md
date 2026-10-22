@@ -31,7 +31,7 @@
 | 内部扫描引擎及原报告包装 | [扫描动作](../../plans/resonance_pc/src/actions/consciousness_deep_dive_scan_pc_actions.py) |
 | 操作视图与预览置换 | [三面映射](../../plans/resonance_pc/src/actions/_deep_dive_operation_frame.py)、[动作事务](../../plans/resonance_pc/src/actions/_deep_dive_directed_operation_flow.py) |
 | 当前状态规划 | [规划入口](../../plans/resonance_pc/src/actions/_deep_dive_movement_planner.py) |
-| 页面、HUD、位面与终点 | [观察器](../../plans/resonance_pc/src/actions/_deep_dive_planned_run_vision.py)、[资源来源](../../plans/resonance_pc/templates/deep_dive_planned_run/sources.json) |
+| 页面、HUD、位面与终点 | [观察器](../../plans/resonance_pc/src/actions/_deep_dive_planned_run_vision.py)、[资源来源](../../plans/resonance_pc/templates/deep_dive/deep_dive_planned_run/sources.json) |
 | 事件来源与恢复 | [运行时事件](../../plans/resonance_pc/src/actions/_deep_dive_runtime_events.py) |
 | GUI | [面板](../../packages/resonance_gui/widgets/consciousness_deep_dive_panel.py)、[桥接](../../packages/resonance_gui/bridge.py) |
 
