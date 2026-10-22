@@ -90,6 +90,3 @@ YOLO11 检测导出，ONNX `names` 元数据顺序严格为
 预处理采用整数 letterbox padding，与已验证研究模型一致；颜色保持 RGB，除以 255。
 解码与类别内 NMS 用 NumPy，不依赖 Ultralytics 或 PyTorch。
 
-当前生产环境 CPU 烟测（12 个已保存截图、OpenCV 4 线程、ORT 2 线程）平均
-69.04 ms/帧、P95 77.36 ms，首次加载 0.34 秒；精确缓存命中约 1.34 ms。
-这只说明服务在当前 CPU 环境可运行，不能代替完整扫描实机耗时或识别准确率验收。

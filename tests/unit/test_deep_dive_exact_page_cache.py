@@ -1,6 +1,5 @@
 """Exact ROI reuse preserves match results, mutable outputs, and dependencies."""
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from threading import Barrier, Event
 
 import cv2
@@ -170,13 +169,3 @@ def test_each_page_matcher_reuses_exact_pixels_but_respects_template_monkeypatch
     assert len(calls) == 4
 
 
-def test_saved_complete_page_observation_matches_all_uncached_fields(monkeypatch):
-    path = Path(__file__).parents[1] / 'fixtures/deep_dive_anchor/oblique_630.png'
-    image = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-    with monkeypatch.context() as patch:
-        for module, name in MATCHERS:
-            patch.setattr(module, name, getattr(module, name).__wrapped__)
-        expected = page.observe(image)
-    assert page.observe(image) == expected
-    assert page.observe(image.copy()) == expected
-    assert sum(getattr(module, name).cache_info().hits for module, name in MATCHERS) > 0

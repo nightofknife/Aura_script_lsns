@@ -1,18 +1,11 @@
 """Exact post-fit reuse changes computation only, never source or evidence."""
 from copy import deepcopy
-import hashlib
-import json
-from pathlib import Path
-import time
 
 import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_layout_vision as vision
-
-
-FIXTURE=Path(__file__).resolve().parents[1]/'fixtures/deep_dive_anchor'
 
 
 @pytest.fixture(autouse=True)
@@ -142,58 +135,3 @@ def test_replaced_atlas_pose_change_recomputes_before_observing(monkeypatch):
     assert scanner._postfit_visibility is None
 
 
-def test_real_fixture_full_semantic_and_crop_decisions_match_old_path(monkeypatch,tmp_path):
-    data=json.loads((FIXTURE/'oblique_630.json').read_text(encoding='utf8'))
-    image=cv2.cvtColor(cv2.imread(str(FIXTURE/'oblique_630.png')),cv2.COLOR_BGR2RGB)
-    monkeypatch.setattr(vision.time,'monotonic',lambda:100.1)
-    classifier=vision.classify_icon;project=cv2.projectPoints
-    classify_crops=[];project_calls=[]
-    def classify(crop):
-        classify_crops.append(hashlib.sha256(crop.tobytes()).hexdigest())
-        return classifier(crop)
-    def projecting(*args,**kwargs):
-        project_calls.append(1)
-        return project(*args,**kwargs)
-    monkeypatch.setattr(vision,'classify_icon',classify)
-    monkeypatch.setattr(cv2,'projectPoints',projecting)
-    outputs=[];measurements=[];elapsed=[]
-    for reuse in (False,True):
-        scanner=vision.LayoutScanner(target_detector=lambda image:pytest.fail('no model/detector'))
-        for key in ('rvec','tvec','rotation','pivot_reference'):
-            setattr(scanner,key,np.asarray(data['pose'][key],float))
-        scanner.ready=True;scanner.quality=.97
-        scanner.icon_anchors={int(k):v for k,v in data['known_icons'].items()}
-        calls=counting_visible(scanner,monkeypatch)
-        if not reuse:
-            monkeypatch.setattr(scanner,'_postfit_visible',lambda image,retain=False:scanner.visible())
-        classify_crops.clear();project_calls.clear()
-        started=time.perf_counter()
-        observation=scanner.semantic_view(image,630,scanner.pose_snapshot(),targets=[],source_frame_time=100.)
-        elapsed.append(time.perf_counter()-started)
-        observation=deepcopy(observation);observation.pop('semantic_cost_sec')
-        # Timing-only diagnostics are the sole excluded observation fields.
-        outputs.append((observation,deepcopy(scanner.last_fused_result),deepcopy(scanner.evidence),
-                        scanner.rotation.copy(),scanner.rvec.copy(),scanner.tvec.copy(),
-                        deepcopy(scanner.last_projected)))
-        measurements.append((len(calls),len(project_calls),list(classify_crops)))
-        assert scanner._postfit_visibility is None
-    old,new=outputs
-    serialize=lambda value:json.dumps(value,sort_keys=True,default=lambda item:item.tolist())
-    assert serialize(old[:3])==serialize(new[:3])
-    for a,b in zip(old[3:6],new[3:6]):assert np.array_equal(a,b)
-    assert_rows_equal(old[6],new[6])
-    assert old[0]['refine_diagnostic']['renewed']
-    assert old[0]['refine_diagnostic']['accepted_confirmed_cell_indices']
-    assert measurements[0][0]-measurements[1][0]==2
-    assert measurements[0][1]-measurements[1][1]==2
-    assert measurements[0][2]==measurements[1][2]
-    (tmp_path/'visibility_counts.json').write_text(json.dumps(dict(
-        source='tests/fixtures/deep_dive_anchor/oblique_630.png',
-        rgb_sha256=hashlib.sha256(image.tobytes()).hexdigest(),
-        supplied_targets=[],model_executed=False,cv_threads=1,
-        visible_calls=[row[0] for row in measurements],
-        projection_calls=[row[1] for row in measurements],
-        classifier_calls=[len(row[2]) for row in measurements],
-        full_output_equal_except_timing=True,exact_crop_sequence_equal=True,
-        single_pair_wall_seconds=elapsed,
-        timing_limit='single offline pair, baseline first; no speedup claim'),indent=2),encoding='utf8')

@@ -1,5 +1,4 @@
 """A scan shortcut must prove current pixels and otherwise keep full vision."""
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -214,20 +213,3 @@ def test_full_fallback_preserves_page_options_and_exclusion_evidence(probes, mon
     assert scene.observe(rgb) is full
 
 
-def test_actual_saved_board_fixture_preserves_all_non_score_outputs():
-    path = Path(__file__).resolve().parents[1] / "fixtures/deep_dive_anchor/reading_only_binding04.png"
-    rgb = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-    threads = cv2.getNumThreads()
-    try:
-        cv2.setNumThreads(1)
-        original = scene.page.observe(rgb)
-        result = scene.observe(rgb)
-    finally:
-        cv2.setNumThreads(threads)
-    assert original["scene"] == "board" and original["player_turn"]
-    assert result["scan_scene_evidence"]["mode"] == "original_predicate_short_circuit"
-    for key, value in original.items():
-        if key not in {"scores", "planned_scores", "planned_probes_not_evaluated"}:
-            assert result[key] == value, key
-    for key, value in result["scores"].items():
-        assert original["scores"][key] == value

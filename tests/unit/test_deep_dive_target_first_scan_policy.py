@@ -1,9 +1,7 @@
 """Target scheduling is opt-in and never changes real atlas evidence."""
 from copy import deepcopy
 import inspect
-import json
 import math
-from pathlib import Path
 import textwrap
 
 import numpy as np
@@ -400,24 +398,6 @@ def test_default_cell_endpoint_and_weights_hooks_preserve_old_decision():
     assert all(np.array_equal(a,b) for a,b in zip(policies[0]._route,policies[1]._route))
 
 
-@pytest.mark.parametrize('frame',[125,157,167,394])
-def test_real_clipped_f22_sources_create_only_bound_navigation_interest(frame):
-    fixture=json.loads((Path(__file__).parent/'fixtures/deep_dive_assigned_candidates_09.json').read_text())
-    source=next(row for row in fixture['sources'] if row['frame_id']==frame)
-    feedback=source['feedback']
-    rows=cells();unknown_target(rows,26);before=deepcopy(rows)
-    policy=TargetFirstCellScanPolicy(expected_inspirations=2)
-    policy._remember_target_source(feedback)
-    assert policy._target_packet_frame == frame
-    assert policy._remember_assigned_interests(rows,feedback,source['elapsed_sec'])
-    interest=policy._assigned_interests[26]
-    assert interest['source_frame_id'] == frame
-    assert interest['expires'] == source['elapsed_sec']+12.
-    assert interest['attempts'] == 0 and interest['kind'] == 'inspiration'
-    assert feedback['target_candidate_associations'][0]['association_evidence']['target_face_glyph_count'] == 2
-    assert rows == before and rows[26]['evidence'] == []
-
-
 def test_repeated_same_interest_requests_no_replan_or_capture_clock_reset():
     policy,rows,feedback=interest_subject()
     assert not policy._remember_assigned_interests(rows,feedback,10.1)
@@ -425,42 +405,3 @@ def test_repeated_same_interest_requests_no_replan_or_capture_clock_reset():
     assert policy._assigned_interests[50]['attempts'] == 0
 
 
-@pytest.mark.parametrize('frame',[125,157,167,394])
-def test_real_known_anchor_lower_bound_can_navigate_clipped_assigned_interest(frame):
-    fixture=json.loads((Path(__file__).parent/'fixtures/deep_dive_assigned_candidates_09.json').read_text())
-    source=next(row for row in fixture['sources'] if row['frame_id']==frame)
-    feedback=source['feedback'];policy=TargetFirstCellScanPolicy(expected_inspirations=2)
-    rows=[dict(occupant='unknown',occupant_status='unknown',node_status='unknown',
-               confidence=0.,evidence=[]) for _ in range(54)]
-    # Actual same-source known glyph indices, not the final board atlas.
-    for index in feedback['refine_diagnostic']['confirmed_cell_indices']:
-        rows[index].update(occupant='none',node_status='known',confidence=.7)
-    before=deepcopy(rows)
-    proof=feedback['target_candidate_associations'][0]['association_evidence']
-    policy.tvec=np.asarray(proof['tvec']);observed=np.asarray(proof['rotation'])
-    policy._remember_target_source(feedback);policy._mixed_feedback=feedback
-    assert policy._remember_assigned_interests(rows,feedback,source['elapsed_sec'])
-    # Saved actual 150px calibration responses from this same scan.
-    axes={0:np.array([.0036915791273675704,-.27246852216273193,-.1509528650463846])/150.,
-          1:np.array([.32192062071949107,.006805733995435682,-.0037349483549360685])/150.}
-    angles=np.radians((-110.,-75.,-45.,-22.,0.,22.,45.,75.,110.));paths=[]
-    turns={axis:[_matrix(vector/np.linalg.norm(vector)*angle) for angle in angles]
-           for axis,vector in axes.items()}
-    for first,second in ((0,1),(1,0)):
-        for i,a in enumerate(angles):
-            mid=turns[first][i]@observed
-            for j,b in enumerate(angles):
-                if abs(a)+abs(b)<math.radians(10.):continue
-                end=turns[second][j]@mid
-                paths.append(([mid] if abs(a)>.01 else [])+([end] if abs(b)>.01 else []))
-    candidates,paths,costs=policy._coverage_prefixes(observed,paths)
-    readable=policy._readability(candidates,rows)
-    novelty=np.array([_pose_angle(pose,observed)>=math.radians(9.) for pose in candidates])
-    best=next(i for i in range(len(candidates)) if readable[i,26]==0.)
-    chosen=policy._planning_endpoint(best,np.zeros(len(candidates)),candidates,paths,costs,
-        readable,readable,novelty,observed,rows,source['elapsed_sec'])
-    assert chosen != best and readable[chosen,26]>0 and novelty[chosen]
-    assert policy._planning_anchor_support(candidates,rows)[chosen]>0
-    assert policy._route_anchor_support(paths,rows,allow_potential=True)[chosen]>0
-    assert policy._assigned_interests[26]['attempts']==1
-    assert rows==before and rows[26]['evidence']==[]

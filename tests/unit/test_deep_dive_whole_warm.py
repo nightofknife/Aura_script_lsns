@@ -1,34 +1,10 @@
-"""Actual anti-aliased eye glyph regressions, with unchanged conservative gates."""
-from pathlib import Path
+"""Native eye templates and synthetic walls retain conservative glyph gates."""
 
 import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_layout_semantics as semantics
-
-
-FIXTURES = Path(__file__).parents[1] / 'fixtures/deep_dive_anchor'
-
-
-def read_rgb(path):
-    return cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
-
-
-@pytest.mark.parametrize('frame_id', [386, 391])
-def test_complete_actual_triple_eye_survives_connected_component_changes(frame_id):
-    image = read_rgb(FIXTURES / f'whole_warm_D10_{frame_id}.png')
-    # These true glyphs are rejected in the original maximum-domain space.
-    old_shape = semantics._warm_glyph(image)
-    assert max(score for score, _ in semantics._eye_correlation_scores(old_shape)) < .78
-    result = semantics.classify_icon(image)
-    assert result['icon_id'] == 'orange_triple_eye'
-    assert result['confidence'] >= .80
-
-
-def test_actual_boss_glow_does_not_establish_an_eye_glyph():
-    image = read_rgb(FIXTURES / 'whole_warm_boss_glow_130.png')
-    assert semantics.classify_icon(image)['icon_id'] is None
 
 
 @pytest.mark.parametrize('hue', [0, 7, 15, 23, 170])

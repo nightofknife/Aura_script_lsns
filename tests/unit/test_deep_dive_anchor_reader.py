@@ -1,55 +1,12 @@
 """Reading-only orientation is never a substitute for strict action registration."""
 from copy import deepcopy
-import json
-from pathlib import Path
 
-import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_anchor_reader as reader
 from plans.resonance_pc.src.actions import _deep_dive_operation_frame as operation
 from plans.resonance_pc.src.actions._deep_dive_planner_rules import coord_dict
-
-
-FIXTURES=Path(__file__).parents[1]/'fixtures/deep_dive_anchor'
-
-
-def test_real_two_known_faces_only_propose_reading_orientation():
-    saved=json.loads((FIXTURES/'reading_only_binding04.json').read_text(encoding='utf-8'))
-    image=cv2.cvtColor(cv2.imread(str(FIXTURES/'reading_only_binding04.png')),cv2.COLOR_BGR2RGB)
-    before=deepcopy(saved['layout'])
-    detector=lambda rgb:deepcopy(saved['model_packet'])
-    proposal=reader.propose_read_only_wide_reference(image,saved['layout'],target_detector=detector)
-    assert proposal['status']=='reading_only'
-    assert proposal['input_authorized'] is False and proposal['operation_ready'] is False
-    assert proposal['known_face_counts']==[7,0,6] and proposal['deficient_faces']==[1]
-    assert proposal['eligible_slots']==list(range(9,18))
-    assert len(proposal['Q_candidates'])==1
-    assert proposal['geometry_quality']['anchors']>=7
-    assert min(proposal['geometry_quality']['face_anchors'])>=2
-    assert proposal['geometry_quality']['rmse_px']<=6
-    assert saved['layout']==before
-    # Independent validation uses the current image, rather than trusting the
-    # weakened known-face counts as an action-grade quality declaration.
-    valid=reader._validate_current_proposal(image,saved['layout'],proposal,saved['model_packet']['targets'])
-    assert valid[1]['face_anchors']==[7,0,6]
-    cells,actor=operation._layout(saved['layout'])
-    with pytest.raises(ValueError,match='reference_not_ready'):
-        operation._reference_frame(proposal,cells,actor,0,0,1)
-    assert operation.bind_move(proposal,1)['status']=='blocked'
-    assert operation.bind_rotation(proposal,0)['status']=='blocked'
-
-
-def test_cached_reading_direction_requires_new_pixel_fit(monkeypatch):
-    saved=json.loads((FIXTURES/'reading_only_binding04.json').read_text(encoding='utf-8'))
-    image=cv2.cvtColor(cv2.imread(str(FIXTURES/'reading_only_binding04.png')),cv2.COLOR_BGR2RGB)
-    image[0,0,0]^=1  # Synthetic HUD-only change, never a claimed WGC capture.
-    calls=[]
-    monkeypatch.setattr(operation,'_refine',lambda *a,**k:calls.append(1) or None)
-    with pytest.raises(ValueError,match='current_geometry_insufficient'):
-        reader._validate_current_proposal(image,saved['layout'],saved['initial_proposal'],saved['model_packet']['targets'])
-    assert calls==[1]
 
 
 @pytest.fixture

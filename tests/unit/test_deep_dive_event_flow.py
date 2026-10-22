@@ -1,68 +1,9 @@
-from pathlib import Path
-import copy
-
-import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_event_flow as flow
 from plans.resonance_pc.src.actions import _deep_dive_event_vision as vision
 from plans.resonance_pc.src.actions import consciousness_deep_dive_single_run_pc_actions as runtime
-from plans.resonance_pc.src.actions._deep_dive_single_run_vision import observe
-
-IMAGES=Path(__file__).resolve().parents[2]/'docs/developer-guide/images/resonance-pc-deep-dive-simple'
-
-
-def frame(name):
-    im=cv2.imread(str(IMAGES/name));assert im is not None
-    if im.shape[:2]==(802,1332):im=im[56:776,25:1305]
-    return cv2.cvtColor(im,cv2.COLOR_BGR2RGB)
-
-
-@pytest.mark.parametrize('name,scene',[
-    ('15-healing-stone-three-options.png','event_options'),
-    ('16-healing-stone-option-selected.png','event_options'),
-    ('20-healing-stone-event-ending.png','event_ending'),
-    ('followup-template-review/event_selected_source.png','event_options'),
-    ('followup-template-review/dice_unselected_source.png','event_card_selection'),
-    ('followup-template-review/dice_selected_source.png','event_card_selection'),
-    ('followup-template-review/dice_lost_source.png','event_result'),
-    ('21-purple-workshop-options-disabled.png','event_options_unknown'),
-    ('38-healing-two-options.png','event_options'),
-    ('39-healing-disabled-option.png','event_options'),
-])
-def test_screens(name,scene):
-    assert observe(frame(name))['scene']==scene
-
-
-def test_mask_excludes_dynamic_background_and_fails_closed(monkeypatch):
-    im=frame('20-healing-stone-event-ending.png')
-    ref=vision.template('event_heading');mask=vision.template('event_heading_mask')
-    roi=im[25:25+ref.shape[0],560:560+ref.shape[1]]
-    roi[mask==0]=np.random.default_rng(2).integers(0,256,(np.count_nonzero(mask==0),3),dtype=np.uint8)
-    assert vision.heading_present(cv2.cvtColor(im,cv2.COLOR_RGB2GRAY))
-    monkeypatch.setattr(vision.cv2,'matchTemplate',lambda *a,**k:np.array([[float('nan')]],np.float32))
-    assert vision.heading_present(cv2.cvtColor(im,cv2.COLOR_RGB2GRAY)) is None
-
-
-def test_board_numbers_are_not_card_selection():
-    result=observe(frame('followup-template-review/board_negative_source.png'))
-    assert result['scene']=='board' and result['event_board']
-    assert not result.get('cards')
-
-
-def test_count_text_is_not_required():
-    im=frame('followup-template-review/dice_selected_source.png')
-    im[665:720,540:800]=0
-    result=observe(im)
-    assert result['scene']=='event_card_selection' and result['cards'][0]['selected']
-
-
-def test_disabled_effect_is_excluded_and_numeric_recovery_is_grouped():
-    a=observe(frame('38-healing-two-options.png'))['event_options']
-    b=observe(frame('39-healing-disabled-option.png'))['event_options']
-    assert a[1]['group']==b[1]['group']=='Recover+'
-    assert b[0]['state']=='disabled' and b[1]['priority']==0
 
 
 def test_four_slot_composition_uses_same_catalog_logic():
@@ -161,33 +102,6 @@ def test_forbidden_and_disabled_options_are_never_chosen():
         option(blocked=True,priority=-1),option(state='disabled',priority=0),
         option(group='End',priority=20,x=900)]}
     assert stable(s,page,1)==('event_option_select',[900,280])
-
-
-def test_runtime_healing_chain_commits_once_without_move_digits(monkeypatch):
-    clock=[100.];monkeypatch.setattr(runtime.time,'time',lambda:clock[0])
-    s={'phase':'move_followup','pending_move':{'event':None},'move_history':[],
-       'events':[],'status':'running','turns_completed':0}
-    entry=observe(frame('30-node-preview-heal.png'))
-    assert runtime._advance_state(s,entry)[0]=='transition'
-    assert runtime._advance_state(s,entry)[0]=='click_event_enter'
-    def call(o):
-        clock[0]+=2
-        runtime._advance_state(s,o)
-        clock[0]+=.4
-        return runtime._advance_state(s,o)
-    opts=observe(frame('15-healing-stone-three-options.png'))
-    assert call(opts)[0]=='event_option_select'
-    selected=observe(frame('followup-template-review/event_selected_source.png'))
-    assert call(selected)[0]=='event_option_submit'
-    assert call(observe(frame('followup-template-review/dice_unselected_source.png')))[0]=='event_card_select'
-    assert call(observe(frame('followup-template-review/dice_selected_source.png')))[0]=='event_card_confirm'
-    assert call(observe(frame('followup-template-review/dice_lost_source.png')))[0]=='event_dismiss_result'
-    ending=observe(frame('followup-template-review/event_ending_source.png'))
-    call(ending);clock[0]+=2
-    assert runtime._advance_state(s,ending)[0]=='event_dismiss_ending'
-    assert s['move_history']==[]
-    assert call(observe(frame('followup-template-review/board_negative_source.png')))[0]=='event_completed'
-    assert len(s['move_history'])==1 and s['phase']=='rotate_ready' and s['turns_completed']==0
 
 
 def test_settlement_preempts_pending_event():

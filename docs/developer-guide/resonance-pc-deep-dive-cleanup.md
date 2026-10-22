@@ -12,4 +12,4 @@
 
 返回：`deep_dive_cleanup` 下含 `success`、`status`、`page_state`、`reason`、`last_frame`、`trace`。成功页面标记为 `deep_dive_activity_home`。截图在 `logs/deep_dive_cleanup/<session>/`。
 
-当前只覆盖用户提供的探索中断结算流程，其他通关结束样式尚未适配。离线测试覆盖三页截图、亮度扰动、相似确认按钮反例、两次点击闭环、重试上限、无效截图、从详情／首页恢复，以及完整动作回放；未实机运行。
+当前只覆盖探索中断结算流程，其他通关结束样式尚未适配。

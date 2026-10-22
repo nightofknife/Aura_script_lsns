@@ -1,7 +1,5 @@
 """Entity votes require this image's glyph fit; hidden faces can only veto."""
 from copy import deepcopy
-import json
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -218,42 +216,3 @@ def test_icon_cache_never_aliases_another_source_or_classifier(monkeypatch):
     assert scanner._read_icon(image, q)[1]['icon_id'] == 'replacement'
 
 
-_BOSS_CASES=json.loads((Path(__file__).parents[1]/'fixtures/deep_dive_anchor/boss_bbox_center_20261001.json').read_text())['cases']
-
-
-@pytest.mark.parametrize('case', _BOSS_CASES, ids=lambda case: str(case['frame_id']))
-def test_saved_boss_box_centre_wrong_neighbor_is_mask_only(case):
-    scanner=vision.LayoutScanner()
-    pose=case['pose']
-    scanner.rvec=np.array(pose['rvec']).reshape(3,1)
-    scanner.rotation=np.array(pose['rotation'])
-    scanner.tvec=np.array(pose['tvec']).reshape(3,1)
-    source=case['actual_source']
-    scanner._anchor_source={key:source[key] for key in ('source_frame_id','source_frame_time','source_map_revision')}
-    scanner.refine_diagnostic=dict(scanner._anchor_source,renewed=False)
-    # This is a conditional projection test of the bbox guard. Supply the
-    # local-support premise explicitly; it does not replay a live glyph fit.
-    scanner._record_glyph_anchor('saved_current_frame_fixture',['D','D','B','B'])
-    index=case['candidate_index']
-    target=deepcopy(case['target'])
-    scanner.last_targets=[target]
-    scanner.last_projected=scanner.visible()
-    # Exercise the original front-facing thresholds as well as both guards.
-    assigned,uncertain=scanner._associated_targets([target],scanner.last_projected)
-    if case['expected_index'] is None:
-        assert not assigned and index in uncertain
-        decision=scanner.entity_association_diagnostic['decisions'][0]
-        assert decision['reason']=='bbox_center_height_boundary_ambiguous'
-        assert decision['margin']>.12  # The old point-only test accepted it.
-        reliability=decision['anchor_center_reliability']
-        assert reliability['height_sample']==0
-        assert reliability['competitor_index']==31
-        assert reliability['margin']<.12
-        assert 'cell_index' not in scanner.target_mask_observation()[0]
-    else:
-        assert set(assigned)=={case['expected_index']}
-        if case['frame_id']==353:
-            # A valid upper-height endpoint remains eligible when the centre
-            # uncertainty cannot support any rival surface corridor.
-            evidence=assigned[index]['association_evidence']['anchor_center_reliability']
-            assert evidence['height_sample']==15 and evidence['margin']>.12

@@ -2,20 +2,17 @@
 
 ## Plan Does Not Load
 
-Validate the plan used by the failing workflow. The main Windows-client GUI
-uses `resonance_pc`; MuMu/Android workflows use `resonance`.
+Validate the plan used by the failing workflow. The Windows-client GUI
+uses `resonance_pc`.
 
 ```powershell
-python -m packages.aura_core.cli.package_cli check plans/resonance
 python -m packages.aura_core.cli.package_cli check plans/resonance_pc
-python tools\plan_doctor.py --plan resonance
 python tools\plan_doctor.py --plan resonance_pc
 ```
 
 If `manifest.yaml` is out of date, sync it:
 
 ```powershell
-python -m packages.aura_core.cli.package_cli sync plans/resonance
 python -m packages.aura_core.cli.package_cli sync plans/resonance_pc
 ```
 
@@ -30,23 +27,7 @@ Create or repair the complete development environment:
 Then use:
 
 ```powershell
-.\scripts\run_cli.ps1 gui resonance
-```
-
-## MuMu Runtime Issues
-
-The legacy `resonance` plan uses `runtime.provider: mumu` with `scrcpy_stream`
-capture and `android_touch` input. Check `plans/resonance/config.yaml` first,
-then run a safe CLI command such as:
-
-```powershell
-.\scripts\run_cli.ps1 tasks resonance
-```
-
-For runtime errors, inspect the most recent run detail:
-
-```powershell
-.\scripts\run_cli.ps1 runs --game resonance
+.\scripts\run_cli.ps1 gui resonance_pc
 ```
 
 ## Windows PC Runtime Issues

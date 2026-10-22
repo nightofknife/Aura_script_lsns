@@ -322,7 +322,7 @@
 | D18 | `build_reforming_center_map.py`、`build_reforming_center_templates.py` | 保留 | 整顿中心地图标定与 UI 模板是不同产物，可共用入口 |
 | D19 | `build_eternal_scuffle_assets.py` | 保留 | 无垠乱斗素材维护 |
 | D20 | `sync_team_recommendations.py` | 降级 | 外部攻略同步归数据维护；运行时读取生成目录 |
-| D21 | `build_deep_dive_vortex_catalog.py`、`build_deep_dive_event_templates.py`、`build_deep_dive_followup_review.py`、`review_deep_dive_event_templates.py` | 合并 | 深潜事件素材流水线；候选 review 素材不等于运行时已接入 |
+| D21 | `build_deep_dive_vortex_catalog.py`、`build_deep_dive_event_templates.py`、`review_deep_dive_event_templates.py` | 合并 | 深潜事件素材流水线；候选 review 素材不等于运行时已接入 |
 
 ### 深潜研究与专项工具
 

@@ -1,8 +1,7 @@
 # 识海深潜研究入口
 
-当前继续开发的方案是固定四视角、视觉反馈竖直旋转和稳定裁格读取。
-接入设计见 `docs/developer-guide/resonance-pc-deep-dive-four-view-integration-20261006.md`；
-实机证据见 `docs/developer-guide/resonance-pc-deep-dive-four-view-live-20261006.md`。
+本目录提供既有四视角配准、视觉反馈竖直旋转和裁格读取的研究工具。
+正式功能入口与运行边界见 [深潜集成说明](../docs/developer-guide/resonance-pc-deep-dive-integration.md)。
 
 ## 当前模块
 
@@ -17,7 +16,7 @@
 
 统一入口为 `python -m tools research`。其中 `saved-view` 使用当前四视角配准与裁格读取，
 `reading-check` 做离线评分，`servo`、`capture-broker`、`command` 使用当前研究协议。
-旧线锚、逐面取景、匿名格、响应拟合及旧七路线验收实现已退出；现存截图、标注和缓存不随源码退出而删除。
+旧线锚、逐面取景、匿名格、响应拟合及旧七路线验收实现已退出。
 正式运行中的扫描和规划实现留在 PC plan，不通过研究工具提供兼容别名。
 
 ## 研究输入与运行方式
@@ -50,6 +49,3 @@ DirectML worker；`--dml-ort-version` 默认 `1.24.4`，应与所提供运行时
 离线识别结果、历史实机报告和当前实现的实机验收应分别记录；导入研究工具或通过回归测试
 不证明当前 `four_views` 已完成实机验收。
 
-2026-10-06已删除旧实验约6GiB的连续冗余截图。旧报告JSON/日志和被选中姿态仍保留，
-部分旧实验不再具备完整逐帧回放；原图删减清单在 `.pytest_tmp/deep_dive_cleanup_20261006/`。
-验收5轮、用户观看演示、当前校准和原始训练素材未清除。

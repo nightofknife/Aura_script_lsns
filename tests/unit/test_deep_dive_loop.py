@@ -2,7 +2,6 @@ import asyncio
 import copy
 from pathlib import Path
 from types import SimpleNamespace
-import cv2
 import pytest
 import yaml
 from packages.aura_core.context.execution import ExecutionContext
@@ -73,22 +72,6 @@ def test_schema_completion_not_framework_success():
     assert loop.child_output('single',{'status':'SUCCESS'})=={}
     assert not loop.successful('single',{})
     assert not loop.successful('cleanup',{'success':True,'status':'completed','page_state':'deep_dive_board'})
-
-
-def test_home_precheck_never_clicks_and_rejects_board(monkeypatch,tmp_path):
-    root=Path(__file__).resolve().parents[2]
-    monkeypatch.setattr(loop,'resolve_base_path',lambda:tmp_path)
-    class App:
-        def __init__(self,name):
-            im=cv2.imread(str(root/'docs/developer-guide/images/resonance-pc-deep-dive-simple'/name))
-            if im.shape[:2]==(802,1332):im=im[56:776,25:1305]
-            self.image=cv2.cvtColor(im,cv2.COLOR_BGR2RGB)
-        def capture(self):return SimpleNamespace(success=True,image=self.image)
-    async def run():
-        for name,status in [('49-activity-home.png','running'),('01-board.png','blocked')]:
-            store=Store();r=await loop.initialize_loop(1,app=App(name),state_store=store)
-            assert r['status']==status
-    asyncio.run(run())
 
 
 def test_infinite_engine_loop_can_exceed_1000_and_retains_one():

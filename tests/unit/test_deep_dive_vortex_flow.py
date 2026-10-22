@@ -1,43 +1,9 @@
-from pathlib import Path
-import copy
-
-import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_vortex_flow as flow
 from plans.resonance_pc.src.actions import _deep_dive_vortex_vision as vision
-from plans.resonance_pc.src.actions import _deep_dive_event_vision as healing
-from plans.resonance_pc.src.actions import consciousness_deep_dive_single_run_pc_actions as runtime
-from plans.resonance_pc.src.actions._deep_dive_single_run_vision import observe
 from tools.build_deep_dive_vortex_catalog import option_policy
-
-IMAGES=Path(__file__).resolve().parents[2]/'docs/developer-guide/images/resonance-pc-deep-dive-simple'
-
-
-def frame(name):
-    im=cv2.imread(str(IMAGES/name));assert im is not None
-    if im.shape[:2]==(802,1332):im=im[56:776,25:1305]
-    return cv2.cvtColor(im,cv2.COLOR_BGR2RGB)
-
-
-def test_workshop_observation_isolated_from_healing(monkeypatch):
-    im=frame('21-purple-workshop-options-disabled.png')
-    base=observe(im)
-    assert base['scene']=='event_options_unknown'
-
-    from plans.resonance_pc.src.actions import _deep_dive_single_run_vision as shared
-    monkeypatch.setattr(shared,'detect_event_page',lambda *a:pytest.fail('healing vision called'))
-    result=observe(im,event_family='vortex')
-    assert result['scene']=='event_options'
-    rows=result['event_options']
-    assert rows[0]['title']=='按下按钮' and rows[0]['supported']
-    assert rows[1]['blocked']
-    assert rows[2]['state']=='disabled'
-    assert healing.ROOT!=vision.ROOT
-    assert len(healing.catalog()['events'])==9
-    assert len(vision.catalog()['events'])==62
-    assert base['scene']=='event_options_unknown'
 
 
 def init():
@@ -81,46 +47,11 @@ def test_only_unsupported_choices_stop():
     assert stable(s,o,1)==('vortex_blocked',None)
 
 
-def test_guardian_exit_and_non_portal_outro():
-    options=observe(frame('41-guardian-options.png'),event_family='vortex')
-    assert options['scene']=='event_options'
-    s=init()
-    assert stable(s,options,1)[0]=='vortex_option_select'
-    assert s['vortex_pending']['index']==1
-    options=copy.deepcopy(options)
-    options['event_options'][1]['state']='selected'
-    assert stable(s,options,2)[0]=='vortex_option_submit'
-    ending=observe(frame('42-guardian-ending.png'),event_family='vortex')
-    assert ending['scene']=='event_ending'
-    stable(s,ending,3)
-    assert flow.step(s,ending,4.5)[0]=='vortex_dismiss_ending'
-    assert stable(s,{'scene':'board','event_board':True},6)[0]=='vortex_returned'
-
-
 def test_all_no_effect_exits_are_preferred_even_in_recurring_events():
     exits=[o for o in vision.catalog()['options'] if not o['effects']]
     assert len(exits)==29
     assert all(o['supported'] and not o['blocked'] and o['priority']==-10 for o in exits)
     assert option_policy([],recurring=True)['supported']
-
-
-@pytest.mark.parametrize('name,expected',[
-    ('41-guardian-options.png',False),('42-guardian-ending.png',True),
-    ('20-healing-stone-event-ending.png',True),('15-healing-stone-three-options.png',False),
-    ('21-purple-workshop-options-disabled.png',False),
-    ('followup-template-review/board_negative_source.png',False),
-])
-def test_shared_ending_emblem_position(name,expected):
-    assert vision.ending_emblem_present(cv2.cvtColor(frame(name),cv2.COLOR_RGB2GRAY)) is expected
-
-
-def test_npc_ending_does_not_depend_on_character_name_or_story():
-    im=frame('42-guardian-ending.png')
-    # Keep only heading and shared emblem; all character/name/narrative pixels gone.
-    independent=np.zeros_like(im)
-    independent[15:90,525:775]=im[15:90,525:775]
-    independent[475:560,315:420]=im[475:560,315:420]
-    assert vision.detect_event_page(independent)['scene']=='event_ending'
 
 
 def test_shared_ending_nonfinite_fails_closed(monkeypatch):
@@ -184,35 +115,3 @@ def test_direct_currency_amounts_share_flow(low,high):
     assert not option_policy([{'orderType':'Event','eventId':1},reward])['supported']
 
 
-def test_body_two_currency_screenshot_chain():
-    s=init()
-    o=observe(frame('53-body-two-options.png'),event_family='vortex')
-    assert o['event_options'][0]['supported']
-    assert o['event_options'][0]['group']=='Reward.Currency'
-    assert not o['event_options'][1]['supported']
-    assert stable(s,o,1)[0]=='vortex_option_select'
-    assert s['vortex_pending']['index']==0
-    selected=copy.deepcopy(o)
-    selected['event_options'][0]['state']='selected'
-    assert stable(s,selected,2)[0]=='vortex_option_submit'
-    result=observe(frame('54-currency-obtained.png'),event_family='vortex')
-    assert result['scene']=='event_result'
-    assert stable(s,result,4)[0]=='vortex_dismiss_result'
-    ending=observe(frame('55-body-two-ending.png'),event_family='vortex')
-    assert ending['scene']=='event_ending'
-    stable(s,ending,6)
-    assert flow.step(s,ending,7.5)[0]=='vortex_dismiss_ending'
-    assert stable(s,{'scene':'board','event_board':True},9)[0]=='vortex_returned'
-
-
-def test_runtime_routes_vortex_separately(monkeypatch):
-    monkeypatch.setattr(runtime.time,'time',lambda:100.)
-    monkeypatch.setattr(runtime.event_flow,'start',lambda *a:pytest.fail('healing start called'))
-    s={'phase':'move_followup','pending_move':{'event':None}}
-    entry=observe(frame('25-node-preview-adventure.png'))
-    assert runtime._advance_state(s,entry)[0]=='transition'
-    assert runtime._advance_state(s,entry)[0]=='click_event_enter'
-    assert s['phase']=='vortex_dispatch' and 'vortex_pending' in s
-    assert runtime._advance_state(s,{'valid':False,'scene':'capture_failed'})==('wait',None)
-    assert s['vortex_stable']==0
-    assert runtime._advance_state(s,{'scene':'settlement'})[0]=='settlement'

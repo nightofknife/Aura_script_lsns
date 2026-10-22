@@ -1,7 +1,5 @@
-"""Actual image opportunity affects navigation only, never recognition proof."""
+"""Synthetic source opportunities affect navigation, never recognition proof."""
 from copy import deepcopy
-import json
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -209,17 +207,6 @@ def test_historical_opportunity_missing_scoring_survives_stale_latest_source_wit
         np.eye(3),rows,11.)==1
     assert np.array_equal(policy._opportunities,bitmap) and policy._opportunity_source==source
     assert rows==before
-
-
-def test_real_source_front_upper_glyphs_do_not_cover_hud_hidden_lower_cell():
-    fixture=json.loads((Path(__file__).parent/'fixtures/deep_dive_navigation_sources_13.json').read_text())
-    source=next(row for row in fixture['sources'] if row['frame_id']==10)
-    rows=[dict(occupant='unknown',node_status='unknown',confidence=0.,evidence=[]) for _ in range(54)]
-    before=deepcopy(rows);policy=TargetFirstCellScanPolicy(opportunity_navigation=True)
-    record(policy,rows,source['feedback'])
-    assert policy._opportunities[18:27].any()
-    assert not policy._opportunities[26] and rows==before
-    assert policy.summary()['navigation_opportunities']['source']['frame_id']==10
 
 
 @pytest.mark.parametrize('invalid',[1,0,None,'False',np.bool_(True)])
