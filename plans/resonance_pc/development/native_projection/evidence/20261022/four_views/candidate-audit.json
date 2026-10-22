@@ -1,0 +1,110 @@
+[
+  {
+    "score": 4.878785133361816,
+    "score_gap": 0.0,
+    "step_from_previous_deg": 33.25384873172585,
+    "included_by_score_gate": true
+  },
+  {
+    "score": 4.938734531402588,
+    "score_gap": 0.059949398040771484,
+    "step_from_previous_deg": 32.58238573773882,
+    "included_by_score_gate": true
+  },
+  {
+    "score": 5.144949913024902,
+    "score_gap": 0.26616477966308594,
+    "step_from_previous_deg": 24.185085291574968,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.148730754852295,
+    "score_gap": 0.2699456214904785,
+    "step_from_previous_deg": 24.226655177650844,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.287594318389893,
+    "score_gap": 0.40880918502807617,
+    "step_from_previous_deg": 43.10459319855834,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.292942523956299,
+    "score_gap": 0.4141573905944824,
+    "step_from_previous_deg": 33.342520671484614,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.408016204833984,
+    "score_gap": 0.529231071472168,
+    "step_from_previous_deg": 43.33631392229964,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.444517612457275,
+    "score_gap": 0.565732479095459,
+    "step_from_previous_deg": 6.837788092306854,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.4548211097717285,
+    "score_gap": 0.5760359764099121,
+    "step_from_previous_deg": 42.38072167053974,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.53557014465332,
+    "score_gap": 0.6567850112915039,
+    "step_from_previous_deg": 13.673251863200202,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.555577278137207,
+    "score_gap": 0.6767921447753906,
+    "step_from_previous_deg": 13.255029368081935,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.562920570373535,
+    "score_gap": 0.6841354370117188,
+    "step_from_previous_deg": 12.864333773482503,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.589128494262695,
+    "score_gap": 0.7103433609008789,
+    "step_from_previous_deg": 9.744692470230795,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.605811595916748,
+    "score_gap": 0.7270264625549316,
+    "step_from_previous_deg": 29.82498993249012,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.649904727935791,
+    "score_gap": 0.7711195945739746,
+    "step_from_previous_deg": 21.31199846169147,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.68605375289917,
+    "score_gap": 0.8072686195373535,
+    "step_from_previous_deg": 11.522120885908135,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.691778659820557,
+    "score_gap": 0.8129935264587402,
+    "step_from_previous_deg": 46.80580708632707,
+    "included_by_score_gate": false
+  },
+  {
+    "score": 5.695825099945068,
+    "score_gap": 0.817039966583252,
+    "step_from_previous_deg": 8.409267339585384,
+    "included_by_score_gate": false
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "UICubeRoguewMainController": {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRoguewMainController.lua",
+    "sha256": "817d031a8c864d28b66bdc766d7833f6abfa4abbbc6cd75dd02c0eee818d1917"
+  },
+  "UICubeRogueMainViewFunction": {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRogueMainViewFunction.lua",
+    "sha256": "08270352da9ac1bef9ffa8b6b933c4e43386fab367df49a555fc0cdadbcd3c27"
+  },
+  "RubikCube": {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Script\\UICubeRogueMain\\RubikCube.lua",
+    "sha256": "f01216a06fad25974a11d43e1aee67ea8c1abb795534fe5201f049348ce2a6ec"
+  },
+  "UICubeRogueMainDataModel": {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRogueMainDataModel.lua",
+    "sha256": "d8fe14d7d1c494b3184755e2b5e77baf79671c1f973181f188292ab0079b2c3c"
+  }
+}

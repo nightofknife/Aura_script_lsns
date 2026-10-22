@@ -1,0 +1,30 @@
+[
+  {
+    "index": 0,
+    "dy": -80,
+    "duration": 0.5,
+    "view": 1,
+    "before_phase_deg": 0.8225566083307833
+  },
+  {
+    "index": 1,
+    "dy": -80,
+    "duration": 0.5,
+    "view": 1,
+    "before_phase_deg": 4.974370498551739
+  },
+  {
+    "index": 2,
+    "dy": -80,
+    "duration": 0.5,
+    "view": 1,
+    "before_phase_deg": 14.852576061581098
+  },
+  {
+    "index": 3,
+    "dy": -80,
+    "duration": 0.5,
+    "view": 1,
+    "before_phase_deg": 15.708777912385214
+  }
+]

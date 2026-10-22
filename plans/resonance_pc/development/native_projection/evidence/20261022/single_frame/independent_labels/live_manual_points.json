@@ -1,0 +1,222 @@
+{
+  "schema": "independent_manual_visible_surface_points.v1",
+  "source_image": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-live-20261022\\live-client.png",
+  "source_sha256": "24cfeeecb01f77e00986d850f32325bf95739b467fd28eb66f366ee534f15f20",
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_window_crop_xy": [
+    8,
+    31
+  ],
+  "usage": "Evaluation only. All points held out from automatic pose fitting, parameter selection and threshold tuning.",
+  "method": "Manually read original client image plus 2x image crop and 25px screen ruler. No automatic matching output, native projection overlay, old geometry coordinates, or validation file was read.",
+  "point_contract": "Fourteen visible structural junctions on six cells across top, left and right screen groups. Subjective 4px radius is annotation uncertainty, not a statistical confidence interval. Native cell IDs are intentionally absent.",
+  "cells": [
+    {
+      "screen_local_id": "top_left_orange_triangle",
+      "screen_surface_group": "top",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "1.1",
+          "xy": [
+            492,
+            171
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "back_apex",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "1.2",
+          "xy": [
+            550,
+            195
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "screen_right_junction",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "1.3",
+          "xy": [
+            436,
+            195
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "screen_left_junction",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    },
+    {
+      "screen_local_id": "top_right_yellow_box",
+      "screen_surface_group": "top",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "2.1",
+          "xy": [
+            785,
+            169
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "back_apex",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "2.2",
+          "xy": [
+            847,
+            193
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "screen_right_junction",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "2.3",
+          "xy": [
+            728,
+            193
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "screen_left_junction",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    },
+    {
+      "screen_local_id": "left_face_upper_red_triangle",
+      "screen_surface_group": "left",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "3.1",
+          "xy": [
+            365,
+            324
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_left",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "3.2",
+          "xy": [
+            421,
+            350
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_right",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    },
+    {
+      "screen_local_id": "left_face_upper_blue_scale",
+      "screen_surface_group": "left",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "4.1",
+          "xy": [
+            434,
+            355
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_left",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "4.2",
+          "xy": [
+            492,
+            383
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_right",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    },
+    {
+      "screen_local_id": "right_face_upper_green_cross",
+      "screen_surface_group": "right",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "5.1",
+          "xy": [
+            861,
+            349
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_left",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "5.2",
+          "xy": [
+            916,
+            324
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_right",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    },
+    {
+      "screen_local_id": "right_face_upper_yellow_box_outer",
+      "screen_surface_group": "right",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "points": [
+        {
+          "id": "6.1",
+          "xy": [
+            793,
+            384
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_left",
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "6.2",
+          "xy": [
+            848,
+            356
+          ],
+          "uncertainty_radius_px": 4,
+          "corner_semantics": "upper_screen_right",
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Observed exterior front-plane/bevel junction, not transparent Icon UV. Exact native mesh vertex correspondence not assigned. No bottom corners inferred."
+    }
+  ],
+  "excluded_regions": "Central player/white selection, lower effects, star targets, reset HUD and bottom bevel corners excluded.",
+  "timing": "Labels produced after image capture and before seeing automatic match result."
+}

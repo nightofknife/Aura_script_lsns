@@ -1,0 +1,67 @@
+{
+  "status": "native-chain candidate; assumes inherited FindCamera resolves scene Main Camera and parent stays unchanged",
+  "camera_center_world": [
+    50.0,
+    41.5,
+    -50.0
+  ],
+  "camera_to_world_rotation": [
+    [
+      0.7071068449522732,
+      -0.3492696098837795,
+      -0.6148257065488354
+    ],
+    [
+      -3.2420676208830743e-09,
+      0.869494929505219,
+      -0.493941866584231
+    ],
+    [
+      0.7071067174208162,
+      0.34926967686351873,
+      0.6148258151720788
+    ]
+  ],
+  "world_to_camera_rotation": [
+    [
+      0.7071068449522732,
+      -3.2420676208830743e-09,
+      0.7071067174208162
+    ],
+    [
+      -0.3492696098837795,
+      0.869494929505219,
+      0.34926967686351873
+    ],
+    [
+      -0.6148257065488354,
+      -0.493941866584231,
+      0.6148258151720788
+    ]
+  ],
+  "unity_camera_axis_convention": "X right,Y up,Z forward; image v decreases with camera Y",
+  "local_euler_degrees_before_controller": [
+    30.00000532472089,
+    135.00000506131477,
+    -2.1363757886239064e-07
+  ],
+  "local_euler_degrees_after_controller": [
+    29.6,
+    135.00000506131477,
+    -2.1363757886239064e-07
+  ],
+  "vertical_fov_degrees": 12,
+  "focal_pixels_formula": "image_viewport_height/(2*tan(6 degrees))",
+  "root_translation_after_enter_animation": [
+    0,
+    0,
+    0
+  ],
+  "root_scale_after_enter_animation": [
+    1,
+    1,
+    1
+  ],
+  "camera_parent_transform_id": 351,
+  "scene_camera_transform_id": 354
+}

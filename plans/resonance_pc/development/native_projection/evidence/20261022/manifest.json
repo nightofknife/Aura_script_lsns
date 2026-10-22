@@ -1,0 +1,353 @@
+{
+  "source_head": "d39bc0a2390373907ce0286fb2073af506bacd83",
+  "kind": "selected development evidence; not a full client resource archive",
+  "files": [
+    {
+      "path": "assets/rubik_hierarchy.json",
+      "original_path": ".pytest_tmp/deep-dive-native-redesign-20261022/assets/rubik_hierarchy.json",
+      "sha256": "52303fd83c6e8fd907a817f9e82c1eabacd76cb38d8dc6bda5060669c2cbadbf"
+    },
+    {
+      "path": "assets/cell_mesh_geometry.json",
+      "original_path": ".pytest_tmp/deep-dive-native-redesign-20261022/assets/cell_mesh_geometry.json",
+      "sha256": "46accc1e8cf103c780fc8456dd1dc12e3b5d0ba496850afd4f51ca264a3a0191"
+    },
+    {
+      "path": "assets/resource_receipt.json",
+      "original_path": ".pytest_tmp/deep-dive-native-redesign-20261022/assets/resource_receipt.json",
+      "sha256": "f264a6ebcc58a05a066df73d8d7d947521763161d47b16ddf34ffd378e676dcf"
+    },
+    {
+      "path": "assets/ASSET_AUDIT.md",
+      "original_path": ".pytest_tmp/deep-dive-native-redesign-20261022/assets/ASSET_AUDIT.md",
+      "sha256": "4e8d3ad8cf247ed13d6b5b68e7e1f316ddab9b1665fd4287325e71dfeadac405"
+    },
+    {
+      "path": "assets/native-evidence.json",
+      "original_path": ".pytest_tmp/deep-dive-native-redesign-20261022/native-evidence.json",
+      "sha256": "d7806eec71a846a1df97f7dbbf150d7465820c9ae9ccba005986b33218a8c11a"
+    },
+    {
+      "path": "assets/camera_native_candidate.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_audit/camera_native_candidate.json",
+      "sha256": "4cda6900de724ad0b7c792eee048be64ad05851281eea7344f14a0a07f55e461"
+    },
+    {
+      "path": "assets/shell_triangles.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_audit/shell_triangles.json",
+      "sha256": "dea8753be4f04cf5aa98d69b0a9b9860827cc637059b14490f33b7ba6421764a"
+    },
+    {
+      "path": "assets/animation_endpoint_check.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_audit/animation_endpoint_check.json",
+      "sha256": "7b3443d123dd90baebf4532262f07ba108d7fea6aef02886027657cfa9c25485"
+    },
+    {
+      "path": "assets/script_receipts.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_audit/script_receipts.json",
+      "sha256": "f4599fd0bd2473bcb68130e21d1b8c084567900a5a7bac8fb0fa38eeb50f320f"
+    },
+    {
+      "path": "assets/NATIVE_RUNTIME_AUDIT.md",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_audit/NATIVE_RUNTIME_AUDIT.md",
+      "sha256": "c43a2f339ca4e01ab9d1fdae1c785f4ac814670b824be8e0a37f6783bfe6ba08"
+    },
+    {
+      "path": "projection/RESULTS.md",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/RESULTS.md",
+      "sha256": "6e65c767c55931ce7a887dde033af02bed839b0c6b202a27160c89268a0940d4"
+    },
+    {
+      "path": "projection/validation.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/validation.json",
+      "sha256": "c6f149863eb59a0b0e99f17825e67ceb050151b1101285568eb4f31b8780b451"
+    },
+    {
+      "path": "projection/native_projection.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/native_projection.json",
+      "sha256": "8006ed1c7c7c3c1057fe88f2f32fbca36dc9d2045b4ef5c1f78c8a223adf1773"
+    },
+    {
+      "path": "projection/artifact_receipt.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/artifact_receipt.json",
+      "sha256": "b3b32f2856571f3dc6bf1d5c2c52dd09c39cc8ae3a90f9f11acd3d86c71a1bcb"
+    },
+    {
+      "path": "projection/frame118_manual_points.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/frame118_manual_points.json",
+      "sha256": "2c83036c97f5931eef7e703738c1e4a1cb263c234cbd245f92303ea3d82291e8"
+    },
+    {
+      "path": "projection/variant_projection_spread.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/variant_projection_spread.json",
+      "sha256": "4042b1e219bf083f7052206ec015b97340801288154d8d2430718645eb75cdba"
+    },
+    {
+      "path": "projection/reset-native-identity.png",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/reset-native-identity.png",
+      "sha256": "b374aeab381acb815ced7703b626b6b5b25d9f23e715100f2dd814d9971381d8"
+    },
+    {
+      "path": "projection/frame0021-depth-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/frame0021-depth-overlay.png",
+      "sha256": "a18badad18937cc114d9c8cb4ba3b3c7c6ea239ca8a9d530cb52ef394a9ffc48"
+    },
+    {
+      "path": "projection/frame0056-depth-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/frame0056-depth-overlay.png",
+      "sha256": "60f7f5b0d4f9b6f7df8ee1ee04f688a044f4ce0c995d8a2ac22e6d822a9d1968"
+    },
+    {
+      "path": "projection/frame0117-depth-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/frame0117-depth-overlay.png",
+      "sha256": "7e15a87fbd79c5bc7e8f1200c6971aaa05ae64e98ab77ebb6baf0e1c6785ede4"
+    },
+    {
+      "path": "projection/frame0118-depth-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/frame0118-depth-overlay.png",
+      "sha256": "4b8b7bfb10c9aade7322b2ccf49d3136f99e0dcb01706ce917a25400e2b2e04e"
+    },
+    {
+      "path": "projection/independent_labels/frame0021_manual_points.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/independent_labels/frame0021_manual_points.json",
+      "sha256": "8d1550acace99dfb72bb9cc874fb582bebd30f9b4f991a3ec23b750c36d16ebc"
+    },
+    {
+      "path": "projection/independent_labels/frame0056_manual_points.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/independent_labels/frame0056_manual_points.json",
+      "sha256": "fa845ad77faad0ee16f18421ef8d3df8ce9782f6175a05af666b6fc636ddd674"
+    },
+    {
+      "path": "projection/independent_labels/frame0117_manual_points.json",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/independent_labels/frame0117_manual_points.json",
+      "sha256": "2eb384da7ac2af7ba0239a2767e34b93ea3fbfb34d12d9abb6063022090804b6"
+    },
+    {
+      "path": "projection/source/frame0000.png",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames/0000_reset.png",
+      "sha256": "2886475a12936c76c529660c3133a7b51cbf51fa79d2babeba1f2c25bb519d08"
+    },
+    {
+      "path": "projection/source/frame0021.png",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames/0021_view1_align_17.png",
+      "sha256": "76eb40fb08e35d30d810dd6e356080b2b4aa8bece0364dd1de189078c140a16e"
+    },
+    {
+      "path": "projection/source/frame0056.png",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames/0056_view2_align_27.png",
+      "sha256": "b82435c8a08ede754592efd42b86e317c85d60ffe2c346aa70f4b4dbfa03eecc"
+    },
+    {
+      "path": "projection/source/frame0117.png",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames/0117_view4_align_22.png",
+      "sha256": "0a476424869bbd1a7b21db620fdb9ed7207d6de11886b0117946bc5914db2d7a"
+    },
+    {
+      "path": "projection/source/frame0118.png",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames/0118_view4_quiet_recheck_0.png",
+      "sha256": "31fe4611fb44e88bdb3a9219b4f5c610ac23745450ddc83da9d54a38af221ece"
+    },
+    {
+      "path": "projection/selected-frames-index.json",
+      "original_path": "logs/deep_dive_scan/20261022-214613-b5f3ead5/frames.json",
+      "sha256": "39b3d5731d23712df4c5bbf0254b97b8f1c26674ddb1006c046bb37a9d6d2a48",
+      "original_sha256": "c44b42b8c0f83a22ad984ef262350bb196c1c7a4a90fd41f0da3145936e34feb",
+      "transformation": "Only path and source metadata of the five archived frames; old recognition outputs omitted"
+    },
+    {
+      "path": "single_frame/RESULTS.md",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/RESULTS.md",
+      "sha256": "9e9024126e37785f9df4f387b3ea91208c01bab690f08b018f303db692ff129c"
+    },
+    {
+      "path": "single_frame/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/automatic-result.json",
+      "sha256": "6f396d0e55c65673c937275947c9c2ef11b613ec6baf1e96744be0e2061f121a"
+    },
+    {
+      "path": "single_frame/evaluation.json",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/evaluation.json",
+      "sha256": "c73a97aa12f1698d6bd402568df14b70c6e067475b660a3b3d78532c62441812"
+    },
+    {
+      "path": "single_frame/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/projected-cells.json",
+      "sha256": "4b6a8ba2b6d6858f8bec5f92f34a686620f3b98225060c7fe6c0ebbeb72bf555"
+    },
+    {
+      "path": "single_frame/live-client.png",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/live-client.png",
+      "sha256": "24cfeeecb01f77e00986d850f32325bf95739b467fd28eb66f366ee534f15f20"
+    },
+    {
+      "path": "single_frame/evaluated-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/evaluated-overlay.png",
+      "sha256": "c849ded2f14b6f3d2e0334b0f4a89bd469e6f70d6d46c164d932c61c813c65bb"
+    },
+    {
+      "path": "single_frame/independent_labels/live_manual_points.json",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/independent_labels/live_manual_points.json",
+      "sha256": "3e5e720d5adeaf3b78aa59974ab7eb8eb627a3e130eae41828405d90bc982a13"
+    },
+    {
+      "path": "four_views/RESULTS.md",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/RESULTS.md",
+      "sha256": "cf59b22bdebfb234deca3d4ced8991fdbb00942cca5cd15912eb0856c0feea27"
+    },
+    {
+      "path": "four_views/summary.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/summary.json",
+      "sha256": "eddd459bc19c0d245a5338cd685f1517b5ba06f0706f11dc786d7f1a23d42512"
+    },
+    {
+      "path": "four_views/timeline.jsonl",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/timeline.jsonl",
+      "sha256": "1468271ee37a0f1aa88d2957b5be9c0560d7fe9cd29c70f131e99ff62f6c875b"
+    },
+    {
+      "path": "four_views/actions.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/actions.json",
+      "sha256": "3b888bf163631542b726eaf98fbd449655ea816146ae04c4117af031b7ef49c1"
+    },
+    {
+      "path": "four_views/candidate-audit.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/candidate-audit.json",
+      "sha256": "d83dc0d807d33bf154767a7315db0d0f81fb35a4fcd578f816b51664aef55b76"
+    },
+    {
+      "path": "four_views/runtime_closed.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/runtime_closed.json",
+      "sha256": "6fa89e48d828b7528af9440e45b4cb3b11b9abf25c03a2c71ef2f1ec62f86786"
+    },
+    {
+      "path": "four_views/frames/0000_reset/source.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0000_reset/source.png",
+      "sha256": "bc6251cf170fa6576498a521e2214c7a49f42d46cb6bd95d1a51ff623b4ceeb2"
+    },
+    {
+      "path": "four_views/frames/0000_reset/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0000_reset/automatic-result.json",
+      "sha256": "36d104ad74e91b6a6aa7f43ad7d8a4261e3e280b15cf0611231f0b21d38be5b2"
+    },
+    {
+      "path": "four_views/frames/0000_reset/automatic-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0000_reset/automatic-overlay.png",
+      "sha256": "408f28600e021a2c5e2687ea5c8449a6ca8b18783c2675a4920730f53a82536e"
+    },
+    {
+      "path": "four_views/frames/0000_reset/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0000_reset/projected-cells.json",
+      "sha256": "d6b2d3692a95b302ee1c969aee6c931fe65737900fce99108e0f526d27a20980"
+    },
+    {
+      "path": "four_views/frames/0001_view1_step00/source.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0001_view1_step00/source.png",
+      "sha256": "f2c730fe1ddedfa7bd1381d4e2cbbbcce71cc4e0f252f8888ee4cedb37b7976c"
+    },
+    {
+      "path": "four_views/frames/0001_view1_step00/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0001_view1_step00/automatic-result.json",
+      "sha256": "eb16496ecbe0d6f2e37eddb1d74063bf60676830b7412135ab3b004df41b3e14"
+    },
+    {
+      "path": "four_views/frames/0001_view1_step00/automatic-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0001_view1_step00/automatic-overlay.png",
+      "sha256": "0b395e52a9013a73410473764425995e4e16a4184528b3fefa9f95cb490b37fe"
+    },
+    {
+      "path": "four_views/frames/0001_view1_step00/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0001_view1_step00/projected-cells.json",
+      "sha256": "6992b672954eecbdcff031e1cba85f72692c98bd2b165d1695bc567475d9e76c"
+    },
+    {
+      "path": "four_views/frames/0002_view1_step01/source.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0002_view1_step01/source.png",
+      "sha256": "599d4fb11f80ff0adb868f5825d050fb7b1b1bf6a8c2dd67f18c68208fc0cc38"
+    },
+    {
+      "path": "four_views/frames/0002_view1_step01/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0002_view1_step01/automatic-result.json",
+      "sha256": "5210bca987491c22e1755ef817e5cfc99b43640c7c2e9381cd962e7fd04dc690"
+    },
+    {
+      "path": "four_views/frames/0002_view1_step01/automatic-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0002_view1_step01/automatic-overlay.png",
+      "sha256": "95da98bce2f5b972abd02eb443a2535f39eed4f4a22ddfd514dd205560958b1e"
+    },
+    {
+      "path": "four_views/frames/0002_view1_step01/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0002_view1_step01/projected-cells.json",
+      "sha256": "25a9b4b4f5b32eb6a86534b31d845bc0dca123f05ff52e88813f12d240cb367d"
+    },
+    {
+      "path": "four_views/frames/0003_view1_step02/source.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0003_view1_step02/source.png",
+      "sha256": "8c30796ba3a41e9e11ddd49a8233da9b06b64fba4c6231f23c283193ee809788"
+    },
+    {
+      "path": "four_views/frames/0003_view1_step02/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0003_view1_step02/automatic-result.json",
+      "sha256": "24459ef5dc104b32e031117759437824b1c3949c06a645e5d003b18b3f28620e"
+    },
+    {
+      "path": "four_views/frames/0003_view1_step02/automatic-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0003_view1_step02/automatic-overlay.png",
+      "sha256": "6a7d0be0972f30595c7bd4a0103e0ff86853711b0585241cb8d3cbba815de1f4"
+    },
+    {
+      "path": "four_views/frames/0003_view1_step02/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0003_view1_step02/projected-cells.json",
+      "sha256": "186b97d8ef228490255c2446ec2d2fefae7fe25e5cff112b03c9e53d96ead005"
+    },
+    {
+      "path": "four_views/frames/0004_view1_step03/source.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0004_view1_step03/source.png",
+      "sha256": "30c658840d49bcf29c551f0b729be9b2e43411a236839e870230bb7f100c4fae"
+    },
+    {
+      "path": "four_views/frames/0004_view1_step03/automatic-result.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0004_view1_step03/automatic-result.json",
+      "sha256": "24556dd968ea6ea5e60d6809f00a82346010835135d7e85b1f9aed439886f56c"
+    },
+    {
+      "path": "four_views/frames/0004_view1_step03/automatic-overlay.png",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0004_view1_step03/automatic-overlay.png",
+      "sha256": "dcce64e7f999f5bd07e34b6fc7bf6d0f47e00bf481d7e273bcbb9096e645f551"
+    },
+    {
+      "path": "four_views/frames/0004_view1_step03/projected-cells.json",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/frames/0004_view1_step03/projected-cells.json",
+      "sha256": "bf846d096bcd8ef357a65a45463f7a9f6e4b2957a8938e9879a439c676a581ce"
+    },
+    {
+      "path": "scripts/project_native.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/project_native.py",
+      "sha256": "e718660e4bc3f96de808fdb2b1d82e02d2cfa2ec44b4626bb4d7a2558c9633b8"
+    },
+    {
+      "path": "scripts/fit_native.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/fit_native.py",
+      "sha256": "6c6908014262fecef7a68ea396b0aa2db1929cdb9f6ac82bb19e29e14a4acf41"
+    },
+    {
+      "path": "scripts/render_depth.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-projection-20261022/render_depth.py",
+      "sha256": "f0678ce562af21efeb086f123541510e4f28197dc38ddb86b9312b667468be1f"
+    },
+    {
+      "path": "scripts/auto_pose.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/auto_pose.py",
+      "sha256": "6fdd855e07779c3b747183a293135f32ad1e9da290654de7a03c752dc32f64be"
+    },
+    {
+      "path": "scripts/evaluate.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-live-20261022/evaluate.py",
+      "sha256": "7dc8c4546f076db4369baa44cebea4c9bfe41cd2bc25116bd8d11d61ee8931bc"
+    },
+    {
+      "path": "scripts/run_scan.py.txt",
+      "original_path": ".pytest_tmp/deep-dive-native-four-views-20261022/run_scan.py",
+      "sha256": "5318abb85a5bfea6fac9b438b42e54d75f74f0e696bb5a94cb8e68e58b82c539"
+    }
+  ]
+}

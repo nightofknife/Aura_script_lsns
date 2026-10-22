@@ -1,0 +1,2 @@
+# Frozen evidence hashes refer to exact bytes, including original line endings.
+evidence/20261022/** -text whitespace=cr-at-eol

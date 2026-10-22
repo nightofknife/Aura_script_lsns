@@ -1,0 +1,67 @@
+"""Fit three root-rotation parameters only, evaluate preassigned held-out cells."""
+from project_native import *
+import hashlib
+
+def labels(fid):
+    if fid==118:return read(OUT/'frame118_manual_points.json')['points']
+    src=read(OUT/f'independent_labels/frame{fid:04d}_manual_points.json')
+    if fid==21:
+        keys=[(2,1,3),(2,2,3),(2,3,3),(3,1,3),(3,2,3),(3,3,3)]
+        ids={1:2,2:3};fit={0,4}
+    elif fid==56:
+        keys=[(6,1,1),(6,1,2),(6,2,3),(6,3,3),(6,1,3)]
+        ids={1:1,2:2,4:0};fit={0,3}
+    elif fid==117:
+        keys=[(1,1,3),(1,1,2),(1,2,3),(1,3,3),(1,1,1)]
+        ids={1:0,2:1,4:3};fit={0,1}
+    out=[]
+    for index,cell in enumerate(src['cells']):
+        for p in cell['points']:
+            out.append(dict(cell=keys[index],vertex=ids[int(p['id'].split('.')[-1])],pixel=p['xy'],split='fit' if index in fit else 'holdout',uncertainty=p['uncertainty_radius_px']))
+    return out
+
+def solve_rotation(model,xyz,xy,R):
+    # Damped least squares with numerical Jacobian; fixed native K,C,t,scale.
+    lam=.01
+    for step in range(100):
+        residual=(model.project(xyz,R)-xy).ravel()
+        J=np.stack([((model.project(xyz,cv2.Rodrigues(np.eye(3)[j]*1e-5)[0]@R)-xy).ravel()-residual)/1e-5 for j in range(3)],axis=1)
+        delta=np.linalg.solve(J.T@J+lam*np.eye(3),-J.T@residual)
+        if np.linalg.norm(delta)>.2:delta*=.2/np.linalg.norm(delta)
+        candidate=cv2.Rodrigues(delta)[0]@R
+        if np.sum((model.project(xyz,candidate)-xy)**2)<np.sum(residual**2):
+            R=candidate;lam=max(lam/3,1e-8)
+            if np.linalg.norm(delta)<1e-9:break
+        else:lam*=10
+    return R
+
+def metrics(values):
+    a=np.array(values);return dict(count=len(a),mean_px=float(a.mean()),median_px=float(np.median(a)),p95_px=float(np.percentile(a,95)),max_px=float(a.max()))
+
+def run():
+    model=Model();all_results=[]
+    for fid,angle in ((21,30),(56,150),(117,-40),(118,-40)):
+        obs=labels(fid);lookup={c['key']:c for c in model.cells}
+        xyz=np.array([lookup[tuple(p['cell'])]['rim'][p['vertex']] for p in obs]);xy=np.array([p['pixel'] for p in obs])
+        fit=np.array([p['split']=='fit' for p in obs])
+        initial=cv2.Rodrigues(model.camera_R[:,0]*np.deg2rad(angle))[0]
+        R=solve_rotation(model,xyz[fit],xy[fit],initial)
+        pred=model.project(xyz,R);error=np.linalg.norm(pred-xy,axis=1)
+        for p,q,e in zip(obs,pred,error):p.update(predicted=q.tolist(),error_px=float(e))
+        result=dict(frame_id=fid,rotation_matrix=R.tolist(),fitted_parameters='root rotation only: 3; native K/C/root translation/scale fixed',symmetry='manual correspondence hypothesis; not unique native identity proof',fit=metrics(error[fit]),holdout=metrics(error[~fit]),points=obs)
+        wrong=Model();wrong.f=360/math.tan(math.radians(8)/2)
+        wrong_R=solve_rotation(wrong,xyz[fit],xy[fit],initial)
+        wrong_error=np.linalg.norm(wrong.project(xyz,wrong_R)-xy,axis=1)
+        result['negative_control_fov8_holdout']=metrics(wrong_error[~fit])
+        all_results.append(result)
+        overlay(model,fid,R,OUT/f'frame{fid:04d}-projected.png')
+        img=cv2.imread(str(OUT/f'frame{fid:04d}-projected.png'))
+        for p in obs:
+            x=tuple(np.round(p['pixel']).astype(int));q=tuple(np.round(p['predicted']).astype(int));color=(0,0,255) if p['split']=='holdout' else (0,255,255)
+            cv2.drawMarker(img,x,color,cv2.MARKER_CROSS,9,1);cv2.line(img,x,q,color,1,cv2.LINE_AA)
+        cv2.putText(img,f"FIT={result['fit']['mean_px']:.2f}px  HELDOUT={result['holdout']['mean_px']:.2f}px mean / {result['holdout']['max_px']:.2f}px max",(12,25),cv2.FONT_HERSHEY_SIMPLEX,.55,(255,255,255),1,cv2.LINE_AA)
+        cv2.imwrite(str(OUT/f'frame{fid:04d}-validated.png'),img)
+        print(json.dumps({k:v for k,v in result.items() if k not in ('points','rotation_matrix')},ensure_ascii=False))
+    (OUT/'validation.json').write_text(json.dumps(all_results,ensure_ascii=False,indent=2),encoding='utf-8')
+
+if __name__=='__main__':run()

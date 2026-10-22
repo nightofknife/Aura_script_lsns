@@ -1,0 +1,206 @@
+{
+  "schema": "independent_manual_visible_surface_points.v1",
+  "source_image": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0056_view2_align_27.png",
+  "source_sha256": "b82435c8a08ede754592efd42b86e317c85d60ffe2c346aa70f4b4dbfa03eecc",
+  "frame_id": 56,
+  "image_size": [
+    1280,
+    720
+  ],
+  "method": "Manual reading of original RGB and 2x cropped inspection images; coordinates chosen without reading geometry JSON, native projected points, or automatic fitting. A 25px screen-coordinate grid was used only as a ruler.",
+  "point_contract": "Observed visible bevel junctions; do not use as exact Icon corners or silently snap to projected mesh. Radius is subjective annotation uncertainty, not statistical confidence. This file deliberately contains partial corner sets, not quads. Do not close them into a quad or infer omitted bottom points.",
+  "cells": [
+    {
+      "screen_local_id": "left_orange_triangle",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "corner_order": "partial observed junction set; identifiers preserve initial screen order, no completed quadrilateral",
+      "points": [
+        {
+          "id": "1.1",
+          "xy": [
+            490,
+            246
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "1.2",
+          "xy": [
+            554,
+            302
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "1.4",
+          "xy": [
+            427,
+            303
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Boundary is visible shell/front-surface bevel, not transparent Icon UV quad. Exact correspondence to mesh vertex remains unresolved. Lower junctions were omitted after enlarged raw-image review because top-plane, bevel and sidewall boundaries could be confused."
+    },
+    {
+      "screen_local_id": "lower_left_orange_triangle",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "corner_order": "partial observed junction set; identifiers preserve initial screen order, no completed quadrilateral",
+      "points": [
+        {
+          "id": "2.1",
+          "xy": [
+            563,
+            315
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "2.2",
+          "xy": [
+            630,
+            368
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "2.4",
+          "xy": [
+            494,
+            373
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Boundary is visible shell/front-surface bevel, not transparent Icon UV quad. Exact correspondence to mesh vertex remains unresolved. Lower junctions were omitted after enlarged raw-image review because top-plane, bevel and sidewall boundaries could be confused."
+    },
+    {
+      "screen_local_id": "lower_right_purple_ring",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "corner_order": "partial observed junction set; identifiers preserve initial screen order, no completed quadrilateral",
+      "points": [
+        {
+          "id": "3.1",
+          "xy": [
+            714,
+            315
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "3.2",
+          "xy": [
+            783,
+            369
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "3.4",
+          "xy": [
+            651,
+            373
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Boundary is visible shell/front-surface bevel, not transparent Icon UV quad. Exact correspondence to mesh vertex remains unresolved. Lower junctions were omitted after enlarged raw-image review because top-plane, bevel and sidewall boundaries could be confused."
+    },
+    {
+      "screen_local_id": "upper_right_purple_ring",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "corner_order": "partial observed junction set; identifiers preserve initial screen order, no completed quadrilateral",
+      "points": [
+        {
+          "id": "4.1",
+          "xy": [
+            787,
+            245
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "4.2",
+          "xy": [
+            851,
+            298
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "4.4",
+          "xy": [
+            724,
+            307
+          ],
+          "uncertainty_radius_px": 4,
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Boundary is visible shell/front-surface bevel, not transparent Icon UV quad. Exact correspondence to mesh vertex remains unresolved. Lower junctions were omitted after enlarged raw-image review because top-plane, bevel and sidewall boundaries could be confused."
+    },
+    {
+      "screen_local_id": "bottom_yellow_box",
+      "surface": "visible_icon_support_front_surface_outer_bevel_junction",
+      "corner_order": "partial observed junction set; identifiers preserve initial screen order, no completed quadrilateral",
+      "points": [
+        {
+          "id": "5.1",
+          "xy": [
+            640,
+            383
+          ],
+          "uncertainty_radius_px": 5,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "5.2",
+          "xy": [
+            710,
+            440
+          ],
+          "uncertainty_radius_px": 5,
+          "visible": true,
+          "occluded": false
+        },
+        {
+          "id": "5.4",
+          "xy": [
+            576,
+            441
+          ],
+          "uncertainty_radius_px": 5,
+          "visible": true,
+          "occluded": false
+        }
+      ],
+      "caveat": "Boundary is visible shell/front-surface bevel, not transparent Icon UV quad. Exact correspondence to mesh vertex remains unresolved. Lower junctions were omitted after enlarged raw-image review because top-plane, bevel and sidewall boundaries could be confused."
+    }
+  ],
+  "excluded_regions": "Entities, glows, reset overlay, and invisible/ambiguous central-face corners were excluded.",
+  "independence_caveat": "Earlier control audit read scalar panel quality from this run, but no geometry coordinates or projection coordinates were used for labels."
+}

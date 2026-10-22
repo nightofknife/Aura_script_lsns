@@ -1,0 +1,104 @@
+[
+  {
+    "name": "RubikCube",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\RubikCube.lua",
+    "sha256": "f01216a06fad25974a11d43e1aee67ea8c1abb795534fe5201f049348ce2a6ec",
+    "decoded_source_sha256": "f01216a06fad25974a11d43e1aee67ea8c1abb795534fe5201f049348ce2a6ec",
+    "matched": true,
+    "verification": {
+      "function_count": 37,
+      "instruction_count": 3877,
+      "constant_count": 509,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  },
+  {
+    "name": "DragHandle",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\DragHandle.lua",
+    "sha256": "53a543bb5553571a6cf53e76b7247f3e339c64c40bf63c017d2c2edcde283176",
+    "decoded_source_sha256": "53a543bb5553571a6cf53e76b7247f3e339c64c40bf63c017d2c2edcde283176",
+    "matched": true,
+    "verification": {
+      "function_count": 9,
+      "instruction_count": 210,
+      "constant_count": 81,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  },
+  {
+    "name": "CubeRogueRoleCtrl",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\CubeRogueRoleCtrl.lua",
+    "sha256": "fba10cc5a416a87043d7bdf5ea7422da742fbd6210bce14631ef7a1d34bc4245",
+    "decoded_source_sha256": "fba10cc5a416a87043d7bdf5ea7422da742fbd6210bce14631ef7a1d34bc4245",
+    "matched": true,
+    "verification": {
+      "function_count": 27,
+      "instruction_count": 545,
+      "constant_count": 223,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  },
+  {
+    "name": "UICubeRogueMainDataModel",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRogueMainDataModel.lua",
+    "sha256": "d8fe14d7d1c494b3184755e2b5e77baf79671c1f973181f188292ab0079b2c3c",
+    "decoded_source_sha256": "d8fe14d7d1c494b3184755e2b5e77baf79671c1f973181f188292ab0079b2c3c",
+    "matched": true,
+    "verification": {
+      "function_count": 36,
+      "instruction_count": 1721,
+      "constant_count": 570,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  },
+  {
+    "name": "UICubeRogueMainViewFunction",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRogueMainViewFunction.lua",
+    "sha256": "08270352da9ac1bef9ffa8b6b933c4e43386fab367df49a555fc0cdadbcd3c27",
+    "decoded_source_sha256": "08270352da9ac1bef9ffa8b6b933c4e43386fab367df49a555fc0cdadbcd3c27",
+    "matched": true,
+    "verification": {
+      "function_count": 55,
+      "instruction_count": 809,
+      "constant_count": 332,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  },
+  {
+    "name": "UICubeRoguewMainController",
+    "source": "D:\\game\\Resonance\\雷索纳斯_Data\\Patch\\Script\\UICubeRogueMain\\UICubeRoguewMainController.lua",
+    "sha256": "817d031a8c864d28b66bdc766d7833f6abfa4abbbc6cd75dd02c0eee818d1917",
+    "decoded_source_sha256": "817d031a8c864d28b66bdc766d7833f6abfa4abbbc6cd75dd02c0eee818d1917",
+    "matched": true,
+    "verification": {
+      "function_count": 164,
+      "instruction_count": 7090,
+      "constant_count": 2231,
+      "exact_roundtrip_verified": true,
+      "unconsumed_bytes": 0,
+      "complete_structural_decode": true,
+      "unknown_opcode_counts": {},
+      "original_source_recovered": false
+    }
+  }
+]
