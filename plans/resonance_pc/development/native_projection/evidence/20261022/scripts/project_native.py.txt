@@ -1,0 +1,92 @@
+"""Offline projection probe; no runtime/app/input imports or game access."""
+from pathlib import Path
+import json, math, re
+import cv2
+import numpy as np
+
+ROOT=Path(__file__).resolve().parents[2]
+OUT=Path(__file__).resolve().parent
+ASSETS=ROOT/'.pytest_tmp/deep-dive-native-redesign-20261022/assets'
+RUN=ROOT/'logs/deep_dive_scan/20261022-214613-b5f3ead5'
+
+def read(p): return json.loads(p.read_text('utf-8'))
+def quat(v):
+    x,y,z,w=(v[k] for k in 'xyzw');n=math.sqrt(x*x+y*y+z*z+w*w);x,y,z,w=x/n,y/n,z/n,w/n
+    return np.array([[1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w)], [2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w)], [2*(x*z-y*w),2*(y*z+x*w),1-2*(x*x+y*y)]])
+def vec(v):return np.array([v[k] for k in 'xyz'],float)
+def trs(row):
+    m=np.eye(4);m[:3,:3]=quat(row['rotation'])@np.diag(vec(row['scale']));m[:3,3]=vec(row['position']);return m
+def transform(points,m):return np.c_[np.asarray(points),np.ones(len(points))]@m[:3].T
+def rot_x(a):
+    a=np.deg2rad(a);c,s=np.cos(a),np.sin(a);return np.array([[1,0,0],[0,c,-s],[0,s,c]])
+def rot_y(a):
+    a=np.deg2rad(a);c,s=np.cos(a),np.sin(a);return np.array([[c,0,s],[0,1,0],[-s,0,c]])
+
+class Model:
+    def __init__(self):
+        hierarchy=read(ASSETS/'rubik_hierarchy.json');self.hierarchy={r['path']:r for r in hierarchy}
+        self.cells=[]
+        meshes=read(ASSETS/'cell_mesh_geometry.json')
+        self.variants={r['prefab']:r for r in meshes}
+        mesh=next(m for m in self.variants['Rogue_Cube_MF_N_Empty']['meshes'] if m['path'].endswith('/Icon'))
+        vertices=np.array(mesh['root_vertices']);uv=np.array(mesh['uv0'])
+        order=np.argsort(np.arctan2(vertices[:,1]-vertices[:,1].mean(),vertices[:,0]-vertices[:,0].mean()))
+        self.icon_vertices=vertices[order];self.icon_uv=uv[order]
+        # Front planar rim's OUTER corners, taken from the 122-vertex shell.
+        # Do not confuse this boundary with the inset Icon quad.
+        shell=next(m for m in self.variants['Rogue_Cube_MF_N_Empty']['meshes'] if m['vertex_count']==122)
+        v=np.array(shell['root_vertices']);z=v[:,2].max();front=v[np.abs(v[:,2]-z)<1e-4]
+        x0,x1=front[:,0].min(),front[:,0].max();y0,y1=front[:,1].min(),front[:,1].max()
+        self.rim_vertices=np.array([[x0,y0,z],[x1,y0,z],[x1,y1,z],[x0,y1,z]])
+        for row in hierarchy:
+            match=re.fullmatch(r'/Rubik/Cube \((\d),(\d),(\d)\)',row['path'])
+            if match:
+                anchor=self.hierarchy[row['path']+'/Rogue_Cube_MF_02']
+                m=trs(row)@trs(anchor)
+                self.cells.append(dict(key=tuple(map(int,match.groups())),matrix=m,icon=transform(self.icon_vertices,m),rim=transform(self.rim_vertices,m),normal=m[:3,:3]@np.array([0.,0.,1.])))
+        assert len(self.cells)==54
+        # Independently audited native scene parent + Controller local writes.
+        # This is a native-chain candidate, not runtime transform telemetry.
+        camera=read(OUT/'native_audit/camera_native_candidate.json')
+        self.camera_R=np.array(camera['camera_to_world_rotation'])
+        self.camera_C=np.array(camera['camera_center_world'])
+        assert np.max(abs(self.camera_R.T@self.camera_R-np.eye(3)))<1e-6
+        assert abs(np.linalg.det(self.camera_R)-1)<1e-6
+        self.f=360/math.tan(math.radians(camera['vertical_fov_degrees'])/2)
+        self.K=np.array([[self.f,0,640],[0,self.f,360],[0,0,1.]])
+        self.to_cv=np.diag([1.,-1.,1.])
+    def project(self,points,root_R=None):
+        R=np.eye(3) if root_R is None else root_R
+        world=np.asarray(points)@R.T
+        camera=(world-self.camera_C)@self.camera_R
+        cv=camera@self.to_cv
+        return cv[:,:2]/cv[:,2:3]*self.f+np.array([640,360])
+    def visible(self,cell,R):
+        center=cell['icon'].mean(0)@R.T;normal=cell['normal']@R.T
+        return normal@(self.camera_C-center)>0
+
+def frame_path(fid):return RUN/next(f['path'] for f in read(RUN/'frames.json') if f['source']['frame_id']==fid)
+def overlay(model,fid,R,path,annotations=None):
+    img=cv2.imread(str(frame_path(fid)));assert img.shape[:2]==(720,1280)
+    projected=[]
+    for c in model.cells:
+        if not model.visible(c,R):continue
+        rim=model.project(c['rim'],R);icon=model.project(c['icon'],R)
+        if not np.isfinite(rim).all():continue
+        cv2.polylines(img,[rim.round().astype(np.int32)],True,(0,220,0),1,cv2.LINE_AA)
+        cv2.polylines(img,[icon.round().astype(np.int32)],True,(220,180,0),1,cv2.LINE_AA)
+        center=rim.mean(0).round().astype(int)
+        cv2.putText(img,','.join(map(str,c['key'])),tuple(center),cv2.FONT_HERSHEY_SIMPLEX,.3,(255,255,255),1,cv2.LINE_AA)
+        projected.append(dict(cell=c['key'],rim=rim.tolist(),icon=icon.tolist()))
+    if annotations:
+        for a in annotations:
+            pt=tuple(np.round(a['pixel']).astype(int));cv2.drawMarker(img,pt,(0,0,255),cv2.MARKER_CROSS,9,1)
+    cv2.putText(img,'NATIVE PROJECTION - green: rim; cyan: Icon; no occlusion culling',(12,704),cv2.FONT_HERSHEY_SIMPLEX,.45,(255,255,255),1,cv2.LINE_AA)
+    cv2.imwrite(str(path),img)
+    return projected
+
+if __name__=='__main__':
+    model=Model()
+    rows=overlay(model,0,np.eye(3),OUT/'reset-native-identity.png')
+    (OUT/'native_projection.json').write_text(json.dumps(dict(camera_C=model.camera_C.tolist(),camera_R=model.camera_R.tolist(),K=model.K.tolist(),rim=model.rim_vertices.tolist(),icon=model.icon_vertices.tolist(),uv=model.icon_uv.tolist(),identity_projection=rows),indent=2),encoding='utf-8')
+    print('projected',len(rows),'front-facing slots; all coordinates native, root identity assumption')

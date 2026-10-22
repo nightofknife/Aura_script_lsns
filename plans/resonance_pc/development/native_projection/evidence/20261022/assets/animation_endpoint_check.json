@@ -1,0 +1,61 @@
+[
+  {
+    "clip": "rogue_cube_in",
+    "slot_endpoint_count": 54,
+    "slot_endpoint_mismatches_gt1e-5": [],
+    "other_bindings": [
+      {
+        "path": 0,
+        "attribute": 1,
+        "axis": 0
+      },
+      {
+        "path": 0,
+        "attribute": 1,
+        "axis": 1
+      },
+      {
+        "path": 0,
+        "attribute": 1,
+        "axis": 2
+      },
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 0
+      },
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 1
+      },
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 2
+      }
+    ]
+  },
+  {
+    "clip": "rogue_cube_idle",
+    "slot_endpoint_count": 54,
+    "slot_endpoint_mismatches_gt1e-5": [],
+    "other_bindings": [
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 0
+      },
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 1
+      },
+      {
+        "path": 0,
+        "attribute": 3,
+        "axis": 2
+      }
+    ]
+  }
+]

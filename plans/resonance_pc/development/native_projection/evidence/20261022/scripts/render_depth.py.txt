@@ -1,0 +1,64 @@
+"""Diagnostic mesh depth renderer. Empty shell proxy, opaque Icon-plane proxy.
+
+Not a reproduction of the game's shaders, effects, actors, or UI occlusion.
+"""
+from project_native import *
+
+def camera_points(model,points,R):
+    return ((np.asarray(points)@R.T-model.camera_C)@model.camera_R)@model.to_cv
+
+def raster(depth,pts,model):
+    q=pts[:,:2]/pts[:,2,None]*model.f+np.array([640,360])
+    xmin,ymin=np.maximum(np.floor(q.min(0)).astype(int),[0,0]);xmax,ymax=np.minimum(np.ceil(q.max(0)).astype(int),[1279,719])
+    if xmax<xmin or ymax<ymin or np.any(pts[:,2]<=0):return
+    x,y=np.meshgrid(np.arange(xmin,xmax+1)+.5,np.arange(ymin,ymax+1)+.5)
+    a,b,c=q;den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1])
+    if abs(den)<1e-8:return
+    u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/den
+    v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/den;w=1-u-v
+    mask=(u>=-1e-6)&(v>=-1e-6)&(w>=-1e-6)
+    inv=u/pts[0,2]+v/pts[1,2]+w/pts[2,2];z=np.divide(1.,inv,out=np.full_like(inv,np.inf),where=inv>0)
+    target=depth[ymin:ymax+1,xmin:xmax+1];np.minimum(target,np.where(mask,z,np.inf),out=target)
+
+def depth_image(model,R):
+    spec=next(v for v in read(OUT/'native_audit/shell_triangles.json')['variants'] if v['prefab']=='Rogue_Cube_MF_N_Empty')
+    shell=next(m for m in model.variants['Rogue_Cube_MF_N_Empty']['meshes'] if m['vertex_count']==122)
+    idx=np.array(spec['submesh_triangle_indices'][0]);vertices=np.array(shell['root_vertices'])
+    depth=np.full((720,1280),np.inf)
+    for c in model.cells:
+        cam=camera_points(model,transform(vertices,c['matrix']),R)
+        for tri in cam[idx]:raster(depth,tri,model)
+        icon=camera_points(model,c['icon'],R)
+        for tri in (icon[[0,1,2]],icon[[0,2,3]]):raster(depth,tri,model)
+    return depth
+
+def draw_boundary(img,model,world,R,depth,color):
+    for a,b in zip(world,np.roll(world,-1,axis=0)):
+        t=np.linspace(0,1,160);points=a+(b-a)*t[:,None];cam=camera_points(model,points,R)
+        xy=np.round(cam[:,:2]/cam[:,2,None]*model.f+[640,360]).astype(int)
+        within=(xy[:,0]>=0)&(xy[:,0]<1280)&(xy[:,1]>=0)&(xy[:,1]<720)
+        visible=np.zeros(len(xy),bool)
+        valid=np.flatnonzero(within);p=xy[valid]
+        visible[valid]=cam[valid,2]<=depth[p[:,1],p[:,0]]+.07
+        for j in range(len(xy)-1):
+            if visible[j] and visible[j+1]:cv2.line(img,tuple(xy[j]),tuple(xy[j+1]),color,1,cv2.LINE_AA)
+
+def run():
+    m=Model();validation=read(OUT/'validation.json')
+    cases=[dict(frame_id=0,rotation_matrix=np.eye(3).tolist())]+validation
+    for case in cases:
+        fid=case['frame_id'];R=np.array(case['rotation_matrix']);depth=depth_image(m,R)
+        img=cv2.imread(str(frame_path(fid)))
+        for c in m.cells:
+            if not m.visible(c,R):continue
+            draw_boundary(img,m,c['rim'],R,depth,(0,230,0))
+            draw_boundary(img,m,c['icon'],R,depth,(240,190,0))
+        for p in case.get('points',[]):
+            color=(0,0,255) if p['split']=='holdout' else (0,255,255)
+            cv2.drawMarker(img,tuple(np.round(p['pixel']).astype(int)),color,cv2.MARKER_CROSS,9,1)
+        cv2.putText(img,'Native geometry depth proxy | green=rim cyan=Icon red=heldout yellow=fit',(12,25),0,.48,(255,255,255),1,cv2.LINE_AA)
+        cv2.putText(img,'Empty mesh proxy; no actor/effect/UI masking; not shader-exact rendering',(12,704),0,.44,(255,255,255),1,cv2.LINE_AA)
+        cv2.imwrite(str(OUT/f'frame{fid:04d}-depth-overlay.png'),img)
+        print('depth overlay',fid,flush=True)
+
+if __name__=='__main__':run()

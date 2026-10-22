@@ -6,6 +6,7 @@
 
 | 目录 | 用途 | 生产者 |
 | --- | --- | --- |
+| `native_projection/` | 深潜原生几何模块、失败实机证据和换机交接（尚未通过四视角识别验收） | 原生投影开发实验 |
 | `template_sources/characters/stand/scuffle/` | 当前未接入识别的乱斗立绘序列、mask、角色来源及开发 manifest | `tools/build_eternal_scuffle_assets.py` |
 | `template_sources/inventory/affix_refresh/` | 校准前的原生字形备份、运行模板对应关系和来源快照 | `tools/build_affix_refresh_templates.py` |
 | `template_sources/navigation/profile/status_digits/` | 未接入用户信息运行识别的数字银行 | `tools/generate_profile_status_digit_templates.py` |

@@ -1,0 +1,132 @@
+"""One owned live FOUR-VIEW native-pose diagnostic; no old geometry fallback."""
+from pathlib import Path
+import sys,os,json,time,asyncio,subprocess,itertools,math,traceback
+import cv2,numpy as np
+ROOT=Path(__file__).resolve().parents[2];OUT=Path(__file__).resolve().parent
+sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'.pytest_tmp/deep-dive-native-projection-20261022'))
+from project_native import Model
+from packages.aura_game import EmbeddedGameRunner
+from plans.resonance_pc.src.actions import consciousness_deep_dive_scan_pc_actions as runtime
+from plans.resonance_pc.src.actions._deep_dive_four_view_scan import bounded_feedback_step
+MODEL=Model();AXIS=MODEL.camera_R[:,0]
+SYMS=[]
+for perm in itertools.permutations(range(3)):
+    for signs in itertools.product((-1,1),repeat=3):
+        M=np.zeros((3,3))
+        for i,j in enumerate(perm):M[i,j]=signs[i]
+        if np.linalg.det(M)>.5:SYMS.append(M)
+def write(name,value):
+    (OUT/name).write_text(json.dumps(value,ensure_ascii=False,indent=2,default=lambda x:x.tolist() if isinstance(x,np.ndarray) else str(x)),encoding='utf-8')
+def event(kind,**fields):
+    row=dict(event=kind,time=time.monotonic(),**fields)
+    with (OUT/'timeline.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps(row,ensure_ascii=False,default=lambda x:x.tolist() if isinstance(x,np.ndarray) else str(x))+'\n')
+    print(kind,fields.get('view',''),fields.get('phase_deg',''),fields.get('reason',''),flush=True)
+def distance(A,B):return math.degrees(math.acos(float(np.clip((np.trace(A@B.T)-1)/2,-1,1))))
+def unwrap(R,previous):
+    sine=np.dot(AXIS,np.array([R[2,1]-R[1,2],R[0,2]-R[2,0],R[1,0]-R[0,1]])/2)
+    angle=math.degrees(math.atan2(sine,(np.trace(R)-1)/2))
+    return min((angle+360*k for k in range(-2,4)),key=lambda a:abs(a-previous))
+
+async def scan(app,**kwargs):
+    started=time.monotonic();deadline=started+600;actions=[];views=[];counter=0;last_R=np.eye(3);phase=0.;last_source=None
+    token=runtime._SCAN_CONTROL.set(dict(observe_fn=kwargs.get('observe_fn'),latest_frame_metadata={}))
+    reason='not_complete';status='blocked'
+    async def owned(op):
+        value,cancelled=await runtime._await_serial(op)
+        if cancelled:raise asyncio.CancelledError()
+        return value
+    def check():
+        runtime._cancel_check()
+        if time.monotonic()>deadline:raise RuntimeError('native_scan_time_limit')
+        if (OUT/'STOP').exists():raise RuntimeError('stop_requested')
+    adapter=app.target_runtime._get_or_create_session()
+    async def capture_and_pose(label):
+        nonlocal counter,last_R,phase,last_source
+        check();packet=None;end=time.monotonic()+3
+        while packet is None and time.monotonic()<end:
+            packet=await owned(asyncio.to_thread(adapter.capture_stream_frame,-1 if last_source is None else last_source['generation'],expected_session_id=None if last_source is None else last_source['session_id']))
+            if packet is None:await asyncio.sleep(.02)
+        if packet is None:raise RuntimeError('fresh_capture_missing')
+        cap=packet['capture']
+        if not cap.success or cap.image is None or time.monotonic()-packet['arrived_at_monotonic']>.5:raise RuntimeError('invalid_fresh_frame')
+        scene=runtime._observe(cap.image)
+        if not runtime._player_board(scene):raise RuntimeError('ordinary_board_lost:'+str(scene.get('scene')))
+        last_source=dict(session_id=packet['session_id'],generation=packet['generation'],frame_time=packet['arrived_at_monotonic'])
+        directory=OUT/f'frames/{counter:04d}_{label}';directory.mkdir(parents=True)
+        image=directory/'source.png';cv2.imwrite(str(image),cv2.cvtColor(cap.image,cv2.COLOR_RGB2BGR));counter+=1
+        command=[sys.executable,str(ROOT/'.pytest_tmp/deep-dive-native-live-20261022/auto_pose.py'),'--image',str(image),'--output',str(directory)]
+        def infer():
+            result=subprocess.run(command,cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=20)
+            (directory/'inference.log').write_bytes(result.stdout)
+            if result.returncode:raise RuntimeError('native_pose_process_failed')
+            return json.loads((directory/'automatic-result.json').read_text('utf-8'))
+        result=await owned(asyncio.to_thread(infer));best=result['chosen']['score']
+        # Resolve only geometric rotation-equivalence by continuity. Native
+        # logical face identity remains unproven; this is scan-local tracking.
+        equivalent=[]
+        for candidate in result['candidates']:
+            if candidate['score']>best+.15:continue
+            R=np.array(candidate['rotation'])
+            for S in SYMS:equivalent.append((distance(R@S,last_R),candidate['score'],R@S))
+        step,score,R=min(equivalent,key=lambda x:(x[0],x[1]));new_phase=unwrap(R,phase)
+        off=distance(R,cv2.Rodrigues(AXIS*np.deg2rad(new_phase))[0])
+        record=dict(frame=counter-1,label=label,path=str(directory),phase_deg=new_phase,off_axis_deg=off,step_deg=step,score=score,rotation=R,source=last_source,scene={k:scene.get(k) for k in ('scene','player_turn','plane_index')})
+        write('latest.json',record);event('pose',**record)
+        if step>25 or off>8 or score>9:raise RuntimeError('native_pose_continuity_or_quality_rejected')
+        last_R=R;phase=new_phase
+        return record
+    async def drag(dy,view):
+        check()
+        if len(actions)>=160:raise RuntimeError('native_scan_step_limit')
+        dy=int(dy)
+        if not dy or abs(dy)>80:raise ValueError('bounded_vertical_drag')
+        await owned(app.controller.mouse_up_async('left'));await owned(app.move_to_async(640,480,duration=0.));await asyncio.sleep(.08)
+        try:
+            await owned(app.controller.mouse_down_async('left'));await asyncio.sleep(.08)
+            for fraction in (.25,.5,.75,1.):await owned(app.move_to_async(640,480+round(dy*fraction),duration=.125))
+        finally:await runtime._await_serial(app.controller.mouse_up_async('left'))
+        actions.append(dict(index=len(actions),dy=dy,duration=.5,view=view,before_phase_deg=phase));write('actions.json',actions);event('drag',**actions[-1])
+        await asyncio.sleep(.35)
+    try:
+        (OUT/'reset').mkdir(exist_ok=True)
+        reset=await runtime._reset_view(app,OUT/'reset',time.monotonic()+20);write('reset.json',reset);await asyncio.sleep(.4)
+        current=await capture_and_pose('reset')
+        # Native camera pitch defines side-pair view; 90deg spacing produces
+        # pair / single / opposite pair / opposite single, covering six faces.
+        for view,target in enumerate((29.6,119.6,209.6,299.6),1):
+            previous_error=None;previous_dy=None
+            event('view_start',view=view,target_deg=target)
+            for attempt in range(80):
+                check();error=target-phase
+                if abs(error)<=2.5 and current['off_axis_deg']<=5:
+                    await asyncio.sleep(.5);witness=await capture_and_pose(f'view{view}_witness')
+                    if abs(target-phase)<=2.5 and witness['off_axis_deg']<=5:
+                        record=dict(view=view,target_deg=target,primary=current,witness=witness,inputs=len(actions),status='captured',identity='scan_local_geometric_hypothesis')
+                        views.append(record);write('views.json',views);event('view_complete',view=view,phase_deg=phase);current=witness;break
+                    current=witness;continue
+                dy=(-80 if error>0 else 80) if abs(error)>10 else bounded_feedback_step(error,previous_error,previous_dy)
+                previous_error=error;previous_dy=dy
+                await drag(dy,view);current=await capture_and_pose(f'view{view}_step{attempt:02d}')
+            else:raise RuntimeError(f'view{view}_arrival_limit')
+        status='captured';reason='four_native_views_captured'
+    except Exception as exc:
+        reason=f'{type(exc).__name__}:{exc}';event('failure',reason=reason);write('exception.json',dict(reason=reason,traceback=traceback.format_exc()))
+    finally:
+        await runtime._await_serial(app.controller.mouse_up_async('left'))
+        await runtime._await_serial(asyncio.to_thread(adapter.close));runtime._SCAN_CONTROL.reset(token)
+        summary=dict(status=status,reason=reason,views_completed=len(views),requested_views=4,steps=len(actions),frames=counter,elapsed_sec=time.monotonic()-started,output_dir=str(OUT),mouse_released=True,capture_closed=True,targets_ready=False,layout_complete=False,success=False,geometry_scan_complete=len(views)==4,note='Native geometry four-view diagnostic only; not target/node semantic success; no old geometry fallback')
+        write('summary.json',summary);event('scan_end',**summary)
+    return dict(summary=summary)
+
+def main():
+    original=runtime.run_layout_scan;runtime.run_layout_scan=scan;runner=EmbeddedGameRunner(startup_timeout_sec=90);cid=None
+    write('request.json',dict(pid=os.getpid(),task='single four-view native geometry scan',target_angles=[29.6,119.6,209.6,299.6],input_primitive='existing vertical drag: max80px, duration0.5s,4x0.125,postwait0.35',budget_sec=600,max_steps=160))
+    try:
+        dispatch=runner.run_task(game_name='resonance_pc',task_ref='tasks:consciousness_deep_dive_scan_pc.yaml:consciousness_deep_dive_scan_pc',inputs=dict(scan_route='four_views',recognition_goal='targets',max_steps=160,time_budget_sec=650),wait=False)
+        cid=dispatch['cid'];write('dispatch.json',dispatch);event('dispatch',cid=cid)
+        write('runner_result.json',runner.wait_for_run(cid,timeout_sec=700))
+    finally:
+        if cid and runner.get_run(cid).get('execution_pending'):
+            runner.cancel_task(cid);runner.wait_for_run(cid,timeout_sec=30)
+        runner.close();runtime.run_layout_scan=original;write('runtime_closed.json',dict(pid=os.getpid(),closed=True))
+if __name__=='__main__':main()

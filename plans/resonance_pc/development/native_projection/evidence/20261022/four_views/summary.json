@@ -1,0 +1,17 @@
+{
+  "status": "blocked",
+  "reason": "RuntimeError:native_pose_continuity_or_quality_rejected",
+  "views_completed": 0,
+  "requested_views": 4,
+  "steps": 4,
+  "frames": 5,
+  "elapsed_sec": 18.70300000000134,
+  "output_dir": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-four-views-20261022",
+  "mouse_released": true,
+  "capture_closed": true,
+  "targets_ready": false,
+  "layout_complete": false,
+  "success": false,
+  "geometry_scan_complete": false,
+  "note": "Native geometry four-view diagnostic only; not target/node semantic success; no old geometry fallback"
+}

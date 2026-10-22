@@ -1,0 +1,135 @@
+[
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Asset\\cuberoguepath\\model\\rogue_cube_mf_01.asset",
+    "sha256": "f2fbf8d3344d2ed28af408367e5925bf8ca1084cca55627a37253cea29939b05",
+    "output": ".pytest_tmp\\deep-dive-native-redesign-20261022\\assets\\rogue_cube_mf_01.asset.json",
+    "containers": [
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_04.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_09.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_02.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_e.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_m.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_06.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_03.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_01.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_08.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_05.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_01.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_07.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/rogue_cube_mf_n.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_01/materials/rogue_cube_mf_02.mat"
+    ],
+    "objects": 17
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Asset\\cuberoguepath\\model\\rogue_cube_mf_n.asset",
+    "sha256": "5b0f50ec792535768087e7806d6159d4d417435687d1c7d744fb5dbba982cbae",
+    "output": ".pytest_tmp\\deep-dive-native-redesign-20261022\\assets\\rogue_cube_mf_n.asset.json",
+    "containers": [
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_02.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_n.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_01_e.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_02_n.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_05.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_07_02.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_03.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_02_01.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_t.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_04.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_m_g.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_07_03.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_03_e.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_06.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_03_n.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_01_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_03.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_07_01.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_03_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_01.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_01_e.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_02_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_07.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_02_01_b.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_03_m_g.png",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/materials/rogue_cube_mf_n_01_01.mat",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_02.fbx",
+      "assets/gameres/res/cuberoguepath/model/rogue_cube_mf_n/rogue_cube_mf_n_02_m_g.png"
+    ],
+    "objects": 96
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Asset\\scenes\\rubikcube.unity.asset",
+    "sha256": "84d69138b8d1153a1db74c415fff5c95c6d01582251f5d0759ddc3612133b380",
+    "output": ".pytest_tmp\\deep-dive-native-redesign-20261022\\assets\\rubikcube.unity.asset.json",
+    "containers": [
+      "Assets/GameRes/Res/Scenes/RubikCube.unity"
+    ],
+    "objects": 672
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\Asset\\cuberoguepath\\model\\prefab.asset",
+    "sha256": "da6d64f3168bf271492bf201d6735b4dd03bc55dd326a0650cfe238f6792e3e4",
+    "output": "prefab_objects.json",
+    "externals": [
+      [
+        1,
+        "archive:/CAB-b6df6dc4fa91604fc4b25ed395781400/CAB-b6df6dc4fa91604fc4b25ed395781400"
+      ],
+      [
+        2,
+        "archive:/CAB-ef5e6ddb2ae6db15f6c1e652893c9490/CAB-ef5e6ddb2ae6db15f6c1e652893c9490"
+      ],
+      [
+        3,
+        "archive:/CAB-7ad6a63320eba2f0c41d30f1b7e03c07/CAB-7ad6a63320eba2f0c41d30f1b7e03c07"
+      ],
+      [
+        4,
+        "archive:/CAB-36d3b4f496167fc800e28a20db4db2f6/CAB-36d3b4f496167fc800e28a20db4db2f6"
+      ],
+      [
+        5,
+        "archive:/CAB-1d7de6bf4fba335fa58d83fdb426b23f/CAB-1d7de6bf4fba335fa58d83fdb426b23f"
+      ],
+      [
+        6,
+        "Library/unity default resources"
+      ],
+      [
+        7,
+        "archive:/CAB-6d74e05cbf761e10658a65bb8e3fbfea/CAB-6d74e05cbf761e10658a65bb8e3fbfea"
+      ],
+      [
+        8,
+        "Resources/unity_builtin_extra"
+      ],
+      [
+        9,
+        "archive:/CAB-706f5d1f3f4e5d78f9b167e3eb97e8ec/CAB-706f5d1f3f4e5d78f9b167e3eb97e8ec"
+      ],
+      [
+        10,
+        "archive:/CAB-120c06eb6926d3787e4111b4196eaf42/CAB-120c06eb6926d3787e4111b4196eaf42"
+      ],
+      [
+        11,
+        "archive:/CAB-bcfe86ab8da79ff7f80dc8e3274dd4bf/CAB-bcfe86ab8da79ff7f80dc8e3274dd4bf"
+      ]
+    ]
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\BinaryConfig\\CubeRogueFactory.bin",
+    "sha256": "b788061d5b902b845522f24f9b2090656ab8e133bc5be997c5e6152917d0db51"
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\BinaryConfig\\CubeFactory.bin",
+    "sha256": "0e678a5e9306e39ee12b71c94edaa15078e0be853a4dc3e2909fcc17bac9c6d3"
+  },
+  {
+    "source": "D:\\game\\Resonance\\\u96f7\u7d22\u7eb3\u65af_Data\\Patch\\BinaryConfig\\TagFactory.bin",
+    "sha256": "4762974c6382431fa28442e8ba479765f4cde4604a27c4fb622a31a57b81c0e0"
+  }
+]

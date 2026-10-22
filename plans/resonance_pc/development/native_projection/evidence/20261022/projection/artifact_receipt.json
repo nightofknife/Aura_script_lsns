@@ -1,0 +1,74 @@
+{
+  "source_head": "d39bc0a2390373907ce0286fb2073af506bacd83",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "opencv": "4.13.0",
+  "numpy": "2.3.5",
+  "fixed": "native camera chain, FOV12, scale1, root translation zero, native shell and Icon geometry",
+  "fit": "3 root rotation parameters per frame, manual correspondence and coarse initialization",
+  "files": [
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\fit_native.py",
+      "sha256": "6c6908014262fecef7a68ea396b0aa2db1929cdb9f6ac82bb19e29e14a4acf41"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\project_native.py",
+      "sha256": "e718660e4bc3f96de808fdb2b1d82e02d2cfa2ec44b4626bb4d7a2558c9633b8"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\render_depth.py",
+      "sha256": "f0678ce562af21efeb086f123541510e4f28197dc38ddb86b9312b667468be1f"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\independent_labels\\frame0021_manual_points.json",
+      "sha256": "8d1550acace99dfb72bb9cc874fb582bebd30f9b4f991a3ec23b750c36d16ebc"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\independent_labels\\frame0056_manual_points.json",
+      "sha256": "fa845ad77faad0ee16f18421ef8d3df8ce9782f6175a05af666b6fc636ddd674"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\independent_labels\\frame0117_manual_points.json",
+      "sha256": "2eb384da7ac2af7ba0239a2767e34b93ea3fbfb34d12d9abb6063022090804b6"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\frame118_manual_points.json",
+      "sha256": "2c83036c97f5931eef7e703738c1e4a1cb263c234cbd245f92303ea3d82291e8"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\native_audit\\camera_native_candidate.json",
+      "sha256": "4cda6900de724ad0b7c792eee048be64ad05851281eea7344f14a0a07f55e461"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-projection-20261022\\native_audit\\shell_triangles.json",
+      "sha256": "dea8753be4f04cf5aa98d69b0a9b9860827cc637059b14490f33b7ba6421764a"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-redesign-20261022\\assets\\rubik_hierarchy.json",
+      "sha256": "52303fd83c6e8fd907a817f9e82c1eabacd76cb38d8dc6bda5060669c2cbadbf"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\.pytest_tmp\\deep-dive-native-redesign-20261022\\assets\\cell_mesh_geometry.json",
+      "sha256": "46accc1e8cf103c780fc8456dd1dc12e3b5d0ba496850afd4f51ca264a3a0191"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0000_reset.png",
+      "sha256": "2886475a12936c76c529660c3133a7b51cbf51fa79d2babeba1f2c25bb519d08"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0021_view1_align_17.png",
+      "sha256": "76eb40fb08e35d30d810dd6e356080b2b4aa8bece0364dd1de189078c140a16e"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0056_view2_align_27.png",
+      "sha256": "b82435c8a08ede754592efd42b86e317c85d60ffe2c346aa70f4b4dbfa03eecc"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0117_view4_align_22.png",
+      "sha256": "0a476424869bbd1a7b21db620fdb9ed7207d6de11886b0117946bc5914db2d7a"
+    },
+    {
+      "path": "D:\\python_project\\Aura_script_lsns\\logs\\deep_dive_scan\\20261022-214613-b5f3ead5\\frames\\0118_view4_quiet_recheck_0.png",
+      "sha256": "31fe4611fb44e88bdb3a9219b4f5c610ac23745450ddc83da9d54a38af221ece"
+    }
+  ]
+}

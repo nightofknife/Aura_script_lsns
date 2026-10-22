@@ -1,0 +1,28 @@
+"""Post-fit evaluation only; never writes/updates automatic-result.json."""
+from pathlib import Path
+import json, numpy as np, cv2, hashlib
+OUT=Path(__file__).resolve().parent
+def read(p):return json.loads(p.read_text('utf-8'))
+result_hash=hashlib.sha256((OUT/'automatic-result.json').read_bytes()).hexdigest()
+labels=read(OUT/'independent_labels/live_manual_points.json');cells=read(OUT/'projected-cells.json')
+# Screen object associations, used only to compare annotations to frozen output.
+# Canonical cube identities remain unresolved; no correct-face claim is made.
+centers=[(492,195),(785,195),(393,366),(463,402),(886,363),(816,400)]
+rows=[];img=cv2.imread(str(OUT/'automatic-overlay.png'))
+for label,target in zip(labels['cells'],centers):
+    chosen=min(cells,key=lambda c:np.linalg.norm(np.array(c['rim']).mean(0)-target))
+    q=np.array(chosen['rim'])
+    top_two=sorted(q[np.argsort(q[:,1])[:2]],key=lambda x:x[0])
+    mapping=dict(back_apex=q[np.argmin(q[:,1])],screen_right_junction=q[np.argmax(q[:,0])],screen_left_junction=q[np.argmin(q[:,0])],upper_screen_left=top_two[0],upper_screen_right=top_two[1])
+    for p in label['points']:
+        pred=mapping[p['corner_semantics']];actual=np.array(p['xy']);error=float(np.linalg.norm(pred-actual))
+        rows.append(dict(screen_cell=label['screen_local_id'],candidate_cell=chosen['cell'],semantic=p['corner_semantics'],manual=actual.tolist(),predicted=pred.tolist(),distance_px=error))
+        cv2.drawMarker(img,tuple(actual.astype(int)),(0,0,255),cv2.MARKER_CROSS,10,1)
+        cv2.line(img,tuple(actual.astype(int)),tuple(np.round(pred).astype(int)),(0,0,255),1,cv2.LINE_AA)
+errors=np.array([r['distance_px'] for r in rows])
+summary=dict(evaluation='all 14 points independent from fit; post-fit screen associations; not canonical identity validation',count=len(rows),mean_px=float(errors.mean()),median_px=float(np.median(errors)),p95_px=float(np.percentile(errors,95)),max_px=float(errors.max()),points=rows,automatic_result_sha256=result_hash)
+(OUT/'evaluation.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
+cv2.putText(img,f"Independent 14-point check: mean {summary['mean_px']:.2f}px, max {summary['max_px']:.2f}px",(15,52),0,.5,(255,255,255),1,cv2.LINE_AA)
+cv2.imwrite(str(OUT/'evaluated-overlay.png'),img)
+assert result_hash==hashlib.sha256((OUT/'automatic-result.json').read_bytes()).hexdigest()
+print(json.dumps({k:v for k,v in summary.items() if k!='points'},ensure_ascii=False))

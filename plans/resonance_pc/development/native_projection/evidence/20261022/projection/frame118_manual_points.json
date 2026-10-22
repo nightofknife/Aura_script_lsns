@@ -1,0 +1,25 @@
+{
+  "frame_id": 118,
+  "method": "Manual visible front-rim corner estimates from original frame and 2x coordinate-grid crop; no old geometry coordinates. Points recorded before solving. Coordinates are approximate and have 5px subjective uncertainty. Omitted lower corners, actor-covered central tile and reset-button region.",
+  "screen_order": ["top", "right", "bottom", "left"],
+  "points": [
+    {"cell": [1,1,3], "vertex": 0, "pixel": [640,132], "split": "fit"},
+    {"cell": [1,1,3], "vertex": 1, "pixel": [700,190], "split": "fit"},
+    {"cell": [1,1,3], "vertex": 3, "pixel": [582,190], "split": "fit"},
+    {"cell": [1,1,2], "vertex": 0, "pixel": [566,199], "split": "fit"},
+    {"cell": [1,1,2], "vertex": 3, "pixel": [509,255], "split": "fit"},
+    {"cell": [1,2,3], "vertex": 0, "pixel": [713,198], "split": "holdout"},
+    {"cell": [1,2,3], "vertex": 1, "pixel": [773,254], "split": "holdout"},
+    {"cell": [1,1,1], "vertex": 0, "pixel": [493,269], "split": "holdout"},
+    {"cell": [1,1,1], "vertex": 3, "pixel": [435,325], "split": "holdout"},
+    {"cell": [1,3,3], "vertex": 0, "pixel": [789,271], "split": "holdout"},
+    {"cell": [1,3,3], "vertex": 1, "pixel": [848,328], "split": "holdout"},
+    {"cell": [1,2,1], "vertex": 0, "pixel": [566,340], "split": "holdout"},
+    {"cell": [1,2,1], "vertex": 3, "pixel": [507,400], "split": "holdout"},
+    {"cell": [1,3,2], "vertex": 0, "pixel": [714,341], "split": "holdout"},
+    {"cell": [1,3,2], "vertex": 1, "pixel": [777,401], "split": "holdout"},
+    {"cell": [1,3,1], "vertex": 0, "pixel": [641,412], "split": "holdout"},
+    {"cell": [1,3,1], "vertex": 1, "pixel": [706,474], "split": "holdout"},
+    {"cell": [1,3,1], "vertex": 3, "pixel": [579,473], "split": "holdout"}
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "path": "frames/0000_reset.png",
+    "source": {
+      "generation_source": "atomic_wgc",
+      "capture_backend": "wgc",
+      "session_id": 275570424081189891492375135049187846834,
+      "generation": 191,
+      "frame_time": 6296.375,
+      "frame_id": 0,
+      "map_revision": 0
+    }
+  },
+  {
+    "path": "frames/0021_view1_align_17.png",
+    "source": {
+      "generation_source": "atomic_wgc",
+      "capture_backend": "wgc",
+      "session_id": 275570424081189891492375135049187846834,
+      "generation": 3280,
+      "frame_time": 6350.468,
+      "frame_id": 21,
+      "map_revision": 0
+    }
+  },
+  {
+    "path": "frames/0056_view2_align_27.png",
+    "source": {
+      "generation_source": "atomic_wgc",
+      "capture_backend": "wgc",
+      "session_id": 275570424081189891492375135049187846834,
+      "generation": 6848,
+      "frame_time": 6413.484,
+      "frame_id": 56,
+      "map_revision": 0
+    }
+  },
+  {
+    "path": "frames/0117_view4_align_22.png",
+    "source": {
+      "generation_source": "atomic_wgc",
+      "capture_backend": "wgc",
+      "session_id": 275570424081189891492375135049187846834,
+      "generation": 14576,
+      "frame_time": 6552.234,
+      "frame_id": 117,
+      "map_revision": 0
+    }
+  },
+  {
+    "path": "frames/0118_view4_quiet_recheck_0.png",
+    "source": {
+      "generation_source": "atomic_wgc",
+      "capture_backend": "wgc",
+      "session_id": 275570424081189891492375135049187846834,
+      "generation": 14663,
+      "frame_time": 6553.859,
+      "frame_id": 118,
+      "map_revision": 0
+    }
+  }
+]
