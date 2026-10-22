@@ -30,6 +30,7 @@ ASSETS.update({
     "yolo": "tools.yolo_workbench",
     "video-frames": "tools.extract_video_frames_every_n",
     "ocr-export": "tools.export_paddleocr_onnx",
+    "ocr-models": "tools.prepare_ocr_models",
     "team-recommendations": "tools.sync_team_recommendations",
     "template-capture": "tools.quick_template_capture",
 })

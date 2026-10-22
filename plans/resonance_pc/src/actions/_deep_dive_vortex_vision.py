@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 PLAN = Path(__file__).resolve().parents[2]
-ROOT = PLAN / 'templates/deep_dive_vortex'
+ROOT = PLAN / 'templates/deep_dive/deep_dive_vortex'
 
 
 @lru_cache(None)

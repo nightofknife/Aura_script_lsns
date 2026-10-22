@@ -90,8 +90,9 @@ def _read_image_file(path: Path, flags: int = cv2.IMREAD_UNCHANGED) -> np.ndarra
     return image
 
 
-def _identity_template_rgb(path: Path) -> np.ndarray:
-    image = _read_image_file(path)
+def _identity_template_rgb(path: Path, image: Optional[np.ndarray] = None) -> np.ndarray:
+    if image is None:
+        image = _read_image_file(path)
     if image.ndim == 2:
         return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     if image.ndim == 3 and image.shape[2] == 4:
@@ -101,8 +102,9 @@ def _identity_template_rgb(path: Path) -> np.ndarray:
     raise ValueError(f"unsupported character template shape {image.shape}: {path}")
 
 
-def _validate_image_size(path: Path, expected: Tuple[int, int], *, label: str) -> np.ndarray:
-    image = _read_image_file(path)
+def _validate_image_size(path: Path, expected: Tuple[int, int], *, label: str,
+                         flags: int = cv2.IMREAD_UNCHANGED) -> np.ndarray:
+    image = _read_image_file(path, flags)
     height, width = image.shape[:2]
     if (width, height) != expected:
         raise ValueError(
@@ -251,8 +253,8 @@ def load_character_catalog(
                 plan_root=root,
                 vision=vision,
             )
-            _validate_image_size(resolved, template_size, label="character identity template")
-            template_image = _identity_template_rgb(resolved)
+            decoded = _validate_image_size(resolved, template_size, label="character identity template")
+            template_image = _identity_template_rgb(resolved, decoded)
             template_refs.append(template_ref)
             template_paths.append(str(resolved))
             flattened.append(
@@ -291,10 +293,11 @@ def load_character_catalog(
         plan_root=root,
         vision=vision,
     )
-    _validate_image_size(lit_star_template, star_template_size, label="lit star template")
-    _validate_image_size(lit_star_mask, star_template_size, label="lit star mask")
-    lit_star_template_image = _identity_template_rgb(lit_star_template)
-    lit_star_mask_image = _read_image_file(lit_star_mask, cv2.IMREAD_GRAYSCALE)
+    lit_star_decoded = _validate_image_size(lit_star_template, star_template_size, label="lit star template")
+    lit_star_mask_image = _validate_image_size(
+        lit_star_mask, star_template_size, label="lit star mask", flags=cv2.IMREAD_GRAYSCALE,
+    )
+    lit_star_template_image = _identity_template_rgb(lit_star_template, lit_star_decoded)
     entry_image = _read_image_file(entry_template)
     if entry_image is None or entry_image.size == 0:
         raise ValueError(f"unable to read character entry template: {entry_template}")
@@ -341,6 +344,10 @@ def load_character_catalog(
         "characters": characters,
         "templates": flattened,
         "entry_template_path": str(entry_template),
+        # This entry is always matched in grayscale; prepare it once per catalog.
+        "entry_template_image": cv2.cvtColor(
+            _identity_template_rgb(entry_template, entry_image), cv2.COLOR_RGB2GRAY,
+        ),
         "lit_star_template_path": str(lit_star_template),
         "lit_star_mask_path": str(lit_star_mask),
         "lit_star_template_image": lit_star_template_image,
@@ -675,7 +682,8 @@ def enter_character_page(
             entry_image = _capture_region(app, entry_region, label="character entry")
             entry_match = vision.find_template(
                 source_image=entry_image,
-                template_image=str(catalog["entry_template_path"]),
+                template_image=(catalog["entry_template_image"] if "entry_template_image" in catalog
+                                else str(catalog["entry_template_path"])),
                 threshold=float(layout["entry_match_threshold"]),
                 use_grayscale=True,
                 match_method=cv2.TM_CCOEFF_NORMED,

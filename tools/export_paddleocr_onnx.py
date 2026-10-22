@@ -28,8 +28,8 @@ from plans.aura_base.src.services.ocr_contract import (  # noqa: E402
 
 
 MODEL_DIRS = {
-    "det": "PP-OCRv5_server_det",
-    "rec": "PP-OCRv5_server_rec",
+    "det": "PP-OCRv6_small_det",
+    "rec": "PP-OCRv6_small_rec",
     "textline_orientation": "PP-LCNet_x1_0_textline_ori",
     "doc_orientation": "PP-LCNet_x1_0_doc_ori",
 }
@@ -137,7 +137,7 @@ def _convert_paddle_model_to_onnx(source_dir: Path, target_path: Path, *, opset:
 
 def _resolve_paddle_model_file(model_dir: Path) -> Path | None:
     # Paddle 3.x can reject some legacy .pdmodel files with load_combine errors.
-    # The bundled PP-OCRv5 inference models include inference.json, which is the
+    # The PP-OCR inference models include inference.json, which is the
     # preferred input for current paddle2onnx.
     for filename in ("inference.json", "inference.pdmodel"):
         path = model_dir / filename
@@ -209,7 +209,12 @@ def _extract_rec_postprocess(config: dict[str, Any]) -> OcrRecPostprocessMetadat
     character_dict = post.get("character_dict")
     if not isinstance(character_dict, list) or not character_dict:
         raise RuntimeError("Unable to derive OCR recognition character_dict from inference.yml.")
-    return OcrRecPostprocessMetadata(character_dict=[str(item) for item in character_dict], blank_index=0)
+    characters = [str(item) for item in character_dict]
+    # Paddle's CTC decoder appends the space class after the exported dictionary.
+    # It is separate from the leading CTC blank class.
+    if post.get("use_space_char", True) and " " not in characters:
+        characters.append(" ")
+    return OcrRecPostprocessMetadata(character_dict=characters, blank_index=0)
 
 
 def _extract_textline_orientation(config: dict[str, Any]) -> OcrTextlineOrientationMetadata:
@@ -255,11 +260,39 @@ def _parse_scale(value: Any) -> float:
     return float(value)
 
 
+def build_ocr_metadata(
+    *,
+    det_config: dict[str, Any],
+    rec_config: dict[str, Any],
+    textline_config: dict[str, Any],
+    models: OcrModelFiles,
+) -> OcrModelMetadata:
+    return OcrModelMetadata(
+        schema_version=1,
+        task="ocr",
+        family="ppocrv6",
+        variant="small",
+        lang="ch",
+        models=models,
+        det_preprocess=_extract_det_preprocess(det_config),
+        det_postprocess=_extract_det_postprocess(det_config),
+        rec_preprocess=_extract_rec_preprocess(rec_config),
+        rec_postprocess=_extract_rec_postprocess(rec_config),
+        textline_orientation=_extract_textline_orientation(textline_config),
+        pipeline=OcrPipelineMetadata(
+            use_doc_orientation=False,
+            use_textline_orientation=True,
+            batch_size=8,
+        ),
+        default_score_threshold=0.0,
+    )
+
+
 def export_paddleocr_onnx(
     *,
     model_root: Path,
     out_dir: Path,
-    name: str = "ppocrv5_server",
+    name: str = "ppocrv6_small",
     opset: Optional[int] = None,
 ) -> dict[str, Any]:
     model_root = model_root.resolve()
@@ -300,29 +333,16 @@ def export_paddleocr_onnx(
     rec_config = _load_model_config(source_dirs["rec"])
     textline_config = _load_model_config(source_dirs["textline_orientation"])
 
-    metadata = OcrModelMetadata(
-        schema_version=1,
-        task="ocr",
-        family="ppocrv5",
-        variant="server",
-        lang="ch",
+    metadata = build_ocr_metadata(
+        det_config=det_config,
+        rec_config=rec_config,
+        textline_config=textline_config,
         models=OcrModelFiles(
             det=exported_files["det"],
             rec=exported_files["rec"],
             textline_orientation=exported_files["textline_orientation"],
             doc_orientation=exported_files.get("doc_orientation"),
         ),
-        det_preprocess=_extract_det_preprocess(det_config),
-        det_postprocess=_extract_det_postprocess(det_config),
-        rec_preprocess=_extract_rec_preprocess(rec_config),
-        rec_postprocess=_extract_rec_postprocess(rec_config),
-        textline_orientation=_extract_textline_orientation(textline_config),
-        pipeline=OcrPipelineMetadata(
-            use_doc_orientation=False,
-            use_textline_orientation=True,
-            batch_size=8,
-        ),
-        default_score_threshold=0.0,
     )
     metadata_path = bundle_dir / "ocr.meta.json"
     write_ocr_metadata(metadata_path, metadata)
@@ -340,7 +360,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Export bundled PaddleOCR inference models into Aura OCR ONNX artifacts.")
     parser.add_argument("--model-root", required=True, type=Path, help="Directory containing PaddleOCR inference submodels.")
     parser.add_argument("--out-dir", required=True, type=Path, help="Directory where the OCR bundle should be written.")
-    parser.add_argument("--name", default="ppocrv5_server", help="Output OCR bundle directory name.")
+    parser.add_argument("--name", default="ppocrv6_small", help="Output OCR bundle directory name.")
     parser.add_argument("--opset", default=None, type=int, help="Optional ONNX opset version passed to paddle2onnx.")
     return parser
 

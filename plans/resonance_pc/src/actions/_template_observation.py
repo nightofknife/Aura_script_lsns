@@ -10,10 +10,27 @@ from collections.abc import Mapping
 from numbers import Real
 
 import numpy as np
+import cv2
+
+
+def capture_template_frame(*, app, region, check_cancelled):
+    """Capture evidence owned by one observation round, never across inputs."""
+    check_cancelled()
+    try:
+        capture = app.capture(rect=tuple(region))
+    except Exception as exc:
+        check_cancelled()
+        return {"valid": False, "reason": "capture_failed", "error": str(exc)}
+    check_cancelled()
+    image = getattr(capture, "image", None)
+    if (not getattr(capture, "success", False) or not isinstance(image, np.ndarray)
+            or image.shape != (region[3], region[2], 3) or image.dtype != np.uint8):
+        return {"valid": False, "reason": "capture_failed"}
+    return {"valid": True, "image": image, "region": tuple(region)}
 
 
 def observe_template(*, app, vision, template, region, threshold, check_cancelled,
-                     require_center=False):
+                     require_center=False, frame=None):
     base = {"template": str(template), "region": list(region)}
 
     def unknown(reason, error=None):
@@ -23,18 +40,24 @@ def observe_template(*, app, vision, template, region, threshold, check_cancelle
         return result
 
     check_cancelled()
-    try:
-        capture = app.capture(rect=tuple(region))
-    except Exception as exc:
-        check_cancelled()
-        return unknown("capture_failed", exc)
-    check_cancelled()
-    image = getattr(capture, "image", None)
-    if (not getattr(capture, "success", False) or not isinstance(image, np.ndarray)
+    shared_frame = frame is not None
+    if frame is None:
+        frame = capture_template_frame(app=app, region=region, check_cancelled=check_cancelled)
+    image = frame.get("image")
+    if (frame.get("valid") is not True or frame.get("region") != tuple(region)
+            or not isinstance(image, np.ndarray)
             or image.shape != (region[3], region[2], 3) or image.dtype != np.uint8):
-        return unknown("capture_failed")
+        return unknown("capture_failed", frame.get("error"))
     try:
-        hit = vision.find_template(source_image=image, template_image=str(template),
+        match_image = image
+        if shared_frame:
+            # Only callers explicitly sharing a frame opt into prepared pixels.
+            # Legacy calls keep passing the original capture to VisionService.
+            match_image = frame.get("gray_image")
+            if match_image is None:
+                match_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                frame["gray_image"] = match_image
+        hit = vision.find_template(source_image=match_image, template_image=str(template),
                                    threshold=float(threshold), use_grayscale=True)
     except Exception as exc:
         check_cancelled()

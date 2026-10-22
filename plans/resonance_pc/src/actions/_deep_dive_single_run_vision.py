@@ -15,7 +15,7 @@ from ._deep_dive_event_vision import detect_event_page, board_visible
 from ._deep_dive_match_cache import exact_roi_cache
 
 
-TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "consciousness_deep_dive_single_run"
+TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "deep_dive" / "consciousness_deep_dive_single_run"
 REGIONS = {
     "player_turn": (125, 120, 260, 180),
     "settlement_failure": (490, 50, 790, 155),

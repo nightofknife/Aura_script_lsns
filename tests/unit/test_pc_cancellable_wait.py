@@ -7,6 +7,8 @@ import pytest
 from plans.resonance_pc.src.actions import _cancellable_wait as waits
 from plans.resonance_pc.src.actions import _reforming_center_clicks as reforming
 from plans.resonance_pc.src.actions import purchase_book_pc_actions as books
+from packages.aura_core.scheduler import operation_scope
+from tests.interaction_clock import install_clock
 
 
 def test_requested_slices_do_not_shorten_when_system_sleep_overshoots():
@@ -114,11 +116,17 @@ def test_purchase_book_zero_wait_still_propagates_its_domain_cancellation(monkey
 
 
 def test_reforming_without_context_preserves_single_sleep_argument(monkeypatch):
-    marker = object()
+    duration = .02
     calls = []
-    monkeypatch.setattr(reforming, "time", SimpleNamespace(sleep=calls.append))
-    reforming._sleep(marker)
-    assert calls == [marker]
+    with install_clock(monkeypatch, reforming) as clock:
+        def sleep(seconds):
+            calls.append(seconds)
+            clock.advance(seconds)
+
+        monkeypatch.setattr(operation_scope.time, "sleep", sleep)
+        reforming._sleep(duration)
+        assert clock.now == duration
+    assert calls == [duration]
 
 
 def test_reforming_opted_in_context_cancels_after_first_slice_and_resets(monkeypatch):
@@ -130,11 +138,20 @@ def test_reforming_opted_in_context_cancels_after_first_slice_and_resets(monkeyp
         if any(isinstance(event, float) for event in events):
             raise error
 
-    monkeypatch.setattr(reforming, "time", SimpleNamespace(sleep=events.append))
-    with pytest.raises(asyncio.CancelledError) as caught:
-        with reforming.cancellation_checks(check):
-            reforming._sleep(10)
-    assert caught.value is error
-    assert events == ["check", "check", .05, "check"]
-    reforming._sleep(.2)
-    assert events[-1] == .2
+    with install_clock(monkeypatch, reforming) as clock:
+        def sleep(seconds):
+            events.append(seconds)
+            clock.advance(seconds)
+
+        monkeypatch.setattr(operation_scope.time, "sleep", sleep)
+        with pytest.raises(asyncio.CancelledError) as caught:
+            with reforming.cancellation_checks(check):
+                reforming._sleep(10)
+        assert caught.value is error
+        assert events == ["check", "check", "check", .05, "check"]
+        assert clock.now == .05
+        before_reset_wait = len(events)
+        reforming._sleep(.2)
+        reset_slices = events[before_reset_wait:]
+        assert reset_slices == pytest.approx([.05, .05, .05, .05])
+        assert clock.now == pytest.approx(.25)

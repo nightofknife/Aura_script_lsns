@@ -104,7 +104,9 @@ def test_staff_refresh_retires_only_explicit_obsolete_images(tmp_path, monkeypat
     for key in ("quick", "room_1_title", "room_2_title", "apply", "discard", "select_all", "cancel_all", "confirm"):
         record = catalog["templates"][key]
         assert record["threshold"] == .90
-        assert record["image"].startswith("templates/workshop/staffing/editor/")
+        directory = ("selection/product" if key in {"select_all", "cancel_all", "confirm"}
+                     else "save_prompt" if key in {"apply", "discard"} else "editor")
+        assert record["image"] == f"templates/workshop/staffing/{directory}/{key}.png"
         current = json.loads((PLAN / "data/meta/product_workshop_staff_templates_pc.json").read_text("utf-8"))["templates"][key]
         for produced, previous in zip((record, *record.get("variants", [])), (current, *current.get("variants", [])), strict=True):
             with Image.open(plan / produced["image"]) as actual, Image.open(PLAN / previous["image"]) as expected:
@@ -129,7 +131,7 @@ def test_workshop_functional_banks_have_no_task_directory_or_physical_orphans():
             for child in value: walk(child)
     for name in ("product_workshop_staff", "raw_workshop", "reforming_center"):
         walk(json.loads((PLAN / f"data/meta/{name}_templates_pc.json").read_text("utf-8")))
-    for directory in ("navigation/rooms", "workshop/staffing/editor", "workshop/production/controls"):
+    for directory in ("navigation/rooms", "workshop/staffing", "workshop/production/controls"):
         files = {p.relative_to(PLAN).as_posix() for p in (PLAN / "templates" / directory).rglob("*.png")}
         assert files
         assert files <= refs

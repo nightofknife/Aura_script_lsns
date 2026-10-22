@@ -117,6 +117,9 @@ class Replay:
         self.used = 0
         self.clicks = []
 
+    def capture(self, rect):
+        return NS(success=True, image=np.zeros((rect[3], rect[2], 3), dtype=np.uint8))
+
     def click(self, x, y):
         point = [x, y]
         self.clicks.append((self.page, point))
@@ -161,10 +164,10 @@ def replay_session(tmp_path, chosen, monkeypatch, *, seed=True, **kwargs):
         assert bento.resolve_meal(request(chosen), session.inventory, catalog) == chosen
     session.page = "bento_cabinet"
     monkeypatch.setattr(session, "locate", lambda m: [10, 10])
-    monkeypatch.setattr(session, "is_cabinet", lambda: app.page == "cabinet")
+    monkeypatch.setattr(session, "is_cabinet", lambda *, frame=None: app.page == "cabinet")
     name = chosen.get("food_name", "铁盟工作餐")
-    monkeypatch.setattr(session, "text", lambda roi: name)
-    def match(key, roi=None):
+    monkeypatch.setattr(session, "text", lambda roi, *, frame=None: name)
+    def match(key, roi=None, *, frame=None):
         found, center = False, None
         if key in ("use_work", "use_love", "selected_marker"):
             found, center = app.page == "cabinet", [20, 20]
@@ -201,11 +204,13 @@ def entry_session(tmp_path, monkeypatch, clock, *, misses=0, open_delay=0.0):
         if len(state["clicks"]) > misses:
             state.update(page="transition", open_at=clock[0] + open_delay)
 
-    session = bento.BentoConsumptionSession(NS(click=click), None, None, store, {
+    app = NS(click=click, capture=lambda rect: NS(
+        success=True, image=np.zeros((rect[3], rect[2], 3), dtype=np.uint8)))
+    session = bento.BentoConsumptionSession(app, None, None, store, {
         "total_timeout_sec": 30, "timeout_sec": 5, "poll_interval_sec": .2,
     }, {"click_interval_sec": .7}, {"items": []})
-    monkeypatch.setattr(session, "match", lambda key, roi=None: {"found": page() == "city_main"})
-    monkeypatch.setattr(session.reader, "is_page", lambda target: page() == target)
+    monkeypatch.setattr(session, "match", lambda key, roi=None, *, frame=None: {"found": page() == "city_main"})
+    monkeypatch.setattr(session.reader, "is_page", lambda target, *, frame=None: page() == target)
 
     def move(source, target, control):
         assert page() == source
@@ -265,7 +270,7 @@ def test_profile_opening_between_source_and_target_probes_does_not_toggle_closed
     session, state, _ = entry_session(tmp_path, monkeypatch, clock, misses=99)
     original = session.match
 
-    def main(key, roi=None):
+    def main(key, roi=None, *, frame=None):
         result = original(key, roi)
         if state["clicks"] and clock[0] >= state["clicks"][0] + .7:
             state["page"] = "profile"
@@ -291,7 +296,7 @@ def test_profile_entry_cancelled_before_retry_does_not_click_again(tmp_path, mon
 def test_profile_entry_probe_error_does_not_trigger_retry(tmp_path, monkeypatch, clock):
     session, state, _ = entry_session(tmp_path, monkeypatch, clock, misses=99)
 
-    def target(_):
+    def target(_, *, frame=None):
         if state["clicks"]:
             session.fail("bento_capture_failed", "capture failed")
         return False
@@ -340,7 +345,7 @@ def test_consumption_does_not_read_or_check_fatigue(tmp_path, monkeypatch, clock
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
     store.set("user-info.json", ["status", "fatigue"], {"current": 0, "max": 600})
     assert not hasattr(session, "fatigue") and not hasattr(session, "read_fatigue")
-    def names_only(roi):
+    def names_only(roi, *, frame=None):
         assert roi == "detail", "Only the selected meal detail may be OCR-read"
         return "铁盟工作餐"
     monkeypatch.setattr(session, "text", names_only)
@@ -371,7 +376,7 @@ def test_cancellation_after_effect_observed_still_records_consumption(tmp_path, 
     original = session.match
     cancelled = [False]
     observed = [0]
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         value = original(key, roi)
         if key == "effect" and value["found"]:
             observed[0] += 1
@@ -438,7 +443,7 @@ def test_pending_cache_is_refused_without_reconciliation_or_ui(tmp_path, monkeyp
 def test_consumption_uses_catalog_amount_without_recovery_ocr(tmp_path, monkeypatch, clock):
     chosen = meal("love_bentos")
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
-    def names_only(roi):
+    def names_only(roi, *, frame=None):
         assert roi == "detail", "Only the selected meal detail may be OCR-read"
         return chosen["food_name"]
     monkeypatch.setattr(session, "text", names_only)
@@ -455,11 +460,11 @@ def test_optional_confirmation_waits_for_template_without_popup_ocr(tmp_path, mo
     original_match = session.match
     confirmation_probes = []
 
-    def text(roi):
+    def text(roi, *, frame=None):
         assert roi != "confirm", "Optional confirmation must not OCR-read popup text"
         return original_text(roi)
 
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         if key == "confirm_use" and app.page == "confirm":
             confirmation_probes.append(True)
             if len(confirmation_probes) == 1:
@@ -479,7 +484,7 @@ def test_different_detail_food_is_rejected_before_use(tmp_path, monkeypatch, clo
     session, app, store = replay_session(tmp_path, chosen, monkeypatch)
     before = store.read("user-info.json")
     original_text = session.text
-    monkeypatch.setattr(session, "text", lambda roi: "OtherDish" if roi == "detail" else original_text(roi))
+    monkeypatch.setattr(session, "text", lambda roi, *, frame=None: "OtherDish" if roi == "detail" else original_text(roi))
     with pytest.raises(bento.BentoConsumptionError) as error:
         session.consume(chosen)
     assert error.value.code == "bento_transition_timeout"
@@ -607,7 +612,7 @@ def test_empty_list_requires_main_without_input_or_inventory_scan(tmp_path, monk
     session, app, store = replay_session(tmp_path, meal(), monkeypatch, seed=False)
     assert not store.exists("user-info.json")
     checked = []
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         assert key == "main"
         checked.append(key)
         return {"found": on_main, "center": None}
@@ -965,7 +970,7 @@ def test_one_effect_observation_permanently_disables_confirmation_retries(tmp_pa
     session, app, store, clicks = confirmation_session(tmp_path, meal(), monkeypatch, clock)
     original = session.match
 
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         result = original(key, roi)
         if key == "effect" and result["found"]:
             app.page = "confirm"  # Effect is seen once, then the observation becomes ambiguous.
@@ -988,7 +993,7 @@ def test_confirmation_rechecks_for_late_transition_before_retry(
     original = session.match
     retry_probes = []
 
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         value = original(key, roi)
         if key == "confirm_use" and clicks:
             retry_probes.append(True)
@@ -1013,7 +1018,7 @@ def test_confirmation_and_retries_never_read_popup_text(tmp_path, monkeypatch, c
         tmp_path, chosen, monkeypatch, clock, misses=2)
     original = session.text
 
-    def text(roi):
+    def text(roi, *, frame=None):
         assert app.page == "cabinet" and roi == "detail", "Confirmation must not read popup text"
         return original(roi)
 
@@ -1040,7 +1045,7 @@ def test_slow_confirmation_probe_cannot_click_past_original_deadline(tmp_path, m
     original = session.match
     retry_probes = []
 
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         if key == "confirm_use" and clicks:
             retry_probes.append(True)
             if len(retry_probes) == 2:
@@ -1062,7 +1067,7 @@ def test_cancellation_during_confirmation_probe_prevents_retry(tmp_path, monkeyp
     retry_probes = []
     cancelled = [False]
 
-    def match(key, roi=None):
+    def match(key, roi=None, *, frame=None):
         if key == "confirm_use" and clicks:
             retry_probes.append(True)
             cancelled[0] = len(retry_probes) >= 2

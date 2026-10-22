@@ -31,21 +31,30 @@ def test_sorted_physical_emission_restores_logical_source_order(tmp_path):
 
 def test_scuffle_functional_art_has_complete_logical_coverage_and_source_records():
     catalog = json.loads((PLAN / "data/meta/eternal_scuffle.json").read_text(encoding="utf-8"))
+    development = json.loads((PLAN / "development/template_sources/characters/stand/scuffle/manifest.json").read_text(encoding="utf-8"))
+    sources = {row["id"]: row for row in development["characters"]}
     assert len(catalog["characters"]) == 99
     assert len(catalog["equipment"]) == 176
     by_id = {row["id"]: row for row in catalog["equipment"]}
+    assert list(sources) == [row["id"] for row in catalog["characters"]]
     for row in catalog["characters"]:
-        assert len(row["stand_templates"]) == len(row["stand_masks"]) == 8
+        source = sources[row["id"]]
+        assert not {"stand_templates", "stand_masks", "stand_sources"} & row.keys()
+        assert len(source["stand_templates"]) == len(source["stand_masks"]) == len(source["stand_sources"]) == 8
+        assert source["source"] == row["source"]
         assert row["name_template"].startswith("templates/characters/nameplates/scuffle/")
-        assert all(ref.startswith("templates/characters/stand/scuffle/") for ref in row["stand_templates"])
+        assert all(ref.startswith("development/template_sources/characters/stand/scuffle/") for ref in source["stand_templates"])
     for left, right in ((11800009, 11800010), (11800053, 11800278), (11800057, 11800101)):
         assert by_id[left]["template"] == by_id[right]["template"]
         assert by_id[left]["name_template"] != by_id[right]["name_template"]
         assert by_id[left]["id"] != by_id[right]["id"]
-    for relative, metadata in catalog["assets"].items():
+    assert not set(catalog["assets"]) & set(development["assets"])
+    assert all(relative.startswith("templates/") for relative in catalog["assets"])
+    assert all(relative.startswith("development/template_sources/characters/stand/scuffle/") for relative in development["assets"])
+    for relative, metadata in {**catalog["assets"], **development["assets"]}.items():
         path = PLAN / relative
         assert hashlib.sha256(path.read_bytes()).hexdigest() == metadata["sha256"]
-        if relative.startswith(("templates/characters/", "templates/inventory/equipment/")):
+        if relative.startswith(("templates/characters/", "templates/inventory/equipment/", "development/template_sources/characters/")):
             for source in metadata.get("source_variants", [metadata]):
                 assert source.get("source_sha256") or source.get("source_font_sha256")
     assert not (PLAN / "templates/eternal_scuffle/characters").exists()

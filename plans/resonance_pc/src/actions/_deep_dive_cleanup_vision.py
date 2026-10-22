@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-ROOT=Path(__file__).resolve().parents[2]/'templates/deep_dive_cleanup'
+ROOT=Path(__file__).resolve().parents[2]/'templates/deep_dive/deep_dive_cleanup'
 REGIONS={'settlement_title':(480,45,810,160),'continue':(525,605,760,695),
          'confirm':(525,600,780,695),'activity_title':(480,35,825,195),
          'start_dive':(530,500,765,615)}

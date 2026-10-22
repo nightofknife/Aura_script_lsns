@@ -18,8 +18,6 @@ from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.context.persistence.store_service import StateStoreService
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.engine import ExecutionEngine
-from packages.aura_core.engine.action_injector import ActionInjector
-from packages.aura_core.config.template import TemplateRenderer
 from packages.aura_core.observability.events import Event, EventBus
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.failure_evidence import (
@@ -29,6 +27,7 @@ from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._bounded_observation import ObservationBudget, wait_for_observation
 from ._template_observation import observe_template
+from ._navigation_templates import GLOBAL_BACK, GLOBAL_CITY_MAIN
 from ._cancellable_wait import async_sleep_slices, sleep_slices
 
 from ..services.city_shop_data_pc_service import ResonancePcCityShopDataService, CityShopDataError
@@ -314,7 +313,7 @@ _BUY_BUTTON_REGION = [850, 590, 380, 110]
 _BUY_BUTTON_THRESHOLD = 0.8
 # Native title crop [878, 91, 90, 26] from
 # artifacts/auto_cycle_trade_600_20260706_173232/current_buy_fail.png.
-_BUY_CONFIRM_PANEL_TEMPLATE = "templates/commerce/trade/buy_preview_title.png"
+_BUY_CONFIRM_PANEL_TEMPLATE = "templates/commerce/trade/buy/preview_title.png"
 _BUY_CONFIRM_PANEL_REGION = [850, 80, 180, 60]
 _BUY_CONFIRM_PANEL_THRESHOLD = 0.86
 _BUY_CONFIRM_BUTTON_REGION = [900, 620, 330, 70]
@@ -324,11 +323,11 @@ _SELL_BUTTON_REGION = [1000, 630, 120, 40]
 
 _BACK_POINT = (82, 37)
 _CITY_MAIN_POINT = (198, 37)
-_BACK_BUTTON_TEMPLATE = "templates/navigation/global/back.png"
-_CITY_MAIN_BUTTON_TEMPLATE = "templates/navigation/global/city_main.png"
-_BACK_BUTTON_REGION = [0, 0, 170, 80]
-_CITY_MAIN_BUTTON_REGION = [140, 0, 130, 80]
-_NAV_BUTTON_THRESHOLD = 0.86
+_BACK_BUTTON_TEMPLATE = GLOBAL_BACK.path
+_CITY_MAIN_BUTTON_TEMPLATE = GLOBAL_CITY_MAIN.path
+_BACK_BUTTON_REGION = list(GLOBAL_BACK.roi)
+_CITY_MAIN_BUTTON_REGION = list(GLOBAL_CITY_MAIN.roi)
+_NAV_BUTTON_THRESHOLD = GLOBAL_BACK.threshold
 _NAV_BUTTON_TIMEOUT_SEC = 3.0
 _NAV_BUTTON_INTERVAL_SEC = 0.4
 _SHOP_MENU_READY_TEMPLATE = "templates/commerce/trade/shop/menu_ready.png"
@@ -1652,20 +1651,17 @@ async def _run_trade_goods_investment_task(*, mode: int, city_name: str, progres
 
     token = _INVESTMENT_PROGRESS_CALLBACK.set(forward_progress)
     try:
-        injector = ActionInjector(
-            context, engine, TemplateRenderer(context, engine.state_store), engine.services,
-            current_package=getattr(engine.orchestrator, "loaded_package", None),
-            service_resolver=engine.orchestrator.resolve_service,
+        execution = engine.bind_execution(context)
+        result = await execution.run_task(
+            _GOODS_INVESTMENT_TASK, {"mode": mode, "city_name": city_name},
         )
-        result = await injector.execute("aura.run_task", {
-            "task_ref": _GOODS_INVESTMENT_TASK, "inputs": {"mode": mode, "city_name": city_name},
-        })
         if (not isinstance(result, dict) or result.get("success") is not True
                 or result.get("page_state") != "shop_page" or result.get("status") not in {"invested", "skipped"}
                 or type(result.get("mode")) is not int or result.get("mode") != mode
                 or type(result.get("target_level")) is not int or result.get("target_level") != mode):
-            _raise_error("goods_investment_task_incomplete", "Investment task did not confirm return to the exchange",
-                         {"task_ref": _GOODS_INVESTMENT_TASK, "result": result})
+            detail = {"task_ref": _GOODS_INVESTMENT_TASK, "result": result}
+            attach_evidence(detail, evidence_from(result))
+            _raise_error("goods_investment_task_incomplete", "Investment task did not confirm return to the exchange", detail)
         if reporter is not None:
             await reporter.emit("trade_goods_investment", "skipped" if result["status"] == "skipped" else "completed",
                                 **progress_context, data=result)
@@ -1680,8 +1676,10 @@ async def _run_trade_goods_investment_task(*, mode: int, city_name: str, progres
                                 data={"reason": getattr(exc, "code", "goods_investment_task_failed"), "message": str(exc)})
         if isinstance(exc, CityTradeFlowError):
             raise
-        _raise_error("goods_investment_task_failed", "Investment sub-task failed",
-                     {"task_ref": _GOODS_INVESTMENT_TASK, "message": str(exc)})
+        error = CityTradeFlowError("goods_investment_task_failed", "Investment sub-task failed",
+                                   {"task_ref": _GOODS_INVESTMENT_TASK, "message": str(exc)})
+        attach_evidence(error, evidence_from(exc))
+        raise error from exc
     finally:
         _INVESTMENT_PROGRESS_CALLBACK.reset(token)
 
@@ -1747,17 +1745,16 @@ def _has_recovery_rest_point(city_name: str, city_shop_data) -> bool:
 
 
 async def _call_recovery_action(action_name: str, params: dict, *, context, engine) -> dict:
-    """Use the engine adapter so synchronous recovery work is tracked on cancellation."""
+    """Call one typed recovery action through the bound framework execution handle."""
     if context is None or engine is None:
         raise RuntimeError("Freight recovery requires the current execution context and engine")
-    injector = ActionInjector(
-        context, engine, TemplateRenderer(context, engine.state_store), engine.services,
-        current_package=getattr(engine.orchestrator, "loaded_package", None),
-        service_resolver=engine.orchestrator.resolve_service,
-    )
-    result = await injector.execute(action_name, params)
+    if action_name in {"aura.run_task", "run_task"}:
+        raise ValueError("Recovery sub-tasks must use execution.run_task explicitly")
+    result = await engine.bind_execution(context).call_action(action_name, params)
     if not isinstance(result, dict):
-        _raise_error("recovery_invalid_result", "Recovery action did not return an object", {"action": action_name})
+        detail = {"action": action_name}
+        attach_evidence(detail, evidence_from(result))
+        _raise_error("recovery_invalid_result", "Recovery action did not return an object", detail)
     return result
 
 
@@ -1906,11 +1903,17 @@ async def _run_black_moon_local_purchase_task(
     del progress_context
     from ._black_moon_local_scan_contract import validated_selection_presence
 
-    result = await _call_recovery_action("aura.run_task", {
-        "task_ref": "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc",
-        "inputs": {"city_name": city_name, "purchase_table": dict(purchase_table),
-                   "record_scope": record_scope, "exit_target": "rest_menu"},
-    }, context=context, engine=engine)
+    if context is None or engine is None:
+        raise RuntimeError("Freight recovery requires the current execution context and engine")
+    result = await engine.bind_execution(context).run_task(
+        "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc",
+        {"city_name": city_name, "purchase_table": dict(purchase_table),
+         "record_scope": record_scope, "exit_target": "rest_menu"},
+    )
+    if not isinstance(result, dict):
+        detail = {"task_ref": "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc"}
+        attach_evidence(detail, evidence_from(result))
+        _raise_error("recovery_invalid_result", "Recovery sub-task did not return an object", detail)
     try:
         presence = validated_selection_presence(result, [key for key, wanted in purchase_table.items() if wanted])
     except ValueError:
@@ -1925,10 +1928,12 @@ async def _run_black_moon_local_purchase_task(
         cancelled = isinstance(result, dict) and (
             result.get("status") == "cancelled" or "cancel" in str(result.get("reason") or "")
         )
+        detail = {"result": result}
+        attach_evidence(detail, evidence_from(result))
         _raise_error(
             "black_moon_local_purchase_cancelled" if cancelled else "black_moon_local_purchase_incomplete",
             "Local purchase did not confirm completion or skip and return to the rest menu",
-            {"result": result},
+            detail,
         )
     return dict(result)
 
@@ -2080,9 +2085,11 @@ async def _execute_freight_rest_stop(
                                 **fields, data={"result": dict(purchase), "error": str(exc)})
         if isinstance(exc, CityTradeFlowError):
             raise
-        _raise_error("black_moon_local_purchase_cancelled" if cancelled else "black_moon_rest_stop_failed",
-                     "Shared rest visit failed; route cannot continue",
-                     {"code": getattr(exc, "code", None), "message": str(exc), "purchase": dict(purchase)})
+        error = CityTradeFlowError("black_moon_local_purchase_cancelled" if cancelled else "black_moon_rest_stop_failed",
+                                   "Shared rest visit failed; route cannot continue",
+                                   {"code": getattr(exc, "code", None), "message": str(exc), "purchase": dict(purchase)})
+        attach_evidence(error, evidence_from(exc))
+        raise error from exc
 
 
 async def _execute_route(
@@ -2691,6 +2698,12 @@ async def _execute_rubbish_recycling_after_arrival(
             vision=vision,
             resonance_pc_city_shop_data=city_shop_data,
         )
+        if (recycling.get("success") is not True or recycling.get("final_state") != "empty"
+                or recycling.get("page_state") != "city_panel"
+                or (recycling.get("returned_city_panel") or {}).get("confirmation") != "observed"):
+            _raise_error("rubbish_recycling_result_not_confirmed",
+                         "Rubbish recycling did not confirm completion and return to the city panel",
+                         {"recycling": recycling})
         observe_operation("rubbish_recycling.execute", "垃圾回收子任务返回", "completed",
                           status=recycling.get("status"), reason=recycling.get("reason"),
                           final_state=recycling.get("final_state"),

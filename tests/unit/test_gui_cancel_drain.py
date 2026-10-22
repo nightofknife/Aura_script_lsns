@@ -6,6 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 from packages.aura_core.engine import action_injector
+from packages.aura_core.context.execution import ExecutionContext
+from packages.aura_core.scheduler import operation_scope
 from packages.aura_core.scheduler.cancellation import (
     begin_sync_action, end_sync_action, has_pending_sync_actions, clear_task_cancel,
 )
@@ -16,9 +18,8 @@ from packages.resonance_gui.bridge import RunnerBridge
 def test_cancelled_worker_remains_pending_until_thread_exits(monkeypatch):
     cid = 'test-cancel-drain-worker'
     started, release, exited = threading.Event(), threading.Event(), threading.Event()
-    monkeypatch.setattr(action_injector, 'current_cid', lambda: cid)
-    monkeypatch.setattr(action_injector, 'get_config_value', lambda *args: 0)
-    injector = object.__new__(action_injector.ActionInjector)
+    monkeypatch.setattr(operation_scope, 'get_config_value', lambda *args: 0)
+    injector = action_injector.ActionInjector(ExecutionContext(inputs={}, cid=cid), None, None, {})
     injector._prepare_action_arguments = lambda *args: {}
 
     def worker():

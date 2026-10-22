@@ -27,11 +27,13 @@ class OnnxRuntimeBackend:
         config_prefix: str,
         runtime_name: str,
         install_hint: str,
+        session_defaults: Dict[str, Any] | None = None,
     ):
         self._config = config
         self._config_prefix = str(config_prefix).strip(".")
         self._runtime_name = runtime_name
         self._install_hint = install_hint
+        self._session_defaults = dict(session_defaults or {})
         self._lock = threading.RLock()
         self._cuda_runtime_prepared = False
         self._dll_directory_handles: list[Any] = []
@@ -96,12 +98,25 @@ class OnnxRuntimeBackend:
 
     def create_session_options(self, ort: Any) -> Any:
         session_options = ort.SessionOptions()
-        intra_threads = int(self._config_get("session.intra_op_num_threads", 0) or 0)
+        intra_threads = int(self._config_get(
+            "session.intra_op_num_threads", self._session_defaults.get("intra_op_num_threads", 0),
+        ) or 0)
         inter_threads = int(self._config_get("session.inter_op_num_threads", 0) or 0)
         if intra_threads > 0:
             session_options.intra_op_num_threads = intra_threads
         if inter_threads > 0:
             session_options.inter_op_num_threads = inter_threads
+        spinning = self._config_get("session.allow_spinning", self._session_defaults.get("allow_spinning"))
+        if spinning is not None:
+            normalized = str(spinning).strip().lower()
+            if normalized in {"true", "1", "on", "yes"}:
+                value = "1"
+            elif normalized in {"false", "0", "off", "no"}:
+                value = "0"
+            else:
+                raise ValueError(f"{self._config_prefix}.session.allow_spinning must be a boolean.")
+            for pool in ("intra_op", "inter_op"):
+                session_options.add_session_config_entry(f"session.{pool}.allow_spinning", value)
         session_options.graph_optimization_level = self.resolve_graph_optimization_level(
             ort=ort,
             raw_value=self._config_get("session.graph_optimization_level", "all"),

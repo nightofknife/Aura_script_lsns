@@ -319,9 +319,9 @@ def fast_ui(monkeypatch):
 
     for module in (select, exits):
         monkeypatch.setattr(module, "time", SimpleNamespace(monotonic=lambda: clock.now))
-        monkeypatch.setattr(module, "_WAIT_SECONDS", .012)
-        monkeypatch.setattr(module, "_POLL_SECONDS", .001)
-        monkeypatch.setattr(module, "_SETTLE_SECONDS", .001)
+        monkeypatch.setattr(module, "_WAIT_SECONDS", 1.2)
+        monkeypatch.setattr(module, "_POLL_SECONDS", .1)
+        monkeypatch.setattr(module, "_SETTLE_SECONDS", .1)
     monkeypatch.setattr(asyncio, "sleep", advance)
 
 
@@ -398,9 +398,8 @@ def test_cancellation_during_durable_journal_keeps_pending_without_payment(store
     monkeypatch.setattr(visit_actions, "mark_pending_batch", journal_then_cancel)
     monkeypatch.setattr(visit_actions, "execute_black_moon_submit", actual_submit)
     monkeypatch.setattr(prepare, "is_current_task_cancel_requested", lambda: cancellation["requested"])
-    with pytest.raises(prepare.BlackMoonLocalPrepareError) as error:
+    with pytest.raises(asyncio.CancelledError):
         submit(store, visit, app=app)
-    assert error.value.code == "black_moon_prepare_cancelled"
     saved = record(store, visit)
     assert app.captures == 2 and app.clicks == []
     assert saved["completed"] is False

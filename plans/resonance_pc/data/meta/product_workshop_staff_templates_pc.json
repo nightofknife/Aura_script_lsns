@@ -35,32 +35,12 @@
         "sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47"
       },
       {
-        "font_path_id": -2237384480076949585,
-        "sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
-      },
-      {
-        "font_path_id": 6136794397608061395,
-        "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
-      },
-      {
         "font_path_id": -6409983837326833580,
         "sha256": "f8ce2718a0bf5e1cf338a24431aa2f0631fecbf5d76654b99bab69b29d3b9e1e"
       },
       {
-        "font_path_id": -4884400286118422667,
-        "sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47"
-      },
-      {
         "font_path_id": -3758921232364580136,
         "sha256": "f6b009d07d8d894d55eadeb7080b4916c3a2c83ff3ee60bbe851e6698d73bafd"
-      },
-      {
-        "font_path_id": -2237384480076949585,
-        "sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
-      },
-      {
-        "font_path_id": 6136794397608061395,
-        "sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f"
       }
     ],
     "dependencies": [
@@ -348,7 +328,7 @@
       ]
     },
     "select_all": {
-      "image": "templates/workshop/staffing/editor/select_all.png",
+      "image": "templates/workshop/staffing/selection/product/select_all.png",
       "bbox": [
         877,
         659,
@@ -379,7 +359,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/staffing/editor/select_all.native.png",
+          "image": "templates/workshop/staffing/selection/product/select_all.native.png",
           "bbox": [
             822,
             656,
@@ -418,7 +398,7 @@
       ]
     },
     "cancel_all": {
-      "image": "templates/workshop/staffing/editor/cancel_all.png",
+      "image": "templates/workshop/staffing/selection/product/cancel_all.png",
       "bbox": [
         877,
         659,
@@ -449,7 +429,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/staffing/editor/cancel_all.native.png",
+          "image": "templates/workshop/staffing/selection/product/cancel_all.native.png",
           "bbox": [
             822,
             656,
@@ -488,7 +468,7 @@
       ]
     },
     "confirm": {
-      "image": "templates/workshop/staffing/editor/confirm.png",
+      "image": "templates/workshop/staffing/selection/product/confirm.png",
       "bbox": [
         1045,
         645,
@@ -519,7 +499,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/staffing/editor/confirm.native.png",
+          "image": "templates/workshop/staffing/selection/product/confirm.native.png",
           "bbox": [
             1045,
             645,
@@ -587,7 +567,7 @@
       "sha256": "dc6f18b5aafa6082faa7a106d1cd1c97d781517f3f11cb09b2f7e698f7800d12"
     },
     "apply": {
-      "image": "templates/workshop/staffing/editor/apply.png",
+      "image": "templates/workshop/staffing/save_prompt/apply.png",
       "bbox": [
         903,
         479,
@@ -618,7 +598,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/staffing/editor/apply.native.png",
+          "image": "templates/workshop/staffing/save_prompt/apply.native.png",
           "bbox": [
             642,
             482,
@@ -657,7 +637,7 @@
       ]
     },
     "discard": {
-      "image": "templates/workshop/staffing/editor/discard.png",
+      "image": "templates/workshop/staffing/save_prompt/discard.png",
       "bbox": [
         271,
         479,
@@ -688,7 +668,7 @@
       ],
       "variants": [
         {
-          "image": "templates/workshop/staffing/editor/discard.native.png",
+          "image": "templates/workshop/staffing/save_prompt/discard.native.png",
           "bbox": [
             2,
             482,

@@ -8,7 +8,7 @@ import pytest
 from plans.resonance_pc.src.actions import _deep_dive_known_glyph_matcher as matcher
 from plans.resonance_pc.src.actions import _deep_dive_layout_semantics as semantics
 
-NATIVE=Path(semantics.__file__).resolve().parents[2]/'templates/deep_dive_layout'
+NATIVE=Path(semantics.__file__).resolve().parents[2]/'templates/deep_dive/deep_dive_layout'
 
 
 def rgb(path):

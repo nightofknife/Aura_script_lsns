@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import math
-import time
 from typing import Any, Dict
 
-import cv2
-import numpy as np
-
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.scheduler.operation_scope import (
+    OperationScope, OperationTimeout, current_operation_scope,
+)
+from ....aura_base.src.services.interaction_service import InteractionService
 from . import reforming_center_pc_actions as layout
-from . import _reforming_center_room_templates as vision
+from ._framework_room_templates import RoomTemplateMatcher
 from . import _reforming_center_map_navigation as room_map
 from . import _reforming_center_clicks as checked
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
@@ -22,35 +22,18 @@ _ROOM_CLICK_REGION = (320, 130, 760, 450)
 
 
 def _settle(seconds):
-    time.sleep(seconds)
+    scope = current_operation_scope() or OperationScope()
+    scope.sleep(seconds)
 
 
 def _read_frame(app):
-    captured = app.capture(rect=(0, 0, 1280, 720))
-    if (not getattr(captured, "success", False)
-            or not isinstance(captured.image, np.ndarray)
-            or captured.image.shape != (720, 1280, 3)):
-        layout._raise_error("capture_failed", "A fresh 1280x720 RGB client image is required")
-    # CaptureResult.image is RGB; OpenCV-loaded assets and vision helpers use
-    # BGR. Convert once at this boundary, without mutating the captured frame.
-    return cv2.cvtColor(captured.image, cv2.COLOR_RGB2BGR)
+    try:
+        return checked.read_frame(app)
+    except checked.CheckedClickError as exc:
+        layout._raise_error("capture_failed", "A fresh 1280x720 RGB client image is required", exc.data)
 
 
-def _wait_confirmed(app, settle_sec, probe):
-    previous = None
-    for _ in range(6):
-        _settle(settle_sec)
-        value = probe(_read_frame(app))
-        if value is not None and value is not False:
-            if previous == value:
-                return value
-            previous = value
-        else:
-            previous = None
-    return None
-
-
-def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
+def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec, matcher):
     trace = []
     model = room_map.load_map()
     previous_pose = previous_drag = None
@@ -58,7 +41,10 @@ def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
     # A final drag must still be followed by an observation before exhaustion.
     for _ in range(max_search_steps+1):
         image = _read_frame(app)
-        hits = vision.room_hits(image, catalog)
+        hits = matcher.room_hits(image, catalog)
+        scope = current_operation_scope()
+        if scope is not None:
+            scope.checkpoint()
         pose = room_map.locate_viewport(hits, model)
         target = next((hit for hit in hits if hit["room_name"] == room
                        and room in pose["anchors"]), None)
@@ -84,6 +70,8 @@ def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
         else:
             waypoint = room_map.choose_waypoint(room, pose, model)
         drag = room_map.plan_drag(waypoint["screen_point"], pose["single_anchor"], region=_SAFE_MAP_REGION)
+        if scope is not None:
+            scope.checkpoint()
         layout._perform_room_drag(app, start=drag["start"], end=drag["end"], duration_sec=.8, hold_sec=.2)
         trace.append({**drag, "viewport": pose, "waypoint": waypoint})
         previous_pose, previous_drag = pose, drag
@@ -94,9 +82,10 @@ def _locate_and_click(app, room, rooms, catalog, max_search_steps, settle_sec):
 
 @action_info(name="resonance_pc.open_reforming_center_room", public=True, read_only=False,
              description="From the ordinary overview, use screenshot templates to locate a room and activate its confirmed entry button.")
-@requires_services(app="plans/aura_base/app")
+@requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision", interaction="plans/aura_base/interaction")
 def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: int = 12,
-                                          settle_sec: float = .8, app: Any = None) -> Dict[str, Any]:
+                                          settle_sec: float = .8, app: Any = None,
+                                          vision: Any = None, interaction: Any = None) -> Dict[str, Any]:
     if (isinstance(max_search_steps, bool) or not isinstance(max_search_steps, (int, float))
             or not math.isfinite(max_search_steps) or int(max_search_steps) != max_search_steps
             or not 1 <= max_search_steps <= 24):
@@ -104,10 +93,20 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
     if (isinstance(settle_sec, bool) or not isinstance(settle_sec, (int, float))
             or not math.isfinite(settle_sec) or not .05 <= settle_sec <= 10):
         raise ValueError("settle_sec must be between 0.05 and 10 seconds")
+    # Navigation, entry input and both confirmation stages consume one budget.
+    scope = OperationScope(30. + (int(max_search_steps) + 1) * (settle_sec + 2.),
+                           parent=current_operation_scope(), target=getattr(app, "target_runtime", None))
+    service = interaction if interaction is not None else InteractionService(app=app)
+    with checked.interaction_context(service, scope):
+        return _open_room(room_name, int(max_search_steps), settle_sec, app, vision)
+
+
+def _open_room(room_name, max_search_steps, settle_sec, app, vision):
     resonance_pc_require_client_resolution(app=app)
     rooms = layout._load_reforming_center_room_layout()
     room = layout._resolve_room_key(room_name, rooms, layout._build_room_alias_lookup(rooms))
-    catalog = vision.load_catalog()
+    matcher = RoomTemplateMatcher(vision)
+    catalog = matcher.load_catalog()
     spec = catalog["rooms"].get(room)
     kind = spec["entry_type"] if spec else "unavailable"
     data = {}
@@ -124,11 +123,11 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
         return result("failed", "room_template_unavailable")
     try:
         data["navigation"] = _locate_and_click(app, room, rooms, catalog,
-                                             int(max_search_steps), settle_sec)
+                                             int(max_search_steps), settle_sec, matcher)
         if kind != "direct":
             def button_point(image):
                 button_key = "construction" if kind == "selection_only" else kind
-                hit = vision.entry_button(image, spec, catalog["buttons"][button_key])
+                hit = matcher.entry_button(image, spec, catalog["buttons"][button_key])
                 return tuple(hit["center"]) if hit else None
 
             try:
@@ -149,8 +148,8 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
         else:
             record = data["navigation"]["click"]
         try:
-            checked.confirm_click(app, record, lambda image: vision.destination_confirmed(image, spec),
-                                  lambda image: vision.destination_confirmed(image, spec))
+            checked.confirm_click(app, record, lambda image: matcher.destination_confirmed(image, spec),
+                                  lambda image: matcher.destination_confirmed(image, spec))
             return result("completed")
         except checked.CheckedClickError as exc:
             data["error"] = {"code": exc.reason, "detail": exc.data}
@@ -164,3 +163,6 @@ def resonance_pc_open_reforming_center_room(room_name: str, max_search_steps: in
     except checked.CheckedClickError as exc:
         data["error"] = {"code": exc.reason, "detail": exc.data}
         return result("failed", exc.reason)
+    except OperationTimeout:
+        data["error"] = {"code": "room_operation_timeout", "detail": {"phase": "room_navigation"}}
+        return result("failed", "room_operation_timeout")

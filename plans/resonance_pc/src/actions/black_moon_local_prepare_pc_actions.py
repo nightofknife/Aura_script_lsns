@@ -10,6 +10,8 @@ import numpy as np
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.scheduler.operation_scope import OperationScope, current_operation_scope
+from ....aura_base.src.services.interaction_service import InteractionService
 
 from ._black_moon_local_prepare_vision import BlackMoonLocalPrepareVision
 from ._black_moon_local_shop_vision import BlackMoonLocalShopRecognitionError
@@ -37,7 +39,7 @@ class BlackMoonLocalPrepareError(RuntimeError):
 
 def _cancel_check():
     if is_current_task_cancel_requested():
-        raise BlackMoonLocalPrepareError("black_moon_prepare_cancelled", "Shopping preparation cancelled")
+        raise asyncio.CancelledError("Shopping preparation cancelled")
 
 
 def _capture(app):
@@ -75,11 +77,20 @@ def _validated_center(hit):
     return tuple(center)
 
 
-async def execute_black_moon_prepare_step(step, app, reader=None):
+async def execute_black_moon_prepare_step(step, app, reader=None, interaction=None):
     if step not in _STEPS:
         raise ValueError("Unknown Black Moon preparation step")
     if app is None:
         raise RuntimeError("app service is required")
+    # Keep the former worst-case navigation allowance, but spend it once for
+    # the whole operation, including capture, recognition, comparison and input.
+    total = (_STEP_TIMEOUT_SECONDS if step == "verify_ready" else
+             (_MAX_SUPPLEMENTAL_CLICKS + 1) * (2 * _STEP_TIMEOUT_SECONDS + _CLICK_SETTLE_SECONDS))
+    scope = OperationScope(total, parent=current_operation_scope(),
+                           target=getattr(app, "target_runtime", None),
+                           monotonic=time.monotonic)
+    scope.checkpoint()
+    interaction = interaction if interaction is not None else InteractionService(app=app)
     reader = reader if reader is not None else BlackMoonLocalPrepareVision()
     clicks, last = 0, dict(_UNKNOWN)
     button = {"enter_shop": "shop_entry", "select_local": "local_tab_unselected",
@@ -92,6 +103,10 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
             # The user guarantees the initial rest menu; only locate its entry.
             if before_click and step == "enter_shop" and clicks == 0:
                 hit = reader.match(frame, button)
+                if hit["found"]:
+                    # Preserve the domain's invalid-control error before the
+                    # generic input boundary validates the client point.
+                    _validated_center(hit)
                 return (TransitionProbe("source", hit=hit, immediate=True)
                         if hit["found"] else TransitionProbe())
             last = reader.observe(frame)
@@ -116,6 +131,7 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
             observe, allow_source=before_click, timeout_seconds=_STEP_TIMEOUT_SECONDS,
             poll_seconds=_POLL_SECONDS, monotonic=time.monotonic, sleep=asyncio.sleep,
             check_cancelled=_cancel_check,
+            scope=scope, interaction=interaction,
         )
 
     def completed():
@@ -134,9 +150,10 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
     def click(observed, attempt):
         nonlocal clicks
         center = _validated_center(observed.hit)
-        app.click(x=int(center[0]), y=int(center[1]))
+        returned = app.click(x=int(center[0]), y=int(center[1]))
         clicks = attempt
         logger.info("[BlackMoonPrepare] step=%s click_count=%s", step, clicks)
+        return returned
 
     await run_template_transition(
         wait_probe, click, max_clicks=_MAX_SUPPLEMENTAL_CLICKS + 1,
@@ -147,12 +164,13 @@ async def execute_black_moon_prepare_step(step, app, reader=None):
         exhausted=lambda: BlackMoonLocalPrepareError(
             "black_moon_prepare_transition_timeout", "Shopping preparation exhausted bounded clicks",
             {"step": step, "click_count": clicks, **last}),
+        scope=scope, interaction=interaction,
     )
     return completed()
 
 
 @action_info(name="resonance_pc.prepare_black_moon_local_shop_step", public=True, read_only=False,
              description="Verify one preparation transition without selecting, buying, refreshing, or recording stock.")
-@requires_services(app="plans/aura_base/app")
-async def resonance_pc_prepare_black_moon_local_shop_step(step: str, app=None) -> dict:
-    return await execute_black_moon_prepare_step(step, app)
+@requires_services(app="plans/aura_base/app", interaction="plans/aura_base/interaction")
+async def resonance_pc_prepare_black_moon_local_shop_step(step: str, app=None, interaction=None) -> dict:
+    return await execute_black_moon_prepare_step(step, app, interaction=interaction)

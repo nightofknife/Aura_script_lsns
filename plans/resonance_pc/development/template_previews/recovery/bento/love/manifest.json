@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "purpose": "display_only",
+  "runtime_catalog": "data/meta/love_bento.json",
+  "assets": {
+    "development/template_previews/recovery/bento/love/catalog_preview.png": {
+      "size": [
+        1200,
+        705
+      ],
+      "sha256": "afc60d0dd3c6870751ffdf6dd140a99a257be7e53b317d77f5273101deff8347"
+    },
+    "development/template_previews/recovery/bento/love/roles_preview.png": {
+      "size": [
+        600,
+        1250
+      ],
+      "sha256": "86fc8030cd77933b2ad7228adda776c50c1fa24739a9603fd989c59d4e02af1b"
+    }
+  }
+}

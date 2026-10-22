@@ -32,7 +32,6 @@
         14
       ],
       "padding": 2,
-      "native_file": "native/tokens/replacement_header.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -75,7 +74,6 @@
         15
       ],
       "padding": 2,
-      "native_file": "native/tokens/no_candidate_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
       "reference_client_crop": [
@@ -118,7 +116,6 @@
         12
       ],
       "padding": 2,
-      "native_file": "native/tokens/no_candidate_hint.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
       "reference_client_crop": [
@@ -161,7 +158,6 @@
         19
       ],
       "padding": 2,
-      "native_file": "native/tokens/refresh_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -204,7 +200,6 @@
         14
       ],
       "padding": 2,
-      "native_file": "native/tokens/film_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -247,7 +242,6 @@
         16
       ],
       "padding": 2,
-      "native_file": "native/tokens/confirm_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -290,7 +284,6 @@
         16
       ],
       "padding": 2,
-      "native_file": "native/tokens/cancel_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -333,7 +326,6 @@
         12
       ],
       "padding": 2,
-      "native_file": "native/tokens/level_prefix.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -376,7 +368,6 @@
         14
       ],
       "padding": 2,
-      "native_file": "native/tokens/replace_label.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -419,7 +410,6 @@
         20
       ],
       "padding": 2,
-      "native_file": "native/tokens/refresh_prompt.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
       "reference_client_crop": [
@@ -490,7 +480,6 @@
         20
       ],
       "padding": 2,
-      "native_file": "native/tokens/dialog_confirm.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
       "reference_client_crop": [
@@ -533,7 +522,6 @@
         21
       ],
       "padding": 2,
-      "native_file": "native/tokens/dialog_cancel.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5",
       "reference_client_crop": [
@@ -690,7 +678,6 @@
         14
       ],
       "padding": 2,
-      "native_file": "native/equipment/11800007.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
       "reference_client_crop": [
@@ -3785,7 +3772,6 @@
         14
       ],
       "padding": 2,
-      "native_file": "native/equipment/11800258.png",
       "kind": "approved_reference_glyph",
       "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
       "reference_client_crop": [
@@ -5584,7 +5570,6 @@
       "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
       "reference_samples": {
         "5": {
-          "native_file": "native/digits/level/5.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             1038,
@@ -5599,7 +5584,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "9": {
-          "native_file": "native/digits/level/9.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             1047,
@@ -5614,7 +5598,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "6": {
-          "native_file": "native/digits/level/6.png",
           "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
           "reference_client_crop": [
             1038,
@@ -5629,7 +5612,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "7": {
-          "native_file": "native/digits/level/7.png",
           "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
           "reference_client_crop": [
             1047,
@@ -5718,7 +5700,6 @@
       "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
       "reference_samples": {
         "8": {
-          "native_file": "native/digits/film/8.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             994,
@@ -5733,7 +5714,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "5": {
-          "native_file": "native/digits/film/5.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             1012,
@@ -5748,7 +5728,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "4": {
-          "native_file": "native/digits/film/4.png",
           "reference_sha256": "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84dca482e2f0",
           "reference_client_crop": [
             1011,
@@ -5837,7 +5816,6 @@
       "normalization": "tight glyph bounds; two black pixels of padding; no stretching",
       "reference_samples": {
         "9": {
-          "native_file": "native/digits/replace/9.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             838,
@@ -5852,7 +5830,6 @@
           "kind": "single_digit_from_approved_reference"
         },
         "5": {
-          "native_file": "native/digits/replace/5.png",
           "reference_sha256": "92fa5fa4004d7e2e182f012a2d6861be40521cc3e672c2f8f7b21fceb4369069",
           "reference_client_crop": [
             856,
@@ -7418,167 +7395,6 @@
       "size": [
         11,
         16
-      ]
-    },
-    "native/tokens/replacement_header.png": {
-      "sha256": "ccf51ee15596a8b6b869dccde34ac0cdc871cf3a5980c414c9254436cffcd379",
-      "size": [
-        210,
-        18
-      ]
-    },
-    "native/tokens/no_candidate_label.png": {
-      "sha256": "8771a97132aa1ae12943b70bc75d3ce566435969a391906361b1fd86c88b3aae",
-      "size": [
-        106,
-        20
-      ]
-    },
-    "native/tokens/no_candidate_hint.png": {
-      "sha256": "c895a1d5a733ecd984838a8ead3f1e6b12997de93f126a33acb836328341762c",
-      "size": [
-        179,
-        18
-      ]
-    },
-    "native/tokens/refresh_label.png": {
-      "sha256": "2de8a9b6b4c9929c1b0eaf274185d88cfdf5ba2ea01fd2ad3870a79a94adf1bf",
-      "size": [
-        82,
-        24
-      ]
-    },
-    "native/tokens/film_label.png": {
-      "sha256": "f448a4cdb9fd04615e2d4b84b233bf2abefab07edfd05e835fad1e41714a7f35",
-      "size": [
-        104,
-        18
-      ]
-    },
-    "native/tokens/confirm_label.png": {
-      "sha256": "133cf823704a5d2e0362671cf4ff9de543a13e22e8ec0f2ebc0757a2b31a6d80",
-      "size": [
-        39,
-        20
-      ]
-    },
-    "native/tokens/cancel_label.png": {
-      "sha256": "4f745868f0ec6d82a7ab75b7f139add0c1d9b80090252ceef5f64d4e0f831512",
-      "size": [
-        39,
-        22
-      ]
-    },
-    "native/tokens/level_prefix.png": {
-      "sha256": "b4b48a3ffa04fe3caf961e553930c5dd3cae9cf112ebff96441e52fc83129e6a",
-      "size": [
-        21,
-        16
-      ]
-    },
-    "native/tokens/replace_label.png": {
-      "sha256": "abb5ccc6229d2896505c1489103d2e8093eaaa1099652e29d1370061d6b09f13",
-      "size": [
-        114,
-        20
-      ]
-    },
-    "native/equipment/11800258.png": {
-      "sha256": "32447232496690a55b82ac5d0bef1edec92decf35447d105039e9d6f64992638",
-      "size": [
-        85,
-        20
-      ]
-    },
-    "native/digits/level/5.png": {
-      "sha256": "2fe36861eb623387be1b615f630eeff43d6acd7019388d03627c3c05a027b3c6",
-      "size": [
-        12,
-        16
-      ]
-    },
-    "native/digits/level/9.png": {
-      "sha256": "2358a8404c7d9b72cc0e9f75be4203a4830f1fe1d45884b38dda2bd407428f56",
-      "size": [
-        12,
-        16
-      ]
-    },
-    "native/digits/film/8.png": {
-      "sha256": "edd01993f3b5ba7556e3276f72a37814194086181c9236ab2bd4c838b147270e",
-      "size": [
-        11,
-        16
-      ]
-    },
-    "native/digits/film/5.png": {
-      "sha256": "eb56991ea969bb13ff48cfcfd5db28b81cfd212b3b6416ff2a37623eb254b647",
-      "size": [
-        11,
-        16
-      ]
-    },
-    "native/digits/replace/9.png": {
-      "sha256": "e112b7096f0a16b3ece0ffcabded3db50cd4d5fc2e50183aec94aabea334846f",
-      "size": [
-        12,
-        16
-      ]
-    },
-    "native/digits/replace/5.png": {
-      "sha256": "008b5c612b2d93ac57ccb3e41d52b308889a12c817453bd6cbf8b8871499e72d",
-      "size": [
-        11,
-        16
-      ]
-    },
-    "native/equipment/11800007.png": {
-      "sha256": "1483efaf112fa09353e2336a1984e5e10e48cdb19da010d2c92a0f610a1b58ae",
-      "size": [
-        68,
-        20
-      ]
-    },
-    "native/digits/level/6.png": {
-      "sha256": "a82c76b47ed6202594796a6d167a1f1bc6ef7e50e297789c9ee197bba1a03f66",
-      "size": [
-        12,
-        16
-      ]
-    },
-    "native/digits/level/7.png": {
-      "sha256": "b0668374793a12b5ecd7334214d86578f9f2617e28b989fcaf302fd88ed19964",
-      "size": [
-        12,
-        16
-      ]
-    },
-    "native/digits/film/4.png": {
-      "sha256": "bb0375d2792a80dfc9dc5c5f630c80c7ae8f4ba5e8030b9030944e84f69b31cc",
-      "size": [
-        11,
-        16
-      ]
-    },
-    "native/tokens/refresh_prompt.png": {
-      "sha256": "0b18d05ee9c8bc17332eda71d72c6e89becc3a933e543bd994d53c716f3056f5",
-      "size": [
-        433,
-        26
-      ]
-    },
-    "native/tokens/dialog_confirm.png": {
-      "sha256": "a04c28edbc9524b460baf9ed4916a8ba4d30ba8dd675545bb6be8cee84b9f5e7",
-      "size": [
-        47,
-        25
-      ]
-    },
-    "native/tokens/dialog_cancel.png": {
-      "sha256": "ff2ca093d7be68cbe763455a3d487da83955b7f2b562d9b60521ae6f431fe77c",
-      "size": [
-        47,
-        26
       ]
     }
   },

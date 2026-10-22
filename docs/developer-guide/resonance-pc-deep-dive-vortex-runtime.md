@@ -7,7 +7,7 @@
 - 识别：`_deep_dive_vortex_vision.py`。
 - 状态处理：`_deep_dive_vortex_flow.py`，会话键独立使用 `vortex_*`。
 - 配置：`data/deep_dive_vortex/catalog.json`。
-- 模板：`templates/deep_dive_vortex/`，为物理副本，不引用回生空洞模板目录。
+- 模板：`templates/deep_dive/deep_dive_vortex/`，为物理副本，不引用回生空洞模板目录。
 - 调度：同一任务的截图入口按阶段选择识别器。漩涡阶段跳过回生空洞的选项检测；共享输入、截图、取消、节点预览和任务结束等基础能力。
 - 后续新增漩涡效果只修改以上分支，不修改回生空洞模块和目录。
 

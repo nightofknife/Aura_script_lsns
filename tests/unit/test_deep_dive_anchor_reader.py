@@ -1,5 +1,6 @@
 """Reading-only orientation is never a substitute for strict action registration."""
 from copy import deepcopy
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -128,7 +129,8 @@ def test_weak_or_conflicting_new_glyph_discards_votes(monkeypatch,setup_reader):
 
 def test_end_of_computation_age_is_checked_not_just_entry_age(monkeypatch,setup_reader):
     ticks=iter([10.,10.01,10.02,10.03,10.51])
-    monkeypatch.setattr(reader.time,'monotonic',lambda:next(ticks))
+    # Keep this finite clock local: runtime monitors also use standard time.
+    monkeypatch.setattr(reader,'time',SimpleNamespace(monotonic=lambda:next(ticks)))
     result=read(setup_reader,1,10.,now=None)
     assert result['reason']=='anchor_read_source_stale'
     assert result['source_age_sec']==pytest.approx(.51) and not setup_reader[3]

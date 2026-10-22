@@ -1,8 +1,9 @@
-# src/notifier_services/vision_service.py (异步升级版)
+"""Template matching with synchronous kernels and asynchronous offloading."""
 
 import asyncio
 import glob
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +14,10 @@ import numpy as np
 
 from packages.aura_core.api import service_info
 from packages.aura_core.observability.logging.core_logger import logger
+
+from ._vision_timing import VisionTiming, start_vision_timing
+from ._template_image_cache import TemplateImageCache
+from .prepared_template import PreparedTemplate
 
 
 # --- 返回值数据结构 (保持不变) ---
@@ -43,9 +48,8 @@ class TemplateLibrary:
 @service_info(alias="vision", public=True)
 class VisionService:
     """
-    【异步升级版】一个无状态的视觉服务。
-    - 对外保持100%兼容的同步接口。
-    - 内部将CPU密集型的图像计算移至后台线程执行，避免阻塞事件循环。
+    同步模板接口在调用线程计算；异步接口完整卸载到工作线程。
+    匹配算法、分数和结果结构由两种入口共享。
     """
 
     _BATCH_MATCH_MIN_PARALLEL_SIZE = 4
@@ -58,6 +62,7 @@ class VisionService:
         self._loop_lock = threading.Lock()
         self._template_libraries: Dict[str, Dict[str, TemplateLibrary]] = {}
         self._template_lock = threading.RLock()
+        self._template_image_cache = TemplateImageCache()
 
     # =========================================================================
     # Section 0: Template Library
@@ -197,12 +202,12 @@ class VisionService:
         return any(ch in value for ch in "*?[]")
 
     # =========================================================================
-    # Section 1: 公共同步接口 (保持100%向后兼容)
+    # Section 1: 公共同步接口
     # =========================================================================
 
     def find_template(self,
                       source_image: np.ndarray | str,
-                      template_image: np.ndarray | str,
+                      template_image: np.ndarray | str | PreparedTemplate,
                       mask_image: Optional[np.ndarray | str] = None,
                       threshold: float = 0.8,
                       use_grayscale: bool = True,
@@ -210,8 +215,13 @@ class VisionService:
                       preprocess: str = "none",
                       score_scale: Optional[float] = None) -> MatchResult:
         """【同步接口】在源图像中查找最匹配的单个模板。"""
-        return self._submit_to_loop_and_wait(
-            self.find_template_async(
+        self._ensure_template_sync_call_allowed()
+        timing = self._start_template_timing(
+            "find_template", source_image, [template_image], use_grayscale, match_method, preprocess, "sync",
+        )
+        return self._run_template_request(
+            self._find_template_sync,
+            (
                 source_image,
                 template_image,
                 mask_image,
@@ -220,12 +230,13 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
-            )
+            ),
+            timing,
         )
 
     def find_all_templates(self,
                            source_image: np.ndarray,
-                           template_image: np.ndarray | str,
+                           template_image: np.ndarray | str | PreparedTemplate,
                            mask_image: Optional[np.ndarray | str] = None,
                            threshold: float = 0.8,
                            nms_threshold: float = 0.5,
@@ -234,8 +245,13 @@ class VisionService:
                            preprocess: str = "none",
                            score_scale: Optional[float] = None) -> MultiMatchResult:
         """【同步接口】在源图像中查找所有匹配的模板实例。"""
-        return self._submit_to_loop_and_wait(
-            self.find_all_templates_async(
+        self._ensure_template_sync_call_allowed()
+        timing = self._start_template_timing(
+            "find_all_templates", source_image, [template_image], use_grayscale, match_method, preprocess, "sync",
+        )
+        return self._run_template_request(
+            self._find_all_templates_sync,
+            (
                 source_image,
                 template_image,
                 mask_image,
@@ -245,12 +261,13 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
-            )
+            ),
+            timing,
         )
 
     def find_templates_batch(self,
                              source_image: np.ndarray,
-                             template_images: List[np.ndarray | str],
+                             template_images: List[np.ndarray | str | PreparedTemplate],
                              mask_images: Optional[List[np.ndarray | str]] = None,
                              threshold: float = 0.8,
                              use_grayscale: bool = True,
@@ -258,8 +275,13 @@ class VisionService:
                              preprocess: str = "none",
                              score_scale: Optional[float] = None) -> List[MatchResult]:
         """【同步接口】在源图像中批量查找多个模板的最佳匹配。"""
-        return self._submit_to_loop_and_wait(
-            self.find_templates_batch_async(
+        self._ensure_template_sync_call_allowed()
+        timing = self._start_template_timing(
+            "find_templates_batch", source_image, template_images, use_grayscale, match_method, preprocess, "sync",
+        )
+        return self._run_template_request(
+            self._find_templates_batch_request_sync,
+            (
                 source_image,
                 template_images,
                 mask_images,
@@ -268,12 +290,13 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
-            )
+            ),
+            timing,
         )
 
     def find_all_templates_batch(self,
                                  source_image: np.ndarray,
-                                 template_images: List[np.ndarray | str],
+                                 template_images: List[np.ndarray | str | PreparedTemplate],
                                  mask_images: Optional[List[np.ndarray | str]] = None,
                                  threshold: float = 0.8,
                                  nms_threshold: float = 0.5,
@@ -282,8 +305,13 @@ class VisionService:
                                  preprocess: str = "none",
                                  score_scale: Optional[float] = None) -> List[MultiMatchResult]:
         """【同步接口】在源图像中批量查找多个模板的所有匹配。"""
-        return self._submit_to_loop_and_wait(
-            self.find_all_templates_batch_async(
+        self._ensure_template_sync_call_allowed()
+        timing = self._start_template_timing(
+            "find_all_templates_batch", source_image, template_images, use_grayscale, match_method, preprocess, "sync",
+        )
+        return self._run_template_request(
+            self._find_all_templates_batch_request_sync,
+            (
                 source_image,
                 template_images,
                 mask_images,
@@ -293,7 +321,8 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
-            )
+            ),
+            timing,
         )
 
     def find_color(self,
@@ -307,61 +336,32 @@ class VisionService:
         )
 
     # =========================================================================
-    # Section 2: 内部异步核心实现
+    # Section 2: 异步入口（包含准备阶段的完整卸载）
     # =========================================================================
 
     async def find_template_async(self,
                                   source_image: np.ndarray | str,
-                                  template_image: np.ndarray | str,
+                                  template_image: np.ndarray | str | PreparedTemplate,
                                   mask_image: Optional[np.ndarray | str] = None,
                                   threshold: float = 0.8,
                                   use_grayscale: bool = True,
                                   match_method: int = cv2.TM_CCOEFF_NORMED,
                                   preprocess: str = "none",
                                   score_scale: Optional[float] = None) -> MatchResult:
-        """【异步内核】将模板匹配计算调度到后台线程。"""
-        try:
-            source_prepared = self._prepare_image(
-                source_image,
-                use_grayscale=use_grayscale,
-                preprocess=preprocess,
-            )
-            template_prepared = self._prepare_image(
-                template_image,
-                use_grayscale=use_grayscale,
-                preprocess=preprocess,
-            )
-            mask = None
-            if mask_image is not None:
-                mask = self._prepare_image(
-                    mask_image,
-                    use_grayscale=True,
-                    preprocess="none",
-                )
-
-            if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
-                raise ValueError(
-                    f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
-                )
-
-            return await asyncio.to_thread(
-                self._match_template_prepared,
-                source_prepared,
-                template_prepared,
-                mask,
-                threshold,
-                match_method,
-                use_grayscale,
-                preprocess,
-                score_scale,
-            )
-        except (FileNotFoundError, TypeError, ValueError) as e:
-            logger.error(f"模板匹配预处理失败: {e}")
-            return MatchResult(found=False, debug_info={"error": str(e)})
+        """将准备、匹配和结果包装完整调度到后台线程。"""
+        timing = self._start_template_timing(
+            "find_template", source_image, [template_image], use_grayscale, match_method, preprocess, "async",
+        )
+        return await asyncio.to_thread(
+            self._run_template_request,
+            self._find_template_sync,
+            (source_image, template_image, mask_image, threshold, use_grayscale, match_method, preprocess, score_scale),
+            timing,
+        )
 
     async def find_all_templates_async(self,
                                        source_image: np.ndarray,
-                                       template_image: np.ndarray | str,
+                                       template_image: np.ndarray | str | PreparedTemplate,
                                        mask_image: Optional[np.ndarray | str] = None,
                                        threshold: float = 0.8,
                                        nms_threshold: float = 0.5,
@@ -369,33 +369,141 @@ class VisionService:
                                        match_method: int = cv2.TM_CCOEFF_NORMED,
                                        preprocess: str = "none",
                                        score_scale: Optional[float] = None) -> MultiMatchResult:
-        """【异步内核】将查找所有模板的计算调度到后台线程。"""
+        """将多目标模板请求完整调度到后台线程。"""
+        timing = self._start_template_timing(
+            "find_all_templates", source_image, [template_image], use_grayscale, match_method, preprocess, "async",
+        )
+        return await asyncio.to_thread(
+            self._run_template_request,
+            self._find_all_templates_sync,
+            (source_image, template_image, mask_image, threshold, nms_threshold,
+             use_grayscale, match_method, preprocess, score_scale),
+            timing,
+        )
+
+    async def find_templates_batch_async(self,
+                                         source_image: np.ndarray,
+                                         template_images: List[np.ndarray | str | PreparedTemplate],
+                                         mask_images: Optional[List[np.ndarray | str]] = None,
+                                         threshold: float = 0.8,
+                                         use_grayscale: bool = True,
+                                         match_method: int = cv2.TM_CCOEFF_NORMED,
+                                         preprocess: str = "none",
+                                         score_scale: Optional[float] = None) -> List[MatchResult]:
+        """将批量模板请求完整调度到后台线程。"""
+        timing = self._start_template_timing(
+            "find_templates_batch", source_image, template_images, use_grayscale, match_method, preprocess, "async",
+        )
+        return await asyncio.to_thread(
+            self._run_template_request,
+            self._find_templates_batch_request_sync,
+            (source_image, template_images, mask_images, threshold, use_grayscale, match_method, preprocess, score_scale),
+            timing,
+        )
+
+    async def find_all_templates_batch_async(self,
+                                             source_image: np.ndarray,
+                                             template_images: List[np.ndarray | str | PreparedTemplate],
+                                             mask_images: Optional[List[np.ndarray | str]] = None,
+                                             threshold: float = 0.8,
+                                             nms_threshold: float = 0.5,
+                                             use_grayscale: bool = True,
+                                             match_method: int = cv2.TM_CCOEFF_NORMED,
+                                             preprocess: str = "none",
+                                             score_scale: Optional[float] = None) -> List[MultiMatchResult]:
+        """将批量多目标模板请求完整调度到后台线程。"""
+        timing = self._start_template_timing(
+            "find_all_templates_batch", source_image, template_images, use_grayscale, match_method, preprocess, "async",
+        )
+        return await asyncio.to_thread(
+            self._run_template_request,
+            self._find_all_templates_batch_request_sync,
+            (source_image, template_images, mask_images, threshold, nms_threshold,
+             use_grayscale, match_method, preprocess, score_scale),
+            timing,
+        )
+
+    # =========================================================================
+    # 完整同步请求内核；异常契约由同步和异步入口共享。
+    # =========================================================================
+
+    def _find_template_sync(self,
+                            source_image: np.ndarray | str,
+                            template_image: np.ndarray | str | PreparedTemplate,
+                            mask_image: Optional[np.ndarray | str],
+                            threshold: float,
+                            use_grayscale: bool,
+                            match_method: int,
+                            preprocess: str,
+                            score_scale: Optional[float],
+                            *, _timing: VisionTiming | None = None) -> MatchResult:
         try:
-            source_prepared = self._prepare_image(
+            source_prepared = self._prepare_match_image(
                 source_image,
                 use_grayscale=use_grayscale,
                 preprocess=preprocess,
+                stage="source_prepare", timing=_timing,
             )
-            template_prepared = self._prepare_image(
-                template_image,
+            template_prepared, mask = self._prepare_template_image(
+                template_image, mask_image,
                 use_grayscale=use_grayscale,
                 preprocess=preprocess,
+                timing=_timing,
             )
-            mask = None
-            if mask_image is not None:
-                mask = self._prepare_image(
-                    mask_image,
-                    use_grayscale=True,
-                    preprocess="none",
-                )
 
             if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
                 raise ValueError(
                     f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
                 )
 
-            matches = await asyncio.to_thread(
-                self._match_all_templates_prepared,
+            return self._match_template_prepared(
+                source_prepared,
+                template_prepared,
+                mask,
+                threshold,
+                match_method,
+                use_grayscale,
+                preprocess,
+                score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
+            )
+        except (FileNotFoundError, TypeError, ValueError) as e:
+            if _timing is not None:
+                _timing.handled_error(e)
+            logger.error(f"模板匹配预处理失败: {e}")
+            return MatchResult(found=False, debug_info={"error": str(e)})
+
+    def _find_all_templates_sync(self,
+                                       source_image: np.ndarray,
+                                       template_image: np.ndarray | str | PreparedTemplate,
+                                       mask_image: Optional[np.ndarray | str] = None,
+                                       threshold: float = 0.8,
+                                       nms_threshold: float = 0.5,
+                                       use_grayscale: bool = True,
+                                       match_method: int = cv2.TM_CCOEFF_NORMED,
+                                       preprocess: str = "none",
+                                       score_scale: Optional[float] = None,
+                                       *, _timing: VisionTiming | None = None) -> MultiMatchResult:
+        try:
+            source_prepared = self._prepare_match_image(
+                source_image,
+                use_grayscale=use_grayscale,
+                preprocess=preprocess,
+                stage="source_prepare", timing=_timing,
+            )
+            template_prepared, mask = self._prepare_template_image(
+                template_image, mask_image,
+                use_grayscale=use_grayscale,
+                preprocess=preprocess,
+                timing=_timing,
+            )
+
+            if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
+                raise ValueError(
+                    f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
+                )
+
+            matches = self._match_all_templates_prepared(
                 source_prepared,
                 template_prepared,
                 mask,
@@ -405,28 +513,30 @@ class VisionService:
                 use_grayscale,
                 preprocess,
                 score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
             )
             return MultiMatchResult(count=len(matches), matches=matches)
 
         except (FileNotFoundError, TypeError, ValueError) as e:
+            if _timing is not None:
+                _timing.handled_error(e)
             logger.error(f"查找所有模板预处理失败: {e}")
             return MultiMatchResult()
 
-    async def find_templates_batch_async(self,
+    def _find_templates_batch_request_sync(self,
                                          source_image: np.ndarray,
-                                         template_images: List[np.ndarray | str],
+                                         template_images: List[np.ndarray | str | PreparedTemplate],
                                          mask_images: Optional[List[np.ndarray | str]] = None,
                                          threshold: float = 0.8,
                                          use_grayscale: bool = True,
                                          match_method: int = cv2.TM_CCOEFF_NORMED,
                                          preprocess: str = "none",
-                                         score_scale: Optional[float] = None) -> List[MatchResult]:
-        """【异步内核】批量查找多个模板的最佳匹配。"""
+                                         score_scale: Optional[float] = None,
+                                         *, _timing: VisionTiming | None = None) -> List[MatchResult]:
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
         try:
-            return await asyncio.to_thread(
-                self._find_templates_batch_sync,
+            return self._find_templates_batch_sync(
                 source_image,
                 template_images,
                 mask_images,
@@ -435,27 +545,29 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
             )
         except (FileNotFoundError, TypeError, ValueError) as e:
+            if _timing is not None:
+                _timing.handled_error(e)
             logger.error(f"批量模板匹配预处理失败: {e}")
             return [MatchResult(found=False, debug_info={"error": str(e)}) for _ in template_images]
 
-    async def find_all_templates_batch_async(self,
+    def _find_all_templates_batch_request_sync(self,
                                              source_image: np.ndarray,
-                                             template_images: List[np.ndarray | str],
+                                             template_images: List[np.ndarray | str | PreparedTemplate],
                                              mask_images: Optional[List[np.ndarray | str]] = None,
                                              threshold: float = 0.8,
                                              nms_threshold: float = 0.5,
                                              use_grayscale: bool = True,
                                              match_method: int = cv2.TM_CCOEFF_NORMED,
                                              preprocess: str = "none",
-                                             score_scale: Optional[float] = None) -> List[MultiMatchResult]:
-        """【异步内核】批量查找多个模板的所有匹配。"""
+                                             score_scale: Optional[float] = None,
+                                             *, _timing: VisionTiming | None = None) -> List[MultiMatchResult]:
         if mask_images is not None and len(mask_images) != len(template_images):
             raise ValueError("mask_images length must match template_images length.")
         try:
-            return await asyncio.to_thread(
-                self._find_all_templates_batch_sync,
+            return self._find_all_templates_batch_sync(
                 source_image,
                 template_images,
                 mask_images,
@@ -465,8 +577,11 @@ class VisionService:
                 match_method,
                 preprocess,
                 score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
             )
         except (FileNotFoundError, TypeError, ValueError) as e:
+            if _timing is not None:
+                _timing.handled_error(e)
             logger.error(f"批量模板查找预处理失败: {e}")
             return [MultiMatchResult() for _ in template_images]
 
@@ -523,6 +638,17 @@ class VisionService:
         if image is None:
             raise FileNotFoundError(f"无法从路径加载图像: {image_path}")
         return image
+
+    def load_template_image(self, image_path: str | Path) -> np.ndarray:
+        """Return a versioned, read-only RGB/gray template snapshot for previews.
+
+        This shares the matching cache and does not prepare or retain captures.
+        Unlike load_image_file(), the returned color pixels are already RGB.
+        """
+        return self._prepare_match_image(
+            str(image_path), use_grayscale=False, preprocess="none",
+            stage="template_prepare_sum", timing=None,
+        )
 
     def _prepare_image(self,
                        image: np.ndarray | str | None,
@@ -596,47 +722,57 @@ class VisionService:
 
     def _prepare_template_batch(self,
                                 source_image: np.ndarray,
-                                template_images: List[np.ndarray | str],
+                                template_images: List[np.ndarray | str | PreparedTemplate],
                                 mask_images: Optional[List[np.ndarray | str]],
                                 use_grayscale: bool,
-                                preprocess: str) -> tuple[np.ndarray, list[tuple[np.ndarray, Optional[np.ndarray]]]]:
-        source_prepared = self._prepare_image(
+                                preprocess: str,
+                                *, _timing: VisionTiming | None = None) -> tuple[np.ndarray, list[tuple[np.ndarray, Optional[np.ndarray]]]]:
+        source_prepared = self._prepare_match_image(
             source_image,
             use_grayscale=use_grayscale,
             preprocess=preprocess,
+            stage="source_prepare", timing=_timing,
         )
         prepared_templates: list[tuple[np.ndarray, Optional[np.ndarray]]] = []
         for index, template_image in enumerate(template_images):
-            template_prepared = self._prepare_image(
-                template_image,
-                use_grayscale=use_grayscale,
-                preprocess=preprocess,
-            )
-            mask = None
-            if mask_images is not None:
-                mask = self._prepare_image(
-                    mask_images[index],
-                    use_grayscale=True,
-                    preprocess="none",
+            if isinstance(template_image, PreparedTemplate):
+                template_prepared, mask = self._prepare_template_image(
+                    template_image, mask_images[index] if mask_images is not None else None,
+                    use_grayscale=use_grayscale, preprocess=preprocess, timing=_timing,
                 )
+            else:
+                # Preserve legacy failure precedence: prepare the template before
+                # indexing its mask, including malformed mask containers.
+                template_prepared = self._prepare_match_image(
+                    template_image, use_grayscale=use_grayscale, preprocess=preprocess,
+                    stage="template_prepare_sum", timing=_timing,
+                )
+                mask = None
+                if mask_images is not None:
+                    mask = self._prepare_match_image(
+                        mask_images[index], use_grayscale=True, preprocess="none",
+                        stage="mask_prepare_sum", timing=_timing,
+                    )
             prepared_templates.append((template_prepared, mask))
         return source_prepared, prepared_templates
 
     def _find_templates_batch_sync(self,
                                    source_image: np.ndarray,
-                                   template_images: List[np.ndarray | str],
+                                   template_images: List[np.ndarray | str | PreparedTemplate],
                                    mask_images: Optional[List[np.ndarray | str]],
                                    threshold: float,
                                    use_grayscale: bool,
                                    match_method: int,
                                    preprocess: str,
-                                   score_scale: Optional[float] = None) -> List[MatchResult]:
+                                   score_scale: Optional[float] = None,
+                                   *, _timing: VisionTiming | None = None) -> List[MatchResult]:
         source_prepared, prepared_templates = self._prepare_template_batch(
             source_image,
             template_images,
             mask_images,
             use_grayscale,
             preprocess,
+            **({"_timing": _timing} if _timing is not None else {}),
         )
 
         def match_one(item: tuple[np.ndarray, Optional[np.ndarray]]) -> MatchResult:
@@ -650,30 +786,38 @@ class VisionService:
                 use_grayscale,
                 preprocess,
                 score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
             )
 
-        if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
-            return [match_one(item) for item in prepared_templates]
-        worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
-        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match") as executor:
-            return list(executor.map(match_one, prepared_templates))
+        started_at = time.perf_counter() if _timing is not None else None
+        try:
+            if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
+                return [match_one(item) for item in prepared_templates]
+            worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
+            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match") as executor:
+                return list(executor.map(match_one, prepared_templates))
+        finally:
+            if _timing is not None:
+                _timing.record("batch_compute_wall", started_at)
 
     def _find_all_templates_batch_sync(self,
                                        source_image: np.ndarray,
-                                       template_images: List[np.ndarray | str],
+                                       template_images: List[np.ndarray | str | PreparedTemplate],
                                        mask_images: Optional[List[np.ndarray | str]],
                                        threshold: float,
                                        nms_threshold: float,
                                        use_grayscale: bool,
                                        match_method: int,
                                        preprocess: str,
-                                       score_scale: Optional[float] = None) -> List[MultiMatchResult]:
+                                       score_scale: Optional[float] = None,
+                                       *, _timing: VisionTiming | None = None) -> List[MultiMatchResult]:
         source_prepared, prepared_templates = self._prepare_template_batch(
             source_image,
             template_images,
             mask_images,
             use_grayscale,
             preprocess,
+            **({"_timing": _timing} if _timing is not None else {}),
         )
 
         def match_one(item: tuple[np.ndarray, Optional[np.ndarray]]) -> MultiMatchResult:
@@ -688,14 +832,20 @@ class VisionService:
                 use_grayscale,
                 preprocess,
                 score_scale,
+                **({"_timing": _timing} if _timing is not None else {}),
             )
             return MultiMatchResult(count=len(matches), matches=matches)
 
-        if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
-            return [match_one(item) for item in prepared_templates]
-        worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
-        with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match-all") as executor:
-            return list(executor.map(match_one, prepared_templates))
+        started_at = time.perf_counter() if _timing is not None else None
+        try:
+            if len(prepared_templates) < self._BATCH_MATCH_MIN_PARALLEL_SIZE:
+                return [match_one(item) for item in prepared_templates]
+            worker_count = min(self._BATCH_MATCH_MAX_WORKERS, len(prepared_templates))
+            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="vision-match-all") as executor:
+                return list(executor.map(match_one, prepared_templates))
+        finally:
+            if _timing is not None:
+                _timing.record("batch_compute_wall", started_at)
 
     def _select_best_match(self, match_method: int, min_val: float, max_val: float,
                            min_loc: tuple[int, int], max_loc: tuple[int, int]) -> tuple[float, tuple[int, int]]:
@@ -751,12 +901,19 @@ class VisionService:
                                  match_method: int,
                                  use_grayscale: bool,
                                  preprocess: str,
-                                 score_scale: Optional[float] = None) -> MatchResult:
+                                 score_scale: Optional[float] = None,
+                                 *, _timing: VisionTiming | None = None) -> MatchResult:
         if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
             raise ValueError(
                 f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
             )
-        result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
+        started_at = time.perf_counter() if _timing is not None else None
+        try:
+            result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
+        finally:
+            if _timing is not None:
+                _timing.record("match_sum", started_at)
+        postprocess_started_at = time.perf_counter() if _timing is not None else None
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         best_val, best_loc = self._select_best_match(match_method, min_val, max_val, min_loc, max_loc)
         best_confidence = self._normalize_match_score(
@@ -776,7 +933,7 @@ class VisionService:
             debug_info["score_scale"] = score_scale
 
         if best_confidence >= threshold:
-            return MatchResult(
+            match = MatchResult(
                 found=True,
                 top_left=best_loc,
                 center_point=(best_loc[0] + w // 2, best_loc[1] + h // 2),
@@ -784,12 +941,18 @@ class VisionService:
                 confidence=best_confidence,
                 debug_info=debug_info,
             )
+            if _timing is not None:
+                _timing.record("postprocess_sum", postprocess_started_at)
+            return match
         debug_info["best_match_rect_on_fail"] = (best_loc[0], best_loc[1], w, h)
-        return MatchResult(
+        match = MatchResult(
             found=False,
             confidence=best_confidence,
             debug_info=debug_info,
         )
+        if _timing is not None:
+            _timing.record("postprocess_sum", postprocess_started_at)
+        return match
 
     def _match_all_templates_prepared(self,
                                       source_prepared: np.ndarray,
@@ -800,12 +963,19 @@ class VisionService:
                                       match_method: int,
                                       use_grayscale: bool,
                                       preprocess: str,
-                                      score_scale: Optional[float] = None) -> List[MatchResult]:
+                                      score_scale: Optional[float] = None,
+                                      *, _timing: VisionTiming | None = None) -> List[MatchResult]:
         if mask is not None and mask.shape[:2] != template_prepared.shape[:2]:
             raise ValueError(
                 f"蒙版尺寸 {mask.shape} 必须与模板尺寸 {template_prepared.shape} 完全一致。"
             )
-        result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
+        started_at = time.perf_counter() if _timing is not None else None
+        try:
+            result = cv2.matchTemplate(source_prepared, template_prepared, match_method, mask=mask)
+        finally:
+            if _timing is not None:
+                _timing.record("match_sum", started_at)
+        postprocess_started_at = time.perf_counter() if _timing is not None else None
         score_map = self._normalize_match_map(
             result,
             match_method,
@@ -813,12 +983,16 @@ class VisionService:
             score_scale,
         )
         locations = np.where(score_map >= threshold)
+        if _timing is not None:
+            _timing.add_candidates(len(locations[0]))
 
         h, w = template_prepared.shape[:2]
         rects = [[pt[0], pt[1], w, h] for pt in zip(*locations[::-1])]
         scores = [score_map[pt[1], pt[0]] for pt in zip(*locations[::-1])]
 
         if not rects:
+            if _timing is not None:
+                _timing.record("postprocess_sum", postprocess_started_at)
             return []
 
         indices = cv2.dnn.NMSBoxes(rects, np.array(scores, dtype=np.float32), threshold, nms_threshold)
@@ -841,6 +1015,8 @@ class VisionService:
                         **({"score_scale": score_scale} if score_scale is not None else {}),
                     },
                 ))
+        if _timing is not None:
+            _timing.record("postprocess_sum", postprocess_started_at)
         return final_matches
 
     # =========================================================================
@@ -870,3 +1046,84 @@ class VisionService:
             raise RuntimeError("VisionService sync API called from event loop thread; use *_async to avoid deadlock.")
         future = asyncio.run_coroutine_threadsafe(coro, loop)
         return future.result()
+
+    def _ensure_template_sync_call_allowed(self) -> None:
+        """Keep the existing scheduler-loop guard without scheduling any work."""
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        if running_loop is self._get_running_loop():
+            raise RuntimeError("VisionService sync API called from event loop thread; use *_async to avoid deadlock.")
+
+    def _start_template_timing(self, operation, source_image, template_images,
+                               use_grayscale, match_method, preprocess, execution):
+        timing = start_vision_timing(operation, execution=execution)
+        if timing is None:
+            return None
+        timing.metadata.update(
+            source_kind="path" if isinstance(source_image, str) else type(source_image).__name__,
+            source_shape=list(source_image.shape) if isinstance(source_image, np.ndarray) else None,
+            template_count=len(template_images) if isinstance(template_images, (list, tuple)) else None,
+            path_template_count=sum(isinstance(image, str) for image in template_images)
+            if isinstance(template_images, (list, tuple)) else None,
+            prepared_template_count=sum(isinstance(image, PreparedTemplate) for image in template_images)
+            if isinstance(template_images, (list, tuple)) else None,
+            use_grayscale=use_grayscale,
+            match_method=match_method,
+            preprocess=preprocess,
+        )
+        timing.submitted_at = time.perf_counter()
+        return timing
+
+    def _run_template_request(self, kernel, args, timing: VisionTiming | None):
+        if timing is None:
+            return kernel(*args)
+        timing.start_work()
+        status = "completed"
+        try:
+            return kernel(*args, _timing=timing)
+        except BaseException as exc:
+            status = "failed"
+            timing.error_type = type(exc).__name__
+            raise
+        finally:
+            timing.finish(status=status)
+
+    def _prepare_match_image(self, image, *, use_grayscale, preprocess,
+                             stage, timing: VisionTiming | None):
+        started_at = time.perf_counter() if timing is not None else None
+        try:
+            if isinstance(image, str) and stage in ("template_prepare_sum", "mask_prepare_sum"):
+                return self._template_image_cache.get(
+                    image, use_grayscale=use_grayscale, preprocess=preprocess,
+                    load=lambda: self._normalize_color_space(
+                        self.load_image_file(image, cv2.IMREAD_UNCHANGED), input_is_bgr=True,
+                    ),
+                    prepare=lambda pixels: self._prepare_image(
+                        pixels, use_grayscale=use_grayscale, preprocess=preprocess,
+                    ),
+                )
+            return self._prepare_image(image, use_grayscale=use_grayscale, preprocess=preprocess)
+        finally:
+            if timing is not None:
+                timing.record(stage, started_at)
+
+    def _prepare_template_image(self, template_image, mask_image, *, use_grayscale,
+                                preprocess, timing: VisionTiming | None):
+        if isinstance(template_image, PreparedTemplate):
+            return template_image._resolve(
+                self._prepare_match_image, use_grayscale=use_grayscale,
+                preprocess=preprocess, mask_image=mask_image, timing=timing,
+            )
+        image = self._prepare_match_image(
+            template_image, use_grayscale=use_grayscale, preprocess=preprocess,
+            stage="template_prepare_sum", timing=timing,
+        )
+        mask = None
+        if mask_image is not None:
+            mask = self._prepare_match_image(
+                mask_image, use_grayscale=True, preprocess="none",
+                stage="mask_prepare_sum", timing=timing,
+            )
+        return image, mask

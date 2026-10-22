@@ -2707,7 +2707,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/navigation/rooms/map_workshop_3.png",
+        "image": "templates/navigation/rooms/map/map_workshop_3.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2730,7 +2730,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/navigation/rooms/physical_workshop_3.png",
+          "image": "templates/navigation/rooms/destination/physical_workshop_3.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2787,7 +2787,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/navigation/rooms/map_workshop_4.png",
+        "image": "templates/navigation/rooms/map/map_workshop_4.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2810,7 +2810,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/navigation/rooms/physical_workshop_4.png",
+          "image": "templates/navigation/rooms/destination/physical_workshop_4.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2867,7 +2867,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/navigation/rooms/map_workshop_5.png",
+        "image": "templates/navigation/rooms/map/map_workshop_5.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2890,7 +2890,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/navigation/rooms/physical_workshop_5.png",
+          "image": "templates/navigation/rooms/destination/physical_workshop_5.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",
@@ -2947,7 +2947,7 @@
       ],
       "entry_type": "direct",
       "map_title": {
-        "image": "templates/navigation/rooms/map_workshop_6.png",
+        "image": "templates/navigation/rooms/map/map_workshop_6.png",
         "kind": "native_white_text",
         "threshold": 0.92,
         "source_kind": "synthetic_native_game_assets",
@@ -2970,7 +2970,7 @@
       "map_title_variants": [],
       "destination_markers": [
         {
-          "image": "templates/navigation/rooms/physical_workshop_6.png",
+          "image": "templates/navigation/rooms/destination/physical_workshop_6.png",
           "kind": "native_white_text",
           "threshold": 0.92,
           "source_kind": "synthetic_native_game_assets",

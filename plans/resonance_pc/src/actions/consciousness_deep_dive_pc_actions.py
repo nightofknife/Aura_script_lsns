@@ -49,73 +49,73 @@ class _TemplateTarget:
 
 _START_DIVE = _TemplateTarget(
     "start_dive",
-    "templates/consciousness_deep_dive/start_dive.png",
+    "templates/deep_dive/consciousness_deep_dive/start_dive.png",
     (530, 500, 235, 115),
     0.86,
 )
 _START_GAME = _TemplateTarget(
     "start_game",
-    "templates/consciousness_deep_dive/start_game.png",
+    "templates/deep_dive/consciousness_deep_dive/start_game.png",
     (950, 585, 270, 100),
     0.86,
 )
 _DIFFICULTY_1_SELECTED = _TemplateTarget(
     "difficulty_1_selected",
-    "templates/consciousness_deep_dive/difficulty_1_selected.png",
+    "templates/deep_dive/consciousness_deep_dive/difficulty_1_selected.png",
     (120, 90, 340, 330),
     0.88,
 )
 _DIFFICULTY_1_UNSELECTED = _TemplateTarget(
     "difficulty_1_unselected",
-    "templates/consciousness_deep_dive/difficulty_1_unselected.png",
+    "templates/deep_dive/consciousness_deep_dive/difficulty_1_unselected.png",
     (80, 90, 570, 350),
     0.95,
 )
 _STRATEGY_SOURCE = _TemplateTarget(
     "strategy_source_unselected",
-    "templates/consciousness_deep_dive/strategy_source_unselected.png",
+    "templates/deep_dive/consciousness_deep_dive/strategy_source_unselected.png",
     (675, 505, 170, 170),
     0.88,
 )
 _STRATEGY_CONFIRM = _TemplateTarget(
     "strategy_confirm",
-    "templates/consciousness_deep_dive/strategy_confirm.png",
+    "templates/deep_dive/consciousness_deep_dive/strategy_confirm.png",
     (950, 580, 235, 100),
     0.86,
 )
 _FORMATION_CONFIRM = _TemplateTarget(
     "formation_confirm",
-    "templates/consciousness_deep_dive/formation_confirm.png",
+    "templates/deep_dive/consciousness_deep_dive/formation_confirm.png",
     (960, 565, 320, 150),
     0.86,
 )
 _BOON_MIDDLE_UNSELECTED = _TemplateTarget(
     "boon_middle_unselected",
-    "templates/consciousness_deep_dive/boon_middle_unselected.png",
+    "templates/deep_dive/consciousness_deep_dive/boon_middle_unselected.png",
     (590, 470, 100, 100),
     0.90,
 )
 _BOON_MIDDLE_SELECTED = _TemplateTarget(
     "boon_middle_selected",
-    "templates/consciousness_deep_dive/boon_middle_selected.png",
+    "templates/deep_dive/consciousness_deep_dive/boon_middle_selected.png",
     (590, 470, 100, 100),
     0.90,
 )
 _BOON_CONFIRM = _TemplateTarget(
     "boon_confirm",
-    "templates/consciousness_deep_dive/boon_confirm.png",
+    "templates/deep_dive/consciousness_deep_dive/boon_confirm.png",
     (550, 595, 210, 100),
     0.88,
 )
 _REWARD_MARKER = _TemplateTarget(
     "reward_marker",
-    "templates/consciousness_deep_dive/reward_marker.png",
+    "templates/deep_dive/consciousness_deep_dive/reward_marker.png",
     (520, 55, 250, 100),
     0.88,
 )
 _BOARD_READY = _TemplateTarget(
     "board_ready",
-    "templates/consciousness_deep_dive/board_ready.png",
+    "templates/deep_dive/consciousness_deep_dive/board_ready.png",
     (20, 190, 280, 90),
     0.88,
 )

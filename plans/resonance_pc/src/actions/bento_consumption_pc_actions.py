@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any, List
 
 import cv2
-import numpy as np
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ....aura_base.src.services.observation_service import CaptureError, Frame, ObservationService
 from ._cancellable_wait import sleep_before_deadline
 from ._recovery_assets import load_plan_image, read_layout_json
 from ._bento_observation import ConsecutiveFrameStability
@@ -137,19 +137,32 @@ class BentoConsumptionSession:
     def fail(self, code, message):
         raise BentoConsumptionError(code, message)
 
-    def capture(self, roi):
-        self.guard()
-        result = self.app.capture(rect=tuple(roi))
-        image = getattr(result, "image", None)
-        if not getattr(result, "success", False) or not isinstance(image, np.ndarray) or image.shape[:2] != (roi[3], roi[2]):
-            self.fail("bento_capture_failed", f"Invalid capture for {roi}")
-        return image
+    def snapshot(self) -> Frame:
+        """Own one observation round; never retain pixels across input or polling."""
+        return self._capture_frame((0, 0, 1280, 720))
 
-    def match(self, key, roi=None):
+    def _capture_frame(self, roi) -> Frame:
+        self.guard()
+        try:
+            frame = ObservationService(app=self.app).capture_regions((tuple(roi),))
+        except CaptureError:
+            # Keep cancellation/deadline errors from the guarded app distinct.
+            self.guard()
+            self.fail("bento_capture_failed", f"Invalid capture for {roi}")
+        self.guard()
+        return frame
+
+    def capture(self, roi, *, frame: Frame | None = None):
+        self.guard()
+        if frame is not None:
+            return frame.crop(roi).rgb_image()
+        return self._capture_frame(roi).rgb_image()
+
+    def match(self, key, roi=None, *, frame: Frame | None = None):
         spec = self.layout["templates"][key]
         roi = spec["roi"] if roi is None else roi
         hit = self.vision.find_template(
-            source_image=self.capture(roi), template_image=spec["resolved_path"],
+            source_image=self.capture(roi, frame=frame), template_image=spec["resolved_path"],
             mask_image=spec.get("resolved_mask"), threshold=spec["threshold"],
             use_grayscale=False, match_method=cv2.TM_SQDIFF_NORMED, preprocess="none",
         )
@@ -161,8 +174,8 @@ class BentoConsumptionSession:
         logger.debug("[BentoConsumption] template=%s found=%s confidence=%s roi=%s", key, found, score, roi)
         return {"found": found, "center": [roi[0]+int(center[0]), roi[1]+int(center[1])] if center else None}
 
-    def text(self, roi):
-        source = cv2.resize(self.capture(roi), None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+    def text(self, roi, *, frame: Frame | None = None):
+        source = cv2.resize(self.capture(roi, frame=frame), None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
         result = self.ocr.recognize_all(source_image=source)
         if getattr(result, "success", True) is False or (getattr(result, "debug_info", None) or {}).get("error"):
             self.fail("bento_ocr_failed", "Bento OCR failed")
@@ -192,9 +205,9 @@ class BentoConsumptionSession:
         logger.info("[BentoConsumption] stage=%s click=%s", self.stage, point)
         self.app.click(x=int(point[0]), y=int(point[1]))
 
-    def is_cabinet(self):
+    def is_cabinet(self, *, frame: Frame | None = None):
         self.guard()
-        return self.reader.is_page("bento_cabinet")
+        return self.reader.is_page("bento_cabinet", frame=frame)
 
     def require_main(self):
         self.stage = "require_main"
@@ -212,9 +225,10 @@ class BentoConsumptionSession:
         def profile_opened():
             nonlocal clicks, next_click
             self.guard()
-            if self.reader.is_page("profile"):
+            frame = self.snapshot()
+            if self.reader.is_page("profile", frame=frame):
                 return True
-            if clicks < 3 and time.monotonic() >= next_click and self.match("main")["found"]:
+            if clicks < 3 and time.monotonic() >= next_click and self.match("main", frame=frame)["found"]:
                 # A late opening between probes must not be toggled closed by a retry.
                 if self.reader.is_page("profile"):
                     return True
@@ -357,7 +371,8 @@ class BentoConsumptionSession:
 
         def effect():
             nonlocal clicks, next_click_at, confirmation_matches, effect_seen
-            if self.match("effect")["found"]:
+            frame = self.snapshot()
+            if self.match("effect", frame=frame)["found"]:
                 effect_seen = True
                 return True
             # Even one observed effect permanently closes the confirmation path.
@@ -366,7 +381,7 @@ class BentoConsumptionSession:
             if time.monotonic() < next_click_at:
                 confirmation_matches = 0
                 return False
-            confirmation = self.match("confirm_use")
+            confirmation = self.match("confirm_use", frame=frame)
             if not confirmation["found"]:
                 confirmation_matches = 0
                 return False
@@ -374,10 +389,11 @@ class BentoConsumptionSession:
             if confirmation_matches < 2:
                 return False
             # Recheck the transition before input; an effect can arrive between probes.
-            if self.match("effect")["found"]:
+            input_frame = self.snapshot()
+            if self.match("effect", frame=input_frame)["found"]:
                 effect_seen = True
                 return True
-            confirmation = self.match("confirm_use")
+            confirmation = self.match("confirm_use", frame=input_frame)
             if not confirmation["found"]:
                 confirmation_matches = 0
                 return False
@@ -407,16 +423,21 @@ class BentoConsumptionSession:
         expected_name = _normalized(meal.get("food_name") or "铁盟工作餐")
         self.stage = "select"
         def selected():
-            return (self.is_cabinet() and expected_name in self.text(self.layout["detail_name_roi"])
-                    and self.match("selected_marker", self.selected_roi)["found"]
-                    and self.match(use_key)["found"] and not self.match("use_disabled")["found"])
+            frame = self.snapshot()
+            return (self.is_cabinet(frame=frame)
+                    and expected_name in self.text(self.layout["detail_name_roi"], frame=frame)
+                    and self.match("selected_marker", self.selected_roi, frame=frame)["found"]
+                    and self.match(use_key, frame=frame)["found"]
+                    and not self.match("use_disabled", frame=frame)["found"])
         self.wait(selected, "selected usable meal", confirmations=2)
+        # Recheck on a new frame; the stable observation must not authorize use later.
         if not selected():
             self.fail("bento_target_changed", "Selection changed before use")
         self.items.append({"meal": copy.deepcopy(meal), "consumed": False, "completed": False,
                            "phase": "selected"})
         self.stage = "use"
         self.record(meal, "consumption_pending")
+        # Persistence can take time, so refresh the button immediately before input.
         use = self.match(use_key)
         if not use["found"]:
             self.fail("bento_target_changed", "Use button disappeared before clicking")
@@ -436,15 +457,16 @@ class BentoConsumptionSession:
             stars = meal["rating_stars"]
             self.click(self.layout["star_points"][stars-1])
             def rated():
-                if not self.match("rating_page")["found"]:
+                frame = self.snapshot()
+                if not self.match("rating_page", frame=frame)["found"]:
                     return False
                 for index, point in enumerate(self.layout["star_points"]):
                     key = "star_on" if index < stars else "star_off"
                     spec = self.layout["templates"][key]
                     w, h = spec["roi"][2:]
-                    if not self.match(key, [point[0]-w//2, point[1]-h//2, w, h])["found"]:
+                    if not self.match(key, [point[0]-w//2, point[1]-h//2, w, h], frame=frame)["found"]:
                         return False
-                return self.match("rating_confirm")["found"]
+                return self.match("rating_confirm", frame=frame)["found"]
             self.wait(rated, "selected rating", confirmations=2)
             self.click(self.match("rating_confirm")["center"])
         self.wait(self.is_cabinet, "cabinet after consumption", confirmations=2)

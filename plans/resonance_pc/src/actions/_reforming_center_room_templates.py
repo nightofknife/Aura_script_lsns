@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import cv2
 import numpy as np
 
 _PLAN = Path(__file__).resolve().parents[2]
+_ROOM_ROI = ContextVar("reforming_center_room_roi", default=None)
 
 
 @lru_cache(maxsize=1)
@@ -38,7 +40,15 @@ def match_asset(image, spec, region=None):
     # Preserve antialiased gray edges. Hard white-pixel thresholding rejected
     # readable live warehouse titles (0.865/0.876 vs >=0.92 required).
     target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
-    source = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+    context = _ROOM_ROI.get()
+    if context is not None and context[0] is image:
+        gray_rois = context[1]
+        key = (x, y, w, h)
+        if key not in gray_rois:
+            gray_rois[key] = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
+        source = gray_rois[key]
+    else:
+        source = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY)
     th, tw = target.shape[:2]
     if h < th or w < tw or float(target.std()) < 1:
         return None
@@ -59,6 +69,16 @@ def _overlap(a, b):
 
 
 def room_hits(image, catalog, region=(30, 90, 1250, 490)):
+    # Bind only this observation. Nested calls restore the outer observation;
+    # exceptions never leave a frame or its gray pixels bound to the caller.
+    token = _ROOM_ROI.set((image, {}))
+    try:
+        return _room_hits(image, catalog, region)
+    finally:
+        _ROOM_ROI.reset(token)
+
+
+def _room_hits(image, catalog, region):
     matches = []
     for room, spec in catalog["rooms"].items():
         variants = [spec["map_title"], *spec.get("map_title_variants", [])]

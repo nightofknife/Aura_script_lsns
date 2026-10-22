@@ -29,12 +29,14 @@ class DAGScheduler:
             if self.engine.running_tasks:
                 await self.engine.completion_event.wait()
             if self.engine._node_cancelled:
-                raise asyncio.CancelledError()
-        except asyncio.CancelledError:
+                raise getattr(self.engine, "_node_cancel_error", None) or asyncio.CancelledError()
+        except asyncio.CancelledError as exc:
             pending = tuple(self.engine.running_tasks)
             for task in pending:
                 if not task.cancelling():
-                    task.cancel()
+                    # A parent node deadline must remain distinct from a user
+                    # stop all the way into each child's cleanup boundary.
+                    task.cancel(exc.args[0] if exc.args else None)
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
             raise

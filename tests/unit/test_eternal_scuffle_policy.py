@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
 from PIL import Image
@@ -137,13 +138,18 @@ def test_production_catalog_counts_dates_and_internal_rarities():
     assert dates == {"伊卡菈": "2025-07-15", "静流·逐夏": "2024-09-09"}
 
 
-def test_every_promoted_asset_is_local_hash_valid_and_masks_match():
+def test_runtime_and_development_assets_are_local_and_separate_with_matching_masks():
     cat = policy.load_catalog()
-    for relative, metadata in cat["assets"].items():
+    development = json.loads((PLAN / "development/template_sources/characters/stand/scuffle/manifest.json").read_text(encoding="utf-8"))
+    stand_rows = {row["id"]: row for row in development["characters"]}
+    assert list(stand_rows) == [row["id"] for row in cat["characters"]]
+    assert all(relative.startswith("templates/") for relative in cat["assets"])
+    assert all(relative.startswith("development/template_sources/characters/stand/scuffle/") for relative in development["assets"])
+    for relative, metadata in {**cat["assets"], **development["assets"]}.items():
         path = (PLAN / relative).resolve()
         assert any(path.is_relative_to((PLAN / directory).resolve()) for directory in (
             "templates/battle/scuffle/controls", "templates/characters/nameplates/scuffle",
-            "templates/characters/stand/scuffle", "templates/inventory/equipment/art",
+            "development/template_sources/characters/stand/scuffle", "templates/inventory/equipment/art",
             "templates/inventory/equipment/frames/scuffle"))
         assert ".pytest_tmp" not in relative
         assert hashlib.sha256(path.read_bytes()).hexdigest() == metadata["sha256"]
@@ -155,9 +161,12 @@ def test_every_promoted_asset_is_local_hash_valid_and_masks_match():
                 assert mask.getbbox() is not None
     pairs = [(row["template"], row["mask"]) for row in cat["controls"].values() if row.get("mask")]
     for row in cat["characters"]:
-        assert len(row["stand_templates"]) == len(row["stand_masks"]) == 8
-        assert len(row["stand_sources"]) == 8
-        pairs.extend(zip(row["stand_templates"], row["stand_masks"], strict=True))
+        source = stand_rows[row["id"]]
+        assert not {"stand_templates", "stand_masks", "stand_sources"} & row.keys()
+        assert len(source["stand_templates"]) == len(source["stand_masks"]) == 8
+        assert len(source["stand_sources"]) == 8
+        assert source["source"] == row["source"]
+        pairs.extend(zip(source["stand_templates"], source["stand_masks"], strict=True))
         assert cat["assets"][row["name_template"]]["size"] == [138, 23]
     for row in cat["equipment"]:
         assert cat["assets"][row["template"]]["size"] == [200, 200]

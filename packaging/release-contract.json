@@ -45,10 +45,12 @@
   },
   "assets": {
     "ocr": {
-      "release_tag": "model-ppocrv5-server-v1",
-      "model_asset": "models-ocr-ppocrv5_server-v1.zip",
-      "checksum_asset": "models-ocr-ppocrv5_server-v1.sha256",
-      "bundle_directory": "models/ocr/ppocrv5_server"
+      "source": "official_onnx",
+      "source_manifest": "packaging/ocr/ppocrv6_small.json",
+      "release_tag": "",
+      "model_asset": "models-ocr-ppocrv6_small-v1.zip",
+      "checksum_asset": "models-ocr-ppocrv6_small-v1.sha256",
+      "bundle_directory": "models/ocr/ppocrv6_small"
     }
   },
   "full_release": {
@@ -59,9 +61,9 @@
       "runtime/AuraResonanceRuntime.exe",
       "runtime/_internal/PySide6",
       "runtime/_internal/packaging/assets/aura_resonance_chibi_icon-optimized.ico",
-      "models/ocr/ppocrv5_server/ocr.meta.json",
-      "models/ocr/ppocrv5_server/det.onnx",
-      "models/ocr/ppocrv5_server/rec.onnx",
+      "models/ocr/ppocrv6_small/ocr.meta.json",
+      "models/ocr/ppocrv6_small/det.onnx",
+      "models/ocr/ppocrv6_small/rec.onnx",
       "plans/aura_base/manifest.yaml",
       "plans/resonance_pc/manifest.yaml",
       "plans/resonance_pc/assets/input_bridge/resonance_bridge_loader.exe",

@@ -27,7 +27,7 @@
     {"issue_time": "18:00", "roi": [620, 160, 165, 105]}
   ],
   "templates": {
-    "profile": {"path": "templates/navigation/global/profile_entry.png", "roi": [305, 293, 215, 45], "threshold": 0.85},
+    "profile": {"profile": "navigation.profile"},
     "fatigue_plus": {"path": "templates/recovery/fatigue/controls/fatigue_plus.png", "roi": [420, 245, 55, 50], "threshold": 0.85},
     "fatigue_page": {"path": "templates/recovery/fatigue/controls/fatigue_page.png", "roi": [560, 105, 270, 45], "threshold": 0.85},
     "rest_info": {"path": "templates/recovery/fatigue/controls/rest_info.png", "roi": [1138, 260, 60, 55], "threshold": 0.85},

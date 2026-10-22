@@ -6,6 +6,8 @@ import time
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.operation_scope import OperationScope, current_operation_scope
+from ....aura_base.src.services.interaction_service import InteractionService
 
 from ._black_moon_local_exit_vision import BlackMoonLocalExitVision
 from .black_moon_local_prepare_pc_actions import _capture, _cancel_check, _validated_center
@@ -81,7 +83,7 @@ async def execute_black_moon_wait_purchase(submission, app, reader=None):
                                  "Purchase did not return to a stable zero-total LOCAL shop; no exit input", last)
 
 
-async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None):
+async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None, interaction=None):
     _cancel_check()
     if not isinstance(exit_target, str) or exit_target not in _TARGETS:
         raise ValueError("Exit target must be rest_menu or main")
@@ -92,6 +94,13 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
                 "exit_target": exit_target, "exited": False, "click_count": 0, "supplemental_clicks": 0}
     if purchase_result.get("ready_to_exit") is not True:
         raise ValueError("Purchase settling must explicitly allow exit")
+    scope = OperationScope(
+        (_MAX_SUPPLEMENTAL_CLICKS + 1) * (2 * _WAIT_SECONDS + _SETTLE_SECONDS),
+        parent=current_operation_scope(), target=getattr(app, "target_runtime", None),
+        monotonic=time.monotonic,
+    )
+    scope.checkpoint()
+    interaction = interaction if interaction is not None else InteractionService(app=app)
     reader = reader if reader is not None else BlackMoonLocalExitVision()
     clicks, last = 0, {}
     # No-target visits exit directly; zero-total evidence is only required after
@@ -119,6 +128,7 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
             observe, allow_source=allow_source, timeout_seconds=_WAIT_SECONDS,
             poll_seconds=_POLL_SECONDS, monotonic=time.monotonic, sleep=asyncio.sleep,
             check_cancelled=_cancel_check,
+            scope=scope, interaction=interaction,
             equivalent=lambda previous, current: current.kind == "target" or
             _same_view(previous.frame, current.frame, reader.VIEWPORT),
         )
@@ -134,8 +144,9 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
     def click(observed, attempt):
         nonlocal clicks
         point = _validated_center(observed.hit)
-        app.click(x=int(point[0]), y=int(point[1]))
+        returned = app.click(x=int(point[0]), y=int(point[1]))
         clicks = attempt
+        return returned
 
     await run_template_transition(
         probe, click, max_clicks=_MAX_SUPPLEMENTAL_CLICKS + 1,
@@ -146,6 +157,7 @@ async def execute_black_moon_exit(purchase_result, exit_target, app, reader=None
         exhausted=lambda: BlackMoonLocalExitError(
             "black_moon_exit_click_exhausted", "Exit exhausted initial click and three supplements",
             {"exit_target": exit_target, "click_count": clicks, **last}),
+        scope=scope, interaction=interaction,
     )
     return completed()
 
@@ -159,6 +171,7 @@ async def resonance_pc_wait_black_moon_local_purchase(submission: dict, app=None
 
 @action_info(name="resonance_pc.exit_black_moon_local_shop", public=True, read_only=False,
              description="Exit settled LOCAL shopping to rest menu or main screen using bounded feedback.")
-@requires_services(app="plans/aura_base/app")
-async def resonance_pc_exit_black_moon_local_shop(purchase_result: dict, exit_target: str = "rest_menu", app=None) -> dict:
-    return await execute_black_moon_exit(purchase_result, exit_target, app)
+@requires_services(app="plans/aura_base/app", interaction="plans/aura_base/interaction")
+async def resonance_pc_exit_black_moon_local_shop(purchase_result: dict, exit_target: str = "rest_menu", app=None,
+                                               interaction=None) -> dict:
+    return await execute_black_moon_exit(purchase_result, exit_target, app, interaction=interaction)

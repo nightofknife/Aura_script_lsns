@@ -1462,8 +1462,8 @@ auto_battle_dispatch_pc:
         first_category: "{{ (nodes.group_jobs.output.category_order | first) if (nodes.group_jobs.output.category_order | length) > 0 else '' }}"
         second_category: "{{ nodes.group_jobs.output.category_order[1] if (nodes.group_jobs.output.category_order | length) > 1 else '' }}"
 
-    wait_first_ct_category_template:
-      action: plans/aura_base/wait_for_image
+    switch_first_ct:
+      action: plans/aura_base/find_image_and_click
       params:
         template: "templates/battle/dispatch/category_ct.png"
         timeout: 8.0
@@ -1472,17 +1472,6 @@ auto_battle_dispatch_pc:
         threshold: 0.95
         use_grayscale: true
       depends_on: prepare_category_order
-      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
-
-    switch_first_ct:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_ct.png"
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        wait_first_ct_category_template: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
 
     assert_first_ct_switched:
@@ -1494,8 +1483,8 @@ auto_battle_dispatch_pc:
         switch_first_ct: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
 
-    wait_first_gp_category_template:
-      action: plans/aura_base/wait_for_image
+    switch_first_gp:
+      action: plans/aura_base/find_image_and_click
       params:
         template: "templates/battle/dispatch/category_gp.png"
         timeout: 8.0
@@ -1504,17 +1493,6 @@ auto_battle_dispatch_pc:
         threshold: 0.95
         use_grayscale: true
       depends_on: prepare_category_order
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
-
-    switch_first_gp:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_gp.png"
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        wait_first_gp_category_template: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
 
     assert_first_gp_switched:
@@ -1577,8 +1555,8 @@ auto_battle_dispatch_pc:
         recover_ct_menu_after_first_gp: "success|skipped"
       when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
 
-    wait_second_ct_category_template:
-      action: plans/aura_base/wait_for_image
+    switch_second_ct:
+      action: plans/aura_base/find_image_and_click
       params:
         template: "templates/battle/dispatch/category_ct.png"
         timeout: 8.0
@@ -1590,17 +1568,6 @@ auto_battle_dispatch_pc:
         wait_after_ct_menu_recovery: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
 
-    switch_second_ct:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_ct.png"
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        wait_second_ct_category_template: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
-
     assert_second_ct_switched:
       action: plans/aura_base/assert_condition
       params:
@@ -1610,8 +1577,8 @@ auto_battle_dispatch_pc:
         switch_second_ct: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
 
-    wait_second_gp_category_template:
-      action: plans/aura_base/wait_for_image
+    switch_second_gp:
+      action: plans/aura_base/find_image_and_click
       params:
         template: "templates/battle/dispatch/category_gp.png"
         timeout: 8.0
@@ -1623,17 +1590,6 @@ auto_battle_dispatch_pc:
         all:
           - run_first_ct_batch: "success|failed|skipped"
           - run_first_gp_batch: "success|failed|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
-
-    switch_second_gp:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_gp.png"
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        wait_second_gp_category_template: "success|skipped"
       when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
 
     assert_second_gp_switched:

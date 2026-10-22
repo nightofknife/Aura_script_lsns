@@ -29,6 +29,7 @@ class LifecycleManager:
         self._startup_lock = threading.Lock()
         self._shutdown_lock = threading.Lock()
         self._shutdown_done = False
+        self._startup_error: BaseException | None = None
 
     def _run_on_control_loop(self, coro, *, timeout: float):
         return self.scheduler.run_on_control_loop(coro, timeout=timeout)
@@ -55,6 +56,7 @@ class LifecycleManager:
                 self._shutdown_done = False
 
             self.scheduler.startup_complete_event.clear()
+            self._startup_error = None
             logger.info("Starting scheduler and background services...")
             self.scheduler.execution_manager.startup()
 
@@ -70,6 +72,10 @@ class LifecycleManager:
                 logger.error("Scheduler startup timed out.")
                 timed_out = True
             else:
+                if self._startup_error is not None:
+                    raise RuntimeError(f"Scheduler startup failed: {self._startup_error}") from self._startup_error
+                if not self.scheduler.is_running or not self.scheduler.is_running.is_set():
+                    raise RuntimeError("Scheduler stopped before startup completed.")
                 logger.info("Scheduler started, publishing scheduler.started event...")
                 if not self._loop:
                     logger.warning("Event loop not available; skip scheduler.started publish.")
@@ -222,6 +228,7 @@ class LifecycleManager:
         except (asyncio.CancelledError, KeyboardInterrupt):
             logger.info("Scheduler runtime loop cancelled.")
         except Exception as exc:
+            self._startup_error = exc
             logger.critical("Scheduler runtime loop crashed: %s", exc, exc_info=True)
         finally:
             self._cleanup_resources()
@@ -236,6 +243,11 @@ class LifecycleManager:
 
         target_list = []
         seen = set()
+        # OCR is a framework startup dependency, including with older configs.
+        # Inspect definitions without instantiating unrelated lazy services.
+        if any(definition.alias == "ocr" for definition in self.scheduler._get_service_definitions()):
+            target_list.append("ocr")
+            seen.add("ocr")
         if isinstance(configured_targets, list):
             for item in configured_targets:
                 if isinstance(item, str) and item not in seen:
@@ -272,8 +284,9 @@ class LifecycleManager:
             if not isinstance(svc_cfg, dict):
                 svc_cfg = {}
             lazy_load = svc_cfg.get("lazy_load", True)
-            preload_on_start = svc_cfg.get("preload_on_start", False)
-            warmup = bool(svc_cfg.get("warmup", warmup_default))
+            preload_on_start = svc_cfg.get("preload_on_start", name == "ocr")
+            warmup = bool(svc_cfg.get("warmup", name == "ocr" or warmup_default))
+            required = bool(svc_cfg.get("required", name == "ocr"))
 
             should_preload = enabled or preload_on_start or (lazy_load is False)
             if not should_preload:
@@ -282,12 +295,16 @@ class LifecycleManager:
             try:
                 service = self.scheduler._resolve_service(name)
             except Exception as exc:
+                if required:
+                    raise RuntimeError(f"Required startup service '{name}' is unavailable: {exc}") from exc
                 logger.warning("Service preload skipped: '%s' not available (%s).", name, exc)
                 continue
 
-            await self._preload_service_instance(name, service, warmup=warmup)
+            await self._preload_service_instance(name, service, warmup=warmup, required=required)
 
-    async def _preload_service_instance(self, name: str, service: Any, *, warmup: bool) -> None:
+    async def _preload_service_instance(
+        self, name: str, service: Any, *, warmup: bool, required: bool = False,
+    ) -> None:
         candidates = (
             ("preload_engine", {"warmup": warmup}),
             ("preload", {"warmup": warmup}),
@@ -301,29 +318,32 @@ class LifecycleManager:
             if not callable(method):
                 continue
             try:
-                await self._run_preload_method(method, kwargs)
+                result = await self._run_preload_method(method, kwargs)
+                if result is False:
+                    raise RuntimeError("Preload method returned False.")
                 logger.info("Service '%s' preloaded via %s.", name, method_name)
             except Exception as exc:
+                if required:
+                    raise RuntimeError(f"Required startup service '{name}' failed via {method_name}: {exc}") from exc
                 logger.warning("Service '%s' preload via %s failed: %s", name, method_name, exc)
             return
 
+        if required:
+            raise RuntimeError(f"Required startup service '{name}' has no preload method.")
         logger.debug("Service '%s' has no preload method, skipping.", name)
 
     async def _run_preload_method(self, method, kwargs: Dict[str, Any]) -> Any:
-        if inspect.iscoroutinefunction(method):
+        if kwargs:
             try:
-                return await method(**kwargs)
+                inspect.signature(method).bind(**kwargs)
             except TypeError:
-                return await method()
+                kwargs = {}
+        if inspect.iscoroutinefunction(method):
+            return await method(**kwargs)
         return await asyncio.to_thread(self._call_preload_method, method, kwargs)
 
     def _call_preload_method(self, method, kwargs: Dict[str, Any]) -> Any:
-        if not kwargs:
-            return method()
-        try:
-            return method(**kwargs)
-        except TypeError:
-            return method()
+        return method(**kwargs)
 
     def initialize_async_components(self):
         from packages.aura_core.scheduler.queues.task_queue import TaskQueue

@@ -19,6 +19,7 @@ from tools import build_reforming_center_templates as room_builder
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = ROOT / "plans/resonance_pc"
 CONTROLS = "templates/workshop/staffing/controls/"
+RAW_SELECTION = "templates/workshop/staffing/selection/raw/"
 
 
 def hashes(root):
@@ -68,10 +69,10 @@ def test_raw_shared_selection_keeps_original_matching_and_current_staffing_varia
                 "staff_confirm": ("confirm.png", [1160, 670]),
                 "selection_back": ("back.png", [95, 40])}
     for name, (filename, point) in expected.items():
-        assert raw._specs()[name]["image"] == CONTROLS+"selection/"+filename
+        assert raw._specs()[name]["image"] == RAW_SELECTION+filename
         hit = raw._control(image, name)
         assert hit["score"] > .99 and hit["center"] == point
-    assert raw._specs()["cancel_all"]["image"] == CONTROLS+"selection/cancel_all.png"
+    assert raw._specs()["cancel_all"]["image"] == RAW_SELECTION+"cancel_all.png"
     checked = cv2.imread(str(source/"selection_checked.png"))
     assert raw._control(checked, "cancel_all")["center"] == [935, 670]
     assert raw._control(checked, "cancel_all")["score"] > .99
@@ -183,8 +184,8 @@ def _seed_native_room_extensions(plan):
     # Two referenced editor controls belong to this screenshot producer and
     # are rebuilt with its 24 rooms. The eight native-only images are immutable.
     native_images = {reference for reference in references
-                     if reference.startswith("templates/navigation/rooms/map_workshop_")
-                     or reference.startswith("templates/navigation/rooms/physical_workshop_")}
+                     if reference.startswith("templates/navigation/rooms/map/map_workshop_")
+                     or reference.startswith("templates/navigation/rooms/destination/physical_workshop_")}
     assert len(native_images) == 8
     path = plan / "data/meta/reforming_center_templates_pc.json"
     path.write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")

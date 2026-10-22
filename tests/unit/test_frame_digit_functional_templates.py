@@ -101,13 +101,13 @@ def test_workshop_digit_generator_preserves_all_scene_style_character_rows(tmp_p
 
 def test_profile_digit_generator_owns_exact_functional_bank(tmp_path, monkeypatch):
     module = builder(monkeypatch, "generate_profile_status_digit_templates")
-    bank = PLAN / "templates/navigation/profile/status_digits"
+    bank = PLAN / "development/template_sources/navigation/profile/status_digits"
     manifest = json.loads((bank / "manifest.json").read_text(encoding="utf-8"))
     glyphs = {character: np.array(Image.open(bank / file)) for character, file in manifest["characters"].items()}
     font = tmp_path / "font.ttf"
     font.write_bytes(b"native-font-extraction-stub")
     monkeypatch.setattr(module, "FONT_SHA256", sha256(font.read_bytes()).hexdigest())
-    monkeypatch.setattr(module, "OUTPUT", tmp_path / "templates/navigation/profile/status_digits")
+    monkeypatch.setattr(module, "OUTPUT", tmp_path / "development/template_sources/navigation/profile/status_digits")
     monkeypatch.setattr(module.ImageFont, "truetype", lambda *args: object())
     monkeypatch.setattr(module, "render_glyph", lambda font, character: glyphs[character])
     monkeypatch.setattr(sys, "argv", [module.__file__, str(font)])
@@ -118,4 +118,5 @@ def test_profile_digit_generator_owns_exact_functional_bank(tmp_path, monkeypatc
     produced = json.loads((module.OUTPUT / "manifest.json").read_text(encoding="utf-8"))
     assert produced["characters"] == manifest["characters"]
     assert len(list(module.OUTPUT.glob("*.png"))) == 11
+    assert not (PLAN / "templates/navigation/profile/status_digits").exists()
     assert not (PLAN / "templates/player_data/status_digits").exists()

@@ -8,15 +8,20 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from copy import deepcopy
 import hashlib
 import io
 import json
+import os
 import sys
 from functools import lru_cache
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+PLAN = ROOT / "plans/resonance_pc"
+DEFAULT_OUTPUT = PLAN / "templates/inventory/affix_refresh"
+DEFAULT_DEVELOPMENT_OUTPUT = PLAN / "development/template_sources/inventory/affix_refresh"
 MAIN_PREFAB = "ui/characterinfo/weapon/group_strengthen_splited/group_windows.asset"
 PROMPT_PREFAB = "ui/common/prompt/prompt.asset"
 FONT_BUNDLE = "ui/font/originpack.asset"
@@ -25,15 +30,73 @@ LIVE_REFERENCE_SHA256 = "79f88d5be6db7b855f7cbb4a994af759ed6f991335caf918e97c84d
 MODAL_REFERENCE_SHA256 = "867ea7732813998ad77acf1c2b019191a381268b143453e557a4286633fe8de5"
 
 
+def output_directories(output: Path, development_output: Path | None = None) -> tuple[Path, Path]:
+    output = output.resolve()
+    if development_output is None:
+        development_output = (DEFAULT_DEVELOPMENT_OUTPUT if output == DEFAULT_OUTPUT.resolve()
+                              else output.with_name(output.name + "_sources"))
+    development_output = development_output.resolve()
+    if (development_output.is_relative_to(output) or output.is_relative_to(development_output)
+            or development_output.is_relative_to((PLAN / "templates").resolve())):
+        raise ValueError("Affix development output must stay outside runtime templates and be disjoint from runtime output")
+    return output, development_output
+
+
+def separate_manifests(manifest: dict, output: Path, development_output: Path) -> tuple[dict, dict]:
+    """Keep native backups and their original provenance outside runtime assets."""
+    runtime = deepcopy(manifest)
+    native_assets = {file: metadata for file, metadata in runtime["assets"].items()
+                     if file.startswith("native/")}
+    bindings = {file: [] for file in native_assets}
+
+    def remove_backup_references(value, pointer=""):
+        if isinstance(value, dict):
+            if "native_file" in value:
+                file = value.pop("native_file")
+                if file not in bindings:
+                    raise ValueError(f"Native backup has no asset metadata: {file}")
+                bindings[file].append(pointer)
+            for key, child in value.items():
+                escaped = str(key).replace("~", "~0").replace("/", "~1")
+                remove_backup_references(child, pointer + "/" + escaped)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                remove_backup_references(child, pointer + "/" + str(index))
+
+    remove_backup_references(runtime)
+    runtime["assets"] = {file: metadata for file, metadata in runtime["assets"].items()
+                         if file not in native_assets}
+    try:
+        runtime_reference = Path(os.path.relpath(output / "manifest.json", development_output)).as_posix()
+    except ValueError:
+        # Explicit outputs on different Windows drives have no relative path.
+        runtime_reference = (output / "manifest.json").as_posix()
+    development = {
+        "schema_version": 1,
+        "kind": "affix_refresh_native_backups",
+        "runtime_manifest": runtime_reference,
+        "assets": {file: {**metadata, "runtime_file": file.removeprefix("native/"),
+                           "runtime_spec_paths": bindings[file]}
+                   for file, metadata in native_assets.items()},
+        # Preserve the complete original specs, font sources and approved crop
+        # provenance. This historical snapshot is not a runtime configuration.
+        "provenance": {key: deepcopy(value) for key, value in manifest.items() if key != "assets"},
+    }
+    return runtime, development
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game-data", type=Path, required=True)
     parser.add_argument("--pythonlibs", type=Path, default=ROOT / ".codex_tmp/item_quality_research/pythonlibs")
-    parser.add_argument("--output", type=Path, default=ROOT / "plans/resonance_pc/templates/inventory/affix_refresh")
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--development-output", type=Path,
+                        help="Native-backup output, separate from runtime; custom --output defaults to a sibling <output>_sources directory")
     parser.add_argument("--catalog", type=Path, default=ROOT / "plans/resonance_pc/data/meta/affix_refresh.json")
     parser.add_argument("--reference-screenshot", type=Path, action="append", default=[],
                         help="Approved reference screenshot, repeat to retain calibration from multiple recorded SHA256 sources")
     args = parser.parse_args()
+    output, development_output = output_directories(args.output, args.development_output)
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(args.pythonlibs.resolve()))
     import numpy as np
@@ -43,8 +106,8 @@ def main() -> None:
     game_data = args.game_data.resolve()
     asset_root = game_data / "Patch/Asset"
     metadata = game_data / "il2cpp_data/Metadata/global-metadata.dat"
-    output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    development_output.mkdir(parents=True, exist_ok=True)
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
 
     def bundle(relative):
@@ -116,7 +179,7 @@ def main() -> None:
             "glyph_size": [int(right-left), int(bottom-top)], "padding": 2,
         }
 
-    assets = {}
+    assets, native_assets = {}, {}
 
     def save(file, pixels):
         path = output / file
@@ -235,11 +298,11 @@ def main() -> None:
 
         def preserve_native(file):
             native_file = "native/"+file
-            path = output/native_file
+            path = development_output/native_file
             path.parent.mkdir(parents=True,exist_ok=True)
-            if native_file not in assets:
+            if native_file not in native_assets:
                 path.write_bytes((output/file).read_bytes())
-                assets[native_file] = dict(assets[file])
+                native_assets[native_file] = dict(assets[file])
             return native_file
 
         def capture_spec(spec, roi):
@@ -317,7 +380,7 @@ def main() -> None:
                                      "yellow": "R>=170,G>=110,B<=130,R-B>=65"},
                 "source_files": {relative: {"sha256": hashlib.sha256((asset_root/relative).read_bytes()).hexdigest()}
                                  for relative in (MAIN_PREFAB, PROMPT_PREFAB, FONT_BUNDLE)},
-                "assets": assets, "status": "native_generated_with_scoped_reference_glyphs" if references else "native_generated_unvalidated",
+                "assets": {**assets, **native_assets}, "status": "native_generated_with_scoped_reference_glyphs" if references else "native_generated_unvalidated",
                 "reference": references[0] if references else None, "references": references,
                 "limitations": ["Font rendering and matching have not been evaluated against screenshots or the running game.",
                                 "Native text and shapes target the 1280x720 Simplified Chinese client only.",
@@ -326,7 +389,9 @@ def main() -> None:
         manifest["limitations"][0] = (
             "Reference glyphs are calibrated to the recorded source screenshots and any explicitly listed modal capture; "
             "other equipment titles, unseen digits, selection states, and replacement-confirmation wording retain unvalidated native rendering.")
-    (output/"manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+    runtime_manifest, development_manifest = separate_manifests(manifest, output, development_output)
+    (output/"manifest.json").write_text(json.dumps(runtime_manifest, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+    (development_output/"manifest.json").write_text(json.dumps(development_manifest, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
     print(f"Produced {len(tokens)} label templates, {len(equipment)} equipment names, and 30 digit templates.")
 
 

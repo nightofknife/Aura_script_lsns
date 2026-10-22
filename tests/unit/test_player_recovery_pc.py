@@ -22,6 +22,21 @@ COMBINATIONS = [list(combo) for size in (1, 2)
 ]
 
 
+def install_capture(reader, image=None, roi=None):
+    """Supply a full client surface while retaining the real frame/crop contract."""
+    surface = np.zeros((720, 1280, 3), dtype=np.uint8)
+    if image is not None:
+        x, y, w, h = roi
+        assert image.shape[:2] == (h, w)
+        surface[y:y+h, x:x+w] = image
+    if reader.app is None:
+        reader.app = NS()
+    def capture(*, rect):
+        x, y, w, h = rect
+        return NS(success=True, image=surface[y:y+h, x:x+w].copy())
+    reader.app.capture = capture
+
+
 @pytest.fixture
 def fast_clock(monkeypatch):
     now = [0.0]
@@ -135,8 +150,8 @@ def test_bento_badge_templates_classify_all_counts(count, layout, monkeypatch):
     reader = recovery.RecoveryReader(
         None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
     )
-    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
-    monkeypatch.setattr(reader, "capture", lambda roi: frame.copy())
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: page == "fatigue_recovery")
+    install_capture(reader, frame, layout["bento_count_roi"])
     assert reader.read_bento_count()["count"] == count
 
 
@@ -145,8 +160,8 @@ def test_bento_badge_unknown_does_not_become_zero(layout, monkeypatch, fast_cloc
     reader = recovery.RecoveryReader(
         None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
     )
-    monkeypatch.setattr(reader, "is_page", lambda page: True)
-    monkeypatch.setattr(reader, "capture", lambda roi: np.full((22, 24, 3), 220, dtype=np.uint8))
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: True)
+    install_capture(reader, np.full((22, 24, 3), 220, dtype=np.uint8), layout["bento_count_roi"])
     with pytest.raises(data.StopTaskException, match="unable to match bento count"):
         reader.read_bento_count()
 
@@ -175,8 +190,8 @@ def test_bento_count_uses_score_and_consecutive_confirmation(
                 for value in scores]
 
     reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=match), layout)
-    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
-    monkeypatch.setattr(reader, "capture", lambda roi: np.full((22, 24, 3), 220, dtype=np.uint8))
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: page == "fatigue_recovery")
+    install_capture(reader, np.full((22, 24, 3), 220, dtype=np.uint8), layout["bento_count_roi"])
     assert reader.read_bento_count()["count"] == expected
     assert len(calls) == len(observations)
 
@@ -192,8 +207,8 @@ def test_bento_badge_matches_user_screenshots(count, layout, monkeypatch):
     reader = recovery.RecoveryReader(
         None, None, NS(find_templates_batch=lambda **kw: vision._find_templates_batch_sync(mask_images=None, **kw)), layout,
     )
-    monkeypatch.setattr(reader, "is_page", lambda page: page == "fatigue_recovery")
-    monkeypatch.setattr(reader, "capture", lambda roi: frame.copy())
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: page == "fatigue_recovery")
+    install_capture(reader, frame, layout["bento_count_roi"])
     assert reader.read_bento_count()["count"] == count
 
 
@@ -299,8 +314,8 @@ def test_work_meals_each_slot_is_explicit_and_no_ocr(layout, states, monkeypatch
         calls.append(kwargs)
         return [NS(found=present,confidence=1.0), NS(found=not present,confidence=1.0)]
     reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=batch), layout)
-    monkeypatch.setattr(reader, "is_page", lambda page: page == "bento_cabinet")
-    monkeypatch.setattr(reader, "capture", lambda roi: np.zeros((roi[3],roi[2],3),dtype=np.uint8))
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: page == "bento_cabinet")
+    install_capture(reader)
     result = reader.read_work_meals()
     assert result["available_count"] == sum(states)
     assert [slot["available"] for slot in result["slots"]] == list(states)
@@ -367,8 +382,8 @@ def test_work_meals_unknown_or_conflicting_match_defaults_to_empty(
 ):
     vision = NS(find_templates_batch=lambda **kwargs: [NS(found=matched,confidence=1.0)]*2)
     reader = recovery.RecoveryReader(None, None, vision, layout)
-    monkeypatch.setattr(reader, "is_page", lambda page: True)
-    monkeypatch.setattr(reader, "capture", lambda roi: np.zeros((roi[3],roi[2],3),dtype=np.uint8))
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: True)
+    install_capture(reader)
     result = reader.read_work_meals()
     assert result["available_count"] == 0
     assert [slot["available"] for slot in result["slots"]] == [False, False, False]
@@ -396,11 +411,11 @@ def test_water_matches_two_small_raw_regions_without_ocr(layout, monkeypatch, re
         return [NS(found=i==chosen,confidence=1.0 if i==chosen else .5) for i in range(7)]
     ocr = NS(recognize_all=lambda **kwargs: pytest.fail("OCR must not run"))
     reader = recovery.RecoveryReader(None,ocr,NS(find_templates_batch=batch),layout)
-    monkeypatch.setattr(reader,"is_page",lambda page: True)
+    monkeypatch.setattr(reader,"is_page",lambda page, **kwargs: True)
     image = np.full((52,88,3),255,dtype=np.uint8)
     image[:,:36] = remaining
     image[:,40:] = limit
-    monkeypatch.setattr(reader,"capture",lambda roi:image)
+    install_capture(reader, image, layout["sparkling_water_roi"])
     assert reader.read_sparkling_water() == {"remaining_free_uses":remaining,"daily_free_limit":limit}
     assert len(calls) == 2
 
@@ -410,8 +425,8 @@ def test_water_matches_two_small_raw_regions_without_ocr(layout, monkeypatch, re
 def test_water_unreliable_digits_fail_without_ocr_fallback(layout, monkeypatch, fast_clock, scores):
     vision=NS(find_templates_batch=lambda **kwargs:[NS(found=True,confidence=s) for s in scores])
     reader=recovery.RecoveryReader(None,None,vision,layout)
-    monkeypatch.setattr(reader,"is_page",lambda page:True)
-    monkeypatch.setattr(reader,"capture",lambda roi:np.zeros((52,88,3),dtype=np.uint8))
+    monkeypatch.setattr(reader,"is_page",lambda page, **kwargs:True)
+    install_capture(reader)
     with pytest.raises(recovery.StopTaskException,match="unable to match free uses"):
         reader.read_sparkling_water()
 
@@ -419,8 +434,8 @@ def test_water_unreliable_digits_fail_without_ocr_fallback(layout, monkeypatch, 
 @pytest.mark.parametrize("values", [(6,0),(6,3)])
 def test_water_rejects_invalid_ratio(layout, monkeypatch, fast_clock, values):
     reader=recovery.RecoveryReader(None,None,None,layout)
-    monkeypatch.setattr(reader,"is_page",lambda page:True)
-    monkeypatch.setattr(reader,"capture",lambda roi:np.zeros((52,88,3),dtype=np.uint8))
+    monkeypatch.setattr(reader,"is_page",lambda page, **kwargs:True)
+    install_capture(reader)
     sequence=itertools.cycle(values)
     monkeypatch.setattr(reader,"_match_free_uses_digit",lambda image:(next(sequence),'test'))
     with pytest.raises(recovery.StopTaskException,match="unable to match free uses"):
@@ -472,8 +487,9 @@ def test_digit_assets_fail_preflight(problem, monkeypatch, tmp_path):
 def test_move_checks_destination_before_reclick(layout, monkeypatch, fast_clock):
     clicks = []
     reader = recovery.RecoveryReader(NS(click=lambda **kwargs: clicks.append(kwargs)), None, None, layout)
-    monkeypatch.setattr(reader, "is_page", lambda page: page == ("fatigue_recovery" if clicks else "profile"))
-    monkeypatch.setattr(reader, "match", lambda key: NS(found=True,center_point=(26,24)))
+    install_capture(reader)
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: page == ("fatigue_recovery" if clicks else "profile"))
+    monkeypatch.setattr(reader, "match", lambda key, **kwargs: NS(found=True,center_point=(26,24)))
     reader.move("profile", "fatigue_recovery", "fatigue_plus")
     assert clicks == [{"x":446,"y":269}]
     reader.move("profile", "fatigue_recovery", "fatigue_plus")
@@ -499,8 +515,9 @@ def test_popup_closes_with_same_info_icon_on_success_and_cleanup(layout, monkeyp
         else:
             pytest.fail(f"unexpected click {state[0]} {point}")
     reader = recovery.RecoveryReader(NS(click=click),None,None,layout)
-    monkeypatch.setattr(reader,"is_page",lambda page:page == state[0])
-    monkeypatch.setattr(reader,"match",lambda key:NS(found=True,center_point=centers[key]))
+    install_capture(reader)
+    monkeypatch.setattr(reader,"is_page",lambda page, **kwargs:page == state[0])
+    monkeypatch.setattr(reader,"match",lambda key, **kwargs:NS(found=True,center_point=centers[key]))
     error = RuntimeError("digit failure")
     def read_water():
         if fail_read:
@@ -523,14 +540,16 @@ def test_popup_closes_with_same_info_icon_on_success_and_cleanup(layout, monkeyp
 
 def test_popup_already_closed_is_not_reopened(layout, monkeypatch, fast_clock):
     reader = recovery.RecoveryReader(NS(click=lambda **kwargs:pytest.fail("must not reopen tooltip")),None,None,layout)
-    monkeypatch.setattr(reader,"is_page",lambda page:page == "fatigue_recovery")
+    install_capture(reader)
+    monkeypatch.setattr(reader,"is_page",lambda page, **kwargs:page == "fatigue_recovery")
     reader.move("sparkling_water_popup","fatigue_recovery","rest_info")
     assert reader.page == "fatigue_recovery"
 
 
 def test_unknown_page_times_out_without_blind_clicks(layout, monkeypatch, fast_clock):
     reader = recovery.RecoveryReader(NS(click=lambda **kwargs: pytest.fail("unexpected click")), None, None, layout)
-    monkeypatch.setattr(reader, "is_page", lambda page: False)
+    install_capture(reader)
+    monkeypatch.setattr(reader, "is_page", lambda page, **kwargs: False)
     with pytest.raises(recovery.StopTaskException, match="timed out"):
         reader.move("profile", "fatigue_recovery", "fatigue_plus")
     assert 3 <= fast_clock[0] < 3.3

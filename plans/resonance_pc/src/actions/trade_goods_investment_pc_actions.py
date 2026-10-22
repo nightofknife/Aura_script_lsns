@@ -16,6 +16,7 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 
 from ._trade_goods_investment_vision import InvestmentRecognitionError, InvestmentVision
 from ._trade_goods_investment_records import InvestmentLevelRecords
+from ._navigation_templates import GLOBAL_BACK
 
 
 _INVESTMENT_PROGRESS_CALLBACK: ContextVar[Optional[Callable]] = ContextVar(
@@ -454,10 +455,11 @@ def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dic
             result["page"] = "shop" if not investment and not success else "ambiguous"
         elif investment and not success:
             reader.read_levels(image)
+            x, y, width, height = GLOBAL_BACK.roi
             back = vision.find_template(
-                source_image=image[:80, :170],
-                template_image=str(_PLAN_ROOT / "templates/navigation/global/back.png"),
-                threshold=.86, use_grayscale=True,
+                source_image=image[y:y+height, x:x+width],
+                template_image=str(_PLAN_ROOT / GLOBAL_BACK.path),
+                **GLOBAL_BACK.match_kwargs(),
             )
             if (back.found and back.center_point is not None
                     and math.isfinite(back.confidence)

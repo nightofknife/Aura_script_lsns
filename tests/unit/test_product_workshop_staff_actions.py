@@ -7,9 +7,17 @@ import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import product_workshop_staff_pc_actions as actions
+from packages.aura_core.scheduler import operation_scope
+from tests.interaction_clock import advance, install_clock
 
 _CANCELLABLE_SLEEP = actions.clicks._sleep
 _RETRY_SLEEP = actions._sleep
+
+
+@pytest.fixture(autouse=True)
+def operation_clock(monkeypatch):
+    with install_clock(monkeypatch, actions.clicks) as clock:
+        yield clock
 
 ROOM = "1号生产车间"
 POINTS = {name:(100+index*50,100) for index,name in enumerate(
@@ -69,8 +77,8 @@ class Scene:
 @pytest.fixture
 def scene(monkeypatch):
     app = Scene()
-    monkeypatch.setattr(actions.clicks,"_sleep",lambda _:None)
-    monkeypatch.setattr(actions,"_sleep",lambda _:None)
+    monkeypatch.setattr(actions.clicks,"_sleep",advance)
+    monkeypatch.setattr(actions,"_sleep",advance)
     monkeypatch.setattr(actions.ui,"observe",lambda image,room:deepcopy(app.observe()))
     monkeypatch.setattr(actions.ui,"point",lambda image,control:POINTS.get(control))
     monkeypatch.setattr(actions.ui,"edit_point",lambda image,room:POINTS["edit"])
@@ -363,7 +371,7 @@ def test_cancellation_during_one_second_retry_wait_prevents_supplementary_input(
         state["cancelled"] = True
 
     monkeypatch.setattr(scene, "click", missed_click)
-    monkeypatch.setattr(actions.clicks.time, "sleep", cancel_during_sleep)
+    monkeypatch.setattr(operation_scope.time, "sleep", cancel_during_sleep)
     prior = {"success": True, "room_entered": True, "room_name": ROOM}
     with pytest.raises(asyncio.CancelledError):
         actions.resonance_pc_product_workshop_staff_step(ROOM, "edit", prior, app=scene)

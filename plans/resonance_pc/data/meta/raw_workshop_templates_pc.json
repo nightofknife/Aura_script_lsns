@@ -523,7 +523,7 @@
       "id": "B04",
       "name": "select_all",
       "label": "选择页：一键选中",
-      "image": "templates/workshop/staffing/controls/selection/select_all.png",
+      "image": "templates/workshop/staffing/selection/raw/select_all.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -546,7 +546,7 @@
       "id": "B05",
       "name": "cancel_all",
       "label": "选择页：一键取消",
-      "image": "templates/workshop/staffing/controls/selection/cancel_all.png",
+      "image": "templates/workshop/staffing/selection/raw/cancel_all.png",
       "source": "selection_checked",
       "source_id": "76ed5e59-122b-47b1-92cd-81a78f2d5aa0",
       "client_bbox_xywh": [
@@ -569,7 +569,7 @@
       "id": "B06",
       "name": "staff_confirm",
       "label": "选择页：确认",
-      "image": "templates/workshop/staffing/controls/selection/confirm.png",
+      "image": "templates/workshop/staffing/selection/raw/confirm.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [
@@ -638,7 +638,7 @@
       "id": "B09",
       "name": "selection_back",
       "label": "选择页：返回箭头",
-      "image": "templates/workshop/staffing/controls/selection/back.png",
+      "image": "templates/workshop/staffing/selection/raw/back.png",
       "source": "selection_empty",
       "source_id": "830fa130-4193-455c-9183-2dc00847b230",
       "client_bbox_xywh": [

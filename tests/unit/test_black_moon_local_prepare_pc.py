@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import black_moon_local_prepare_pc_actions as prepare
+from plans.aura_base.src.services.interaction_service import InteractionError
 
 
 STATES = {
@@ -76,9 +77,11 @@ def fast_poll(monkeypatch):
 
     monkeypatch.setattr(prepare, "time", SimpleNamespace(monotonic=lambda: clock.now))
     monkeypatch.setattr(prepare.asyncio, "sleep", sleep)
-    monkeypatch.setattr(prepare, "_STEP_TIMEOUT_SECONDS", .01)
-    monkeypatch.setattr(prepare, "_POLL_SECONDS", .001)
-    monkeypatch.setattr(prepare, "_CLICK_SETTLE_SECONDS", .001)
+    # Real worker scheduling uses the remaining budget as an asyncio timeout.
+    # Advance the fake clock at the same ratio without a fragile 10 ms wall cap.
+    monkeypatch.setattr(prepare, "_STEP_TIMEOUT_SECONDS", 1.)
+    monkeypatch.setattr(prepare, "_POLL_SECONDS", .1)
+    monkeypatch.setattr(prepare, "_CLICK_SETTLE_SECONDS", .1)
     return clock
 
 
@@ -265,7 +268,7 @@ def test_target_arriving_in_supplemental_probe_cancels_reclick(fast_poll):
     original_capture = app.capture
 
     def capture():
-        if app.clicks and fast_poll.now >= .011:
+        if app.clicks and fast_poll.now >= 1.1:
             app.frames = [FRAMES[3]]
         return original_capture()
 
@@ -309,9 +312,8 @@ def test_transient_recognition_failure_is_waited_not_clicked():
 def test_scheduler_cancellation_is_explicit_error_not_success(monkeypatch):
     monkeypatch.setattr(prepare, "is_current_task_cancel_requested", lambda: True)
     app = App([FRAMES[0]])
-    with pytest.raises(prepare.BlackMoonLocalPrepareError) as error:
+    with pytest.raises(asyncio.CancelledError):
         run_step("enter_shop", [], app=app)
-    assert error.value.code == "black_moon_prepare_cancelled"
     assert not app.clicks
 
 
@@ -319,7 +321,25 @@ def test_cancellation_arriving_with_final_observation_cannot_return_success(monk
     reader = Reader()
     monkeypatch.setattr(prepare, "is_current_task_cancel_requested", lambda: len(reader.observations) >= 2)
     app = App([FRAMES[3]])
-    with pytest.raises(prepare.BlackMoonLocalPrepareError) as error:
+    with pytest.raises(asyncio.CancelledError):
         run_step("verify_ready", [], app=app, reader=reader)
-    assert error.value.code == "black_moon_prepare_cancelled"
     assert len(reader.observations) == 2 and not app.clicks
+
+
+@pytest.mark.parametrize("returned", [False, SimpleNamespace(success=False)])
+def test_rejected_navigation_input_retains_receipt_and_cannot_supplement(returned):
+    app = App([FRAMES[0]])
+    original = app.click
+
+    def click(*args, **kwargs):
+        original(*args, **kwargs)
+        return returned
+
+    app.click = click
+    with pytest.raises(InteractionError) as error:
+        run_step("enter_shop", [], app=app)
+    assert error.value.code == "input_rejected"
+    assert len(app.clicks) == 1
+    receipt, = error.value.receipts
+    assert receipt.attempted and receipt.call_returned
+    assert receipt.acknowledged is False and receipt.sent is False

@@ -11,6 +11,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from ._cancellable_wait import sleep_until_deadline
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ....aura_base.src.services.observation_service import CaptureError, Frame, ObservationService
 
 
 class PurchaseBookUseError(RuntimeError):
@@ -147,6 +148,20 @@ def _offset_template_result(result: Any, region: Tuple[int, int, int, int]) -> A
     return result
 
 
+def _capture_frame(app: Any, regions: List[Tuple[int, int, int, int]]) -> Frame:
+    _check_cancelled()
+    try:
+        frame = ObservationService(app=app).capture_regions(regions)
+    except CaptureError as exc:
+        _check_cancelled()
+        _raise_error(
+            "capture_failed", "failed to capture screen region",
+            {"region": list(exc.roi) if exc.roi is not None else None},
+        )
+    _check_cancelled()
+    return frame
+
+
 def _find_template(
     app: Any,
     vision: Any,
@@ -156,6 +171,7 @@ def _find_template(
     threshold: float,
     use_grayscale: bool = True,
     preprocess: str = "none",
+    frame: Frame | None = None,
 ) -> Any:
     _check_cancelled()
     region_tuple = _coerce_region(region)
@@ -163,13 +179,12 @@ def _find_template(
     if not template_path.is_file():
         _raise_error("template_not_found", "purchase book button template not found", {"template": str(template_path)})
 
-    capture = app.capture(rect=region_tuple)
-    _check_cancelled()
-    if not capture.success:
-        _raise_error("capture_failed", "failed to capture screen region", {"region": list(region_tuple)})
+    if frame is None:
+        frame = _capture_frame(app, [region_tuple])
+    source_image = frame.crop(region_tuple).image
 
     result = vision.find_template(
-        source_image=capture.image,
+        source_image=source_image,
         template_image=str(template_path),
         threshold=float(threshold),
         use_grayscale=use_grayscale,
@@ -194,13 +209,16 @@ def _template_spec(
     }
 
 
-def _observe_template(app: Any, vision: Any, spec: Dict[str, Any]) -> Dict[str, Any]:
+def _observe_template(
+    app: Any, vision: Any, spec: Dict[str, Any], *, frame: Frame | None = None,
+) -> Dict[str, Any]:
     result = _find_template(
         app,
         vision,
         str(spec["template"]),
         spec["region"],
         threshold=float(spec["threshold"]),
+        frame=frame,
     )
     confidence = float(getattr(result, "confidence", 0.0) or 0.0)
     center = getattr(result, "center_point", None)
@@ -227,6 +245,8 @@ def _wait_for_template_state(
     stable_count: int = _STATE_STABLE_COUNT,
 ) -> Dict[str, Any]:
     required_absent = list(none_of or [])
+    specs = [*all_of, *required_absent]
+    regions = [_coerce_region(spec["region"]) for spec in specs]
     required_stable = max(int(stable_count), 1)
     timeout = max(float(timeout_sec), 0.0)
     interval = max(float(interval_sec), 0.05)
@@ -243,8 +263,10 @@ def _wait_for_template_state(
         _check_cancelled()
         attempts += 1
         observations = {}
-        for spec in [*all_of, *required_absent]:
-            observation = _observe_template(app, vision, spec)
+        # Only this polling round shares pixels; the next round captures anew.
+        frame = _capture_frame(app, regions) if regions else None
+        for spec in specs:
+            observation = _observe_template(app, vision, spec, frame=frame)
             name = str(observation["name"])
             observations[name] = observation
             best_confidences[name] = max(best_confidences.get(name, 0.0), float(observation["confidence"]))

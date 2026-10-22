@@ -20,6 +20,7 @@ from packages.aura_core.observability.logging.core_logger import current_cid, lo
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
+from ....aura_base.src.services.observation_service import CaptureError, Frame, ObservationService
 from ._player_data_persistence import USER_INFO_FILE, load_pc_user_info
 from ._city_shop_entry import CityShopEntryError, enter_city_shop
 from ._recovery_assets import read_layout_json, resolve_plan_asset
@@ -130,6 +131,7 @@ def record_completed_cup(persistent_data: PersistentDataService, *, exhausted: b
 class SparklingWaterSession:
     def __init__(self, *, app: Any, vision: Any, layout: dict):
         self.app, self.vision, self.layout = app, vision, layout
+        self._observation = ObservationService(app=app)
         self.stage = "city_panel"
         self.page = "city_panel"
         self.last_matches: dict[str, dict] = {}
@@ -172,20 +174,32 @@ class SparklingWaterSession:
             evidence["diagnostic_error"] = str(exc)
         logger.warning("Sparkling water uncertain frame; waiting without input evidence=%s", evidence)
 
-    def capture(self, roi: list[int]) -> np.ndarray:
-        _check_cancelled()
-        result = self.app.capture(rect=tuple(roi))
-        image = getattr(result, "image", None)
-        if not getattr(result, "success", False) or not isinstance(image, np.ndarray):
-            self.fail("sparkling_water_capture_failed", "Sparkling water capture failed")
-        if image.shape[:2] != (roi[3], roi[2]):
-            self.fail("sparkling_water_capture_size_invalid", "Sparkling water ROI capture has unexpected dimensions")
-        return image
+    def snapshot(self, keys: tuple[str, ...]) -> Frame:
+        """Capture the enclosing ROI for one explicitly shared observation round."""
+        return self._capture_frame([tuple(self.layout["templates"][key]["roi"]) for key in keys])
 
-    def match(self, key: str) -> dict:
+    def _capture_frame(self, regions: list[tuple[int, int, int, int]]) -> Frame:
+        _check_cancelled()
+        try:
+            frame = self._observation.capture_regions(regions)
+        except CaptureError as exc:
+            _check_cancelled()
+            if exc.reason == "capture_size_invalid":
+                self.fail("sparkling_water_capture_size_invalid", "Sparkling water ROI capture has unexpected dimensions")
+            self.fail("sparkling_water_capture_failed", "Sparkling water capture failed")
+        _check_cancelled()
+        return frame
+
+    def capture(self, roi: list[int], *, frame: Frame | None = None) -> np.ndarray:
+        _check_cancelled()
+        if frame is not None:
+            return frame.crop(tuple(roi)).rgb_image()
+        return self._capture_frame([tuple(roi)]).rgb_image()
+
+    def match(self, key: str, *, frame: Frame | None = None) -> dict:
         spec = self.layout["templates"][key]
         roi = spec["roi"]
-        image = self.capture(roi)
+        image = self.capture(roi, frame=frame)
         hit = self.vision.find_template(
             source_image=image, template_image=spec["resolved_path"],
             mask_image=spec.get("resolved_mask"), threshold=spec["threshold"],
@@ -281,12 +295,18 @@ class SparklingWaterSession:
             before_click=before_click,
         )
 
-    def menu_page(self) -> str | None:
-        if self.match("rest_menu")["found"]:
+    def menu_page(self, *, frame: Frame | None = None) -> str | None:
+        if self.match("rest_menu", frame=frame)["found"]:
             return "rest_menu"
-        if self.match("sparkling_water")["found"]:
+        if self.match("sparkling_water", frame=frame)["found"]:
             return "drink_menu"
         return None
+
+    def _observe_animation(self) -> tuple[dict, str | None]:
+        frame = self.snapshot(("drink_again", "rest_menu", "sparkling_water"))
+        confirmation = self.match("drink_again", frame=frame)
+        page = None if confirmation["found"] else self.menu_page(frame=frame)
+        return confirmation, page
 
     async def enter_rest(self, point: dict) -> None:
         self.stage = "enter_rest"
@@ -325,8 +345,9 @@ class SparklingWaterSession:
         while time.monotonic() < deadline:
             _check_cancelled()
             try:
-                confirmation = await asyncio.to_thread(self.match, "drink_again")
-                page = None if confirmation["found"] else await asyncio.to_thread(self.menu_page)
+                # This frame stays inside the read-only probe. Input helpers
+                # recheck independently, and every subsequent round captures anew.
+                confirmation, page = await asyncio.to_thread(self._observe_animation)
             except _UncertainFrame:
                 await asyncio.sleep(self.layout["poll_interval_sec"])
                 continue

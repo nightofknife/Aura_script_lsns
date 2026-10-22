@@ -416,7 +416,10 @@ class BlackTransitionReplay(ReplayApp):
 
     def capture(self, rect):
         if self.black_active:
-            if tuple(rect) == (735, 460, 70, 65):
+            x, y, width, height = rect
+            # Count the observation containing the rest-menu marker, including
+            # the shared animation ROI; button rechecks are separate captures.
+            if x <= 735 and y <= 460 and x + width >= 805 and y + height >= 525:
                 self.black_observations += 1
                 if self.black_observations > self.black_frames:
                     self.black_active = False
@@ -623,13 +626,14 @@ def test_cancel_while_post_click_target_is_uncertain_does_not_replay(fast_time, 
 
 @pytest.mark.parametrize("uncertain_key", ["drink_again", "sparkling_water"])
 def test_uncertain_confirmation_or_second_menu_probe_skips_all_input(fast_time, monkeypatch, uncertain_key):
-    session = water.SparklingWaterSession(app=None, vision=None, layout={
+    session = water.SparklingWaterSession(app=ReplayApp(), vision=None, layout={
+        **json.loads(water.CONFIG_PATH.read_text(encoding="utf-8")),
         "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
     })
     seen, clicks = [], []
     uncertain = [True]
 
-    def match(key):
+    def match(key, *, frame=None):
         seen.append(key)
         if key == uncertain_key and uncertain[0]:
             uncertain[0] = False
@@ -663,14 +667,15 @@ def test_unknown_during_pre_retry_observation_cannot_authorize_another_click(fas
 
 @pytest.mark.parametrize("has_confirmation", [False, True])
 def test_one_second_delay_ignores_menu_flash_before_animation(fast_time, monkeypatch, has_confirmation):
-    session = water.SparklingWaterSession(app=None, vision=None, layout={
+    session = water.SparklingWaterSession(app=ReplayApp(), vision=None, layout={
+        **json.loads(water.CONFIG_PATH.read_text(encoding="utf-8")),
         "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
     })
     started = fast_time[0]
     state = {"phase": "confirm" if has_confirmation else "flash", "flash_until": started + 0.8}
     probes, clicks, confirmations = [], [], []
 
-    def match(key):
+    def match(key, *, frame=None):
         now = fast_time[0]
         probes.append((key, now))
         if state["phase"] == "confirm":
@@ -702,7 +707,8 @@ def test_one_second_delay_ignores_menu_flash_before_animation(fast_time, monkeyp
 
 @pytest.mark.parametrize("cancel_delay", [1, 2])
 def test_cancel_during_one_second_settle_prevents_next_probe_or_click(monkeypatch, cancel_delay):
-    session = water.SparklingWaterSession(app=None, vision=None, layout={
+    session = water.SparklingWaterSession(app=ReplayApp(), vision=None, layout={
+        **json.loads(water.CONFIG_PATH.read_text(encoding="utf-8")),
         "animation_timeout_sec": 15, "poll_interval_sec": 0.4, "skip_point": [1207, 36],
     })
     delays, probes, confirmations, clicks = [], [], [], []
@@ -714,7 +720,7 @@ def test_cancel_during_one_second_settle_prevents_next_probe_or_click(monkeypatc
         if len(delays) == cancel_delay:
             cancelled[0] = True
 
-    def match(key):
+    def match(key, *, frame=None):
         probes.append(key)
         return {"found": True}
 

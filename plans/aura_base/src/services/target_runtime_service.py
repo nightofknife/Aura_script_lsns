@@ -14,6 +14,7 @@ from packages.aura_core.observability.logging.core_logger import logger, current
 from packages.aura_core.observability.runtime_trace import (
     activity, current_root_cid, log_event, update_runtime, register_diagnostic_provider,
 )
+from packages.aura_core.scheduler.operation_scope import target_operation_guard
 
 from ..platform.contracts import CaptureResult, RuntimeAdapter, TargetRuntimeError
 from ..platform.windows.debug_artifacts import DebugArtifactsManager
@@ -27,6 +28,7 @@ from ..platform.windows import WindowsDesktopAdapter
 _INPUT_METHODS = {"click", "move_to", "move_relative", "mouse_down", "mouse_up", "drag_to",
                   "look_delta", "look_hold", "scroll", "press_key", "key_down", "key_up",
                   "type_text", "release_all", "focus", "focus_with_input", "test_focus_activation"}
+_RELEASE_METHODS = {"mouse_up", "key_up", "release_all"}
 
 
 @service_info(alias="target_runtime", public=False, singleton=True, deps={"config": "core/config"})
@@ -262,6 +264,10 @@ class TargetRuntimeService:
         }
 
     def _call_session(self, method_name: str, *args, **kwargs):
+        with target_operation_guard(self, cleanup=method_name in _RELEASE_METHODS):
+            return self._call_session_guarded(method_name, *args, **kwargs)
+
+    def _call_session_guarded(self, method_name: str, *args, **kwargs):
         if method_name in _INPUT_METHODS:
             with activity("input", method_name, plan=current_plan_name.get(),
                           parameters=self._trace_parameters(method_name, args, kwargs)):
@@ -278,13 +284,20 @@ class TargetRuntimeService:
         return {"args": list(args), "kwargs": dict(kwargs)}
 
     def _invoke_session(self, method_name: str, *args, **kwargs):
+        if method_name in _RELEASE_METHODS:
+            # Cleanup remains legal after cancellation/quarantine, but may only
+            # release the existing target: never create/rebind a session here.
+            with self._lock:
+                session = self._session
+            return None if session is None else getattr(session, method_name)(*args, **kwargs)
         resolved = self._resolve_runtime_config()
         session = self._get_or_create_session(resolved=resolved)
         if method_name in _INPUT_METHODS:
             log_event("input.target", method=method_name, **self._trace_runtime)
         last_error: TargetRuntimeError | None = None
         try:
-            return getattr(session, method_name)(*args, **kwargs)
+            with target_operation_guard(self):
+                return getattr(session, method_name)(*args, **kwargs)
         except TargetRuntimeError as exc:
             if not self._should_rebind(exc, resolved):
                 self._debug_artifacts.capture_error_artifacts(
@@ -308,7 +321,8 @@ class TargetRuntimeService:
             )
             rebuilt = self._get_or_create_session(resolved=resolved, force_rebuild=True)
             try:
-                return getattr(rebuilt, method_name)(*args, **kwargs)
+                with target_operation_guard(self):
+                    return getattr(rebuilt, method_name)(*args, **kwargs)
             except TargetRuntimeError as retry_exc:
                 last_error = retry_exc
                 if not self._should_rebind(retry_exc, resolved):
@@ -348,6 +362,10 @@ class TargetRuntimeService:
         return resolved
 
     def _get_or_create_session(self, *, resolved: ResolvedRuntimeConfig | None = None, force_rebuild: bool = False):
+        with target_operation_guard(self):
+            return self._get_or_create_session_guarded(resolved=resolved, force_rebuild=force_rebuild)
+
+    def _get_or_create_session_guarded(self, *, resolved: ResolvedRuntimeConfig | None = None, force_rebuild: bool = False):
         resolved = resolved or self._resolve_runtime_config()
         session_key = self._build_session_key(resolved)
         with self._lock:

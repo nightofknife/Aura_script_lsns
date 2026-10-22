@@ -12,6 +12,16 @@ from plans.resonance_pc.src.actions._bento_observation import (
 )
 
 
+class CaptureApp:
+    def __init__(self):
+        self.captures = []
+
+    def capture(self, rect):
+        self.captures.append(tuple(rect))
+        return NS(success=True, image=np.full((rect[3], rect[2], 3),
+                                             len(self.captures), dtype=np.uint8))
+
+
 @pytest.mark.parametrize("require_finite", [False, True])
 @pytest.mark.parametrize("hits, expected", [
     ([(True, .7), (True, .89)], "present"),
@@ -92,13 +102,13 @@ def test_recovery_requires_new_stable_baseline_after_loading_interruption(clock,
         "bento_navigation": cfg, "bento_ready_timeout_sec": 1, "poll_interval_sec": .1,
     })
     observations = iter((True, True, False, True, True, True))
-    ready = lambda *args: next(observations, True)
-    reader.is_page = ready if interruption == "missing_page" else lambda page: True
+    ready = lambda *args, **kwargs: next(observations, True)
+    reader.is_page = ready if interruption == "missing_page" else lambda page, **kwargs: True
     reader._bento_content_loaded = ready if interruption == "unloaded_content" else lambda frame: True
-    reader.capture = lambda roi: np.zeros((20, 20, 3), dtype=np.uint8)
     reader._bento_top_visible = lambda frame: True
     drags = []
-    reader.app = NS(drag=lambda *args, **kwargs: drags.append(now[0]) or NS(success=True))
+    reader.app = CaptureApp()
+    reader.app.drag = lambda *args, **kwargs: drags.append(now[0]) or NS(success=True)
     reader.prepare_bento_read()
     assert drags == [pytest.approx(.5)]
 
@@ -121,26 +131,24 @@ def pair(available):
 
 def test_recovery_accepts_one_round_captured_as_one_frame(clock, monkeypatch):
     layout = slot_layout()
-    captures, matches, observations = [], [], []
+    matches, observations = [], []
     pending = iter((True, False, True))
     def batch(**kwargs):
         matches.append(kwargs)
         return pair(next(pending))
-    reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=batch), layout)
-    reader.is_page = lambda page: True
-    def capture(roi):
-        captures.append(roi)
-        return np.zeros((2, 6, 3), dtype=np.uint8)
-    reader.capture = capture
+    app = CaptureApp()
+    reader = recovery.RecoveryReader(app, None, NS(find_templates_batch=batch), layout)
+    reader.is_page = lambda page, **kwargs: True
     def info(message, *args):
         if "observation=%s" in message:
             observations.append(args[-1])
     monkeypatch.setattr(recovery.logger, "info", info)
     result = reader.read_work_meals()
     assert result["available_count"] == 2 and "degraded" not in result
-    assert captures == [layout["bento_region"]]
+    assert app.captures == [(0, 0, 1280, 720)]
     assert all(row["threshold"] == .7 and row["source_image"].shape == (2, 2, 3)
                for row in matches)
+    assert [int(row["source_image"][0, 0, 0]) for row in matches] == [1, 1, 1]
     assert observations[1] == {
         "issue_time": "12:00", "roi": [2, 0, 2, 2], "result": "absent",
         "matches": {"bento_present": {"found": True, "confidence": .69, "threshold": .7},
@@ -155,22 +163,25 @@ def auto_session(clock, hit_rounds):
     session.layout = {"timeout_sec": .6, "poll_interval_sec": .1}
     session.deadline = 10
     session.guard = lambda: None
-    session.is_cabinet = lambda: True
+    session.is_cabinet = lambda **kwargs: True
     session.sleep = lambda: now.__setitem__(0, now[0] + .1)
-    captures = []
-    session.capture = lambda roi: captures.append(roi) or np.zeros((2, 2, 3), dtype=np.uint8)
+    session.app = CaptureApp()
+    session.match_frames = []
     pending = iter(hit_rounds)
-    session.vision = NS(find_templates_batch=lambda **kwargs: next(pending))
-    return session, captures
+    def batch(**kwargs):
+        session.match_frames.append(int(kwargs["source_image"][0, 0, 0]))
+        return next(pending)
+    session.vision = NS(find_templates_batch=batch)
+    return session, session.app.captures
 
 
-def test_auto_slots_reset_between_rounds_and_capture_each_slot(clock):
+def test_auto_slots_reset_between_rounds_and_share_one_capture_per_round(clock):
     good = [pair(True), pair(False), pair(True)]
     ambiguous = [NS(found=True, confidence=1, debug_info={})] * 2
     session, captures = auto_session(clock, good + [ambiguous] + good + good)
     assert session.work_slots() == [0, 2]
-    slots = [row["roi"] for row in session.reader.layout["bento_slots"]]
-    assert captures == slots + slots[:1] + slots + slots
+    assert captures == [(0, 0, 1280, 720)] * 4
+    assert session.match_frames == [1, 1, 1, 2, 3, 3, 3, 4, 4, 4]
     assert clock[0][0] == pytest.approx(.3)
 
 
@@ -180,9 +191,8 @@ def test_matcher_failure_preserves_each_scene_error(clock, broken):
     with pytest.raises(auto.BentoConsumptionError) as caught:
         session.work_slots()
     assert caught.value.code == "bento_work_slot_match_failed"
-    reader = recovery.RecoveryReader(None, None, NS(find_templates_batch=lambda **kwargs: broken), slot_layout())
-    reader.is_page = lambda page: True
-    reader.capture = lambda roi: np.zeros((2, 6, 3), dtype=np.uint8)
+    reader = recovery.RecoveryReader(CaptureApp(), None, NS(find_templates_batch=lambda **kwargs: broken), slot_layout())
+    reader.is_page = lambda page, **kwargs: True
     expected = "bento template result count mismatch" if not broken else "bento template matching failed"
     with pytest.raises(recovery.StopTaskException, match=expected):
         reader.read_work_meals()

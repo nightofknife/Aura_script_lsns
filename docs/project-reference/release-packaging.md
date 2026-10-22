@@ -42,8 +42,25 @@ forbid asset downloads.
 - `requirements/release-*.lock.txt` contain complete Windows/Python 3.12 locks
   with wheel hashes. Regenerate them with `scripts/update_release_locks.ps1`.
 - `packaging/assets/mumu-runtime.lock.json` pins MuMu helper downloads by URL,
-  size, and SHA256. OCR remains pinned to the model Release and checksum named in
-  the release contract.
+  size, and SHA256.
+- `packaging/ocr/ppocrv6_small.json` pins the official PaddlePaddle ONNX models
+  and their inference configurations by repository revision and SHA256.
+  `ppocrv6_small` is the default OCR bundle. The existing ONNX Runtime CPU/CUDA
+  profiles are unchanged; Paddle is not needed to download or run these models.
+
+Prepare the default OCR models without running inference:
+
+```powershell
+python -m tools assets ocr-models
+```
+
+The command writes `models/ocr/ppocrv6_small`, including the official text
+detection, recognition, text-line orientation models, and generated metadata.
+Use `--proxy http://127.0.0.1:7898` when needed, or `--offline` to require the
+pinned files to be present locally. Release preparation always checks the
+artifact hashes and reuses matching files. Models remain local generated assets
+and are not stored in Git. Existing `ppocrv5_server` bundles remain loadable when
+explicitly selected in configuration, but are not included in the default build.
 
 `scripts/build_release.ps1` is internal. It only builds and assembles directory
 trees; direct callers do not receive dependency preparation, smoke tests,

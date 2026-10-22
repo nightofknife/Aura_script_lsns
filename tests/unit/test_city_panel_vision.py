@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 import pytest
 
-from plans.aura_base.src.services.vision_service import VisionService
+from plans.aura_base.src.services.vision_service import PreparedTemplate, VisionService
 from plans.resonance_pc.src.actions import _city_panel_vision as city
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import sparkling_water_pc_actions as water
@@ -173,9 +173,12 @@ def test_city_probe_region_batch_mask_edge_correlation_contract():
     assert app.captures == [(25, 490, 175, 170)] and not app.clicks
     options = vision.batch_calls[0]
     assert options["source_image"].shape == (170, 175, 3)
-    assert len(options["template_images"]) == len(options["mask_images"]) == 21
-    assert all(template.shape == (133, 133, 3) for template in options["template_images"])
-    assert all(mask.shape == (133, 133) and np.any(mask) for mask in options["mask_images"])
+    assert len(options["template_images"]) == 21
+    assert options["mask_images"] is None
+    assert all(isinstance(template, PreparedTemplate) for template in options["template_images"])
+    assert all(template.template_image.shape == (133, 133, 3) for template in options["template_images"])
+    assert all(template.mask_image.shape == (133, 133) and np.any(template.mask_image)
+               for template in options["template_images"])
     assert options["threshold"] == .55 and options["use_grayscale"] is True
     assert options["match_method"] == cv2.TM_CCORR_NORMED and options["preprocess"] == "edge"
     assert not vision.single_calls

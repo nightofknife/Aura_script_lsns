@@ -188,9 +188,10 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
         deadline = min(self.deadline, time.monotonic() + self.layout["timeout_sec"])
         while time.monotonic() < deadline:
             self.guard()
-            if not self.is_cabinet():
+            frame = self.snapshot()
+            if not self.is_cabinet(frame=frame):
                 self.fail("bento_cabinet_missing", "Cabinet disappeared before fatigue reading")
-            value = self.text(self.layout["fatigue_ratio_roi"])
+            value = self.text(self.layout["fatigue_ratio_roi"], frame=frame)
             match = re.fullmatch(r"(\d+)/(\d+)", value)
             current = int(match[1]) if match else None
             maximum = int(match[2]) if match else None
@@ -213,10 +214,11 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
         last = []
         while time.monotonic() < deadline:
             self.guard()
-            if not self.is_cabinet():
+            frame = self.snapshot()
+            if not self.is_cabinet(frame=frame):
                 self.fail("bento_cabinet_missing", "Cabinet disappeared before recovery reading")
             value, last = decode_recovery(
-                self.capture(roi), cfg["banks"][style], threshold=threshold,
+                self.capture(roi, frame=frame), cfg["banks"][style], threshold=threshold,
             )
             if value is not None:
                 if value == previous:
@@ -237,12 +239,13 @@ class AutoBentoConsumptionSession(BentoConsumptionSession):
         deadline = min(self.deadline, time.monotonic() + self.layout["timeout_sec"])
         while time.monotonic() < deadline:
             self.guard()
-            if not self.is_cabinet():
+            frame = self.snapshot()
+            if not self.is_cabinet(frame=frame):
                 self.fail("bento_cabinet_missing", "Cabinet disappeared during work-meal scan")
             states = []
             for slot in self.reader.layout["bento_slots"]:
                 hits = self.vision.find_templates_batch(
-                    source_image=self.capture(slot["roi"]), template_images=paths,
+                    source_image=self.capture(slot["roi"], frame=frame), template_images=paths,
                     threshold=min(targets[key]["threshold"] for key in keys),
                     use_grayscale=True, match_method=cv2.TM_CCOEFF_NORMED, preprocess="none",
                 )

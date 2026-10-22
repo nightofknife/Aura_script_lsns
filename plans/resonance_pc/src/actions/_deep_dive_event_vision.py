@@ -10,7 +10,7 @@ import numpy as np
 from ._deep_dive_match_cache import exact_roi_cache
 
 PLAN = Path(__file__).resolve().parents[2]
-ROOT = PLAN / 'templates/deep_dive_events'
+ROOT = PLAN / 'templates/deep_dive/deep_dive_events'
 
 
 @lru_cache(None)

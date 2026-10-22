@@ -4,12 +4,16 @@ import json
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 
 METADATA_FILENAME = "ocr.meta.json"
-SUPPORTED_FAMILY = "ppocrv5"
-SUPPORTED_VARIANT = "server"
+SUPPORTED_FAMILY = "ppocrv6"
+SUPPORTED_VARIANT = "small"
+SUPPORTED_VARIANTS = {
+    "ppocrv5": ("server", "mobile"),
+    "ppocrv6": ("tiny", "small", "medium"),
+}
 
 
 class OcrModelFiles(BaseModel):
@@ -24,6 +28,7 @@ class OcrModelFiles(BaseModel):
 class OcrDetPreprocessMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # Default long-side limit; explicit per-call resizing may also upscale.
     resize_long: int = 960
     mean: tuple[float, float, float] = (0.485, 0.456, 0.406)
     std: tuple[float, float, float] = (0.229, 0.224, 0.225)
@@ -127,12 +132,25 @@ class OcrPipelineMetadata(BaseModel):
 
 
 class OcrModelMetadata(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "anyOf": [
+                {
+                    "properties": {
+                        "family": {"const": family},
+                        "variant": {"enum": list(variants)},
+                    },
+                }
+                for family, variants in SUPPORTED_VARIANTS.items()
+            ],
+        },
+    )
 
     schema_version: Literal[1] = 1
     task: Literal["ocr"] = "ocr"
-    family: Literal["ppocrv5"] = SUPPORTED_FAMILY
-    variant: Literal["server"] = SUPPORTED_VARIANT
+    family: Literal["ppocrv5", "ppocrv6"] = SUPPORTED_FAMILY
+    variant: Literal["server", "mobile", "tiny", "small", "medium"] = SUPPORTED_VARIANT
     lang: str = "ch"
     models: OcrModelFiles
     det_preprocess: OcrDetPreprocessMetadata = Field(default_factory=OcrDetPreprocessMetadata)
@@ -142,6 +160,13 @@ class OcrModelMetadata(BaseModel):
     textline_orientation: OcrTextlineOrientationMetadata = Field(default_factory=OcrTextlineOrientationMetadata)
     pipeline: OcrPipelineMetadata = Field(default_factory=OcrPipelineMetadata)
     default_score_threshold: float = 0.0
+
+    @model_validator(mode="after")
+    def _validate_family_variant(self) -> OcrModelMetadata:
+        if self.variant not in SUPPORTED_VARIANTS[self.family]:
+            variants = ", ".join(SUPPORTED_VARIANTS[self.family])
+            raise ValueError(f"OCR family {self.family!r} supports only these variants: {variants}.")
+        return self
 
     @field_validator("default_score_threshold")
     @classmethod

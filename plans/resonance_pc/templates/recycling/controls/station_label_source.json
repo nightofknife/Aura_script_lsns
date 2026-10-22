@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source": {
+    "kind": "user_provided_screenshot",
+    "file_name": "5837d2d8927dcf04d5c4c5be2a93a0ee.png",
+    "city_key": "farstar_bridge",
+    "resolution": [1280, 720],
+    "crop_xywh": [562, 448, 126, 24],
+    "text": "垃圾处理中心"
+  },
+  "template": "station_label.png",
+  "mask": "station_label_mask.png",
+  "mask_creation": {
+    "foreground": "min(R,G,B) >= 180 and max(R,G,B)-min(R,G,B) <= 70",
+    "dilation": "one pixel in a 3x3 neighborhood around foreground text",
+    "purpose": "Keep the white text and its adjacent edges; exclude the moving city background."
+  },
+  "matching": {
+    "use_grayscale": true,
+    "preprocess": "edge",
+    "match_method": "TM_CCORR_NORMED",
+    "threshold": 0.86,
+    "threshold_source": "Existing recycling controls / GLOBAL_BACK threshold",
+    "search_region_relative_to_station_point_xywh": [-120, -110, 240, 140]
+  },
+  "limitations": [
+    "The text is shared by the two configured rubbish stations; no second-city source image was supplied.",
+    "No live-game calibration or testing was performed.",
+    "City identity and back-button evidence are also required before classifying the city panel."
+  ]
+}

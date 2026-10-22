@@ -107,6 +107,13 @@ function Ensure-ReleaseAssets {
 
     $ocrBundle = Join-Path $repoRoot ($contract.assets.ocr.bundle_directory -replace '/', '\')
     $ocrValidator = Join-Path $repoRoot "scripts\release\validate_ocr_bundle.py"
+    if ($contract.assets.ocr.source -eq "official_onnx") {
+        & pwsh -NoProfile -File (Join-Path $repoRoot "scripts\release\download_ocr_models.ps1") `
+            -PythonPath $PythonPath `
+            -Offline:$Offline
+        if ($LASTEXITCODE -ne 0) { throw "Official OCR model preparation failed." }
+        return
+    }
     $ocrValid = $false
     if ((Test-Path -LiteralPath $ocrBundle) -and -not $RefreshAssets) {
         & $PythonPath $ocrValidator $ocrBundle *> $null

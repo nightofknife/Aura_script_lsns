@@ -9,6 +9,11 @@ import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions import reforming_center_navigation_pc_actions as nav
+from plans.resonance_pc.src.actions import _reforming_center_room_templates as domain
+from plans.resonance_pc.src.actions._framework_room_templates import RoomTemplateMatcher
+from plans.aura_base.src.services.vision_service import VisionService
+from plans.aura_base.src.services.interaction_service import InteractionService
+from tests.interaction_clock import advance, install_clock
 from plans.resonance_pc.src.actions.runtime_preflight_pc_actions import PcClientResolutionError
 
 ROOM = "植物纤维原料车间"
@@ -41,14 +46,33 @@ class App:
         self.drags.append(kwargs)
 
 
+@pytest.fixture
+def matcher(monkeypatch):
+    value = RoomTemplateMatcher(VisionService())
+
+    def injected(service):
+        assert service is value._vision, "Navigation must use the injected VisionService"
+        return value
+
+    monkeypatch.setattr(nav, "RoomTemplateMatcher", injected)
+    return value
+
+
+def _open_room(matcher, *args, **kwargs):
+    return nav.resonance_pc_open_reforming_center_room(
+        *args, vision=matcher._vision, interaction=InteractionService(app=kwargs.get("app")), **kwargs)
+
+
 @pytest.fixture(autouse=True)
 def no_wait(monkeypatch):
-    monkeypatch.setattr(nav, "_settle", lambda seconds: None)
-    monkeypatch.setattr(nav.checked, "_sleep", lambda seconds: None)
+    with install_clock(monkeypatch, nav, nav.checked) as clock:
+        monkeypatch.setattr(nav, "_settle", advance)
+        monkeypatch.setattr(nav.checked, "_sleep", advance)
+        yield clock
 
 
-def patch_flow(monkeypatch, app, room=ROOM, *, button=True, destination=True):
-    kind = nav.vision.load_catalog()["rooms"][room]["entry_type"]
+def patch_flow(monkeypatch, app, matcher, room=ROOM, *, button=True, destination=True):
+    kind = matcher.load_catalog()["rooms"][room]["entry_type"]
     located, buttons, destinations = [], [], []
 
     def locate(*args, **kwargs):
@@ -68,12 +92,12 @@ def patch_flow(monkeypatch, app, room=ROOM, *, button=True, destination=True):
         return destination
 
     monkeypatch.setattr(nav, "_locate_and_click", locate)
-    monkeypatch.setattr(nav.vision, "entry_button", entry)
-    monkeypatch.setattr(nav.vision, "destination_confirmed", confirmed)
+    monkeypatch.setattr(matcher, "entry_button", entry)
+    monkeypatch.setattr(matcher, "destination_confirmed", confirmed)
     return kind, located, buttons, destinations
 
 
-def test_public_action_has_no_ocr_parameter():
+def test_public_action_has_no_ocr_parameter(matcher):
     assert "ocr" not in inspect.signature(nav.resonance_pc_open_reforming_center_room).parameters
 
 
@@ -89,15 +113,15 @@ def test_public_action_has_no_ocr_parameter():
     ("餐厅", "selection_only"), ("电力中心", "selection_only"),
     ("放风场地", "selection_only"), ("探视室", "selection_only"), ("安保中心", "selection_only"),
 ])
-def test_screenshot_catalog_routes_follow_user_confirmed_operations(room, kind):
-    assert nav.vision.load_catalog()["rooms"][room]["entry_type"] == kind
+def test_screenshot_catalog_routes_follow_user_confirmed_operations(room, kind, matcher):
+    assert matcher.load_catalog()["rooms"][room]["entry_type"] == kind
 
 
 @pytest.mark.parametrize("room", [ROOM, "医务室", "2号生产车间", "餐厅"])
-def test_four_entry_types_without_initial_recognition(monkeypatch, room):
+def test_four_entry_types_without_initial_recognition(monkeypatch, room, matcher):
     app = App()
-    kind, located, buttons, destinations = patch_flow(monkeypatch, app, room)
-    result = nav.resonance_pc_open_reforming_center_room(room, app=app, settle_sec=.05)
+    kind, located, buttons, destinations = patch_flow(monkeypatch, app, matcher, room)
+    result = _open_room(matcher, room, app=app, settle_sec=.05)
     assert FIELDS <= result.keys()
     assert result["success"] and result["entry_type"] == kind
     assert result["room_entered"] == (kind != "selection_only")
@@ -105,65 +129,66 @@ def test_four_entry_types_without_initial_recognition(monkeypatch, room):
     assert len(buttons) == (0 if kind == "direct" else 3)
     if buttons:
         button_kind = "construction" if kind == "selection_only" else kind
-        assert all(spec == nav.vision.load_catalog()["buttons"][button_kind] for spec in buttons)
+        assert all(spec == matcher.load_catalog()["buttons"][button_kind] for spec in buttons)
     assert len(destinations) == (0 if kind == "selection_only" else 3)
     assert app.clicks == ([(795, 325)] if kind in {"production", "detail"} else [])
 
 
-def test_no_initial_page_read_or_idempotence_shortcut(monkeypatch):
+def test_no_initial_page_read_or_idempotence_shortcut(monkeypatch, matcher):
     app = App()
-    _, located, _, _ = patch_flow(monkeypatch, app, "2号生产车间")
+    _, located, _, _ = patch_flow(monkeypatch, app, matcher, "2号生产车间")
     for _ in range(2):
-        assert nav.resonance_pc_open_reforming_center_room("2号生产车间", app=app, settle_sec=.05)["success"]
+        assert _open_room(matcher, "2号生产车间", app=app, settle_sec=.05)["success"]
     assert len(located) == 2
 
 
-def test_alias_resolves_to_canonical_room(monkeypatch):
+def test_alias_resolves_to_canonical_room(monkeypatch, matcher):
     app = App()
-    _, located, _, _ = patch_flow(monkeypatch, app)
-    result = nav.resonance_pc_open_reforming_center_room("植物纤维车间", app=app, settle_sec=.05)
+    _, located, _, _ = patch_flow(monkeypatch, app, matcher)
+    result = _open_room(matcher, "植物纤维车间", app=app, settle_sec=.05)
     assert result["room_name"] == ROOM
     assert located[0][0][1] == ROOM
 
 
-def test_second_button_absent_stops_without_click(monkeypatch):
+def test_second_button_absent_stops_without_click(monkeypatch, matcher):
     app = App()
-    _, _, buttons, destinations = patch_flow(monkeypatch, app, button=False)
-    result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+    _, _, buttons, destinations = patch_flow(monkeypatch, app, matcher, button=False)
+    result = _open_room(matcher, ROOM, app=app, settle_sec=.05)
     assert not result["success"] and result["reason"] == "target_selection_not_confirmed"
-    assert len(buttons) == 10 and destinations == [] and app.clicks == []
+    # The deadline is checked before the scan at t=5s; no late tenth scan.
+    assert len(buttons) == 9 and destinations == [] and app.clicks == []
 
 
-def test_destination_absent_does_not_retry_second_button(monkeypatch):
+def test_destination_absent_does_not_retry_second_button(monkeypatch, matcher):
     app = App()
-    _, _, buttons, destinations = patch_flow(monkeypatch, app, destination=False)
-    result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+    _, _, buttons, destinations = patch_flow(monkeypatch, app, matcher, destination=False)
+    result = _open_room(matcher, ROOM, app=app, settle_sec=.05)
     assert not result["success"] and not result["room_entered"]
-    assert len(buttons) == 3 and len(destinations) == 10
+    assert len(buttons) == 3 and len(destinations) == 9
     assert app.clicks == [(795, 325)]
 
 
-def test_second_click_failure_stops_before_destination(monkeypatch):
+def test_second_click_failure_stops_before_destination(monkeypatch, matcher):
     app = App(click_success=False)
-    _, _, _, destinations = patch_flow(monkeypatch, app)
-    result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+    _, _, _, destinations = patch_flow(monkeypatch, app, matcher)
+    result = _open_room(matcher, ROOM, app=app, settle_sec=.05)
     assert result["reason"] == "entry_click_failed" and not result["success"]
     assert app.clicks == [(795, 325)] and destinations == []
 
 
-def test_room_and_entry_click_coordinates_are_multiples_of_five(monkeypatch):
+def test_room_and_entry_click_coordinates_are_multiples_of_five(monkeypatch, matcher):
     app = App()
     rooms = nav.layout._load_reforming_center_room_layout()
     monkeypatch.setattr(nav.room_map, "load_map", lambda: {})
     monkeypatch.setattr(nav.room_map, "locate_viewport", lambda hits, model: {"anchors": [ROOM]})
-    monkeypatch.setattr(nav.vision, "room_hits", lambda *args: [hit(center=(523, 302))])
-    located = nav._locate_and_click(app, ROOM, rooms, {}, 1, .05)
+    monkeypatch.setattr(matcher, "room_hits", lambda *args: [hit(center=(523, 302))])
+    located = nav._locate_and_click(app, ROOM, rooms, {}, 1, .05, matcher)
     assert located["point"] == [645, 355]
     assert app.clicks == [(645, 355)]
     assert located["click"]["input_attempted"] and located["click"]["call_returned"]
-    patch_flow(monkeypatch, app)
-    monkeypatch.setattr(nav.vision, "entry_button", lambda *args: {"center": [797, 327], "score": .99})
-    result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+    patch_flow(monkeypatch, app, matcher)
+    monkeypatch.setattr(matcher, "entry_button", lambda *args: {"center": [797, 327], "score": .99})
+    result = _open_room(matcher, ROOM, app=app, settle_sec=.05)
     assert result["success"] and app.clicks[-1] == (795, 325)
     assert all(coordinate % 5 == 0 for point in app.clicks for coordinate in point)
     entry = result["data"]["entry_button"]
@@ -171,7 +196,7 @@ def test_room_and_entry_click_coordinates_are_multiples_of_five(monkeypatch):
 
 
 @pytest.mark.parametrize("stage", ["room", "entry"])
-def test_explicit_false_input_stops_without_confirmation_or_retry(monkeypatch, stage):
+def test_explicit_false_input_stops_without_confirmation_or_retry(monkeypatch, stage, matcher):
     app = App()
     def rejected_click(*, x, y):
         app.clicks.append((x, y))
@@ -179,37 +204,37 @@ def test_explicit_false_input_stops_without_confirmation_or_retry(monkeypatch, s
     monkeypatch.setattr(app, "click", rejected_click)
     if stage == "room":
         with pytest.raises(nav.layout.ReformingCenterNavigationError) as exc:
-            run_locator(monkeypatch, app, [[hit()]])
+            run_locator(monkeypatch, app, matcher, [[hit()]])
         assert exc.value.code == "room_click_failed"
         assert len(app.captures) == 1  # only locate frame, no UI success probe
     else:
-        _, _, buttons, destinations = patch_flow(monkeypatch, app)
-        result = nav.resonance_pc_open_reforming_center_room(ROOM, app=app, settle_sec=.05)
+        _, _, buttons, destinations = patch_flow(monkeypatch, app, matcher)
+        result = _open_room(matcher, ROOM, app=app, settle_sec=.05)
         assert result["reason"] == "entry_click_failed" and not result["success"]
         assert len(buttons) == 3 and destinations == []
         assert result["data"]["entry_button"]["input_acknowledged"] is False
     assert len(app.clicks) == 1 and app.drags == []
 
 
-def test_running_workshop_original_frame_confirms_destination_without_choose_button():
+def test_running_workshop_original_frame_confirms_destination_without_choose_button(matcher):
     fixture = Path(__file__).resolve().parents[1] / "fixtures/raw_workshop_ui/running.png"
     image = cv2.imread(str(fixture))
     assert image is not None and image.shape == (720, 1280, 3)
-    room = nav.vision.load_catalog()["rooms"][ROOM]
-    assert nav.vision.match_asset(image, room["destination_markers"][1]) is None
-    assert nav.vision.destination_confirmed(image, room)
-    other = nav.vision.load_catalog()["rooms"]["动物纤维原料车间"]
-    assert not nav.vision.destination_confirmed(image, other)
+    room = matcher.load_catalog()["rooms"][ROOM]
+    assert matcher.match_asset(image, room["destination_markers"][1]) is None
+    assert matcher.destination_confirmed(image, room)
+    other = matcher.load_catalog()["rooms"]["动物纤维原料车间"]
+    assert not matcher.destination_confirmed(image, other)
 
 
 @pytest.mark.parametrize("room", [f"{number}号{kind}" for number in range(3, 7) for kind in ("整顿宿舍", "生产车间")])
-def test_locked_room_without_user_template_does_not_locate_or_click(monkeypatch, room):
+def test_locked_room_without_user_template_does_not_locate_or_click(monkeypatch, room, matcher):
     app = App()
-    catalog = nav.vision.load_catalog()
-    monkeypatch.setattr(nav.vision, "load_catalog", lambda: {
+    catalog = matcher.load_catalog()
+    monkeypatch.setattr(matcher, "load_catalog", lambda: {
         **catalog, "rooms": {key: spec for key, spec in catalog["rooms"].items() if key != room}})
     monkeypatch.setattr(nav, "_locate_and_click", lambda *args: pytest.fail("unavailable template must not navigate"))
-    result = nav.resonance_pc_open_reforming_center_room(room, app=app)
+    result = _open_room(matcher, room, app=app)
     assert not result["success"] and result["reason"] == "room_template_unavailable"
     assert app.captures == app.drags == app.clicks == []
 
@@ -220,41 +245,42 @@ def test_locked_room_without_user_template_does_not_locate_or_click(monkeypatch,
     {"max_search_steps": 1.5}, {"max_search_steps": "bad"},
     {"settle_sec": -.1}, {"settle_sec": float("nan")}, {"settle_sec": float("inf")},
 ])
-def test_invalid_inputs_no_capture_or_mutation(monkeypatch, kwargs):
+def test_invalid_inputs_no_capture_or_mutation(monkeypatch, kwargs, matcher):
     app = App()
     monkeypatch.setattr(nav, "_locate_and_click", lambda *args: pytest.fail("invalid input must not navigate"))
     with pytest.raises((ValueError, nav.layout.ReformingCenterNavigationError)):
-        nav.resonance_pc_open_reforming_center_room(app=app, **{"room_name": ROOM, **kwargs})
+        _open_room(matcher, app=app, **{"room_name": ROOM, **kwargs})
     assert app.captures == app.drags == app.clicks == []
 
 
-def test_resolution_guard_precedes_navigation(monkeypatch):
+def test_resolution_guard_precedes_navigation(monkeypatch, matcher):
     app = App(size=(1920, 1080))
     monkeypatch.setattr(nav, "_locate_and_click", lambda *args: pytest.fail("bad resolution must not navigate"))
     with pytest.raises(PcClientResolutionError):
-        nav.resonance_pc_open_reforming_center_room(ROOM, app=app)
+        _open_room(matcher, ROOM, app=app)
     assert app.captures == app.drags == app.clicks == []
 
 
-def test_confirmation_does_not_span_unknown_frame():
+def test_confirmation_does_not_span_unknown_frame(matcher):
     app = App()
     sequence = iter([True, False, True, True])
-    assert nav._wait_confirmed(app, .05, lambda image: next(sequence)) is True
+    assert nav.checked.wait_confirmed(app, lambda image: next(sequence), timeout_sec=.3, poll_sec=.05) is True
     assert len(app.captures) == 4
 
 
-def test_unstable_button_coordinates_never_confirm():
+def test_unstable_button_coordinates_never_confirm(matcher):
     app = App()
     sequence = iter([(795, 325), (805, 325)] * 3)
-    assert nav._wait_confirmed(app, .05, lambda image: next(sequence)) is None
-    assert len(app.captures) == 6
+    with pytest.raises(nav.checked.CheckedClickError, match="confirmation_timeout"):
+        nav.checked.wait_confirmed(app, lambda image: next(sequence), timeout_sec=.3, poll_sec=.05)
+    assert len(app.captures) == 5
 
 
 def hit(room=ROOM, center=(520, 300), score=.99):
     return {"room_name": room, "center": list(center), "score": score, "rect": [center[0]-80, center[1]-10, 160, 20]}
 
 
-def run_locator(monkeypatch, app, hits, maximum=3):
+def run_locator(monkeypatch, app, matcher, hits, maximum=3):
     sequence = iter(hits)
     rooms = nav.layout._load_reforming_center_room_layout()
     # Synthetic geometry for input-control tests; real coordinates are verified
@@ -263,8 +289,8 @@ def run_locator(monkeypatch, app, hits, maximum=3):
                               "neighbors": [other for other in rooms if other != name]}
                        for name, spec in rooms.items()}}
     monkeypatch.setattr(nav.room_map, "load_map", lambda: model)
-    monkeypatch.setattr(nav.vision, "room_hits", lambda image, catalog: next(sequence, hits[-1]))
-    return nav._locate_and_click(app, ROOM, rooms, {}, maximum, .05)
+    monkeypatch.setattr(matcher, "room_hits", lambda image, catalog: next(sequence, hits[-1]))
+    return nav._locate_and_click(app, ROOM, rooms, {}, maximum, .05, matcher)
 
 
 def assert_safe_input(app):
@@ -275,18 +301,18 @@ def assert_safe_input(app):
         assert nav.layout._point_in_region(point, nav._ROOM_CLICK_REGION, margin=10)
 
 
-def test_real_locator_drags_edge_target_before_safe_click(monkeypatch):
+def test_real_locator_drags_edge_target_before_safe_click(monkeypatch, matcher):
     app = App()
-    result = run_locator(monkeypatch, app, [[hit(center=(1080, 600))], [hit()]])
+    result = run_locator(monkeypatch, app, matcher, [[hit(center=(1080, 600))], [hit()]])
     assert result["drag_count"] == 1 and app.clicks == [(640, 355)]
     assert len(app.drags) == len(app.moves) == 1
     assert len(app.captures) == 2
     assert_safe_input(app)
 
 
-def test_room_title_inside_region_but_click_offset_outside_still_drags(monkeypatch):
+def test_room_title_inside_region_but_click_offset_outside_still_drags(monkeypatch, matcher):
     app = App()
-    run_locator(monkeypatch, app, [[hit(center=(1030, 300))], [hit()]])
+    run_locator(monkeypatch, app, matcher, [[hit(center=(1030, 300))], [hit()]])
     assert len(app.drags) == 1 and app.clicks == [(640, 355)]
     assert_safe_input(app)
 
@@ -295,38 +321,38 @@ def test_room_title_inside_region_but_click_offset_outside_still_drags(monkeypat
                                         ((850, 300), (970, 355)),
                                         ((350, 150), (470, 205)),
                                         ((900, 500), (1020, 555))])
-def test_expanded_click_region_selects_visible_room_without_drag(monkeypatch, center, point):
+def test_expanded_click_region_selects_visible_room_without_drag(monkeypatch, center, point, matcher):
     app = App()
-    result = run_locator(monkeypatch, app, [[hit(center=center)]])
+    result = run_locator(monkeypatch, app, matcher, [[hit(center=center)]])
     assert result["drag_count"] == 0 and app.clicks == [point]
     assert app.drags == app.moves == []
     assert_safe_input(app)
 
 
 @pytest.mark.parametrize("point", [(500, 80), (1120, 140), (400, 620), (329, 300), (1071, 300)])
-def test_expanded_click_region_still_excludes_fixed_controls_and_edges(point):
+def test_expanded_click_region_still_excludes_fixed_controls_and_edges(point, matcher):
     assert not nav.layout._point_in_region(point, nav._ROOM_CLICK_REGION, margin=10)
     assert nav._SAFE_MAP_REGION == (420, 170, 520, 360)
 
 
-def test_saved_animal_left_limit_frame_selects_without_redundant_drag(monkeypatch):
+def test_saved_animal_left_limit_frame_selects_without_redundant_drag(monkeypatch, matcher):
     path = Path(__file__).resolve().parents[1] / "fixtures/reforming_center_templates/safety_boundary_20261013/animal_left_limit.png"
     image = cv2.imread(str(path))
     assert image is not None and image.shape == (720, 1280, 3)
     app = App(images=[cv2.cvtColor(image, cv2.COLOR_BGR2RGB)])
     room = "动物纤维原料车间"
-    catalog = nav.vision.load_catalog()
-    target = next(item for item in nav.vision.room_hits(image, catalog) if item["room_name"] == room)
+    catalog = matcher.load_catalog()
+    target = next(item for item in matcher.room_hits(image, catalog) if item["room_name"] == room)
     assert target["center"] == [756, 172] and target["score"] >= .92
     assert not nav.layout._point_in_region(target["center"], nav._SAFE_MAP_REGION, margin=10)
-    result = nav._locate_and_click(app, room, nav.layout._load_reforming_center_room_layout(), catalog, 1, .05)
+    result = nav._locate_and_click(app, room, nav.layout._load_reforming_center_room_layout(), catalog, 1, .05, matcher)
     assert result["drag_count"] == 0 and result["point"] == [875, 225]
     assert app.clicks == [(875, 225)] and app.drags == app.moves == []
 
 
-def test_anchor_translation_drives_target_search_not_blind_drag(monkeypatch):
+def test_anchor_translation_drives_target_search_not_blind_drag(monkeypatch, matcher):
     app = App()
-    run_locator(monkeypatch, app, [[hit("餐厅", (225, 525))], [hit()]])
+    run_locator(monkeypatch, app, matcher, [[hit("餐厅", (225, 525))], [hit()]])
     drag = app.drags[0]
     # A single anchor takes a short horizontal hop, not a long diagonal drag.
     assert drag["end_x"] - drag["start_x"] == -120
@@ -334,40 +360,40 @@ def test_anchor_translation_drives_target_search_not_blind_drag(monkeypatch):
     assert_safe_input(app)
 
 
-def test_missing_anchor_no_blind_drag_or_click(monkeypatch):
+def test_missing_anchor_no_blind_drag_or_click(monkeypatch, matcher):
     app = App()
     with pytest.raises(nav.room_map.RoomMapError) as error:
-        run_locator(monkeypatch, app, [[]])
+        run_locator(monkeypatch, app, matcher, [[]])
     assert error.value.code == "room_anchor_not_found"
     assert app.drags == app.moves == app.clicks == []
 
 
-def test_locator_drag_budget_is_bounded_without_edge_click(monkeypatch):
+def test_locator_drag_budget_is_bounded_without_edge_click(monkeypatch, matcher):
     app = App()
     with pytest.raises(nav.layout.ReformingCenterNavigationError) as error:
-        run_locator(monkeypatch, app, [[hit(center=(1100, 650))]] * 2, maximum=2)
+        run_locator(monkeypatch, app, matcher, [[hit(center=(1100, 650))]] * 2, maximum=2)
     assert error.value.code == "reforming_center_room_not_found"
     assert len(app.drags) == 2 and app.clicks == []
     assert_safe_input(app)
 
 
-def test_failed_room_click_is_not_navigation_success(monkeypatch):
+def test_failed_room_click_is_not_navigation_success(monkeypatch, matcher):
     app = App(click_success=False)
     with pytest.raises(nav.layout.ReformingCenterNavigationError) as error:
-        run_locator(monkeypatch, app, [[hit()]])
+        run_locator(monkeypatch, app, matcher, [[hit()]])
     assert error.value.code == "room_click_failed" and app.drags == []
 
 
 @pytest.mark.parametrize("image", [None, np.zeros((480, 640, 3), np.uint8),
                                  np.zeros((720, 1280), np.uint8),
                                  np.zeros((720, 1280, 4), np.uint8)])
-def test_capture_invalid_shape_stops_before_template_matching(image):
+def test_capture_invalid_shape_stops_before_template_matching(image, matcher):
     app = SimpleNamespace(capture=lambda **kwargs: SimpleNamespace(success=True, image=image))
     with pytest.raises(nav.layout.ReformingCenterNavigationError):
         nav._read_frame(app)
 
 
-def test_capture_rgb_is_converted_once_to_bgr_without_mutation():
+def test_capture_rgb_is_converted_once_to_bgr_without_mutation(matcher):
     rgb = np.full((720, 1280, 3), (255, 190, 0), np.uint8)
     app = App(images=[rgb])
     bgr = nav._read_frame(app)
@@ -377,21 +403,21 @@ def test_capture_rgb_is_converted_once_to_bgr_without_mutation():
     assert app.captures == [(0, 0, 1280, 720)]
 
 
-def test_rgb_capture_confirms_selected_animal_room_and_production_button():
-    catalog = nav.vision.load_catalog()
+def test_rgb_capture_confirms_selected_animal_room_and_production_button(matcher):
+    catalog = matcher.load_catalog()
     room = catalog["rooms"]["动物纤维原料车间"]
     button = catalog["buttons"]["production"]
     bgr = np.zeros((720, 1280, 3), np.uint8)
     cv2.rectangle(bgr, (90, 250), (649, 439), (0, 190, 255), 6)
     for spec, x, y in [(room["selected_title"], 110, 265), (button, 710, 310)]:
-        asset = nav.vision._asset(spec["image"])
+        asset = matcher._asset(spec["image"])
         h, w = asset.shape[:2]
         bgr[y:y+h, x:x+w] = asset
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-    assert nav.vision.selected_rectangles(rgb) == []
+    assert domain.selected_rectangles(rgb) == []
     normalized = nav._read_frame(App(images=[rgb]))
-    assert len(nav.vision.selected_rectangles(normalized)) == 1
-    found = nav.vision.entry_button(normalized, room, button)
+    assert len(domain.selected_rectangles(normalized)) == 1
+    found = matcher.entry_button(normalized, room, button)
     assert found is not None and found["score"] >= .92
     assert found["rect"][:2] == [710, 310]
 
@@ -402,57 +428,60 @@ def texture():
     return np.repeat(plane[:, :, None], 3, axis=2)
 
 
-def test_template_matching_respects_region_and_returns_absolute_coordinates(monkeypatch):
+def test_template_matching_respects_region_and_returns_absolute_coordinates(monkeypatch, matcher):
     patch = texture()
-    monkeypatch.setattr(nav.vision, "_asset", lambda path: patch)
+    monkeypatch.setattr(matcher, "_asset", lambda path: patch)
     image = np.zeros((720, 1280, 3), np.uint8)
     image[210:224, 460:480] = patch
     spec = {"image": "synthetic", "kind": "white_text", "threshold": .99}
-    found = nav.vision.match_asset(image, spec, (420, 170, 200, 100))
+    found = matcher.match_asset(image, spec, (420, 170, 200, 100))
     assert found["rect"] == [460, 210, 20, 14] and found["center"] == [470, 217]
-    assert nav.vision.match_asset(image, spec, (0, 0, 100, 100)) is None
+    assert matcher.match_asset(image, spec, (0, 0, 100, 100)) is None
 
 
-def test_nonfinite_template_scores_are_not_matches(monkeypatch):
-    monkeypatch.setattr(nav.vision, "_asset", lambda path: texture())
-    monkeypatch.setattr(nav.vision.cv2, "matchTemplate", lambda *args: np.array([[np.nan, np.inf]], np.float32))
-    assert nav.vision.match_asset(np.zeros((720, 1280, 3), np.uint8), {"image": "synthetic"}) is None
+def test_nonfinite_framework_result_fails_closed(monkeypatch, matcher):
+    monkeypatch.setattr(matcher, "_asset", lambda path: texture())
+    monkeypatch.setattr(cv2, "matchTemplate", lambda *args, **kwargs: np.array([[np.nan, np.inf]], np.float32))
+    # Explicit adapter contract: a nonfinite framework result is unknown,
+    # rather than valid absence. The differential report records this change.
+    with pytest.raises(ValueError, match="invalid match result"):
+        matcher.match_asset(np.zeros((720, 1280, 3), np.uint8), {"image": "synthetic"})
 
 
-def test_flat_template_and_too_small_search_are_rejected(monkeypatch):
+def test_flat_template_and_too_small_search_are_rejected(monkeypatch, matcher):
     image = np.zeros((720, 1280, 3), np.uint8)
-    monkeypatch.setattr(nav.vision, "_asset", lambda path: texture())
-    assert nav.vision.match_asset(image, {"image": "synthetic"}, (0, 0, 5, 5)) is None
-    monkeypatch.setattr(nav.vision, "_asset", lambda path: np.full((14, 20, 3), 255, np.uint8))
-    assert nav.vision.match_asset(image, {"image": "flat"}) is None
+    monkeypatch.setattr(matcher, "_asset", lambda path: texture())
+    assert matcher.match_asset(image, {"image": "synthetic"}, (0, 0, 5, 5)) is None
+    monkeypatch.setattr(matcher, "_asset", lambda path: np.full((14, 20, 3), 255, np.uint8))
+    assert matcher.match_asset(image, {"image": "flat"}) is None
 
 
 @pytest.mark.parametrize("same_location", [True, False])
-def test_ambiguous_room_labels_at_same_position_are_rejected_not_global(monkeypatch, same_location):
+def test_ambiguous_room_labels_at_same_position_are_rejected_not_global(monkeypatch, same_location, matcher):
     catalog = {"rooms": {"甲": {"map_title": {"image": "a"}}, "乙": {"map_title": {"image": "b"}}}}
-    def match(image, spec, region):
+    def match(image, spec, region, **kwargs):
         x = 500 if same_location or spec["image"] == "a" else 900
         return {"score": .99, "center": [x+50, 300], "rect": [x, 290, 100, 20]}
-    monkeypatch.setattr(nav.vision, "match_asset", match)
-    result = nav.vision.room_hits(np.zeros((720, 1280, 3), np.uint8), catalog)
+    monkeypatch.setattr(matcher, "match_asset", match)
+    result = matcher.room_hits(np.zeros((720, 1280, 3), np.uint8), catalog)
     assert len(result) == (0 if same_location else 2)
 
 
-def test_selected_outline_requires_all_four_yellow_edges():
+def test_selected_outline_requires_all_four_yellow_edges(matcher):
     image = np.zeros((720, 1280, 3), np.uint8)
     cv2.rectangle(image, (90, 250), (649, 439), (0, 190, 255), 6)
-    assert len(nav.vision.selected_rectangles(image)) == 1
+    assert len(domain.selected_rectangles(image)) == 1
     image[435:445] = 0
-    assert nav.vision.selected_rectangles(image) == []
+    assert domain.selected_rectangles(image) == []
 
 
 @pytest.mark.parametrize("target_title_matches", [True, False])
-def test_entry_button_is_bound_to_target_title_inside_yellow_outline(monkeypatch, target_title_matches):
+def test_entry_button_is_bound_to_target_title_inside_yellow_outline(monkeypatch, target_title_matches, matcher):
     image = np.zeros((720, 1280, 3), np.uint8)
     cv2.rectangle(image, (90, 250), (649, 439), (0, 190, 255), 6)
     seen = []
 
-    def match(image, spec, region):
+    def match(image, spec, region, **kwargs):
         seen.append((spec, region))
         if spec["image"] == "title":
             assert region[0] < 110 and region[1] < 270
@@ -461,22 +490,22 @@ def test_entry_button_is_bound_to_target_title_inside_yellow_outline(monkeypatch
         assert spec["image"] == "production" and region[0] >= 645
         return {"score": .99, "center": [795, 325]}
 
-    monkeypatch.setattr(nav.vision, "match_asset", match)
-    result = nav.vision.entry_button(image, {"selected_title": {"image": "title"}}, {"image": "production"})
+    monkeypatch.setattr(matcher, "match_asset", match)
+    result = matcher.entry_button(image, {"selected_title": {"image": "title"}}, {"image": "production"})
     if target_title_matches:
         assert result["center"] == [795, 325] and len(seen) == 2
     else:
         assert result is None and len(seen) == 1
 
 
-def test_entry_button_requires_selected_outline_before_matching(monkeypatch):
-    monkeypatch.setattr(nav.vision, "match_asset", lambda *args: pytest.fail("without yellow outline no title or button search"))
-    assert nav.vision.entry_button(np.zeros((720, 1280, 3), np.uint8), {"selected_title": {}}, {}) is None
+def test_entry_button_requires_selected_outline_before_matching(monkeypatch, matcher):
+    monkeypatch.setattr(matcher, "match_asset", lambda *args: pytest.fail("without yellow outline no title or button search"))
+    assert matcher.entry_button(np.zeros((720, 1280, 3), np.uint8), {"selected_title": {}}, {}) is None
 
 
-def test_destination_requires_at_least_two_matching_markers(monkeypatch):
+def test_destination_requires_at_least_two_matching_markers(monkeypatch, matcher):
     image = np.zeros((720, 1280, 3), np.uint8)
-    monkeypatch.setattr(nav.vision, "match_asset", lambda image, marker: {"score": .99} if marker["found"] else None)
-    assert nav.vision.destination_confirmed(image, {"destination_markers": [{"found": True}, {"found": True}]})
-    assert not nav.vision.destination_confirmed(image, {"destination_markers": [{"found": True}]})
-    assert not nav.vision.destination_confirmed(image, {"destination_markers": [{"found": True}, {"found": False}]})
+    monkeypatch.setattr(matcher, "match_asset", lambda image, marker, **kwargs: {"score": .99} if marker["found"] else None)
+    assert matcher.destination_confirmed(image, {"destination_markers": [{"found": True}, {"found": True}]})
+    assert not matcher.destination_confirmed(image, {"destination_markers": [{"found": True}]})
+    assert not matcher.destination_confirmed(image, {"destination_markers": [{"found": True}, {"found": False}]})

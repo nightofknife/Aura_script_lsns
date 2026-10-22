@@ -151,7 +151,7 @@ def test_navigation_module_exports_only_public_open_room_action():
     assert metadata["read_only"] is False
 
 
-def test_open_room_injects_only_app_and_has_no_ocr_parameter():
+def test_open_room_injects_app_vision_and_interaction_and_has_no_ocr_parameter():
     node, _ = _decorated_actions()[0]
     service_calls = [
         decorator for decorator in node.decorator_list
@@ -165,9 +165,10 @@ def test_open_room_injects_only_app_and_has_no_ocr_parameter():
         row.arg: ast.literal_eval(row.value)
         for row in service_calls[0].keywords
     }
-    assert services == {"app": "plans/aura_base/app"}
+    assert services == {"app": "plans/aura_base/app", "vision": "plans/aura_base/vision",
+                        "interaction": "plans/aura_base/interaction"}
     assert [row.arg for row in node.args.args] == [
-        "room_name", "max_search_steps", "settle_sec", "app",
+        "room_name", "max_search_steps", "settle_sec", "app", "vision", "interaction",
     ]
 
 

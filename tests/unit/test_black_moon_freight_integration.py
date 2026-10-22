@@ -3,10 +3,12 @@
 import asyncio
 from copy import deepcopy
 import inspect
+from types import MethodType, SimpleNamespace
 
 import pytest
 
 from packages.aura_core.context.persistence import PersistentDataService
+from packages.aura_core.engine import ExecutionEngine
 from plans.resonance_pc.src.actions import _black_moon_local_shop_state as ledger
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as flow
 
@@ -109,14 +111,19 @@ def test_gate_pending_payment_is_structured_failure_without_replay(store):
 
 def run_child(monkeypatch, framework, table=None):
     calls = []
-    async def action(name, params, **_kwargs):
-        calls.append((name, deepcopy(params)))
-        return framework
-    monkeypatch.setattr(flow, "_call_recovery_action", action)
+    async def execute_task(**params):
+        calls.append(deepcopy(params))
+        return {"status": "SUCCESS", "user_data": framework}
+    context = SimpleNamespace(data={"cid": "black-moon-freight-parent"})
+    engine = SimpleNamespace(services={}, state_store=object(), orchestrator=SimpleNamespace(
+        plan_name="resonance_pc", loaded_package=None,
+        resolve_service=lambda key: None, execute_task=execute_task,
+    ))
+    engine.bind_execution = MethodType(ExecutionEngine.bind_execution, engine)
     result = asyncio.run(flow._run_black_moon_local_purchase_task(
         city_name=CITY["city_name"], city_key=CITY["city_key"],
         purchase_table=TABLE if table is None else table, record_scope="account",
-        progress_context={}, context=object(), engine=object(),
+        progress_context={}, context=context, engine=engine,
     ))
     return result, calls
 
@@ -125,9 +132,11 @@ def test_child_adapter_uses_declared_receipt_and_frozen_purchase_map(monkeypatch
     source = dict(TABLE)
     result, calls = run_child(monkeypatch, child_result(), source)
     assert result["reason"] == "no_matching_goods"
-    name, params = calls[0]
-    assert name == "aura.run_task"
-    assert params["task_ref"] == "tasks:black_moon_local_purchase_pc.yaml:black_moon_local_purchase_pc"
+    assert len(calls) == 1
+    params = calls[0]
+    assert params["task_file_path"] == "tasks/black_moon_local_purchase_pc.yaml"
+    assert params["task_key"] == "black_moon_local_purchase_pc"
+    assert params["parent_cid"] == "black-moon-freight-parent"
     assert params["inputs"] == {"city_name": CITY["city_name"], "purchase_table": TABLE,
                                "record_scope": "account", "exit_target": "rest_menu"}
     source["purchase_order_book"] = False

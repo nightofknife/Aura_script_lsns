@@ -9,8 +9,9 @@
   包含安装包中配置的条目，不代表全部角色已经实装或当前账号拥有。
 - `days/`：0–9天的图标、数字与底图组合；范围不代表保质期上限。
 - `masks/days.png`：只比较中央数字区域，排除外圈箭头。
-- `native/`：原生图片与参考分辨率卡片底图。
-- `catalog_preview.png`、`roles_preview.png`：展示用总览，不用于匹配。
+- `native/card_background_1280.png`：运行匹配使用的参考分辨率卡片底图。
+- 原生食物、背景和有效期精灵保存在 `development/template_sources/recovery/bento/love/native/`，由同层 `manifest.json` 记录与运行模板的对应关系。
+- `catalog_preview.png`、`roles_preview.png` 展示总览保存在 `development/template_previews/recovery/bento/love/`，不用于匹配、不随玩家发布。
 
 参考客户端分辨率为1280×720。JSON的三个裁剪框使用左、上、右、下坐标，
 相对于缩放后的卡片底图左上角，不是整个窗口或食物模板左上角。

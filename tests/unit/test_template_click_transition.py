@@ -1,8 +1,10 @@
 """The common executor consumes evidence without deciding business success."""
 import asyncio
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
+from packages.aura_core.scheduler.operation_scope import OperationScope
 
 from plans.resonance_pc.src.actions._template_click_transition import (
     TransitionProbe as Probe, run_template_transition, wait_for_transition_probe,
@@ -29,7 +31,9 @@ def wait(rows, *, allow_source=False, equivalent=None, cancelled=None):
 def test_unknown_resets_consecutive_confirmation():
     target = Probe("target", key="page")
     result, state = wait([target, Probe(), target, target])
-    assert result == target and state.observations == 4
+    assert (result.kind, result.key, result.hit, result.frame, result.immediate) == (
+        target.kind, target.key, target.hit, target.frame, target.immediate)
+    assert state.observations == 4
 
 
 def test_source_never_confirms_target_even_with_same_key():
@@ -54,7 +58,8 @@ def test_domain_stability_condition_is_required_in_addition_to_key():
 def test_single_observation_exception_only_applies_to_authorized_source():
     immediate = Probe("source", hit={"center": [1, 2]}, immediate=True)
     result, state = wait([immediate], allow_source=True)
-    assert result == immediate and state.observations == 1
+    assert (result.kind, result.hit, result.immediate) == (immediate.kind, immediate.hit, True)
+    assert state.observations == 1
     result, _ = wait([immediate])
     assert result is None
     result, _ = wait([Probe("target", key="page", immediate=True)])
@@ -89,6 +94,7 @@ def execute(probes, *, cancel_after_click=False):
             probe, click, max_clicks=2, settle_seconds=.35, sleep=sleep,
             check_cancelled=check, source_unconfirmed=lambda: ValueError("source unknown"),
             exhausted=lambda: RuntimeError("click limit"),
+            scope=OperationScope(10, cid=uuid4().hex),
         )
     return state, run
 
