@@ -160,6 +160,15 @@ jobs:
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r requirements\ci.txt
 
+      - name: Prepare required OCR models for runtime smoke tests
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File scripts\release\download_ocr_models.ps1 -PythonPath python
+          if ($LASTEXITCODE -ne 0) { throw "Failed to prepare required OCR models for source runtime smoke tests." }
+          $contract = Get-Content -Raw packaging\release-contract.json | ConvertFrom-Json
+          python scripts\release\validate_ocr_bundle.py $contract.assets.ocr.bundle_directory
+          if ($LASTEXITCODE -ne 0) { throw "Source runtime OCR model validation failed." }
+
       - name: Validate release contract and locks
         shell: pwsh
         run: |
