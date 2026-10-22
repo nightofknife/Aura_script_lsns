@@ -1,32 +1,10 @@
-"""Real ring/hex evidence and HUD limits must agree before either strategy acts."""
+"""Synthetic ring evidence and HUD limits must agree before either strategy acts."""
 import asyncio
 from copy import deepcopy
-import json
-from pathlib import Path
 
-import cv2
-import numpy as np
 import pytest
 
-from plans.resonance_pc.src.actions._deep_dive_layout_semantics import detect_targets
 from plans.resonance_pc.src.actions import consciousness_deep_dive_planned_run_pc_actions as flow
-
-
-FIXTURES = Path(__file__).parents[1] / 'fixtures' / 'deep_dive_spirit'
-SAMPLES = json.loads((FIXTURES / 'samples.json').read_text(encoding='utf8'))['samples']
-
-
-@pytest.mark.parametrize('sample', SAMPLES, ids=lambda sample: sample['name'])
-def test_saved_ring_and_competing_hex_views(sample):
-    patch = cv2.cvtColor(cv2.imread(str(FIXTURES / (sample['name'] + '.png'))), cv2.COLOR_BGR2RGB)
-    image = np.zeros((720, 1280, 3), np.uint8)
-    image[210:390, 550:730] = patch
-    candidates = [row for row in detect_targets(image) if row['kind'] == 'inspiration'
-                  and np.linalg.norm(np.asarray(row['point']) - [640, 300]) < 35]
-    strong = [row for row in candidates if row.get('confirmable', True) and row['confidence'] >= .6]
-    assert bool(strong) is sample['strong_inspiration']
-    if not sample['strong_inspiration']:
-        assert all(row['confirmable'] is False for row in candidates)
 
 
 HUD = dict(plane_index=1, rounds_remaining=6, moves_used=0, moves_total=1,

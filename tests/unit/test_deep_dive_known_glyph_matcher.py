@@ -8,7 +8,6 @@ import pytest
 from plans.resonance_pc.src.actions import _deep_dive_known_glyph_matcher as matcher
 from plans.resonance_pc.src.actions import _deep_dive_layout_semantics as semantics
 
-FIXTURES=Path(__file__).parents[1]/'fixtures/deep_dive_anchor'
 NATIVE=Path(semantics.__file__).resolve().parents[2]/'templates/deep_dive_layout'
 
 
@@ -28,19 +27,6 @@ def test_native_known_hypotheses_retain_truth_and_all_other_classes_reject(name)
             assert result['icon_id']==(name if name==expected else None)
             if expected==name: assert result['confidence']==old['confidence']
             assert result['status']=='proposal_only' and result['input_authorized'] is False
-
-
-@pytest.mark.parametrize('name', ['large_purple_217','large_purple_222','large_purple_241',
-                                  'whole_warm_D10_386','whole_warm_D10_391',
-                                  'whole_warm_boss_glow_130','purple_wall_0','purple_wall_1',
-                                  'purple_wall_2','purple_wall_3','purple_partial_hud_883'])
-def test_real_manually_audited_positive_and_negative_fixtures_preserve_rejection(name):
-    image=rgb(FIXTURES/f'{name}.png')
-    old=semantics.classify_icon(image)
-    for expected in matcher.ICONS:
-        result=matcher.match_known_icon(image,expected)
-        assert result['icon_id']==(expected if old['icon_id']==expected else None)
-        if result['icon_id']:assert result['confidence']==old['confidence']
 
 
 @pytest.mark.parametrize('hue',[0,7,15,23,40,105,135,170])

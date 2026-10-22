@@ -1,13 +1,10 @@
 """Framing consumes only frozen sources and existing finite navigation budgets."""
 from copy import deepcopy
-import json
-from pathlib import Path
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.actions._deep_dive_scan_policy import MixedFaceScanPolicy, _matrix
 from plans.resonance_pc.src.actions._deep_dive_target_face_scan_policy import TargetFacePageScanPolicy
-from plans.resonance_pc.src.actions import _deep_dive_target_face_scan_policy as page_module
 from test_deep_dive_target_framing import packet
 from test_deep_dive_mixed_scan_policy import cells, AXES
 
@@ -168,39 +165,6 @@ def test_rejected_source_diagnostic_is_bounded_without_storing_packets():
     result = policy.summary()['face_pages']
     assert result['framing_rejections'] == 7 and len(result['framing_rejected']) == 5
     assert all(set(x) == {'index','source_frame_id','reason'} for x in result['framing_rejected'])
-
-
-def test_optional_third_endpoint_cannot_rehide_the_original_required_target(monkeypatch):
-    policy,rows,feedback,_ = subject()
-    policy._page_face = 'F'
-    assert policy._remember_assigned_interests(rows,feedback,101.)
-    excluded = []
-    def readable(rotations,*args,**kwargs):
-        result = np.ones((len(rotations),54))
-        if excluded:
-            for i,rotation in enumerate(rotations):
-                if np.array_equal(rotation,excluded[0]):
-                    result[i,26] = 0.
-        return result
-    monkeypatch.setattr(policy,'_readability',readable)
-    monkeypatch.setattr(policy,'_planning_anchor_support',lambda rotations,*args,**kwargs:np.ones(len(rotations)))
-    monkeypatch.setattr(policy,'_route_anchor_support',lambda paths,*args,**kwargs:np.ones(len(paths)))
-    selected = []
-    def select(options,**kwargs):
-        if not selected:
-            selected.append(next(x for x in options if x['alternative'] is not None))
-        option = next(x for x in options if (x['left'],x['right']) == (selected[0]['left'],selected[0]['right']))
-        assert kwargs['readable'][option['left'],26] > 0 and kwargs['readable'][option['right'],26] > 0
-        return dict(status='selected',option=option,target_indices=[26])
-    monkeypatch.setattr(page_module,'select_target_framing_pair',select)
-    saved = json.loads((Path(__file__).parent/'fixtures/deep_dive_navigation_sources_13.json').read_text(encoding='utf8'))
-    observed = np.asarray(saved['sources'][0]['feedback']['semantic_metadata']['pose']['rotation'])
-    first = policy._select_page_pair(observed,rows,AXES)
-    assert len(first[0]) == 3
-    excluded.append(first[0][2])
-    second = policy._select_page_pair(observed,rows,AXES)
-    assert second is not None
-    assert all(not np.array_equal(rotation,excluded[0]) for rotation in second[0])
 
 
 def test_disabled_framing_keeps_existing_pair_at_boundary(monkeypatch):

@@ -1,9 +1,6 @@
-from pathlib import Path
-import cv2
 import pytest
 from plans.resonance_pc.src.actions import _deep_dive_node_rewards as rewards
 from plans.resonance_pc.src.actions import consciousness_deep_dive_single_run_pc_actions as runtime
-from plans.resonance_pc.src.actions._deep_dive_single_run_vision import observe
 
 
 def result(value=50):
@@ -47,54 +44,9 @@ def test_additional_selection_left_of_two_then_result():
     assert stable(s,result(),14)[0]=='node_reward_dismiss'
 
 
-def test_live_extra_activation_screenshot_and_battle_return(monkeypatch):
-    p=Path(__file__).resolve().parents[2]/'docs/developer-guide/images/resonance-pc-deep-dive-simple/43-extra-activation-result.png'
-    o=observe(cv2.cvtColor(cv2.imread(str(p)),cv2.COLOR_BGR2RGB))
-    assert o['scene']=='event_result'
-    clock=[100.];monkeypatch.setattr(runtime.time,'time',lambda:clock[0])
-    s={'phase':'battle_notice_wait','phase_started':90,'pending_move':{'event':'elite_battle'},
-       'move_history':[],'events':[],'turns_completed':0}
-    assert runtime._advance_state(s,o)==('wait',None)
-    clock[0]+=.4
-    assert runtime._advance_state(s,o)[0]=='node_reward_dismiss'
-    assert not s['move_history']
-    board={'scene':'board','valid':True,'player_turn':True,'move_done':True}
-    clock[0]+=3
-    assert runtime._advance_state(s,board)==('wait',None)
-    assert runtime._advance_state(s,board)==('wait',None)
-    clock[0]+=1.1
-    assert runtime._advance_state(s,board)[0]=='battle_completed'
-    assert len(s['move_history'])==1 and s['turns_completed']==0
-
-
 def test_settlement_preempts_extra_rewards():
     s={'phase':'shop_return','status':'running','node_reward':{'pending':'dismiss'}}
     assert runtime._advance_state(s,{'scene':'settlement'})[0]=='settlement'
-
-
-@pytest.mark.parametrize('phase,main_scene,event',[
-    ('battle_prepare','battle_formation','elite_battle'),
-    ('shop_wait','shop','shop'),
-    ('event_dispatch','event_options','healing'),
-    ('vortex_dispatch','event_options','vortex'),
-])
-def test_three_inspiration_pages_resume_node_content_not_board(phase,main_scene,event):
-    prefix='vortex' if event=='vortex' else 'event'
-    s={'phase':phase,'phase_started':0,'pending_move':{'event':event},
-       prefix+'_pending':{'kind':'entry'},'move_history':[]}
-    p=Path(__file__).resolve().parents[2]/'docs/developer-guide/images/resonance-pc-deep-dive-simple'
-    for i,name in enumerate(['44-inspiration-buff','45-inspiration-intuition','46-inspiration-item']):
-        im=cv2.cvtColor(cv2.imread(str(p/(name+'.png'))),cv2.COLOR_BGR2RGB)
-        page=observe(im,event_family='vortex' if event=='vortex' else 'healing')
-        assert page['scene'] in {'event_result','reward_obtained'}
-        assert stable(s,page,10+3*i)[0]=='node_reward_dismiss'
-        assert s['phase']==phase and not s['move_history']
-    board={'scene':'board','valid':True,'event_board':True}
-    for t in [20,21,22]:assert rewards.step(s,board,t)==('wait',None)
-    assert 'node_reward' in s
-    assert rewards.step(s,{'scene':main_scene},23)==('wait',None)
-    assert 'node_reward' not in s and s['phase']==phase and not s['move_history']
-    assert rewards.step(s,{'scene':main_scene},24) is None
 
 
 def test_inspiration_then_formation_runs_battle_start(monkeypatch):

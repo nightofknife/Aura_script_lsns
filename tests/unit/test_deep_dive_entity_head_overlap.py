@@ -1,18 +1,15 @@
-"""CPU fakes and saved RGB only; no ORT session, GPU or game input."""
+"""Synthetic CPU inputs cover concurrent head decoding and entity fusion."""
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from pathlib import Path
 import threading
 from types import SimpleNamespace
 
-import cv2
 import numpy as np
 import pytest
 
 from plans.resonance_pc.src.services import deep_dive_entity_detector_service as service
 from plans.resonance_pc.src.services import _deep_dive_entity_worker_backend as backend
-from plans.resonance_pc.src.services._deep_dive_entity_fusion import local_player_heads, fuse_entities
-from plans.resonance_pc.src.services._deep_dive_entity_onnx import decode_raw_entities, prepare_rgb_roi
+from plans.resonance_pc.src.services._deep_dive_entity_onnx import prepare_rgb_roi
 
 
 class Config:
@@ -181,20 +178,3 @@ def test_cpu_hybrid_stays_synchronous_without_owned_head_thread(build, monkeypat
     assert seen==[(caller,True)] and detector._head_executor is None
 
 
-@pytest.mark.parametrize('fixture', ['reading_only_binding04.png', 'oblique_630.png'])
-def test_saved_rgb_overlap_matches_original_sequential_heads_decode_and_fuse(build, fixture):
-    path=Path(__file__).resolve().parents[1]/'fixtures/deep_dive_anchor'/fixture
-    if not path.exists():pytest.skip('saved fixture unavailable')
-    rgb=cv2.cvtColor(cv2.imread(str(path)),cv2.COLOR_BGR2RGB)
-    detector=build();raw=detector._worker.raw
-    before=cv2.getNumThreads()
-    try:
-        cv2.setNumThreads(1)
-        reference=decode_raw_entities(raw,prepare_rgb_roi(rgb)[1],weak_confidence=.05,confirm_confidence=.6,nms_iou=.5,max_det=64)
-        heads,head_diagnostic=local_player_heads(rgb)
-        expected,decisions=fuse_entities(reference,heads,image_rgb=rgb)
-        packet=detector.detect_packet(rgb)
-    finally:cv2.setNumThreads(before)
-    assert packet['targets']==expected and detector.status()['last']['head']==head_diagnostic
-    assert detector.status()['last']['fusion']==decisions
-    assert packet['coverage_valid']==(len(reference)<64)

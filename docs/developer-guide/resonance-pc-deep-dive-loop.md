@@ -26,6 +26,3 @@
 
 进度事件 `task.resonance_pc_deep_dive_loop_progress`，schema= `resonance_pc.deep_dive_loop.v1`，携带外层cid和递增sequence。GUI按cid/任务/schema/sequence过滤，显示当前局、阶段和已完成局数。取消不会自动收尾或关闭游戏，当前未完整收尾的一局不计数。
 
-## 验证
-
-离线测试覆盖真实DAG两局串联、三段失败短路、无限循环超过1000次、保留最近输出、异步取消、起始页检查、GUI参数/进度/无总超时派发，以及原有单局与收尾回归。三段游戏操作未在本次实现期间实机运行，下一步需分别验证有限循环和持续循环的取消。

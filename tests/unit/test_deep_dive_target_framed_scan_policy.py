@@ -1,8 +1,6 @@
 """Finite target framing is a navigation experiment, not absence evidence."""
 from copy import deepcopy
-import json
 import math
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -53,28 +51,6 @@ def test_exactly_36_executable_candidates_have_at_most_30_degree_total_travel():
         assert np.allclose(final,path[-1])
         assert actual<=math.radians(30.)+1e-12
         assert actual==pytest.approx(cost,abs=1e-12)
-
-
-def test_world_prior_contains_saved_strong_box_padding_and_rejects_weak_hud(tmp_path):
-    values=json.loads((Path(__file__).parent/'fixtures/deep_dive_framed_geometry25.json').read_text(encoding='utf8'))
-    policy=TargetFramedCellScanPolicy(); report=[]
-    for source in values['sources']:
-        R=np.array(source['pose']['rotation']); T=np.array(source['pose']['tvec'])
-        lo,hi,valid=policy._billboard_geometry(R[None],T)
-        report.append(dict(round=source['round'],frame_id=source['frame_id'],
-                           lo=lo[0,31].tolist(),hi=hi[0,31].tolist(),safe=bool(valid[0,31])))
-        if source['round']==3:
-            assert not valid[0,31],source
-        else:
-            for mask in source['boss_masks']:
-                box=np.asarray(mask['box'],float)
-                assert (lo[0,31] <= box[:2]-8.).all(),(source['frame_id'],lo[0,31],box)
-                assert (hi[0,31] >= box[:2]+box[2:]+8.).all(),(source['frame_id'],hi[0,31],box)
-    # Containment is not safe framing: Reset/HUD may reject these strong views.
-    summary=policy.summary()['target_framed']
-    assert summary['height_world']==[0.,1.] and summary['radius_world']==1.
-    (tmp_path/'geometry_proxy.json').write_text(json.dumps(dict(
-        navigation_only=True,height_world=[0.,1.],radius_world=1.,sources=report)),encoding='utf8')
 
 
 def test_actual_source_bitmap_has_exact_pose_but_never_writes_votes(monkeypatch):

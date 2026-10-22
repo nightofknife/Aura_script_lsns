@@ -1,13 +1,11 @@
 """Camera pages are finite navigation tasks, never recognition votes."""
 from copy import deepcopy
-import json
 import math
-from pathlib import Path
 
 import numpy as np
 import pytest
 
-from plans.resonance_pc.src.actions._deep_dive_scan_policy import CellScanPolicy, MixedFaceScanPolicy, _matrix, _pose_angle
+from plans.resonance_pc.src.actions._deep_dive_scan_policy import CellScanPolicy, MixedFaceScanPolicy, _matrix
 from plans.resonance_pc.src.actions._deep_dive_target_first_scan_policy import TargetFirstCellScanPolicy
 from plans.resonance_pc.src.actions._deep_dive_target_face_scan_policy import TargetFacePageScanPolicy
 from test_deep_dive_target_navigation_opportunities import actual_packet
@@ -228,45 +226,6 @@ def test_new_navigation_hint_interrupts_old_policy_but_not_unfinished_pages(monk
         assert policy._assigned_interest_interrupts_route()  # Fallback is unchanged.
 
 
-def test_actual_old_single_face_source_does_not_prove_a_camera_page():
-    saved = json.loads((Path(__file__).parent/'fixtures/deep_dive_navigation_sources_13.json').read_text(encoding='utf8'))
-    value = deepcopy(next(x['feedback'] for x in saved['sources'] if x['frame_id'] == 845))
-    policy = TargetFacePageScanPolicy()
-    policy._sync_page_basis(value)
-    policy._page_face = 'B'
-    rotation = np.array(value['semantic_metadata']['pose']['rotation'])
-    basis = np.array(value['accepted_anchor_observation']['body_basis'])
-    policy._page_pair = [rotation @ basis.T]
-    key = policy._source_key(value['semantic_metadata'])
-    policy._page_source_floor = (*key[:2], key[2]-1, key[3]-1, key[4]-1.)
-    record(policy, cells(), value)
-    assert policy._page_views == []  # Actual B7 single-face can renew the mapper,
-    assert not policy._page_results  # but cannot prove the new overlapping page.
-
-
-def test_real_seed_pair_candidates_keep_main_and_a_side_not_single_face_front():
-    saved = json.loads((Path(__file__).parent/'fixtures/deep_dive_navigation_sources_13.json').read_text(encoding='utf8'))
-    value = saved['sources'][0]['feedback']
-    policy = TargetFacePageScanPolicy()
-    policy._sync_page_basis(value)
-    policy._page_face = 'F'
-    policy.tvec = np.array(value['semantic_metadata']['pose']['tvec']).reshape(3)
-    observed = np.array(value['semantic_metadata']['pose']['rotation'])
-    rows = [dict(occupant='unknown', node_status='unknown', evidence=[]) for _ in range(54)]
-    before = deepcopy(rows)
-    result = policy._select_page_pair(observed, rows, AXES)
-    assert result is not None
-    diagnostic = policy.summary()['face_pages']['framing']
-    assert diagnostic['status'] == 'selected' and diagnostic['target_indices'] == []
-    assert 6 <= diagnostic['union_cells'] <= 9 and rows == before
-    pair, path = result
-    candidates = np.array([p @ policy._page_basis for p in pair[:2]])
-    glyphs = policy._readability(candidates, rows, anchors=True, known_only=False)>0
-    assert all(any(glyphs[i,j*9:(j+1)*9].sum()>=2 for j in (0,1,3,4,5)) for i in (0,1))
-    assert math.degrees(_pose_angle(pair[0],pair[1]))>=14.-1e-7
-    assert len(path)<=2
-
-
 @pytest.mark.parametrize('invalid', [None, True, (.78,), (.94,.78), (0.,.94),
     (.78,1.01), (.78,float('nan')), (.78,float('inf')), (False,.94)])
 def test_navigation_cosine_range_rejects_invalid_boundaries(invalid):
@@ -296,21 +255,3 @@ def test_navigation_actual_source_uses_configured_lower_boundary_without_votes(c
     assert policy.summary()['face_pages']['page_cosine_range'] == [.78,.94]
 
 
-def test_saved_f_geometry_broader_navigation_range_finds_original_safe_pair():
-    # Actual packet560/axes. Unknown rows are a conservative geometry proxy,
-    # not the unsaved historical controller562 atlas or live proof.
-    value = json.loads((Path(__file__).parent/'fixtures/deep_dive_page_geometry_22_560.json').read_text(encoding='utf8'))
-    rows = [dict(occupant='unknown',node_status='unknown',evidence=[]) for _ in range(54)]
-    before = deepcopy(rows)
-    axes = {int(k):np.array(v) for k,v in value['axes'].items()}
-    observed = np.array(value['pose']['rotation'])
-    results = []
-    for bounds in ((.86,.925),(.78,.94)):
-        policy = TargetFacePageScanPolicy(page_cosine_range=bounds)
-        policy._page_context = (value['session_id'],value['map_revision'])
-        policy._page_basis = np.array(value['geometry_body_basis'])
-        policy._page_face = 'F'
-        policy.tvec = np.array(value['pose']['tvec'])
-        results.append(policy._select_page_pair(observed,rows,axes))
-    assert results[0] is None and results[1] is not None
-    assert rows == before

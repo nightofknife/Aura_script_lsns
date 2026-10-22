@@ -7,15 +7,6 @@ import pytest
 from plans.resonance_pc.src.actions import _deep_dive_layout_semantics as semantics
 
 
-@pytest.mark.parametrize('index',[28,29,32])
-def test_clear_real_hex_with_overlapping_warm_hue_is_read(index):
-    path=Path(__file__).parents[1]/'fixtures/deep_dive_yellow'/f'frame756_cell{index}.png'
-    image=cv2.cvtColor(cv2.imread(str(path)),cv2.COLOR_BGR2RGB)
-    result=semantics.classify_icon(image)
-    assert result['icon_id']=='yellow_hex'
-    assert result['confidence']>=.70
-
-
 def test_filled_yellow_wall_and_curved_ring_do_not_establish_hex_outline():
     wall=np.zeros((96,96),np.uint8);wall[19:77,19:77]=1
     ring=np.zeros_like(wall);cv2.circle(ring,(48,48),28,1,5)

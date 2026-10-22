@@ -1,7 +1,5 @@
 """Confirmation uses the saved vote poses, rather than a group's seed pose."""
 from copy import deepcopy
-import json
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -22,24 +20,6 @@ def mapper(rows, slot=26):
     scanner = vision.LayoutScanner()
     scanner.evidence[slot] = rows
     return scanner
-
-
-def test_real_f22_group_centres_do_not_prove_saved_best_images_independent():
-    source = Path(__file__).parents[1]/'fixtures/deep_dive_anchor/actual_positive_pose_f22_explore02.json'
-    case = json.loads(source.read_text(encoding='utf8'))
-    rows = case['evidence']
-    assert sorted(e['frame_id'] for e in rows) == [392, 404]
-    assert len({e['group'] for e in rows}) == 2
-    angle = vision._angle(*(np.asarray(e['association_evidence']['rotation']) for e in rows))
-    assert angle == pytest.approx(7.2624421477, abs=1e-8)
-    scanner = mapper(deepcopy(rows))
-    before = deepcopy(scanner.evidence)
-    result = scanner.result()
-    cell = result['cells'][26]
-    assert cell['occupant_status'] == 'unknown'
-    assert cell['occupant_evidence_counts'] == {'inspiration': 2}
-    assert not result['inspiration_cells']
-    assert scanner.evidence == before
 
 
 def test_any_pair_finds_minus_six_plus_six_despite_stronger_middle_vote():

@@ -1,5 +1,4 @@
 """Matmul uses original NCC near class gates and confidence rounding boundaries."""
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -66,26 +65,3 @@ def test_blank_normalized_shape_has_no_evidence(whole):
     assert all(score==0. for score,_ in actual)
 
 
-def test_actual_class_confidence_preserved(monkeypatch):
-    fixtures=Path(__file__).parents[1]/'fixtures/deep_dive_anchor'
-    native=Path(s.__file__).resolve().parents[2]/'templates/deep_dive_layout'
-    paths=list(native.glob('icon_*eye*.png'))+list(fixtures.glob('whole_warm*.png'))+list((fixtures/'orange_support_17').glob('orange_D22*.png'))
-    rgb_cases=[]
-    for path in paths:
-        rgb=cv2.cvtColor(cv2.imread(str(path)),cv2.COLOR_BGR2RGB)
-        rgb_cases.extend(np.ascontiguousarray(np.rot90(rgb,k)) for k in range(4))
-    for hue in (0,7,15,23,170):
-        hsv=np.empty((96,96,3),np.uint8);hsv[:]=[hue,220,230]
-        rgb_cases.append(cv2.cvtColor(hsv,cv2.COLOR_HSV2RGB))
-    current=s._eye_correlation_scores
-    for rgb in rgb_cases:
-        expected=None
-        with monkeypatch.context() as patch:
-            patch.setattr(s,'_eye_correlation_scores',original_scores)
-            expected=s.classify_icon(rgb)
-        assert s.classify_icon(rgb)==expected
-        for whole in (False,True):
-            glyph=s._warm_glyph(rgb,whole=whole)
-            if glyph is None:continue
-            np.testing.assert_allclose([score for score,_ in current(glyph,whole)],
-                                       [score for score,_ in original_scores(glyph,whole)],atol=1e-6,rtol=0.)

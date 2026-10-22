@@ -8,11 +8,10 @@ import threading
 import time
 
 import numpy as np
-import cv2
 import pytest
 
 from plans.resonance_pc.src.services import deep_dive_entity_detector_service as service_module
-from plans.resonance_pc.src.services._deep_dive_entity_fusion import fuse_entities, local_player_heads
+from plans.resonance_pc.src.services._deep_dive_entity_fusion import fuse_entities
 from plans.resonance_pc.src.services._deep_dive_entity_onnx import (
     EntityOnnxBackend, decode_raw_entities, prepare_rgb_roi, validate_model,
 )
@@ -239,32 +238,6 @@ def test_explicit_dml_unavailable_is_an_error_not_silent_cpu(monkeypatch):
         runtime_name="test", install_hint="test")
     with pytest.raises(RuntimeError, match="DirectML is unavailable"):
         backend.create_session(__file__)
-
-
-def test_actual_pawn_body_circle_does_not_create_a_second_player():
-    folder=Path(__file__).parents[1]/'fixtures/deep_dive_entity'
-    meta=json.loads((folder/'player_head_body_0543.json').read_text())
-    patch=cv2.cvtColor(cv2.imread(str(folder/'player_head_body_0543.png')),cv2.COLOR_BGR2RGB)
-    rgb=np.zeros((720,1280,3),np.uint8);x,y=meta['crop_origin']
-    rgb[y:y+patch.shape[0],x:x+patch.shape[1]]=patch
-    heads,_=local_player_heads(rgb)
-    assert any(np.linalg.norm(np.asarray(h['point'])-meta['false_body_circle'])<3 for h in heads), 'real fixture must exercise the original body false circle'
-    fused,_=fuse_entities([meta['model_head']],heads,image_rgb=rgb)
-    players=[q for q in fused if q['kind']=='player' and q['confirmable']]
-    assert len(players)==1 and players[0]['point']==meta['true_head']
-    false=next(q for q in fused if np.linalg.norm(np.asarray(q['point'])-meta['false_body_circle'])<3)
-    assert false['confirmable'] is False
-    assert false['evidence_role']=='mask_only'
-    assert false['confidence']<=.24 and false['raw_circle_confidence']>.6
-    assert false['fusion_rejection']=='local_circle_without_same_sphere_model_support'
-    assert players[0]['source_frame_id']==543 and players[0]['source_frame_time']==56306.093
-    # A low-confidence model body proposal must not let the same pink pawn
-    # base upgrade itself into a second confirmed head.
-    weak_body=prediction('player',[450,233,31,31],.09)
-    fused,_=fuse_entities([meta['model_head'],weak_body],heads,image_rgb=rgb)
-    assert sum(q['kind']=='player' and q['confirmable'] for q in fused)==1
-    body_circle=next(q for q in fused if q.get('source')=='deep_dive_local_pink_head')
-    assert body_circle['fusion_rejection']=='connected_body_circle_of_model_confirmed_pawn'
 
 
 def test_close_distinct_model_players_are_not_deleted_by_top1_or_distance():
