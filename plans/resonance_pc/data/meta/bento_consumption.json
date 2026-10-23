@@ -47,8 +47,8 @@
     },
     "effect": {
       "path": "templates/recovery/bento/controls/effect.png",
-      "roi": [641, 241, 91, 91],
-      "threshold": 0.95
+      "roi": [561, 309, 50, 39],
+      "threshold": 0.9
     },
     "rating_page": {
       "path": "templates/recovery/bento/controls/rating_page.png",

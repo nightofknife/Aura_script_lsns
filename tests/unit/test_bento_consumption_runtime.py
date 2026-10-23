@@ -500,6 +500,12 @@ def test_different_detail_food_is_rejected_before_use(tmp_path, monkeypatch, clo
     ("work_disabled", "use_disabled", True), ("rating_empty", "rating_confirm", False),
     ("rating_one", "rating_confirm", True), ("rating_five", "rating_confirm", True),
     ("effect", "effect", True), ("work_confirmation", "confirm_use", True),
+    ("effect_blue_background", "effect", True),
+    ("work_usable", "effect", False), ("work_disabled", "effect", False),
+    ("work_not_issued", "effect", False), ("love_usable", "effect", False),
+    ("work_confirmation", "effect", False), ("love_confirmation", "effect", False),
+    ("rating_empty", "effect", False), ("rating_one", "effect", False),
+    ("rating_five", "effect", False),
 ])
 def test_real_screenshot_template_states(tmp_path, frame_name, key, expected):
     frame = np.array(Image.open(FIXTURES / f"{frame_name}.png").convert("RGB"))
