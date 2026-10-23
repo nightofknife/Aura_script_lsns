@@ -24,7 +24,7 @@ REMOVED = {
     "navigate_reforming_center_room_pc": "open_reforming_center_room_pc",
 }
 RENAMED = {"consciousness_deep_dive_single_run_test_pc": "consciousness_deep_dive_random_run_pc"}
-ADDED = {"affix_refresh_pc", "affix_refresh_read_pc"}
+ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehouse_to_train_pc"}
 
 
 def definitions():
@@ -49,11 +49,11 @@ def test_all_64_source_definitions_accounted_without_old_aliases():
     current = definitions()
     assert len(inventory) == len(original) == 64
     assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values()) | ADDED
-    assert len(current) == 61
+    assert len(current) == 62
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
-        "lifecycle": 2, "orchestration": 1, "user_task": 11, "user_tool": 3,
+        "lifecycle": 2, "orchestration": 1, "user_task": 12, "user_tool": 3,
         "developer": 9, "internal": 35,
     }
 
@@ -62,7 +62,7 @@ def test_runtime_and_manifest_publish_one_matching_canonical_entry_per_definitio
     loader = TaskLoader("resonance_pc", PLAN)
     runtime = loader.get_all_task_definitions()
     assert not loader.get_task_load_errors()
-    assert len(runtime) == 61
+    assert len(runtime) == 62
     generated = ManifestGenerator(PLAN).generate()["exports"]["tasks"]
     assert {row["id"] for row in generated} == set(runtime)
     assert len(generated) == len(runtime)
@@ -89,11 +89,43 @@ def test_user_discovery_uses_roles_and_keeps_internal_tasks_resolvable():
     rows = [{"plan_name": "resonance_pc", "full_task_id": key, "task_ref": key, "meta": spec["meta"]}
             for key, spec in definitions().items()]
     selected = select_tasks(rows)
-    assert len(selected) == 17
+    assert len(selected) == 18
     assert all(task_role(row["meta"]) in PUBLIC_TASK_ROLES for row in selected)
     assert {row["task_ref"] for row in select_tasks(rows, roles=("developer",))} == {
         key for key, spec in definitions().items() if spec["meta"]["role"] == "developer"}
     assert not is_user_entry(definitions()["player_data_get_latest"]["meta"])
+
+
+def test_warehouse_withdrawal_public_inputs_and_results_are_explicit():
+    task = definitions()["withdraw_product_warehouse_to_train_pc"]
+    meta = task["meta"]
+    assert meta["role"] == "user_task"
+    assert meta["domain"] == "整顿中心"
+    assert meta["entry_point"] is True
+    assert meta["concurrency"] == "exclusive"
+    assert is_user_entry(meta)
+    assert meta["inputs"] == [
+        {"name": "goods", "type": "list", "required": False, "nullable": True,
+         "default": [], "item": {"name": "goods", "type": "string", "required": True}},
+        {"name": "quantity_threshold", "type": "number", "strict_integer": True,
+         "required": False, "default": 1, "min": 0},
+    ]
+    assert task["steps"] == {
+        "transfer": {
+            "action": "resonance_pc.withdraw_product_warehouse_to_train",
+            "params": {"goods": "{{ inputs.goods }}",
+                       "quantity_threshold": "{{ inputs.quantity_threshold }}"},
+        },
+    }
+    outputs = (
+        "success", "status", "reason", "stop_reason", "goods_taken", "total_taken",
+        "unknown_goods", "reconcile_complete", "remaining_targets", "scan_complete",
+        "unresolved", "issues", "returned_to_overview", "page_after", "submission_state",
+        "server_readback_confirmed", "input_receipts", "results",
+    )
+    assert task["returns"] == {
+        name: "{{ nodes.transfer.output." + name + " }}" for name in outputs
+    }
 
 
 @pytest.mark.parametrize("meta", [{}, {"entry_point": True}, {"role": "obsolete"},

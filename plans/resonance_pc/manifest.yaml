@@ -2430,6 +2430,23 @@ exports:
     timeout: null
     description: Get latest cached Resonance PC player data.
     parameters: []
+  - name: resonance_pc.withdraw_product_warehouse_to_train
+    module: plans.resonance_pc.src.actions.prison_warehouse_pc_actions
+    function: resonance_pc_withdraw_product_warehouse_to_train
+    public: true
+    read_only: false
+    timeout: null
+    description: Withdraw selected eligible products into existing train cargo and
+      return to the reforming-center overview.
+    parameters:
+    - name: goods
+      type: Any
+      required: false
+      default: null
+    - name: quantity_threshold
+      type: Any
+      required: false
+      default: 1
   - name: resonance_pc.product_collection_assets
     module: plans.resonance_pc.src.actions.product_collection_pc_actions
     function: resonance_pc_product_collection_assets
@@ -2502,22 +2519,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.withdraw_product_warehouse_to_train
-    module: plans.resonance_pc.src.actions.prison_warehouse_pc_actions
-    function: resonance_pc_withdraw_product_warehouse_to_train
-    public: true
-    read_only: false
-    timeout: null
-    description: Withdraw eligible finished products into existing train cargo, rescan once and return to the reforming-center overview.
-    parameters:
-    - name: goods
-      type: Any
-      required: false
-      default: null
-    - name: quantity_threshold
-      type: int
-      required: false
-      default: 1
   - name: resonance_pc.product_workshop_staff_assets
     module: plans.resonance_pc.src.actions.product_workshop_staff_pc_actions
     function: resonance_pc_product_workshop_staff_assets
@@ -3307,12 +3308,6 @@ exports:
     description: 从普通整顿中心总览识别1～6号生产车间开放状态，跳过未开放车间，依次领取已开放车间的成品并返回总览；仓满提示取消后停止。
     role: user_task
     domain: 整顿中心
-  - id: withdraw_product_warehouse_to_train_pc/withdraw_product_warehouse_to_train_pc
-    title: 成品仓取货到列车
-    source: tasks/withdraw_product_warehouse_to_train_pc.yaml
-    description: 从普通整顿中心总览取指定达标成品到列车，复扫余货并返回总览，输出本次新增货物数量。
-    role: user_task
-    domain: 整顿中心
   - id: consciousness_deep_dive_capture_pc/consciousness_deep_dive_capture_drag_chunk_pc
     title: Consciousness Deep Dive Capture Drag Chunk (PC)
     source: tasks/consciousness_deep_dive_capture_pc.yaml
@@ -3537,6 +3532,12 @@ exports:
       towing service and confirm departure. Does not wait for arrival or drive normally.
     role: internal
     domain: 商贸运输
+  - id: withdraw_product_warehouse_to_train_pc/withdraw_product_warehouse_to_train_pc
+    title: 成品仓取货到列车
+    source: tasks/withdraw_product_warehouse_to_train_pc.yaml
+    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取成品到列车；只读复扫后返回总览，输出本次新增货物及数量。
+    role: user_task
+    domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-21T15:14:13Z'
+  generated_at: '2026-10-23T09:51:20Z'
