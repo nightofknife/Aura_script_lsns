@@ -1,0 +1,421 @@
+{
+  "schema_version": 1,
+  "experimental": true,
+  "offline_only": true,
+  "auto_click_ready": false,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "card_size": [
+    84,
+    84
+  ],
+  "input_order": "RGB",
+  "sources": [
+    {
+      "id": "warehouse_before",
+      "path": "development/template_sources/warehouse_transfer/screenshots/warehouse_before.png",
+      "sha256": "95ac2d5a1bc4164bba7c19b1ac217d2e1c4054c87641bcfc67d098579db7b851",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ]
+    },
+    {
+      "id": "warehouse_connected",
+      "path": "development/template_sources/warehouse_transfer/screenshots/warehouse_connected.png",
+      "sha256": "5cb3c666688eead957ca558a4b519d8b6ef915c11cb1d7cd932d1c2b5432df76",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ]
+    },
+    {
+      "id": "warehouse_after",
+      "path": "development/template_sources/warehouse_transfer/screenshots/warehouse_after.png",
+      "sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ]
+    }
+  ],
+  "sample_fixture": {
+    "path": "development/template_sources/warehouse_transfer/quantity_samples.json",
+    "sha256": "db774d599b87ec9cc2e15942b933e16c5f592625fd335689f5c48a7594d79d81"
+  },
+  "templates": [
+    {
+      "id": "digit_0_ones",
+      "digit": "0",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_0_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_0_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_0_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_0_ones.response.npy",
+      "sha256": {
+        "patch": "e8458dc16161cdc0a4666be77047130503e096911ab9eed3fce949345e29dc5a",
+        "source_card": "6fddc6d0d1487e6dcd931cbcfa177a27faacf7ee667f97157242be6a310e0d5c",
+        "mask": "6b57478e68708378a52ccc9a5129361c1280e092f52a4c25de44a386356179ea",
+        "response": "da0bf2899c9617dffd4df03dd1c01121abb81383653fa22ca2a2bdb0a379c717"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "product",
+      "source_card_bbox": [
+        586,
+        431,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        65,
+        13,
+        17
+      ],
+      "white_bar_y": 78,
+      "white_seed_x_range": [
+        73,
+        83
+      ]
+    },
+    {
+      "id": "digit_1_ones",
+      "digit": "1",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_1_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_1_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_1_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_1_ones.response.npy",
+      "sha256": {
+        "patch": "872ac240596b2e5744a4f5f666a41bd0799195f25c1aaf7c81ada95b2aa61870",
+        "source_card": "8fe09e414e0c178ccbbf72ab6eff91f70d39751fdc402cb872b4d4d20ffe3d15",
+        "mask": "238ced53d10c55e63a0df442ac6114c88e65c0bb1a251a00c6d3200bd69dc493",
+        "response": "6fda9202af8bac9058ab9ef80d59c47eecef77cedd5083cde51ac152efa7e7ba"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_0_1",
+      "source_card_bbox": [
+        124,
+        151,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        66,
+        13,
+        17
+      ],
+      "white_bar_y": 79,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_2_ones",
+      "digit": "2",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_2_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_2_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_2_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_2_ones.response.npy",
+      "sha256": {
+        "patch": "9320224a7a0f103ef422515d4e2e306bc834e24a640c876911eace831a308803",
+        "source_card": "073caefbeb19a06c2f20be490028d60f43b5ea368c552b7c3c64074e583be420",
+        "mask": "d05871e81dee9dd529ea496cfe51817cc5fde03af58f481fdc7259a0c70db863",
+        "response": "6581172b717ebd944fb290ee71810cc571ef5220dce88deea3717dcba3c8859a"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_0_0",
+      "source_card_bbox": [
+        28,
+        151,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        66,
+        13,
+        17
+      ],
+      "white_bar_y": 79,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_2_tens_phase",
+      "digit": "2",
+      "variant": "tens_phase",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_2_tens_phase.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_2_tens_phase.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_2_tens_phase.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_2_tens_phase.response.npy",
+      "sha256": {
+        "patch": "5d32f47a098827fc79341b767b0f2885bddfa099936a1a419fb8a6967737c3e0",
+        "source_card": "6fddc6d0d1487e6dcd931cbcfa177a27faacf7ee667f97157242be6a310e0d5c",
+        "mask": "0ddf8333660d9c7faa751e81de761dfd30b05fbc1a4fb8a310306518be74b3f8",
+        "response": "e854769e55346d491185a9cf275857df8d1f5a503b1dc5a526937c8d516a8211"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "product",
+      "source_card_bbox": [
+        586,
+        431,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        61,
+        65,
+        13,
+        17
+      ],
+      "white_bar_y": 78,
+      "white_seed_x_range": [
+        61,
+        73
+      ]
+    },
+    {
+      "id": "digit_3_ones",
+      "digit": "3",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_3_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_3_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_3_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_3_ones.response.npy",
+      "sha256": {
+        "patch": "7be93dc039ccadb4bcf097f4951bef3c8c2d11a37a778eea31d28b2d38280794",
+        "source_card": "132a6c078af5ce80d2d62ad940a4803e3317517a27000d22799e4dd3d0e27d68",
+        "mask": "ef62f34bd5e21898b459156974acd3cb9dbe777a75824648ccdf6c788f347129",
+        "response": "c22a2f0507302d88276b9c34791c71aca4eae2958fa4dee37335fd774624c0fe"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_0_4",
+      "source_card_bbox": [
+        414,
+        151,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        66,
+        13,
+        17
+      ],
+      "white_bar_y": 79,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_4_ones",
+      "digit": "4",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_4_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_4_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_4_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_4_ones.response.npy",
+      "sha256": {
+        "patch": "61f2afe555c23af25554a8366a545b00079b318df25fd741e43fb318ef11452c",
+        "source_card": "374440c48a98fff8d13486447c2d0114ce005e11535065bb740c55f7ae7181c8",
+        "mask": "de28970883447ed1b228dd61cc772ab46c4972e6b1de4cece3258e6558dd0404",
+        "response": "f96daab5eb93e6a29b2c163b7c1a7aa676227d207a0c5e90274dbdb6cd6643a2"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_0_2",
+      "source_card_bbox": [
+        221,
+        151,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        66,
+        13,
+        17
+      ],
+      "white_bar_y": 79,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_5_ones",
+      "digit": "5",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_5_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_5_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_5_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_5_ones.response.npy",
+      "sha256": {
+        "patch": "29d3d4c35be3f847441b52bbb209e7ea461950c2be5cf3583af66914ee4e8dcd",
+        "source_card": "9dde429b132dc80d01b8e2c134e0dc21c463f152d402c2bea65d0a35b12dbc23",
+        "mask": "9c298d811d0e3c73c069b4e23e05074e989f9e5733056c5823a03f05db6eb2bb",
+        "response": "a7e0aa4784b831c219b4274774ef8f77043d7f0ef3a19bb87e880ae742c11c41"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_2_1",
+      "source_card_bbox": [
+        124,
+        344,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        65,
+        13,
+        17
+      ],
+      "white_bar_y": 78,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_6_ones",
+      "digit": "6",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_6_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_6_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_6_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_6_ones.response.npy",
+      "sha256": {
+        "patch": "4b702e446d2a2e5f9b7510864f1bdbf79e8394424be99cf3d24b8332c272ec98",
+        "source_card": "4e57afc9d04adcf917acb55ca115ed28e8d8785ab3548fe73c50d340a41d6424",
+        "mask": "23ac3ef689b7c2df0845ca4a40abe10d4183abc59c4f4d7282a13f52f7d1cb2c",
+        "response": "a29aba810f290ef1726f6ea81fef0aaea3bc7625fdf6b43573ff9ae02ea8e779"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_1_0",
+      "source_card_bbox": [
+        28,
+        247,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        66,
+        13,
+        17
+      ],
+      "white_bar_y": 79,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    },
+    {
+      "id": "digit_7_ones",
+      "digit": "7",
+      "variant": "ones",
+      "status": "supplied_screenshot_calibrated",
+      "patch": "templates/workshop/warehouse/digits/digit_7_ones.patch.png",
+      "source_card": "templates/workshop/warehouse/digits/digit_7_ones.card.png",
+      "mask": "templates/workshop/warehouse/digits/digit_7_ones.mask.png",
+      "response": "templates/workshop/warehouse/digits/digit_7_ones.response.npy",
+      "sha256": {
+        "patch": "b74a37474d44a2b29892de00ac9c6ea5139e2c37dcb8c463611c2ce40fd01e87",
+        "source_card": "09412b880f6f6dac5f554efd1de9f9b3debc65aa11ac2148a31dad40cc5e5084",
+        "mask": "a9a24677307c800c0611f919ec52337bd6f2ef64e46b64377df004aa65032351",
+        "response": "187accfc902b8583d03fc00cc91bd08837176a6a36463c95657f860a9f07fae7"
+      },
+      "source_capture": "warehouse_connected",
+      "source_sample": "train_3_3",
+      "source_card_bbox": [
+        318,
+        441,
+        84,
+        84
+      ],
+      "source_patch_bbox_in_card": [
+        70,
+        64,
+        13,
+        17
+      ],
+      "white_bar_y": 77,
+      "white_seed_x_range": [
+        70,
+        83
+      ]
+    }
+  ],
+  "pending_native_candidates": [
+    {
+      "digit": "8",
+      "image": "templates/workshop/warehouse/digits/digit_8.native_unvalidated.png",
+      "sha256": "8395e4ea529b5abea40e8a41550d337aee27d125b4b223d22a3445582815c679",
+      "status": "native_font_candidate_not_screenshot_calibrated",
+      "used_by_reader": false,
+      "font_path_id": -4884400286118422667,
+      "font_sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47",
+      "font_size": 13
+    },
+    {
+      "digit": "9",
+      "image": "templates/workshop/warehouse/digits/digit_9.native_unvalidated.png",
+      "sha256": "ea913acbabe1313ea741fb65ef28109d7ad4484c37b680d0728ba07de9bbb020",
+      "status": "native_font_candidate_not_screenshot_calibrated",
+      "used_by_reader": false,
+      "font_path_id": -4884400286118422667,
+      "font_sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47",
+      "font_size": 13
+    }
+  ],
+  "reader": {
+    "max_digits": 4,
+    "digit_advance": 9,
+    "minimum_score": 0.62,
+    "digit_minimum_score": {
+      "0": 0.9,
+      "1": 0.62,
+      "2": 0.86,
+      "3": 0.8,
+      "4": 0.78,
+      "5": 0.9,
+      "6": 0.9,
+      "7": 0.9
+    },
+    "minimum_margin": 0.15,
+    "absence_score_ceiling": 0.45,
+    "unexplained_white_pixel_limit": 3
+  },
+  "method": "Per-glyph high-pass response minus common row response; native-position support masks; right-aligned 9px advances; no connected-component split and no whole-number-20 template.",
+  "limits": [
+    "Calibrated glyphs are 0..7; 8/9 remain unresolved and may resemble a known glyph.",
+    "Only 20 is a supplied multi-digit value; arbitrary 1-4 digit strings are a decoding mechanism, not an observed accuracy claim.",
+    "The 0 and a 2 phase variant share the supplied product-20 seed; two other 20 observations are same commodity across captures.",
+    "Per-digit acceptance thresholds were fit on this supplied capture set; this is calibration, not held-out accuracy.",
+    "Strict white-bar confirmation intentionally rejects dimmed train cards.",
+    "Synthetic white-bar and damaged-glyph negatives are bounded diagnostics, not exhaustive unknown-symbol validation.",
+    "No task, capture, click or automatic loading integration exists."
+  ]
+}

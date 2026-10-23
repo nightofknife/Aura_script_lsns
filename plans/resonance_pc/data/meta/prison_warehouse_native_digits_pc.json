@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "experimental": true,
+  "offline_only": true,
+  "auto_click_ready": false,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "card_size": [
+    84,
+    84
+  ],
+  "input_order": "RGB",
+  "source": {
+    "font_bundle": "ui/font.asset",
+    "font_bundle_sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "font_path_id": -4884400286118422667,
+    "font_name": "HarmonyOS_Sans_Bold",
+    "font_sha256": "7f973862c42353c9cc372dc2ae891d12c9ea5fe2a01b449adaf1eade9b469b47",
+    "font_data_bytes": 145860,
+    "serialized_character_rect_count": 0,
+    "font_texture_path_id": 2552172866486195901,
+    "font_texture_size": [
+      0,
+      0
+    ],
+    "font_texture_complete_image_size": 0,
+    "prefab": "ui/prison/prisonwarehouse/prisonwarehouse.asset",
+    "prefab_sha256": "6081c8fcb412e14d3c98f5d342bb0b4a48eb483704002e07148bdda27d112f95",
+    "number_node": "/PrisonWarehouse/Group_ProductWarehouse/Group_ProductWarehouse/ScrollGrid_Warehouse/Viewport/Grid/Group_Item_000/Group_Item/Txt_Num",
+    "native_font_data": {
+      "m_Font": {
+        "m_FileID": 2,
+        "m_PathID": -4884400286118422667
+      },
+      "m_FontSize": 28,
+      "m_FontStyle": 1,
+      "m_BestFit": 0,
+      "m_MinSize": 0,
+      "m_MaxSize": 258,
+      "m_Alignment": 5,
+      "m_AlignByGeometry": 0,
+      "m_RichText": 1,
+      "m_HorizontalOverflow": 0,
+      "m_VerticalOverflow": 0,
+      "m_LineSpacing": 1.0
+    },
+    "native_text_color": {
+      "r": 1.0,
+      "g": 1.0,
+      "b": 1.0,
+      "a": 1.0
+    },
+    "native_outline": {
+      "m_EffectColor": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "a": 0.658823549747467
+      },
+      "m_EffectDistance": {
+        "x": 1.0,
+        "y": 1.0
+      },
+      "m_UseGraphicAlpha": 1
+    },
+    "scale_chain": [
+      0.7,
+      0.6666666666666666
+    ],
+    "pixel_origin": "Native TTF rendered with Pillow/FreeType; not a Unity glyph atlas and not screenshot crops."
+  },
+  "selected_style": {
+    "scale": 0.4666666666666666,
+    "synthetic_bold_pixels": 0,
+    "phase_x": -0.33,
+    "phase_y": 0.33,
+    "resample": "bilinear"
+  },
+  "templates": [
+    {
+      "digit": "0",
+      "image": "templates/workshop/warehouse/native_digits/digit_0.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_0.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_0.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_0.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_0.response.npy",
+      "sha256": {
+        "image": "60b6066052d7feef88855090048efc75b03d844f9e358d5efbbc2ad090ca4e11",
+        "fill": "ce0ef423d9552ddf962612a497f4c6f253216f1f1fe443c07f75147b2b94c40a",
+        "outline": "77a6539d09b16750e14f43dd5684dc709bbb97914ebab114f94cace75fd01837",
+        "mask": "1d006779d462d6d589d22f091e6d480c544f895d28768f8e5e26d12fa58a39ee",
+        "response": "f4b7eab74ba8fd4cef1f48c0eaff5efa7573a0a7854ed55cf3ce3044722b4c8f"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "1",
+      "image": "templates/workshop/warehouse/native_digits/digit_1.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_1.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_1.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_1.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_1.response.npy",
+      "sha256": {
+        "image": "66f76bb5214db2c54aeb38a80c5405789a228f702758863d6f8207e88b01ac1d",
+        "fill": "2249a647daf8ea6911c73e50b2e95239899b79a5c01e9e0fdb75f3e78085e6ea",
+        "outline": "79fe9906010c20cf851150a59c624c48dcda775aafa0953f7a94be7df44e6fec",
+        "mask": "92c94e61698dc9e0a36e8f5491858327956cbe3c602396c86f634425cc78d44c",
+        "response": "3dc82aecafb9680a5a4270b0a5d65bad90ee9437b6cd233f4d3e3fbfa635c085"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "2",
+      "image": "templates/workshop/warehouse/native_digits/digit_2.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_2.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_2.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_2.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_2.response.npy",
+      "sha256": {
+        "image": "682e0377b4e8b010340cb614366bcd82a6cb65b14b00034691a81c84b50556af",
+        "fill": "494cbf9ac1b5fc2e1f63ac8a7b9e3a0c632ccf52e1c50f20c2e4f052c9f78f52",
+        "outline": "9c7a424c98c237a24eb37240d61254e033309616d20173789873b91b61e38dca",
+        "mask": "0382c7cbeff58bec6c22454cf36a0dd498257daf618850c48e0cacc639ca8162",
+        "response": "177415834726dbfbd2f5765f45f4153c5b0a5247f841b66849cf951354fa4776"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "3",
+      "image": "templates/workshop/warehouse/native_digits/digit_3.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_3.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_3.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_3.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_3.response.npy",
+      "sha256": {
+        "image": "a4b9519958de3dd3c621f20086da5f00f2209211bc1ab32d982ed993444432d7",
+        "fill": "c44854d374c8bea424ca48740f6da5afa49b188f1213ae3a5c23aa51e6f95a51",
+        "outline": "6535ee99198c41e8eb0174035b4d20b9f1042f51b88c3b7ccfbec0435b76aae3",
+        "mask": "f94b49ff4005460eb647c4f72caee4ef377ba59618f6b9bb6a0a2f2d2abd0e5b",
+        "response": "a41fc55064ec5b68322b26eb9fb9f8c967b640894448cdea093eb3715989a79d"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "4",
+      "image": "templates/workshop/warehouse/native_digits/digit_4.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_4.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_4.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_4.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_4.response.npy",
+      "sha256": {
+        "image": "1cb50271f31e75fcc09edb94f02bba1e78a136c40c8e0071b66c76e564fe00da",
+        "fill": "a92cecc02b3f6fbb5d5305432f4cc60c2eef83910a0021579cd73846bcd2ee31",
+        "outline": "e73238d9115ad3260b059d9c4b7b998a6eec42e26fad290b2caa71b6bfc824c1",
+        "mask": "cb153f62f910cc3b72ba26a9efa7cfc1ecad27dea1a0fd7ee9bafb74c9a5bebc",
+        "response": "d0d2b8395dd03c76f861421e0ebc4987c9baef3e23102b1aa7fcf9fe965d8f8e"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "5",
+      "image": "templates/workshop/warehouse/native_digits/digit_5.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_5.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_5.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_5.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_5.response.npy",
+      "sha256": {
+        "image": "f2acd279ffa978ac020ca608457b6528c04af154cb23cdbdb3e588eb540d3b7b",
+        "fill": "e84bece16de99d287407b31b0be3c4852cb7ef6fd4adf1bc7c994076f00da798",
+        "outline": "92dff5cb0aaf25a4da080534e5aff670bbb4868e0081b2ffb36a1ae1179e5469",
+        "mask": "ebd899daab6bea14662d7e0d8741ef136345b77cc6107f891fe06f26c8678e11",
+        "response": "8ea2da5b98c03cb09c2476af7d2b5c3a76c5517fb2c8cc38b3168a1f8e0587a6"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "6",
+      "image": "templates/workshop/warehouse/native_digits/digit_6.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_6.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_6.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_6.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_6.response.npy",
+      "sha256": {
+        "image": "7d5d5e31da33c643e0cbbb288d20c7e87397210716506961fdce6b757165aee2",
+        "fill": "2f5f4904a0c597527cb72a060e2cac33e1a2d799414db8f585b8452b167f7161",
+        "outline": "3191516b230d5154940612d1587844f44a0228d2cf8474bc211509d7924d6637",
+        "mask": "15a2f0e18844616ebfe46f9863a354175ca36ed06b057e8421399c9b26e1a2a7",
+        "response": "7263f2f4ec1b3d7ef882b247ffce4ce80d1ce54cbedd24887216dd7c85404337"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "7",
+      "image": "templates/workshop/warehouse/native_digits/digit_7.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_7.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_7.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_7.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_7.response.npy",
+      "sha256": {
+        "image": "aaab6a32a0818e1afd2cfaf485f6715679b94818e0daf8b1a3624cd87f128760",
+        "fill": "e42535bd92071fac32a45b1027716508a7eefa377ca2083adab20fe5a6cf7290",
+        "outline": "6e9f9c65895ab003b173572fd4463f240ec18e290201e5aa209adee99860aed1",
+        "mask": "69b67b180dfaee55872f9182f0483a6178c6b854b916961f99d031a0df0e264b",
+        "response": "ae9c70775325b07d34afcd2e6ac8a42e10e664bd5a66b275315c9d348c7fe59c"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": true
+    },
+    {
+      "digit": "8",
+      "image": "templates/workshop/warehouse/native_digits/digit_8.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_8.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_8.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_8.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_8.response.npy",
+      "sha256": {
+        "image": "442d29fe0c0480c3cb952c2b563121168c6933230c0697015c222178653ff761",
+        "fill": "062ecaf5717dec00b68cfd22ce9fc0065227ff9bb81e329705ccad27c1ea867f",
+        "outline": "2d0f4ca91f1672669f8f7373dc224f17ffb613ed7f5f919f7e58d9e57688cd5c",
+        "mask": "ae38cec42f251e600995a03bd838aa4bbba0875899969cd61c88174a3977aec1",
+        "response": "aaeec27a6791aefd7b3660a5c36138bdd06a783d547ae0bd398a908b6a67d16b"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": false
+    },
+    {
+      "digit": "9",
+      "image": "templates/workshop/warehouse/native_digits/digit_9.png",
+      "fill": "templates/workshop/warehouse/native_digits/digit_9.fill.png",
+      "outline": "templates/workshop/warehouse/native_digits/digit_9.outline.png",
+      "mask": "templates/workshop/warehouse/native_digits/digit_9.mask.png",
+      "response": "templates/workshop/warehouse/native_digits/digit_9.response.npy",
+      "sha256": {
+        "image": "1343678df6ce55db2d5c256c5271cccf8e1c292ae7e39cc10129117fdaa4ec12",
+        "fill": "850087c412b331d481d7f1c9fe8e30ea0ec467633702e89bb46521fc1cc782a1",
+        "outline": "cc63845783334172de0d7a49ebf11480c633107ec00e7c1d2fc3bb45e8f74108",
+        "mask": "a2feb6569baf65aa3ccfa85ebf39f5cde1005cb04937ed75ce2962bb6007f73a",
+        "response": "ab5c62203aa740b1b0679f70febeaadbfa3b2cca6bed266cbc21192c69a84dc7"
+      },
+      "kind": "native_ttf_render_reconstruction",
+      "observed_in_supplied_captures": false
+    }
+  ],
+  "sample_fixture": {
+    "path": "development/template_sources/warehouse_transfer/quantity_samples.json",
+    "sha256": "db774d599b87ec9cc2e15942b933e16c5f592625fd335689f5c48a7594d79d81"
+  },
+  "reader": {
+    "max_digits": 4,
+    "digit_advance": 9,
+    "minimum_score": 0.6,
+    "minimum_margin": 0.1,
+    "absence_score_ceiling": 0.45
+  },
+  "calibration": {
+    "search_profiles": 108,
+    "selection_metric": "Known-length classification followed by mean true-glyph score on all supplied active samples",
+    "screenshot_pixels_used_for_template_rendering": false
+  },
+  "limits": [
+    "This is FreeType reconstruction from native TTF, not the runtime Unity atlas or screenshot glyph crops.",
+    "All supplied active samples participated in parameter selection; results are calibration, not held-out accuracy.",
+    "Known-length diagnostics use hand labels to define glyph count and are separate from unknown-length reader outcomes.",
+    "Digit 8/9 templates exist but no supplied capture contains either; recognition coverage for them remains unmeasured.",
+    "Native 8/9 can still resemble a known digit; rejecting an 8/9 top candidate is not a guarantee against their misclassification.",
+    "Bold is requested by the native Text and the TTF face is already Bold; extra synthetic emboldening was only a compared model.",
+    "Only 20 is a supplied multi-digit stack; arbitrary 1-4 digit decoding is not a measured coverage claim.",
+    "No capture, click, task or automatic loading integration exists."
+  ]
+}

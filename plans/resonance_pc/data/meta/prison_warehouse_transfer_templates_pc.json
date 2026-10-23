@@ -1,0 +1,564 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "kind": "supplied_screenshot_crops",
+  "live_calibrated": false,
+  "calibration": "Offline comparison on four user-supplied captures only; no live clicks or subsequent frames.",
+  "color_contract": "PNG is RGB. OpenCV images are BGR. Preserve color and apply both normalized SQDIFF score and color MAE limit.",
+  "shared_templates": {
+    "back": "GLOBAL_BACK"
+  },
+  "shared_template_calibration": {
+    "back": {
+      "profile": "GLOBAL_BACK",
+      "image": "templates/navigation/global/back.png",
+      "sha256": "98be348c46581cddfdc0575125d2b38c99ceb2958b4521837a996223f9c3e443",
+      "threshold": 0.86,
+      "roi": [
+        0,
+        0,
+        170,
+        80
+      ],
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "none",
+      "results": [
+        {
+          "capture": "capture_1",
+          "score": 0.9943,
+          "detected": true,
+          "bbox_xywh": [
+            16,
+            14,
+            134,
+            46
+          ]
+        },
+        {
+          "capture": "capture_2",
+          "score": 0.991763,
+          "detected": true,
+          "bbox_xywh": [
+            16,
+            14,
+            134,
+            46
+          ]
+        },
+        {
+          "capture": "capture_3",
+          "score": 0.991763,
+          "detected": true,
+          "bbox_xywh": [
+            16,
+            14,
+            134,
+            46
+          ]
+        },
+        {
+          "capture": "capture_4",
+          "score": 0.991763,
+          "detected": true,
+          "bbox_xywh": [
+            16,
+            14,
+            134,
+            46
+          ]
+        }
+      ],
+      "limit": "Present on both overview and warehouse pages; the back control alone does not prove the source page."
+    }
+  },
+  "excluded": [
+    "maximum_mode_detection",
+    "inventory_digit_recognition",
+    "goods_icon_catalog",
+    "transfer_actions"
+  ],
+  "sources": [
+    {
+      "id": "capture_1",
+      "source_image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/overview.png",
+      "original_name": "codex-clipboard-c4766d9d-602d-4b63-8e40-ae50dbabf3ab.png",
+      "original_sha256": "fdaf1e5b89fddc2f12341277db7b1a7d0d6351347d92655767ae2e819e35104f",
+      "original_size": [
+        1282,
+        752
+      ],
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "client_size": [
+        1280,
+        720
+      ],
+      "client_sha256": "69f6780fb2c2130417bf4ecdf05e67453f531f148e89e0adb758309991f51ad5",
+      "state": "prison_overview",
+      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_1_original.png",
+      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_1_client.png"
+    },
+    {
+      "id": "capture_2",
+      "source_image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_before.png",
+      "original_name": "codex-clipboard-701f5a52-8d47-42b8-b583-b5a381dd1267.png",
+      "original_sha256": "95ac2d5a1bc4164bba7c19b1ac217d2e1c4054c87641bcfc67d098579db7b851",
+      "original_size": [
+        1282,
+        752
+      ],
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "client_size": [
+        1280,
+        720
+      ],
+      "client_sha256": "edc0000b6ed6380e32f1367d23caad4d8936b4babdaf531c8f98ab6cce80129b",
+      "state": "material_product_connected_product_empty",
+      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_2_original.png",
+      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_2_client.png"
+    },
+    {
+      "id": "capture_3",
+      "source_image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_connected.png",
+      "original_name": "codex-clipboard-f060df83-a7b3-4143-93af-25d4ec5bb072.png",
+      "original_sha256": "5cb3c666688eead957ca558a4b519d8b6ef915c11cb1d7cd932d1c2b5432df76",
+      "original_size": [
+        1282,
+        752
+      ],
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "client_size": [
+        1280,
+        720
+      ],
+      "client_sha256": "6ab6e36b4727e56afb88590beb0b331c6f97e864f04645f7a0ed1f792c63ff25",
+      "state": "train_product_connected_product_populated",
+      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_3_original.png",
+      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_3_client.png"
+    },
+    {
+      "id": "capture_4",
+      "source_image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_after.png",
+      "original_name": "codex-clipboard-4696c768-ee0e-4616-8535-735e04f32b93.png",
+      "original_sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62",
+      "original_size": [
+        1282,
+        752
+      ],
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "client_size": [
+        1280,
+        720
+      ],
+      "client_sha256": "492d4a4fbbd507694f6639a8b4a6c9ba0609ba8992a63fcbd24e29cc094b7614",
+      "state": "train_product_connected_product_empty_train_scrolled",
+      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_4_original.png",
+      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_4_client.png"
+    }
+  ],
+  "templates": {
+    "overview_warehouse_shortcut": {
+      "image": "templates/workshop/warehouse/controls/overview_warehouse_shortcut.png",
+      "bbox": [
+        42,
+        596,
+        68,
+        68
+      ],
+      "search_region": [
+        36,
+        590,
+        80,
+        80
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_1",
+      "sha256": "457d394723c89cf60b3d9a0f8574a2e7add463b1c3535b40fdcfeb4c91683cfc",
+      "source_bbox_xywh": [
+        42,
+        596,
+        68,
+        68
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "click": [
+        76,
+        630
+      ]
+    },
+    "overview_event_list": {
+      "image": "templates/workshop/warehouse/controls/overview_event_list.png",
+      "bbox": [
+        1086,
+        119,
+        194,
+        43
+      ],
+      "search_region": [
+        1080,
+        113,
+        200,
+        55
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_1",
+      "sha256": "a2518fd5ea65b3e8cf34f8914f197061911cdb0bac64066f071016f49afaf84c",
+      "source_bbox_xywh": [
+        1086,
+        119,
+        194,
+        43
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "click": [
+        1190,
+        140
+      ]
+    },
+    "train_title_active": {
+      "image": "templates/workshop/warehouse/controls/train_title_active.png",
+      "bbox": [
+        36,
+        91,
+        181,
+        38
+      ],
+      "search_region": [
+        30,
+        85,
+        193,
+        50
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_3",
+      "sha256": "28dade801ade8a2da44bac5a5b4d6b9765e4c863587c9e86dbc2fd516f4f9a2c",
+      "source_bbox_xywh": [
+        36,
+        91,
+        181,
+        38
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "train_title_inactive": {
+      "image": "templates/workshop/warehouse/controls/train_title_inactive.png",
+      "bbox": [
+        36,
+        91,
+        181,
+        38
+      ],
+      "search_region": [
+        30,
+        85,
+        193,
+        50
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_2",
+      "sha256": "22f77a98dbccb4447702fb94963849759270c36116bd2e494d81cc0fa024203b",
+      "source_bbox_xywh": [
+        36,
+        91,
+        181,
+        38
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "note": "Dimmed title state; brightness alone is not a page identity proof."
+    },
+    "product_title_active": {
+      "image": "templates/workshop/warehouse/controls/product_title_active.png",
+      "bbox": [
+        1118,
+        542,
+        94,
+        28
+      ],
+      "search_region": [
+        1112,
+        536,
+        106,
+        40
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_3",
+      "sha256": "04e1c48f315337a77c5a9b328e3a50d79ae4a8937df8f2ca375f421566e736e0",
+      "source_bbox_xywh": [
+        1118,
+        542,
+        94,
+        28
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "material_title_active": {
+      "image": "templates/workshop/warehouse/controls/material_title_active.png",
+      "bbox": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "search_region": [
+        1112,
+        204,
+        106,
+        40
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_2",
+      "sha256": "44ef47a6d38d50caea43dbde5fa00ff63a0941136ca932557098de62cbeb8ab2",
+      "source_bbox_xywh": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "material_title_inactive": {
+      "image": "templates/workshop/warehouse/controls/material_title_inactive.png",
+      "bbox": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "search_region": [
+        1112,
+        204,
+        106,
+        40
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_3",
+      "sha256": "f6628cdf5ea35d8a6ef8b888b24a5ce7aa00ed205159bd6c9bc36c07c6cba7f1",
+      "source_bbox_xywh": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "note": "Dimmed title state; brightness alone is not a page identity proof."
+    },
+    "tp_connection_selected": {
+      "image": "templates/workshop/warehouse/controls/tp_connection_selected.png",
+      "bbox": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "search_region": [
+        514,
+        460,
+        52,
+        171
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_3",
+      "sha256": "e5bbdb6490b90f294be4cd8455838df553eb78d8fb0a79edb1684da2a368659b",
+      "source_bbox_xywh": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "click": [
+        540,
+        546
+      ],
+      "note": "Fixed vertical TP button only; no goods or inventory digits. Require RGB and color MAE gate together."
+    },
+    "tp_connection_unselected": {
+      "image": "templates/workshop/warehouse/controls/tp_connection_unselected.png",
+      "bbox": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "search_region": [
+        514,
+        460,
+        52,
+        171
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_2",
+      "sha256": "96fbf084951561f52e1c6c433539b84d39fb2659176188124b2022da54235bf2",
+      "source_bbox_xywh": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "click": [
+        540,
+        546
+      ],
+      "note": "Fixed vertical TP button only; no goods or inventory digits. Require RGB and color MAE gate together."
+    },
+    "product_empty": {
+      "image": "templates/workshop/warehouse/controls/product_empty.png",
+      "bbox": [
+        775,
+        512,
+        75,
+        70
+      ],
+      "search_region": [
+        769,
+        506,
+        87,
+        82
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "score": "1-normalized_sqdiff",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
+      "source_capture": "capture_2",
+      "sha256": "4e99973b8d9511d2f9c700eaaa28cf1be606c21851255e2f5fbdf14d2ab726ed",
+      "source_bbox_xywh": [
+        775,
+        512,
+        75,
+        70
+      ],
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    }
+  },
+  "auxiliary_frame_probe": {
+    "bbox": [
+      12,
+      200,
+      7,
+      100
+    ],
+    "role": "Reference evidence for bright/dim train frame only; no runtime threshold or standalone state detector.",
+    "observations": [
+      {
+        "capture": "capture_1",
+        "mean_rgb": [
+          139.689,
+          162.62,
+          168.991
+        ]
+      },
+      {
+        "capture": "capture_2",
+        "mean_rgb": [
+          20.753,
+          31.777,
+          52.153
+        ]
+      },
+      {
+        "capture": "capture_3",
+        "mean_rgb": [
+          148.007,
+          150.716,
+          153.671
+        ]
+      },
+      {
+        "capture": "capture_4",
+        "mean_rgb": [
+          148.007,
+          150.716,
+          153.671
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "All matches use bounded position searches with six-pixel tolerance at 1280x720.",
+    "Source-image self matches establish crop provenance only, not generalization.",
+    "Cross-screenshot positives cover supplied states only; animation, scaling, other UI versions and obstruction remain unmeasured.",
+    "Product EMPTY was supplied at one fixed location; material EMPTY is deliberately outside its search region.",
+    "Warehouse titles are supporting page markers; TP state requires the fixed connection button state."
+  ]
+}

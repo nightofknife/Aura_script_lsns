@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "provenance": "Four user-supplied captures; the user operated the game. No game input or live execution by this calibration task.",
+  "original_size": [
+    1282,
+    752
+  ],
+  "client_crop_xyxy": [
+    1,
+    31,
+    1281,
+    751
+  ],
+  "client_size": [
+    1280,
+    720
+  ],
+  "coordinate_contract": "All control and card annotations are relative to the cropped 1280x720 client. Rectangles are XYWH unless explicitly marked XYXY.",
+  "sources": [
+    {
+      "capture_id": "capture_1",
+      "image": "screenshots/overview.png",
+      "original_attachment": "codex-clipboard-c4766d9d-602d-4b63-8e40-ae50dbabf3ab.png",
+      "sha256": "fdaf1e5b89fddc2f12341277db7b1a7d0d6351347d92655767ae2e819e35104f",
+      "state": "prison_overview"
+    },
+    {
+      "capture_id": "capture_2",
+      "image": "screenshots/warehouse_before.png",
+      "original_attachment": "codex-clipboard-701f5a52-8d47-42b8-b583-b5a381dd1267.png",
+      "sha256": "95ac2d5a1bc4164bba7c19b1ac217d2e1c4054c87641bcfc67d098579db7b851",
+      "state": "raw_product_link_selected"
+    },
+    {
+      "capture_id": "capture_3",
+      "image": "screenshots/warehouse_connected.png",
+      "original_attachment": "codex-clipboard-f060df83-a7b3-4143-93af-25d4ec5bb072.png",
+      "sha256": "5cb3c666688eead957ca558a4b519d8b6ef915c11cb1d7cd932d1c2b5432df76",
+      "state": "train_product_link_selected_product_has_20"
+    },
+    {
+      "capture_id": "capture_4",
+      "image": "screenshots/warehouse_after.png",
+      "original_attachment": "codex-clipboard-4696c768-ee0e-4616-8535-735e04f32b93.png",
+      "sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62",
+      "state": "train_product_link_selected_product_empty_train_scrolled"
+    }
+  ],
+  "visible_warehouse_goods": {
+    "product_id": "113",
+    "name": "涤纶",
+    "quantity": 20,
+    "observed_in": [
+      "warehouse_before:raw_warehouse",
+      "warehouse_connected:product_warehouse",
+      "warehouse_after:train"
+    ]
+  },
+  "limits": [
+    "Only four supplied scenes; reused and duplicate pixels are not independent observations.",
+    "Goods and quantity calibration compare against explicit manual labels, not OCR-derived labels.",
+    "No timing, animation, transition retries, game clicks or server persistence were exercised."
+  ]
+}

@@ -1,0 +1,49 @@
+withdraw_product_warehouse_to_train_pc:
+  meta:
+    role: user_task
+    domain: 整顿中心
+    title: 成品仓取货到列车
+    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取成品到列车；只读复扫后返回总览，输出本次新增货物及数量。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: goods
+        type: list
+        required: false
+        nullable: true
+        default: []
+        item:
+          name: goods
+          type: string
+          required: true
+      - name: quantity_threshold
+        type: number
+        strict_integer: true
+        required: false
+        default: 1
+        min: 0
+  steps:
+    transfer:
+      action: resonance_pc.withdraw_product_warehouse_to_train
+      params:
+        goods: "{{ inputs.goods }}"
+        quantity_threshold: "{{ inputs.quantity_threshold }}"
+  returns:
+    success: "{{ nodes.transfer.output.success }}"
+    status: "{{ nodes.transfer.output.status }}"
+    reason: "{{ nodes.transfer.output.reason }}"
+    stop_reason: "{{ nodes.transfer.output.stop_reason }}"
+    goods_taken: "{{ nodes.transfer.output.goods_taken }}"
+    total_taken: "{{ nodes.transfer.output.total_taken }}"
+    unknown_goods: "{{ nodes.transfer.output.unknown_goods }}"
+    reconcile_complete: "{{ nodes.transfer.output.reconcile_complete }}"
+    remaining_targets: "{{ nodes.transfer.output.remaining_targets }}"
+    scan_complete: "{{ nodes.transfer.output.scan_complete }}"
+    unresolved: "{{ nodes.transfer.output.unresolved }}"
+    issues: "{{ nodes.transfer.output.issues }}"
+    returned_to_overview: "{{ nodes.transfer.output.returned_to_overview }}"
+    page_after: "{{ nodes.transfer.output.page_after }}"
+    submission_state: "{{ nodes.transfer.output.submission_state }}"
+    server_readback_confirmed: "{{ nodes.transfer.output.server_readback_confirmed }}"
+    input_receipts: "{{ nodes.transfer.output.input_receipts }}"
+    results: "{{ nodes.transfer.output.results }}"

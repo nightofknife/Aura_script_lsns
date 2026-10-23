@@ -1,0 +1,776 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "scope": "offline_native_font_preparation_and_ocr_on_user_supplied_captures",
+  "source_images": "manifest.json",
+  "quantity_hand_labels": "quantity_samples.json",
+  "live_game_verified": false,
+  "auto_click_ready": false,
+  "reports": [
+    {
+      "path": ".pytest_tmp/prison_warehouse_native_ocr_20261023/native/native_quantity_report.json",
+      "sha256": "786a8a288fd253487ddb0cc4e05e5a72aa1310937967cfde52c672252bff1b06"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_native_ocr_20261023/native/native_sweep_profiles.json",
+      "sha256": "bde9c5eb078b0531839fcc7877047ae0610ed51d7c199b34f72007117d48fdf2"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_native_ocr_20261023/native/common_mask_probe_summary.json",
+      "sha256": "35168dd8606f6092ae2ab566f1994bca4adbbd7ca4c4db02fe031d737856eb37"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_native_ocr_20261023/ocr/ocr_comparison_report.json",
+      "sha256": "af3e96a72e2ea9cb7b4ac28bb5b05ccc4fbe1b61d929fedb952487037698be0a"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_native_ocr_20261023/ocr/synthetic_native_ocr_diagnostic.json",
+      "sha256": "248d185d97bc8ac5f79a128cc845ebe233a84d5617745ee945445278b3bb17e2"
+    }
+  ],
+  "native": {
+    "catalog": "data/meta/prison_warehouse_native_digits_pc.json",
+    "source": "Embedded HarmonyOS_Sans_Bold TTF; no serialized glyph atlas; native 28px outline rendering reconstruction, no screenshot glyph pixels.",
+    "generated_digits": "0123456789",
+    "real_capture_digit_coverage": "01234567",
+    "render_profile_count": 108,
+    "selected_style": {
+      "scale": 0.4666666666666666,
+      "synthetic_bold_pixels": 0,
+      "phase_x": -0.33,
+      "phase_y": 0.33,
+      "resample": "bilinear"
+    },
+    "summaries": {
+      "active": {
+        "count": 47,
+        "recognized_correct_unknown_length": 36,
+        "unknown": 11,
+        "wrong_accepted": 0,
+        "known_length_correct_diagnostic": 47
+      },
+      "dim_train_diagnostic": {
+        "count": 25,
+        "recognized_correct_unknown_length": 0,
+        "unknown": 25,
+        "wrong_accepted": 0,
+        "known_length_correct_diagnostic": 0
+      },
+      "synthetic_negatives": {
+        "count": 7,
+        "rejected": 7
+      }
+    },
+    "known_length_is_diagnostic_only": true,
+    "alternative_common_masks_adopted": false
+  },
+  "ocr": {
+    "model": "ppocrv6_small",
+    "provider": "CPUExecutionProvider",
+    "models": [
+      {
+        "path": "models/ocr/ppocrv6_small/ocr.meta.json",
+        "sha256": "85c18ecb49be3cdac402cd830593b30e702c1d3038598df0d27c1f5574fe4a95"
+      },
+      {
+        "path": "models/ocr/ppocrv6_small/det.onnx",
+        "sha256": "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e"
+      },
+      {
+        "path": "models/ocr/ppocrv6_small/rec.onnx",
+        "sha256": "5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634"
+      },
+      {
+        "path": "models/ocr/ppocrv6_small/textline_orientation.onnx",
+        "sha256": "38aa97cd4be591e0ad304e659f07ba30d946f27a63315433f6659c69c8778345"
+      }
+    ],
+    "quantity_roi_xywh": [
+      42,
+      60,
+      42,
+      22
+    ],
+    "baseline": "recognition_only:raw_1x",
+    "admission_score": 0.8,
+    "baseline_summary": {
+      "groups": {
+        "active": {
+          "count": 47,
+          "correct": 44,
+          "rejected": 3,
+          "wrong_accepted": 0,
+          "raw_exact_match": 46,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 5.469259574385162,
+          "p95_ms": 6.749919996946117
+        },
+        "dim_train_diagnostic": {
+          "count": 25,
+          "correct": 24,
+          "rejected": 1,
+          "wrong_accepted": 0,
+          "raw_exact_match": 24,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 5.532248000381514,
+          "p95_ms": 6.621960003394632
+        },
+        "synthetic_negative": {
+          "count": 7,
+          "correct": 4,
+          "rejected": 4,
+          "wrong_accepted": 3,
+          "raw_exact_match": 1,
+          "raw_high_confidence_mismatch": 4,
+          "mean_ms": 4.918628575978801,
+          "p95_ms": 5.479279995779507
+        },
+        "capacity_auxiliary": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 0,
+          "wrong_accepted": 0,
+          "raw_exact_match": 3,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 6.805666664149612,
+          "p95_ms": 7.850290008354932
+        }
+      },
+      "elapsed_ms": {
+        "sum": 450.2088000299409,
+        "mean": 5.490351219877328,
+        "median": 5.413999984739348,
+        "p95": 6.850544988992624
+      },
+      "errors": 0
+    },
+    "strict_quantity_regex": "[1-9][0-9]{0,3}",
+    "sensitivity": {
+      "mode": "recognition_only",
+      "variant": "raw_1x",
+      "inference_repeated": false,
+      "rows": [
+        {
+          "score_threshold": 0.5,
+          "groups": {
+            "active": {
+              "count": 47,
+              "correct": 46,
+              "wrong_accepted": 0,
+              "rejected": 1
+            },
+            "dim_train_diagnostic": {
+              "count": 25,
+              "correct": 24,
+              "wrong_accepted": 0,
+              "rejected": 1
+            },
+            "synthetic_negative": {
+              "count": 7,
+              "correct": 4,
+              "wrong_accepted": 3,
+              "rejected": 4
+            }
+          }
+        },
+        {
+          "score_threshold": 0.8,
+          "groups": {
+            "active": {
+              "count": 47,
+              "correct": 44,
+              "wrong_accepted": 0,
+              "rejected": 3
+            },
+            "dim_train_diagnostic": {
+              "count": 25,
+              "correct": 24,
+              "wrong_accepted": 0,
+              "rejected": 1
+            },
+            "synthetic_negative": {
+              "count": 7,
+              "correct": 4,
+              "wrong_accepted": 3,
+              "rejected": 4
+            }
+          }
+        },
+        {
+          "score_threshold": 0.95,
+          "groups": {
+            "active": {
+              "count": 47,
+              "correct": 41,
+              "wrong_accepted": 0,
+              "rejected": 6
+            },
+            "dim_train_diagnostic": {
+              "count": 25,
+              "correct": 22,
+              "wrong_accepted": 0,
+              "rejected": 3
+            },
+            "synthetic_negative": {
+              "count": 7,
+              "correct": 4,
+              "wrong_accepted": 3,
+              "rejected": 4
+            }
+          }
+        },
+        {
+          "score_threshold": 0.99,
+          "groups": {
+            "active": {
+              "count": 47,
+              "correct": 34,
+              "wrong_accepted": 0,
+              "rejected": 13
+            },
+            "dim_train_diagnostic": {
+              "count": 25,
+              "correct": 18,
+              "wrong_accepted": 0,
+              "rejected": 7
+            },
+            "synthetic_negative": {
+              "count": 7,
+              "correct": 4,
+              "wrong_accepted": 3,
+              "rejected": 4
+            }
+          }
+        }
+      ]
+    },
+    "pipeline_comparison": {
+      "recognition_only:raw_1x": {
+        "active": {
+          "count": 47,
+          "correct": 44,
+          "rejected": 3,
+          "wrong_accepted": 0,
+          "raw_exact_match": 46,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 5.469259574385162,
+          "p95_ms": 6.749919996946117
+        },
+        "dim_train_diagnostic": {
+          "count": 25,
+          "correct": 24,
+          "rejected": 1,
+          "wrong_accepted": 0,
+          "raw_exact_match": 24,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 5.532248000381514,
+          "p95_ms": 6.621960003394632
+        },
+        "synthetic_negative": {
+          "count": 7,
+          "correct": 4,
+          "rejected": 4,
+          "wrong_accepted": 3,
+          "raw_exact_match": 1,
+          "raw_high_confidence_mismatch": 4,
+          "mean_ms": 4.918628575978801,
+          "p95_ms": 5.479279995779507
+        },
+        "capacity_auxiliary": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 0,
+          "wrong_accepted": 0,
+          "raw_exact_match": 3,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 6.805666664149612,
+          "p95_ms": 7.850290008354932
+        }
+      },
+      "detector_recognizer:raw_1x": {
+        "active": {
+          "count": 47,
+          "correct": 2,
+          "rejected": 45,
+          "wrong_accepted": 0,
+          "raw_exact_match": 2,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 1.575459573824117,
+          "p95_ms": 3.290389990434042
+        },
+        "dim_train_diagnostic": {
+          "count": 25,
+          "correct": 0,
+          "rejected": 25,
+          "wrong_accepted": 0,
+          "raw_exact_match": 0,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 1.174556000623852,
+          "p95_ms": 1.9015600148122744
+        },
+        "synthetic_negative": {
+          "count": 7,
+          "correct": 7,
+          "rejected": 7,
+          "wrong_accepted": 0,
+          "raw_exact_match": 7,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 1.1367285707300263,
+          "p95_ms": 1.2385399953927845
+        },
+        "capacity_auxiliary": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 0,
+          "wrong_accepted": 0,
+          "raw_exact_match": 3,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 7.030266666940103,
+          "p95_ms": 7.40199001156725
+        }
+      },
+      "detector_recognizer:raw_4x": {
+        "active": {
+          "count": 47,
+          "correct": 42,
+          "rejected": 5,
+          "wrong_accepted": 0,
+          "raw_exact_match": 42,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 8.175282976887328,
+          "p95_ms": 10.878519996185785
+        },
+        "dim_train_diagnostic": {
+          "count": 25,
+          "correct": 20,
+          "rejected": 5,
+          "wrong_accepted": 0,
+          "raw_exact_match": 20,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 7.5505039968993515,
+          "p95_ms": 9.805979992961511
+        },
+        "synthetic_negative": {
+          "count": 7,
+          "correct": 4,
+          "rejected": 4,
+          "wrong_accepted": 3,
+          "raw_exact_match": 3,
+          "raw_high_confidence_mismatch": 4,
+          "mean_ms": 5.269771425186524,
+          "p95_ms": 7.5596299837343395
+        },
+        "capacity_auxiliary": {
+          "count": 3,
+          "correct": 3,
+          "rejected": 0,
+          "wrong_accepted": 0,
+          "raw_exact_match": 3,
+          "raw_high_confidence_mismatch": 0,
+          "mean_ms": 11.578800001492104,
+          "p95_ms": 12.121430001570843
+        }
+      }
+    },
+    "three_twenty_values": [
+      {
+        "sample": "warehouse_before:raw",
+        "expected": "20",
+        "raw_ctc": [
+          {
+            "text": "20",
+            "score": 0.999868243932724
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "20"
+          ],
+          "api_scores": [
+            0.999868243932724
+          ],
+          "text": "20",
+          "score": 0.999868243932724,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      },
+      {
+        "sample": "warehouse_connected:product",
+        "expected": "20",
+        "raw_ctc": [
+          {
+            "text": "20",
+            "score": 0.9997955858707428
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "20"
+          ],
+          "api_scores": [
+            0.9997955858707428
+          ],
+          "text": "20",
+          "score": 0.9997955858707428,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      },
+      {
+        "sample": "warehouse_after:train_3_0",
+        "expected": "20",
+        "raw_ctc": [
+          {
+            "text": "20",
+            "score": 0.9999116659164429
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "20"
+          ],
+          "api_scores": [
+            0.9999116659164429
+          ],
+          "text": "20",
+          "score": 0.9999116659164429,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      }
+    ],
+    "capacity_auxiliary": [
+      {
+        "sample": "warehouse_before:train_capacity",
+        "expected": "74/1003",
+        "raw_ctc": [
+          {
+            "text": "74/1003",
+            "score": 0.9999934434890747
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "74/1003"
+          ],
+          "api_scores": [
+            0.9999934434890747
+          ],
+          "text": "74/1003",
+          "score": 0.9999934434890747,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": false,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      },
+      {
+        "sample": "warehouse_connected:train_capacity",
+        "expected": "74/1003",
+        "raw_ctc": [
+          {
+            "text": "74/1003",
+            "score": 0.999992949622018
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "74/1003"
+          ],
+          "api_scores": [
+            0.999992949622018
+          ],
+          "text": "74/1003",
+          "score": 0.999992949622018,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": false,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      },
+      {
+        "sample": "warehouse_after:train_capacity",
+        "expected": "94/1003",
+        "raw_ctc": [
+          {
+            "text": "94/1003",
+            "score": 0.9999911444527763
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "94/1003"
+          ],
+          "api_scores": [
+            0.9999911444527763
+          ],
+          "text": "94/1003",
+          "score": 0.9999911444527763,
+          "accepted": true,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": false,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      }
+    ],
+    "damaged_controls": [
+      {
+        "sample": "synthetic:white_bar_only",
+        "raw_ctc": [
+          {
+            "text": "",
+            "score": 0.0
+          }
+        ],
+        "result": {
+          "api_texts": [],
+          "api_scores": [],
+          "text": null,
+          "score": null,
+          "accepted": false,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": false,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": true
+        }
+      },
+      {
+        "sample": "synthetic:white_bar_gradient",
+        "raw_ctc": [
+          {
+            "text": "1",
+            "score": 0.22588010132312775
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "1"
+          ],
+          "api_scores": [
+            0.22588010132312775
+          ],
+          "text": "1",
+          "score": 0.22588010132312775,
+          "accepted": false,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": false
+        }
+      },
+      {
+        "sample": "synthetic:twenty_erase_both",
+        "raw_ctc": [
+          {
+            "text": "X",
+            "score": 0.37505581974983215
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "X"
+          ],
+          "api_scores": [
+            0.37505581974983215
+          ],
+          "text": "X",
+          "score": 0.37505581974983215,
+          "accepted": false,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": false,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": false,
+          "raw_exact_match": false
+        }
+      },
+      {
+        "sample": "synthetic:twenty_drop_leading_digit",
+        "raw_ctc": [
+          {
+            "text": "0",
+            "score": 0.9639247059822083
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "0"
+          ],
+          "api_scores": [
+            0.9639247059822083
+          ],
+          "text": "0",
+          "score": 0.9639247059822083,
+          "accepted": false,
+          "correct": true,
+          "status": "correct",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": true,
+          "raw_high_confidence_mismatch": true,
+          "raw_exact_match": false
+        }
+      },
+      {
+        "sample": "synthetic:twenty_drop_trailing_digit",
+        "raw_ctc": [
+          {
+            "text": "2",
+            "score": 0.9970695376396179
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "2"
+          ],
+          "api_scores": [
+            0.9970695376396179
+          ],
+          "text": "2",
+          "score": 0.9970695376396179,
+          "accepted": true,
+          "correct": false,
+          "status": "wrong_accepted",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": true,
+          "raw_exact_match": false
+        }
+      },
+      {
+        "sample": "synthetic:twenty_cut_leading_left_half",
+        "raw_ctc": [
+          {
+            "text": "20",
+            "score": 0.9987851977348328
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "20"
+          ],
+          "api_scores": [
+            0.9987851977348328
+          ],
+          "text": "20",
+          "score": 0.9987851977348328,
+          "accepted": true,
+          "correct": false,
+          "status": "wrong_accepted",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": true,
+          "raw_exact_match": false
+        }
+      },
+      {
+        "sample": "synthetic:twenty_cut_trailing_right_half",
+        "raw_ctc": [
+          {
+            "text": "20",
+            "score": 0.9991811513900757
+          }
+        ],
+        "result": {
+          "api_texts": [
+            "20"
+          ],
+          "api_scores": [
+            0.9991811513900757
+          ],
+          "text": "20",
+          "score": 0.9991811513900757,
+          "accepted": true,
+          "correct": false,
+          "status": "wrong_accepted",
+          "raw_ascii_digits": true,
+          "raw_zero_or_leading_zero": false,
+          "raw_high_confidence_mismatch": true,
+          "raw_exact_match": false
+        }
+      }
+    ]
+  },
+  "synthetic_native_ocr": {
+    "mixed_into_real_screenshot_accuracy": false,
+    "source_report": "reports includes synthetic_native_ocr_diagnostic.json",
+    "limits": [
+      "Synthetic native rasterizations on a neutral background are not screenshots.",
+      "Real supplied warehouse quantities still contain no 8/9 glyphs.",
+      "Correct synthetic isolated digits do not establish unknown-length, damaged-glyph or click readiness."
+    ],
+    "summaries": [
+      {
+        "mode": "recognition_only",
+        "scale": 1,
+        "count": 10,
+        "correct": 10
+      },
+      {
+        "mode": "recognition_only",
+        "scale": 3,
+        "count": 10,
+        "correct": 10
+      },
+      {
+        "mode": "recognition_only",
+        "scale": 6,
+        "count": 10,
+        "correct": 10
+      },
+      {
+        "mode": "detector_recognizer",
+        "scale": 1,
+        "count": 10,
+        "correct": 8
+      },
+      {
+        "mode": "detector_recognizer",
+        "scale": 3,
+        "count": 10,
+        "correct": 10
+      },
+      {
+        "mode": "detector_recognizer",
+        "scale": 6,
+        "count": 10,
+        "correct": 10
+      }
+    ]
+  },
+  "limits": [
+    "All real samples are from only three warehouse captures; no independent live accuracy claim.",
+    "Native 108-profile selection and preprocessing comparison use the same supplied captures.",
+    "Only quantity 20 supplies real multi-digit evidence; 8/9 have generated glyphs but no real card examples.",
+    "Damaged controls are conservatively labelled unknown; confidence alone does not establish full-glyph visibility.",
+    "No automatic warehouse task, UI input, dependency change or model replacement was performed."
+  ]
+}

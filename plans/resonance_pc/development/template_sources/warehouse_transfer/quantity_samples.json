@@ -1,0 +1,869 @@
+{
+  "kind": "hand_transcribed_supplied_capture_quantities",
+  "samples": [
+    {
+      "frame": "warehouse_before",
+      "id": "train_0_0",
+      "bbox": [
+        28,
+        151,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_0_1",
+      "bbox": [
+        124,
+        151,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_0_2",
+      "bbox": [
+        221,
+        151,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_0_3",
+      "bbox": [
+        318,
+        151,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_0_4",
+      "bbox": [
+        414,
+        151,
+        84,
+        84
+      ],
+      "expected": "3",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_1_0",
+      "bbox": [
+        28,
+        247,
+        84,
+        84
+      ],
+      "expected": "6",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_1_1",
+      "bbox": [
+        124,
+        247,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_1_2",
+      "bbox": [
+        221,
+        247,
+        84,
+        84
+      ],
+      "expected": "3",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_1_3",
+      "bbox": [
+        318,
+        247,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_1_4",
+      "bbox": [
+        414,
+        247,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_2_0",
+      "bbox": [
+        28,
+        344,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_2_1",
+      "bbox": [
+        124,
+        344,
+        84,
+        84
+      ],
+      "expected": "5",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_2_2",
+      "bbox": [
+        221,
+        344,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_2_3",
+      "bbox": [
+        318,
+        344,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_2_4",
+      "bbox": [
+        414,
+        344,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_3_0",
+      "bbox": [
+        28,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_3_1",
+      "bbox": [
+        124,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_3_2",
+      "bbox": [
+        221,
+        441,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_3_3",
+      "bbox": [
+        318,
+        441,
+        84,
+        84
+      ],
+      "expected": "7",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_3_4",
+      "bbox": [
+        414,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_4_0",
+      "bbox": [
+        28,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_4_1",
+      "bbox": [
+        124,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_4_2",
+      "bbox": [
+        221,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_4_3",
+      "bbox": [
+        318,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "train_4_4",
+      "bbox": [
+        414,
+        537,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "dim_train_diagnostic"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_0_0",
+      "bbox": [
+        28,
+        151,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_0_1",
+      "bbox": [
+        124,
+        151,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_0_2",
+      "bbox": [
+        221,
+        151,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_0_3",
+      "bbox": [
+        318,
+        151,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_0_4",
+      "bbox": [
+        414,
+        151,
+        84,
+        84
+      ],
+      "expected": "3",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_1_0",
+      "bbox": [
+        28,
+        247,
+        84,
+        84
+      ],
+      "expected": "6",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_1_1",
+      "bbox": [
+        124,
+        247,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_1_2",
+      "bbox": [
+        221,
+        247,
+        84,
+        84
+      ],
+      "expected": "3",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_1_3",
+      "bbox": [
+        318,
+        247,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_1_4",
+      "bbox": [
+        414,
+        247,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_2_0",
+      "bbox": [
+        28,
+        344,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_2_1",
+      "bbox": [
+        124,
+        344,
+        84,
+        84
+      ],
+      "expected": "5",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_2_2",
+      "bbox": [
+        221,
+        344,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_2_3",
+      "bbox": [
+        318,
+        344,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_2_4",
+      "bbox": [
+        414,
+        344,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_3_0",
+      "bbox": [
+        28,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_3_1",
+      "bbox": [
+        124,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_3_2",
+      "bbox": [
+        221,
+        441,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_3_3",
+      "bbox": [
+        318,
+        441,
+        84,
+        84
+      ],
+      "expected": "7",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_3_4",
+      "bbox": [
+        414,
+        441,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_4_0",
+      "bbox": [
+        28,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_4_1",
+      "bbox": [
+        124,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_4_2",
+      "bbox": [
+        221,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_4_3",
+      "bbox": [
+        318,
+        537,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "train_4_4",
+      "bbox": [
+        414,
+        537,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_before",
+      "id": "raw",
+      "bbox": [
+        586,
+        99,
+        84,
+        84
+      ],
+      "expected": "20",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "product",
+      "bbox": [
+        586,
+        431,
+        84,
+        84
+      ],
+      "expected": "20",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_0_0",
+      "bbox": [
+        28,
+        188,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_0_1",
+      "bbox": [
+        124,
+        188,
+        84,
+        84
+      ],
+      "expected": "5",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_0_2",
+      "bbox": [
+        221,
+        188,
+        84,
+        84
+      ],
+      "expected": "2",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_0_3",
+      "bbox": [
+        318,
+        188,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_0_4",
+      "bbox": [
+        414,
+        188,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_1_0",
+      "bbox": [
+        28,
+        284,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_1_1",
+      "bbox": [
+        124,
+        284,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_1_2",
+      "bbox": [
+        221,
+        284,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_1_3",
+      "bbox": [
+        318,
+        284,
+        84,
+        84
+      ],
+      "expected": "7",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_1_4",
+      "bbox": [
+        414,
+        284,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_2_0",
+      "bbox": [
+        28,
+        381,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_2_1",
+      "bbox": [
+        124,
+        381,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_2_2",
+      "bbox": [
+        221,
+        381,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_2_3",
+      "bbox": [
+        318,
+        381,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_2_4",
+      "bbox": [
+        414,
+        381,
+        84,
+        84
+      ],
+      "expected": "4",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_0",
+      "bbox": [
+        28,
+        478,
+        84,
+        84
+      ],
+      "expected": "20",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_1",
+      "bbox": [
+        124,
+        478,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_2",
+      "bbox": [
+        221,
+        478,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_3",
+      "bbox": [
+        318,
+        478,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_4",
+      "bbox": [
+        414,
+        478,
+        84,
+        84
+      ],
+      "expected": "1",
+      "state": "active"
+    }
+  ]
+}
